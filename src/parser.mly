@@ -19,10 +19,10 @@
 %token BAR DARROW
 
 (* constant tokens for acp *)
-%token TYPE PROCESS FILESYS CHANNEL 
+%token TY PROC FSYS CHAN 
 %token ALLOW 
 %token READ WRITE SEND RECV 
-%token ATTACKERT EAVESDROP TAMER DROP
+%token ATTACKERT EAVESDROP TAMPER DROP
 
 (* constant tokens for initialization constants *)
 %token INITCONST 
@@ -35,12 +35,6 @@
 
 (* constant tokens for system instantiation *)
 %token SYSTEM REQUIRES 
-
-
-
-
-
-
 
 (* Datatypes & types *)
 %token BOOL INT REAL
@@ -75,30 +69,102 @@
 %left     INFIXOP3
 %right    INFIXOP4
 
-%start <Input.toplevel list> file
-%start <Input.toplevel> commandline
+%start <Input.decl list * Input.sys> file
 
 %%
 
-(* Toplevel syntax *)
+(* syntax *)
 
 file:
-  | f=filecontents EOF            { f }
+  | f=decls s=sys EOF            { (f, s) }
 
-filecontents:
+sys: mark_location(plain_sys) { $1 }
+plain_sys:
+  | SYSTEM p=separated_nonempty_list(BBAR, proc) REQUIRES 
+    LBRACKET a=separated_nonempty_list(SEMICOLON, assert) RBRACKET { Sys(p, a) }
+
+proc: mark_location(plain_proc) { $1 }
+plain_proc:
+  | id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH f=NAME 
+    { Proc (id, parems, f) }
+
+assert: mark_location(plain_assert) { $1 }
+plain_assert:
+  | LEMMA id=NAME COLON p=prop { Assert (id, p) }
+
+prop: mark_location(plain_prop) { $1 }
+plain_prop:
+  | TRUE {True}
+
+
+  | DeclType of Name.ident * type_class
+  | DeclAccess of Name.ident * Name.ident * (access_class list)
+  | DeclAttack of Name.ident * (attack_class list)
+  | DeclInit of Name.ident * expr
+  | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
+  | DeclChan of Name.ident * chan_class
+  | DeclProc of Name.ident * (Name.ident list) * Name.ident * ((Name.ident * expr) list) * (Name.ident * (Name.ident list) * comp) * comp 
+type chan_class = CDatagram | CStream
+
+
+decls:
   |                                 { [] }
-  | d=topdecl ds=filecontents       { d :: ds }
+  | d=decl ds=decls       { d :: ds }
 
-(* Things that can be defined on toplevel. *)
-topdecl: mark_location(plain_topdecl) { $1 }
-plain_topdecl:
-  | access_
+decl: mark_location(plain_decl) { $1 }
+plain_decl:
+  | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
+  | ALLOW s=NAME t=NAME LBRACKET a=access_c RBRACKET { DeclAccess(s,t,a)} 
+  | ATTACK t=NAME LBRACKET a=attack_c RBRACKET { DeclAttack(t,a)} 
+  | INITCONST t=NAME EQ e=expr SEMICOLON { DeclInit(t,e) }
+  | FILESYS t=NAME EQ LBRACKET f=separated_nonempty_list(COMMA, fpath) { DeclFsys(t, f) }
+  | CHANNEL id=NAME EQ LBRACE TRANSFER COLON c=chan_c COMMA TYPE COLON n=NAME RBRACE { DeclChan(id, c, n) }
+  | PROCESS id=name LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
+    LBRACE 
+fpath: mark_location(plain_fpath) { $1 }
+plain_fpath:
+  | LBRACE PATH COLON fp=NAME COMMA DATA COLON e=expr COMMA TYPE COLON t=NAME RBRACE
+    { Fpath(fp, e, t) }
 
-  | FUNCTION f=var_name LPAREN xs=fun_args RPAREN COLON c=term
-                                                            { TopFunction (f, xs, c) }
-  | EXTERNAL f=var_name COLON ft=funty EQ s=QUOTED_STRING   { TopExternal (f, s, ft) }
-  | DO c=term                                               { TopDo c }
-  | PRECISION p=NUMERAL                                     { TopPrecision p }
+type_c:
+  | FILESYS { CFsys }
+  | PROCESS { CProc }
+  | CHANNEL { CChan }
+
+access_c:
+  | READ { CRead }
+  | WRITE { CWrite }
+  | SEND { CSend }
+  | RECV { CRecv }
+
+attack_c:
+  | EAVESDROP { CEaves }
+  | TAMPER { CTamper }
+  | DROP { CDrop }
+
+chan_c:
+  | DATAGRAM { CDatagram }
+  | STREAM { CStream }
+
+accesses: 
+  | a=access COMMA as=accesses {a :: as}
+  | a=access {[a]}
+
+access:
+  | READ {TRead}
+  | WRITE {TWrite}
+  | SEND {TSend}
+  | RECV {TRecv}
+
+attacks: 
+  | a=attack COMMA as=attacks {a :: as}
+  | a=attack {[a]}
+
+attack:
+  | EAVESDROP {TEaves}
+  | TAMPER {TTamper}
+  | DROP {TDrop}
+
 
 (* Toplevel directive. *)
 topdirective: mark_location(plain_topdirective)      { $1 }
