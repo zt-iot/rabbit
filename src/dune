@@ -1,0 +1,9 @@
+(executable
+  (name "rabbitm")
+  (public_name "rabbitm")
+  (flags -w +a-4-27-29-50)
+  (libraries sedlex gmp menhirLib)
+  (preprocess (pps sedlex.ppx)))
+
+(menhir
+  (modules parser))
