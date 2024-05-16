@@ -1,0 +1,3 @@
+external pk : nat -> nat
+satisifes pk(4) < = 2
+

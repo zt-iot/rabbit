@@ -21,8 +21,22 @@ let print_error err ppf =
 (** A desugaring context is a list of known identifiers, which is used
     to compute de Bruijn indices. *)
 type context = {
-  idents : Name.ident list ;
-  funs : Name.ident list
+   
+   ext_op_idents : (Name.ident * Syntax.datatype list * Syntax.datatype) list ; 
+
+   ext_eq : (Syntax.expr * Syntax.expr) list ; 
+
+   ty_idents : (Name.ident * Syntax.type_class) list ;
+   
+   consts_idents : (Name.ident * list ;
+
+   prim_idents : Name.ident list ;
+   fsys_idents : Name.ident list ;
+   chan_idents : Name.ident list ;
+   proc_idents : Name.ident list ;
+   
+   proc_
+   funs : Name.ident list
 }
 
 (** Initial context *)

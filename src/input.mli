@@ -8,17 +8,18 @@ type expr = expr' Location.located
 and expr' =
   | Var of Name.ident
   | Boolean of bool
+  | String of string  
   (* | Integer of Mpzf.t *)
   | Integer of int
   | Float of string (* store the string so we can correctly round later *)
   | Apply of operator * expr list
   | Tuple of expr list
 
-type op = op' Location.located
-and op' = 
+type atomic_stmt = atomic_stmt' Location.located
+and atomic_stmt' = 
   | Skip
   | Let of Name.ident * expr
-  | Call of Name.ident * Name.ident * expr list
+  (* | Call of Name.ident * Name.ident * expr list *)
   | If of expr * stmt list * stmt list
   | For of Name.ident * int * int * stmt list
 
@@ -28,8 +29,8 @@ and event' =
 
 and stmt = stmt' Location.located
 and stmt' = 
-  | OpStmt of op
-  | EventStmt of op * event list
+  | OpStmt of atomic_stmt
+  | EventStmt of atomic_stmt * event list
 
 type proc = proc' Location.located
 and proc' =
@@ -51,8 +52,16 @@ type sys = sys' Location.located
 and sys' = 
   | Sys of proc list * lemma list
 
+type datatype = datatype' Location.located
+and datatype' = 
+  | DInt
+  | DString
+  | DBool
+
 type decl = decl' Location.located
 and decl' =
+  | DeclPrimFun of Name.ident * (datatype list) * datatype
+  | DeclPrimEq of expr * expr
   | DeclType of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident * (access_class list)
   | DeclAttack of Name.ident * (attack_class list)

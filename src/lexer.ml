@@ -39,6 +39,9 @@ let reserved = [
   ("range", RANGE) ; 
   ("init", INIT) ; 
   ("requires", REQUIRES) ; 
+  ("external", EXTERNAL) ; 
+  ("satisfies", SATISFIES) ; 
+  ("satisfy", SATISFY) ; 
   ("True", TRUE)
 ]
 

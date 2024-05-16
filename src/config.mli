@@ -4,8 +4,5 @@ val interactive_shell : bool ref
 val wrapper : string list option ref
 val max_boxes : int ref
 val columns : int ref
-val init_prec : int ref
-val max_prec : int ref
-val out_prec : int ref
 val trace : bool ref
 val verbose : bool ref

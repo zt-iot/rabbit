@@ -24,7 +24,7 @@
 %token CHANNEL TRANSFER PROCESS WITH FUNC MAIN RETURN 
 %token DATA READ WRITE SEND RECV EAVESDROP TAMPER DROP PATH
 %token DATAGRAM STREAM SKIP LET CALL IF THEN ELSE FOR IN RANGE AT INIT
-%token REQUIRES
+%token REQUIRES SATISFIES SATISFY EXTERNAL INT BOOL STRING
 
 (* temporal logic *)
 %token TRUE
@@ -33,12 +33,10 @@
 %token EOF
 
 (* Precedence and fixity of infix operators *)
-%nonassoc IN
-%right    SEMICOLON
-%nonassoc ELSE
 %left     INFIXOP0
 %right    INFIXOP1
 %left     INFIXOP2
+%right    PREFIXOP
 %left     INFIXOP3
 %right    INFIXOP4
 
@@ -75,6 +73,8 @@ decls:
 
 decl: mark_location(plain_decl) { $1 }
 plain_decl:
+  | EXTERNAL id=NAME COLON LPAREN doms=separated_list(COMMA, datatype) RPAREN ARROW codom=datatype { DeclPrimFun(id, doms, codom) }
+  | SATISFIES x=expr EQ y=expr { DeclPrimEq(x, y) }
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
   | ALLOW s=NAME t=NAME LBRACKET a=separated_nonempty_list(COMMA, access_c) RBRACKET { DeclAccess(s,t,a)} 
   | ATTACK t=NAME LBRACKET a=separated_nonempty_list(COMMA, attack_c) RBRACKET { DeclAttack(t,a)} 
@@ -83,6 +83,12 @@ plain_decl:
   | CHANNEL id=NAME EQ LBRACE TRANSFER COLON c=chan_c COMMA TYPE COLON n=NAME RBRACE { DeclChan(id, c, n) }
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
     LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
+
+datatype: mark_location(plain_datatype) { $1 }
+plain_datatype:
+  | INT { DInt }
+  | BOOL { DBool }
+  | STRING { DString }
 
 let_stmts:
   | { [] }
@@ -145,7 +151,7 @@ plain_expr:
       Apply (op, [e2; e3])
     }
   | LPAREN es=separated_list(COMMA, expr) RPAREN { Tuple es } 
-  | LPAREN e=plain_expr RPAREN { e }
+  | s=QUOTED_STRING { String s }
 
 %inline infix:
   | op=INFIXOP0    { op }
@@ -161,8 +167,8 @@ op : mark_location(plain_op) { $1 }
 plain_op:
   | SKIP { Skip }
   | LET id=NAME COLONEQ e=expr { Let (id, e) }
-  | CALL id=NAME COLONEQ f=NAME 
-    LPAREN es=separated_list(COMMA, expr) RPAREN { Call (id, f, es) }
+(*  | CALL id=NAME COLONEQ f=NAME 
+    LPAREN es=separated_list(COMMA, expr) RPAREN { Call (id, f, es) } *)
 
 block_op: mark_location(plain_block_op) { $1 }
 plain_block_op:
