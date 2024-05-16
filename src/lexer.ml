@@ -1,31 +1,45 @@
 open Parser
 
 let reserved = [
-  ("and", AND) ;
-  ("begin", BEGIN) ;
-  ("bool", BOOL) ;
-  ("case", CASE) ;
-  ("command", COMMAND) ;
-  ("do", DO) ;
-  ("else", ELSE) ;
-  ("end", END) ;
-  ("external", EXTERNAL) ;
   ("false", BOOLEAN false) ;
-  ("function", FUNCTION) ;
-  ("if", IF) ;
-  ("in", IN) ;
-  ("int", INT) ;
-  ("let", LET) ;
-  ("lim", LIM) ;
-  ("load", LOAD) ;
-  ("real", REAL) ;
-  ("precision", PRECISION) ;
   ("skip", SKIP) ;
   ("then", THEN) ;
-  ("trace", TRACE) ;
   ("true", BOOLEAN true) ;
-  ("var", VAR) ;
-  ("while", WHILE)
+  ("system", SYSTEM) ;
+  ("lemma", LEMMA) ; 
+  ("type", TYPE) ;
+  ("allow", ALLOW) ;
+  ("attack", ATTACK) ;
+  ("init_const", INITCONST) ;
+  ("filesys", FILESYS) ;
+  ("channel", CHANNEL) ; 
+  ("transfer", TRANSFER) ; 
+  ("path", PATH) ; 
+  ("process", PROCESS) ;
+  ("with", WITH) ;
+  ("function", FUNC) ;
+  ("main", MAIN) ;
+  ("return", RETURN) ; 
+  ("data", DATA) ; 
+  ("read", READ) ;
+  ("write", WRITE) ;
+  ("send", SEND) ;
+  ("recv", RECV) ; 
+  ("eavesdrop", EAVESDROP) ; 
+  ("tamper", TAMPER) ; 
+  ("drop", DROP) ;
+  ("datagram", DATAGRAM) ; 
+  ("stream", STREAM) ; 
+  ("skip", SKIP) ;
+  ("let", LET) ;
+  ("call", CALL) ; 
+  ("if", IF) ;
+  ("in", IN) ;
+  ("else", ELSE) ;
+  ("range", RANGE) ; 
+  ("init", INIT) ; 
+  ("requires", REQUIRES) ; 
+  ("True", TRUE)
 ]
 
 let name =
@@ -40,9 +54,9 @@ let numeral = [%sedlex.regexp? Opt '-', Plus digit]
 let hexdigit = [%sedlex.regexp? ('0'..'9' | 'a'..'f' | 'A'..'F')]
 let float = [%sedlex.regexp? Opt '-', Opt ("0x" | "0X" | "0b" | "0B"), Plus hexdigit, '.', Star hexdigit]
 
-let symbolchar = [%sedlex.regexp?  ('!' | '$' | '%' | '&' | '*' | '+' | '-' | '.' | '/' | ':' | '<' | '=' | '>' | '?' | '@' | '^' | '|' | '~')]
+let symbolchar = [%sedlex.regexp?  ('!' | '$' | '%' | '&' | '*' | '+' | '-' | '.' | '/' | ':' | '<' | '=' | '>' | '?'  | '^' | '|' | '~')]
 
-let prefixop = [%sedlex.regexp? ('~' | '?' | '!'), Star symbolchar ]
+let prefixop = [%sedlex.regexp? ( "snd" | "fst" | '~' | '?' | '!'), Star symbolchar ]
 let infixop0 = [%sedlex.regexp? ('=' | '<' | '>' | '|' | '&' | '$'), Star symbolchar]
 let infixop1 = [%sedlex.regexp? ('@' | '^'), Star symbolchar ]
 let infixop2 = [%sedlex.regexp? ('+' | '-'), Star symbolchar ]
@@ -67,7 +81,8 @@ let loc_of lex = Location.make lex.Ulexbuf.pos_start lex.Ulexbuf.pos_end
 let safe_int_of_string lexbuf =
   let s = Ulexbuf.lexeme lexbuf in
   try
-    Mpz.of_string s
+    int_of_string s
+    (* Mpz.of_string s *)
   with
     Invalid_argument _ -> Ulexbuf.error ~loc:(loc_of lexbuf) (Ulexbuf.BadNumeral s)
 
@@ -87,9 +102,14 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
      String.iter (fun c -> if c = '\n' then incr n) s;
      Ulexbuf.new_line ~n:!n lexbuf;
      QUOTED_STRING (String.sub s 1 (l - 2))
+  | '@'                      -> f (); AT
   | '('                      -> f (); LPAREN
   | ')'                      -> f (); RPAREN
-  | '|'                      -> f (); BAR
+  | '['                      -> f (); LBRACKET
+  | ']'                      -> f (); RBRACKET
+  | '{'                      -> f (); LBRACE
+  | '}'                      -> f (); RBRACE
+  | "||"                      -> f (); BBAR
   | "=>" | 8658 | 10233      -> f (); DARROW
   | "->" | 8594 | 10230      -> f (); ARROW
   | "="                      -> f (); EQ
