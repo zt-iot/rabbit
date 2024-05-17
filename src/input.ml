@@ -52,16 +52,16 @@ type sys = sys' Location.located
 and sys' = 
   | Sys of proc list * lemma list
 
-type datatype = datatype' Location.located
+(* type datatype = datatype' Location.located
 and datatype' = 
   | DInt
   | DString
   | DBool
-
+ *)
 type decl = decl' Location.located
 and decl' =
-  | DeclPrimFun of Name.ident * (datatype list) * datatype
-  | DeclPrimEq of expr * expr
+  | DeclExtFun of Name.ident * int 
+  | DeclExtEq of expr * expr
   | DeclType of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident * (access_class list)
   | DeclAttack of Name.ident * (attack_class list)

@@ -1,19 +1,60 @@
-type operator = string
-type type_class = CProc | CFsys | CChan
-type access_class = CRead |  CWrite | CSend | CRecv 
-type attack_class = CEaves |  CTamper | CDrop 
-type chan_class = CDatagram | CStream
-
 type expr = expr' Location.located
 and expr' =
-  | Var of Name.ident
+  | Const of Name.ident
+  | ExtConst of Name.ident
+  | Variable of Name.ident
   | Boolean of bool
-  | String of string
-  (* | Integer of Mpzf.t *)
+  | String of string  
   | Integer of int
   | Float of string (* store the string so we can correctly round later *)
   | Apply of operator * expr list
   | Tuple of expr list
+
+type instructions = 
+  | IRead | IWrite | IInvoke | IRecv | ISend | IOpen | IClose | ICloseConn | IConnect | IAccept
+
+
+type atomic_stmt = atomic_stmt' Location.located
+and atomic_stmt' = 
+  | Skip
+  | Let of Name.ident * expr
+  | Call of instructions * Name.ident * expr list
+  | If of expr * stmt list * stmt list
+  | For of Name.ident * int * int * stmt list
+
+and event = event' Location.located
+and event' = 
+  | Event of Name.ident * ((Name.ident * bool) list)
+
+and stmt = stmt' Location.located
+and stmt' = 
+  | OpStmt of atomic_stmt
+  | EventStmt of atomic_stmt * event list
+
+
+type proc = proc' Location.located
+and proc' =
+  | Proc of Name.ident * (Name.ident list) * Name.ident
+
+type fpath = fpath' Location.located
+and fpath' = 
+  | Fpath of (Name.ident * expr * Name.ident)
+
+type prop = prop' Location.located
+and prop' =
+  | True
+
+type lemma = lemma' Location.located
+and lemma' =
+  | Lemma of Name.ident * prop 
+
+type sys = sys' Location.located
+and sys' = 
+  | Sys of proc list * lemma list
+
+
+
+
 
 type op = op' Location.located
 and op' = 

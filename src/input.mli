@@ -36,10 +36,10 @@ type proc = proc' Location.located
 and proc' =
   | Proc of Name.ident * (Name.ident list) * Name.ident
 
-type fpath = fpath' Location.located
+(* type fpath = fpath' Location.located
 and fpath' = 
   | Fpath of (Name.ident * expr * Name.ident)
-
+ *)
 type prop = prop' Location.located
 and prop' =
   | True
@@ -52,21 +52,21 @@ type sys = sys' Location.located
 and sys' = 
   | Sys of proc list * lemma list
 
-type datatype = datatype' Location.located
+(* type datatype = datatype' Location.located
 and datatype' = 
   | DInt
   | DString
   | DBool
-
+ *)
 type decl = decl' Location.located
 and decl' =
-  | DeclPrimFun of Name.ident * (datatype list) * datatype
-  | DeclPrimEq of expr * expr
+  | DeclExtFun of Name.ident * int
+  | DeclExtEq of expr * expr
   | DeclType of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident * (access_class list)
   | DeclAttack of Name.ident * (attack_class list)
   | DeclInit of Name.ident * expr
-  | DeclFsys of Name.ident * (fpath list)
+  | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
   | DeclChan of Name.ident * chan_class * Name.ident
   | DeclProc of Name.ident * (Name.ident list) * Name.ident * 
                 ((Name.ident * expr) list) * 

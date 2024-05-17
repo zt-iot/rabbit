@@ -73,8 +73,8 @@ decls:
 
 decl: mark_location(plain_decl) { $1 }
 plain_decl:
-  | EXTERNAL id=NAME COLON LPAREN doms=separated_list(COMMA, datatype) RPAREN ARROW codom=datatype { DeclPrimFun(id, doms, codom) }
-  | SATISFIES x=expr EQ y=expr { DeclPrimEq(x, y) }
+  | EXTERNAL id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
+  | SATISFIES x=expr EQ y=expr { DeclExtEq(x, y) }
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
   | ALLOW s=NAME t=NAME LBRACKET a=separated_nonempty_list(COMMA, access_c) RBRACKET { DeclAccess(s,t,a)} 
   | ATTACK t=NAME LBRACKET a=separated_nonempty_list(COMMA, attack_c) RBRACKET { DeclAttack(t,a)} 
@@ -84,11 +84,6 @@ plain_decl:
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
     LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
 
-datatype: mark_location(plain_datatype) { $1 }
-plain_datatype:
-  | INT { DInt }
-  | BOOL { DBool }
-  | STRING { DString }
 
 let_stmts:
   | { [] }
@@ -109,10 +104,12 @@ main_stmt:
   | MAIN LBRACE c=stmts RBRACE { c }
 
 
-fpath: mark_location(plain_fpath) { $1 }
-plain_fpath:
+fpath:
   | LBRACE PATH COLON fp=NAME COMMA DATA COLON e=expr COMMA TYPE COLON t=NAME RBRACE
-    { Fpath(fp, e, t) }
+    { (fp, e, t) }
+
+(* mark_location(plain_fpath) { $1 }
+plain_fpath: *)
 
 type_c:
   | FILESYS { CFsys }
