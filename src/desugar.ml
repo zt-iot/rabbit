@@ -6,6 +6,7 @@
 type desugar_error =
   | UnknownIdentifier of string
   | UnknownFunction of string
+  | TypeDoesnotMatch of string
 
 exception Error of desugar_error Location.located
 
@@ -20,29 +21,58 @@ let print_error err ppf =
 
 (** A desugaring context is a list of known identifiers, which is used
     to compute de Bruijn indices. *)
-type context = {
-   
-   ext_op_idents : (Name.ident * Syntax.datatype list * Syntax.datatype) list ; 
 
-   ext_eq : (Syntax.expr * Syntax.expr) list ; 
-
-   ty_idents : (Name.ident * Syntax.type_class) list ;
-   
-   consts_idents : (Name.ident * list ;
-
-   prim_idents : Name.ident list ;
-   fsys_idents : Name.ident list ;
-   chan_idents : Name.ident list ;
-   proc_idents : Name.ident list ;
-   
-   proc_
-   funs : Name.ident list
+type chan = {
+   transfer : Syntax.transfer ; 
+   ty : Name.ident
 }
 
+type fl = {
+   path : string ; 
+   data : Syntax.expr ; 
+   ty : Name.ident 
+}
+
+type filesys = {
+   files : Name.ident * Name.ident * 
+}
+
+type context = {
+   
+   prim_fun : (Name.ident * Syntax.datatype list * Syntax.datatype) list ; 
+
+   ty : (Name.ident * Syntax.type_class) list ;
+   
+   const : (Name.ident * Syntax.datatype) list ;
+
+   files : (Name.ident * fl list) list ; 
+
+   chans : (Name.ident * chan) list 
+}
+
+type definition = {
+   prim_eq : (Syntax.expr * Syntax.expr) list ;
+   consts : (Name.ident * expr) list
+}
+
+type access_policy = {
+   accesses : (Name.ident * Name.ident * Syntax.access_class list) list ;
+   attacks : (Name.ident * Syntax.attack_class) list ; 
+}
+
+
 (** Initial context *)
-let initial = {
-  idents = [] ;
-  funs = []
+let idents_init = {
+   prim_fun = [] ;
+   ty = [] ;
+   const = [] ;
+   files = [] ;
+   chans = [] ;
+}
+
+let acp_init = {
+   accesses = [] ; 
+   attacks = []
 }
 
 (** Add a new identifier to the context. *)
@@ -70,6 +100,88 @@ let index_fun f {funs; _} =
      if f = g then Some k else search (k+1) gs
   in
   search 0 funs
+
+let process_decl ctx pol def {Location.data=c; Location.loc=loc} =
+
+   let process_decl' ctx pol def = function
+   | DeclPrimFun (f, doms, codom) -> verify_fresh ctx f; (add_prim ctx (f, doms, codom), pol, def)
+   | DeclPrimEq (e1, e2) -> if infer_type ctx e1 = infer_type ctx e2 
+                            then (add_prim_eq (e1, e2), pol, def) else error ~loc (UnknownIdentifier "")
+   | DecType (id, c) -> verify_fresh id ctx ; (add_ty ctx (id, c), pol, def)
+   | DeclAccess(s, t, al) -> 
+      let tys = verify_and_get_ty ctx s in
+      let tyt = verify_and_get_ty ctx f t in
+
+      let validity_check pol' a =
+         begin
+         match tys, tyt, a with
+         | CProc, CFsys, CRead -> add_access pol' s t a
+         | CProc, CFsys, CWrite -> add_access pol' s t a
+         | CProc, CChan, CSend -> add_access pol' s t a
+         | CProc, CChan, CRecv -> add_access pol' s t a
+         | _, _, _ -> error ~loc (UnknownIdentifier "")
+         end
+      in 
+
+      let rec adds l pol' =
+      begin
+      match l with
+      | a :: l -> adds l (validity_check pol' a)
+      | [] -> pol'
+      end
+      in 
+
+      (ctx, adds al pol, def)
+
+   | DeclAttack (t, al) -> 
+      let tyt = verify_and_get_ty ctx f t in
+
+      let validity_check pol' a =
+         begin
+         match tyt, a with
+         | CProc, CEaves -> add_attack pol' t a
+         | CProc, CTamper -> add_attack pol' t a
+         | CFsys, CEaves -> add_attack pol' t a
+         | CFsys, CTamper -> add_attack pol' t a
+         | CChan, CEaves -> add_attack pol' t a
+         | CChan, CTamper -> add_attack pol' t a
+         | CChan, CDrop -> add_attack pol' t a
+         | _, _-> error ~loc (UnknownIdentifier "")
+         end
+      in 
+      
+      let rec adds l pol' =
+      begin
+      match l with
+      | a :: l -> adds l (validity_check pol' a)
+      | [] -> pol'
+      end
+      in 
+
+
+      type attack_class = CEaves |  CTamper | CDrop 
+
+      let rec adds l pol' =
+      begin
+      match l with
+      | a :: l -> adds l (validity_check pol' a)
+      | [] -> pol'
+      end
+      in 
+
+      (ctx, adds al pol, def)
+
+  | DeclInit (id, e) -> 
+      verify_fresh ctx id ; let ty = infer_type ctx e in ctx_add_const ctx id ty, pol, def_add_cosnt def id e 
+
+   of Name.ident * expr
+  | DeclFsys of Name.ident * (fpath list)
+  | DeclChan of Name.ident * chan_class * Name.ident
+  | DeclProc of Name.ident * (Name.ident list) * Name.ident * 
+                ((Name.ident * expr) list) * 
+                (Name.ident * (Name.ident list) * stmt list * Name.ident) list* 
+                stmt list
+
 
 (** Desugar a value type *)
 let valty = function
