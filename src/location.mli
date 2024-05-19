@@ -4,7 +4,7 @@ type t =
   | Nowhere (** no location *)
 
 (** A datum tagged with a source code location *)
-type 'a located = private { data : 'a ; loc : t }
+type 'a located =  { data : 'a ; loc : t }
 
 (** Tag a datum with an (optional) location. *)
 val locate : ?loc:t -> 'a -> 'a located

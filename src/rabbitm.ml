@@ -36,10 +36,10 @@ let options = Arg.align [
      Arg.Clear Config.interactive_shell,
      " Do not run the interactive toplevel");
  *)
-(*     ("-l",
+    ("-l",
      Arg.String (fun str -> add_file true str),
      "<file> Load <file> into the initial environment");
- *)
+
 
      ("--trace",
      Arg.Set Config.trace,
@@ -65,19 +65,22 @@ let _main =
   Format.set_max_boxes !Config.max_boxes ;
   Format.set_margin !Config.columns ;
   Format.set_ellipsis_text "..." ;
-  try
+  (* try *)
     (* Run and load all the specified files. *)
-    let topstate =
+    (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
+  try
+    let (ctx, pol, def) = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in 
+    (* ()  *)
+    Print.message  (Desugar.print_context ctx) "%t" ; ()
+(*     let topstate = 
       List.fold_left
-        (fun topstate (fn, quiet) -> Toplevel.load_file ~quiet topstate fn)
-        Toplevel.initial !files in ()
-
+        (fun (ctx, lctx, ldef) fn -> Desugar.load fn ctx lctx ldef)
+        (* (fun topstate (fn, quiet) -> Toplevel.load_file ~quiet topstate fn) *)
+        Desugar.process_init !files in ()
+ *) 
   with
   | Ulexbuf.Error {Location.data=err; Location.loc} ->
      Print.message ~loc "Syntax error" "%t" (Ulexbuf.print_error err)
   | Desugar.Error {Location.data=err; Location.loc} ->
      Print.message ~loc "Syntax error" "%t" (Desugar.print_error err)
-  | Typecheck.Error {Location.data=err; Location.loc} ->
-     Print.message ~loc "Type error" "%t" (Typecheck.print_error err)
-  | Runtime.Error {Location.data=err; Location.loc} ->
-     Print.message ~loc "Runtime error" "%t" (Runtime.print_error err)
+  

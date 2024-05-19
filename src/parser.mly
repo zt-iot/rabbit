@@ -40,14 +40,16 @@
 %left     INFIXOP3
 %right    INFIXOP4
 
-%start <Input.decl list * Input.sys> file
+(* %start <Input.decl list * Input.sys> file *)
+%start <Input.decl list> file
 
 %%
 
 (* syntax *)
 
 file:
-  | f=decls s=sys EOF            { (f, s) }
+  (*| f=decls s=sys EOF            { (f, s) }*)
+  | f=decls  EOF            { f }
 
 sys: mark_location(plain_sys) { $1 }
 plain_sys:

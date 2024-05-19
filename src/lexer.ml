@@ -185,6 +185,13 @@ let run
 
 
 let read_file parse fn =
+    let fh = open_in fn in
+    let lex = Ulexbuf.from_channel ~fn fh in
+      let terms = run token parse lex in
+      close_in fh;
+      terms
+
+(* let read_file parse fn =
   try
     let fh = open_in fn in
     let lex = Ulexbuf.from_channel ~fn fh in
@@ -198,8 +205,7 @@ let read_file parse fn =
   with
   (* Any errors when opening or closing a file are fatal. *)
     Sys_error msg -> raise (Ulexbuf.error ~loc:Location.Nowhere (Ulexbuf.SysError msg))
-
-
+ *)
 let read_toplevel parse () =
   let all_white str =
     let n = String.length str in

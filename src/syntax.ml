@@ -1,14 +1,19 @@
+type indexed_var = Name.ident * int * int
+type operator = string 
+let index_var s (i, j) = (s, i, j)
+
 type expr = expr' Location.located
 and expr' =
   | Const of Name.ident
   | ExtConst of Name.ident
-  | Variable of Name.ident
+  | Variable of indexed_var
   | Boolean of bool
-  | String of string  
+  | String of string
   | Integer of int
   | Float of string (* store the string so we can correctly round later *)
   | Apply of operator * expr list
   | Tuple of expr list
+  | Channel of string 
 
 type instructions = 
   | IRead | IWrite | IInvoke | IRecv | ISend | IOpen | IClose | ICloseConn | IConnect | IAccept
@@ -17,14 +22,15 @@ type instructions =
 type atomic_stmt = atomic_stmt' Location.located
 and atomic_stmt' = 
   | Skip
-  | Let of Name.ident * expr
-  | Call of instructions * Name.ident * expr list
+  | Let of indexed_var * expr
+  | Call of indexed_var * Name.ident * expr list
+  | Instruction of indexed_var * instructions * expr list
   | If of expr * stmt list * stmt list
-  | For of Name.ident * int * int * stmt list
+  | For of indexed_var * int * int * stmt list
 
 and event = event' Location.located
 and event' = 
-  | Event of Name.ident * ((Name.ident * bool) list)
+  | Event of Name.ident * ((indexed_var * bool) list)
 
 and stmt = stmt' Location.located
 and stmt' = 
@@ -53,63 +59,56 @@ and sys' =
   | Sys of proc list * lemma list
 
 
+let print_iv (v, i, j) = v^"["^ (string_of_int i) ^ "," ^ (string_of_int j) ^ "]"
+
+let print_instruction i = 
+  match i with 
+  | IRead -> "read" | IWrite -> "write" | IInvoke -> "invoke" | IRecv -> "recv" | ISend -> "send" | IOpen -> "open" | IClose -> "close" | ICloseConn -> "close_conn" 
+  | IConnect -> "connect" | IAccept -> "accept"
+
+
+let rec print_expr {Location.data=c; Location.loc=loc} = 
+   let print_expr' = function
+    | Const s -> "Const " ^s 
+    | ExtConst s -> "ExtConst " ^s
+    | Variable iv -> print_iv iv
+    | Boolean b -> string_of_bool b 
+    | String s -> s
+    | Integer k -> string_of_int k
+    | Float s -> s
+    | Apply (o, el) -> o^(List.fold_left (fun a b -> a ^" "^ print_expr b) "" el)
+    | Tuple el -> (List.fold_left (fun a b -> a ^" "^ print_expr b) "" el)
+    | Channel s -> "ch "^s
+  in let c = print_expr' c in "("^c^")"
+
+let rec print_stmt {Location.data=c; Location.loc=loc} = 
+  let print_stmt' = function
+  | OpStmt a -> print_atomic_stmt a
+  | EventStmt (a, el) -> print_atomic_stmt a ^ " @ "^(List.fold_left (fun a b -> a ^" "^ print_event b) "" el)
+in let c = print_stmt' c in  "("^c^")"
+
+and print_atomic_stmt {Location.data=c; Location.loc=loc} = 
+  let print_atomic_stmt' = function
+    | Skip -> "Skip"
+    | Let (iv, e) -> (print_iv iv) ^ " := " ^ (print_expr e)
+    | Call (iv, f, args) -> (print_iv iv) ^ " := " ^ f ^ (List.fold_left (fun a b -> a ^" "^ print_expr b) "" args)
+    | Instruction (iv, ins, args) -> (print_iv iv) ^ " := " ^ (print_instruction ins) ^ (List.fold_left (fun a b -> a ^" "^ print_expr b) "" args)
+    | If (e, c1, c2) -> "if " ^ (print_expr e) ^ " then " ^ (List.fold_left (fun a b -> a ^";"^ print_stmt b) "" c1) ^ " then " ^ (List.fold_left (fun a b -> a ^";"^ print_stmt b) "" c2)
+    | For (iv, i, j, c) -> "for " ^ (print_iv iv) ^ " in ["^(string_of_int i) ^", "^(string_of_int j)^"] do "^(List.fold_left (fun a b -> a ^";"^ print_stmt b) "" c)
+in let c = print_atomic_stmt' c in "("^c^")"
+
+and print_event {Location.data=c; Location.loc=loc} = 
+   let print_event' = function
+   | Event (eid, ivl) -> eid^"("^(List.fold_left (fun a (iv, b) -> a ^" "^ (print_iv iv) ^ ":"^(string_of_bool b)) "" ivl)^")"
+ in let c = print_event' c in "("^c^")"
 
 
 
-type op = op' Location.located
-and op' = 
-  | Skip
-  | Let of Name.ident * expr
-  | Call of Name.ident * Name.ident * expr list
-  | If of expr * stmt list * stmt list
-  | For of Name.ident * int * int * stmt list
 
-and event = event' Location.located
-and event' = 
-  | Event of Name.ident * ((Name.ident * bool) list)
 
-and stmt = stmt' Location.located
-and stmt' = 
-  | OpStmt of op
-  | EventStmt of op * event list
 
-type proc = proc' Location.located
-and proc' =
-  | Proc of Name.ident * (Name.ident list) * Name.ident
 
-type fpath = fpath' Location.located
-and fpath' = 
-  | Fpath of (Name.ident * expr * Name.ident)
 
-type prop = prop' Location.located
-and prop' =
-  | True
 
-type lemma = lemma' Location.located
-and lemma' =
-  | Lemma of Name.ident * prop 
 
-type sys = sys' Location.located
-and sys' = 
-  | Sys of proc list * lemma list
 
-type datatype = datatype' Location.located
-and datatype' = 
-  | DInt
-  | DString
-  | DBool
-
-type decl = decl' Location.located
-and decl' =
-  | DeclPrimFun of Name.ident * (datatype list) * datatype
-  | DeclPrimEq of expr * expr
-  | DeclType of Name.ident * type_class
-  | DeclAccess of Name.ident * Name.ident * (access_class list)
-  | DeclAttack of Name.ident * (attack_class list)
-  | DeclInit of Name.ident * expr
-  | DeclFsys of Name.ident * (fpath list)
-  | DeclChan of Name.ident * chan_class * Name.ident
-  | DeclProc of Name.ident * (Name.ident list) * Name.ident * 
-                ((Name.ident * expr) list) * 
-                (Name.ident * (Name.ident list) * stmt list * Name.ident) list* 
-                stmt list
