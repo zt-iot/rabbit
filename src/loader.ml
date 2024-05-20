@@ -47,38 +47,6 @@ type context = {
    ctx_proc : (Name.ident * (Name.ident list) * Name.ident * Name.ident list * (Name.ident * int) list) list;
    ctx_event : (Name.ident * int) list }
 
-let print_type_class c = 
-   match c with 
-   | Input.CProc -> "Proc"
-   | Input.CFsys -> "Fsys" 
-   | Input.CChan -> "Chan"
-
-let print_chan_class c = 
-   match c with 
-   | Input.CDatagram -> "datagram"
-   | Input.CStream -> "stream"
-
-(* type access_class = CRead |  CWrite | CSend | CRecv 
-type attack_class = CEaves |  CTamper | CDrop 
-type chan_class = CDatagram | CStream
- *)
-
-
-
-let print_context  ctx =
-    begin 
-   "external constants:"^ (List.fold_left (fun a (v) -> a ^" "^ v) "" ctx.ctx_ext_const) ^ "\n" ^
-   "external functions:"^ (List.fold_left (fun a (v, i) -> a ^" "^ v ^"."^ (string_of_int i)) "" ctx.ctx_ext_func) ^ "\n" ^
-   "types:             "^ (List.fold_left (fun a (v, c) -> a ^" "^ v ^":"^ (print_type_class c)) "" ctx.ctx_ty) ^ "\n" ^
-   "constants:         "^ (List.fold_left (fun a (v) -> a ^" "^ v) "" ctx.ctx_const) ^ "\n" ^
-   (List.fold_left (fun a (x, y, z) -> a^"file systems:      "^ "name:"^x^" path:"^y^" type:"^z^"\n") "" ctx.ctx_fsys)^
-   (List.fold_left (fun a (x, y, z) -> a^"channel:           "^ "name:"^x^" method:"^(print_chan_class y)^" type:"^z^"\n") "" ctx.ctx_chan)^
-   (List.fold_left (fun a (x, args, ty, vars, funs) -> a^"procedures:        "^ "name:"^x^" chans:"^
-      (List.fold_left (fun a (v) -> a ^" "^ v) "" args)^
-      " type:"^ty^" variables:" ^(List.fold_left (fun a (v) -> a ^" "^ v) "" vars)^
-      " functions:" ^ (List.fold_left (fun a (v, i) -> a ^" "^ v ^"."^ (string_of_int i)) "" funs) ^ "\n") "" ctx.ctx_proc)^
-   "events:            "^ (List.fold_left (fun a (v, i) -> a ^" "^ v ^"."^ (string_of_int i)) "" ctx.ctx_event) ^ "\n" end
-
 
 let ctx_check_ext_func ctx o = 
    List.exists (fun (s, _) -> s = o) ctx.ctx_ext_func
@@ -94,6 +62,8 @@ let ctx_check_fsys ctx o =
    List.exists (fun (s, _, _) -> s = o) ctx.ctx_fsys
 let ctx_check_chan ctx o = 
    List.exists (fun (s, _, _) -> s = o) ctx.ctx_chan
+let ctx_check_proc ctx o = 
+   List.exists (fun (s, _, _, _, _) -> s = o) ctx.ctx_proc
 let ctx_check_event ctx eid = 
    List.exists (fun (s, _) -> s = eid) ctx.ctx_event
 let ctx_add_event ctx (eid, k) = 
@@ -102,6 +72,8 @@ let ctx_get_event_arity ~loc ctx eid =
    if ctx_check_event ctx eid then 
    let (_, k) = List.find (fun (s, _) -> s = eid) ctx.ctx_event in k
    else error ~loc (UnknownIdentifier eid)
+let ctx_get_proc ctx o = 
+   List.find (fun (s, _, _, _, _) -> s = o) ctx.ctx_proc
 
 
 let ctx_add_ext_func ctx (f, k) = {ctx with ctx_ext_func=(f, k)::ctx.ctx_ext_func}
@@ -118,14 +90,14 @@ let check_fresh ctx s =
       ctx_check_ty ctx s || 
       ctx_check_const ctx s || 
       ctx_check_fsys ctx s ||
-      ctx_check_chan ctx s then false else true 
+      ctx_check_chan ctx s || ctx_check_proc ctx s then false else true 
 
 let check_used ctx s =  
    if (check_fresh ctx s ) then false else true
 
 
 type definition = {
-   def_ext_eq : (Syntax.expr * Syntax.expr) list ;
+   def_ext_eq : (Name.ident list * Syntax.expr * Syntax.expr) list ;
    def_const : (Name.ident * Syntax.expr) list ;
    def_fsys : (Name.ident * Name.ident * Syntax.expr) list (*fsys name, fsys path, data *) ;
    def_proc : (Name.ident * (Name.ident * Syntax.expr) list * (* variablse *)
@@ -136,6 +108,9 @@ type definition = {
 let def_add_ext_eq def x = {def with def_ext_eq=x::def.def_ext_eq}
 let def_add_const def x = {def with def_const=x::def.def_const}
 let def_add_fsys def x = {def with def_fsys=x::def.def_fsys}
+
+let def_get_proc def pid = 
+   List.find (fun (s, _, _, _) -> s = pid) def.def_proc
 
 type access_policy = {
    pol_access : (Name.ident * Name.ident * Input.access_class) list ;
@@ -244,7 +219,7 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
       let (ctx', lctx', a') = process_atomic_stmt ctx lctx a in (ctx', lctx', Syntax.OpStmt a')
    | Input.EventStmt (a, el) -> 
       let (ctx, lctx', a') = process_atomic_stmt ctx lctx a in
-      let (ctx, el') = List.fold_right (fun e (ctx, el') -> 
+      let (ctx, el') = List.fold_left (fun (ctx, el') e -> 
             let loc' = e.Location.loc in 
             match  e.Location.data with
             | Input.Event (eid, idl) ->
@@ -257,7 +232,7 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
                else ctx_add_event ctx (eid, List.length idl)
                end in
                let idl = List.map (fun (v, b) -> ((Syntax.index_var v (lctx_get_var_index ~loc lctx v)), b)) idl in 
-               (ctx, {Location.data=Syntax.Event (eid, idl) ; Location.loc=loc'}:: el')) el (ctx, []) in 
+               (ctx, {Location.data=Syntax.Event (eid, idl) ; Location.loc=loc'}:: el')) (ctx, []) el in 
                (ctx, lctx', Syntax.EventStmt(a', el'))
   in
   let (ctx, lctx, c) = process_stmt' ctx lctx c in
@@ -340,9 +315,18 @@ let process_decl ctx pol def {Location.data=c; Location.loc=loc} =
       in (ctx', pol, def)
 
    | Input.DeclExtEq (e1, e2) -> 
-      let e1' = process_expr ctx lctx_init e1 in 
-      let e2' = process_expr ctx lctx_init e2 in
-      (ctx, pol, def_add_ext_eq def (e1', e2'))
+      let rec collect_vars e lctx =
+         try let e = process_expr ctx lctx e in (e, lctx)
+         with
+         | Error {Location.data=err; Location.loc=locc} ->
+            begin match err with
+            | UnknownIdentifier id -> collect_vars e1 (lctx_add_new_var ~loc lctx id)
+            | _ -> error ~loc:locc err
+            end
+      in 
+      let (e1', lctx) = collect_vars e1 lctx_init in 
+      let (e2', lctx) = collect_vars e2 lctx in
+      (ctx, pol, def_add_ext_eq def (List.hd lctx.lctx_var, e1', e2'))
 
    | Input.DeclType (id, c) -> 
       if check_used ctx id then error ~loc (AlreadyDefined id) else (ctx_add_ty ctx (id, c), pol, def)
@@ -384,7 +368,12 @@ let process_decl ctx pol def {Location.data=c; Location.loc=loc} =
 
   | Input.DeclFsys (id, fl) ->
       if check_used ctx id then error ~loc (AlreadyDefined id) else 
-      let fl' = List.map (fun (a, e, b) -> (a, process_expr ctx lctx_init e, b )) fl in 
+      let fl' = List.map (fun (a, e, b) -> 
+         match ctx_get_ty ~loc ctx b with
+         | Input.CFsys ->
+            (a, process_expr ctx lctx_init e, b )
+         | _ -> error ~loc (WrongInputType)
+         ) fl in 
       let (ctx', def') = List.fold_left (fun (ctx', def') (a, e, b) -> (ctx_add_fsys ctx' (id, a, b), def_add_fsys def' (id, a, e))) (ctx, def) fl' in 
       (ctx', pol, def')
 
@@ -396,17 +385,17 @@ let process_decl ctx pol def {Location.data=c; Location.loc=loc} =
       match ctx_get_ty ~loc ctx ty with 
       | Input.CProc -> 
          if check_used ctx pid then error ~loc (AlreadyDefined pid) else 
-         let lctx = List.fold_right (fun cid lctx' -> lctx_add_new_chan ~loc lctx' cid) cargs lctx_init in
-         let (lctx, ldef) = List.fold_right (fun (vid, e) (lctx', ldef') -> 
-            (lctx_add_new_var ~loc lctx' vid, ldef_add_new_var ldef' (vid, process_expr ctx lctx' e))) cl (lctx, ldef_init) in
-         let (ctx, lctx, ldef) = List.fold_right (fun (fid, args, cs, ret) (ctx'', lctx'', ldef'') -> 
+         let lctx = List.fold_left (fun lctx' cid -> lctx_add_new_chan ~loc lctx' cid) lctx_init cargs in
+         let (lctx, ldef) = List.fold_left (fun (lctx', ldef') (vid, e) -> 
+            (lctx_add_new_var ~loc lctx' vid, ldef_add_new_var ldef' (vid, process_expr ctx lctx' e))) (lctx, ldef_init) cl in
+         let (ctx, lctx, ldef) = List.fold_left (fun (ctx'', lctx'', ldef'') (fid, args, cs, ret) -> 
             if lctx_check_func lctx'' fid then error ~loc (AlreadyDefined fid) else 
-            let lctx = List.fold_right (fun vid lctx' -> lctx_add_new_var ~loc lctx' vid) args (lctx_add_frame lctx'') in
+            let lctx = List.fold_left (fun lctx' vid -> lctx_add_new_var ~loc lctx' vid) (lctx_add_frame lctx'') args in
             let (ctx', lctx', cs')  = process_stmts ctx'' lctx cs in 
             (ctx', lctx_add_new_func ~loc lctx'' (fid, List.length args), 
-                  ldef_add_new_func ldef'' (fid, args, cs', Syntax.index_var ret (lctx_get_var_index ~loc lctx' ret)))) fs (ctx, lctx, ldef) in
+                  ldef_add_new_func ldef'' (fid, args, cs', Syntax.index_var ret (lctx_get_var_index ~loc lctx' ret)))) (ctx, lctx, ldef) fs in
             let (ctx, _, m') = process_stmts ctx (lctx_add_frame lctx) m in 
-            (ctx_add_proc ctx (pid, cargs, ty, List.hd lctx.lctx_var, lctx.lctx_func), pol, 
+            (ctx_add_proc ctx (pid, lctx.lctx_chan, ty, List.hd lctx.lctx_var, lctx.lctx_func), pol, 
                def_add_proc def pid ldef m')
 
       | _ -> error ~loc (WrongInputType) 
@@ -414,13 +403,39 @@ let process_decl ctx pol def {Location.data=c; Location.loc=loc} =
   let c = process_decl' ctx pol def c in
 c
 
+
+let process_sys ctx pol def {Location.data=c; Location.loc=loc} =
+   match c with
+   | Input.Sys (procs, lemmas) ->
+      let processed_procs = List.map (fun proc -> 
+         match proc.Location.data with 
+         | Input.Proc(pid, chans, fsys) -> 
+            if not (ctx_check_proc ctx pid) then error ~loc (UnknownIdentifier pid) else
+            if not (ctx_check_fsys ctx fsys) then error ~loc (UnknownIdentifier fsys) else
+            let (_, cargs, _, _, _) = ctx_get_proc ctx pid in
+            let (_, vl, fl, m) = def_get_proc def pid in
+            if (List.length cargs) !=  (List.length chans) then error ~loc (ArgNumMismatch (pid, (List.length chans), (List.length cargs)))
+            else
+               let (vl, fl, m) = List.fold_left2 (fun (vl, fl, m) f t -> 
+                  if ctx_check_chan ctx t then 
+                     (List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e f t)) vl,
+                        List.map (fun (f, args, c, ret) -> (f, args, List.map (fun c -> Substitute.stmt_chan_sub c f t) c, ret)) fl,
+                        List.map (fun c -> Substitute.stmt_chan_sub c f t) m)
+                  else error ~loc (UnknownIdentifier t)) (vl, fl, m) cargs chans in 
+               (vl, fl, m,  fsys)) procs in 
+            processed_procs
+
 let process_init = (ctx_init, pol_init, def_init)
 
+
+
 let load fn ctx pol def =
-  let (decls) = Lexer.read_file Parser.file fn in 
+  let (decls, sys) = Lexer.read_file Parser.file fn in 
   (* decls  *)
 
-  let x = List.fold_left (fun (ctx, pol, def) decl ->
-                           process_decl ctx pol def decl) 
-            (ctx, pol, def) decls 
-  in x
+   let (ctx, pol, def) = List.fold_left (fun (ctx, pol, def) decl ->
+      process_decl ctx pol def decl) 
+      (ctx, pol, def) decls in 
+   let sys = process_sys ctx pol def sys in
+   (ctx, pol, def, sys)
+

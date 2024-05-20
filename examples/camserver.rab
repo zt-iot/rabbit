@@ -2,5 +2,48 @@ external plus:2
 external minus:1
 external zero:0
 external one:0
-external two:0
-external tt:-3
+satisfies plus(one, zero) = one
+satisfies plus(x, zero) = x
+
+
+type mytype: filesys
+type mytype2: process
+type mytype3: process
+type mytype4: process
+type mytype5: process
+type mytype6: process
+type mytype7: channel
+
+init_const sewon = zero;
+
+channel mychan = {
+	transfer: stream, type: mytype7
+}
+
+allow mytype2 mytype7 [send]
+
+filesys test = [
+	{path: haha, data: zero, type: mytype},
+	{path: haha, data: zero, type: mytype}
+	]
+
+process testtest(a, b, c) with mytype2 {
+	let a = one ; 
+	let b = a;
+
+	function test2 (c, d){
+		skip @ Test(d);	
+		return c;
+	}
+	function test3 (c, d){
+		let x = test2(c, d) @ Test(c);
+		return x ; 
+	}
+
+	main {
+	skip;
+	}
+
+}
+
+system testtest(mychan,mychan,mychan) with test requires [lemma a : True]

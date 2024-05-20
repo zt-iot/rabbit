@@ -40,16 +40,15 @@
 %left     INFIXOP3
 %right    INFIXOP4
 
-(* %start <Input.decl list * Input.sys> file *)
-%start <Input.decl list> file
+%start <Input.decl list * Input.sys> file
 
 %%
 
 (* syntax *)
 
 file:
-  (*| f=decls s=sys EOF            { (f, s) }*)
-  | f=decls  EOF            { f }
+  | f=decls s=sys EOF            { (f, s) }
+  
 
 sys: mark_location(plain_sys) { $1 }
 plain_sys:
@@ -81,7 +80,7 @@ plain_decl:
   | ALLOW s=NAME t=NAME LBRACKET a=separated_nonempty_list(COMMA, access_c) RBRACKET { DeclAccess(s,t,a)} 
   | ATTACK t=NAME LBRACKET a=separated_nonempty_list(COMMA, attack_c) RBRACKET { DeclAttack(t,a)} 
   | INITCONST t=NAME EQ e=expr SEMICOLON { DeclInit(t,e) }
-  | FILESYS t=NAME EQ LBRACKET f=separated_nonempty_list(COMMA, fpath) { DeclFsys(t, f) }
+  | FILESYS t=NAME EQ LBRACKET f=separated_nonempty_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
   | CHANNEL id=NAME EQ LBRACE TRANSFER COLON c=chan_c COMMA TYPE COLON n=NAME RBRACE { DeclChan(id, c, n) }
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
     LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
@@ -92,14 +91,14 @@ let_stmts:
   | l=let_stmt ls=let_stmts { l :: ls }
 
 let_stmt:
-  | id=NAME EQ e=expr SEMICOLON { (id, e) }
+  | LET id=NAME EQ e=expr SEMICOLON { (id, e) }
 
 fun_decls:
   | { [] }
   | f = fun_decl fs=fun_decls { f :: fs }
 
 fun_decl:
-  | FUNC LPAREN id=NAME parems=separated_list(COMMA, NAME) RPAREN 
+  | FUNC id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN 
     LBRACE c=stmts RETURN r=NAME SEMICOLON RBRACE { (id, parems, c, r) }
 
 main_stmt:
@@ -165,7 +164,7 @@ plain_expr:
 op : mark_location(plain_op) { $1 }
 plain_op:
   | SKIP { Skip }
-  | LET id=NAME COLONEQ e=expr { Let (id, e) }
+  | LET id=NAME EQ e=expr { Let (id, e) }
 (*  | CALL id=NAME COLONEQ f=NAME 
     LPAREN es=separated_list(COMMA, expr) RPAREN { Call (id, f, es) } *)
 

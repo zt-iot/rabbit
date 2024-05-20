@@ -69,9 +69,14 @@ let _main =
     (* Run and load all the specified files. *)
     (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
   try
-    let (ctx, pol, def) = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in 
+    let (ctx, pol, def, sys) = Loader.load (fst (List.hd !files)) Loader.ctx_init Loader.pol_init Loader.def_init in 
     (* ()  *)
-    Print.message  (Desugar.print_context ctx) "%t" ; ()
+    Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
+    Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
+    Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
+    Print.message "System:" "%t" (Printer.pprint_system sys) ;
+    ()
+
 (*     let topstate = 
       List.fold_left
         (fun (ctx, lctx, ldef) fn -> Desugar.load fn ctx lctx ldef)
@@ -81,6 +86,6 @@ let _main =
   with
   | Ulexbuf.Error {Location.data=err; Location.loc} ->
      Print.message ~loc "Syntax error" "%t" (Ulexbuf.print_error err)
-  | Desugar.Error {Location.data=err; Location.loc} ->
-     Print.message ~loc "Syntax error" "%t" (Desugar.print_error err)
+  | Loader.Error {Location.data=err; Location.loc} ->
+     Print.message ~loc "Syntax error" "%t" (Loader.print_error err)
   
