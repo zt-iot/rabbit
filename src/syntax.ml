@@ -59,13 +59,37 @@ and sys' =
   | Sys of proc list * lemma list
 
 
-let print_iv (v, i, j) = v^"["^ (string_of_int i) ^ "," ^ (string_of_int j) ^ "]"
-
-let print_instruction i = 
+let pprint_iv (v, i, j) ppf =
+   Format.fprintf ppf "%s[%d,$d]" v i j
+  
+let string_of_isn i =   
   match i with 
   | IRead -> "read" | IWrite -> "write" | IInvoke -> "invoke" | IRecv -> "recv" | ISend -> "send" | IOpen -> "open" | IClose -> "close" | ICloseConn -> "close_conn" 
   | IConnect -> "connect" | IAccept -> "accept"
 
+let pprint_ins i ppf = 
+   Format.fprintf ppf i
+
+let print_iv (v, i, j) =
+    "%s[%d,$d]" v i j
+
+let pprint_ins i = string_of_isn i 
+(* 
+let pprint_expr {Location.data=c; Location.loc=loc} ppf = 
+    let print_expr' = function
+    | Const s -> Format.fprintf ppf "Const %s" s 
+    | ExtConst s -> Format.fprintf ppf "ExtConst %s" s
+    | Variable iv -> pprint_iv iv ppf 
+    | Boolean b -> Format.fprintf ppf "Bool %b" b
+    | String s -> Format.fprintf ppf "String %s" s
+    | Integer k -> Format.fprintf ppf "Int %d" k
+    | Float s -> Format.fprintf ppf "Float %s" k
+    | Apply (o, el) -> Format.fprintf ppf "%s(";  k  o^(List.fold_left (fun a b -> a ^" "^ print_expr b) "" el)
+    | Tuple el -> (List.fold_left (fun a b -> a ^" "^ print_expr b) "" el)
+    | Channel s -> "ch "^s
+  in let c = print_expr' c in "("^c^")"
+
+ *)
 
 let rec print_expr {Location.data=c; Location.loc=loc} = 
    let print_expr' = function
