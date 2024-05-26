@@ -14,6 +14,7 @@ and expr' =
   | Apply of operator * expr list
   | Tuple of expr list
   | Channel of string 
+  | FrVariable of string
 
 type instructions = 
   | IRead | IWrite | IInvoke | IRecv | ISend | IOpen | IClose | ICloseConn | IConnect | IAccept
@@ -30,7 +31,7 @@ and atomic_stmt' =
 
 and event = event' Location.located
 and event' = 
-  | Event of Name.ident * ((indexed_var * bool) list)
+  | Event of Name.ident * (expr list)
 
 and stmt = stmt' Location.located
 and stmt' = 

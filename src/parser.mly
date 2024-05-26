@@ -16,15 +16,16 @@
 %token LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
 %token EQ COLONEQ
 %token COMMA SEMICOLON
-%token COLON DARROW ARROW
-%token BBAR
+%token COLON 
+%token BBAR 
+%token DARROW ARROW INT BOOL THEN 
 
 (* constant tokens for rabbit *)
-%token SYSTEM LEMMA TYPE ALLOW ATTACK INITCONST FILESYS 
+%token SYSTEM LEMMA TYPE ALLOW ATTACK INITCONST FILESYS CONSTANT EQUATION INSTRUCTION DOT
 %token CHANNEL TRANSFER PROCESS WITH FUNC MAIN RETURN 
 %token DATA READ WRITE SEND RECV EAVESDROP TAMPER DROP PATH
-%token DATAGRAM STREAM SKIP LET CALL IF THEN ELSE FOR IN RANGE AT INIT
-%token REQUIRES SATISFIES SATISFY EXTERNAL INT BOOL STRING
+%token DATAGRAM STREAM SKIP LET CALL IF ELSE FOR IN RANGE AT INIT
+%token REQUIRES SATISFIES SATISFY EXTERNAL STRING
 
 (* temporal logic *)
 %token TRUE
@@ -36,9 +37,9 @@
 %left     INFIXOP0
 %right    INFIXOP1
 %left     INFIXOP2
-%right    PREFIXOP
 %left     INFIXOP3
 %right    INFIXOP4
+%right    PREFIXOP
 
 %start <Input.decl list * Input.sys> file
 
@@ -74,8 +75,9 @@ decls:
 
 decl: mark_location(plain_decl) { $1 }
 plain_decl:
-  | EXTERNAL id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
-  | SATISFIES x=expr EQ y=expr { DeclExtEq(x, y) }
+  | EXTERNAL FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
+  | EXTERNAL CONSTANT id=NAME  { DeclExtFun(id, 0) }
+  | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
   | ALLOW s=NAME t=NAME LBRACKET a=separated_nonempty_list(COMMA, access_c) RBRACKET { DeclAccess(s,t,a)} 
   | ATTACK t=NAME LBRACKET a=separated_nonempty_list(COMMA, attack_c) RBRACKET { DeclAttack(t,a)} 
@@ -84,7 +86,9 @@ plain_decl:
   | CHANNEL id=NAME EQ LBRACE TRANSFER COLON c=chan_c COMMA TYPE COLON n=NAME RBRACE { DeclChan(id, c, n) }
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
     LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
-
+  | EXTERNAL INSTRUCTION f=NAME LPAREN parems=separated_list(COMMA, expr) RPAREN COLON 
+    LBRACKET pre= separated_list(COMMA, event) RBRACKET DARROW 
+    LBRACKET RETURN ret=expr COLON post= separated_list(COMMA, event) RBRACKET { DeclExtIns(f,parems,pre,ret,post) }
 
 let_stmts:
   | { [] }
@@ -165,8 +169,6 @@ op : mark_location(plain_op) { $1 }
 plain_op:
   | SKIP { Skip }
   | LET id=NAME EQ e=expr { Let (id, e) }
-(*  | CALL id=NAME COLONEQ f=NAME 
-    LPAREN es=separated_list(COMMA, expr) RPAREN { Call (id, f, es) } *)
 
 block_op: mark_location(plain_block_op) { $1 }
 plain_block_op:
@@ -177,11 +179,7 @@ plain_block_op:
 
 event : mark_location(plain_event) { $1 }
 plain_event:
-  | id=NAME LPAREN es=separated_list(COMMA, evs) RPAREN { Event(id, es) }
-
-evs:
-  | id=NAME AT INIT { (id, true) }
-  | id=NAME { (id, false) }
+  | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Event(id, es) }
 
 stmts: 
   | { [] }

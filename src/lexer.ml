@@ -42,6 +42,10 @@ let reserved = [
   ("external", EXTERNAL) ; 
   ("satisfies", SATISFIES) ; 
   ("satisfy", SATISFY) ; 
+  ("constant", CONSTANT) ; 
+  ("equation", EQUATION) ; 
+  ("satisfy", SATISFY) ; 
+  ("instruction", INSTRUCTION) ; 
   ("True", TRUE)
 ]
 
@@ -59,7 +63,7 @@ let float = [%sedlex.regexp? Opt '-', Opt ("0x" | "0X" | "0b" | "0B"), Plus hexd
 
 let symbolchar = [%sedlex.regexp?  ('!' | '$' | '%' | '&' | '*' | '+' | '-' | '.' | '/' | ':' | '<' | '=' | '>' | '?'  | '^' | '|' | '~')]
 
-let prefixop = [%sedlex.regexp? ( "snd" | "fst" | '~' | '?' | '!'), Star symbolchar ]
+let prefixop = [%sedlex.regexp? ( "snd" | "fst" | "fresh" | '~' | '?' | '!'), Star symbolchar ]
 let infixop0 = [%sedlex.regexp? ('=' | '<' | '>' | '|' | '&' | '$'), Star symbolchar]
 let infixop1 = [%sedlex.regexp? ('@' | '^'), Star symbolchar ]
 let infixop2 = [%sedlex.regexp? ('+' | '-'), Star symbolchar ]
@@ -105,6 +109,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
      String.iter (fun c -> if c = '\n' then incr n) s;
      Ulexbuf.new_line ~n:!n lexbuf;
      QUOTED_STRING (String.sub s 1 (l - 2))
+  | '.'                      -> f (); DOT
   | '@'                      -> f (); AT
   | '('                      -> f (); LPAREN
   | ')'                      -> f (); RPAREN

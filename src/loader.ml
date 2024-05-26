@@ -10,6 +10,7 @@ type desugar_error =
   | ForbiddenIdentifier of string
   | ArgNumMismatch of string * int * int
   | NegativeArity of int
+  | ForbiddenFresh 
   | UnintendedError 
   | WrongInputType
 
@@ -28,6 +29,7 @@ let print_error err ppf =
   | ArgNumMismatch (x, i, j) -> Format.fprintf ppf "%s arguments provided while %s requires %s" (string_of_int i) x (string_of_int j)
   | UnintendedError -> Format.fprintf ppf "unintended behavior. contact the developer"
   | WrongInputType -> Format.fprintf ppf "wrong input type"
+  | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
   | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
 
 (** A desugaring context is a list of known identifiers, which is used
@@ -40,6 +42,7 @@ let find_index f l =
 type context = {
    ctx_ext_const : (Name.ident) list ; 
    ctx_ext_func : (Name.ident * int) list ; 
+   ctx_ext_ins : (Name.ident * int) list ; 
    ctx_ty : (Name.ident * Input.type_class) list ;
    ctx_const : Name.ident list ;
    ctx_fsys : (Name.ident * Name.ident * Name.ident) list ; (*fsys name, fsys path, type *)
@@ -66,15 +69,19 @@ let ctx_check_proc ctx o =
    List.exists (fun (s, _, _, _, _) -> s = o) ctx.ctx_proc
 let ctx_check_event ctx eid = 
    List.exists (fun (s, _) -> s = eid) ctx.ctx_event
-let ctx_add_event ctx (eid, k) = 
-   {ctx with ctx_event=(eid,k)::ctx.ctx_event}      
+let ctx_check_ext_ins ctx eid = 
+   List.exists (fun (s, _) -> s = eid) ctx.ctx_ext_ins
+
 let ctx_get_event_arity ~loc ctx eid =
    if ctx_check_event ctx eid then 
    let (_, k) = List.find (fun (s, _) -> s = eid) ctx.ctx_event in k
    else error ~loc (UnknownIdentifier eid)
+let ctx_get_ext_ins_arity ~loc ctx eid =
+   if ctx_check_ext_ins ctx eid then 
+   let (_, k) = List.find (fun (s, _) -> s = eid) ctx.ctx_ext_ins in k
+   else error ~loc (UnknownIdentifier eid)
 let ctx_get_proc ctx o = 
    List.find (fun (s, _, _, _, _) -> s = o) ctx.ctx_proc
-
 
 let ctx_add_ext_func ctx (f, k) = {ctx with ctx_ext_func=(f, k)::ctx.ctx_ext_func}
 let ctx_add_ext_const ctx c = {ctx with ctx_ext_const=c::ctx.ctx_ext_const}
@@ -83,6 +90,11 @@ let ctx_add_const ctx id = {ctx with ctx_const=id::ctx.ctx_const}
 let ctx_add_fsys ctx (a, p, ty) = {ctx with ctx_fsys=(a, p, ty)::ctx.ctx_fsys}
 let ctx_add_chan ctx (c, t, ty) = {ctx with ctx_chan=(c, t, ty)::ctx.ctx_chan}
 let ctx_add_proc ctx p = {ctx with ctx_proc=p::ctx.ctx_proc}
+let ctx_add_event ctx (eid, k) = 
+   {ctx with ctx_event=(eid,k)::ctx.ctx_event}      
+let ctx_add_ext_ins ctx (eid, k) = 
+   {ctx with ctx_ext_ins=(eid,k)::ctx.ctx_ext_ins}      
+
 
 let check_fresh ctx s =
    if ctx_check_ext_func ctx s || 
@@ -90,14 +102,22 @@ let check_fresh ctx s =
       ctx_check_ty ctx s || 
       ctx_check_const ctx s || 
       ctx_check_fsys ctx s ||
-      ctx_check_chan ctx s || ctx_check_proc ctx s then false else true 
+      ctx_check_chan ctx s || 
+      ctx_check_proc ctx s || ctx_check_ext_ins ctx s then false else true 
 
 let check_used ctx s =  
-   if (check_fresh ctx s ) then false else true
+   if (check_fresh ctx s) then false else true
 
 
 type definition = {
    def_ext_eq : (Name.ident list * Syntax.expr * Syntax.expr) list ;
+   def_ext_ins :(Name.ident * (* instruction name *)
+                     Name.ident list * (* free variables *)
+                     Name.ident list * (* fresh variables *)
+                     Syntax.expr list * (* inputs *)
+                     Syntax.event list * (* preconditions *)
+                     Syntax.event list * (* return *)
+                     Syntax.event list) list ;(* postconditions *)
    def_const : (Name.ident * Syntax.expr) list ;
    def_fsys : (Name.ident * Name.ident * Syntax.expr) list (*fsys name, fsys path, data *) ;
    def_proc : (Name.ident * (Name.ident * Syntax.expr) list * (* variablse *)
@@ -121,8 +141,8 @@ let pol_add_access pol x = {pol with pol_access=x::pol.pol_access}
 let pol_add_attack pol x = {pol with pol_attack=x::pol.pol_attack}
 
 (** Initial context *)
-let ctx_init = {ctx_ext_func = [] ; ctx_ext_const = [] ; ctx_ty = [] ; ctx_const = [] ; ctx_fsys = [] ; ctx_chan = [] ; ctx_proc = [] ; ctx_event = []}
-let def_init = {def_ext_eq = [] ; def_const = [] ; def_fsys=[] ; def_proc = []}
+let ctx_init = {ctx_ext_func = [] ; ctx_ext_const = [] ; ctx_ext_ins = []; ctx_ty = [] ; ctx_const = [] ; ctx_fsys = [] ; ctx_chan = [] ; ctx_proc = [] ; ctx_event = []}
+let def_init = {def_ext_eq = [] ; def_const = [] ; def_ext_ins = [] ; def_fsys=[] ; def_proc = []}
 let pol_init = {pol_access = [] ; pol_attack = []}
 
 type local_context = {lctx_chan : Name.ident list ; lctx_var : (Name.ident list) list ; lctx_func : (Name.ident * int) list }
@@ -185,18 +205,34 @@ let lctx_get_var_index ~loc lctx v =
       | None -> error ~loc (UnintendedError) end
    | None -> error ~loc (UnknownIdentifier v)
 
-(* list of names forbidden for operators in expr *)
-let forbidden_operator = ["read" ; "write" ; "invoke";  "recv"; "send"; "open"; "close"; "close_conn"; "connect"; "accept"]
+(* forbidden operators and primitive instructions *)
+let forbidden_operator = ["read" ; "write" ; "invoke"; "recv"; "send"; "open"; "close"; "close_conn"; "connect"; "accept"]
+type expr_type = TyVal | TyChan 
+
+let primitive_ins = [("read", Syntax.IRead, [TyVal]) ;
+                     ("write", Syntax.IWrite, [TyVal; TyVal]) ; 
+                     ("invoke", Syntax.IInvoke, [TyChan; TyVal; TyVal]) ; 
+                     ("recv", Syntax.IRecv, [TyChan]) ; 
+                     ("send", Syntax.ISend, [TyChan; TyVal]) ; 
+                     ("open", Syntax.IOpen, [TyVal]) ; 
+                     ("close", Syntax.IClose, [TyVal]) ; 
+                     ("close_conn", Syntax.ICloseConn, [TyVal]) ; 
+                     ("connect", Syntax.IConnect, [TyChan]) ; 
+                     ("accept", Syntax.IAccept, [TyChan])]
+
+let check_primitive_ins i =
+   List.exists (fun (n, _, _) -> n = i) primitive_ins
 
 let is_forbidden_operator o = List.exists (fun s -> s = o) forbidden_operator 
 
 
-
-let rec process_expr ctx lctx {Location.data=c; Location.loc=loc} = 
-   let process_expr' ctx lctx = function
+(* fr is used only for parsing and processing external instructions *)
+let rec process_expr ?(fr=[]) ctx lctx {Location.data=c; Location.loc=loc} = 
+   let process_expr' ?(fr=[]) ctx lctx = function
    | Input.Var id -> 
       if ctx_check_const ctx id then Syntax.Const id
       else if ctx_check_ext_const ctx id then Syntax.ExtConst id
+      else if lctx_check_chan lctx id then Syntax.Channel id
       else if lctx_check_var lctx id then Syntax.Variable (Syntax.index_var id (lctx_get_var_index ~loc lctx id))
       else error ~loc (UnknownIdentifier id) 
    | Input.Boolean b -> Syntax.Boolean b
@@ -204,14 +240,25 @@ let rec process_expr ctx lctx {Location.data=c; Location.loc=loc} =
    | Input.Integer z -> Syntax.Integer z
    | Input.Float f -> Syntax.Float f
    | Input.Apply(o, el) ->
+      if o = "fresh" then 
+         if List.exists (fun n -> n = 0) fr then error ~loc ForbiddenFresh else 
+            begin match el with
+            | [s] -> begin match s.Location.data with | Input.Var s -> Syntax.FrVariable s | _ -> error ~loc UnintendedError  end 
+            | _   -> error ~loc UnintendedError  
+            end 
+      else 
       if is_forbidden_operator o then error ~loc (ForbiddenIdentifier o) else
-      if ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr ctx lctx a) el)) else
+      if ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr ~fr ctx lctx a) el)) else
       error ~loc (UnknownIdentifier o)
-   | Input.Tuple el -> Syntax.Tuple (List.map (fun a -> process_expr  ctx lctx a) el)
+   | Input.Tuple el -> Syntax.Tuple (List.map (fun a -> process_expr ~fr  ctx lctx a) el)
   in
-  let c = process_expr' ctx lctx c in
+  let c = process_expr' ~fr ctx lctx c in
   Location.locate ~loc c
 
+let infer_ty ctx lctx {Location.data=c; Location.loc=loc} = 
+   match c with
+   | Syntax.Channel _ -> TyChan
+   | _ -> TyVal
 
 let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} = 
    let process_stmt' ctx lctx = function
@@ -231,7 +278,7 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
                   else error ~loc (ArgNumMismatch (eid, (List.length idl), (ctx_get_event_arity ctx eid ~loc))) (* arity doesn't match *)
                else ctx_add_event ctx (eid, List.length idl)
                end in
-               let idl = List.map (fun (v, b) -> ((Syntax.index_var v (lctx_get_var_index ~loc lctx v)), b)) idl in 
+               let idl = List.map (fun e -> process_expr ctx lctx e) idl in 
                (ctx, {Location.data=Syntax.Event (eid, idl) ; Location.loc=loc'}:: el')) (ctx, []) el in 
                (ctx, lctx', Syntax.EventStmt(a', el'))
   in
@@ -258,20 +305,20 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
              (* not enough argumentes *)
                error ~loc (ArgNumMismatch (o, (List.length args), (lctx_get_func_arity lctx o)))
             end else
-            begin match o with
-            | "recv" -> 
-               begin match args with
-                  | [s'] -> begin match s'.Location.data with 
-                           | Input.Var s -> 
-                              if lctx_check_chan lctx s 
-                              then (ctx, lctx'', Syntax.Instruction (vid', Syntax.IRecv, [Location.locate (Syntax.Channel s)]))
-                              else error ~loc (UnknownIdentifier s)
-                           | _ -> error ~loc (WrongInputType)
-                           end
-                  | _ -> error ~loc (ArgNumMismatch ("recv", List.length args, 1))
-               end
-            | _ -> (ctx, lctx'', Syntax.Let (vid', process_expr ctx lctx e))
+            if check_primitive_ins o then
+            begin
+               let (_, ins, args_ty) = List.find (fun (s, _, _) -> s = o) primitive_ins in
+               if List.length args = List.length args_ty then
+                  (ctx, lctx'', Syntax.Instruction(vid', ins, 
+                     List.map2 (fun arg arg_ty -> 
+                     let e = process_expr ctx lctx arg in 
+                     let ty = infer_ty ctx lctx e in
+                     match ty, arg_ty with
+                     | TyChan, TyChan | TyVal, TyVal -> e
+                     | _, _ -> error ~loc (WrongInputType)) args args_ty))
+               else error ~loc (ArgNumMismatch (o, List.length args, List.length args_ty))
             end
+            else (ctx, lctx'', Syntax.Let(vid', process_expr ctx lctx e))
          | _ -> (ctx, lctx'', Syntax.Let(vid', process_expr ctx lctx e))
          end
       | Input.If (e, c1, c2) ->
@@ -327,6 +374,11 @@ let process_decl ctx pol def {Location.data=c; Location.loc=loc} =
       let (e1', lctx) = collect_vars e1 lctx_init in 
       let (e2', lctx) = collect_vars e2 lctx in
       (ctx, pol, def_add_ext_eq def (List.hd lctx.lctx_var, e1', e2'))
+
+  (* | DeclExtIns of Name.ident * expr list * event list * expr * event list *)
+
+   | Input.DeclExtIns(id, args, pre, ret, post) -> error ~loc UnintendedError
+
 
    | Input.DeclType (id, c) -> 
       if check_used ctx id then error ~loc (AlreadyDefined id) else (ctx_add_ty ctx (id, c), pol, def)

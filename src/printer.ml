@@ -64,6 +64,7 @@ let rec pprint_expr {Location.data=c; Location.loc=loc} ppf =
             ~pp_sep:(fun ppf () -> Format.fprintf ppf ",@ ") 
             (fun ppf e -> pprint_expr e ppf) ppf el)
     | Syntax.Channel s -> Format.fprintf ppf "Ch %s" s
+    | Syntax.FrVariable s -> Format.fprintf ppf "Fr %s" s
   
 let pprint_event {Location.data=c; Location.loc=loc} ppf = 
   match c with  
@@ -71,7 +72,7 @@ let pprint_event {Location.data=c; Location.loc=loc} ppf =
     (fun ppf -> 
       Format.pp_print_list 
         ~pp_sep:(fun ppf () -> Format.fprintf ppf ",@ ") 
-        (fun ppf e -> Format.fprintf ppf "%t%s" (pprint_iv (fst e)) (if (snd e) then ":init" else "")) ppf ivl)
+        (fun ppf e -> Format.fprintf ppf "%t" (pprint_expr e)) ppf ivl)
 
 let rec pprint_stmt {Location.data=c; Location.loc=loc} ppf = 
   match c with
@@ -284,7 +285,7 @@ let pprint_system procs ppf =
             (fun ppf -> 
              Format.pp_print_list 
                ~pp_sep:(fun ppf () -> Format.fprintf ppf "@ ") 
-            (fun ppf (f, args, c, vid) -> Format.fprintf ppf "@[<v>%s(%s)=@   @[<v>%t@ return %t@]@]" f (String.concat " " args) (pprint_stmts c) (pprint_iv vid)) ppf fl)
+            (fun ppf (f, args, c, vid) -> Format.fprintf ppf "@[<v>%s(%s)=@   @[<v>%t@ return %t@ @]@]" f (String.concat " " args) (pprint_stmts c) (pprint_iv vid)) ppf fl)
 
             (pprint_stmts m)
 

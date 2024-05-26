@@ -1,10 +1,30 @@
-external plus:2
-external minus:1
-external zero:0
-external one:0
-satisfies plus(one, zero) = one
-satisfies plus(x, zero) = x
+external function plus:2
+external function minus:1
+external function zero:0
+external constant one
+equation plus(one, zero) = one
+equation plus(x, zero) = x
 
+(* define external function as 
+	external function fname:arity *)
+
+external function fd:1
+
+(*  Predefined facts for external functions: 
+		- File(x, d): path x stores data d 
+		- Store(x, d): variable x stores data d *)
+
+(* some external instruction better suits prelude: prelude.rabbit *)
+
+external instruction open(x) : [File(x, d), Fr(y)] => [return y : Fd(x, y), File(x, d)] 
+external instruction read(x) : [Fd(y, x), File(y, d)] =>  [return d : Fd(y, x), File(y, d)]
+external instruction write(x, d) : [Fd(y, x), File(y, _)] => [Fd(y, x), File(y, d)]
+external instruction close(x) : [Fd(y, x), File(y, d)] => [File(y, d)] 
+
+(* example external instructions: *)
+external instruction take_picture(y) : [Fd(y, z), File(z, _)] => [Fd(y, z), File(z, (fresh d))]
+external instruction read_picture(y) : [Fd(y, z), File(z, _)] => [return fresh n : ]
+external instruction make_nonce() : [] => [return fresh n : ]
 
 type mytype: filesys
 type mytype2: process
@@ -32,7 +52,7 @@ process testtest(a, b, c) with mytype2 {
 	let b = a;
 
 	function test2 (c, d){
-		skip @ Test(d);	
+		Test(d) : skip;	
 		return c;
 	}
 	function test3 (c, d){

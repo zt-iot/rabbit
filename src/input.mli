@@ -25,7 +25,7 @@ and atomic_stmt' =
 
 and event = event' Location.located
 and event' = 
-  | Event of Name.ident * ((Name.ident * bool) list)
+  | Event of Name.ident * (expr list)
 
 and stmt = stmt' Location.located
 and stmt' = 
@@ -70,5 +70,6 @@ and decl' =
   | DeclChan of Name.ident * chan_class * Name.ident
   | DeclProc of Name.ident * (Name.ident list) * Name.ident * 
                 ((Name.ident * expr) list) * 
-                (Name.ident * (Name.ident list) * stmt list * Name.ident) list* 
+                (Name.ident * (Name.ident list) * stmt list * Name.ident) list * 
                 stmt list
+  | DeclExtIns of Name.ident * expr list * event list * expr * event list
