@@ -69,12 +69,14 @@ let _main =
     (* Run and load all the specified files. *)
     (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
   try
-    let (ctx, pol, def, sys) = Loader.load (fst (List.hd !files)) Loader.ctx_init Loader.pol_init Loader.def_init in 
-    (* ()  *)
-    Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
-    Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
-    Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
-    Print.message "System:" "%t" (Printer.pprint_system sys) ;
+    let (ctx, pol, def, sys) = 
+      List.fold_left 
+        (fun (ctx, pol, def, sys) (fn, quiet) -> Loader.load fn ctx pol def sys) 
+        Loader.process_init  !files in
+      Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
+      Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
+      Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
+      List.fold_left (fun _ s -> Print.message "System:" "%t" (Printer.pprint_system s)) () sys ;
     ()
 
 (*     let topstate = 

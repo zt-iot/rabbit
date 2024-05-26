@@ -41,20 +41,43 @@
 %right    INFIXOP4
 %right    PREFIXOP
 
-%start <Input.decl list * Input.sys> file
+%start <Input.decl list> file
 
 %%
 
 (* syntax *)
 
 file:
-  | f=decls s=sys EOF            { (f, s) }
+  | f=decls EOF            { f }
   
+decls:
+  |                                 { [] }
+  | d=decl ds=decls       { d :: ds }
 
-sys: mark_location(plain_sys) { $1 }
-plain_sys:
+decl: mark_location(plain_decl) { $1 }
+plain_decl:
+  | external_functions { $1 }
+  | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
+  | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
+  | ALLOW s=NAME t=NAME LBRACKET a=separated_nonempty_list(COMMA, access_c) RBRACKET { DeclAccess(s,t,a)} 
+  | ATTACK t=NAME LBRACKET a=separated_nonempty_list(COMMA, attack_c) RBRACKET { DeclAttack(t,a)} 
+  | INITCONST t=NAME EQ e=expr SEMICOLON { DeclInit(t,e) }
+  | FILESYS t=NAME EQ LBRACKET f=separated_nonempty_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
+  | CHANNEL id=NAME EQ LBRACE TRANSFER COLON c=chan_c COMMA TYPE COLON n=NAME RBRACE { DeclChan(id, c, n) }
+  | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
+    LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
+  | EXTERNAL INSTRUCTION f=NAME LPAREN parems=separated_list(COMMA, expr) RPAREN COLON 
+    LBRACKET pre= separated_list(COMMA, event) RBRACKET DARROW 
+    LBRACKET RETURN ret=expr COLON post= separated_list(COMMA, event) RBRACKET { DeclExtIns(f,parems,pre,ret,post) }
+  | sys { $1 }
+
+external_functions:
+  | EXTERNAL FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
+  | EXTERNAL CONSTANT id=NAME  { DeclExtFun(id, 0) }
+
+sys:
   | SYSTEM p=separated_nonempty_list(BBAR, proc) REQUIRES 
-    LBRACKET a=separated_nonempty_list(SEMICOLON, lemma) RBRACKET { Sys(p, a) }
+    LBRACKET a=separated_nonempty_list(SEMICOLON, lemma) RBRACKET { DeclSys(p, a) }
 
 proc: mark_location(plain_proc) { $1 }
 plain_proc:
@@ -68,27 +91,6 @@ plain_lemma:
 prop: mark_location(plain_prop) { $1 }
 plain_prop:
   | TRUE {True}
-
-decls:
-  |                                 { [] }
-  | d=decl ds=decls       { d :: ds }
-
-decl: mark_location(plain_decl) { $1 }
-plain_decl:
-  | EXTERNAL FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
-  | EXTERNAL CONSTANT id=NAME  { DeclExtFun(id, 0) }
-  | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
-  | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
-  | ALLOW s=NAME t=NAME LBRACKET a=separated_nonempty_list(COMMA, access_c) RBRACKET { DeclAccess(s,t,a)} 
-  | ATTACK t=NAME LBRACKET a=separated_nonempty_list(COMMA, attack_c) RBRACKET { DeclAttack(t,a)} 
-  | INITCONST t=NAME EQ e=expr SEMICOLON { DeclInit(t,e) }
-  | FILESYS t=NAME EQ LBRACKET f=separated_nonempty_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
-  | CHANNEL id=NAME EQ LBRACE TRANSFER COLON c=chan_c COMMA TYPE COLON n=NAME RBRACE { DeclChan(id, c, n) }
-  | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
-    LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
-  | EXTERNAL INSTRUCTION f=NAME LPAREN parems=separated_list(COMMA, expr) RPAREN COLON 
-    LBRACKET pre= separated_list(COMMA, event) RBRACKET DARROW 
-    LBRACKET RETURN ret=expr COLON post= separated_list(COMMA, event) RBRACKET { DeclExtIns(f,parems,pre,ret,post) }
 
 let_stmts:
   | { [] }
