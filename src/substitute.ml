@@ -1,7 +1,7 @@
 let rec expr_chan_sub e f t = 
   let loc = e.Location.loc in
   match e.Location.data with
-  | Syntax.Const s  -> e
+  | Syntax.Const _  -> e
   | Syntax.ExtConst s  -> e
   | Syntax.Variable iv  -> e
   | Syntax.Boolean b  -> e

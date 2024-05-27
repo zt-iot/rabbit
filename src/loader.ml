@@ -132,6 +132,9 @@ let def_add_fsys def x = {def with def_fsys=x::def.def_fsys}
 let def_get_proc def pid = 
    List.find (fun (s, _, _, _) -> s = pid) def.def_proc
 
+let def_get_const def id = 
+   List.find (fun (s, _) -> s = id) def.def_const
+
 type access_policy = {
    pol_access : (Name.ident * Name.ident * Input.access_class) list ;
    pol_attack : (Name.ident * Input.attack_class) list 
@@ -139,6 +142,20 @@ type access_policy = {
 
 let pol_add_access pol x = {pol with pol_access=x::pol.pol_access}
 let pol_add_attack pol x = {pol with pol_attack=x::pol.pol_attack}
+
+type system = {
+   sys_proc : (int * (* process id *)
+               Name.ident * (* name of the process template *)
+               (Name.ident * Input.chan_class * Input.access_class list * Input.attack_class list) list * (* connected channels: name, channel class, accesses, and attacks *)
+               (Name.ident * Syntax.expr * Input.access_class * Input.access_class list) list * (* paths in the file system, its initial value, access, and attacks *)
+               (Name.ident * Syntax.expr) list * (* process's internal variables and their initial values *)
+               (Name.ident * Name.ident list * Syntax.stmt list * Syntax.indexed_var ) list * (* process's internal variables and their initial values *)
+               Syntax.stmt list * 
+               Input.access_class list  (* main function *)
+             ) list 
+   (* ;  *)
+   (* sys_requirements : Syntax.prop *)
+}
 
 (** Initial context *)
 let ctx_init = {ctx_ext_func = [] ; ctx_ext_const = [] ; ctx_ext_ins = []; ctx_ty = [] ; ctx_const = [] ; ctx_fsys = [] ; ctx_chan = [] ; ctx_proc = [] ; ctx_event = []}

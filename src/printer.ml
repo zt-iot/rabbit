@@ -44,7 +44,7 @@ let pprint_ins i ppf =
 
 let rec pprint_expr {Location.data=c; Location.loc=loc} ppf = 
     match c with
-    | Syntax.Const s -> Format.fprintf ppf "(Const %s)" s 
+    | Syntax.Const s -> Format.fprintf ppf "(Const %s)" s
     | Syntax.ExtConst s -> Format.fprintf ppf "(ExtConst %s)" s
     | Syntax.Variable iv -> pprint_iv iv ppf 
     | Syntax.Boolean b -> Format.fprintf ppf "(Bool %b)" b
