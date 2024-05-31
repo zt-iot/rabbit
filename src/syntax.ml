@@ -13,10 +13,10 @@ and expr' =
   | Float of string (* store the string so we can correctly round later *)
   | Apply of operator * expr list
   | Tuple of expr list
-  | Channel of string 
+  | Channel of string * Input.access_class list * Input.chan_class list 
   | FrVariable of string
 
-type instructions = 
+type instruction = 
   | IRead | IWrite | IInvoke | IRecv | ISend | IOpen | IClose | ICloseConn | IConnect | IAccept
 
 
@@ -25,7 +25,7 @@ and atomic_stmt' =
   | Skip
   | Let of indexed_var * expr
   | Call of indexed_var * Name.ident * expr list
-  | Instruction of indexed_var * instructions * expr list
+  | Instruction of indexed_var * instruction * expr list
   | If of expr * stmt list * stmt list
   | For of indexed_var * int * int * stmt list
 
@@ -58,3 +58,27 @@ and lemma' =
 type sys = sys' Location.located
 and sys' = 
   | Sys of proc list * lemma list
+
+let string_of_type_class c = 
+   match c with 
+   | Input.CProc -> "Proc"
+   | Input.CFsys -> "Fsys" 
+   | Input.CChan -> "Chan"
+
+let string_of_chan_class c = 
+   match c with 
+   | Input.CDatagram -> "datagram"
+   | Input.CStream -> "stream"
+
+let string_of_access_class a = 
+   match a with
+   | Input.CRead -> "read"
+   | Input.CWrite -> "write"
+   | Input.CSend -> "send"
+   | Input.CRecv -> "recv"
+
+let string_of_attack_class a = 
+   match a with
+   | Input.CEaves -> "Eaves" 
+   | Input.CTamper -> "Tamper"
+   | Input.CDrop  -> "Drop"

@@ -40,15 +40,15 @@ let find_index f l =
    if j < 0 then None else Some (List.length l - 1 - j)
 
 type context = {
-   ctx_ext_const : (Name.ident) list ; 
-   ctx_ext_func : (Name.ident * int) list ; 
-   ctx_ext_ins : (Name.ident * int) list ; 
-   ctx_ty : (Name.ident * Input.type_class) list ;
-   ctx_const : Name.ident list ;
-   ctx_fsys : (Name.ident * Name.ident * Name.ident) list ; (*fsys name, fsys path, type *)
-   ctx_chan : (Name.ident * Input.chan_class * Name.ident) list ;
-   ctx_proc : (Name.ident * (Name.ident list) * Name.ident * Name.ident list * (Name.ident * int) list) list;
-   ctx_event : (Name.ident * int) list }
+   ctx_ext_const  : (Name.ident) list ; 
+   ctx_ext_func   : (Name.ident * int) list ; 
+   ctx_ext_ins    : (Name.ident * int) list ; 
+   ctx_ty         : (Name.ident * Input.type_class) list ;
+   ctx_const      : Name.ident list ;
+   ctx_fsys       : (Name.ident * Name.ident * Name.ident) list ; (*fsys name, fsys path, type *)
+   ctx_chan       : (Name.ident * Input.chan_class * Name.ident) list ;
+   ctx_proc       : (Name.ident * (Name.ident list) * Name.ident * Name.ident list * (Name.ident * int) list) list;
+   ctx_event      : (Name.ident * int) list }
 
 
 let ctx_check_ext_func ctx o = 
@@ -103,7 +103,8 @@ let check_fresh ctx s =
       ctx_check_const ctx s || 
       ctx_check_fsys ctx s ||
       ctx_check_chan ctx s || 
-      ctx_check_proc ctx s || ctx_check_ext_ins ctx s then false else true 
+      ctx_check_proc ctx s || 
+      ctx_check_ext_ins ctx s then false else true 
 
 let check_used ctx s =  
    if (check_fresh ctx s) then false else true
@@ -144,14 +145,13 @@ let pol_add_access pol x = {pol with pol_access=x::pol.pol_access}
 let pol_add_attack pol x = {pol with pol_attack=x::pol.pol_attack}
 
 type system = {
-   sys_proc : (int * (* process id *)
-               Name.ident * (* name of the process template *)
+   sys_proc : (int * (* process id *) Name.ident * (* name of the process template *)
+               Input.attack_class list  * (* main function *)
                (Name.ident * Input.chan_class * Input.access_class list * Input.attack_class list) list * (* connected channels: name, channel class, accesses, and attacks *)
-               (Name.ident * Syntax.expr * Input.access_class * Input.access_class list) list * (* paths in the file system, its initial value, access, and attacks *)
+               (Name.ident * Syntax.expr * Input.access_class * Input.attack_class list) list * (* paths in the file system, its initial value, access, and attacks *)
                (Name.ident * Syntax.expr) list * (* process's internal variables and their initial values *)
                (Name.ident * Name.ident list * Syntax.stmt list * Syntax.indexed_var ) list * (* process's internal variables and their initial values *)
-               Syntax.stmt list * 
-               Input.access_class list  (* main function *)
+               Syntax.stmt list 
              ) list 
    (* ;  *)
    (* sys_requirements : Syntax.prop *)
@@ -161,7 +161,7 @@ type system = {
 let ctx_init = {ctx_ext_func = [] ; ctx_ext_const = [] ; ctx_ext_ins = []; ctx_ty = [] ; ctx_const = [] ; ctx_fsys = [] ; ctx_chan = [] ; ctx_proc = [] ; ctx_event = []}
 let def_init = {def_ext_eq = [] ; def_const = [] ; def_ext_ins = [] ; def_fsys=[] ; def_proc = []}
 let pol_init = {pol_access = [] ; pol_attack = []}
-let sys_init = []
+let sys_init = {sys_proc=[]}
 
 
 type local_context = {lctx_chan : Name.ident list ; lctx_var : (Name.ident list) list ; lctx_func : (Name.ident * int) list }
@@ -226,18 +226,19 @@ let lctx_get_var_index ~loc lctx v =
 
 (* forbidden operators and primitive instructions *)
 let forbidden_operator = ["read" ; "write" ; "invoke"; "recv"; "send"; "open"; "close"; "close_conn"; "connect"; "accept"]
-type expr_type = TyVal | TyChan 
+type expr_type = TyVal | TyChan of Input.access_class list  * Input.chan_class list
 
 let primitive_ins = [("read", Syntax.IRead, [TyVal]) ;
                      ("write", Syntax.IWrite, [TyVal; TyVal]) ; 
-                     ("invoke", Syntax.IInvoke, [TyChan; TyVal; TyVal]) ; 
-                     ("recv", Syntax.IRecv, [TyChan]) ; 
-                     ("send", Syntax.ISend, [TyChan; TyVal]) ; 
+                     ("invoke", Syntax.IInvoke, 
+                                 [TyChan([Input.CRecv ; Input.CSend], [Input.CStream]); TyVal; TyVal]) ; 
+                     ("recv", Syntax.IRecv, [TyChan([Input.CRecv], [])]) ; 
+                     ("send", Syntax.ISend, [TyChan([Input.CSend], []); TyVal]) ; 
                      ("open", Syntax.IOpen, [TyVal]) ; 
                      ("close", Syntax.IClose, [TyVal]) ; 
-                     ("close_conn", Syntax.ICloseConn, [TyVal]) ; 
-                     ("connect", Syntax.IConnect, [TyChan]) ; 
-                     ("accept", Syntax.IAccept, [TyChan])]
+                     ("close_conn", Syntax.ICloseConn, [TyChan([], [Input.CStream])]) ; 
+                     ("connect", Syntax.IConnect, [TyChan([], [Input.CStream])]) ; 
+                     ("accept", Syntax.IAccept, [TyChan([Input.CSend], [Input.CStream])])]
 
 let check_primitive_ins i =
    List.exists (fun (n, _, _) -> n = i) primitive_ins
@@ -251,7 +252,7 @@ let rec process_expr ?(fr=[]) ctx lctx {Location.data=c; Location.loc=loc} =
    | Input.Var id -> 
       if ctx_check_const ctx id then Syntax.Const id
       else if ctx_check_ext_const ctx id then Syntax.ExtConst id
-      else if lctx_check_chan lctx id then Syntax.Channel id
+      else if lctx_check_chan lctx id then Syntax.Channel (id, [], [])
       else if lctx_check_var lctx id then Syntax.Variable (Syntax.index_var id (lctx_get_var_index ~loc lctx id))
       else error ~loc (UnknownIdentifier id) 
    | Input.Boolean b -> Syntax.Boolean b
@@ -274,10 +275,11 @@ let rec process_expr ?(fr=[]) ctx lctx {Location.data=c; Location.loc=loc} =
   let c = process_expr' ~fr ctx lctx c in
   Location.locate ~loc c
 
-let infer_ty ctx lctx {Location.data=c; Location.loc=loc} = 
+(* let infer_ty ctx lctx {Location.data=c; Location.loc=loc} = 
    match c with
+   | Syntax.Channel -> TyPreChan
    | Syntax.Channel _ -> TyChan
-   | _ -> TyVal
+   | _ -> TyVal *)
 
 let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} = 
    let process_stmt' ctx lctx = function
@@ -331,10 +333,11 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
                   (ctx, lctx'', Syntax.Instruction(vid', ins, 
                      List.map2 (fun arg arg_ty -> 
                      let e = process_expr ctx lctx arg in 
-                     let ty = infer_ty ctx lctx e in
-                     match ty, arg_ty with
-                     | TyChan, TyChan | TyVal, TyVal -> e
-                     | _, _ -> error ~loc (WrongInputType)) args args_ty))
+                     match e.Location.data, arg_ty with
+                     | Syntax.Channel (s, _, _), TyChan (l1, l2) -> Location.locate ~loc:e.Location.loc (Syntax.Channel (s, l1, l2))
+                     | Syntax.Channel (s, _, _), TyVal -> error ~loc (WrongInputType)
+                     | _, TyVal -> e
+                     | _, _ ->  error ~loc (WrongInputType)) args args_ty))
                else error ~loc (ArgNumMismatch (o, List.length args, List.length args_ty))
             end
             else (ctx, lctx'', Syntax.Let(vid', process_expr ctx lctx e))
@@ -478,25 +481,40 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          | Input.Proc(pid, chans, fsys) -> 
             if not (ctx_check_proc ctx pid) then error ~loc (UnknownIdentifier pid) else
             if not (ctx_check_fsys ctx fsys) then error ~loc (UnknownIdentifier fsys) else
-            let (_, cargs, _, _, _) = ctx_get_proc ctx pid in
+            let (_, cargs, ptype, _, _) = ctx_get_proc ctx pid in
             let (_, vl, fl, m) = def_get_proc def pid in
+            let fpaths = List.fold_left (fun fpaths (fsys', path, ftype) -> if fsys = fsys' then (path, ftype) :: fpaths) [] ctx.ctx_fsys in 
+            let fpaths = List.map (fun (path, ftype) -> 
+                                    let (_ , _ , v) = List.find (fun (fsys', path', val') -> fsys' = fsys && path = path') def.def_fsys in 
+                                    (path, v, ftype)) fpaths in 
+            let fpaths = List.map (fun (path, v, ftype) -> 
+                                    let accs = List.fold_left (fun accs (s, t, a) -> 
+                                       if s = ptype && t = ftype then a :: accs else accs) [] pol.pol_access in
+                                    let attks = List.fold_left (fun attks (t, a) -> 
+                                       if t = ftype then a :: attks else attks) [] pol.pol_attack in
+                                    (path,v,accs, attks)) fpaths in 
             if (List.length cargs) !=  (List.length chans) then error ~loc (ArgNumMismatch (pid, (List.length chans), (List.length cargs)))
             else
-               let (vl, fl, m) = List.fold_left2 (fun (vl, fl, m) f t -> 
-                  if ctx_check_chan ctx t then 
-                     (List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e f t)) vl,
-                        List.map (fun (f, args, c, ret) -> (f, args, List.map (fun c -> Substitute.stmt_chan_sub c f t) c, ret)) fl,
-                        List.map (fun c -> Substitute.stmt_chan_sub c f t) m)
-                  else error ~loc (UnknownIdentifier t)) (vl, fl, m) cargs chans in 
-               (vl, fl, m,  fsys)) procs in  
-      (ctx, pol, def, processed_procs::sys)
-
-   in let c = process_decl' ctx pol def sys c in c
-
+               let (chs, vl, fl, m) = List.fold_left2 
+                  (fun (chs, vl, fl, m) f t -> 
+                     if ctx_check_chan ctx t then 
+                        let (_, chan_class, chan_ty) = List.find (fun (s, _, _) -> s = t) ctx.ctx_chan in  
+                        let accesses = List.fold_left (fun acs (f', t', ac) -> if f' = ptype && t' = chan_ty then ac::acs else acs) [] pol.pol_access in 
+                        (
+                           (t, chan_class, accesses,
+                              List.fold_left (fun attks (s, a) -> if s = t then a :: attks else attks ) [] pol.pol_attack) :: chs,
+                           List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e f t accesses chan_class)) vl,
+                           List.map (fun (f, args, c, ret) -> (f, args, List.map (fun c -> Substitute.stmt_chan_sub c f t accesses chan_class) c, ret)) fl,
+                           List.map (fun c -> Substitute.stmt_chan_sub c f t accesses chan_class) m)
+                     else error ~loc (UnknownIdentifier t)) ([], vl, fl, m) cargs chans in 
+               (  pid, 
+                  List.fold_left (fun attks (t, a) -> if t = pid then a :: attks else attks) [] pol.pol_attack,
+                  chs, fpaths, vl, fl, m)) procs in  
+      let processed_procs = List.fold_left (fun (processed_procs,k) (pid, attks, chans, files, fpaths, vl, fl, m)
+         -> ((k,pid, attks, chans, files, fpaths, vl, fl, m) :: processed_procs, k+1)) ([],0) processed_procs in 
+      (ctx, pol, def, {sys with sys_proc=processed_procs::sys.sys_proc})
 
 let process_init = (ctx_init, pol_init, def_init, sys_init)
-
-
 
 let load fn ctx pol def sys =
    let decls= Lexer.read_file Parser.file fn in 

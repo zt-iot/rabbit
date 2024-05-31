@@ -22,9 +22,6 @@ let print_attack_class a =
    | Input.CTamper -> "Tamper"
    | Input.CDrop  -> "Drop"
 
-let pprint_iv (v, i, j) ppf =
-   Format.fprintf ppf "%s[%d,%d]" v i j
-  
 
 let string_of_ins i =   
   match i with 
@@ -38,6 +35,10 @@ let string_of_ins i =
   | Syntax.ICloseConn -> "close_conn" 
   | Syntax.IConnect -> "connect" 
   | Syntax.IAccept -> "accept"
+
+
+let pprint_iv (v, i, j) ppf =
+   Format.fprintf ppf "%s[%d,%d]" v i j
 
 let pprint_ins i ppf = 
    Format.fprintf ppf "%s" (string_of_ins i)
@@ -63,7 +64,7 @@ let rec pprint_expr {Location.data=c; Location.loc=loc} ppf =
           Format.pp_print_list 
             ~pp_sep:(fun ppf () -> Format.fprintf ppf ",@ ") 
             (fun ppf e -> pprint_expr e ppf) ppf el)
-    | Syntax.Channel s -> Format.fprintf ppf "Ch %s" s
+    | Syntax.Channel (s, _, _) -> Format.fprintf ppf "Ch %s" s
     | Syntax.FrVariable s -> Format.fprintf ppf "Fr %s" s
   
 let pprint_event {Location.data=c; Location.loc=loc} ppf = 
