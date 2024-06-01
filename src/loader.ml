@@ -148,7 +148,7 @@ type system = {
    sys_proc : (int * (* process id *) Name.ident * (* name of the process template *)
                Input.attack_class list  * (* main function *)
                (Name.ident * Input.chan_class * Input.access_class list * Input.attack_class list) list * (* connected channels: name, channel class, accesses, and attacks *)
-               (Name.ident * Syntax.expr * Input.access_class * Input.attack_class list) list * (* paths in the file system, its initial value, access, and attacks *)
+               (Name.ident * Syntax.expr * Input.access_class list * Input.attack_class list) list * (* paths in the file system, its initial value, access, and attacks *)
                (Name.ident * Syntax.expr) list * (* process's internal variables and their initial values *)
                (Name.ident * Name.ident list * Syntax.stmt list * Syntax.indexed_var ) list * (* process's internal variables and their initial values *)
                Syntax.stmt list 
@@ -483,7 +483,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             if not (ctx_check_fsys ctx fsys) then error ~loc (UnknownIdentifier fsys) else
             let (_, cargs, ptype, _, _) = ctx_get_proc ctx pid in
             let (_, vl, fl, m) = def_get_proc def pid in
-            let fpaths = List.fold_left (fun fpaths (fsys', path, ftype) -> if fsys = fsys' then (path, ftype) :: fpaths) [] ctx.ctx_fsys in 
+            let fpaths = List.fold_left (fun fpaths (fsys', path, ftype) -> if fsys = fsys' then (path, ftype) :: fpaths else fpaths) [] ctx.ctx_fsys in 
             let fpaths = List.map (fun (path, ftype) -> 
                                     let (_ , _ , v) = List.find (fun (fsys', path', val') -> fsys' = fsys && path = path') def.def_fsys in 
                                     (path, v, ftype)) fpaths in 
@@ -507,14 +507,15 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                            List.map (fun (f, args, c, ret) -> (f, args, List.map (fun c -> Substitute.stmt_chan_sub c f t accesses chan_class) c, ret)) fl,
                            List.map (fun c -> Substitute.stmt_chan_sub c f t accesses chan_class) m)
                      else error ~loc (UnknownIdentifier t)) ([], vl, fl, m) cargs chans in 
-               (  pid, 
+               ( pid, 
                   List.fold_left (fun attks (t, a) -> if t = pid then a :: attks else attks) [] pol.pol_attack,
                   chs, fpaths, vl, fl, m)) procs in  
-      let processed_procs = List.fold_left (fun (processed_procs,k) (pid, attks, chans, files, fpaths, vl, fl, m)
-         -> ((k,pid, attks, chans, files, fpaths, vl, fl, m) :: processed_procs, k+1)) ([],0) processed_procs in 
-      (ctx, pol, def, {sys with sys_proc=processed_procs::sys.sys_proc})
+      let (processed_procs, _) = List.fold_left (fun (processed_procs,k) (pid, attks, chans, files, vl, fl, m)
+         -> ((k,pid, attks, chans, files, vl, fl, m) :: processed_procs, k+1)) ([],0) processed_procs in 
+      (ctx, pol, def, {sys_proc=processed_procs}::sys)
+in process_decl' ctx pol def sys c
 
-let process_init = (ctx_init, pol_init, def_init, sys_init)
+let process_init = (ctx_init, pol_init, def_init, [])
 
 let load fn ctx pol def sys =
    let decls= Lexer.read_file Parser.file fn in 

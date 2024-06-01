@@ -76,7 +76,7 @@ let _main =
       Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
       Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
       Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
-      List.fold_left (fun _ s -> Print.message "System:" "%t" (Printer.pprint_system s)) () sys ;
+      (* List.fold_left (fun _ s -> Print.message "System:" "%t" (Printer.pprint_system s)) () (List.hd sys) ; *)
     ()
 
 (*     let topstate = 
