@@ -197,14 +197,14 @@ let pprint_context ctx ppf =
             (fun ppf (a, c) -> Format.fprintf ppf "%s:%d" a c) ppf x) in
 
    Format.fprintf ppf "@.   @[<v>@ %t@ %t@ %t@ %t@ %t@ %t@ %t@ %t@]"
-   (pprint_ext_const ctx.Loader.ctx_ext_const) 
-   (pprint_ext_func ctx.Loader.ctx_ext_func) 
-   (pprint_ty ctx.Loader.ctx_ty) 
-   (pprint_const ctx.Loader.ctx_const) 
-   (pprint_fsys ctx.Loader.ctx_fsys) 
-   (pprint_chan ctx.Loader.ctx_chan)    
-   (pprint_proc ctx.Loader.ctx_proc) 
-   (pprint_event ctx.Loader.ctx_event) 
+   (pprint_ext_const ctx.Context.ctx_ext_const) 
+   (pprint_ext_func ctx.Context.ctx_ext_func) 
+   (pprint_ty ctx.Context.ctx_ty) 
+   (pprint_const ctx.Context.ctx_const) 
+   (pprint_fsys ctx.Context.ctx_fsys) 
+   (pprint_chan ctx.Context.ctx_chan)    
+   (pprint_proc ctx.Context.ctx_proc) 
+   (pprint_event ctx.Context.ctx_event) 
 
 
 let pprint_definition def ppf =
@@ -247,10 +247,10 @@ let pprint_definition def ppf =
             (pprint_stmts m)
             ) ppf x) in
    Format.fprintf ppf "@.   @[<v>@ %t@ %t@ %t@ %t@]"
-   (pprint_ext_eq def.Loader.def_ext_eq) 
-   (pprint_const def.Loader.def_const) 
-   (pprint_fsys def.Loader.def_fsys) 
-   (pprint_proc def.Loader.def_proc)  
+   (pprint_ext_eq def.Context.def_ext_eq) 
+   (pprint_const def.Context.def_const) 
+   (pprint_fsys def.Context.def_fsys) 
+   (pprint_proc def.Context.def_proc)  
 
 
 let pprint_access_policy pol ppf =
@@ -271,8 +271,8 @@ let pprint_access_policy pol ppf =
          (fun ppf (t, a) -> Format.fprintf ppf "@[<hov>%s:%s@]" t (print_attack_class a)) ppf x) in
 
    Format.fprintf ppf "@.   @[<v>@ %t@ %t@]"
-   (pprint_pol_access pol.Loader.pol_access) 
-   (pprint_pol_attack pol.Loader.pol_attack)
+   (pprint_pol_access pol.Context.pol_access) 
+   (pprint_pol_attack pol.Context.pol_attack)
 
 let pprint_system procs ppf =
       Format.pp_print_list 

@@ -56,3 +56,39 @@ and atomic_stmt_chan_sub c f t accesses chan_class =
       Location.locate ~loc:loc 
         (Syntax.For (iv, i, j, List.map (fun e -> stmt_chan_sub e f t accesses chan_class) c))
 
+let rec expr_const_sub e def = 
+  let loc = e.Location.loc in
+  match e.Location.data with
+  | Syntax.Const s  -> snd (Context.def_get_const def s)
+  | Syntax.ExtConst s  -> e
+  | Syntax.Variable iv  -> e
+  | Syntax.Boolean b  -> e
+  | Syntax.String s  -> e
+  | Syntax.Integer k  -> e
+  | Syntax.Float s -> e
+  | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_const_sub e def) el))
+  | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_const_sub e def) el))
+  | Syntax.Channel (s, l1, l2) -> e
+
+let rec stmt_const_sub c def =
+  let loc = c.Location.loc in
+  match c.Location.data with
+  | Syntax.OpStmt a -> Location.locate ~loc:loc (Syntax.OpStmt (atomic_stmt_const_sub a def))
+  | Syntax.EventStmt (a, el) -> Location.locate ~loc:loc (Syntax.EventStmt ((atomic_stmt_const_sub a def), el))
+  
+and atomic_stmt_const_sub c def = 
+    let loc = c.Location.loc in
+    match c.Location.data with
+    | Syntax.Skip -> c
+    | Syntax.Let (iv, e) -> Location.locate ~loc:loc (Syntax.Let (iv, expr_const_sub e def))
+    | Syntax.Call (iv, f, args) -> Location.locate ~loc:loc (Syntax.Call (iv, f, List.map (fun e -> expr_const_sub e def) args))
+    | Syntax.Instruction (iv, ins, args) -> Location.locate ~loc:loc (Syntax.Instruction (iv, ins, List.map (fun e -> expr_const_sub e def) args))
+    | Syntax.If (e, c1, c2) -> 
+      Location.locate ~loc:loc 
+        (Syntax.If (expr_const_sub e def, 
+                    List.map (fun e -> stmt_const_sub e def) c1,
+                     List.map (fun e -> stmt_const_sub e def) c2))
+    | Syntax.For (iv, i, j, c) -> 
+      Location.locate ~loc:loc 
+        (Syntax.For (iv, i, j, List.map (fun e -> stmt_const_sub e def) c))
+
