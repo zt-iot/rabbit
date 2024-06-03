@@ -43,7 +43,7 @@ channel mychan = {
 	transfer: stream, type: mytype7
 }
 
-allow mytype2 mytype7 [send]
+allow mytype2 mytype7 [send, recv]
 
 filesys test = [
 	{path: haha, data: zero, type: mytype},
@@ -51,20 +51,21 @@ filesys test = [
 	]
 
 process testtest(a, b, c) with mytype2 {
-	let a = one ; 
-	let b = a;
+	let e = one ; 
+	let d = a;
 
-	function test2 (c, d){
+	function test2 (s, j){
 		skip @ Test(d);	
-		let y = recv(a);
-		return c;
+		let k = d; 
+		let y = send(a, d);
+		return j;
 	}
-(*	
-	function test3 (c, d){
-		let x = test2(c, d) @ Test(c);
+
+	function test3 (jjj, jjjj){
+		let x = test2(jjj, jjj) @ Test(jjj);
 		return x ; 
 	}
-*)
+
 	main {
 	skip;
 	}

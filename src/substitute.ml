@@ -26,7 +26,6 @@ let rec expr_chan_sub e f t accesses chan_class =
   | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_chan_sub e f t accesses chan_class) el))
   | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_chan_sub e f t accesses chan_class) el))
   | Syntax.Channel (s, l1, l2) -> 
-    Printf.printf "testing %s and %s" s f;
     if s = f then 
     begin
       (List.fold_left (fun _ x -> if List.exists (fun y -> x = y) accesses then () else error ~loc (AccessError x)) () l1) ;

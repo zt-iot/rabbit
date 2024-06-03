@@ -206,8 +206,11 @@ let lctx_add_new_chan ~loc lctx c =
 let lctx_check_var lctx v =
    List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_var false 
 
+let lctx_check_func lctx f = 
+   List.exists (fun (i, _) -> i = f) lctx.lctx_func 
+
 let lctx_add_new_var ~loc lctx v = 
-   if lctx_check_var lctx v then error ~loc (AlreadyDefined v) else 
+   if lctx_check_var lctx v || lctx_check_chan lctx v || lctx_check_func lctx v then error ~loc (AlreadyDefined v) else 
    match lctx.lctx_var with 
    | f::frames -> {lctx with lctx_var=(v::f)::frames}
    | _ -> error ~loc (UnintendedError)
@@ -219,8 +222,6 @@ let lctx_pop_frame ~loc lctx =
    | f::frames -> {lctx with lctx_var=frames}
    | _ -> error ~loc (UnintendedError)
 
-let lctx_check_func lctx f = 
-   List.exists (fun (i, _) -> i = f) lctx.lctx_func 
 
 let lctx_get_func_arity lctx f = 
    let (_, k) = List.find (fun (i, _) -> i = f) lctx.lctx_func in k

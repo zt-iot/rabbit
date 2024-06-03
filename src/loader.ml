@@ -279,17 +279,17 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             if (List.length cargs) !=  (List.length chans) then error ~loc (ArgNumMismatch (pid, (List.length chans), (List.length cargs)))
             else
                let (chs, vl, fl, m) = List.fold_left2 
-                  (fun (chs, vl, fl, m) f t -> 
-                     if Context.ctx_check_chan ctx t then 
-                        let (_, chan_class, chan_ty) = List.find (fun (s, _, _) -> s = t) ctx.Context.ctx_chan in  
+                  (fun (chs, vl, fl, m) ch_f ch_t -> 
+                     if Context.ctx_check_chan ctx ch_t then 
+                        let (_, chan_class, chan_ty) = List.find (fun (s, _, _) -> s = ch_t) ctx.Context.ctx_chan in  
                         let accesses = List.fold_left (fun acs (f', t', ac) -> if f' = ptype && t' = chan_ty then ac::acs else acs) [] pol.Context.pol_access in 
                         (
-                           (t, chan_class, accesses,
-                              List.fold_left (fun attks (s, a) -> if s = t then a :: attks else attks ) [] pol.Context.pol_attack) :: chs,
-                              List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e f t accesses chan_class)) vl,
-                              List.map (fun (f, args, c, ret) -> (f, args, List.map (fun c -> Substitute.stmt_chan_sub c f t accesses chan_class) c, ret)) fl,
-                              List.map (fun c -> Substitute.stmt_chan_sub c f t accesses chan_class) m)
-                     else error ~loc (UnknownIdentifier t)) ([], vl, fl, m) cargs chans in 
+                           (ch_t, chan_class, accesses,
+                              List.fold_left (fun attks (s, a) -> if s = ch_t then a :: attks else attks ) [] pol.Context.pol_attack) :: chs,
+                              List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e ch_f ch_t accesses chan_class)) vl,
+                              List.map (fun (fn, args, c, ret) -> (fn, args, List.map (fun c -> Substitute.stmt_chan_sub c ch_f ch_t accesses chan_class) c, ret)) fl,
+                              List.map (fun c -> Substitute.stmt_chan_sub c ch_f ch_t accesses chan_class) m)
+                     else error ~loc (UnknownIdentifier ch_t)) ([], vl, fl, m) cargs chans in 
                (pid, 
                   List.fold_left (fun attks (t, a) -> if t = pid then a :: attks else attks) [] pol.Context.pol_attack,
                   chs, fpaths, vl, fl, m)) procs in  

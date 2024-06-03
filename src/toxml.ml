@@ -102,6 +102,8 @@ let to_xml_proc {
   Context.proc_function=fns;
   Context.proc_main=m
 } = 
+  let vars = List.rev vars in 
+  let fns = List.rev fns in 
   let xml_ch (n, cl, acc, attk) =
     Xml.Element("Channel", [("name", n) ; ("class", Printer.print_chan_class cl)] @ (accs_to_attr acc) @ (attks_to_attr attk), []) in
   let xml_file (p, data, accs, attks) = 
@@ -112,10 +114,8 @@ let to_xml_proc {
     Xml.Element("Variable", [], 
       [Xml.Element("Ident", [], [Xml.PCData id]) ; Xml.Element("Data", [], [to_xml_expr expr])]) in 
   let xml_function (id, args, cmds, ret) = 
-    Xml.Element("Function", [], 
+    Xml.Element("Function", (("name", id) :: fst (List.fold_left (fun (attrs, k) arg -> (attrs @ [("input " ^ (string_of_int k), arg)], k+1)) ([],0) args)), 
       [
-        Xml.Element("Ident", [], [Xml.PCData id]);
-        Xml.Element("Arguments", [], List.map (fun s -> Xml.PCData s) args);
         Xml.Element("Commands", [], [to_xml_stmts cmds]);
         Xml.Element("Return", [], [to_xml_indexed_var ret])
       ]) in 
