@@ -59,7 +59,7 @@ plain_decl:
   | external_functions { $1 }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
-  | ALLOW s=NAME t=NAME LBRACKET a=separated_nonempty_list(COMMA, access_c) RBRACKET { DeclAccess(s,t,a)} 
+  | ALLOW s=NAME t=NAME LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t,a)} 
   | ATTACK t=NAME LBRACKET a=separated_nonempty_list(COMMA, attack_c) RBRACKET { DeclAttack(t,a)} 
   | INITCONST t=NAME EQ e=expr SEMICOLON { DeclInit(t,e) }
   | FILESYS t=NAME EQ LBRACKET f=separated_nonempty_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
@@ -122,12 +122,6 @@ type_c:
   | FILESYS { CFsys }
   | PROCESS { CProc }
   | CHANNEL { CChan }
-
-access_c:
-  | READ { CRead }
-  | WRITE { CWrite }
-  | SEND { CSend }
-  | RECV { CRecv }
 
 attack_c:
   | EAVESDROP { CEaves }

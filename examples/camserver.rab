@@ -56,13 +56,15 @@ process testtest(a, b, c) with mytype2 {
 
 	function test2 (c, d){
 		skip @ Test(d);	
+		let y = recv(a);
 		return c;
 	}
+(*	
 	function test3 (c, d){
 		let x = test2(c, d) @ Test(c);
 		return x ; 
 	}
-
+*)
 	main {
 	skip;
 	}

@@ -26,11 +26,12 @@ let rec expr_chan_sub e f t accesses chan_class =
   | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_chan_sub e f t accesses chan_class) el))
   | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_chan_sub e f t accesses chan_class) el))
   | Syntax.Channel (s, l1, l2) -> 
+    Printf.printf "testing %s and %s" s f;
     if s = f then 
     begin
       (List.fold_left (fun _ x -> if List.exists (fun y -> x = y) accesses then () else error ~loc (AccessError x)) () l1) ;
       (List.fold_left (fun _ x -> if List.exists (fun y -> x = y) [chan_class] then () else error ~loc (ClassError x)) () l2) ;
-      Location.locate ~loc:loc (Syntax.Channel (s, l1, [chan_class])) 
+      Location.locate ~loc:loc (Syntax.Channel (t, l1, [chan_class])) 
     end else e 
 
 
@@ -45,7 +46,7 @@ and atomic_stmt_chan_sub c f t accesses chan_class =
     match c.Location.data with
     | Syntax.Skip -> c
     | Syntax.Let (iv, e) -> Location.locate ~loc:loc (Syntax.Let (iv, expr_chan_sub e f t accesses chan_class))
-    | Syntax.Call (iv, f, args) -> Location.locate ~loc:loc (Syntax.Call (iv, f, List.map (fun e -> expr_chan_sub e f t accesses chan_class) args))
+    | Syntax.Call (iv, fn, args) -> Location.locate ~loc:loc (Syntax.Call (iv, fn, List.map (fun e -> expr_chan_sub e f t accesses chan_class) args))
     | Syntax.Instruction (iv, ins, args) -> Location.locate ~loc:loc (Syntax.Instruction (iv, ins, List.map (fun e -> expr_chan_sub e f t accesses chan_class) args))
     | Syntax.If (e, c1, c2) -> 
       Location.locate ~loc:loc 

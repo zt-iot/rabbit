@@ -76,7 +76,8 @@ let _main =
       Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
       Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
       Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
-      (* List.fold_left (fun _ s -> Print.message "System:" "%t" (Printer.pprint_system s)) () (List.hd sys) ; *)
+      List.fold_left (fun _ s -> 
+        Printf.printf "%s" (Xml.to_string_fmt (Toxml.to_xml_sys s))) () sys;
     ()
 
 (*     let topstate = 
@@ -87,7 +88,12 @@ let _main =
  *) 
   with
   | Ulexbuf.Error {Location.data=err; Location.loc} ->
-     Print.message ~loc "Syntax error" "%t" (Ulexbuf.print_error err)
+    Print.message ~loc "Parsing error" "%t" (Ulexbuf.print_error err)
   | Loader.Error {Location.data=err; Location.loc} ->
-     Print.message ~loc "Syntax error" "%t" (Loader.print_error err)
-  
+    Print.message ~loc "Syntax error" "%t" (Loader.print_error err)
+  | Context.Error {Location.data=err; Location.loc} ->
+    Print.message ~loc "Syntax error" "%t" (Context.print_error err)
+  | Toxml.Error {Location.data=err; Location.loc} ->
+    Print.message ~loc "Syntax error" "%t" (Toxml.print_error err)
+  | Substitute.Error {Location.data=err; Location.loc} ->
+    Print.message ~loc "Syntax error" "%t" (Substitute.print_error err)

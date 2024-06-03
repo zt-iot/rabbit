@@ -21,10 +21,6 @@ let reserved = [
   ("main", MAIN) ;
   ("return", RETURN) ; 
   ("data", DATA) ; 
-  ("read", READ) ;
-  ("write", WRITE) ;
-  ("send", SEND) ;
-  ("recv", RECV) ; 
   ("eavesdrop", EAVESDROP) ; 
   ("tamper", TAMPER) ; 
   ("drop", DROP) ;

@@ -194,10 +194,10 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
       let f pol' a =
          begin
          match tys, tyt, a with
-         | Input.CProc, Input.CFsys, Input.CRead 
-         | Input.CProc, Input.CFsys, Input.CWrite 
-         | Input.CProc, Input.CChan, Input.CSend 
-         | Input.CProc, Input.CChan, Input.CRecv -> Context.pol_add_access pol' (s, t, a)
+         | Input.CProc, Input.CFsys, "read" -> Context.pol_add_access pol' (s, t, Input.CRead)
+         | Input.CProc, Input.CFsys, "write" -> Context.pol_add_access pol' (s, t, Input.CWrite)
+         | Input.CProc, Input.CChan, "send" -> Context.pol_add_access pol' (s, t, Input.CSend)
+         | Input.CProc, Input.CChan, "recv" -> Context.pol_add_access pol' (s, t, Input.CRecv)
          | _, _, _ -> error ~loc (WrongInputType)
          end
       in (ctx, List.fold_left f pol al, def, sys)

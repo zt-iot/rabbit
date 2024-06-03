@@ -12,7 +12,7 @@ let print_error err ppf =
   | UnintendedError -> Format.fprintf ppf "unintended behavior. Contact the developer"
 
 let to_xml_instruction i = 
-    let (s, _, _) = List.find (fun (_, s, _) -> s = i) Loader.primitive_ins in
+    let (s, _, _) = List.find (fun (_, s, _) -> s = i) Context.primitive_ins in
     Xml.Element ("Instruction", [], [Xml.PCData s])
 
 let to_xml_ext_func f = 
@@ -30,6 +30,7 @@ let tag_stmt = "Statement"
 let tag_atomic_stmt = "AtomicStatement"
 let tag_stmts = "Statements"
 let tag_event = "Event"
+let tag_process = "Process"
 
 let rec to_xml_expr {Location.data=c; Location.loc=loc} = 
     match c with
@@ -46,13 +47,13 @@ let rec to_xml_expr {Location.data=c; Location.loc=loc} =
     | Syntax.Tuple el -> 
       Xml.Element (tag_expr, [("constr", "tuple")], 
         List.map to_xml_expr el)
-    | Syntax.Channel s -> Xml.Element (tag_expr, [("constr", "channel")], [Xml.PCData s])
+    | Syntax.Channel (s,_,_) -> Xml.Element (tag_expr, [("constr", "channel")], [Xml.PCData s])
     | Syntax.FrVariable s -> error ~loc UnintendedError  
 
-let to_xml_event {Location.data=c; Location.loc=loc} ppf = 
+let to_xml_event {Location.data=c; Location.loc=loc} = 
   match c with  
   | Syntax.Event (eid, ivl) -> 
-    Xml.Element (tag_event, [("name",eid)], List.map to_xml_indexed_var ivl)
+    Xml.Element (tag_event, [("name",eid)], List.map to_xml_expr ivl)
 
 let rec to_xml_stmt {Location.data=c; Location.loc=loc}  = 
   match c with
@@ -79,4 +80,55 @@ and to_xml_atomic_stmt {Location.data=c; Location.loc=loc}  =
           to_xml_stmts c
         ])
 
-and to_xml_stmts cs = Xml.Element (tag_stmts, [], List.map pprint_stmt cs)
+and to_xml_stmts cs = Xml.Element (tag_stmts, [], List.map to_xml_stmt cs)
+
+let access_class_list = [Input.CRead ;  Input.CWrite ; Input.CSend ; Input.CRecv] 
+let attack_class_list = [Input.CEaves ;  Input.CTamper ; Input.CDrop] 
+
+
+let attks_to_attr attks = 
+  List.map (fun a -> (Printer.print_attack_class a, "true")) attks
+
+let accs_to_attr accs = 
+  List.map (fun a -> (Printer.print_access_class a, "true")) accs
+
+let to_xml_proc {
+  Context.proc_pid=k;
+  Context.proc_name=s;
+  Context.proc_attack=attks;
+  Context.proc_channel=chs;
+  Context.proc_file=fls;
+  Context.proc_variable=vars;
+  Context.proc_function=fns;
+  Context.proc_main=m
+} = 
+  let xml_ch (n, cl, acc, attk) =
+    Xml.Element("Channel", [("name", n) ; ("class", Printer.print_chan_class cl)] @ (accs_to_attr acc) @ (attks_to_attr attk), []) in
+  let xml_file (p, data, accs, attks) = 
+    Xml.Element("File", ((accs_to_attr accs) @ (attks_to_attr attks)), 
+      [Xml.Element("Path", [], [Xml.PCData p]) ;
+      Xml.Element("Data", [], [to_xml_expr data])]) in 
+  let xml_variable (id, expr) = 
+    Xml.Element("Variable", [], 
+      [Xml.Element("Ident", [], [Xml.PCData id]) ; Xml.Element("Data", [], [to_xml_expr expr])]) in 
+  let xml_function (id, args, cmds, ret) = 
+    Xml.Element("Function", [], 
+      [
+        Xml.Element("Ident", [], [Xml.PCData id]);
+        Xml.Element("Arguments", [], List.map (fun s -> Xml.PCData s) args);
+        Xml.Element("Commands", [], [to_xml_stmts cmds]);
+        Xml.Element("Return", [], [to_xml_indexed_var ret])
+      ]) in 
+  let xml_main cmds = 
+      Xml.Element("Main", [], [to_xml_stmts cmds]) in 
+
+    Xml.Element(tag_process, 
+      ("pid", string_of_int k) :: ("pname", s) :: (attks_to_attr attks), 
+      List.concat [(List.map xml_ch chs) ;
+      (List.map xml_file fls) ;
+      (List.map xml_variable vars) ;
+      (List.map xml_function fns) ; [xml_main m]])
+
+let to_xml_sys s =
+  Xml.Element("System", [], List.map to_xml_proc s.Context.sys_process)
+

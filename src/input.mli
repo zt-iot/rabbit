@@ -49,7 +49,7 @@ and decl' =
   | DeclExtFun of Name.ident * int
   | DeclExtEq of expr * expr
   | DeclType of Name.ident * type_class
-  | DeclAccess of Name.ident * Name.ident * (access_class list)
+  | DeclAccess of Name.ident * Name.ident * (Name.ident list)
   | DeclAttack of Name.ident * (attack_class list)
   | DeclInit of Name.ident * expr
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
