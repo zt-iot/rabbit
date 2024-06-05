@@ -202,8 +202,8 @@ let pprint_context ctx ppf =
    (pprint_ty ctx.Context.ctx_ty) 
    (pprint_const ctx.Context.ctx_const) 
    (pprint_fsys ctx.Context.ctx_fsys) 
-   (pprint_chan ctx.Context.ctx_chan)    
-   (pprint_proc ctx.Context.ctx_proc) 
+   (pprint_chan ctx.Context.ctx_ch)    
+   (pprint_proc (List.map Context.to_pair_ctx_proctmpl ctx.Context.ctx_proctmpl)) 
    (pprint_event ctx.Context.ctx_event) 
 
 
@@ -250,7 +250,7 @@ let pprint_definition def ppf =
    (pprint_ext_eq def.Context.def_ext_eq) 
    (pprint_const def.Context.def_const) 
    (pprint_fsys def.Context.def_fsys) 
-   (pprint_proc def.Context.def_proc)  
+   (pprint_proc (List.map Context.to_pair_def_proctmpl def.Context.def_proctmpl))  
 
 
 let pprint_access_policy pol ppf =

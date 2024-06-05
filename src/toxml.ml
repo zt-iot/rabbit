@@ -12,7 +12,7 @@ let print_error err ppf =
   | UnintendedError -> Format.fprintf ppf "unintended behavior. Contact the developer"
 
 let to_xml_instruction i = 
-    let (s, _, _) = List.find (fun (_, s, _) -> s = i) Context.primitive_ins in
+    let (s, _, _) = List.find (fun (_, s, _) -> s = i) Primitives.primitive_ins in
     Xml.Element ("Instruction", [], [Xml.PCData s])
 
 let to_xml_ext_func f = 
