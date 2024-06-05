@@ -76,10 +76,20 @@ let _main =
       Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
       Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
       Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
-      List.fold_left (fun _ s -> 
-        Printf.printf "%s" (Xml.to_string_fmt (Toxml.to_xml_sys s))) () sys;
-    ()
 
+      try
+        let dtd = Dtd.parse_file "src/toxml.dtd" in
+        let checked = Dtd.check dtd in
+        List.fold_left (fun _ s -> 
+          let xml = Toxml.to_xml_sys s in 
+          Printf.printf "before checking dtd: \n %s" (Xml.to_string_fmt xml); 
+          let xml = Dtd.prove checked "system" xml in 
+          Printf.printf "after checking dtd : \n %s" (Xml.to_string_fmt xml); 
+          ) () sys;
+      with Dtd.Parse_error e -> print_endline (Dtd.parse_error e)
+      | Dtd.Check_error e -> print_endline (Dtd.check_error e)
+      | Dtd.Prove_error e -> print_endline (Dtd.prove_error e)
+      
 (*     let topstate = 
       List.fold_left
         (fun (ctx, lctx, ldef) fn -> Desugar.load fn ctx lctx ldef)

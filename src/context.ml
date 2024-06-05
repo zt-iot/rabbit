@@ -116,7 +116,10 @@ type process = {
 }
 
 type system = {
-   sys_process : process list 
+   sys_ctx : context ; 
+   sys_def : definition ;
+   sys_pol : access_policy ;
+   sys_proc : process list 
 }
 
 type local_context = {lctx_chan : Name.ident list ; lctx_var : (Name.ident list) list ; lctx_func : (Name.ident * int) list }
@@ -269,7 +272,12 @@ let lctx_get_var_index ~loc lctx v =
 let ctx_init = {ctx_ext_func = [] ; ctx_ext_const = [] ; ctx_ext_ins = []; ctx_ty = [] ; ctx_const = [] ; ctx_fsys = [] ; ctx_ch = [] ; ctx_proctmpl = [] ; ctx_event = []}
 let def_init = {def_ext_eq = [] ; def_const = [] ; def_ext_ins = [] ; def_fsys=[] ; def_proctmpl = []}
 let pol_init = {pol_access = [] ; pol_attack = []}
-let sys_init = []
-let lctx_init = {lctx_chan = []; lctx_var = [ [] ]; lctx_func = []}
+(* let sys_init = {   
+   sys_ctx = []; 
+   sys_def = [];
+   sys_pol = [];
+   sys_proc =[] }
+ *)
+ let lctx_init = {lctx_chan = []; lctx_var = [ [] ]; lctx_func = []}
 let ldef_init = {ldef_var=[]; ldef_func=[]}
 

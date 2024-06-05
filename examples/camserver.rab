@@ -31,9 +31,6 @@ external instruction make_nonce() : [] => [return fresh n : ]
 
 type mytype: filesys
 type mytype2: process
-type mytype3: process
-type mytype4: process
-type mytype5: process
 type mytype6: process
 type mytype7: channel
 

@@ -296,7 +296,11 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
       let (processed_procs, _) = List.fold_left (fun (processed_procs,k) (pid, attks, chans, files, vl, fl, m)
          -> ({Context.proc_pid=k; Context.proc_name=pid; Context.proc_attack=attks; Context.proc_channel=chans; Context.proc_file=files; Context.proc_variable=vl; Context.proc_function=fl; Context.proc_main=m} :: processed_procs, k+1)) 
       ([],0) processed_procs in 
-      (ctx, pol, def, {Context.sys_process=processed_procs}::sys)
+      (ctx, pol, def, {
+                        Context.sys_ctx = ctx;
+                        Context.sys_pol = pol;
+                        Context.sys_def = def;
+                        Context.sys_proc=processed_procs}::sys)
 in process_decl' ctx pol def sys c
 
 

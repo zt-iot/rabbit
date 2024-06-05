@@ -1,0 +1,114 @@
+<!-- DTD for rabbit printing xml -->
+<!ELEMENT access EMPTY>
+<!ATTLIST access read CDATA "false">
+<!ATTLIST access write CDATA "false">
+<!ATTLIST access send CDATA "false">
+<!ATTLIST access recv CDATA "false">
+
+
+<!ELEMENT attack EMPTY>
+<!ATTLIST attack eavesdrop CDATA "false">
+<!ATTLIST attack tampering CDATA "false">
+<!ATTLIST attack drop CDATA "false">
+
+<!ELEMENT pcdata(#PCDATA)>
+
+<!ELEMENT ext_const(pcdata)>
+<!ATTLIST ext_const id ID #REQUIRED>
+
+<!ELEMENT ext_func(pcdata)>
+<!ATTLIST ext_func id ID #REQUIRED>
+<!ATTLIST ext_func arity CDATA #REQUIRED>
+
+<!ELEMENT ext_eq (expr,expr)>
+
+<!ELEMENT const (pcdata,expr)>
+
+<!ELEMENT event (pcdata)>
+<!ATTLIST event id ID #REQUIRED>
+<!ATTLIST event arity CDATA #REQUIRED>
+
+<!ELEMENT channel(pcdata,attack)>
+<!ATTLIST channel id ID #REQUIRED>
+<!ATTLIST channel channel_class CDATA #REQUIRED>
+
+<!-- AST for expressions -->
+<!ELEMENT expr (expr_ext_const|expr_const|expr_var|expr_boolean|expr_string|expr_integer|expr_float|expr_apply|expr_tuple|expr_channel)>
+
+<!ELEMENT expr_ext_const(pcdata)>
+<!ATTLIST expr_ext_const ref IDREF #REQUIRED>
+
+<!ELEMENT expr_const(pcdata)>
+<!ATTLIST expr_const ref IDREF #REQUIRED>
+
+<!ELEMENT expr_var(pcdata)>
+<!ATTLIST expr_var frame CDATA #REQUIRED>
+<!ATTLIST expr_var stack CDATA #REQUIRED>
+
+<!ELEMENT expr_boolean(pcdata)>
+<!ELEMENT expr_string(pcdata)>
+<!ELEMENT expr_integer(pcdata)>
+<!ELEMENT expr_float(pcdata)>
+
+<!ELEMENT expr_apply(expr*)>
+<!ATTLIST expr_apply ext_func_ref IDREF #REQUIRED>
+<!ATTLIST expr_apply ext_func_name CDATA #REQUIRED>
+
+<!ELEMENT expr_tuple(expr*)>
+
+<!ELEMENT expr_channel(pcdata)>
+<!ATTLIST expr_channel ch_ref IDREF #REQUIRED>
+
+<!-- AST for statements -->
+<!ELEMENT event_call(expr*)>
+<!ATTLIST event_call event_ref IDREF #REQUIRED>
+<!ATTLIST event_call event_name CDATA #REQUIRED>
+
+<!ELEMENT a_stmt (a_stmt_skip|a_stmt_let|a_stmt_call|a_stmt_instruction|a_stmt_ite|a_stmt_for)>
+
+<!ELEMENT a_stmt_skip EMPTY>
+<!ELEMENT a_stmt_let (expr_var,expr)>
+
+<!ELEMENT a_stmt_call (expr_var,expr*)>
+<!ATTLIST a_stmt_call mem_func_ref IDREF #REQUIRED>
+<!ATTLIST a_stmt_call mem_func_name CDATA #REQUIRED>
+
+<!ELEMENT a_stmt_instruction (expr_var,expr*)>
+<!ATTLIST a_stmt_instruction ins_name CDATA #REQUIRED>
+
+<!ELEMENT cond (expr)>
+<!ELEMENT then (stmt+)>
+<!ELEMENT else (stmt+)>
+<!ELEMENT a_stmt_ite (cond,then,else)>
+
+<!ELEMENT a_stmt_for (expr_var,stmt*)>
+<!ATTLIST a_stmt_for from CDATA #REQUIRED>
+<!ATTLIST a_stmt_for to CDATA #REQUIRED>
+
+<!ELEMENT stmt (a_stmt,event_call?)>
+
+<!-- AST for processes -->
+<!ELEMENT process (attack,channel_access*,file*,mem_var*,mem_func*,main)>
+<!ATTLIST process id ID #REQUIRED>
+<!ATTLIST process name CDATA #REQUIRED>
+
+<!ELEMENT channel_access(pcdata,access)>
+<!ATTLIST channel_access ref IDREF #REQUIRED>
+
+
+<!ELEMENT file (path,initial_data,attack,access)>
+<!ELEMENT path (pcdata)>
+<!ELEMENT initial_data (expr)>
+
+<!ELEMENT mem_var (pcdata,expr)>
+
+<!ELEMENT mem_func (pcdata,argument*,body,return)>
+<!ATTLIST mem_func id ID #REQUIRED>
+
+<!ELEMENT argument (pcdata)>
+<!ELEMENT body (stmt+)>
+<!ELEMENT return (expr_var)>
+
+<!ELEMENT main (body)>
+
+<!ELEMENT system (ext_const*,ext_func*,ext_eq*,event*,channel*,process*)>
