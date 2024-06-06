@@ -33,7 +33,7 @@ let to_xml_attks attks =
 let to_xml_accs accs = 
   Xml.Element ("access", List.map (fun a -> (Printer.print_access_class a, "true")) accs, [])
 
-let mypcdata s = Xml.Element ("pcdata", [], [Xml.PCData s])
+let mypcdata s = Xml.Element ("name", [], [Xml.PCData s])
 
 type engine = {
   eng_ext_const : (string * int) list ; 
@@ -120,14 +120,14 @@ let to_xml_ext_func eng (n, k) =
   (eng, Xml.Element ("ext_func", [("id", string_of_int i); ("arity", string_of_int k)], [mypcdata n]))
 
 let to_xml_indexed_var (s, i, j) =
-  Xml.Element ("expr_var", [("frame",string_of_int i) ; ("stack",string_of_int j)], [mypcdata s])
+  Xml.Element ("expr_var", [("frame",string_of_int i) ; ("de_Bruijn",string_of_int j)], [mypcdata s])
 
 
 let rec to_xml_expr eng {Location.data=c; Location.loc=loc} = 
    let to_xml_expr' eng = function
     | Syntax.Const s -> Xml.Element ("expr_const", [("ref", string_of_int (eng_get_const eng s))], [mypcdata s])
     | Syntax.ExtConst s -> Xml.Element ("expr_ext_const", [("ref", string_of_int (eng_get_ext_const eng s))], [mypcdata s])
-    | Syntax.Variable (s,i,j) -> Xml.Element ("expr_var", [("frame",string_of_int i) ; ("stack",string_of_int j)], [mypcdata s])
+    | Syntax.Variable (s,i,j) -> to_xml_indexed_var(s,i,j)
     | Syntax.Boolean b -> Xml.Element ("expr_boolean", [], [mypcdata (string_of_bool b)])
     | Syntax.String s -> Xml.Element ("expr_string", [], [mypcdata s])
     | Syntax.Integer k -> Xml.Element ("expr_integer", [], [mypcdata (string_of_int k)])
@@ -206,8 +206,8 @@ let to_xml_proc eng {
   let vars = List.rev vars in 
   let fns = List.rev fns in 
   let xml_ch' (n, cl, acc, attk) =
-    Xml.Element("channel_access", [("ref", string_of_int (eng_get_ch eng n))], [mypcdata n ; to_xml_accs acc]) in
-  let xml_ch = (List.map xml_ch' chs) in 
+    Xml.Element("channel_access", [("channel_ref", string_of_int (eng_get_ch eng n)); ("channel_name", n)], [to_xml_accs acc]) in
+  let xml_ch = (List.map xml_ch' (List.rev chs)) in 
   let xml_file' (p, data, accs, attks) = 
     Xml.Element("file", [], 
       [
@@ -245,25 +245,25 @@ let to_xml_sys
   let (eng, ext_const_xmls) = 
     List.fold_left (fun (eng, ext_const_xmls) ext_const -> 
                     let (eng, ext_const_xml) = to_xml_ext_const eng ext_const in
-                    (eng, ext_const_xml :: ext_const_xmls)) (eng, []) ctx.Context.ctx_ext_const in 
+                    (eng, ext_const_xmls @ [ext_const_xml])) (eng, []) (List.rev ctx.Context.ctx_ext_const) in 
   let (eng, ext_func_xmls) = 
     List.fold_left (fun (eng, ext_func_xmls) ext_func -> 
                     let (eng, ext_func_xml) = to_xml_ext_func eng ext_func in
-                    (eng, ext_func_xml :: ext_func_xmls)) (eng, []) ctx.Context.ctx_ext_func in 
+                    (eng, ext_func_xmls @ [ext_func_xml])) (eng, []) (List.rev ctx.Context.ctx_ext_func) in 
   let (eng, ext_eq_xmls) = 
     List.fold_left (fun (eng, ext_eq_xmls) ext_eq -> 
                     let (eng, ext_eq_xml) = to_xml_ext_eq eng ext_eq in
-                    (eng, ext_eq_xml :: ext_eq_xmls)) (eng, []) def.Context.def_ext_eq in 
+                    (eng, ext_eq_xmls @ [ext_eq_xml])) (eng, []) (List.rev def.Context.def_ext_eq) in 
   let (eng, event_xmls) = 
     List.fold_left (fun (eng, event_xmls) event -> 
                   let (eng, event_xml) = to_xml_event eng event in
-                  (eng, event_xml :: event_xmls)) (eng, []) ctx.Context.ctx_event in 
+                  (eng, event_xmls @ [event_xml])) (eng, []) (List.rev ctx.Context.ctx_event) in 
 
   let (eng, ch_xmls) = 
     List.fold_left (fun (eng, ch_xmls) (ch,cl,ty) -> 
                     let attks = List.fold_left (fun attks (s, a) -> if s = ty then a::attks else attks) [] pol.Context.pol_attack in 
                     let (eng, ch_xml) = to_xml_ch eng (ch,cl,attks) in
-                    (eng, ch_xml :: ch_xmls)) (eng, []) ctx.Context.ctx_ch in 
+                    (eng, ch_xmls @ [ch_xml])) (eng, []) (List.rev ctx.Context.ctx_ch) in 
 
   let (eng, proc_xmls) = List.fold_left (fun (eng, proc_xmls) proc -> let (eng, proc_xml) = to_xml_proc eng proc in (eng, proc_xmls @ [proc_xml])) (eng, []) proc in
   Xml.Element("system", [], ext_const_xmls @ ext_func_xmls @ ext_eq_xmls @ event_xmls @ ch_xmls @ proc_xmls)

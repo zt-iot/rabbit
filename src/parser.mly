@@ -112,7 +112,7 @@ main_stmt:
 
 
 fpath:
-  | LBRACE PATH COLON fp=NAME COMMA DATA COLON e=expr COMMA TYPE COLON t=NAME RBRACE
+  | LBRACE PATH COLON fp=QUOTED_STRING COMMA DATA COLON e=expr COMMA TYPE COLON t=NAME RBRACE
     { (fp, e, t) }
 
 (* mark_location(plain_fpath) { $1 }

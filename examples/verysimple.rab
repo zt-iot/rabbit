@@ -1,0 +1,59 @@
+(** very simple rab file to test xml printing *)
+
+(** declare external constants and functions as a equational theory *)
+(** function : arity and where arity = 0 defines constant *)
+external function plus:2
+external function minus:1
+external function zero:0
+external constant one
+
+equation plus(x, zero) = x
+equation plus(x, minus(x)) = zero
+equation plus(x, y) = plus(y, x)
+
+(** declare types with their classes *)
+type filesys_t 	: filesys
+type server_t 	: process
+type client_t 	: process
+type channel_t 	: channel
+
+(** define system-wide constant *)
+init_const sewon = zero;
+
+channel decent_channel = {transfer: datagram, type: channel_t}
+filesys boring_filesys = [{path: "some/path", data: zero, type: filesys_t}]
+
+allow client_t channel_t [send, recv]
+allow server_t channel_t [send, recv]
+
+process client(ch) with client_t {
+	let two = plus(one, one) ; 
+
+	main {
+		let r = send(ch, two) @ Querying();
+		let four = recv(ch);
+		skip;
+	}
+}
+
+process server(ch) with server_t {
+
+	function double (x){
+		let y = plus (x, x) @ Doubling(x);
+		return y;
+	}
+
+	main {
+		let x = recv(ch) @ Receiving(x); 
+		let double_x = double(x); 
+		let r = send(ch, double_x);
+	}
+}
+
+system 
+
+	client(decent_channel) with boring_filesys 
+|| 	server(decent_channel) with boring_filesys
+
+requires 
+[lemma a : True]

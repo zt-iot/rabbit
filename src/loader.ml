@@ -86,7 +86,7 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
                   else error ~loc (ArgNumMismatch (eid, (List.length idl), (Context.ctx_get_event_arity ctx eid ~loc))) (* arity doesn't match *)
                else Context.ctx_add_event ctx (eid, List.length idl)
                end in
-               let idl = List.map (fun e -> process_expr ctx lctx e) idl in 
+               let idl = List.map (fun e -> process_expr ctx lctx' e) idl in 
                (ctx, {Location.data=Syntax.Event (eid, idl) ; Location.loc=loc'}:: el')) (ctx, []) el in 
                (ctx, lctx', Syntax.EventStmt(a', el'))
   in
@@ -284,8 +284,9 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                         let (_, chan_class, chan_ty) = List.find (fun (s, _, _) -> s = ch_t) ctx.Context.ctx_ch in  
                         let accesses = List.fold_left (fun acs (f', t', ac) -> if f' = ptype && t' = chan_ty then ac::acs else acs) [] pol.Context.pol_access in 
                         (
+                           (if List.exists (fun (ch_t', _, _, _) -> ch_t = ch_t') chs then chs else
                            (ch_t, chan_class, accesses,
-                              List.fold_left (fun attks (s, a) -> if s = ch_t then a :: attks else attks ) [] pol.Context.pol_attack) :: chs,
+                              List.fold_left (fun attks (s, a) -> if s = ch_t then a :: attks else attks ) [] pol.Context.pol_attack) :: chs),
                               List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e ch_f ch_t accesses chan_class)) vl,
                               List.map (fun (fn, args, c, ret) -> (fn, args, List.map (fun c -> Substitute.stmt_chan_sub c ch_f ch_t accesses chan_class) c, ret)) fl,
                               List.map (fun c -> Substitute.stmt_chan_sub c ch_f ch_t accesses chan_class) m)

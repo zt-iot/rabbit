@@ -2,8 +2,10 @@ external function plus:2
 external function minus:1
 external function zero:0
 external constant one
+external constant two
+external constant three
 equation plus(one, zero) = one
-equation plus(x, zero) = x
+equation one = zero
 
 (* define external function as 
 	external function fname:arity *)
@@ -36,15 +38,24 @@ type mytype7: channel
 
 init_const sewon = zero;
 
-channel mychan = {
+channel mychan1 = {
+	transfer: stream, type: mytype7
+}
+
+channel mychan2 = {
+	transfer: stream, type: mytype7
+}
+
+channel mychan3 = {
 	transfer: stream, type: mytype7
 }
 
 allow mytype2 mytype7 [send, recv]
 
 filesys test = [
-	{path: haha, data: zero, type: mytype},
-	{path: haha, data: zero, type: mytype}
+	{path: haha1, data: zero, type: mytype},
+	{path: haha2, data: zero, type: mytype},
+	{path: haha3, data: zero, type: mytype}
 	]
 
 process testtest(a, b, c) with mytype2 {
@@ -53,13 +64,13 @@ process testtest(a, b, c) with mytype2 {
 
 	function test2 (s, j){
 		skip @ Test(d);	
-		let k = d; 
-		let y = send(a, d);
+		let k = d @ Test2(d); 
+		let y = send(a, k);
 		return j;
 	}
 
 	function test3 (jjj, jjjj){
-		let x = test2(jjj, jjj) @ Test(jjj);
+		let x = test2(jjj, jjj) @ Test3(jjj);
 		return x ; 
 	}
 
@@ -69,4 +80,4 @@ process testtest(a, b, c) with mytype2 {
 
 }
 
-system testtest(mychan,mychan,mychan) with test requires [lemma a : True]
+system testtest(mychan1,mychan2,mychan2) with test requires [lemma a : True]

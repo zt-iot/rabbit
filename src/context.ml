@@ -263,7 +263,8 @@ let lctx_get_var_index ~loc lctx v =
       begin let lctxi = List.nth lctx.lctx_var i in 
       match find_index (fun s -> s = v) lctxi with 
       | Some j ->
-         (List.length lctx.lctx_var - i - 1, List.length lctxi - j - 1)
+         (i,j)
+         (* (List.length lctx.lctx_var - i - 1, List.length lctxi - j - 1) *)
       | None -> error ~loc (UnintendedError) end
    | None -> error ~loc (UnknownIdentifier v)
 
