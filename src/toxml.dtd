@@ -1,8 +1,20 @@
 <!-- DTD for rabbit-xml -->
 <!-- [pcdata] short-cut for #PCDATA -->
-<!ELEMENT name (#PCDATA)>
+<!ELEMENT value (#PCDATA)>
 
-<!-- * prelude of a system: declared constants, functions, equations, events, and installed channles, etc  * -->
+<!-- **system** constists of 
+* the prelude part:
+    * *ext_const* 	: user-declared constants
+    * *ext_func* 	: user-declared functions
+    * *ext_eq* 		: user-declared equations
+    * *event*  		: user-(implicitly)-declared event facts
+    * *channel* 	: defined channels
+* and the *process* part 
+* later we add *requirements* part -->
+
+<!ELEMENT system (ext_const*,ext_func*,ext_eq*,event*,channel*,process*)>
+
+
 <!-- [access] for encoding access controls -->
 <!ELEMENT access EMPTY>
 <!ATTLIST access read CDATA "false">
@@ -13,31 +25,37 @@
 <!-- [attack] for encoding possible attacks -->
 <!ELEMENT attack EMPTY>
 <!ATTLIST attack eavesdrop CDATA "false">
-<!ATTLIST attack tampering CDATA "false">
+<!ATTLIST attack tamper CDATA "false">
 <!ATTLIST attack drop CDATA "false">
 
 <!-- [ext_const] refers to a user-declared constant  -->
-<!ELEMENT ext_const (name)>
+<!ELEMENT ext_const EMPTY>
 <!ATTLIST ext_const id ID #REQUIRED>
+<!ATTLIST ext_const name CDATA #REQUIRED>
 
 <!-- [ext_func] refers to a user-declared function  -->
-<!ELEMENT ext_func (name)>
+<!ELEMENT ext_func EMPTY>
 <!ATTLIST ext_func id ID #REQUIRED>
+<!ATTLIST ext_func name CDATA #REQUIRED>
 <!ATTLIST ext_func arity CDATA #REQUIRED>
 
 <!-- [ext_func] refers to a user-declared equation  -->
 <!ELEMENT ext_eq (expr,expr)>
 
 <!-- [const] refers to a system constant/macro  -->
-<!ELEMENT const (name,expr)>
+<!ELEMENT const (expr)>
+<!ATTLIST const id ID #REQUIRED>
+<!ATTLIST const name CDATA #REQUIRED>
 
 <!-- [event] refers to a used (implicitly declared) event Fact in process statement -->
-<!ELEMENT event (name)>
+<!ELEMENT event EMPTY>
 <!ATTLIST event id ID #REQUIRED>
+<!ATTLIST event name CDATA #REQUIRED>
 <!ATTLIST event arity CDATA #REQUIRED>
 
 <!-- [channel] refers to a defined channel and its allowed attacks -->
-<!ELEMENT channel (name,attack)>
+<!ELEMENT channel (attack)>
+<!ATTLIST channel name CDATA #REQUIRED>
 <!ATTLIST channel id ID #REQUIRED>
 <!ATTLIST channel channel_class CDATA #REQUIRED>
 
@@ -46,20 +64,23 @@
 <!-- [expr] refers to an expression denoting either a value or a channel name -->
 <!ELEMENT expr (expr_ext_const|expr_const|expr_var|expr_boolean|expr_string|expr_integer|expr_float|expr_apply|expr_tuple|expr_channel)>
 
-<!ELEMENT expr_ext_const (name)>
-<!ATTLIST expr_ext_const ref IDREF #REQUIRED>
+<!ELEMENT expr_ext_const EMPTY>
+<!ATTLIST expr_ext_const ext_const_ref IDREF #REQUIRED>
+<!ATTLIST expr_ext_const ext_const_name CDATA #REQUIRED>
 
-<!ELEMENT expr_const (name)>
-<!ATTLIST expr_const ref IDREF #REQUIRED>
+<!ELEMENT expr_const EMPTY>
+<!ATTLIST expr_const const_ref IDREF #REQUIRED>
+<!ATTLIST expr_const const_name CDATA #REQUIRED>
 
-<!ELEMENT expr_var (name)>
+<!ELEMENT expr_var EMPTY>
+<!ATTLIST expr_var name CDATA #REQUIRED>
 <!ATTLIST expr_var frame CDATA #REQUIRED>
 <!ATTLIST expr_var de_Bruijn CDATA #REQUIRED>
 
-<!ELEMENT expr_boolean (name)>
-<!ELEMENT expr_string (name)>
-<!ELEMENT expr_integer (name)>
-<!ELEMENT expr_float (name)>
+<!ELEMENT expr_boolean (value)>
+<!ELEMENT expr_string (value)>
+<!ELEMENT expr_integer (value)>
+<!ELEMENT expr_float (value)>
 
 <!ELEMENT expr_apply (expr*)>
 <!ATTLIST expr_apply ext_func_ref IDREF #REQUIRED>
@@ -67,8 +88,9 @@
 
 <!ELEMENT expr_tuple (expr*)>
 
-<!ELEMENT expr_channel (name)>
+<!ELEMENT expr_channel EMPTY>
 <!ATTLIST expr_channel ch_ref IDREF #REQUIRED>
+<!ATTLIST expr_channel ch_name CDATA #REQUIRED>
 
 
 <!-- * AST for statements * -->
@@ -77,7 +99,7 @@
 <!ATTLIST event_call event_ref IDREF #REQUIRED>
 <!ATTLIST event_call event_name CDATA #REQUIRED>
 
-<!-- [a_stmt] refers to an atomic statement. (in the Mr. Terunobu's thesis, it is called [op].) -->
+<!-- [a_stmt] refers to an atomic statement. (in Inaba's thesis, it is called [op].) -->
 <!ELEMENT a_stmt (a_stmt_skip|a_stmt_let|a_stmt_call|a_stmt_instruction|a_stmt_ite|a_stmt_for)>
 
 <!ELEMENT a_stmt_skip EMPTY>
@@ -112,21 +134,22 @@
 <!ATTLIST channel_access channel_ref IDREF #REQUIRED>
 <!ATTLIST channel_access channel_name CDATA #REQUIRED>
 
-
 <!ELEMENT file (path,initial_data,attack,access)>
-<!ELEMENT path (name)>
+<!ELEMENT path (#PCDATA)>
 <!ELEMENT initial_data (expr)>
 
-<!ELEMENT mem_var (name,expr)>
+<!ELEMENT mem_var (expr)>
+<!ATTLIST mem_var name CDATA #REQUIRED>
 
-<!ELEMENT mem_func (name,argument*,body,return)>
+<!ELEMENT mem_func (ARGUMENT*,body,return)>
 <!ATTLIST mem_func id ID #REQUIRED>
+<!ATTLIST mem_func name CDATA #REQUIRED>
 
-<!ELEMENT argument (name)>
+<!ELEMENT ARGUMENT EMPTY>
+<!ATTLIST ARGUMENT name CDATA #REQUIRED>
+
 <!ELEMENT body (stmt+)>
 <!ELEMENT return (expr_var)>
 
 <!ELEMENT main (body)>
 
-<!-- * AST for systems * -->
-<!ELEMENT system (ext_const*,ext_func*,ext_eq*,event*,channel*,process*)>

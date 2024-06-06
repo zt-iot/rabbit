@@ -1,14 +1,11 @@
 (** very simple rab file to test xml printing *)
 
 (** declare external constants and functions as a equational theory *)
-(** function : arity and where arity = 0 defines constant *)
+(* function : arity where arity = 0 defines constant *)
 external function plus:2
-external function minus:1
 external function zero:0
 external constant one
-
 equation plus(x, zero) = x
-equation plus(x, minus(x)) = zero
 equation plus(x, y) = plus(y, x)
 
 (** declare types with their classes *)
@@ -17,32 +14,30 @@ type server_t 	: process
 type client_t 	: process
 type channel_t 	: channel
 
-(** define system-wide constant *)
-init_const sewon = zero;
+(** declare allowed accesses and attacks *)
+allow client_t channel_t [send, recv]
+allow server_t channel_t [send, recv]
+attack server_t [tamper]
+attack channel_t [eavesdrop,tamper]
 
+(** define channels and file systems *)
 channel decent_channel = {transfer: datagram, type: channel_t}
 filesys boring_filesys = [{path: "some/path", data: zero, type: filesys_t}]
 
-allow client_t channel_t [send, recv]
-allow server_t channel_t [send, recv]
-
+(** define process templates *)
 process client(ch) with client_t {
 	let two = plus(one, one) ; 
-
 	main {
 		let r = send(ch, two) @ Querying();
-		let four = recv(ch);
-		skip;
+		let four = recv(ch) @ Computed(four);
 	}
 }
 
 process server(ch) with server_t {
-
 	function double (x){
 		let y = plus (x, x) @ Doubling(x);
 		return y;
 	}
-
 	main {
 		let x = recv(ch) @ Receiving(x); 
 		let double_x = double(x); 
@@ -50,10 +45,11 @@ process server(ch) with server_t {
 	}
 }
 
+(** realize a system *)
 system 
-
 	client(decent_channel) with boring_filesys 
 || 	server(decent_channel) with boring_filesys
 
+(** requirement is ignored at the moment *)
 requires 
 [lemma a : True]

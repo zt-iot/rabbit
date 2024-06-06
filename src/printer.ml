@@ -18,9 +18,9 @@ let print_access_class a =
 
 let print_attack_class a = 
    match a with
-   | Input.CEaves -> "Eaves" 
-   | Input.CTamper -> "Tamper"
-   | Input.CDrop  -> "Drop"
+   | Input.CEaves -> "eavesdrop" 
+   | Input.CTamper -> "tamper"
+   | Input.CDrop  -> "drop"
 
 
 let string_of_ins i =   
