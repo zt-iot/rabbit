@@ -18,7 +18,7 @@
 %token COMMA SEMICOLON
 %token COLON 
 %token BBAR 
-%token DARROW ARROW INT BOOL THEN 
+%token DARROW ARROW INT BOOL THEN UNDERSCORE
 
 (* constant tokens for rabbit *)
 %token SYSTEM LEMMA TYPE ALLOW ATTACK INITCONST FILESYS CONSTANT EQUATION INSTRUCTION DOT
@@ -164,6 +164,7 @@ plain_expr:
 op : mark_location(plain_op) { $1 }
 plain_op:
   | SKIP { Skip }
+  | LET UNDERSCORE EQ e=expr { LetUnderscore (e) } 
   | LET id=NAME EQ e=expr { Let (id, e) }
 
 block_op: mark_location(plain_block_op) { $1 }

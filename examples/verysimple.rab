@@ -34,14 +34,14 @@ process client(ch) with client_t {
 }
 
 process server(ch) with server_t {
-	function double (x){
-		let y = plus (x, x) @ Doubling(x);
+	function double (x1, x2){
+		let y = plus (x1, x2) @ Doubling(x1);
 		return y;
 	}
 	main {
 		let x = recv(ch) @ Receiving(x); 
-		let double_x = double(x); 
-		let r = send(ch, double_x);
+		let double_x = double(x, x); 
+		let _ = send(ch, double_x);
 	}
 }
 

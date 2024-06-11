@@ -1,6 +1,7 @@
 type indexed_var = Name.ident * int * int
 type operator = string 
 let index_var s (i, j) = (s, i, j)
+let indexed_underscore = ("",-1,-1)
 
 type expr = expr' Location.located
 and expr' =

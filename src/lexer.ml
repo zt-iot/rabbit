@@ -42,8 +42,8 @@ let reserved = [
   ("equation", EQUATION) ; 
   ("satisfy", SATISFY) ; 
   ("instruction", INSTRUCTION) ; 
-  ("True", TRUE)
-]
+  ("True", TRUE) 
+  ]
 
 let name =
   [%sedlex.regexp? (('_' | alphabetic),
@@ -105,6 +105,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
      String.iter (fun c -> if c = '\n' then incr n) s;
      Ulexbuf.new_line ~n:!n lexbuf;
      QUOTED_STRING (String.sub s 1 (l - 2))
+  | '_'                      -> f (); UNDERSCORE
   | '.'                      -> f (); DOT
   | '@'                      -> f (); AT
   | '('                      -> f (); LPAREN

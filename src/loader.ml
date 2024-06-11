@@ -96,6 +96,38 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
   and process_atomic_stmt ctx lctx {Location.data=c; Location.loc=loc} = 
       let process_atomic_stmt' ctx lctx = function
       | Input.Skip -> (ctx, lctx, Syntax.Skip)
+      | Input.LetUnderscore e ->
+         let (lctx'', vid') = (lctx, Syntax.indexed_underscore) in 
+         begin match e.Location.data with 
+         |  Input.Apply(o, args) -> 
+            if Context.lctx_check_func lctx o then
+            begin
+               (* call *)
+            if Context.lctx_get_func_arity lctx o = List.length args then
+               let args' = List.map (fun arg -> process_expr ctx lctx arg) args in
+               (ctx, lctx'', Syntax.Call (vid', o, args'))
+            else
+             (* not enough argumentes *)
+               error ~loc (ArgNumMismatch (o, (List.length args), (Context.lctx_get_func_arity lctx o)))
+            end else
+            if Primitives.check_primitive_ins o then
+            begin
+               let (_, ins, args_ty) = List.find (fun (s, _, _) -> s = o) Primitives.primitive_ins in
+               if List.length args = List.length args_ty then
+                  (ctx, lctx'', Syntax.Instruction(vid', ins, 
+                     List.map2 (fun arg arg_ty -> 
+                     let e = process_expr ctx lctx arg in 
+                     match e.Location.data, arg_ty with
+                     | Syntax.Channel (s, _, _), Etype.EtyCh (l1, l2) -> Location.locate ~loc:e.Location.loc (Syntax.Channel (s, l1, l2))
+                     | Syntax.Channel (s, _, _), Etype.EtyVal -> error ~loc (WrongInputType)
+                     | _, Etype.EtyVal -> e
+                     | _, _ ->  error ~loc (WrongInputType)) args args_ty))
+               else error ~loc (ArgNumMismatch (o, List.length args, List.length args_ty))
+            end
+            else (ctx, lctx'', Syntax.Let(vid', process_expr ctx lctx e))
+         | _ -> (ctx, lctx'', Syntax.Let(vid', process_expr ctx lctx e))
+         end
+
       | Input.Let (vid, e) ->
          let (lctx'', vid') =
             if Context.lctx_check_var lctx vid then (lctx, Syntax.index_var vid (Context.lctx_get_var_index ~loc lctx vid)) else
