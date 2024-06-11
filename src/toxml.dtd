@@ -129,6 +129,7 @@
 <!ELEMENT process (attack,channel_access*,file*,mem_var*,mem_func*,main)>
 <!ATTLIST process id ID #REQUIRED>
 <!ATTLIST process name CDATA #REQUIRED>
+<!-- <!ATTLIST process lineno CDATA #REQUIRED> -->
 
 <!ELEMENT channel_access (access)>
 <!ATTLIST channel_access channel_ref IDREF #REQUIRED>

@@ -28,7 +28,7 @@ filesys boring_filesys = [{path: "some/path", data: zero, type: filesys_t}]
 process client(ch) with client_t {
 	let two = plus(one, one) ; 
 	main {
-		let r = send(ch, two) @ Querying();
+		let _ = send(ch, two) @ Querying();
 		let four = recv(ch) @ Computed(four);
 	}
 }
