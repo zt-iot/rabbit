@@ -21,7 +21,7 @@
 %token DARROW ARROW INT BOOL THEN UNDERSCORE
 
 (* constant tokens for rabbit *)
-%token SYSTEM LEMMA TYPE ALLOW ATTACK INITCONST FILESYS CONSTANT EQUATION INSTRUCTION DOT
+%token SYSTEM LEMMA TYPE ALLOW ATTACK INITCONST FILESYS CONSTANT EQUATION INSTRUCTION DOT SYSCALL 
 %token CHANNEL TRANSFER PROCESS WITH FUNC MAIN RETURN 
 %token DATA READ WRITE SEND RECV EAVESDROP TAMPER DROP PATH
 %token DATAGRAM STREAM SKIP LET CALL IF ELSE FOR IN RANGE AT INIT
@@ -66,9 +66,9 @@ plain_decl:
   | CHANNEL id=NAME EQ LBRACE TRANSFER COLON c=chan_c COMMA TYPE COLON n=NAME RBRACE { DeclChan(id, c, n) }
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
     LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
-  | EXTERNAL INSTRUCTION f=NAME LPAREN parems=separated_list(COMMA, expr) RPAREN COLON 
+  | EXTERNAL SYSCALL f=NAME LPAREN parems=separated_list(COMMA, expr) RPAREN COLON 
     LBRACKET pre= separated_list(COMMA, event) RBRACKET DARROW 
-    LBRACKET RETURN ret=expr COLON post= separated_list(COMMA, event) RBRACKET { DeclExtIns(f,parems,pre,ret,post) }
+    LBRACKET RETURN ret=expr COLON post= separated_list(COMMA, event) RBRACKET { DeclExtSyscall(f,parems,pre,ret,post) }
   | sys { $1 }
 
 external_functions:

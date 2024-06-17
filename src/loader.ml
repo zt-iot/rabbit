@@ -214,7 +214,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
 
   (* | DeclExtIns of Name.ident * expr list * event list * expr * event list *)
 
-   | Input.DeclExtIns(id, args, pre, ret, post) -> error ~loc UnintendedError
+   (* | Input.DeclExtIns(id, args, pre, ret, post) -> error ~loc UnintendedError *)
 
 
    | Input.DeclType (id, c) -> 

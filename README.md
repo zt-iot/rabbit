@@ -19,7 +19,7 @@ You can follow [these instructions](https://www.ocaml.org/docs/up-and-running) f
 
 ## Compilation
 
-To compile Rabbit, run the following command in the Rabbitm directory:
+To compile Rabbit, run the following command in this project directory:
 
     dune build
 
@@ -29,4 +29,4 @@ Dune compiles the program and hides the executable in `_build/default/src/rabbit
 
 It currenlty parse the given .rab file and print the processed system into XML to the terminal.
 
-At this moment of development, only the `verysimple.rab` is the working example. Please ignore other files in `examples/`.
+At this moment of development, only the `verysimple.rab` is the working example in the `examples/` directory. (Please ignore the other files.)

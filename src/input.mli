@@ -49,6 +49,7 @@ type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int
   | DeclExtEq of expr * expr
+  | DeclExtSyscall of Name.ident * expr list * event list * expr * event list
   | DeclType of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident * (Name.ident list)
   | DeclAttack of Name.ident * (attack_class list)
@@ -59,6 +60,5 @@ and decl' =
                 ((Name.ident * expr) list) * 
                 (Name.ident * (Name.ident list) * stmt list * Name.ident) list * 
                 stmt list
-  | DeclExtIns of Name.ident * expr list * event list * expr * event list
   | DeclSys of proc list * lemma list 
 

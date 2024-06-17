@@ -50,6 +50,19 @@ type def_process_template = {
    def_proctmpl_main :  Syntax.stmt list   
 }
 
+type ctx_ext_syscall = {
+   ctx_ext_syscall_name : Name.ident ; 
+   ctx_ext_syscall_ety : Etype.expr_type list 
+}
+
+
+type def_ext_syscall = {  
+   def_ext_syscall_name : Name.ident ; 
+   def_ext_syscall_precond : Syntax.event list ; 
+   def_ext_syscall_postcond : Name.ident * Syntax.event list ; 
+}
+
+
 let mk_ctx_proctmpl (a, b, c, d, e) = {ctx_proctmpl_id=a; ctx_proctmpl_ch=b; ctx_proctmpl_ty=c; ctx_proctmpl_var=d; ctx_proctmpl_func=e}
 let mk_def_proctmpl (a, b, c, d) = {def_proctmpl_id=a; def_proctmpl_var=b; def_proctmpl_func=c; def_proctmpl_main=d}
 let to_pair_ctx_proctmpl x = (x.ctx_proctmpl_id, x.ctx_proctmpl_ch, x.ctx_proctmpl_ty, x.ctx_proctmpl_var, x.ctx_proctmpl_func)

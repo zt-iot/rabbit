@@ -42,6 +42,7 @@ let reserved = [
   ("equation", EQUATION) ; 
   ("satisfy", SATISFY) ; 
   ("instruction", INSTRUCTION) ; 
+  ("syscall", SYSCALL) ; 
   ("True", TRUE) 
   ]
 
