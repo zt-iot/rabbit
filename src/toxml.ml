@@ -11,23 +11,25 @@ let print_error err ppf =
   match err with
   | UnintendedError -> Format.fprintf ppf "unintended behavior. Contact the developer"
 
-let string_of_ins i = 
-    let (s, _, _) = List.find (fun (_, s, _) -> s = i) Primitives.primitive_ins in
+let string_of_ins i = i
+(*     let (s, _, _) = List.find (fun (_, s, _) -> s = i) Primitives.primitive_ins in
     s
-
+ *)
 
 
 let attks_to_attr attks = 
   List.map (fun a -> (Printer.print_attack_class a, "true")) attks
 
 let accs_to_attr accs = 
-  List.map (fun a -> (Printer.print_access_class a, "true")) accs
+  List.map (fun a -> (a, "true")) accs
+  (* List.map (fun a -> (Printer.print_access_class a, "true")) accs *)
 
 let to_xml_attks attks = 
   Xml.Element ("attack", List.map (fun a -> (Printer.print_attack_class a, "true")) attks, [])
 
 let to_xml_accs accs = 
-  Xml.Element ("access", List.map (fun a -> (Printer.print_access_class a, "true")) accs, [])
+  Xml.Element ("access", List.map (fun a -> (a, "true")) accs, [])
+  (* Xml.Element ("access", List.map (fun a -> (Printer.print_access_class a, "true")) accs, []) *)
 
 let mypcdata s = Xml.Element ("value", [], [Xml.PCData s])
 
@@ -115,15 +117,15 @@ let to_xml_ext_func eng (n, k) =
   let (eng, i) = eng_add_ext_func eng n in
   (eng, Xml.Element ("ext_func", [("id", string_of_int i); ("name", n) ;("arity", string_of_int k)], []))
 
-let to_xml_indexed_var (s, i, j) =
-  Xml.Element ("expr_var", [("name", s) ; ("frame",string_of_int i) ; ("de_Bruijn",string_of_int j)], [])
+let to_xml_indexed_var (s, i, j, k) =
+  Xml.Element ("expr_var", [("name", s) ; ("frame",string_of_int i) ; ("de_Bruijn",string_of_int j) ; ("total_de_Bruijn",string_of_int k)], [])
 
 
 let rec to_xml_expr eng {Location.data=c; Location.loc=loc} = 
    let to_xml_expr' eng = function
     | Syntax.Const s -> Xml.Element ("expr_const", [("const_name", s); "const_ref", string_of_int (eng_get_const eng s)], [])
     | Syntax.ExtConst s -> Xml.Element ("expr_ext_const", [("ext_const_name", s); ("ext_const_ref", string_of_int (eng_get_ext_const eng s))], [])
-    | Syntax.Variable (s,i,j) -> to_xml_indexed_var(s,i,j)
+    | Syntax.Variable (s,i,j, k) -> to_xml_indexed_var(s,i,j, k)
     | Syntax.Boolean b -> Xml.Element ("expr_boolean", [], [mypcdata (string_of_bool b)])
     | Syntax.String s -> Xml.Element ("expr_string", [], [mypcdata s])
     | Syntax.Integer k -> Xml.Element ("expr_integer", [], [mypcdata (string_of_int k)])
@@ -135,7 +137,7 @@ let rec to_xml_expr eng {Location.data=c; Location.loc=loc} =
         ], 
         (List.map (to_xml_expr eng) el))
     | Syntax.Tuple el -> Xml.Element ("expr_tuple", [], List.map (to_xml_expr eng) el)
-    | Syntax.Channel (s,_,_) -> Xml.Element ("expr_channel", [("ch_name", s) ; ("ch_ref", string_of_int (eng_get_ch eng s))], [])
+    | Syntax.Channel (s,_) -> Xml.Element ("expr_channel", [("ch_name", s) ; ("ch_ref", string_of_int (eng_get_ch eng s))], [])
     | Syntax.FrVariable s -> error ~loc UnintendedError  
   in Xml.Element ("expr", [], [to_xml_expr' eng c])
 
@@ -146,9 +148,9 @@ and to_xml_const eng (n, e)  =
   let (eng, i) = eng_add_const eng n in
   (eng, Xml.Element ("const", [("id", string_of_int i); ("name", n)], [to_xml_expr eng e]))
 
-and to_xml_ch eng (n, cl, attks)  = 
+and to_xml_ch eng (n, attks)  = 
   let (eng, i) = eng_add_ch eng n in
-  (eng, Xml.Element ("channel", [("name", n) ; ("id", string_of_int i) ; ("channel_class", Printer.print_chan_class cl)], 
+  (eng, Xml.Element ("channel", [("name", n) ; ("id", string_of_int i)], 
                    [Xml.Element ("attack", List.map (fun a -> (Printer.print_attack_class a, "true")) attks, [])]))
 
 and to_xml_event eng (n, k) = 
@@ -171,7 +173,7 @@ and to_xml_atomic_stmt eng {Location.data=c; Location.loc=loc}  =
     | Syntax.Let (v, e) -> Xml.Element ("a_stmt_let", [], (to_xml_indexed_var v) :: [to_xml_expr eng e])
     | Syntax.Call (v, f, args) -> 
       Xml.Element ("a_stmt_call", [("mem_func_ref", string_of_int (eng_get_mem_fun eng f)); ("mem_func_name", f)], (to_xml_indexed_var v) :: (List.map (to_xml_expr eng) args))
-    | Syntax.Instruction (v, ins, args) -> 
+    | Syntax.Syscall (v, ins, args) -> 
       Xml.Element ("a_stmt_instruction", [("ins_name", string_of_ins ins)], (to_xml_indexed_var v) :: (List.map (to_xml_expr eng) args))
     | Syntax.If (e, c1, c2) -> 
       Xml.Element ("a_stmt_ite", [],
@@ -201,7 +203,7 @@ let to_xml_proc eng {
   let (eng, i) = get_new_proc_id eng in 
   let vars = List.rev vars in 
   let fns = List.rev fns in 
-  let xml_ch' (n, cl, acc, attk) =
+  let xml_ch' (n, acc, attk) =
     Xml.Element("channel_access", [("channel_ref", string_of_int (eng_get_ch eng n)); ("channel_name", n)], [to_xml_accs acc]) in
   let xml_ch = (List.map xml_ch' (List.rev chs)) in 
   let xml_file' (p, data, accs, attks) = 
@@ -255,9 +257,9 @@ let to_xml_sys
                   (eng, event_xmls @ [event_xml])) (eng, []) (List.rev ctx.Context.ctx_event) in 
 
   let (eng, ch_xmls) = 
-    List.fold_left (fun (eng, ch_xmls) (ch,cl,ty) -> 
+    List.fold_left (fun (eng, ch_xmls) (ch,ty) -> 
                     let attks = List.fold_left (fun attks (s, a) -> if s = ty then a::attks else attks) [] pol.Context.pol_attack in 
-                    let (eng, ch_xml) = to_xml_ch eng (ch,cl,attks) in
+                    let (eng, ch_xml) = to_xml_ch eng (ch,attks) in
                     (eng, ch_xmls @ [ch_xml])) (eng, []) (List.rev ctx.Context.ctx_ch) in 
 
   let (eng, proc_xmls) = List.fold_left (fun (eng, proc_xmls) proc -> let (eng, proc_xml) = to_xml_proc eng proc in (eng, proc_xml::proc_xmls)) (eng, []) proc in

@@ -69,27 +69,38 @@ let _main =
     (* Run and load all the specified files. *)
     (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
   try
+      let (ctx, pol, def, sys) = 
+      List.fold_left 
+        (fun (ctx, pol, def, sys) (fn, quiet) -> Loader.load fn ctx pol def sys) 
+        Loader.process_init  !files in
+      Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
+      Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
+      Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
+      List.fold_left (fun _ s -> 
+        Printf.printf "%s" (Xml.to_string_fmt (Toxml.to_xml_sys s))) () sys;
+    ()
+    (* 
     let (ctx, pol, def, sys) = 
       List.fold_left 
         (fun (ctx, pol, def, sys) (fn, quiet) -> Loader.load fn ctx pol def sys) 
         Loader.process_init  !files in
-      (* Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
+      Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
       Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
-      Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
- *)
-      try
-        let dtd = Dtd.parse_file "src/toxml.dtd" in
+      Print.message "Policy" "%t" (Printer.pprint_access_policy pol)
+  *)
+      (* try *)
+   (*      let dtd = Dtd.parse_file "src/toxml.dtd" in
         let checked = Dtd.check dtd in
         List.fold_left (fun _ s -> 
-          let xml = Toxml.to_xml_sys s in 
+    *)       (* let xml = Toxml.to_xml_sys s in  *)
           (* Printf.printf "before checking dtd: \n %s" (Xml.to_string_fmt xml);  *)
-          let xml = Dtd.prove checked "system" xml in 
+          (* let xml = Dtd.prove checked "system" xml in 
           Printf.printf "XML created and verified with src/toxml.dtd : \n\n %s\n" (Xml.to_string_fmt xml); 
-          ) () sys;
-      with Dtd.Parse_error e -> print_endline (Dtd.parse_error e)
+          ) () sys; *)
+      (* with Dtd.Parse_error e -> print_endline (Dtd.parse_error e)
       | Dtd.Check_error e -> print_endline (Dtd.check_error e)
       | Dtd.Prove_error e -> print_endline (Dtd.prove_error e)
-      
+       *)
 (*     let topstate = 
       List.fold_left
         (fun (ctx, lctx, ldef) fn -> Desugar.load fn ctx lctx ldef)

@@ -50,19 +50,6 @@ type def_process_template = {
    def_proctmpl_main :  Syntax.stmt list   
 }
 
-type ctx_ext_syscall = {
-   ctx_ext_syscall_name : Name.ident ; 
-   ctx_ext_syscall_ety : Etype.expr_type list 
-}
-
-
-type def_ext_syscall = {  
-   def_ext_syscall_name : Name.ident ; 
-   def_ext_syscall_precond : Syntax.event list ; 
-   def_ext_syscall_postcond : Name.ident * Syntax.event list ; 
-}
-
-
 let mk_ctx_proctmpl (a, b, c, d, e) = {ctx_proctmpl_id=a; ctx_proctmpl_ch=b; ctx_proctmpl_ty=c; ctx_proctmpl_var=d; ctx_proctmpl_func=e}
 let mk_def_proctmpl (a, b, c, d) = {def_proctmpl_id=a; def_proctmpl_var=b; def_proctmpl_func=c; def_proctmpl_main=d}
 let to_pair_ctx_proctmpl x = (x.ctx_proctmpl_id, x.ctx_proctmpl_ch, x.ctx_proctmpl_ty, x.ctx_proctmpl_var, x.ctx_proctmpl_func)
@@ -75,34 +62,30 @@ type context = {
                      (* ext_const name *)
    ctx_ext_func   :  (Name.ident * int) list ; 
                      (* ext_func name, its arity *)
-   ctx_ext_ins    :  (Name.ident * int) list ; 
-                     (* ext_instruction name, its arity *)
+   ctx_ext_syscall:  (Name.ident * Input.arg_type list) list ; 
+                     (* ext_syscalltruction name, its arity *)
    ctx_ty         :  (Name.ident * Input.type_class) list ;
                      (* type name, its class *)
    ctx_const      :  Name.ident list ;
                      (* const name *)
    ctx_fsys       :  (Name.ident * Name.ident * Name.ident) list ; (*fsys name, fsys path, type *)
                      (* installed file syatem name, path, and its type *)
-   ctx_ch         :  (Name.ident * Input.chan_class * Name.ident) list ;
+   ctx_ch         :  (Name.ident * Name.ident) list ;
                      (* installed channel name, method, and its type *)
    ctx_proctmpl   :  ctx_process_template list;
-   ctx_event      :  (Name.ident * int) list 
+   ctx_event      :  (Name.ident * int) list ;
                      (* event predicate name, its arity *)
-}
+   ctx_fact :        (Name.ident * int * bool) list
 
+
+}
 
 (* def : definition stores definitions of the system *)
 type definition = {
    def_ext_eq  :  (Name.ident list * Syntax.expr * Syntax.expr) list ;
                   (* free variables, e1, e2  such that e1 = e2 under the free variables *)
  
-   def_ext_ins :  (Name.ident * (* instruction name *)
-                     Name.ident list * (* free variables *)
-                     Name.ident list * (* fresh variables *)
-                     Syntax.expr list * (* inputs *)
-                     Syntax.event list * (* preconditions *)
-                     Syntax.event list * (* return *)
-                     Syntax.event list) list ;(* postconditions *)
+   def_ext_syscall : (Name.ident *  Name.ident list * (Name.ident list * Name.ident list) * Name.ident list * (Syntax.fact list * Syntax.fact list ) list * Syntax.expr option) list ;
    
    def_const   :  (Name.ident * Syntax.expr) list ;
                   (* const name, and its value *) 
@@ -113,7 +96,7 @@ type definition = {
 
 (* acc : access_policy records declared access policies of the system *)
 type access_policy = {
-   pol_access : (Name.ident * Name.ident * Input.access_class) list ;
+   pol_access : (Name.ident * Name.ident list * Name.ident) list ;
    pol_attack : (Name.ident * Input.attack_class) list 
 }
 
@@ -121,8 +104,8 @@ type process = {
    proc_pid       :  int ; 
    proc_name      :  string ; 
    proc_attack    :  Input.attack_class list ; 
-   proc_channel   :  (Name.ident * Input.chan_class * Input.access_class list * Input.attack_class list) list;
-   proc_file      :  (Name.ident * Syntax.expr * Input.access_class list * Input.attack_class list) list ;
+   proc_channel   :  (Name.ident * Name.ident list * Input.attack_class list) list;
+   proc_file      :  (Name.ident * Syntax.expr * Name.ident list * Input.attack_class list) list ;
    proc_variable  :  (Name.ident * Syntax.expr) list ; 
    proc_function  :  (Name.ident * Name.ident list * Syntax.stmt list * Syntax.indexed_var ) list ;
    proc_main      :  Syntax.stmt list 
@@ -135,7 +118,12 @@ type system = {
    sys_proc : process list 
 }
 
-type local_context = {lctx_chan : Name.ident list ; lctx_var : (Name.ident list) list ; lctx_func : (Name.ident * int) list }
+type local_context = {
+                     lctx_chan : Name.ident list ; 
+
+                     lctx_var : (Name.ident list) list ; 
+
+                     lctx_func : (Name.ident * int) list }
 
 type local_definition ={ldef_var : (Name.ident * Syntax.expr) list ; ldef_func : (Name.ident * (Name.ident list) * Syntax.stmt list * Syntax.indexed_var) list }
 
@@ -160,22 +148,25 @@ let ctx_check_const ctx o =
 let ctx_check_fsys ctx o = 
    List.exists (fun (s, _, _) -> s = o) ctx.ctx_fsys
 let ctx_check_ch ctx o = 
-   List.exists (fun (s, _, _) -> s = o) ctx.ctx_ch
+   List.exists (fun (s, _) -> s = o) ctx.ctx_ch
 let ctx_check_proctmpl ctx o = 
    List.exists (fun x -> x.ctx_proctmpl_id = o) ctx.ctx_proctmpl
 let ctx_check_event ctx eid = 
    List.exists (fun (s, _) -> s = eid) ctx.ctx_event
-let ctx_check_ext_ins ctx eid = 
-   List.exists (fun (s, _) -> s = eid) ctx.ctx_ext_ins
+let ctx_check_fact ctx id = 
+   List.exists (fun (s, _, _) -> s = id) ctx.ctx_fact
+let ctx_check_ext_syscall ctx eid = 
+   List.exists (fun (s, _) -> s = eid) ctx.ctx_ext_syscall
 
 (* get access *)
 let ctx_get_event_arity ~loc ctx eid =
    if ctx_check_event ctx eid then 
    let (_, k) = List.find (fun (s, _) -> s = eid) ctx.ctx_event in k
    else error ~loc (UnknownIdentifier eid)
-let ctx_get_ext_ins_arity ~loc ctx eid =
-   if ctx_check_ext_ins ctx eid then 
-   let (_, k) = List.find (fun (s, _) -> s = eid) ctx.ctx_ext_ins in k
+
+let ctx_get_ext_syscall_arity ~loc ctx eid =
+   if ctx_check_ext_syscall ctx eid then 
+   let (_, k) = List.find (fun (s, _) -> s = eid) ctx.ctx_ext_syscall in k
    else error ~loc (UnknownIdentifier eid)
 let ctx_get_proctmpl ctx o = 
    List.find (fun x -> x.ctx_proctmpl_id = o) ctx.ctx_proctmpl
@@ -190,12 +181,17 @@ let ctx_add_ext_const ctx c = {ctx with ctx_ext_const=c::ctx.ctx_ext_const}
 let ctx_add_ty ctx (id, c) = {ctx with ctx_ty=(id, c)::ctx.ctx_ty}
 let ctx_add_const ctx id = {ctx with ctx_const=id::ctx.ctx_const}
 let ctx_add_fsys ctx (a, p, ty) = {ctx with ctx_fsys=(a, p, ty)::ctx.ctx_fsys}
-let ctx_add_ch ctx (c, t, ty) = {ctx with ctx_ch=(c, t, ty)::ctx.ctx_ch}
+let ctx_add_ch ctx (c, t) = {ctx with ctx_ch=(c, t)::ctx.ctx_ch}
 let ctx_add_proctmpl ctx p = {ctx with ctx_proctmpl=p::ctx.ctx_proctmpl}
 let ctx_add_event ctx (eid, k) = 
    {ctx with ctx_event=(eid,k)::ctx.ctx_event}      
-let ctx_add_ext_ins ctx (eid, k) = 
-   {ctx with ctx_ext_ins=(eid,k)::ctx.ctx_ext_ins}      
+let ctx_add_ext_syscall ctx (eid, k) = 
+   {ctx with ctx_ext_syscall=(eid,k)::ctx.ctx_ext_syscall}      
+
+let ctx_add_fact ctx (id, k) = 
+   {ctx with ctx_fact=(id,k,false)::ctx.ctx_fact}      
+let ctx_add_lfact ctx (id, k) = 
+   {ctx with ctx_fact=(id,k,true)::ctx.ctx_fact}      
 
 let check_fresh ctx s =
    if ctx_check_ext_func ctx s || 
@@ -205,10 +201,25 @@ let check_fresh ctx s =
       ctx_check_fsys ctx s ||
       ctx_check_ch ctx s || 
       ctx_check_proctmpl ctx s || 
-      ctx_check_ext_ins ctx s then false else true 
+      ctx_check_ext_syscall ctx s || 
+      ctx_check_event ctx s ||
+      ctx_check_fact ctx s then false else true 
 
 let check_used ctx s = if (check_fresh ctx s) then false else true
 
+let ctx_add_or_check_fact ~loc ctx (id, k) = 
+   if List.exists (fun (s, _, _)->s = id) ctx.ctx_fact then 
+      let (_, k', b) = List.find (fun (s, _,_) -> s = id) ctx.ctx_fact in 
+      if b then error ~loc WrongInputType else if k = k' then ctx else error ~loc (ArgNumMismatch (id, k, k'))
+   else
+      if check_used ctx id then error ~loc (AlreadyDefined id) else ctx_add_fact ctx (id, k)
+
+let ctx_add_or_check_lfact ~loc ctx (id, k) = 
+   if List.exists (fun (s, _, _)->s = id) ctx.ctx_fact then 
+      let (_, k', b) = List.find (fun (s, _, _) -> s = id) ctx.ctx_fact in 
+      if not b then error ~loc WrongInputType else if k = k' then ctx else error ~loc (ArgNumMismatch (id, k, k'))
+   else
+      if check_used ctx id then error ~loc (AlreadyDefined id) else ctx_add_lfact ctx (id, k)
 
 (** def related functions *)
 let def_add_ext_eq def x = {def with def_ext_eq=x::def.def_ext_eq}
@@ -216,6 +227,10 @@ let def_add_const def x = {def with def_const=x::def.def_const}
 let def_add_fsys def x = {def with def_fsys=x::def.def_fsys}
 let def_add_proctmpl def pid ldef m = 
    {def with def_proctmpl=(mk_def_proctmpl (pid, ldef.ldef_var, ldef.ldef_func, m))::def.def_proctmpl}
+let def_add_ext_syscall def x = 
+      {def with def_ext_syscall=x::def.def_ext_syscall}
+
+
 
 let def_get_proctmpl def pid = 
    List.find (fun x -> x.def_proctmpl_id = pid) def.def_proctmpl
@@ -276,15 +291,17 @@ let lctx_get_var_index ~loc lctx v =
       begin let lctxi = List.nth lctx.lctx_var i in 
       match find_index (fun s -> s = v) lctxi with 
       | Some j ->
-         (i,j)
+         (i,j,
+            match (find_index (fun s -> s = v) (List.fold_left (fun l vl -> l @ vl) [] lctx.lctx_var)) with Some k -> k | _ -> error ~loc (UnintendedError)
+         )
          (* (List.length lctx.lctx_var - i - 1, List.length lctxi - j - 1) *)
       | None -> error ~loc (UnintendedError) end
    | None -> error ~loc (UnknownIdentifier v)
 
 
 (** Initial contexts *)
-let ctx_init = {ctx_ext_func = [] ; ctx_ext_const = [] ; ctx_ext_ins = []; ctx_ty = [] ; ctx_const = [] ; ctx_fsys = [] ; ctx_ch = [] ; ctx_proctmpl = [] ; ctx_event = []}
-let def_init = {def_ext_eq = [] ; def_const = [] ; def_ext_ins = [] ; def_fsys=[] ; def_proctmpl = []}
+let ctx_init = {ctx_ext_func = [] ; ctx_ext_const = [] ; ctx_ext_syscall = []; ctx_ty = [] ; ctx_const = [] ; ctx_fsys = [] ; ctx_ch = [] ; ctx_proctmpl = [] ; ctx_event = []; ctx_fact = []}
+let def_init = {def_ext_eq = [] ; def_const = [] ; def_ext_syscall = [] ; def_fsys=[] ; def_proctmpl = []}
 let pol_init = {pol_access = [] ; pol_attack = []}
 (* let sys_init = {   
    sys_ctx = []; 
@@ -292,6 +309,7 @@ let pol_init = {pol_access = [] ; pol_attack = []}
    sys_pol = [];
    sys_proc =[] }
  *)
- let lctx_init = {lctx_chan = []; lctx_var = [ [] ]; lctx_func = []}
+let lctx_init = {lctx_chan = []; lctx_var = [ [] ]; lctx_func = []}
 let ldef_init = {ldef_var=[]; ldef_func=[]}
+
 

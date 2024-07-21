@@ -1,7 +1,7 @@
-type indexed_var = Name.ident * int * int
+type indexed_var = Name.ident * int * int * int
 type operator = string 
-let index_var s (i, j) = (s, i, j)
-let indexed_underscore = ("",-1,-1)
+let index_var s (i, j, k) = (s, i, j, k)
+let indexed_underscore = ("",-1,-1, -1)
 
 type expr = expr' Location.located
 and expr' =
@@ -14,19 +14,15 @@ and expr' =
   | Float of string (* store the string so we can correctly round later *)
   | Apply of operator * expr list
   | Tuple of expr list
-  | Channel of string * Input.access_class list * Input.chan_class list 
+  | Channel of string * Name.ident (* second field records necessary permissions.. *) 
   | FrVariable of string
-
-type instruction = 
-  | IRead | IWrite | IInvoke | IRecv | ISend | IOpen | IClose | ICloseConn | IConnect | IAccept
-
 
 type atomic_stmt = atomic_stmt' Location.located
 and atomic_stmt' = 
   | Skip
   | Let of indexed_var * expr
   | Call of indexed_var * Name.ident * expr list
-  | Instruction of indexed_var * instruction * expr list
+  | Syscall of indexed_var * Name.ident * expr list
   | If of expr * stmt list * stmt list
   | For of indexed_var * int * int * stmt list
 
@@ -39,6 +35,10 @@ and stmt' =
   | OpStmt of atomic_stmt
   | EventStmt of atomic_stmt * event list
 
+type fact = fact' Location.located
+and fact' = 
+  | Fact of Name.ident * expr list
+  | LocalFact of Name.ident * Name.ident * expr list
 
 type proc = proc' Location.located
 and proc' =
@@ -65,18 +65,6 @@ let string_of_type_class c =
    | Input.CProc -> "Proc"
    | Input.CFsys -> "Fsys" 
    | Input.CChan -> "Chan"
-
-let string_of_chan_class c = 
-   match c with 
-   | Input.CDatagram -> "datagram"
-   | Input.CStream -> "stream"
-
-let string_of_access_class a = 
-   match a with
-   | Input.CRead -> "read"
-   | Input.CWrite -> "write"
-   | Input.CSend -> "send"
-   | Input.CRecv -> "recv"
 
 let string_of_attack_class a = 
    match a with

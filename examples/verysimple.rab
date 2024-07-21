@@ -8,6 +8,21 @@ external constant one
 equation plus(x, zero) = x
 equation plus(x, y) = plus(y, x)
 
+(* declare system calls *)
+external syscall send_udp(channel c, v) : [] -> [c:store(v)]
+external syscall recv_udp(channel c) return v : [c:store(v)] -> [] 
+
+external syscall connect_tcp(channel c) : [] -> [ask(c)] => [accept(c)] -> [connect(c)]
+external syscall accept_tcp(channel c) : [ask(c)] -> [accept(c)] => [connect(c)] -> [connect(c)]
+external syscall send_tcp(channel c, v) : [connect(c)] -> [connect(c), dataa(c, v)] => [receipt(c)] -> []
+external syscall recv_tcp(channel c) return v : [connect(c), dataa(c, v)] -> [connect(c), receipt(c)] 
+
+(*
+external syscall recv_tcp(channel c, value v, function f) return v : [connect(c), dataa(c, v)] -> [connect(c), receipt(c)] 
+*)
+
+
+
 (** declare types with their classes *)
 type filesys_t 	: filesys
 type server_t 	: process
@@ -15,33 +30,33 @@ type client_t 	: process
 type channel_t 	: channel
 
 (** declare allowed accesses and attacks *)
-allow client_t channel_t [send, recv]
-allow server_t channel_t [send, recv]
+allow client_t channel_t [send_udp, recv_udp]
+allow server_t channel_t [send_udp, recv_udp]
 attack server_t [tamper]
 attack channel_t [eavesdrop,tamper]
 
 (** define channels and file systems *)
-channel decent_channel = {transfer: datagram, type: channel_t}
+channel decent_channel : channel_t
 filesys boring_filesys = [{path: "some/path", data: zero, type: filesys_t}]
 
 (** define process templates *)
-process client(ch) with client_t {
+process client(c) with client_t {
 	let two = plus(one, one) ; 
 	main {
-		let _ = send(ch, two) @ Querying();
-		let four = recv(ch) @ Computed(four);
+		let _ = send_udp(c, two) @ Querying();
+		let four = recv_udp(c) @ Computed(four);
 	}
 }
 
-process server(ch) with server_t {
+process server(c) with server_t {
 	function double (x1, x2){
 		let y = plus (x1, x2) @ Doubling(x1);
 		return y;
 	}
 	main {
-		let x = recv(ch) @ Receiving(x); 
+		let x = recv_udp(c) @ Receiving(x); 
 		let double_x = double(x, x); 
-		let _ = send(ch, double_x);
+		let _ = send_udp(c, double_x);
 	}
 }
 

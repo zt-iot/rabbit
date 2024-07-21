@@ -59,21 +59,38 @@ plain_decl:
   | external_functions { $1 }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
-  | ALLOW s=NAME t=NAME LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t,a)} 
+  | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t,a)} 
   | ATTACK t=NAME LBRACKET a=separated_nonempty_list(COMMA, attack_c) RBRACKET { DeclAttack(t,a)} 
   | INITCONST t=NAME EQ e=expr SEMICOLON { DeclInit(t,e) }
   | FILESYS t=NAME EQ LBRACKET f=separated_nonempty_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
-  | CHANNEL id=NAME EQ LBRACE TRANSFER COLON c=chan_c COMMA TYPE COLON n=NAME RBRACE { DeclChan(id, c, n) }
+  | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
     LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
-  | EXTERNAL SYSCALL f=NAME LPAREN parems=separated_list(COMMA, expr) RPAREN COLON 
-    LBRACKET pre= separated_list(COMMA, event) RBRACKET DARROW 
-    LBRACKET RETURN ret=expr COLON post= separated_list(COMMA, event) RBRACKET { DeclExtSyscall(f,parems,pre,ret,post) }
+  | external_syscall { $1 }
   | sys { $1 }
 
 external_functions:
   | EXTERNAL FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
   | EXTERNAL CONSTANT id=NAME  { DeclExtFun(id, 0) }
+
+external_syscall:
+  | EXTERNAL SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr COLON 
+    r=separated_nonempty_list(DARROW, rule) { DeclExtSyscall(f, parems, r, Some ret) }
+  | EXTERNAL SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN COLON 
+    r=separated_nonempty_list(DARROW, rule) { DeclExtSyscall(f, parems, r, None) }
+
+fact : mark_location(plain_fact) { $1 }
+plain_fact:
+  | scope=NAME COLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { LocalFact(scope, id, es) }
+  | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact(id, es) }
+
+
+typed_arg:
+  | var=NAME { (TyValue, var) }
+  | CHANNEL var=NAME { (TyChannel, var) }
+
+rule:
+  | LBRACKET precond=separated_list(COMMA, fact) RBRACKET ARROW LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { (precond, postcond) }
 
 sys:
   | SYSTEM p=separated_nonempty_list(BBAR, proc) REQUIRES 

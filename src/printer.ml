@@ -4,18 +4,6 @@ let print_type_class c =
    | Input.CFsys -> "Fsys" 
    | Input.CChan -> "Chan"
 
-let print_chan_class c = 
-   match c with 
-   | Input.CDatagram -> "datagram"
-   | Input.CStream -> "stream"
-
-let print_access_class a = 
-   match a with
-   | Input.CRead -> "read"
-   | Input.CWrite -> "write"
-   | Input.CSend -> "send"
-   | Input.CRecv -> "recv"
-
 let print_attack_class a = 
    match a with
    | Input.CEaves -> "eavesdrop" 
@@ -23,25 +11,9 @@ let print_attack_class a =
    | Input.CDrop  -> "drop"
 
 
-let string_of_ins i =   
-  match i with 
-  | Syntax.IRead -> "read" 
-  | Syntax.IWrite -> "write" 
-  | Syntax.IInvoke -> "invoke" 
-  | Syntax.IRecv -> "recv" 
-  | Syntax.ISend -> "send" 
-  | Syntax.IOpen -> "open" 
-  | Syntax.IClose -> "close" 
-  | Syntax.ICloseConn -> "close_conn" 
-  | Syntax.IConnect -> "connect" 
-  | Syntax.IAccept -> "accept"
+let pprint_iv (v, i, j, k) ppf =
+   Format.fprintf ppf "%s[%d,%d,%d]" v i j k
 
-
-let pprint_iv (v, i, j) ppf =
-   Format.fprintf ppf "%s[%d,%d]" v i j
-
-let pprint_ins i ppf = 
-   Format.fprintf ppf "%s" (string_of_ins i)
 
 let rec pprint_expr {Location.data=c; Location.loc=loc} ppf = 
     match c with
@@ -64,7 +36,7 @@ let rec pprint_expr {Location.data=c; Location.loc=loc} ppf =
           Format.pp_print_list 
             ~pp_sep:(fun ppf () -> Format.fprintf ppf ",@ ") 
             (fun ppf e -> pprint_expr e ppf) ppf el)
-    | Syntax.Channel (s, _, _) -> Format.fprintf ppf "Ch %s" s
+    | Syntax.Channel (s, _) -> Format.fprintf ppf "Ch %s" s
     | Syntax.FrVariable s -> Format.fprintf ppf "Fr %s" s
   
 let pprint_event {Location.data=c; Location.loc=loc} ppf = 
@@ -94,7 +66,7 @@ and pprint_atomic_stmt {Location.data=c; Location.loc=loc} ppf =
           Format.pp_print_list 
             ~pp_sep:(fun ppf () -> Format.fprintf ppf ",@ ") 
             (fun ppf e -> pprint_expr e ppf) ppf args)
-    | Syntax.Instruction (iv, ins, args) -> Format.fprintf ppf "ins %t := %t(@[<hov>%t@])" (pprint_iv iv) (pprint_ins ins)
+    | Syntax.Syscall (iv, ins, args) -> Format.fprintf ppf "syscall %t := %s(@[<hov>%t@])" (pprint_iv iv) (ins)
        (fun ppf -> 
           Format.pp_print_list 
             ~pp_sep:(fun ppf () -> Format.fprintf ppf ",@ ") 
@@ -167,7 +139,7 @@ let pprint_context ctx ppf =
          (fun ppf -> 
           Format.pp_print_list 
             ~pp_sep:(fun ppf () -> Format.fprintf ppf ",@ ") 
-            (fun ppf (a, b, c) -> Format.fprintf ppf "name:%s@ method:%s@ type:%s@ " a (print_chan_class b) c) ppf x) in
+            (fun ppf (a, c) -> Format.fprintf ppf "name:%s@ type:%s@ " a c) ppf x) in
 
    let pprint_proc x ppx =
       Format.fprintf ppf "processes: @[<hov>%t@]"   
@@ -260,7 +232,16 @@ let pprint_access_policy pol ppf =
       (fun ppf->   
          Format.pp_print_list 
          ~pp_sep:(fun ppf () -> Format.fprintf ppf "@ ") 
-         (fun ppf (s, t, a) -> Format.fprintf ppf "@[<hov>%s->%s:%s@]" s t (print_access_class a)) ppf x) in
+         (fun ppf (s, t, a) -> Format.fprintf ppf "@[<hov>%s->%t:%s@]" s 
+
+            (fun ppf -> 
+          Format.pp_print_list 
+            ~pp_sep:(fun ppf () -> Format.fprintf ppf ",@ ") 
+            (fun ppf t' -> Format.fprintf ppf "%s" t') ppf t)
+
+
+
+             (a)) ppf x) in
 
 
    let pprint_pol_attack x ppx =

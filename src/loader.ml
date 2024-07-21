@@ -5,6 +5,7 @@
 (** Conversion errors *)
 type desugar_error =
   | UnknownIdentifier of string
+  | UnknownIdentifier2 of string
   | UnknownFunction of string
   | AlreadyDefined of string 
   | ForbiddenIdentifier of string
@@ -23,6 +24,7 @@ let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 let print_error err ppf =
   match err with
   | UnknownIdentifier x -> Format.fprintf ppf "unknown identifier %s" x
+  | UnknownIdentifier2 x -> Format.fprintf ppf "unknown identifier %s" x
   | UnknownFunction x -> Format.fprintf ppf "unknown function %s" x
   | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
   | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
@@ -39,7 +41,7 @@ let rec process_expr ?(fr=[]) ctx lctx {Location.data=c; Location.loc=loc} =
    | Input.Var id -> 
       if Context.ctx_check_const ctx id then Syntax.Const id
       else if Context.ctx_check_ext_const ctx id then Syntax.ExtConst id
-      else if Context.lctx_check_chan lctx id then Syntax.Channel (id, [], [])
+      else if Context.lctx_check_chan lctx id then Syntax.Channel (id, "")
       else if Context.lctx_check_var lctx id then Syntax.Variable (Syntax.index_var id (Context.lctx_get_var_index ~loc lctx id))
       else error ~loc (UnknownIdentifier id) 
    | Input.Boolean b -> Syntax.Boolean b
@@ -54,7 +56,7 @@ let rec process_expr ?(fr=[]) ctx lctx {Location.data=c; Location.loc=loc} =
             | _   -> error ~loc UnintendedError  
             end 
       else 
-      if Primitives.is_forbidden_operator o then error ~loc (ForbiddenIdentifier o) else
+      if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o) else
       if Context.ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr ~fr ctx lctx a) el)) else
       error ~loc (UnknownIdentifier o)
    | Input.Tuple el -> Syntax.Tuple (List.map (fun a -> process_expr ~fr  ctx lctx a) el)
@@ -110,17 +112,17 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
              (* not enough argumentes *)
                error ~loc (ArgNumMismatch (o, (List.length args), (Context.lctx_get_func_arity lctx o)))
             end else
-            if Primitives.check_primitive_ins o then
+            if Context.ctx_check_ext_syscall ctx o then
             begin
-               let (_, ins, args_ty) = List.find (fun (s, _, _) -> s = o) Primitives.primitive_ins in
+               let args_ty = Context.ctx_get_ext_syscall_arity ~loc:e.Location.loc ctx o in
                if List.length args = List.length args_ty then
-                  (ctx, lctx'', Syntax.Instruction(vid', ins, 
+                  (ctx, lctx'', Syntax.Syscall(vid', o, 
                      List.map2 (fun arg arg_ty -> 
                      let e = process_expr ctx lctx arg in 
                      match e.Location.data, arg_ty with
-                     | Syntax.Channel (s, _, _), Etype.EtyCh (l1, l2) -> Location.locate ~loc:e.Location.loc (Syntax.Channel (s, l1, l2))
-                     | Syntax.Channel (s, _, _), Etype.EtyVal -> error ~loc (WrongInputType)
-                     | _, Etype.EtyVal -> e
+                     | Syntax.Channel (s, _), Input.TyChannel -> Location.locate ~loc:e.Location.loc (Syntax.Channel (s, o))
+                     | Syntax.Channel (s, _), Input.TyValue -> error ~loc (WrongInputType)
+                     | _, Input.TyValue -> e
                      | _, _ ->  error ~loc (WrongInputType)) args args_ty))
                else error ~loc (ArgNumMismatch (o, List.length args, List.length args_ty))
             end
@@ -145,23 +147,25 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
              (* not enough argumentes *)
                error ~loc (ArgNumMismatch (o, (List.length args), (Context.lctx_get_func_arity lctx o)))
             end else
-            if Primitives.check_primitive_ins o then
+            if Context.ctx_check_ext_syscall ctx o then
             begin
-               let (_, ins, args_ty) = List.find (fun (s, _, _) -> s = o) Primitives.primitive_ins in
+               let args_ty = Context.ctx_get_ext_syscall_arity ~loc:e.Location.loc ctx o in
                if List.length args = List.length args_ty then
-                  (ctx, lctx'', Syntax.Instruction(vid', ins, 
+                  (ctx, lctx'', Syntax.Syscall(vid', o, 
                      List.map2 (fun arg arg_ty -> 
                      let e = process_expr ctx lctx arg in 
                      match e.Location.data, arg_ty with
-                     | Syntax.Channel (s, _, _), Etype.EtyCh (l1, l2) -> Location.locate ~loc:e.Location.loc (Syntax.Channel (s, l1, l2))
-                     | Syntax.Channel (s, _, _), Etype.EtyVal -> error ~loc (WrongInputType)
-                     | _, Etype.EtyVal -> e
+                     | Syntax.Channel (s, _), Input.TyChannel -> Location.locate ~loc:e.Location.loc (Syntax.Channel (s, o))
+                     | Syntax.Channel (s, _), Input.TyValue -> error ~loc (WrongInputType)
+                     | _, Input.TyValue -> e
                      | _, _ ->  error ~loc (WrongInputType)) args args_ty))
                else error ~loc (ArgNumMismatch (o, List.length args, List.length args_ty))
             end
             else (ctx, lctx'', Syntax.Let(vid', process_expr ctx lctx e))
          | _ -> (ctx, lctx'', Syntax.Let(vid', process_expr ctx lctx e))
          end
+
+
       | Input.If (e, c1, c2) ->
          let e' = process_expr ctx lctx e in 
          let lctx' = Context.lctx_add_frame lctx in 
@@ -208,29 +212,71 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             | _ -> error ~loc:locc err
             end
       in 
+      (* is this really correct??? check with x = y next time!! *)
       let (e1', lctx) = collect_vars e1 Context.lctx_init in 
       let (e2', lctx) = collect_vars e2 lctx in
       (ctx, pol, Context.def_add_ext_eq def (List.hd lctx.Context.lctx_var, e1', e2'), sys)
 
-  (* | DeclExtIns of Name.ident * expr list * event list * expr * event list *)
 
-   (* | Input.DeclExtIns(id, args, pre, ret, post) -> error ~loc UnintendedError *)
+   | Input.DeclExtSyscall(f, typed_args, rules, ret) ->      
+      if Context.check_used ctx f then error ~loc (AlreadyDefined f) else 
+         (* parse arguments *)
+         let lctx = List.fold_left (fun lctx' ta -> 
+            match ta with
+            | (Input.TyValue, v) -> Context.lctx_add_new_var ~loc lctx' v
+            | (Input.TyChannel, v) -> Context.lctx_add_new_chan ~loc lctx' v) (Context.lctx_init) typed_args in
 
+         let process_fact f ctx lctx =
+            match f.Location.data with
+            | Input.Fact (id, el) ->
+               (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.Fact(id, List.map (process_expr ctx lctx) el)))
+            | Input.LocalFact (l, id, el) ->
+               (* check validty of local scope l *)
+               if Context.lctx_check_chan lctx l then 
+               (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, id, List.map (process_expr ctx lctx) el)))
+               else error ~loc (UnknownIdentifier2 l)
+         in
+
+         let rec process_rules rs ret lctx = 
+            try 
+               begin
+                  let ctx, rs = 
+                     List.fold_left (fun (ctx, rs) (pre, post) -> 
+                     let ctx, pre =
+                        List.fold_left (fun (ctx, facts) f -> let ctx', f' = process_fact f ctx lctx in (ctx', f' :: facts)) (ctx, []) pre in
+                     let ctx, post =
+                        List.fold_left (fun (ctx, facts) f -> let ctx', f' = process_fact f ctx lctx in (ctx', f' :: facts)) (ctx, []) post in
+                     (ctx, (pre, post) :: rs)) (ctx, []) rs in
+                  let ret = (match ret with Some r -> Some (process_expr ctx lctx r) | None -> None) in 
+                  (ctx, rs, ret, lctx)
+                end 
+            with
+            | Error {Location.data=err; Location.loc=locc} ->
+               begin match err with
+               | UnknownIdentifier id -> process_rules rs ret (Context.lctx_add_new_var ~loc lctx id)
+               | _ -> error ~loc:locc err
+               end
+         in
+
+         let (ctx, rs, ret, lctx) = process_rules rules ret (Context.lctx_add_frame lctx) in
+         let metavar = List.hd lctx.Context.lctx_var in 
+         let args = List.hd (Context.lctx_pop_frame ~loc lctx).Context.lctx_var in 
+         let cargs = lctx.Context.lctx_chan in 
+         (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), pol, Context.def_add_ext_syscall def (f, (List.map snd typed_args), (args, cargs), metavar, rs, ret), sys)
 
    | Input.DeclType (id, c) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, c), pol, def, sys)
    
    | Input.DeclAccess(s, t, al) -> 
       let tys = Context.ctx_get_ty ~loc ctx s in
-      let tyt = Context.ctx_get_ty ~loc ctx t in
+      let tyt = List.map (Context.ctx_get_ty ~loc ctx) t in 
       let f pol' a =
          begin
-         match tys, tyt, a with
-         | Input.CProc, Input.CFsys, "read" -> Context.pol_add_access pol' (s, t, Input.CRead)
-         | Input.CProc, Input.CFsys, "write" -> Context.pol_add_access pol' (s, t, Input.CWrite)
-         | Input.CProc, Input.CChan, "send" -> Context.pol_add_access pol' (s, t, Input.CSend)
-         | Input.CProc, Input.CChan, "recv" -> Context.pol_add_access pol' (s, t, Input.CRecv)
-         | _, _, _ -> error ~loc (WrongInputType)
+         match tys, tyt with
+         | Input.CProc, [Input.CChan] -> 
+            if Context.ctx_check_ext_syscall ctx a then Context.pol_add_access pol' (s, t, a)
+         else error ~loc (UnknownIdentifier a)
+         | _, _ -> error ~loc (WrongInputType)
          end
       in (ctx, List.fold_left f pol al, def, sys)
 
@@ -266,9 +312,9 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
       let (ctx', def') = List.fold_left (fun (ctx', def') (a, e, b) -> (Context.ctx_add_fsys ctx' (id, a, b), Context.def_add_fsys def' (id, a, e))) (ctx, def) fl' in 
       (ctx', pol, def', sys)
 
-  | Input.DeclChan (id, c, ty) ->
+  | Input.DeclChan (id, c) ->
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 
-      (Context.ctx_add_ch ctx (id, c, ty), pol, def, sys)
+      (Context.ctx_add_ch ctx (id, c), pol, def, sys)
 
   | Input.DeclProc (pid, cargs, ty, cl, fs, m) ->
       begin match Context.ctx_get_ty ~loc ctx ty 
@@ -304,7 +350,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                                     (path, v, ftype)) fpaths in 
             let fpaths = List.map (fun (path, v, ftype) -> 
                                     let accs = List.fold_left (fun accs (s, t, a) -> 
-                                       if s = ptype && t = ftype then a :: accs else accs) [] pol.Context.pol_access in
+                                       if s = ptype && List.exists (fun s -> s = ftype) t then a :: accs else accs) [] pol.Context.pol_access in
                                     let attks = List.fold_left (fun attks (t, a) -> 
                                        if t = ftype then a :: attks else attks) [] pol.Context.pol_attack in
                                     (path,v,accs, attks)) fpaths in 
@@ -313,15 +359,17 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                let (chs, vl, fl, m) = List.fold_left2 
                   (fun (chs, vl, fl, m) ch_f ch_t -> 
                      if Context.ctx_check_ch ctx ch_t then 
-                        let (_, chan_class, chan_ty) = List.find (fun (s, _, _) -> s = ch_t) ctx.Context.ctx_ch in  
-                        let accesses = List.fold_left (fun acs (f', t', ac) -> if f' = ptype && t' = chan_ty then ac::acs else acs) [] pol.Context.pol_access in 
+                        let (_, chan_ty) = List.find (fun (s, _
+                        ) -> s = ch_t) ctx.Context.ctx_ch in  
+                        let accesses = List.fold_left (fun acs (f', t', ac) -> if f' = ptype && List.exists (fun s -> s = chan_ty) t' then ac::acs else acs) [] pol.Context.pol_access in 
+                        (* !replace channel variables and check access policies! *)
                         (
-                           (if List.exists (fun (ch_t', _, _, _) -> ch_t = ch_t') chs then chs else
-                           (ch_t, chan_class, accesses,
+                           (if List.exists (fun (ch_t', _,  _) -> ch_t = ch_t') chs then chs else
+                           (ch_t, accesses,
                               List.fold_left (fun attks (s, a) -> if s = ch_t then a :: attks else attks ) [] pol.Context.pol_attack) :: chs),
-                              List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e ch_f ch_t accesses chan_class)) vl,
-                              List.map (fun (fn, args, c, ret) -> (fn, args, List.map (fun c -> Substitute.stmt_chan_sub c ch_f ch_t accesses chan_class) c, ret)) fl,
-                              List.map (fun c -> Substitute.stmt_chan_sub c ch_f ch_t accesses chan_class) m)
+                              List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e ch_f ch_t accesses)) vl,
+                              List.map (fun (fn, args, c, ret) -> (fn, args, List.map (fun c -> Substitute.stmt_chan_sub c ch_f ch_t accesses) c, ret)) fl,
+                              List.map (fun c -> Substitute.stmt_chan_sub c ch_f ch_t accesses) m)
                      else error ~loc (UnknownIdentifier ch_t)) ([], vl, fl, m) cargs chans in 
                (pid, 
                   List.fold_left (fun attks (t, a) -> if t = pid then a :: attks else attks) [] pol.Context.pol_attack,

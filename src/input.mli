@@ -1,8 +1,7 @@
 type operator = string
 type type_class = CProc | CFsys | CChan
-type access_class = CRead |  CWrite | CSend | CRecv 
 type attack_class = CEaves |  CTamper | CDrop 
-type chan_class = CDatagram | CStream
+type arg_type = TyValue | TyChannel
 
 type expr = expr' Location.located
 and expr' =
@@ -33,6 +32,11 @@ and stmt' =
   | OpStmt of atomic_stmt
   | EventStmt of atomic_stmt * event list
 
+type fact = fact' Location.located
+and fact' = 
+  | Fact of Name.ident * expr list
+  | LocalFact of Name.ident * Name.ident * expr list
+
 type proc = proc' Location.located
 and proc' =
   | Proc of Name.ident * (Name.ident list) * Name.ident
@@ -49,13 +53,13 @@ type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int
   | DeclExtEq of expr * expr
-  | DeclExtSyscall of Name.ident * expr list * event list * expr * event list
+  | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * (fact list * fact list) list * expr option
   | DeclType of Name.ident * type_class
-  | DeclAccess of Name.ident * Name.ident * (Name.ident list)
+  | DeclAccess of Name.ident * Name.ident list * Name.ident list
   | DeclAttack of Name.ident * (attack_class list)
   | DeclInit of Name.ident * expr
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
-  | DeclChan of Name.ident * chan_class * Name.ident
+  | DeclChan of Name.ident * Name.ident
   | DeclProc of Name.ident * (Name.ident list) * Name.ident * 
                 ((Name.ident * expr) list) * 
                 (Name.ident * (Name.ident list) * stmt list * Name.ident) list * 
