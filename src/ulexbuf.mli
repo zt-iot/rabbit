@@ -5,6 +5,9 @@ type t = private {
   mutable pos_end : Lexing.position ;
   mutable line_limit : int option ;
   mutable end_of_input : bool ;
+  
+  mutable used_ident : string list;
+  mutable used_string : string list;
 }
 
 type error =
@@ -33,3 +36,9 @@ val from_string : ?fn:string -> string -> t
 
 val reached_end_of_input : t -> unit
 val set_line_limit : int option -> t -> unit
+
+val record_ident : string -> t -> unit
+val used_indent : t -> string list
+
+val record_string : string -> t -> unit
+val used_string : t -> string list

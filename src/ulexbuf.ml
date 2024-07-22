@@ -4,6 +4,8 @@ type t = {
   mutable pos_end : Lexing.position ;
   mutable line_limit : int option ;
   mutable end_of_input : bool ;
+  mutable used_ident : string list;
+  mutable used_string : string list;
 }
 
 type error =
@@ -34,7 +36,7 @@ let create_lexbuf ?(fn="?") stream =
     }
   in
   { pos_start = pos_end; pos_end; stream ;
-    line_limit = None; end_of_input = false; }
+    line_limit = None; end_of_input = false; used_ident=[]; used_string=[]}
 
 let from_channel ?(fn="?") fh =
   create_lexbuf ~fn (Sedlexing.Utf8.from_channel fh)
@@ -65,3 +67,11 @@ let reached_end_of_input b =
 
 let set_line_limit ll b =
   b.line_limit <- ll
+
+let record_ident s lexbuf =
+  lexbuf.used_ident <- s :: lexbuf.used_ident
+let used_indent lexbuf = lexbuf.used_ident
+
+let record_string s lexbuf =
+  lexbuf.used_string <- s :: lexbuf.used_string
+let used_string lexbuf = lexbuf.used_string

@@ -42,6 +42,7 @@ filesys boring_filesys = [{path: "some/path", data: myzero, type: filesys_t}]
 (** define process templates *)
 process client(c) with client_t {
 	let mytwo = myplus(myone, myone) ; 
+	let rabbit = myone;
 	main {
 		let _ = send_udp(c, mytwo) @ Querying();
 		let four = recv_udp(c) @ Computed(four);
@@ -61,9 +62,7 @@ process server(c) with server_t {
 }
 
 (** realize a system *)
-system 
-	client(decent_channel) with boring_filesys 
-|| 	server(decent_channel) with boring_filesys
+system client(decent_channel) with boring_filesys || server(decent_channel) with boring_filesys
 
 (** requirement is ignored at the moment *)
 requires 

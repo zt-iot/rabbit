@@ -18,10 +18,10 @@ external function fd:1
 
 (* some external instruction better suits prelude: prelude.rabbit *)
 (* 
-external instruction open(x) : [File(x, d), Fr(y)] => [return y : Fd(x, y), File(x, d)] 
-external instruction read(x) : [Fd(y, x), File(y, d)] =>  [return d : Fd(y, x), File(y, d)]
-external instruction write(x, d) : [Fd(y, x), File(y, _)] => [Fd(y, x), File(y, d)]
-external instruction close(x) : [Fd(y, x), File(y, d)] => [File(y, d)] 
+external syscall open(x) : [File(x, d), Fr(y)] => [return y : Fd(x, y), File(x, d)] 
+external syscall read(x) : [Fd(y, x), File(y, d)] =>  [return d : Fd(y, x), File(y, d)]
+external syscall write(x, d) : [Fd(y, x), File(y, _)] => [Fd(y, x), File(y, d)]
+external syscall close(x) : [Fd(y, x), File(y, d)] => [File(y, d)] 
 *)
 
 (* example external instructions: *)
@@ -61,6 +61,7 @@ filesys test = [
 process testtest(a, b, c) with mytype2 {
 	let e = one ; 
 	let d = a;
+	let rabbit = one;
 
 	function test2 (s, j){
 		skip @ Test(d);	

@@ -43,8 +43,7 @@ let reserved = [
   ("satisfy", SATISFY) ; 
   ("instruction", INSTRUCTION) ; 
   ("syscall", SYSCALL) ; 
-  ("True", TRUE) ;
-  ("rabbit", RABBIT)
+  ("True", TRUE) 
   ]
 
 let name =
@@ -106,7 +105,9 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
      let n = ref 0 in
      String.iter (fun c -> if c = '\n' then incr n) s;
      Ulexbuf.new_line ~n:!n lexbuf;
-     QUOTED_STRING (String.sub s 1 (l - 2))
+     let r = String.sub s 1 (l - 2) in 
+     Ulexbuf.record_string r lexbuf;
+     QUOTED_STRING (r)
   | '_'                      -> f (); UNDERSCORE
   | '.'                      -> f (); DOT
   | '@'                      -> f (); AT
@@ -138,7 +139,9 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | name                     -> f ();
     let n = Ulexbuf.lexeme lexbuf in
     begin try List.assoc n reserved
-    with Not_found -> NAME n
+    with Not_found ->
+      Ulexbuf.record_ident n lexbuf;
+       NAME n
     end
   | float                    -> f (); let r = Ulexbuf.lexeme lexbuf in FLOAT r
   | numeral                  -> f (); let k = safe_int_of_string lexbuf in NUMERAL k
@@ -193,7 +196,7 @@ let read_file parse fn =
     let lex = Ulexbuf.from_channel ~fn fh in
       let terms = run token parse lex in
       close_in fh;
-      terms
+      terms, (Ulexbuf.used_indent lex, Ulexbuf.used_string lex)
 
 (* let read_file parse fn =
   try

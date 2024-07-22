@@ -69,16 +69,18 @@ let _main =
     (* Run and load all the specified files. *)
     (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
   try
-      let (ctx, pol, def, sys) = 
+      let (ctx, pol, def, sys, x) = 
       List.fold_left 
-        (fun (ctx, pol, def, sys) (fn, quiet) -> Loader.load fn ctx pol def sys) 
+        (fun (ctx, pol, def, sys, (a, b)) (fn, quiet) -> 
+          let (ctx, pol, def, sys, (a', b')) = Loader.load fn ctx pol def sys in 
+          (ctx, pol, def, sys, (a'@a, b'@b))) 
         Loader.process_init  !files in
       Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
       Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
       Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
       
       List.fold_left (fun _ s -> 
-        Printf.printf "tamarin: \n %s" (Totamarin.print_tamarin (Totamarin.translate_sys s));  
+        Printf.printf "tamarin: \n %s" (Totamarin.print_tamarin (Totamarin.translate_sys s x));  
         (* Printf.printf "%s" (Xml.to_string_fmt (Toxml.to_xml_sys s)) *)
     ) () sys;
     ()

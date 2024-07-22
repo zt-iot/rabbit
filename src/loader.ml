@@ -385,11 +385,11 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
 in process_decl' ctx pol def sys c
 
 
-let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [])
+let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([],[]))
 
 let load fn ctx pol def sys =
-   let decls= Lexer.read_file Parser.file fn in 
+   let decls, parser_state = Lexer.read_file Parser.file fn in 
    let (ctx, pol, def, sys) = List.fold_left 
    (fun (ctx, pol, def, sys) decl -> process_decl ctx pol def sys decl) 
-   (ctx, pol, def, sys) decls in (ctx, pol, def, sys)
+   (ctx, pol, def, sys) decls in (ctx, pol, def, sys, parser_state)
 

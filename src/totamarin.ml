@@ -91,13 +91,17 @@ type engine = {
 	lctx : (string list) list;
 	sep : string;
 	mode : string;
+	fresh_ident : string; 
+	fresh_string : string;
 }
 
-let eng_fresh_var eng  = "rabbit" 
-let eng_forbidden_const = "rabbit" 
+let empty_engine = {namespace = ""; scope = ""; index = 0; lctx = [[]]; sep = ""; mode = ""; fresh_ident = ""; fresh_string = ""}
 
+let eng_set_fresh_string eng s = {eng with fresh_string=s}
+let eng_set_fresh_ident eng s = {eng with fresh_ident=s}
 
-let empty_engine = {namespace = ""; scope = ""; index = 0; lctx = [[]]; sep = ""; mode = ""}
+let eng_get_fresh_string eng = eng.fresh_string
+let eng_get_fresh_ident eng = eng.fresh_ident
 
 let flat lctx = 
 	List.fold_left (fun l vl -> l @ vl) [] lctx
@@ -106,7 +110,7 @@ let eng_set_mode eng m =
 	{eng with mode=m}
 
 let eng_var_list eng =
-	List.map (fun s -> if s = "" then String eng_forbidden_const else Var s) (flat eng.lctx)
+	List.map (fun s -> if s = "" then String (eng_get_fresh_string eng) else Var s) (flat eng.lctx)
 
 let eng_state eng =
 	eng.namespace ^ (if eng.scope = "" then "" else eng.sep ^ eng.scope) ^ (if eng.index = 0 then "" else eng.sep ^ string_of_int (eng.index - 1))
@@ -128,7 +132,7 @@ let eng_inc_index eng =
 	{eng with index=eng.index+1}      
 
 let eng_lctx_back eng = 
-	List.map (fun s -> if s = "" then String eng_forbidden_const else Var s) (List.hd (List.rev eng.lctx))
+	List.map (fun s -> if s = "" then String (eng_get_fresh_string eng) else Var s) (List.hd (List.rev eng.lctx))
 
 let eng_set_scope eng s =
 	{eng with scope=s ; index = 0}
@@ -200,7 +204,7 @@ and translate_atomic_stmt eng t  {Location.data=c; Location.loc=loc} =
 											(List.map (translate_expr) args) @ eng_lctx_back eng)]) in 
 		let t = add_rule t (eng_state (eng_set_mode eng "out"), 
 			[(eng_state (eng_set_mode eng "wait"), eng_var_list eng) ; 
-			(eng_state (eng_set_mode (eng_set_scope eng f) "return"), [(match v with |"" -> Var (eng_fresh_var eng) |_->Var v)])], [], 
+			(eng_state (eng_set_mode (eng_set_scope eng f) "return"), [(match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v)])], [], 
 			[(state_f, eng_var_list eng_f)]) in
 		(eng_f, t)
 
@@ -211,7 +215,7 @@ and translate_atomic_stmt eng t  {Location.data=c; Location.loc=loc} =
 										(mk_fact_name f, (String eng.namespace) :: (List.map (translate_expr) args))]) in
 		let t = add_rule t (eng_state (eng_set_mode eng "out"), 
 			[(eng_state (eng_set_mode eng "wait"), eng_var_list eng) ; 
-			(eng_state (eng_set_mode (eng_set_namespace eng f) "return"), [(String eng.namespace) ; (match v with |"" -> Var (eng_fresh_var eng) |_->Var v) ])], [], 
+			(eng_state (eng_set_mode (eng_set_namespace eng f) "return"), [(String eng.namespace) ; (match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v) ])], [], 
 			[(state_f, eng_var_list eng_f)]) in
 		(eng_f, t)
 
@@ -242,7 +246,7 @@ let translate_syscall eng t (f, args, taged_args, meta_vars, rules, ret) =
 			(eng_suffix eng eng.namespace "return", [namespace_id ;
 				match ret with 
 				| Some e -> translate_expr ~ch:true e
-				| None -> String eng_forbidden_const]) :: (List.map translate_fact post)))
+				| None -> String (eng_get_fresh_string eng)]) :: (List.map translate_fact post)))
 		else 
 		(eng_inc_index eng, i+1, add_rule t (eng_state eng, 
 			(eng_state eng, eng_var_list eng) :: (List.map translate_fact pre), [], 
@@ -315,13 +319,25 @@ let translate_sys {
    Context.sys_def = def;
    Context.sys_pol = pol;
    Context.sys_proc = proc 
-} = 
+} (used_idents, used_string) = 
 	let t = empty_tamarin in
 	let eng = empty_engine in
 	let eng = eng_set_sep eng 
 	(let names = get_fact_names ctx in 
 		let rec f s = if List.exists (fun u -> contains u s) names then f (s ^"_") else s in 
 		f "_") in
+	let eng = eng_set_fresh_ident eng 
+	(
+		let rec f s = if List.exists (fun u -> u = s) used_idents then f (s^"_") else s in 
+		f "rabbit"
+	) in 
+
+	let eng = eng_set_fresh_string eng 
+	(
+		let rec f s = if List.exists (fun u -> u = s) used_string then f (s^"_") else s in 
+		f "rabbit"
+	) in 
+	
 
 	(* process what has been defined first! *)
 	let t = List.fold_left (fun t (f, k) -> add_fun t (f, k)) t (List.rev ctx.Context.ctx_ext_func) in
