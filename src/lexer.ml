@@ -43,7 +43,8 @@ let reserved = [
   ("satisfy", SATISFY) ; 
   ("instruction", INSTRUCTION) ; 
   ("syscall", SYSCALL) ; 
-  ("True", TRUE) 
+  ("True", TRUE) ;
+  ("rabbit", RABBIT)
   ]
 
 let name =

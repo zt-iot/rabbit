@@ -76,8 +76,11 @@ let _main =
       Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
       Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
       Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
+      
       List.fold_left (fun _ s -> 
-        Printf.printf "%s" (Xml.to_string_fmt (Toxml.to_xml_sys s))) () sys;
+        Printf.printf "tamarin: \n %s" (Totamarin.print_tamarin (Totamarin.translate_sys s));  
+        (* Printf.printf "%s" (Xml.to_string_fmt (Toxml.to_xml_sys s)) *)
+    ) () sys;
     ()
     (* 
     let (ctx, pol, def, sys) = 

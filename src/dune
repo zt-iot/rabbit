@@ -2,7 +2,7 @@
   (name "rabbitm")
   (public_name "rabbitm")
   (flags -w +a-4-27-29-50)
-  (libraries sedlex menhirLib xml-light)
+  (libraries sedlex menhirLib xml-light str)
   (preprocess (pps sedlex.ppx)))
 
 (menhir
