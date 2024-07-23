@@ -1,3 +1,6 @@
+load prelude.rab
+
+
 (** very simple rab file to test xml printing *)
 
 (** declare external constants and functions as a equational theory *)
@@ -17,10 +20,10 @@ external syscall accept_tcp(channel c) : [ask(c)] -> [accept(c)] => [connect(c)]
 external syscall send_tcp(channel c, v) : [connect(c)] -> [connect(c), dataa(c, v)] => [receipt(c)] -> []
 external syscall recv_tcp(channel c) return v : [connect(c), dataa(c, v)] -> [connect(c), receipt(c)] 
 
+
 (*
 external syscall recv_tcp(channel c, value v, function f) return v : [connect(c), dataa(c, v)] -> [connect(c), receipt(c)] 
 *)
-
 
 
 (** declare types with their classes *)
@@ -40,7 +43,7 @@ channel decent_channel : channel_t
 filesys boring_filesys = [{path: "some/path", data: myzero, type: filesys_t}]
 
 (** define process templates *)
-process client(c) with client_t {
+process client(c : channel_t) with client_t {
 	let mytwo = myplus(myone, myone) ; 
 	let rabbit = myone;
 	main {

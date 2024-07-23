@@ -46,14 +46,16 @@
   ;; Fontify keywords
   (setq font-lock-defaults '(rab-font-lock-keywords-1))
 
-  ;; Double quotes are for lemmas not strings
-  (modify-syntax-entry ?\" "w" rab-mode-syntax-table)
-  (modify-syntax-entry ?' "\"" rab-mode-syntax-table)
+  (modify-syntax-entry ?_ "w" rab-mode-syntax-table)
 
   ;; < > are delimiters too
   (modify-syntax-entry ?< "(" rab-mode-syntax-table)
   (modify-syntax-entry ?> "(" rab-mode-syntax-table)
   
+  ;; { } are delimiters too
+  (modify-syntax-entry ?{ "(" rab-mode-syntax-table)
+  (modify-syntax-entry ?} "(" rab-mode-syntax-table)
+
   )
 
 (provide 'rab-mode)
