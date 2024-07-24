@@ -115,7 +115,8 @@ type system = {
    sys_ctx : context ; 
    sys_def : definition ;
    sys_pol : access_policy ;
-   sys_proc : process list 
+   sys_proc : process list ;
+   sys_lemma : (string * string) list
 }
 
 type local_context = {

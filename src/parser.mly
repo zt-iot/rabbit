@@ -25,7 +25,7 @@
 %token CHANNEL TRANSFER PROCESS WITH FUNC MAIN RETURN 
 %token DATA READ WRITE SEND RECV EAVESDROP TAMPER DROP PATH
 %token DATAGRAM STREAM SKIP LET CALL IF ELSE FOR IN RANGE AT INIT
-%token REQUIRES SATISFIES SATISFY EXTERNAL STRING RABBIT
+%token REQUIRES SATISFIES SATISFY EXTERNAL STRING RABBIT EXTRACE ALLTRACE
 
 (* temporal logic *)
 %token TRUE
@@ -107,7 +107,8 @@ plain_lemma:
 
 prop: mark_location(plain_prop) { $1 }
 plain_prop:
-  | TRUE {True}
+  | EXTRACE QUOTED_STRING {PlainString ("exists-trace \""^$2^"\"") }
+  | ALLTRACE QUOTED_STRING {PlainString ("all-trace \""^$2^"\"") }
 
 let_stmts:
   | { [] }

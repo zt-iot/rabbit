@@ -43,7 +43,7 @@ let reserved = [
   ("satisfy", SATISFY) ; 
   ("instruction", INSTRUCTION) ; 
   ("syscall", SYSCALL) ; 
-  ("True", TRUE) 
+  ("True", TRUE) ;
   ]
 
 let name =
@@ -109,6 +109,9 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
      Ulexbuf.record_string r lexbuf;
      QUOTED_STRING (r)
   | '_'                      -> f (); UNDERSCORE
+  | '.'                      -> f (); DOT
+  | "exists-trace"                      -> f (); EXTRACE
+  | "all-trace"                      -> f (); ALLTRACE
   | '.'                      -> f (); DOT
   | '@'                      -> f (); AT
   | '('                      -> f (); LPAREN

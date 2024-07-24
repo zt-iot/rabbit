@@ -33,7 +33,7 @@
 (defconst rab-font-lock-keywords-1
   (list
    '("\\<\\(for\\|if\\|let\\|return\\|with\\)\\>" . font-lock-keyword-face)
-   '("\\<\\(channel\\|filesys\\|process\\|system\\)\\>" . font-lock-constant-face)
+   '("\\<\\(channel\\|filesys\\|process\\|system\\|requires\\|lemma\\)\\>" . font-lock-constant-face)
    '("\\<\\(@\\|a\\(?:llow\\|ttack\\)\\|constant\\|e\\(?:quation\\|xternal\\)\\|function\\|main\\|syscall\\|type\\)\\>" . font-lock-warning-face)
    '("\\(-\\(?:-[>[]\\|>\\)\\|\\(?:<=\\|==?\\|]-\\)>\\|[]&=[|^]\\)" . font-lock-constant-face)
    )

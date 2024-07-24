@@ -43,7 +43,7 @@ and proc' =
 
 type prop = prop' Location.located
 and prop' =
-  | True
+  | PlainString of string
 
 type lemma = lemma' Location.located
 and lemma' =

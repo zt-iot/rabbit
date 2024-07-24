@@ -48,7 +48,7 @@ type fpath = fpath' Location.located
 and fpath' = 
   | Fpath of (Name.ident * expr * Name.ident)
 
-type prop = prop' Location.located
+(* type prop = prop' Location.located
 and prop' =
   | True
 
@@ -71,3 +71,4 @@ let string_of_attack_class a =
    | Input.CEaves -> "Eaves" 
    | Input.CTamper -> "Tamper"
    | Input.CDrop  -> "Drop"
+ *)

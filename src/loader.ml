@@ -373,7 +373,10 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                      else error ~loc (UnknownIdentifier ch_t)) ([], vl, fl, m) cargs chans in 
                (pid, 
                   List.fold_left (fun attks (t, a) -> if t = pid then a :: attks else attks) [] pol.Context.pol_attack,
-                  chs, fpaths, vl, fl, m)) procs in  
+                  chs, fpaths, vl, fl, m)) procs in
+      (* for now, have plain text for lemmas *)
+      let processed_lemmas = List.map (fun l -> match l.Location.data with Input.Lemma (l, p) -> match p.Location.data with | Input.PlainString s -> (l, s) |_ -> error ~loc UnintendedError) lemmas in   
+      (*  *)
       let (processed_procs, _) = List.fold_left (fun (processed_procs,k) (pid, attks, chans, files, vl, fl, m)
          -> ({Context.proc_pid=k; Context.proc_name=pid; Context.proc_attack=attks; Context.proc_channel=chans; Context.proc_file=files; Context.proc_variable=vl; Context.proc_function=fl; Context.proc_main=m} :: processed_procs, k+1)) 
       ([],0) processed_procs in 
@@ -381,7 +384,8 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                         Context.sys_ctx = ctx;
                         Context.sys_pol = pol;
                         Context.sys_def = def;
-                        Context.sys_proc=processed_procs}::sys)
+                        Context.sys_proc=processed_procs;
+                        Context.sys_lemma = processed_lemmas}::sys)
 in process_decl' ctx pol def sys c
 
 

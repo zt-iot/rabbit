@@ -7,9 +7,12 @@ let usage = "Usage: Rabbit [option] ... [file] ..."
     be loaded in interactive mode. *)
 let files = ref []
 
+let ofile = ref ("", false)
+
 (** Add a file to the list of files to be loaded, and record whether it should
     be processed in interactive mode. *)
 let add_file quiet filename = (files := (filename, quiet) :: !files)
+let add_ofile quiet filename = (ofile := (filename, quiet))
 
 (** Command-line options *)
 let options = Arg.align [
@@ -40,6 +43,9 @@ let options = Arg.align [
      Arg.String (fun str -> add_file true str),
      "<file> Load <file> into the initial environment");
 
+    ("-o",
+     Arg.String (fun str -> add_ofile true str),
+     "<file> Printing the translated program into <file>");
 
      ("--trace",
      Arg.Set Config.trace,
@@ -75,14 +81,18 @@ let _main =
           let (ctx, pol, def, sys, (a', b')) = Loader.load fn ctx pol def sys in 
           (ctx, pol, def, sys, (a'@a, b'@b))) 
         Loader.process_init  !files in
-      Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
+      (* Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
       Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
       Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
-      
+       *)
       List.fold_left (fun _ s -> 
-        Printf.printf "tamarin: \n %s" (Totamarin.print_tamarin (Totamarin.translate_sys s x));  
-        (* Printf.printf "%s" (Xml.to_string_fmt (Toxml.to_xml_sys s)) *)
-    ) () sys;
+        let tamarin = (Totamarin.print_tamarin (Totamarin.translate_sys s x)) in 
+        if fst !ofile = "" then print_string "Output file not specified"
+        else let oc = open_out (fst !ofile) in
+        Printf.fprintf oc "%s\n" tamarin;
+        close_out oc;
+        print_string ("translation saved into: "^ (fst !ofile))
+        ) () sys;
     ()
     (* 
     let (ctx, pol, def, sys) = 

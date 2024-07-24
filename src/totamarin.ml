@@ -79,11 +79,28 @@ let print_rule (f, pre, label, post) =
 
 	"["^(mult_list_with_concat (List.map print_fact post) ", ") ^ "] \n"	
 
-let print_tamarin (sign, rules) = 
+let print_tamarin ((sign, rules), init_list, lem) = 
+	"theory rabbit\n\nbegin\n"^
 	print_signature sign ^
-	(mult_list_with_concat (List.map print_rule (List.rev rules)) "")
+	(mult_list_with_concat (List.map print_rule (List.rev rules)) "")^
+	
+	List.fold_left (fun l s -> l^"\nrestriction "^s^" : \" All #i #j . "^s^"() @ #i & "^s^"() @ #j ==> #i = #j \"") "" init_list ^
 
+	List.fold_left (fun l (lem, prop) -> l^"\nlemma "^lem^" : "^prop) "" lem ^"\nend\n"
 
+(* 
+
+restriction Client0_init : 
+  " All #i #j . Client0_init() @ #i & Client0_init() @ #j ==> #i = #j "
+
+restriction Server1_init : 
+  " All #i #j . Server1_init() @ #i & Server1_init() @ #j ==> #i = #j "
+
+lemma Finish :
+  exists-trace
+  "Ex #j  . Querying() @ #j"
+end
+ *)
 type engine = {
 	namespace : string; 
 	scope : string; 
@@ -267,7 +284,7 @@ let translate_process eng t {
 	let eng = eng_set_namespace eng namespace in 
 	let eng = eng_set_scope eng "init" in 
 
-	let t = add_rule t (eng_state eng, [], [(namespace^"_init", [])], [(eng_state eng, [])]) in
+	let t = add_rule t (eng_state eng, [], [(namespace^eng.sep^"init", [])], [(eng_state eng, [])]) in
 
 	(* initialize memory *)
 	let (eng, t) = List.fold_left
@@ -318,7 +335,8 @@ let translate_sys {
    Context.sys_ctx = ctx ; 
    Context.sys_def = def;
    Context.sys_pol = pol;
-   Context.sys_proc = proc 
+   Context.sys_proc = proc ;
+   Context.sys_lemma = lem
 } (used_idents, used_string) = 
 	let t = empty_tamarin in
 	let eng = empty_engine in
@@ -350,6 +368,8 @@ let translate_sys {
 
 	let t = List.fold_left (fun t p -> translate_process eng t p) t (List.rev proc) in
 
-	t
+	let init_list = List.map (fun p -> String.capitalize_ascii (p.Context.proc_name ^ (string_of_int p.Context.proc_pid)) ^ eng.sep^"init") proc in 
+
+	(t, init_list, lem)
 
 
