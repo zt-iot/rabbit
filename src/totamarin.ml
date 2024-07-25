@@ -267,7 +267,7 @@ let translate_syscall eng t (f, args, taged_args, meta_vars, rules, ret) =
 		else 
 		(eng_inc_index eng, i+1, add_rule t (eng_state eng, 
 			(eng_state eng, eng_var_list eng) :: (List.map translate_fact pre), [], 
-			(eng_state (eng_inc_index eng), eng_var_list eng) :: (List.map translate_fact post)))) (eng, 0, t) rules
+			(eng_state (eng_inc_index eng), eng_var_list eng) :: (List.map translate_fact post)))) (eng, 0, t) (List.rev rules)
 	in t 
 
 let translate_process eng t {

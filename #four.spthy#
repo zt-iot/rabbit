@@ -1,0 +1,65 @@
+theory rabbit
+
+begin
+functions: ichi/0, O/0, add/2
+equations: add(O(), x)=x, add(x, O())=x
+rule Send_udp :
+     [Send_udp(proc, c, v)] -->
+     [Send_udp__return(proc, 'rabbit'), Store(c, v)]
+     
+rule Recv_udp : [Recv_udp(proc, c), Store(c, v)]-->[Recv_udp__return(proc, v)] 
+
+
+
+rule Connect_tcp : [Connect_tcp(proc, c), Accept(proc, c)]-->[Connect_tcp__0(proc, c), Connect(proc, c)] 
+rule Connect_tcp__0 : [Connect_tcp__0(proc, c)]-->[Connect_tcp__return(proc, 'rabbit'), Ask(proc, c)] 
+
+
+rule Accept_tcp : [Accept_tcp(proc, c), Connect(proc, c)]
+     -->[Accept_tcp__0(proc, c), Connect(proc, c)] 
+
+rule Accept_tcp__0 : [Accept_tcp__0(proc, c), Ask(proc, c)]
+     -->[Accept_tcp__return(proc, 'rabbit'), Accept(proc, c)] 
+
+
+
+
+rule Send_tcp :
+     [Send_tcp(proc, c, v), Receipt(proc, c)] -->
+     [Send_tcp__0(proc, c, v)]
+     
+rule Send_tcp__0 :
+     [Send_tcp__0(proc, c, v), Connect(proc, c)]-->
+     [Send_tcp__return(proc, 'rabbit'), Dataa(proc, c, v), Connect(proc, c)]
+     
+rule Recv_tcp :
+     [Recv_tcp(proc, c), Dataa(proc, c, v), Connect(proc, c)]-->
+     [Recv_tcp__return(proc, v), Receipt(proc, c), Connect(proc, c)]
+     
+rule Client0__init : []--[Client0__init()]->[Client0__init()] 
+rule Client0__init__0 : [Client0__init()]-->[Client0__init__0(ichi())] 
+rule Client0__init__1 : [Client0__init__0(rabbit)]-->[Client0__init__1(add(ichi(), ichi()), rabbit)] 
+rule Client0__main : [Client0__init__1(mytwo, rabbit)]-->[Client0__main(mytwo, rabbit)] 
+rule Client0__main__in
+     : [Client0__main(mytwo, rabbit)] -->
+       [Client0__main__wait(mytwo, rabbit), Send_udp('Client0', 'decent_channel', mytwo)] 
+rule Client0__main__out : [Client0__main__wait(mytwo, rabbit), Send_udp__return('Client0', rabbit_)]--[Querying()]->[Client0__main__0('rabbit', mytwo, rabbit)] 
+rule Client0__main__0__in : [Client0__main__0('rabbit', mytwo, rabbit)]-->[Client0__main__0__wait('rabbit', mytwo, rabbit), Recv_udp('Client0', 'decent_channel')] 
+rule Client0__main__0__out : [Client0__main__0__wait('rabbit', mytwo, rabbit), Recv_udp__return('Client0', four)]--[Computed(four)]->[Client0__main__1(four, 'rabbit', mytwo, rabbit)] 
+rule Server1__init : []--[Server1__init()]->[Server1__init()] 
+rule Server1__double : [Server1__double(x2, x1)]--[Doubling(x1)]->[Server1__double__0(add(x1, x2), x2, x1)] 
+rule Server1__double__return : [Server1__double__0(y, x2, x1)]-->[Server1__double__return(y)] 
+rule Server1__main : [Server1__init()]-->[Server1__main()] 
+rule Server1__main__in : [Server1__main()]-->[Server1__main__wait(), Recv_udp('Server1', 'decent_channel')] 
+rule Server1__main__out : [Server1__main__wait(), Recv_udp__return('Server1', x)]--[Receiving(x)]->[Server1__main__0(x)] 
+rule Server1__main__0__in : [Server1__main__0(x)]-->[Server1__main__0__wait(x), Server1__double(x, x)] 
+rule Server1__main__0__out : [Server1__main__0__wait(x), Server1__double__return(double_x)]-->[Server1__main__1(double_x, x)] 
+rule Server1__main__1__in : [Server1__main__1(double_x, x)]-->[Server1__main__1__wait(double_x, x), Send_udp('Server1', 'decent_channel', double_x)] 
+rule Server1__main__1__out : [Server1__main__1__wait(double_x, x), Send_udp__return('Server1', rabbit_)]-->[Server1__main__2('rabbit', double_x, x)] 
+
+restriction Server1__init : " All #i #j . Server1__init() @ #i & Server1__init() @ #j ==> #i = #j "
+restriction Client0__init : " All #i #j . Client0__init() @ #i & Client0__init() @ #j ==> #i = #j "
+lemma Reachability1 : exists-trace "Ex x #j  . Computed(x) @ #j"
+lemma Reachability2 : exists-trace "Ex #j  . Computed(add(add(ichi, ichi), add(ichi,ichi))) @ #j"
+end
+

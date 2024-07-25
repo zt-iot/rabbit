@@ -25,7 +25,7 @@ external syscall recv_udp(channel c) return v : [c:store(v)] -> []
 external syscall connect_tcp(channel c)
   : [] -> [ask(c)] => [accept(c)] -> [connect(c)]
 external syscall accept_tcp(channel c)
-  : [ask(c)] -> [accept(c)] => [connect(c)] -> [connect(c)]
+  : [ask(c)] -> [accept(c)] => [c:connect()] -> [c:connect()]
 external syscall send_tcp(channel c, v)
   : [connect(c)] -> [connect(c), dataa(c, v)] => [receipt(c)] -> []
 external syscall recv_tcp(channel c) return v
