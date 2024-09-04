@@ -42,6 +42,7 @@ type expr =
   | Var of string
   | Apply of string * expr list
   | String of string
+  | List of expr list
 
 type equations = (expr * expr) list
 type signature = functions * equations 
@@ -72,6 +73,11 @@ let rec print_expr e =
 	| Var s -> s 
 	| Apply (s, el) -> s ^ "(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")"
 	| String s -> "\'"^s^"\'"
+	| List el -> 
+		match el with
+		| [] -> "\'sewon\'"
+		| [e] -> print_expr e 
+		| _ -> 	"<" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ">"
 
 let print_signature (fns, eqns) = 
 	let print_functions fns = 
@@ -215,36 +221,51 @@ and translate_atomic_stmt eng t  {Location.data=c; Location.loc=loc} =
 	match c with
 	| Syntax.Skip -> 
 		(eng_f, 
-			add_rule t (state_i, [(state_i, eng_var_list eng)], [], 
-									[(state_f, eng_var_list eng)]))
+			add_rule t (state_i, 
+									[(eng.namespace, [String state_i ; (List (eng_var_list eng))])], 
+									[], 
+									[(eng.namespace, [String state_f ; (List (eng_var_list eng))])]
+			))
 	
 	| Syntax.Let ((v, vi,vj,vk), e) -> 
 		(eng_add_var eng_f v,
-			add_rule t (state_i, [(state_i, eng_var_list eng)], [], 
-									[(state_f, (translate_expr e) :: eng_var_list eng)]))
+			add_rule t (state_i, 
+									[(eng.namespace, [String state_i ; (List (eng_var_list eng))])], 
+									[], 
+									[(eng.namespace, [String state_f ; (List ((translate_expr e) :: eng_var_list eng))])]
+			))
 	
 	| Syntax.Call ((v, vi,vj,vk), f, args) -> 
 		let eng_f = eng_add_var eng_f v in 
-		let t = add_rule t (eng_state (eng_set_mode eng "in"), [(state_i, eng_var_list eng)], [], 
-										[(eng_state (eng_set_mode eng "wait"), eng_var_list eng) ; 
-										(eng_state (eng_set_scope eng f), 
+		let t = add_rule t (eng_state (eng_set_mode eng "in"), 
+											[(eng.namespace, [String state_i ; (List (eng_var_list eng))])], 
+											[], 
+											[
+												(eng_state (eng_set_mode eng "wait"), eng_var_list eng) ; 
+										 		(eng.namespace, [String (eng_state (eng_set_scope eng f)) ; (List ((List.map (translate_expr) args) @ eng_lctx_back eng))])
 											(* maybe need to be reversed. check! *)
-											(List.map (translate_expr) args) @ eng_lctx_back eng)]) in 
+											]) in 
 		let t = add_rule t (eng_state (eng_set_mode eng "out"), 
 			[(eng_state (eng_set_mode eng "wait"), eng_var_list eng) ; 
 			(eng_state (eng_set_mode (eng_set_scope eng f) "return"), [(match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v)])], [], 
-			[(state_f, eng_var_list eng_f)]) in
+			[(eng.namespace, [String state_f ; (List (eng_var_list eng_f))])]) in
 		(eng_f, t)
 
 	| Syntax.Syscall ((v, vi,vj,vk), f, args) -> 
 		let eng_f = eng_add_var eng_f v in 
-		let t = add_rule t (eng_state (eng_set_mode eng "in"), [(state_i, eng_var_list eng)], [], 
+		
+
+		let t = add_rule t (eng_state (eng_set_mode eng "in"), 
+										[(eng.namespace, [String state_i ; (List (eng_var_list eng))])], 
+										[], 
 										[(eng_state (eng_set_mode eng "wait"), eng_var_list eng) ; 
 										(mk_fact_name f, (String eng.namespace) :: (List.map (translate_expr) args))]) in
+
+
 		let t = add_rule t (eng_state (eng_set_mode eng "out"), 
 			[(eng_state (eng_set_mode eng "wait"), eng_var_list eng) ; 
 			(eng_state (eng_set_mode (eng_set_namespace eng f) "return"), [(String eng.namespace) ; (match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v) ])], [], 
-			[(state_f, eng_var_list eng_f)]) in
+			[(eng.namespace, [String state_f ; (List (eng_var_list eng_f))])]) in
 		(eng_f, t)
 
 	| Syntax.If (e, c1, c2) -> error ~loc UnintendedError 
@@ -296,7 +317,7 @@ let translate_process eng t {
 	let eng = eng_set_namespace eng namespace in 
 	let eng = eng_set_scope eng "init" in 
 
-	let t = add_rule t (eng_state eng, [], [(namespace^eng.sep^"init", [])], [(eng_state eng, [])]) in
+	let t = add_rule t (eng_state eng, [], [(namespace^eng.sep^"init", [])], [(namespace, [String (eng_state eng) ; List []])]) in
 
 	(* initialize memory *)
 	let (eng, t) = List.fold_left
@@ -306,9 +327,10 @@ let translate_process eng t {
 		let eng_f = eng_add_var eng_f x in 
 		let state_f = eng_state eng_f in
 
-		let t = add_rule t (state_f, [(state_i, eng_var_list eng)], 
+		let t = add_rule t (state_f, 
+									[(namespace, [String state_i; List (eng_var_list eng)])], 
 									[], 
-									[(state_f, translate_expr e :: eng_var_list eng)]) in
+									[(namespace, [String state_f ; List (translate_expr e :: eng_var_list eng)])]) in
 		(eng_f, t)) (eng, t) vars in 
 
 	let translate_function eng t (f, args, stmts, (v, vi, vj, vk)) = 
@@ -319,13 +341,14 @@ let translate_process eng t {
 		let eng, t = List.fold_left (fun (eng, t) stmt -> translate_stmt eng t stmt) (eng, t) stmts in
 		let eng_return = eng_set_mode (eng_set_scope eng f) "return" in 
 
-		let t = add_rule t (eng_state eng_return, [(eng_state eng, eng_var_list eng)], [], [(eng_state eng_return, [Var v])]) in 
+		let t = add_rule t (eng_state eng_return, [(namespace, [String (eng_state eng); List (eng_var_list eng)])], [], [(eng_state eng_return, [Var v])]) in 
 		t in 
 
 	let t = List.fold_left (fun t f -> translate_function eng t f) t fns in
 
 	let eng_main = eng_set_scope eng "main" in 
-	let t = add_rule t (eng_state eng_main, [(eng_state eng, eng_var_list eng)], [], [(eng_state eng_main, eng_var_list eng_main)]) in 
+	let t = add_rule t (eng_state eng_main, [(namespace, [String (eng_state eng); List (eng_var_list eng)])], [], 
+																					[(namespace, [String (eng_state eng_main); List (eng_var_list eng_main)])]) in 
 
 	let eng = eng_add_frame eng_main in 
 	let eng, t = List.fold_left (fun (eng, t) stmt -> translate_stmt eng t stmt) (eng, t) m in
