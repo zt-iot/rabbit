@@ -108,9 +108,9 @@ type access_policy = {
 type process = {
    proc_pid       :  int ; 
    proc_name      :  string ; 
-   (* proc_attack    :  Input.attack_class list ;  *)
-   proc_channel   :  (Name.ident * Name.ident list) list;
-   proc_file      :  (Name.ident * Syntax.expr * Name.ident list) list ;
+   proc_attack    :  Name.ident list ; 
+   proc_channel   :  (Name.ident * Name.ident list * Name.ident list) list;
+   proc_file      :  (Name.ident * Syntax.expr * Name.ident list * Name.ident list) list ;
    proc_variable  :  (Name.ident * Syntax.expr) list ; 
    proc_function  :  (Name.ident * Name.ident list * Syntax.stmt list * Syntax.indexed_var ) list ;
    proc_main      :  Syntax.stmt list 
@@ -268,6 +268,11 @@ let def_get_const def id =
 (** pol related funcitons *)
 let pol_add_access pol x = {pol with pol_access=x::pol.pol_access}
 let pol_add_attack pol x = {pol with pol_attack=x::pol.pol_attack}
+
+let pol_get_attack_opt pol x = 
+   match List.find_opt (fun (a, b) -> a = x) pol.pol_attack with
+   | Some (a, b) -> Some b
+   | None -> None
 
 
 (** ldef and lctx related functions *)

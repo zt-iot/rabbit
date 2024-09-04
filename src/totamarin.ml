@@ -345,7 +345,7 @@ let translate_attack eng t (f, arg, (pre, post)) =
 let translate_process eng t {
   Context.proc_pid=k;
   Context.proc_name=s;
-  (* Context.proc_attack=attks; *)
+  Context.proc_attack=attks;
   Context.proc_channel=chs;
   Context.proc_file=fls;
   Context.proc_variable=vars;
@@ -354,9 +354,17 @@ let translate_process eng t {
 } =
 	let namespace = String.capitalize_ascii (s ^ (string_of_int k)) in (* this must be unique *)
 	let eng = eng_set_namespace eng namespace in 
+
 	let eng = eng_set_scope eng "init" in 
 
-	let t = add_rule t (eng_state eng, [], [(namespace^eng.sep^"init", [], false)], [(namespace, [String (eng_state eng) ; List []], false)]) in
+	let t = add_rule t (eng_state eng, [], [(namespace^eng.sep^"init", [], false)], 
+				(namespace, [String (eng_state eng) ; List []], false)
+				:: 
+				
+				(List.map (fun attk -> (mk_fact_name attk ^ eng.sep ^"Allowed", [String namespace], true)) attks)
+				
+
+			) in
 
 	(* initialize memory *)
 	let (eng, t) = List.fold_left
@@ -443,9 +451,24 @@ let translate_sys {
 
 	let t = List.fold_left (fun t r -> translate_attack eng t r) t (List.rev def.Context.def_ext_attack) in
 
+(* initialize attacks on channels!!! *)
+
+	let t, il = List.fold_left (fun (t, il) (c, ty) -> 
+		match Context.pol_get_attack_opt pol ty with 
+		| Some attk -> add_rule t (mk_fact_name c ^ eng.sep ^ attk, 
+			[], 
+			[(mk_fact_name c ^ eng.sep ^ attk ^ eng.sep ^ "init", [], false)], 
+			[(mk_fact_name attk ^ eng.sep ^"Allowed", [String c], true)]
+		), (mk_fact_name c ^ eng.sep ^ attk ^ eng.sep ^ "init"):: il
+		| None -> t, il) (t, []) ctx.Context.ctx_ch in 
+	
+
+
 	let t = List.fold_left (fun t p -> translate_process eng t p) t (List.rev proc) in
 
 	let init_list = List.map (fun p -> String.capitalize_ascii (p.Context.proc_name ^ (string_of_int p.Context.proc_pid)) ^ eng.sep^"init") proc in 
+
+	let init_list = init_list @ il in 
 
 	(t, init_list, lem)
 

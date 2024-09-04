@@ -56,7 +56,7 @@ type channel_t 	: channel
 allow client_t channel_t [send_udp, recv_udp]
 allow server_t channel_t [send_udp, recv_udp]
 
-allow attack channel_t [tamper]
+allow attack channel_t [tampar]
 
 
 (***********)
