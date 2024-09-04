@@ -70,13 +70,13 @@ plain_decl:
   | sys { $1 }
 
 external_functions:
-  | EXTERNAL FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
-  | EXTERNAL CONSTANT id=NAME  { DeclExtFun(id, 0) }
+  |  FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
+  |  CONSTANT id=NAME  { DeclExtFun(id, 0) }
 
 external_syscall:
-  | EXTERNAL SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr COLON 
+  |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr COLON 
     r=separated_nonempty_list(DARROW, rule) { DeclExtSyscall(f, parems, r, Some ret) }
-  | EXTERNAL SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN COLON 
+  |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN COLON 
     r=separated_nonempty_list(DARROW, rule) { DeclExtSyscall(f, parems, r, None) }
 
 fact : mark_location(plain_fact) { $1 }

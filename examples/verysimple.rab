@@ -4,9 +4,9 @@
 (***********)
 (** declare external constants and functions as a equational theory *)
 (* function : arity where arity = 0 defines constant *)
-external function add:2
-external function O:0
-external constant ichi
+function add:2
+function O:0
+constant ichi
 
 equation add(x, O) = x
 equation add(O, x) = x
@@ -21,22 +21,24 @@ equation add(O, x) = x
    process that calls the system call. *)
 
 (* Fr is reserved *)
-external syscall send_udp(channel c, v) : [] -> [c:store(v)]
-external syscall recv_udp(channel c) return v : [c:store(v)] -> [] 
+syscall send_udp(channel c, v) : [] -> [c:store(v)]
+syscall recv_udp(channel c) return v : [c:store(v)] -> [] 
 
-external syscall set_pid() : [:Fr(x)] -> [pid(x)]
+syscall set_pid() : [:Fr(x)] -> [pid(x)]
 
-(* attack tampar (channel c) : [c:store(v), :In(w)] -> [c:store(w)]*)
+(* 
+attack tampar (channel c) : [c:store(v), :In(w)] -> [c:store(w)]
+attack eaves  (process p) : [p:frame(v)] -> [:Out(v), p:frame(v)]
+*)
 
 
-
-external syscall connect_tcp(channel c)
+syscall connect_tcp(channel c)
   : [] -> [ask(c)] => [accept(c)] -> [connect(c)]
-external syscall accept_tcp(channel c)
+syscall accept_tcp(channel c)
   : [ask(c)] -> [accept(c)] => [connect(c)] -> [connect(c)]
-external syscall send_tcp(channel c, v)
+syscall send_tcp(channel c, v)
   : [connect(c)] -> [connect(c), dataa(c, v)] => [receipt(c)] -> []
-external syscall recv_tcp(channel c) return v
+syscall recv_tcp(channel c) return v
   : [connect(c), dataa(c, v)] -> [connect(c), receipt(c)] 
 
 
