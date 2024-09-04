@@ -49,7 +49,8 @@ type signature = functions * equations
 
 let empty_signature = ([], [])
 
-type fact = string * expr list
+type fact = string * expr list * bool 
+(* true is persistent fact *)
 type rule = string * fact list * fact list * fact list
 
 type tamarin = signature * rule list
@@ -87,7 +88,8 @@ let print_signature (fns, eqns) =
 	(print_functions fns) ^ (print_equations eqns)
 
 let print_rule (f, pre, label, post) = 
-	let print_fact (f, el) = f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" in 
+	let print_fact (f, el, b) = 
+	(if b then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" in 
 	"rule "^f ^" : "^ 
 	"["^(mult_list_with_concat (List.map print_fact pre) ", ") ^ "]" ^
 	(match label with 
@@ -208,7 +210,7 @@ let rec translate_stmt eng t  {Location.data=c; Location.loc=loc} =
   	let eng, (sign, rules) = translate_atomic_stmt eng t a in 
   	match rules with
   	| (n, pre, label, post) :: rules -> (eng, (sign, (n, pre, 
-  		List.map (fun ev -> match ev.Location.data with Syntax.Event(id, el) -> (mk_fact_name id, List.map translate_expr el)) el 
+  		List.map (fun ev -> match ev.Location.data with Syntax.Event(id, el) -> (mk_fact_name id, List.map translate_expr el, false)) el 
   		, post) :: rules))
   	| [] -> error ~loc UnintendedError 
   	
@@ -222,33 +224,33 @@ and translate_atomic_stmt eng t  {Location.data=c; Location.loc=loc} =
 	| Syntax.Skip -> 
 		(eng_f, 
 			add_rule t (state_i, 
-									[(eng.namespace, [String state_i ; (List (eng_var_list eng))])], 
+									[(eng.namespace, [String state_i ; (List (eng_var_list eng))], false)], 
 									[], 
-									[(eng.namespace, [String state_f ; (List (eng_var_list eng))])]
+									[(eng.namespace, [String state_f ; (List (eng_var_list eng))], false)]
 			))
 	
 	| Syntax.Let ((v, vi,vj,vk), e) -> 
 		(eng_add_var eng_f v,
 			add_rule t (state_i, 
-									[(eng.namespace, [String state_i ; (List (eng_var_list eng))])], 
+									[(eng.namespace, [String state_i ; (List (eng_var_list eng))], false)], 
 									[], 
-									[(eng.namespace, [String state_f ; (List ((translate_expr e) :: eng_var_list eng))])]
+									[(eng.namespace, [String state_f ; (List ((translate_expr e) :: eng_var_list eng))], false)]
 			))
 	
 	| Syntax.Call ((v, vi,vj,vk), f, args) -> 
 		let eng_f = eng_add_var eng_f v in 
 		let t = add_rule t (eng_state (eng_set_mode eng "in"), 
-											[(eng.namespace, [String state_i ; (List (eng_var_list eng))])], 
+											[(eng.namespace, [String state_i ; (List (eng_var_list eng))], false)], 
 											[], 
 											[
-												(eng_state (eng_set_mode eng "wait"), eng_var_list eng) ; 
-										 		(eng.namespace, [String (eng_state (eng_set_scope eng f)) ; (List ((List.map (translate_expr) args) @ eng_lctx_back eng))])
+												(eng_state (eng_set_mode eng "wait"), eng_var_list eng, false) ; 
+										 		(eng.namespace, [String (eng_state (eng_set_scope eng f)) ; (List ((List.map (translate_expr) args) @ eng_lctx_back eng))], false)
 											(* maybe need to be reversed. check! *)
 											]) in 
 		let t = add_rule t (eng_state (eng_set_mode eng "out"), 
-			[(eng_state (eng_set_mode eng "wait"), eng_var_list eng) ; 
-			(eng_state (eng_set_mode (eng_set_scope eng f) "return"), [(match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v)])], [], 
-			[(eng.namespace, [String state_f ; (List (eng_var_list eng_f))])]) in
+			[(eng_state (eng_set_mode eng "wait"), eng_var_list eng, false) ; 
+			(eng_state (eng_set_mode (eng_set_scope eng f) "return"), [(match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v)], false)], [], 
+			[(eng.namespace, [String state_f ; (List (eng_var_list eng_f))], false)]) in
 		(eng_f, t)
 
 	| Syntax.Syscall ((v, vi,vj,vk), f, args) -> 
@@ -256,16 +258,16 @@ and translate_atomic_stmt eng t  {Location.data=c; Location.loc=loc} =
 		
 
 		let t = add_rule t (eng_state (eng_set_mode eng "in"), 
-										[(eng.namespace, [String state_i ; (List (eng_var_list eng))])], 
+										[(eng.namespace, [String state_i ; (List (eng_var_list eng))], false)], 
 										[], 
-										[(eng_state (eng_set_mode eng "wait"), eng_var_list eng) ; 
-										(mk_fact_name f, (String eng.namespace) :: (List.map (translate_expr) args))]) in
+										[(eng_state (eng_set_mode eng "wait"), eng_var_list eng, false) ; 
+										(mk_fact_name f, (String eng.namespace) :: (List.map (translate_expr) args), false)]) in
 
 
 		let t = add_rule t (eng_state (eng_set_mode eng "out"), 
-			[(eng_state (eng_set_mode eng "wait"), eng_var_list eng) ; 
-			(eng_state (eng_set_mode (eng_set_namespace eng f) "return"), [(String eng.namespace) ; (match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v) ])], [], 
-			[(eng.namespace, [String state_f ; (List (eng_var_list eng_f))])]) in
+			[(eng_state (eng_set_mode eng "wait"), eng_var_list eng, false) ; 
+			(eng_state (eng_set_mode (eng_set_namespace eng f) "return"), [(String eng.namespace) ; (match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v) ], false)], [], 
+			[(eng.namespace, [String state_f ; (List (eng_var_list eng_f))], false)]) in
 		(eng_f, t)
 
 	| Syntax.If (e, c1, c2) -> error ~loc UnintendedError 
@@ -285,23 +287,60 @@ let translate_syscall eng t (f, args, taged_args, meta_vars, rules, ret) =
 
 	let translate_fact f = 
 	match f.Location.data with
-	| Syntax.GlobalFact (s, el) -> (s, (List.map  (translate_expr ~ch:true) el))
-	| Syntax.Fact (s, el) -> (mk_fact_name s, namespace_id :: (List.map  (translate_expr ~ch:true) el))
-	| Syntax.LocalFact (scope, s, el) -> (mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el))
+	| Syntax.GlobalFact (s, el) -> (s, (List.map  (translate_expr ~ch:true) el), false )
+	| Syntax.Fact (s, el) -> (mk_fact_name s, namespace_id :: (List.map  (translate_expr ~ch:true) el), false)
+	| Syntax.LocalFact (scope, ty, s, el) -> 
+		match ty with 
+		| TyChannel ->
+			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
+		| TyFilesys -> 	
+			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
+		| _ -> error ~loc:Nowhere UnintendedError
 	in
 	let (_, _, t) = List.fold_left (fun (eng, i, t) (pre, post) -> 
 		if i = List.length rules - 1 then
 		(eng, i+1, add_rule t (eng_state eng, 
-			(eng_state eng, eng_var_list eng) :: (List.map translate_fact pre), [], 
+			(eng_state eng, eng_var_list eng, false) :: (List.map translate_fact pre), [], 
 			(eng_suffix eng eng.namespace "return", [namespace_id ;
 				match ret with 
 				| Some e -> translate_expr ~ch:true e
-				| None -> String (eng_get_fresh_string eng)]) :: (List.map translate_fact post)))
+				| None -> String (eng_get_fresh_string eng)], false) :: (List.map translate_fact post)))
 		else 
 		(eng_inc_index eng, i+1, add_rule t (eng_state eng, 
-			(eng_state eng, eng_var_list eng) :: (List.map translate_fact pre), [], 
-			(eng_state (eng_inc_index eng), eng_var_list eng) :: (List.map translate_fact post)))) (eng, 0, t) (List.rev rules)
+			(eng_state eng, eng_var_list eng, false) :: (List.map translate_fact pre), [], 
+			(eng_state (eng_inc_index eng), eng_var_list eng, false) :: (List.map translate_fact post)))) (eng, 0, t) (List.rev rules)
 	in t 
+
+let translate_attack eng t (f, arg, (pre, post)) = 
+	
+(* 	let namespace_string = 
+		(let rec f s = if List.exists (fun u -> u = s) ([arg]) then f (s ^ "_") else s in f "proc") in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+
+	let namespace_id = (Var namespace_string) in
+ *)	
+ 	let eng = eng_set_namespace eng f in 
+	let eng = eng_set_lctx eng [[arg]] in 
+	(* let eng = eng_add_var eng namespace_string in *)
+
+	let translate_fact f = 
+	match f.Location.data with
+	| Syntax.GlobalFact (s, el) -> (s, (List.map  (translate_expr ~ch:true) el), false)
+	| Syntax.Fact (s, el) -> (mk_fact_name s, (List.map  (translate_expr ~ch:true) el), false)
+	| Syntax.LocalFact (scope, ty, s, el) -> 
+		match ty with 
+		| TyChannel ->
+			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
+		| TyFilesys -> 	
+			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
+		| TyProcess -> 	
+			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
+		| _ -> error ~loc:Nowhere UnintendedError
+	in
+
+	add_rule t (mk_fact_name f, 
+		(mk_fact_name f ^ eng.sep ^"Allowed", [Var arg], true) :: (List.map translate_fact pre), [],  (List.map translate_fact post))
+
+
 
 let translate_process eng t {
   Context.proc_pid=k;
@@ -317,7 +356,7 @@ let translate_process eng t {
 	let eng = eng_set_namespace eng namespace in 
 	let eng = eng_set_scope eng "init" in 
 
-	let t = add_rule t (eng_state eng, [], [(namespace^eng.sep^"init", [])], [(namespace, [String (eng_state eng) ; List []])]) in
+	let t = add_rule t (eng_state eng, [], [(namespace^eng.sep^"init", [], false)], [(namespace, [String (eng_state eng) ; List []], false)]) in
 
 	(* initialize memory *)
 	let (eng, t) = List.fold_left
@@ -328,9 +367,9 @@ let translate_process eng t {
 		let state_f = eng_state eng_f in
 
 		let t = add_rule t (state_f, 
-									[(namespace, [String state_i; List (eng_var_list eng)])], 
+									[(namespace, [String state_i; List (eng_var_list eng)], false)], 
 									[], 
-									[(namespace, [String state_f ; List (translate_expr e :: eng_var_list eng)])]) in
+									[(namespace, [String state_f ; List (translate_expr e :: eng_var_list eng)], false)]) in
 		(eng_f, t)) (eng, t) vars in 
 
 	let translate_function eng t (f, args, stmts, (v, vi, vj, vk)) = 
@@ -341,14 +380,15 @@ let translate_process eng t {
 		let eng, t = List.fold_left (fun (eng, t) stmt -> translate_stmt eng t stmt) (eng, t) stmts in
 		let eng_return = eng_set_mode (eng_set_scope eng f) "return" in 
 
-		let t = add_rule t (eng_state eng_return, [(namespace, [String (eng_state eng); List (eng_var_list eng)])], [], [(eng_state eng_return, [Var v])]) in 
+		let t = add_rule t (eng_state eng_return, [(namespace, [String (eng_state eng); List (eng_var_list eng)], false)], [], 
+																							[(eng_state eng_return, [Var v], false)]) in 
 		t in 
 
 	let t = List.fold_left (fun t f -> translate_function eng t f) t fns in
 
 	let eng_main = eng_set_scope eng "main" in 
-	let t = add_rule t (eng_state eng_main, [(namespace, [String (eng_state eng); List (eng_var_list eng)])], [], 
-																					[(namespace, [String (eng_state eng_main); List (eng_var_list eng_main)])]) in 
+	let t = add_rule t (eng_state eng_main, [(namespace, [String (eng_state eng); List (eng_var_list eng)], false)], [], 
+																					[(namespace, [String (eng_state eng_main); List (eng_var_list eng_main)], false)]) in 
 
 	let eng = eng_add_frame eng_main in 
 	let eng, t = List.fold_left (fun (eng, t) stmt -> translate_stmt eng t stmt) (eng, t) m in
@@ -400,6 +440,8 @@ let translate_sys {
 	let t = List.fold_left (fun t (_, e1, e2) -> add_eqn t (translate_expr e1, translate_expr e2)) t (List.rev def.Context.def_ext_eq) in
 
 	let t = List.fold_left (fun t r -> translate_syscall eng t r) t (List.rev def.Context.def_ext_syscall) in
+
+	let t = List.fold_left (fun t r -> translate_attack eng t r) t (List.rev def.Context.def_ext_attack) in
 
 	let t = List.fold_left (fun t p -> translate_process eng t p) t (List.rev proc) in
 

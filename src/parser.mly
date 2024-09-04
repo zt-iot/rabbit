@@ -60,13 +60,15 @@ plain_decl:
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
   | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t,a)} 
-  | ATTACK t=NAME LBRACKET a=separated_nonempty_list(COMMA, attack_c) RBRACKET { DeclAttack(t,a)} 
   | INITCONST t=NAME EQ e=expr SEMICOLON { DeclInit(t,e) }
   | FILESYS t=NAME EQ LBRACKET f=separated_nonempty_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
     LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
+  
   | external_syscall { $1 }
+  | external_attack { $1 }
+
   | sys { $1 }
 
 external_functions:
@@ -79,6 +81,10 @@ external_syscall:
   |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN COLON 
     r=separated_nonempty_list(DARROW, rule) { DeclExtSyscall(f, parems, r, None) }
 
+external_attack:
+  |  ATTACK f=NAME LPAREN parem=typed_arg RPAREN COLON r=rule { DeclExtAttack(f, parem, r) }
+
+
 fact : mark_location(plain_fact) { $1 }
 plain_fact:
   | scope=NAME COLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { LocalFact(scope, id, es) }
@@ -89,6 +95,9 @@ plain_fact:
 typed_arg:
   | var=NAME { (TyValue, var) }
   | CHANNEL var=NAME { (TyChannel, var) }
+  | PROCESS var=NAME { (TyProcess, var) }
+  | FILESYS var=NAME { (TyFilesys, var) }
+  
 
 rule:
   | LBRACKET precond=separated_list(COMMA, fact) RBRACKET ARROW LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { (precond, postcond) }

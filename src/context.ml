@@ -64,6 +64,8 @@ type context = {
                      (* ext_func name, its arity *)
    ctx_ext_syscall:  (Name.ident * Input.arg_type list) list ; 
                      (* ext_syscalltruction name, its arity *)
+   ctx_ext_attack :  (Name.ident * Input.arg_type) list ; 
+
    ctx_ty         :  (Name.ident * Input.type_class) list ;
                      (* type name, its class *)
    ctx_const      :  Name.ident list ;
@@ -87,6 +89,9 @@ type definition = {
  
    def_ext_syscall : (Name.ident *  Name.ident list * (Name.ident list * Name.ident list) * Name.ident list * (Syntax.fact list * Syntax.fact list ) list * Syntax.expr option) list ;
    
+   def_ext_attack  : (Name.ident *  Name.ident * (Syntax.fact list * Syntax.fact list )) list ;
+
+
    def_const   :  (Name.ident * Syntax.expr) list ;
                   (* const name, and its value *) 
    def_fsys    :  (Name.ident * Name.ident * Syntax.expr) list ;
@@ -121,6 +126,10 @@ type system = {
 
 type local_context = {
                      lctx_chan : Name.ident list ; 
+
+                     lctx_filesys : Name.ident list ;
+
+                     lctx_process : Name.ident list ; 
 
                      lctx_var : (Name.ident list) list ; 
 
@@ -158,6 +167,9 @@ let ctx_check_fact ctx id =
    List.exists (fun (s, _, _) -> s = id) ctx.ctx_fact
 let ctx_check_ext_syscall ctx eid = 
    List.exists (fun (s, _) -> s = eid) ctx.ctx_ext_syscall
+let ctx_check_ext_attack ctx eid = 
+   List.exists (fun (s, _) -> s = eid) ctx.ctx_ext_attack
+
 
 (* get access *)
 let ctx_get_event_arity ~loc ctx eid =
@@ -169,6 +181,7 @@ let ctx_get_ext_syscall_arity ~loc ctx eid =
    if ctx_check_ext_syscall ctx eid then 
    let (_, k) = List.find (fun (s, _) -> s = eid) ctx.ctx_ext_syscall in k
    else error ~loc (UnknownIdentifier eid)
+
 let ctx_get_proctmpl ctx o = 
    List.find (fun x -> x.ctx_proctmpl_id = o) ctx.ctx_proctmpl
 let ctx_get_ty ~loc ctx s =
@@ -188,6 +201,8 @@ let ctx_add_event ctx (eid, k) =
    {ctx with ctx_event=(eid,k)::ctx.ctx_event}      
 let ctx_add_ext_syscall ctx (eid, k) = 
    {ctx with ctx_ext_syscall=(eid,k)::ctx.ctx_ext_syscall}      
+let ctx_add_ext_attack ctx attk = 
+   {ctx with ctx_ext_attack=attk::ctx.ctx_ext_attack}      
 
 let ctx_add_fact ctx (id, k) = 
    {ctx with ctx_fact=(id,k,false)::ctx.ctx_fact}      
@@ -203,6 +218,7 @@ let check_fresh ctx s =
       ctx_check_ch ctx s || 
       ctx_check_proctmpl ctx s || 
       ctx_check_ext_syscall ctx s || 
+      ctx_check_ext_attack ctx s || 
       ctx_check_event ctx s ||
       ctx_check_fact ctx s then false else true 
 
@@ -228,8 +244,12 @@ let def_add_const def x = {def with def_const=x::def.def_const}
 let def_add_fsys def x = {def with def_fsys=x::def.def_fsys}
 let def_add_proctmpl def pid ldef m = 
    {def with def_proctmpl=(mk_def_proctmpl (pid, ldef.ldef_var, ldef.ldef_func, m))::def.def_proctmpl}
+
 let def_add_ext_syscall def x = 
       {def with def_ext_syscall=x::def.def_ext_syscall}
+
+let def_add_ext_attack def x = 
+      {def with def_ext_attack=x::def.def_ext_attack}
 
 
 
@@ -251,14 +271,29 @@ let ldef_add_new_var ldef (v, e) =
 let ldef_add_new_func ldef f = 
    {ldef with ldef_func=f::ldef.ldef_func}
 
-
 let lctx_check_chan lctx c = 
    List.exists (fun i -> i = c) lctx.lctx_chan
+
+let lctx_check_filesys lctx c = 
+   List.exists (fun i -> i = c) lctx.lctx_filesys
+
+let lctx_check_process lctx c = 
+   List.exists (fun i -> i = c) lctx.lctx_process
 
 let lctx_add_new_chan ~loc lctx c = 
    if List.exists (fun i -> i = c) lctx.lctx_chan then 
       error ~loc (AlreadyDefined c)
    else {lctx with lctx_chan=c::lctx.lctx_chan}
+
+let lctx_add_new_filesys ~loc lctx c = 
+   if List.exists (fun i -> i = c) lctx.lctx_filesys then 
+      error ~loc (AlreadyDefined c)
+   else {lctx with lctx_filesys=c::lctx.lctx_filesys}
+
+let lctx_add_new_process ~loc lctx c = 
+   if List.exists (fun i -> i = c) lctx.lctx_process then 
+      error ~loc (AlreadyDefined c)
+   else {lctx with lctx_process=c::lctx.lctx_process}
 
 let lctx_check_var lctx v =
    List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_var false 
@@ -267,7 +302,7 @@ let lctx_check_func lctx f =
    List.exists (fun (i, _) -> i = f) lctx.lctx_func 
 
 let lctx_add_new_var ~loc lctx v = 
-   if lctx_check_var lctx v || lctx_check_chan lctx v || lctx_check_func lctx v then error ~loc (AlreadyDefined v) else 
+   if lctx_check_var lctx v || lctx_check_chan lctx v || lctx_check_filesys lctx v || lctx_check_process lctx v || lctx_check_func lctx v then error ~loc (AlreadyDefined v) else 
    match lctx.lctx_var with 
    | f::frames -> {lctx with lctx_var=(v::f)::frames}
    | _ -> error ~loc (UnintendedError)
@@ -301,8 +336,8 @@ let lctx_get_var_index ~loc lctx v =
 
 
 (** Initial contexts *)
-let ctx_init = {ctx_ext_func = [] ; ctx_ext_const = [] ; ctx_ext_syscall = []; ctx_ty = [] ; ctx_const = [] ; ctx_fsys = [] ; ctx_ch = [] ; ctx_proctmpl = [] ; ctx_event = []; ctx_fact = []}
-let def_init = {def_ext_eq = [] ; def_const = [] ; def_ext_syscall = [] ; def_fsys=[] ; def_proctmpl = []}
+let ctx_init = {ctx_ext_func = [] ; ctx_ext_const = [] ; ctx_ext_syscall = []; ctx_ext_attack = [] ; ctx_ty = [] ; ctx_const = [] ; ctx_fsys = [] ; ctx_ch = [] ; ctx_proctmpl = [] ; ctx_event = []; ctx_fact = []}
+let def_init = {def_ext_eq = [] ; def_const = [] ; def_ext_syscall = [] ; def_ext_attack = [] ; def_fsys=[] ; def_proctmpl = []}
 let pol_init = {pol_access = [] ; pol_attack = []}
 (* let sys_init = {   
    sys_ctx = []; 
@@ -310,7 +345,7 @@ let pol_init = {pol_access = [] ; pol_attack = []}
    sys_pol = [];
    sys_proc =[] }
  *)
-let lctx_init = {lctx_chan = []; lctx_var = [ [] ]; lctx_func = []}
+let lctx_init = {lctx_chan = []; lctx_filesys = []; lctx_process = []; lctx_var = [ [] ]; lctx_func = []}
 let ldef_init = {ldef_var=[]; ldef_func=[]}
 
 

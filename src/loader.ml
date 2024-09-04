@@ -224,7 +224,9 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          let lctx = List.fold_left (fun lctx' ta -> 
             match ta with
             | (Input.TyValue, v) -> Context.lctx_add_new_var ~loc lctx' v
-            | (Input.TyChannel, v) -> Context.lctx_add_new_chan ~loc lctx' v) (Context.lctx_init) typed_args in
+            | (Input.TyChannel, v) -> Context.lctx_add_new_chan ~loc lctx' v
+            | (Input.TyFilesys, v) -> Context.lctx_add_new_filesys ~loc lctx' v
+            | (Input.TyProcess, v) -> error ~loc (UnknownIdentifier2 v)) (Context.lctx_init) typed_args in
 
          let process_fact f ctx lctx =
             match f.Location.data with
@@ -235,7 +237,9 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             | Input.LocalFact (l, id, el) ->
                (* check validty of local scope l *)
                if Context.lctx_check_chan lctx l then 
-               (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, id, List.map (process_expr ctx lctx) el)))
+                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyChannel, id, List.map (process_expr ctx lctx) el)))
+               else if Context.lctx_check_filesys lctx l then 
+                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyFilesys, id, List.map (process_expr ctx lctx) el)))
                else error ~loc (UnknownIdentifier2 l)
          in
 
@@ -265,6 +269,63 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          let args = List.hd (Context.lctx_pop_frame ~loc lctx).Context.lctx_var in 
          let cargs = lctx.Context.lctx_chan in 
          (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), pol, Context.def_add_ext_syscall def (f, (List.map snd typed_args), (args, cargs), metavar, rs, ret), sys)
+
+
+   | Input.DeclExtAttack(f, typed_arg, rule) ->      
+      if Context.check_used ctx f then error ~loc (AlreadyDefined f) else 
+         (* parse arguments *)
+         let lctx = List.fold_left (fun lctx' ta -> 
+            match ta with
+            | (Input.TyValue, v) -> error ~loc (UnknownIdentifier2 v)
+            | (Input.TyChannel, v) -> Context.lctx_add_new_chan ~loc lctx' v
+            | (Input.TyFilesys, v) -> Context.lctx_add_new_filesys ~loc lctx' v
+            | (Input.TyProcess, v) -> Context.lctx_add_new_process ~loc lctx' v) (Context.lctx_init) [typed_arg] in
+
+         let process_fact f ctx lctx =
+            match f.Location.data with
+            | Input.Fact (id, el) ->
+               (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.Fact(id, List.map (process_expr ctx lctx) el)))
+            | Input.GlobalFact (id, el) ->
+               (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.GlobalFact(id, List.map (process_expr ctx lctx) el)))
+            | Input.LocalFact (l, id, el) ->
+               if Context.lctx_check_chan lctx l then 
+                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyChannel, id, List.map (process_expr ctx lctx) el)))
+               else if Context.lctx_check_filesys lctx l then 
+                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyFilesys, id, List.map (process_expr ctx lctx) el)))
+               else if Context.lctx_check_process lctx l then 
+                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyProcess, id, List.map (process_expr ctx lctx) el)))
+               else error ~loc (UnknownIdentifier2 l)
+         in
+
+         let rec process_rules rs ret lctx = 
+            try 
+               begin
+                  let ctx, rs = 
+                     List.fold_left (fun (ctx, rs) (pre, post) -> 
+                     let ctx, pre =
+                        List.fold_left (fun (ctx, facts) f -> let ctx', f' = process_fact f ctx lctx in (ctx', f' :: facts)) (ctx, []) pre in
+                     let ctx, post =
+                        List.fold_left (fun (ctx, facts) f -> let ctx', f' = process_fact f ctx lctx in (ctx', f' :: facts)) (ctx, []) post in
+                     (ctx, (pre, post) :: rs)) (ctx, []) rs in
+                  let ret = (match ret with Some r -> Some (process_expr ctx lctx r) | None -> None) in 
+                  (ctx, rs, ret, lctx)
+                end 
+            with
+            | Error {Location.data=err; Location.loc=locc} ->
+               begin match err with
+               | UnknownIdentifier id -> process_rules rs ret (Context.lctx_add_new_var ~loc lctx id)
+               | _ -> error ~loc:locc err
+               end
+         in
+
+         let (ctx, rs, ret, lctx) = process_rules [rule] None (Context.lctx_add_frame lctx) in
+         let rs = match rs with | [rs] -> rs | _ -> error ~loc UnintendedError in
+         let metavar = List.hd lctx.Context.lctx_var in 
+         let args = List.hd (Context.lctx_pop_frame ~loc lctx).Context.lctx_var in 
+         let cargs = lctx.Context.lctx_chan in 
+         (Context.ctx_add_ext_attack ctx (f, fst typed_arg), pol, 
+            Context.def_add_ext_attack def (f, snd typed_arg, rs), sys)
+
 
    | Input.DeclType (id, c) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, c), pol, def, sys)

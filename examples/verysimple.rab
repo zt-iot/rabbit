@@ -26,10 +26,10 @@ syscall recv_udp(channel c) return v : [c:store(v)] -> []
 
 syscall set_pid() : [:Fr(x)] -> [pid(x)]
 
-(* 
+
 attack tampar (channel c) : [c:store(v), :In(w)] -> [c:store(w)]
 attack eaves  (process p) : [p:frame(v)] -> [:Out(v), p:frame(v)]
-*)
+
 
 
 syscall connect_tcp(channel c)
