@@ -19,8 +19,16 @@ equation add(O, x) = x
  * preconditions are consumed; e.g., [A] -> [] when succeeds remove [A]
  * All facts, unless scoped by a channel variable, are local to the 
    process that calls the system call. *)
+
+(* Fr is reserved *)
 external syscall send_udp(channel c, v) : [] -> [c:store(v)]
 external syscall recv_udp(channel c) return v : [c:store(v)] -> [] 
+
+external syscall set_pid() : [:Fr(x)] -> [pid(x)]
+
+(* attack tampar (channel c) : [c:store(v), :In(w)] -> [c:store(w)]*)
+
+
 
 external syscall connect_tcp(channel c)
   : [] -> [ask(c)] => [accept(c)] -> [connect(c)]

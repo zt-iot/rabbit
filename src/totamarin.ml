@@ -1,3 +1,14 @@
+(* 
+	For translating to and printing Tamarin models.
+
+	* 'Rabbit' is a string value palceholder for void output of system calls and functions.
+	* GlobalFact is fact that does not bound to any process or channel. Currently 
+		it only contains reserved facts.
+
+
+ *)
+
+
 type to_tamarin_error =
 	| UnintendedError 
 	| NotSupportedYet 
@@ -253,6 +264,7 @@ let translate_syscall eng t (f, args, taged_args, meta_vars, rules, ret) =
 
 	let translate_fact f = 
 	match f.Location.data with
+	| Syntax.GlobalFact (s, el) -> (s, (List.map  (translate_expr ~ch:true) el))
 	| Syntax.Fact (s, el) -> (mk_fact_name s, namespace_id :: (List.map  (translate_expr ~ch:true) el))
 	| Syntax.LocalFact (scope, s, el) -> (mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el))
 	in

@@ -230,6 +230,8 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             match f.Location.data with
             | Input.Fact (id, el) ->
                (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.Fact(id, List.map (process_expr ctx lctx) el)))
+            | Input.GlobalFact (id, el) ->
+               (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.GlobalFact(id, List.map (process_expr ctx lctx) el)))
             | Input.LocalFact (l, id, el) ->
                (* check validty of local scope l *)
                if Context.lctx_check_chan lctx l then 

@@ -35,6 +35,7 @@ and stmt' =
 type fact = fact' Location.located
 and fact' = 
   | Fact of Name.ident * expr list
+  | GlobalFact of Name.ident * expr list
   | LocalFact of Name.ident * Name.ident * expr list
 
 type proc = proc' Location.located
