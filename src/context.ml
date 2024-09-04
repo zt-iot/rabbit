@@ -102,15 +102,15 @@ type definition = {
 (* acc : access_policy records declared access policies of the system *)
 type access_policy = {
    pol_access : (Name.ident * Name.ident list * Name.ident) list ;
-   pol_attack : (Name.ident * Input.attack_class) list 
+   pol_attack : (Name.ident * Name.ident) list 
 }
 
 type process = {
    proc_pid       :  int ; 
    proc_name      :  string ; 
-   proc_attack    :  Input.attack_class list ; 
-   proc_channel   :  (Name.ident * Name.ident list * Input.attack_class list) list;
-   proc_file      :  (Name.ident * Syntax.expr * Name.ident list * Input.attack_class list) list ;
+   (* proc_attack    :  Input.attack_class list ;  *)
+   proc_channel   :  (Name.ident * Name.ident list) list;
+   proc_file      :  (Name.ident * Syntax.expr * Name.ident list) list ;
    proc_variable  :  (Name.ident * Syntax.expr) list ; 
    proc_function  :  (Name.ident * Name.ident list * Syntax.stmt list * Syntax.indexed_var ) list ;
    proc_main      :  Syntax.stmt list 
@@ -181,6 +181,12 @@ let ctx_get_ext_syscall_arity ~loc ctx eid =
    if ctx_check_ext_syscall ctx eid then 
    let (_, k) = List.find (fun (s, _) -> s = eid) ctx.ctx_ext_syscall in k
    else error ~loc (UnknownIdentifier eid)
+
+let ctx_get_ext_attack_arity ~loc ctx eid =
+   if ctx_check_ext_attack ctx eid then 
+   let (_, k) = List.find (fun (s, _) -> s = eid) ctx.ctx_ext_attack in k
+   else error ~loc (UnknownIdentifier eid)
+
 
 let ctx_get_proctmpl ctx o = 
    List.find (fun x -> x.ctx_proctmpl_id = o) ctx.ctx_proctmpl

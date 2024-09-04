@@ -28,7 +28,7 @@ syscall set_pid() : [:Fr(x)] -> [pid(x)]
 
 
 attack tampar (channel c) : [c:store(v), :In(w)] -> [c:store(w)]
-attack eaves  (process p) : [p:frame(v)] -> [:Out(v), p:frame(v)]
+attack eaves  (process p) : [p:frame(v)] -> [Out(v), p:frame(v)]
 
 
 
@@ -55,8 +55,8 @@ type channel_t 	: channel
     Attacks under the current extension is not supported yet.. *)
 allow client_t channel_t [send_udp, recv_udp]
 allow server_t channel_t [send_udp, recv_udp]
-(* attack server_t [tamper] *)
-(* attack channel_t [eavesdrop,tamper] *)
+
+allow attack channel_t [tamper]
 
 
 (***********)

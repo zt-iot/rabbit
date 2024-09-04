@@ -18,14 +18,14 @@ let string_of_ins i = i
 
 
 let attks_to_attr attks = 
-  List.map (fun a -> (Printer.print_attack_class a, "true")) attks
+  List.map (fun a -> ( a, "true")) attks
 
 let accs_to_attr accs = 
   List.map (fun a -> (a, "true")) accs
   (* List.map (fun a -> (Printer.print_access_class a, "true")) accs *)
 
 let to_xml_attks attks = 
-  Xml.Element ("attack", List.map (fun a -> (Printer.print_attack_class a, "true")) attks, [])
+  Xml.Element ("attack", List.map (fun a -> ( a, "true")) attks, [])
 
 let to_xml_accs accs = 
   Xml.Element ("access", List.map (fun a -> (a, "true")) accs, [])
@@ -150,8 +150,9 @@ and to_xml_const eng (n, e)  =
 
 and to_xml_ch eng (n, attks)  = 
   let (eng, i) = eng_add_ch eng n in
-  (eng, Xml.Element ("channel", [("name", n) ; ("id", string_of_int i)], 
-                   [Xml.Element ("attack", List.map (fun a -> (Printer.print_attack_class a, "true")) attks, [])]))
+  (eng, Xml.Element ("channel", [("name", n) ; ("id", string_of_int i)],[]
+    (* ,                [Xml.Element ("attack", List.map (fun a -> (Printer.print_attack_class a, "true")) attks, [])] *)
+                 ))
 
 and to_xml_event eng (n, k) = 
   let (eng, i) = eng_add_event eng n in
@@ -193,7 +194,7 @@ and to_xml_atomic_stmt eng {Location.data=c; Location.loc=loc}  =
 let to_xml_proc eng {
   Context.proc_pid=k;
   Context.proc_name=s;
-  Context.proc_attack=attks;
+  (* Context.proc_attack=attks; *)
   Context.proc_channel=chs;
   Context.proc_file=fls;
   Context.proc_variable=vars;
@@ -203,15 +204,15 @@ let to_xml_proc eng {
   let (eng, i) = get_new_proc_id eng in 
   let vars = List.rev vars in 
   let fns = List.rev fns in 
-  let xml_ch' (n, acc, attk) =
+  let xml_ch' (n, acc) =
     Xml.Element("channel_access", [("channel_ref", string_of_int (eng_get_ch eng n)); ("channel_name", n)], [to_xml_accs acc]) in
   let xml_ch = (List.map xml_ch' (List.rev chs)) in 
-  let xml_file' (p, data, accs, attks) = 
+  let xml_file' (p, data, accs) = 
     Xml.Element("file", [], 
       [
         Xml.Element("path", [], [Xml.PCData p]) ;
         Xml.Element("initial_data", [], [to_xml_expr eng data]) ; 
-        to_xml_attks attks ; 
+        (* to_xml_attks attks ;  *)
         to_xml_accs accs
       ]) in 
   let xml_file = List.map xml_file' fls in 
@@ -233,7 +234,8 @@ let to_xml_proc eng {
 
     (eng, Xml.Element("process", 
       [("id", string_of_int i) ; ("name", s ^ (string_of_int k))],
-      to_xml_attks attks :: xml_ch @ xml_file @ xml_variable @ xml_function @ [Xml.Element ("main", [], [Xml.Element ("body", [], List.map (to_xml_stmt eng) m)])]))
+      (* to_xml_attks attks ::  *)
+      xml_ch @ xml_file @ xml_variable @ xml_function @ [Xml.Element ("main", [], [Xml.Element ("body", [], List.map (to_xml_stmt eng) m)])]))
 
 
 let to_xml_sys 

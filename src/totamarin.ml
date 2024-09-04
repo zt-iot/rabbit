@@ -345,7 +345,7 @@ let translate_attack eng t (f, arg, (pre, post)) =
 let translate_process eng t {
   Context.proc_pid=k;
   Context.proc_name=s;
-  Context.proc_attack=attks;
+  (* Context.proc_attack=attks; *)
   Context.proc_channel=chs;
   Context.proc_file=fls;
   Context.proc_variable=vars;

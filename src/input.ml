@@ -1,6 +1,5 @@
 type operator = string
 type type_class = CProc | CFsys | CChan
-type attack_class = CEaves |  CTamper | CDrop 
 type arg_type = TyValue | TyChannel | TyProcess | TyFilesys
 
 type expr = expr' Location.located
@@ -58,7 +57,7 @@ and decl' =
   | DeclExtAttack of Name.ident * (arg_type * Name.ident) * (fact list * fact list) 
   | DeclType of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident list * Name.ident list
-  | DeclAttack of Name.ident * (attack_class list)
+  | DeclAttack of Name.ident list * Name.ident list
   | DeclInit of Name.ident * expr
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
   | DeclChan of Name.ident * Name.ident

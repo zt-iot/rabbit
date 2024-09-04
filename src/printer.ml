@@ -3,13 +3,13 @@ let print_type_class c =
    | Input.CProc -> "Proc"
    | Input.CFsys -> "Fsys" 
    | Input.CChan -> "Chan"
-
+(* 
 let print_attack_class a = 
    match a with
    | Input.CEaves -> "eavesdrop" 
    | Input.CTamper -> "tamper"
    | Input.CDrop  -> "drop"
-
+ *)
 
 let pprint_iv (v, i, j, k) ppf =
    Format.fprintf ppf "%s[%d,%d,%d]" v i j k
@@ -249,7 +249,7 @@ let pprint_access_policy pol ppf =
       (fun ppf->   
          Format.pp_print_list 
          ~pp_sep:(fun ppf () -> Format.fprintf ppf "@ ") 
-         (fun ppf (t, a) -> Format.fprintf ppf "@[<hov>%s:%s@]" t (print_attack_class a)) ppf x) in
+         (fun ppf (t, a) -> Format.fprintf ppf "@[<hov>%s:%s@]" t (a)) ppf x) in
 
    Format.fprintf ppf "@.   @[<v>@ %t@ %t@]"
    (pprint_pol_access pol.Context.pol_access) 

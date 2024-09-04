@@ -59,7 +59,10 @@ plain_decl:
   | external_functions { $1 }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
+  
+  | ALLOW ATTACK t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAttack(t,a)}  
   | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t,a)} 
+
   | INITCONST t=NAME EQ e=expr SEMICOLON { DeclInit(t,e) }
   | FILESYS t=NAME EQ LBRACKET f=separated_nonempty_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }

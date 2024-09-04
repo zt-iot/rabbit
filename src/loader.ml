@@ -343,21 +343,21 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          end
       in (ctx, List.fold_left f pol al, def, sys)
 
-   | Input.DeclAttack (t, al) -> 
-      let tyt = Context.ctx_get_ty ~loc ctx t in
-      let f pol' a =
-         begin
-         match tyt, a with
-         | Input.CProc, Input.CEaves 
-         | Input.CProc, Input.CTamper 
-         | Input.CFsys, Input.CEaves 
-         | Input.CFsys, Input.CTamper 
-         | Input.CChan, Input.CEaves 
-         | Input.CChan, Input.CTamper 
-         | Input.CChan, Input.CDrop -> Context.pol_add_attack pol' (t, a)
-         | _, _-> error ~loc (WrongInputType)
-         end
-      in (ctx, List.fold_left f pol al, def, sys)
+   | Input.DeclAttack (tl, al) -> 
+      let f t a =
+         if Context.ctx_check_ty ctx t then
+         if Context.ctx_check_ext_attack ctx a then
+         match Context.ctx_get_ty ~loc ctx t, Context.ctx_get_ext_attack_arity ~loc ctx a with
+         | Input.CProc, Input.TyProcess 
+         | Input.CChan, Input.TyChannel 
+         | Input.CFsys, Input.TyFilesys ->
+            (t, a)
+         | _, _ -> error ~loc (WrongInputType)
+         else error ~loc (UnknownIdentifier a)
+         else error ~loc (UnknownIdentifier t) in
+      let p = List.fold_left (fun p t -> 
+         List.fold_left (fun p a -> Context.pol_add_attack p (f t a)) p al) pol tl in 
+      (ctx, p, def, sys)
 
   | Input.DeclInit (id, e) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 
@@ -399,6 +399,8 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
 
       | _ -> error ~loc (WrongInputType) 
       end 
+
+
    | Input.DeclSys (procs, lemmas) ->
       let processed_procs = List.map (fun proc -> 
          match proc.Location.data with 
@@ -414,9 +416,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             let fpaths = List.map (fun (path, v, ftype) -> 
                                     let accs = List.fold_left (fun accs (s, t, a) -> 
                                        if s = ptype && List.exists (fun s -> s = ftype) t then a :: accs else accs) [] pol.Context.pol_access in
-                                    let attks = List.fold_left (fun attks (t, a) -> 
-                                       if t = ftype then a :: attks else attks) [] pol.Context.pol_attack in
-                                    (path,v,accs, attks)) fpaths in 
+                                    (path,v,accs)) fpaths in 
             if (List.length cargs) !=  (List.length chans) then error ~loc (ArgNumMismatch (pid, (List.length chans), (List.length cargs)))
             else
                let (chs, vl, fl, m) = List.fold_left2 
@@ -427,21 +427,18 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                         let accesses = List.fold_left (fun acs (f', t', ac) -> if f' = ptype && List.exists (fun s -> s = chan_ty) t' then ac::acs else acs) [] pol.Context.pol_access in 
                         (* !replace channel variables and check access policies! *)
                         (
-                           (if List.exists (fun (ch_t', _,  _) -> ch_t = ch_t') chs then chs else
-                           (ch_t, accesses,
-                              List.fold_left (fun attks (s, a) -> if s = ch_t then a :: attks else attks ) [] pol.Context.pol_attack) :: chs),
+                           (if List.exists (fun (ch_t', _) -> ch_t = ch_t') chs then chs else
+                           (ch_t, accesses) :: chs),
                               List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e ch_f ch_t accesses)) vl,
                               List.map (fun (fn, args, c, ret) -> (fn, args, List.map (fun c -> Substitute.stmt_chan_sub c ch_f ch_t accesses) c, ret)) fl,
                               List.map (fun c -> Substitute.stmt_chan_sub c ch_f ch_t accesses) m)
                      else error ~loc (UnknownIdentifier ch_t)) ([], vl, fl, m) cargs chans in 
-               (pid, 
-                  List.fold_left (fun attks (t, a) -> if t = pid then a :: attks else attks) [] pol.Context.pol_attack,
-                  chs, fpaths, vl, fl, m)) procs in
+               (pid, chs, fpaths, vl, fl, m)) procs in
       (* for now, have plain text for lemmas *)
       let processed_lemmas = List.map (fun l -> match l.Location.data with Input.Lemma (l, p) -> match p.Location.data with | Input.PlainString s -> (l, s) |_ -> error ~loc UnintendedError) lemmas in   
       (*  *)
-      let (processed_procs, _) = List.fold_left (fun (processed_procs,k) (pid, attks, chans, files, vl, fl, m)
-         -> ({Context.proc_pid=k; Context.proc_name=pid; Context.proc_attack=attks; Context.proc_channel=chans; Context.proc_file=files; Context.proc_variable=vl; Context.proc_function=fl; Context.proc_main=m} :: processed_procs, k+1)) 
+      let (processed_procs, _) = List.fold_left (fun (processed_procs,k) (pid, chans, files, vl, fl, m)
+         -> ({Context.proc_pid=k; Context.proc_name=pid; Context.proc_channel=chans; Context.proc_file=files; Context.proc_variable=vl; Context.proc_function=fl; Context.proc_main=m} :: processed_procs, k+1)) 
       ([],0) processed_procs in 
       (ctx, pol, def, {
                         Context.sys_ctx = ctx;
