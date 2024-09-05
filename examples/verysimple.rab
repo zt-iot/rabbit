@@ -80,7 +80,6 @@ process client(c) with client_t {
 	main {
 		let _ = send_udp(c, mytwo) @ Querying();
 		let four = recv_udp(c) @ Computed(four);
-		let _ = ropen("some/path", "e");
 	}
 }
 

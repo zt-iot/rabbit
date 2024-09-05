@@ -232,6 +232,7 @@ let rec translate_stmt eng (t : tamarin)  {Location.data=c; Location.loc=loc} =
   	
 and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Location.loc=loc} =
   let translate_atomic_stmt' (eng : engine) (t : tamarin) c = 
+  	let namespace =  eng.namespace in 
 	  let state_i = eng_state eng in
 	  let eng_f = eng_inc_index eng in
 	  let state_f = eng_state eng_f in
@@ -239,33 +240,33 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
  	| Syntax.Skip -> 
 		(eng_f, 
 			add_rule t (state_i, 
-									[(eng.namespace, [String state_i ; (List (eng_var_list eng))], false)], 
+									[("Frame", [String namespace; String state_i ; (List (eng_var_list eng))], false)], 
 									[], 
-									[(eng.namespace, [String state_f ; (List (eng_var_list eng))], false)]
+									[("Frame", [String namespace; String state_f ; (List (eng_var_list eng))], false)]
 			)
 		)
 	| Syntax.Let ((v, vi,vj,vk), e) -> 
 		(eng_add_var eng_f v,
 			add_rule t (state_i, 
-									[(eng.namespace, [String state_i ; (List (eng_var_list eng))], false)], 
+									[("Frame", [String namespace; String state_i ; (List (eng_var_list eng))], false)], 
 									[], 
-									[(eng.namespace, [String state_f ; (List ((translate_expr e) :: eng_var_list eng))], false)]
+									[("Frame", [String namespace; String state_f ; (List ((translate_expr e) :: eng_var_list eng))], false)]
 			))
 	
 	| Syntax.Call ((v, vi,vj,vk), f, args) -> 
 		let eng_f = eng_add_var eng_f v in 
 		let t = add_rule t (eng_state (eng_set_mode eng "in"), 
-											[(eng.namespace, [String state_i ; (List (eng_var_list eng))], false)], 
+											[("Frame", [String namespace; String state_i ; (List (eng_var_list eng))], false)], 
 											[], 
 											[
 												(eng_state (eng_set_mode eng "wait"), eng_var_list eng, false) ; 
-										 		(eng.namespace, [String (eng_state (eng_set_scope eng f)) ; (List ((List.map (translate_expr) args) @ eng_lctx_back eng))], false)
+										 		("Frame", [String namespace; String (eng_state (eng_set_scope eng f)) ; (List ((List.map (translate_expr) args) @ eng_lctx_back eng))], false)
 											(* maybe need to be reversed. check! *)
 											]) in 
 		let t = add_rule t (eng_state (eng_set_mode eng "out"), 
 			[(eng_state (eng_set_mode eng "wait"), eng_var_list eng, false) ; 
 			(eng_state (eng_set_mode (eng_set_scope eng f) "return"), [(match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v)], false)], [], 
-			[(eng.namespace, [String state_f ; (List (eng_var_list eng_f))], false)]) in
+			[("Frame", [String namespace; String state_f ; (List (eng_var_list eng_f))], false)]) in
 		(eng_f, t)
 
 	| Syntax.Syscall ((v, vi,vj,vk), f, args) -> 
@@ -273,7 +274,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 		
 
 		let t = add_rule t (eng_state (eng_set_mode eng "in"), 
-										[(eng.namespace, [String state_i ; (List (eng_var_list eng))], false)], 
+										[("Frame", [String namespace; String state_i ; (List (eng_var_list eng))], false)], 
 										[], 
 										[(eng_state (eng_set_mode eng "wait"), eng_var_list eng, false) ; 
 										(mk_fact_name f, (String eng.namespace) :: (List.map (fun (e, ty) -> match ty with |Input.TyPath -> List [String (eng_get_filesys eng) ; translate_expr e]|_ ->  translate_expr e) args), false)]) in
@@ -282,7 +283,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 		let t = add_rule t (eng_state (eng_set_mode eng "out"), 
 			[(eng_state (eng_set_mode eng "wait"), eng_var_list eng, false) ; 
 			(eng_state (eng_set_mode (eng_set_namespace eng f) "return"), [(String eng.namespace) ; (match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v) ], false)], [], 
-			[(eng.namespace, [String state_f ; (List (eng_var_list eng_f))], false)]) in
+			[("Frame", [String namespace; String state_f ; (List (eng_var_list eng_f))], false)]) in
 		(eng_f, t)
 
 	| Syntax.If (e, c1, c2) -> error ~loc UnintendedError 
@@ -359,8 +360,11 @@ let translate_attack eng t (f, (ch_vars, path_vars, process_vars), (pre, post)) 
 	| Syntax.PathFact (scope, s, el) -> 
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
 	| Syntax.ProcessFact (scope, s, el) -> 
-			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
-
+			(* reserved facts *)
+(* 			if s = "Frame" then
+				(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
+			else
+ *)				(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
 (* 		match ty with 
 		| TyChannel ->
 		| TyPath -> 	
@@ -392,7 +396,7 @@ let translate_process eng t {
 	let eng = eng_set_filesys eng fsys in
 
 	let t = add_rule t (eng_state eng, [], [(namespace^eng.sep^"init", [], false)], 
-				(namespace, [String (eng_state eng) ; List []], false)
+				("Frame", [String namespace; String (eng_state eng) ; List []], false)
 				:: 
 				
 				(List.map (fun attk -> (mk_fact_name attk ^ eng.sep ^"Allowed", [String namespace], true)) attks)
@@ -409,9 +413,9 @@ let translate_process eng t {
 		let state_f = eng_state eng_f in
 
 		let t = add_rule t (state_f, 
-									[(namespace, [String state_i; List (eng_var_list eng)], false)], 
+									[("Frame", [String namespace; String state_i; List (eng_var_list eng)], false)], 
 									[], 
-									[(namespace, [String state_f ; List (translate_expr e :: eng_var_list eng)], false)]) in
+									[("Frame", [String namespace; String state_f ; List (translate_expr e :: eng_var_list eng)], false)]) in
 		(eng_f, t)) (eng, t) vars in 
 
 	let translate_function eng (t : tamarin) (f, args, stmts, (v, vi, vj, vk)) = 
@@ -422,15 +426,15 @@ let translate_process eng t {
 		let eng, t = List.fold_left (fun (eng, t) stmt -> translate_stmt eng t stmt) (eng, t) stmts in
 		let eng_return = eng_set_mode (eng_set_scope eng f) "return" in 
 
-		let t = add_rule t (eng_state eng_return, [(namespace, [String (eng_state eng); List (eng_var_list eng)], false)], [], 
+		let t = add_rule t (eng_state eng_return, [("Frame", [String namespace; String (eng_state eng); List (eng_var_list eng)], false)], [], 
 																							[(eng_state eng_return, [Var v], false)]) in 
 		t in 
 
 	let t = List.fold_left (fun t f -> translate_function eng t f) t fns in
 
 	let eng_main = eng_set_scope eng "main" in 
-	let t = add_rule t (eng_state eng_main, [(namespace, [String (eng_state eng); List (eng_var_list eng)], false)], [], 
-																					[(namespace, [String (eng_state eng_main); List (eng_var_list eng_main)], false)]) in 
+	let t = add_rule t (eng_state eng_main, [("Frame", [String namespace; String (eng_state eng); List (eng_var_list eng)], false)], [], 
+																					[("Frame", [String namespace; String (eng_state eng_main); List (eng_var_list eng_main)], false)]) in 
 
 	let eng = eng_add_frame eng_main in 
 	let eng, t = List.fold_left (fun (eng, t) stmt -> translate_stmt eng t stmt) (eng, t) m in

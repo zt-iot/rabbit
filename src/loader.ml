@@ -316,7 +316,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             | Input.ProcessFact (l, id, el) ->
                (* check validty of local scope l *)
                if Context.lctx_check_process lctx l then 
-                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.ProcessFact(l, id, List.map (process_expr ctx lctx) el)))
+                  (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el + 1), Location.locate ~loc:f.Location.loc (Syntax.ProcessFact(l, id, List.map (process_expr ctx lctx) el)))
                else error ~loc (UnknownIdentifier_process l)
 
          in
