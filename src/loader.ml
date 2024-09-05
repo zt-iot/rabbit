@@ -42,6 +42,8 @@ let rec process_expr ?(fr=[]) ctx lctx {Location.data=c; Location.loc=loc} =
       if Context.ctx_check_const ctx id then Syntax.Const id
       else if Context.ctx_check_ext_const ctx id then Syntax.ExtConst id
       else if Context.lctx_check_chan lctx id then Syntax.Channel (id, "")
+      else if Context.lctx_check_path lctx id then Syntax.Path id
+      else if Context.lctx_check_process lctx id then Syntax.Process id
       else if Context.lctx_check_var lctx id then Syntax.Variable (Syntax.index_var id (Context.lctx_get_var_index ~loc lctx id))
       else error ~loc (UnknownIdentifier id) 
    | Input.Boolean b -> Syntax.Boolean b
@@ -119,11 +121,10 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
                   (ctx, lctx'', Syntax.Syscall(vid', o, 
                      List.map2 (fun arg arg_ty -> 
                      let e = process_expr ctx lctx arg in 
-                     match e.Location.data, arg_ty with
+                     (match e.Location.data, arg_ty with
                      | Syntax.Channel (s, _), Input.TyChannel -> Location.locate ~loc:e.Location.loc (Syntax.Channel (s, o))
-                     | Syntax.Channel (s, _), Input.TyValue -> error ~loc (WrongInputType)
-                     | _, Input.TyValue -> e
-                     | _, _ ->  error ~loc (WrongInputType)) args args_ty))
+                     | _, Input.TyChannel -> error ~loc (WrongInputType)
+                     | _, _ -> e), arg_ty) args args_ty))
                else error ~loc (ArgNumMismatch (o, List.length args, List.length args_ty))
             end
             else (ctx, lctx'', Syntax.Let(vid', process_expr ctx lctx e))
@@ -154,11 +155,13 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
                   (ctx, lctx'', Syntax.Syscall(vid', o, 
                      List.map2 (fun arg arg_ty -> 
                      let e = process_expr ctx lctx arg in 
-                     match e.Location.data, arg_ty with
+                     
+                     (match e.Location.data, arg_ty with
                      | Syntax.Channel (s, _), Input.TyChannel -> Location.locate ~loc:e.Location.loc (Syntax.Channel (s, o))
-                     | Syntax.Channel (s, _), Input.TyValue -> error ~loc (WrongInputType)
-                     | _, Input.TyValue -> e
-                     | _, _ ->  error ~loc (WrongInputType)) args args_ty))
+                     | _, Input.TyChannel -> error ~loc (WrongInputType)
+                     | _, _ -> e)
+                     , arg_ty
+                  ) args args_ty))
                else error ~loc (ArgNumMismatch (o, List.length args, List.length args_ty))
             end
             else (ctx, lctx'', Syntax.Let(vid', process_expr ctx lctx e))
@@ -225,7 +228,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             match ta with
             | (Input.TyValue, v) -> Context.lctx_add_new_var ~loc lctx' v
             | (Input.TyChannel, v) -> Context.lctx_add_new_chan ~loc lctx' v
-            | (Input.TyFilesys, v) -> Context.lctx_add_new_filesys ~loc lctx' v
+            | (Input.TyPath, v) -> Context.lctx_add_new_path ~loc lctx' v
             | (Input.TyProcess, v) -> error ~loc (UnknownIdentifier2 v)) (Context.lctx_init) typed_args in
 
          let process_fact f ctx lctx =
@@ -238,8 +241,8 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                (* check validty of local scope l *)
                if Context.lctx_check_chan lctx l then 
                   (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyChannel, id, List.map (process_expr ctx lctx) el)))
-               else if Context.lctx_check_filesys lctx l then 
-                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyFilesys, id, List.map (process_expr ctx lctx) el)))
+               else if Context.lctx_check_path lctx l then 
+                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyPath, id, List.map (process_expr ctx lctx) el)))
                else error ~loc (UnknownIdentifier2 l)
          in
 
@@ -260,6 +263,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             | Error {Location.data=err; Location.loc=locc} ->
                begin match err with
                | UnknownIdentifier id -> process_rules rs ret (Context.lctx_add_new_var ~loc lctx id)
+               | UnknownIdentifier2 id -> process_rules rs ret (Context.lctx_add_new_path ~loc lctx id)
                | _ -> error ~loc:locc err
                end
          in
@@ -268,7 +272,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          let metavar = List.hd lctx.Context.lctx_var in 
          let args = List.hd (Context.lctx_pop_frame ~loc lctx).Context.lctx_var in 
          let cargs = lctx.Context.lctx_chan in 
-         (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), pol, Context.def_add_ext_syscall def (f, (List.map snd typed_args), (args, cargs), metavar, rs, ret), sys)
+         (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), pol, Context.def_add_ext_syscall def (f, (typed_args), (args, cargs), metavar, rs, ret), sys)
 
 
    | Input.DeclExtAttack(f, typed_arg, rule) ->      
@@ -278,7 +282,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             match ta with
             | (Input.TyValue, v) -> error ~loc (UnknownIdentifier2 v)
             | (Input.TyChannel, v) -> Context.lctx_add_new_chan ~loc lctx' v
-            | (Input.TyFilesys, v) -> Context.lctx_add_new_filesys ~loc lctx' v
+            | (Input.TyPath, v) -> Context.lctx_add_new_path ~loc lctx' v
             | (Input.TyProcess, v) -> Context.lctx_add_new_process ~loc lctx' v) (Context.lctx_init) [typed_arg] in
 
          let process_fact f ctx lctx =
@@ -290,8 +294,8 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             | Input.LocalFact (l, id, el) ->
                if Context.lctx_check_chan lctx l then 
                   (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyChannel, id, List.map (process_expr ctx lctx) el)))
-               else if Context.lctx_check_filesys lctx l then 
-                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyFilesys, id, List.map (process_expr ctx lctx) el)))
+               else if Context.lctx_check_path lctx l then 
+                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyPath, id, List.map (process_expr ctx lctx) el)))
                else if Context.lctx_check_process lctx l then 
                   (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyProcess, id, List.map (process_expr ctx lctx) el)))
                else error ~loc (UnknownIdentifier2 l)
@@ -338,7 +342,10 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          match tys, tyt with
          | Input.CProc, [Input.CChan] -> 
             if Context.ctx_check_ext_syscall ctx a then Context.pol_add_access pol' (s, t, a)
-         else error ~loc (UnknownIdentifier a)
+            else error ~loc (UnknownIdentifier a)
+         | Input.CProc, [Input.CFsys] -> 
+            if Context.ctx_check_ext_syscall ctx a then Context.pol_add_access pol' (s, t, a)
+            else error ~loc (UnknownIdentifier a)
          | _, _ -> error ~loc (WrongInputType)
          end
       in (ctx, List.fold_left f pol al, def, sys)
@@ -350,7 +357,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          match Context.ctx_get_ty ~loc ctx t, Context.ctx_get_ext_attack_arity ~loc ctx a with
          | Input.CProc, Input.TyProcess 
          | Input.CChan, Input.TyChannel 
-         | Input.CFsys, Input.TyFilesys ->
+         | Input.CFsys, Input.TyPath ->
             (t, a)
          | _, _ -> error ~loc (WrongInputType)
          else error ~loc (UnknownIdentifier a)
@@ -436,12 +443,15 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                      else error ~loc (UnknownIdentifier ch_t)) ([], vl, fl, m) cargs chans in 
                (pid, 
                   List.fold_left (fun attks (t, a) -> if t = pid then a :: attks else attks) [] pol.Context.pol_attack,
-                  chs, fpaths, vl, fl, m)) procs in
+                  chs, fpaths, vl, fl, m, ptype, fsys
+                  (* getting type *)
+
+               )) procs in
       (* for now, have plain text for lemmas *)
       let processed_lemmas = List.map (fun l -> match l.Location.data with Input.Lemma (l, p) -> match p.Location.data with | Input.PlainString s -> (l, s) |_ -> error ~loc UnintendedError) lemmas in   
       (*  *)
-      let (processed_procs, _) = List.fold_left (fun (processed_procs,k) (pid, attks, chans, files, vl, fl, m)
-         -> ({Context.proc_pid=k; Context.proc_name=pid; Context.proc_attack=attks; Context.proc_channel=chans; Context.proc_file=files; Context.proc_variable=vl; Context.proc_function=fl; Context.proc_main=m} :: processed_procs, k+1)) 
+      let (processed_procs, _) = List.fold_left (fun (processed_procs,k) (pid, attks, chans, files, vl, fl, m, ptype, fsys)
+         -> ({Context.proc_pid=k; Context.proc_type =ptype; Context.proc_filesys= fsys; Context.proc_name=pid; Context.proc_attack=attks; Context.proc_channel=chans; Context.proc_file=files; Context.proc_variable=vl; Context.proc_function=fl; Context.proc_main=m} :: processed_procs, k+1)) 
       ([],0) processed_procs in 
       (ctx, pol, def, {
                         Context.sys_ctx = ctx;

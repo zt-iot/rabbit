@@ -86,7 +86,8 @@ let _main =
       Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
        *)
       List.fold_left (fun _ s -> 
-        let tamarin = (Totamarin.print_tamarin (Totamarin.translate_sys s x)) in 
+        let t, prt = (Totamarin.translate_sys s x) in 
+        let tamarin = (Totamarin.print_tamarin prt t) in 
         if fst !ofile = "" then print_string "Output file not specified"
         else let oc = open_out (fst !ofile) in
         Printf.fprintf oc "%s\n" tamarin;
@@ -128,8 +129,10 @@ let _main =
   | Loader.Error {Location.data=err; Location.loc} ->
     Print.message ~loc "Syntax error" "%t" (Loader.print_error err)
   | Context.Error {Location.data=err; Location.loc} ->
-    Print.message ~loc "Syntax error" "%t" (Context.print_error err)
+    Print.message ~loc "Context error" "%t" (Context.print_error err)
   | Toxml.Error {Location.data=err; Location.loc} ->
-    Print.message ~loc "Syntax error" "%t" (Toxml.print_error err)
+    Print.message ~loc "ToXml error" "%t" (Toxml.print_error err)
   | Substitute.Error {Location.data=err; Location.loc} ->
-    Print.message ~loc "Syntax error" "%t" (Substitute.print_error err)
+    Print.message ~loc "Substitute error" "%t" (Substitute.print_error err)
+  | Totamarin.Error {Location.data=err; Location.loc} ->
+    Print.message ~loc "Translate error" "%t" (Totamarin.print_error err)

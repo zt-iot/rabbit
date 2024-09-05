@@ -15,6 +15,8 @@ and expr' =
   | Apply of operator * expr list
   | Tuple of expr list
   | Channel of string * Name.ident (* second field records necessary permissions.. *) 
+  | Path of string  (* only needed for syscall defintiions *) 
+  | Process of string (* only needed for syscall defintiions *)
   | FrVariable of string
 
 type atomic_stmt = atomic_stmt' Location.located
@@ -22,7 +24,7 @@ and atomic_stmt' =
   | Skip
   | Let of indexed_var * expr
   | Call of indexed_var * Name.ident * expr list
-  | Syscall of indexed_var * Name.ident * expr list
+  | Syscall of indexed_var * Name.ident * (expr * Input.arg_type) list 
   | If of expr * stmt list * stmt list
   | For of indexed_var * int * int * stmt list
 

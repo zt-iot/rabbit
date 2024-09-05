@@ -51,11 +51,14 @@ let empty_signature = ([], [])
 
 type fact = string * expr list * bool 
 (* true is persistent fact *)
-type rule = string * fact list * fact list * fact list
+type rule = 
+	| Rule of string * fact list * fact list * fact list
+	| Comment of string
 
 type tamarin = signature * rule list
 
-let add_rule t s = (fst t, s::(snd t))
+let add_rule t (a, b, c, d) = (fst t, (Rule (a, b, c, d)) :: ( (snd t)))
+let add_comment t s = (fst t, (Comment s):: ( (snd t)))
 
 let add_fun ((fns,eqns), rules) f = ((f::fns, eqns), rules)
 let add_const ((fns,eqns), rules) c = (((c,0)::fns, eqns), rules)
@@ -69,27 +72,31 @@ let mult_list_with_concat l sep =
 	| h :: t -> h ^ (List.fold_left (fun r s-> r ^ sep ^ s) "" t) 
 	| [] -> ""
 
-let rec print_expr e = 
+type printer = {prt_sep:string}
+let replace_string s t str = 
+	String.concat t (String.split_on_char s str)
+
+let rec print_expr prt e = 
 	match e with
 	| Var s -> s 
-	| Apply (s, el) -> s ^ "(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")"
-	| String s -> "\'"^s^"\'"
+	| Apply (s, el) -> s ^ "(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")"
+	| String s -> "\'"^(replace_string '/' prt.prt_sep s)^"\'"
 	| List el -> 
 		match el with
-		| [] -> "\'sewon\'"
-		| [e] -> print_expr e 
-		| _ -> 	"<" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ">"
+		| [] -> "\'rabbit"^prt.prt_sep^"\'"
+		| [e] -> print_expr prt e 
+		| _ -> 	"<" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ">"
 
-let print_signature (fns, eqns) = 
+let print_signature prt (fns, eqns) = 
 	let print_functions fns = 
 	"functions: "^(mult_list_with_concat (List.map (fun (f, ar) -> f ^"/"^(string_of_int ar)) fns) ", ") ^"\n" in 
 	let print_equations eqns = 
-	"equations: "^(mult_list_with_concat (List.map (fun (e1, e2) -> (print_expr e1)^"="^(print_expr e2)) eqns) ", ") ^"\n" in 
+	"equations: "^(mult_list_with_concat (List.map (fun (e1, e2) -> (print_expr prt e1)^"="^(print_expr prt e2)) eqns) ", ") ^"\n" in 
 	(print_functions fns) ^ (print_equations eqns)
 
-let print_rule (f, pre, label, post) = 
+let print_rule2 prt (f, pre, label, post) = 
 	let print_fact (f, el, b) = 
-	(if b then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" in 
+	(if b then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")" in 
 	"rule "^f ^" : "^ 
 	"["^(mult_list_with_concat (List.map print_fact pre) ", ") ^ "]" ^
 	(match label with 
@@ -98,10 +105,14 @@ let print_rule (f, pre, label, post) =
 
 	"["^(mult_list_with_concat (List.map print_fact post) ", ") ^ "] \n"	
 
-let print_tamarin ((sign, rules), init_list, lem) = 
+let print_comment s = "\n// "^s^"\n\n" 
+
+let print_rule prt r = match r with | Rule (a, b, c, d) -> print_rule2 prt (a, b, c, d) | Comment s ->print_comment s 
+
+let print_tamarin prt ((sign, rules), init_list, lem) = 
 	"theory rabbit\n\nbegin\n"^
-	print_signature sign ^
-	(mult_list_with_concat (List.map print_rule (List.rev rules)) "")^
+	print_signature prt sign ^
+	(mult_list_with_concat (List.map (print_rule prt) (List.rev rules)) "")^
 	
 	List.fold_left (fun l s -> l^"\nrestriction "^s^" : \" All #i #j . "^s^"() @ #i & "^s^"() @ #j ==> #i = #j \"") "" init_list ^
 
@@ -129,9 +140,10 @@ type engine = {
 	mode : string;
 	fresh_ident : string; 
 	fresh_string : string;
+	filesys : string;
 }
 
-let empty_engine = {namespace = ""; scope = ""; index = 0; lctx = [[]]; sep = ""; mode = ""; fresh_ident = ""; fresh_string = ""}
+let empty_engine = {namespace = ""; scope = ""; index = 0; lctx = [[]]; sep = ""; mode = ""; fresh_ident = ""; fresh_string = ""; filesys = ""}
 
 let eng_set_fresh_string eng s = {eng with fresh_string=s}
 let eng_set_fresh_ident eng s = {eng with fresh_ident=s}
@@ -139,6 +151,8 @@ let eng_set_fresh_ident eng s = {eng with fresh_ident=s}
 let eng_get_fresh_string eng = eng.fresh_string
 let eng_get_fresh_ident eng = eng.fresh_ident
 
+let eng_set_filesys eng s = {eng with filesys=s}
+let eng_get_filesys eng = eng.filesys
 let flat lctx = 
 	List.fold_left (fun l vl -> l @ vl) [] lctx
 
@@ -182,7 +196,6 @@ let eng_set_sep eng sep =
 let eng_set_lctx eng lctx = 
 	{eng with lctx=lctx}
 
-
 let eng_suffix eng s v = 
 	s ^ eng.sep ^ v
 
@@ -199,36 +212,38 @@ let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=loc} =
 	| Syntax.Apply (o, el) -> Apply (o, List.map (translate_expr ~ch:ch) el)
 	| Syntax.Tuple el -> error ~loc UnintendedError
 	| Syntax.Channel (c, l) -> if ch then Var c else String c
+	| Syntax.Process v -> Var v
+	| Syntax.Path v -> Var v
 	| Syntax.FrVariable v -> error ~loc UnintendedError
   in translate_expr' e
 
 
-let rec translate_stmt eng t  {Location.data=c; Location.loc=loc} = 
+let rec translate_stmt eng (t : tamarin)  {Location.data=c; Location.loc=loc} = 
   match c with
   | Syntax.OpStmt a -> translate_atomic_stmt eng t a
   | Syntax.EventStmt (a, el) -> 
   	let eng, (sign, rules) = translate_atomic_stmt eng t a in 
   	match rules with
-  	| (n, pre, label, post) :: rules -> (eng, (sign, (n, pre, 
-  		List.map (fun ev -> match ev.Location.data with Syntax.Event(id, el) -> (mk_fact_name id, List.map translate_expr el, false)) el 
+  	| Rule (n, pre, label, post) :: rules -> 
+  		(eng, (sign, Rule (n, pre, 
+  			List.map (fun ev -> match ev.Location.data with Syntax.Event(id, el) -> (mk_fact_name id, List.map translate_expr el, false)) el 
   		, post) :: rules))
   	| [] -> error ~loc UnintendedError 
   	
-and translate_atomic_stmt eng t  {Location.data=c; Location.loc=loc} =
-  
-  let translate_atomic_stmt' eng t c = 
+and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Location.loc=loc} =
+  let translate_atomic_stmt' (eng : engine) (t : tamarin) c = 
 	  let state_i = eng_state eng in
 	  let eng_f = eng_inc_index eng in
 	  let state_f = eng_state eng_f in
 	match c with
-	| Syntax.Skip -> 
+ 	| Syntax.Skip -> 
 		(eng_f, 
 			add_rule t (state_i, 
 									[(eng.namespace, [String state_i ; (List (eng_var_list eng))], false)], 
 									[], 
 									[(eng.namespace, [String state_f ; (List (eng_var_list eng))], false)]
-			))
-	
+			)
+		)
 	| Syntax.Let ((v, vi,vj,vk), e) -> 
 		(eng_add_var eng_f v,
 			add_rule t (state_i, 
@@ -261,7 +276,7 @@ and translate_atomic_stmt eng t  {Location.data=c; Location.loc=loc} =
 										[(eng.namespace, [String state_i ; (List (eng_var_list eng))], false)], 
 										[], 
 										[(eng_state (eng_set_mode eng "wait"), eng_var_list eng, false) ; 
-										(mk_fact_name f, (String eng.namespace) :: (List.map (translate_expr) args), false)]) in
+										(mk_fact_name f, (String eng.namespace) :: (List.map (fun (e, ty) -> match ty with |Input.TyPath -> List [String (eng_get_filesys eng) ; translate_expr e]|_ ->  translate_expr e) args), false)]) in
 
 
 		let t = add_rule t (eng_state (eng_set_mode eng "out"), 
@@ -272,11 +287,12 @@ and translate_atomic_stmt eng t  {Location.data=c; Location.loc=loc} =
 
 	| Syntax.If (e, c1, c2) -> error ~loc UnintendedError 
 
-	| Syntax.For (v, i, j, c) -> error ~loc UnintendedError
-in translate_atomic_stmt' eng t c
+	| Syntax.For (v, i, j, c) -> error ~loc UnintendedError 
+	| _ -> error ~loc UnintendedError
+in translate_atomic_stmt' eng t c 
 
-let translate_syscall eng t (f, args, taged_args, meta_vars, rules, ret) = 
-	
+let translate_syscall eng t (f, ty_args, taged_args, meta_vars, rules, ret) = 
+	let args = List.map snd ty_args in 
 	let namespace_string = 
 		(let rec f s = if List.exists (fun u -> u = s) (args @ meta_vars) then f (s ^ "_") else s in f "proc") in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 
@@ -293,21 +309,30 @@ let translate_syscall eng t (f, args, taged_args, meta_vars, rules, ret) =
 		match ty with 
 		| TyChannel ->
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
-		| TyFilesys -> 	
+		| TyPath -> 	
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
 		| _ -> error ~loc:Nowhere UnintendedError
 	in
 	let (_, _, t) = List.fold_left (fun (eng, i, t) (pre, post) -> 
 		if i = List.length rules - 1 then
 		(eng, i+1, add_rule t (eng_state eng, 
-			(eng_state eng, eng_var_list eng, false) :: (List.map translate_fact pre), [], 
+			(eng_state eng, eng_var_list eng, false) :: (List.map translate_fact pre)
+				@ (if i=0 then 
+				List.fold_left (fun l (ty, v) -> match ty with | Input.TyPath -> ( eng.namespace ^ eng.sep ^"Allowed", [namespace_id ; Var v], true) :: l | _ -> l) [] ty_args
+				else [])
+			, 
+			[], 
 			(eng_suffix eng eng.namespace "return", [namespace_id ;
 				match ret with 
 				| Some e -> translate_expr ~ch:true e
 				| None -> String (eng_get_fresh_string eng)], false) :: (List.map translate_fact post)))
 		else 
 		(eng_inc_index eng, i+1, add_rule t (eng_state eng, 
-			(eng_state eng, eng_var_list eng, false) :: (List.map translate_fact pre), [], 
+			(eng_state eng, eng_var_list eng, false) :: (List.map translate_fact pre)
+			@ (if i=0 then 
+				List.fold_left (fun l (ty, v) -> match ty with | Input.TyPath -> ( eng.namespace ^ eng.sep ^"Allowed", [namespace_id ; Var v], true) :: l | _ -> l) [] ty_args
+				else [])
+			, [], 
 			(eng_state (eng_inc_index eng), eng_var_list eng, false) :: (List.map translate_fact post)))) (eng, 0, t) (List.rev rules)
 	in t 
 
@@ -330,7 +355,7 @@ let translate_attack eng t (f, arg, (pre, post)) =
 		match ty with 
 		| TyChannel ->
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
-		| TyFilesys -> 	
+		| TyPath -> 	
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
 		| TyProcess -> 	
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
@@ -348,6 +373,7 @@ let translate_process eng t {
   Context.proc_attack=attks;
   Context.proc_channel=chs;
   Context.proc_file=fls;
+  Context.proc_filesys=fsys;
   Context.proc_variable=vars;
   Context.proc_function=fns;
   Context.proc_main=m
@@ -356,6 +382,8 @@ let translate_process eng t {
 	let eng = eng_set_namespace eng namespace in 
 
 	let eng = eng_set_scope eng "init" in 
+
+	let eng = eng_set_filesys eng fsys in
 
 	let t = add_rule t (eng_state eng, [], [(namespace^eng.sep^"init", [], false)], 
 				(namespace, [String (eng_state eng) ; List []], false)
@@ -380,7 +408,7 @@ let translate_process eng t {
 									[(namespace, [String state_f ; List (translate_expr e :: eng_var_list eng)], false)]) in
 		(eng_f, t)) (eng, t) vars in 
 
-	let translate_function eng t (f, args, stmts, (v, vi, vj, vk)) = 
+	let translate_function eng (t : tamarin) (f, args, stmts, (v, vi, vj, vk)) = 
 		let eng = eng_set_scope eng f in 
 		let eng = eng_add_frame eng in 
 		let eng = List.fold_left (fun eng v -> eng_add_var eng v) eng args in 
@@ -441,17 +469,69 @@ let translate_sys {
 	
 
 	(* process what has been defined first! *)
+	let t = add_comment t "external functions:" in
 	let t = List.fold_left (fun t (f, k) -> add_fun t (f, k)) t (List.rev ctx.Context.ctx_ext_func) in
 	
+	let t = add_comment t "external constants:" in
 	let t = List.fold_left (fun t c -> add_const t c) t (List.rev ctx.Context.ctx_ext_const) in
 	
+	let t = add_comment t "external equations:" in
 	let t = List.fold_left (fun t (_, e1, e2) -> add_eqn t (translate_expr e1, translate_expr e2)) t (List.rev def.Context.def_ext_eq) in
 
+	let t = add_comment t "external system calls:" in
 	let t = List.fold_left (fun t r -> translate_syscall eng t r) t (List.rev def.Context.def_ext_syscall) in
 
+	let t = add_comment t "external attacks:" in
 	let t = List.fold_left (fun t r -> translate_attack eng t r) t (List.rev def.Context.def_ext_attack) in
 
+(* initialize files *)
+	   (* def_fsys    :  (Name.ident * Name.ident * Syntax.expr) list ; *)
+	let t = add_comment t "initial file system:" in
+	let t, il = List.fold_left (fun (t, il) (fsys, path, e) ->
+		(* let path = (mk_dir eng fsys path) in *)
+		let name = mk_fact_name  fsys^ replace_string '/' eng.sep path ^ eng.sep ^"init" in 
+		add_rule t (name, 
+									[],
+									[(name, [], false)],
+									[("File", [List [String fsys; String path] ; translate_expr e], false)]), name::il) (t, []) def.Context.def_fsys in 
+
+let t = add_comment t "access control:" in
+(* access control *)
+	   (* pol_access : (Name.ident * Name.ident list * Name.ident) list ; *)
+	let t, il = List.fold_left (fun (t, il) p ->
+		let procname = String.capitalize_ascii (p.Context.proc_name ^ (string_of_int p.Context.proc_pid)) in 
+		let t, il = List.fold_left (fun (t, il) (c, ty) -> 
+			match List.find_all (fun (a, b, sys) -> a = p.Context.proc_type && List.exists (fun b -> b = ty) b) pol.Context.pol_access with
+			| [] -> (t, il) 
+			| scall -> 
+					List.fold_left (fun (t, il) (_, _, sys) ->
+					 let name = procname ^ eng.sep ^ c^eng.sep ^ sys in 
+						add_rule t 
+							(name, 
+								[], 
+								[(name, [], false)], 
+								[(mk_fact_name sys ^eng.sep ^"Allowed", [String procname; String c], true)])
+								, name::il) (t, il) scall) 
+		(t, il) ctx.Context.ctx_ch in 
+
+		let t, il = List.fold_left (fun (t, il) (dir, path, ty) -> 
+			match List.find_all (fun (a, b, sys) -> a = p.Context.proc_type && List.exists (fun b -> b = ty) b) pol.Context.pol_access with
+			| [] -> (t, il)
+			| scall ->				
+					List.fold_left (fun (t, il) (_, _, sys) ->
+					let name = procname ^ eng.sep ^ dir ^ eng.sep ^replace_string '/' eng.sep path^eng.sep^ sys in 
+						add_rule t 
+						(name, 
+							[], 
+							[(name, [], false)], 
+							[(mk_fact_name sys ^eng.sep ^"Allowed", [String procname; List [String dir ; String path]], true)])
+				, name::il) (t, il) scall
+		) (t, il) ctx.Context.ctx_fsys in 
+		(t, il)) (t, il) proc in
+		
+
 (* initialize attacks on channels!!! *)
+let t = add_comment t "attacker policy:" in
 
 	let t, il = List.fold_left (fun (t, il) (c, ty) -> 
 		match Context.pol_get_attack_opt pol ty with 
@@ -460,16 +540,18 @@ let translate_sys {
 			[(mk_fact_name c ^ eng.sep ^ attk ^ eng.sep ^ "init", [], false)], 
 			[(mk_fact_name attk ^ eng.sep ^"Allowed", [String c], true)]
 		), (mk_fact_name c ^ eng.sep ^ attk ^ eng.sep ^ "init"):: il
-		| None -> t, il) (t, []) ctx.Context.ctx_ch in 
+		| None -> t, il) (t, il) ctx.Context.ctx_ch in 
 	
 
 
+	let t = add_comment t "processes:" in
 	let t = List.fold_left (fun t p -> translate_process eng t p) t (List.rev proc) in
+
 
 	let init_list = List.map (fun p -> String.capitalize_ascii (p.Context.proc_name ^ (string_of_int p.Context.proc_pid)) ^ eng.sep^"init") proc in 
 
 	let init_list = init_list @ il in 
 
-	(t, init_list, lem)
+	(t, init_list, lem), {prt_sep=eng.sep}
 
 

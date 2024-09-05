@@ -1,6 +1,6 @@
 type operator = string
 type type_class = CProc | CFsys | CChan
-type arg_type = TyValue | TyChannel | TyProcess | TyFilesys
+type arg_type = TyValue | TyChannel | TyProcess | TyPath
 
 type expr = expr' Location.located
 and expr' =

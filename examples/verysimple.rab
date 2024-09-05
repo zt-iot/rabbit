@@ -22,12 +22,13 @@ equation add(O, x) = x
 
 (* Fr is reserved *)
 syscall send_udp(channel c, v) : [] -> [c:store(v)]
+syscall mytest(path p) : [] -> [test(p)]
 syscall recv_udp(channel c) return v : [c:store(v)] -> [] 
 
 syscall set_pid() : [:Fr(x)] -> [pid(x)]
 
 
-attack tampar (channel c) : [c:store(v), :In(w)] -> [c:store(w)]
+attack tampar (channel c) : [c:store(v), :In(w)] -> [c:store(w), test(c)]
 attack eaves  (process p) : [p:frame(v)] -> [Out(v), p:frame(v)]
 
 
@@ -41,6 +42,10 @@ syscall send_tcp(channel c, v)
 syscall recv_tcp(channel c) return v
   : [connect(c), dataa(c, v)] -> [connect(c), receipt(c)] 
 
+(* filesys *)
+
+syscall ropen (path p, v) return x : [:Fr(x)] -> [p:fd(x)]  
+syscall read (path p) return x : [p:File(x)] -> [p:File(x)] 
 
 (***********)
 (** declare types with their classes *)
@@ -55,8 +60,10 @@ type channel_t 	: channel
     Attacks under the current extension is not supported yet.. *)
 allow client_t channel_t [send_udp, recv_udp]
 allow server_t channel_t [send_udp, recv_udp]
+allow client_t filesys_t [ropen] 
 
 allow attack channel_t [tampar]
+
 
 
 (***********)
@@ -73,6 +80,7 @@ process client(c) with client_t {
 	main {
 		let _ = send_udp(c, mytwo) @ Querying();
 		let four = recv_udp(c) @ Computed(four);
+		let _ = ropen("some/path", "e");
 	}
 }
 

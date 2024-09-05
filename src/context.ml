@@ -87,7 +87,7 @@ type definition = {
    def_ext_eq  :  (Name.ident list * Syntax.expr * Syntax.expr) list ;
                   (* free variables, e1, e2  such that e1 = e2 under the free variables *)
  
-   def_ext_syscall : (Name.ident *  Name.ident list * (Name.ident list * Name.ident list) * Name.ident list * (Syntax.fact list * Syntax.fact list ) list * Syntax.expr option) list ;
+   def_ext_syscall : (Name.ident *  (Input.arg_type * Name.ident) list * (Name.ident list * Name.ident list) * Name.ident list * (Syntax.fact list * Syntax.fact list ) list * Syntax.expr option) list ;
    
    def_ext_attack  : (Name.ident *  Name.ident * (Syntax.fact list * Syntax.fact list )) list ;
 
@@ -108,8 +108,10 @@ type access_policy = {
 type process = {
    proc_pid       :  int ; 
    proc_name      :  string ; 
+   proc_type      :  string; 
    proc_attack    :  Name.ident list ; 
    proc_channel   :  (Name.ident * Name.ident list * Name.ident list) list;
+   proc_filesys   :  Name.ident;
    proc_file      :  (Name.ident * Syntax.expr * Name.ident list * Name.ident list) list ;
    proc_variable  :  (Name.ident * Syntax.expr) list ; 
    proc_function  :  (Name.ident * Name.ident list * Syntax.stmt list * Syntax.indexed_var ) list ;
@@ -127,7 +129,7 @@ type system = {
 type local_context = {
                      lctx_chan : Name.ident list ; 
 
-                     lctx_filesys : Name.ident list ;
+                     lctx_path : Name.ident list ;
 
                      lctx_process : Name.ident list ; 
 
@@ -285,8 +287,8 @@ let ldef_add_new_func ldef f =
 let lctx_check_chan lctx c = 
    List.exists (fun i -> i = c) lctx.lctx_chan
 
-let lctx_check_filesys lctx c = 
-   List.exists (fun i -> i = c) lctx.lctx_filesys
+let lctx_check_path lctx c = 
+   List.exists (fun i -> i = c) lctx.lctx_path
 
 let lctx_check_process lctx c = 
    List.exists (fun i -> i = c) lctx.lctx_process
@@ -296,10 +298,10 @@ let lctx_add_new_chan ~loc lctx c =
       error ~loc (AlreadyDefined c)
    else {lctx with lctx_chan=c::lctx.lctx_chan}
 
-let lctx_add_new_filesys ~loc lctx c = 
-   if List.exists (fun i -> i = c) lctx.lctx_filesys then 
+let lctx_add_new_path ~loc lctx c = 
+   if List.exists (fun i -> i = c) lctx.lctx_path then 
       error ~loc (AlreadyDefined c)
-   else {lctx with lctx_filesys=c::lctx.lctx_filesys}
+   else {lctx with lctx_path=c::lctx.lctx_path}
 
 let lctx_add_new_process ~loc lctx c = 
    if List.exists (fun i -> i = c) lctx.lctx_process then 
@@ -313,7 +315,7 @@ let lctx_check_func lctx f =
    List.exists (fun (i, _) -> i = f) lctx.lctx_func 
 
 let lctx_add_new_var ~loc lctx v = 
-   if lctx_check_var lctx v || lctx_check_chan lctx v || lctx_check_filesys lctx v || lctx_check_process lctx v || lctx_check_func lctx v then error ~loc (AlreadyDefined v) else 
+   if lctx_check_var lctx v || lctx_check_chan lctx v || lctx_check_path lctx v || lctx_check_process lctx v || lctx_check_func lctx v then error ~loc (AlreadyDefined v) else 
    match lctx.lctx_var with 
    | f::frames -> {lctx with lctx_var=(v::f)::frames}
    | _ -> error ~loc (UnintendedError)
@@ -356,7 +358,7 @@ let pol_init = {pol_access = [] ; pol_attack = []}
    sys_pol = [];
    sys_proc =[] }
  *)
-let lctx_init = {lctx_chan = []; lctx_filesys = []; lctx_process = []; lctx_var = [ [] ]; lctx_func = []}
+let lctx_init = {lctx_chan = []; lctx_path = []; lctx_process = []; lctx_var = [ [] ]; lctx_func = []}
 let ldef_init = {ldef_var=[]; ldef_func=[]}
 
 
