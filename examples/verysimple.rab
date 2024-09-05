@@ -25,11 +25,11 @@ syscall send_udp(channel c, v) : [] -> [c:store(v)]
 syscall mytest(path p) : [] -> [test(p)]
 syscall recv_udp(channel c) return v : [c:store(v)] -> [] 
 
-syscall set_pid() : [:Fr(x)] -> [pid(x)]
+syscall set_pid() : [&Fr(x)] -> [pid(x)]
 
 
-attack tampar (channel c) : [c:store(v), :In(w)] -> [c:store(w), test(c)]
-attack eaves  (process p) : [p:frame(v)] -> [Out(v), p:frame(v)]
+attack tampar (channel c) : [c:store(v), &In(w)] -> [c:store(w), test(c)]
+attack eaves  (process p) : [ p%frame(v)] -> [Out(v), p%frame(v)]
 
 
 
@@ -44,8 +44,8 @@ syscall recv_tcp(channel c) return v
 
 (* filesys *)
 
-syscall ropen (path p, v) return x : [:Fr(x)] -> [p:fd(x)]  
-syscall read (path p) return x : [p:File(x)] -> [p:File(x)] 
+syscall ropen (path p, v) return x : [&Fr(x)] -> [p.fd(x)]  
+syscall read (path p) return x : [p.File(x)] -> [p.File(x)] 
 
 (***********)
 (** declare types with their classes *)

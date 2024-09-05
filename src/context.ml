@@ -89,7 +89,7 @@ type definition = {
  
    def_ext_syscall : (Name.ident *  (Input.arg_type * Name.ident) list * (Name.ident list * Name.ident list) * Name.ident list * (Syntax.fact list * Syntax.fact list ) list * Syntax.expr option) list ;
    
-   def_ext_attack  : (Name.ident *  Name.ident * (Syntax.fact list * Syntax.fact list )) list ;
+   def_ext_attack  : (Name.ident *  (Name.ident list * Name.ident list * Name.ident list) * (Syntax.fact list * Syntax.fact list )) list ;
 
 
    def_const   :  (Name.ident * Syntax.expr) list ;
@@ -293,29 +293,41 @@ let lctx_check_path lctx c =
 let lctx_check_process lctx c = 
    List.exists (fun i -> i = c) lctx.lctx_process
 
-let lctx_add_new_chan ~loc lctx c = 
-   if List.exists (fun i -> i = c) lctx.lctx_chan then 
-      error ~loc (AlreadyDefined c)
-   else {lctx with lctx_chan=c::lctx.lctx_chan}
-
-let lctx_add_new_path ~loc lctx c = 
-   if List.exists (fun i -> i = c) lctx.lctx_path then 
-      error ~loc (AlreadyDefined c)
-   else {lctx with lctx_path=c::lctx.lctx_path}
-
-let lctx_add_new_process ~loc lctx c = 
-   if List.exists (fun i -> i = c) lctx.lctx_process then 
-      error ~loc (AlreadyDefined c)
-   else {lctx with lctx_process=c::lctx.lctx_process}
 
 let lctx_check_var lctx v =
    List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_var false 
 
+let lctx_remove_var lctx v =
+   let lctx_var' = List.map (fun vl -> List.find_all (fun s -> not (s = v)) vl)  lctx.lctx_var in
+   {lctx with lctx_var=lctx_var'}
+
 let lctx_check_func lctx f = 
    List.exists (fun (i, _) -> i = f) lctx.lctx_func 
 
+let lctx_check_id lctx id = 
+   lctx_check_var lctx id || 
+   lctx_check_chan lctx id || 
+   lctx_check_func lctx id || 
+   lctx_check_path lctx id || 
+   lctx_check_process lctx id 
+
+let lctx_add_new_chan ~loc lctx c = 
+   if lctx_check_id lctx c then 
+      error ~loc (AlreadyDefined c)
+   else {lctx with lctx_chan=c::lctx.lctx_chan}
+
+let lctx_add_new_path ~loc lctx c = 
+   if lctx_check_id lctx c  then 
+      error ~loc (AlreadyDefined c)
+   else {lctx with lctx_path=c::lctx.lctx_path}
+
+let lctx_add_new_process ~loc lctx c = 
+   if lctx_check_id lctx c  then 
+      error ~loc (AlreadyDefined c)
+   else {lctx with lctx_process=c::lctx.lctx_process}
+
 let lctx_add_new_var ~loc lctx v = 
-   if lctx_check_var lctx v || lctx_check_chan lctx v || lctx_check_path lctx v || lctx_check_process lctx v || lctx_check_func lctx v then error ~loc (AlreadyDefined v) else 
+   if lctx_check_id lctx v  then error ~loc (AlreadyDefined v) else 
    match lctx.lctx_var with 
    | f::frames -> {lctx with lctx_var=(v::f)::frames}
    | _ -> error ~loc (UnintendedError)
@@ -326,7 +338,6 @@ let lctx_pop_frame ~loc lctx =
    match lctx.lctx_var with 
    | f::frames -> {lctx with lctx_var=frames}
    | _ -> error ~loc (UnintendedError)
-
 
 let lctx_get_func_arity lctx f = 
    let (_, k) = List.find (fun (i, _) -> i = f) lctx.lctx_func in k

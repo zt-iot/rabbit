@@ -15,8 +15,8 @@ equation add(O, x) = x
 (***********)
 (* File system syscalls *)
 (* p:File when p:path is reserved fact *)
-syscall wopen(path p) return x : [ :Fr(x) ] -> [ Fd(p, x) ]
-syscall write(x, v) : [Fd(p, x), p:File(y)] -> [p:File(v)]
+syscall wopen(path p) return x : [ &Fr(x) ] -> [ Fd(p, x) ]
+syscall write(x, v) : [Fd(p, x), p:File(y)] -> [ p:File(v)]
 
 (***********)
 (** declare types with their classes *)

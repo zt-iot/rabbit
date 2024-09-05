@@ -25,7 +25,7 @@
 %token CHANNEL TRANSFER PROCESS WITH FUNC MAIN RETURN 
 %token DATA READ WRITE SEND RECV EAVESDROP TAMPER DROP
 %token DATAGRAM STREAM SKIP LET CALL IF ELSE FOR IN RANGE AT INIT
-%token REQUIRES SATISFIES SATISFY EXTERNAL STRING RABBIT EXTRACE ALLTRACE PATH
+%token REQUIRES SATISFIES SATISFY EXTERNAL STRING RABBIT EXTRACE ALLTRACE PATH AMP PERCENT
 
 (* temporal logic *)
 %token TRUE
@@ -90,8 +90,10 @@ external_attack:
 
 fact : mark_location(plain_fact) { $1 }
 plain_fact:
-  | scope=NAME COLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { LocalFact(scope, id, es) }
-  | COLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact(id, es) }
+  | scope=NAME COLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact(scope, id, es) }
+  | scope=NAME DOT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { PathFact(scope, id, es) }
+  | scope=NAME PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
+  | AMP id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact(id, es) }
   | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact(id, es) }
 
 

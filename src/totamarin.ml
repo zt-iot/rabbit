@@ -291,7 +291,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 	| _ -> error ~loc UnintendedError
 in translate_atomic_stmt' eng t c 
 
-let translate_syscall eng t (f, ty_args, taged_args, meta_vars, rules, ret) = 
+let translate_syscall eng t (f, ty_args, (ch_vars, path_vars), meta_vars, rules, ret) = 
 	let args = List.map snd ty_args in 
 	let namespace_string = 
 		(let rec f s = if List.exists (fun u -> u = s) (args @ meta_vars) then f (s ^ "_") else s in f "proc") in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
@@ -301,25 +301,25 @@ let translate_syscall eng t (f, ty_args, taged_args, meta_vars, rules, ret) =
 	let eng = eng_set_lctx eng [args] in 
 	let eng = eng_add_var eng namespace_string in
 
+	let acp_facts = 
+	List.map (fun v -> (eng.namespace ^ eng.sep ^"Allowed", [namespace_id ; Var v], true)) ch_vars 
+	@ List.map (fun v -> (eng.namespace ^ eng.sep ^"Allowed", [namespace_id ; Var v], true)) path_vars in 
+
 	let translate_fact f = 
 	match f.Location.data with
 	| Syntax.GlobalFact (s, el) -> (s, (List.map  (translate_expr ~ch:true) el), false )
 	| Syntax.Fact (s, el) -> (mk_fact_name s, namespace_id :: (List.map  (translate_expr ~ch:true) el), false)
-	| Syntax.LocalFact (scope, ty, s, el) -> 
-		match ty with 
-		| TyChannel ->
+	| Syntax.ChannelFact (scope, s, el) -> 
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
-		| TyPath -> 	
+	| Syntax.PathFact (scope, s, el) -> 
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
-		| _ -> error ~loc:Nowhere UnintendedError
+	| _ -> error ~loc:Nowhere UnintendedError
 	in
 	let (_, _, t) = List.fold_left (fun (eng, i, t) (pre, post) -> 
 		if i = List.length rules - 1 then
 		(eng, i+1, add_rule t (eng_state eng, 
 			(eng_state eng, eng_var_list eng, false) :: (List.map translate_fact pre)
-				@ (if i=0 then 
-				List.fold_left (fun l (ty, v) -> match ty with | Input.TyPath -> ( eng.namespace ^ eng.sep ^"Allowed", [namespace_id ; Var v], true) :: l | _ -> l) [] ty_args
-				else [])
+				@ (if i=0 then acp_facts else [])
 			, 
 			[], 
 			(eng_suffix eng eng.namespace "return", [namespace_id ;
@@ -329,14 +329,12 @@ let translate_syscall eng t (f, ty_args, taged_args, meta_vars, rules, ret) =
 		else 
 		(eng_inc_index eng, i+1, add_rule t (eng_state eng, 
 			(eng_state eng, eng_var_list eng, false) :: (List.map translate_fact pre)
-			@ (if i=0 then 
-				List.fold_left (fun l (ty, v) -> match ty with | Input.TyPath -> ( eng.namespace ^ eng.sep ^"Allowed", [namespace_id ; Var v], true) :: l | _ -> l) [] ty_args
-				else [])
+			@ (if i=0 then acp_facts else [])
 			, [], 
 			(eng_state (eng_inc_index eng), eng_var_list eng, false) :: (List.map translate_fact post)))) (eng, 0, t) (List.rev rules)
 	in t 
 
-let translate_attack eng t (f, arg, (pre, post)) = 
+let translate_attack eng t (f, (ch_vars, path_vars, process_vars), (pre, post)) = 
 	
 (* 	let namespace_string = 
 		(let rec f s = if List.exists (fun u -> u = s) ([arg]) then f (s ^ "_") else s in f "proc") in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
@@ -344,26 +342,34 @@ let translate_attack eng t (f, arg, (pre, post)) =
 	let namespace_id = (Var namespace_string) in
  *)	
  	let eng = eng_set_namespace eng f in 
-	let eng = eng_set_lctx eng [[arg]] in 
+	let eng = eng_set_lctx eng [ch_vars@ path_vars@ process_vars] in 
 	(* let eng = eng_add_var eng namespace_string in *)
+	
+	let acp_facts = 
+	List.map (fun v -> (eng.namespace ^ eng.sep ^"Allowed", [Var v], true)) ch_vars 
+	@ List.map (fun v -> (eng.namespace ^ eng.sep ^"Allowed", [Var v], true)) path_vars  
+	@ List.map (fun v -> (eng.namespace ^ eng.sep ^"Allowed", [Var v], true)) process_vars in 
 
 	let translate_fact f = 
 	match f.Location.data with
 	| Syntax.GlobalFact (s, el) -> (s, (List.map  (translate_expr ~ch:true) el), false)
 	| Syntax.Fact (s, el) -> (mk_fact_name s, (List.map  (translate_expr ~ch:true) el), false)
-	| Syntax.LocalFact (scope, ty, s, el) -> 
-		match ty with 
+	| Syntax.ChannelFact (scope, s, el) -> 
+			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
+	| Syntax.PathFact (scope, s, el) -> 
+			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
+	| Syntax.ProcessFact (scope, s, el) -> 
+			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
+
+(* 		match ty with 
 		| TyChannel ->
-			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
 		| TyPath -> 	
+ *)(* 		| TyProcess -> 	
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
-		| TyProcess -> 	
-			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
-		| _ -> error ~loc:Nowhere UnintendedError
+ *)		| _ -> error ~loc:Nowhere UnintendedError
 	in
 
-	add_rule t (mk_fact_name f, 
-		(mk_fact_name f ^ eng.sep ^"Allowed", [Var arg], true) :: (List.map translate_fact pre), [],  (List.map translate_fact post))
+	add_rule t (mk_fact_name f, acp_facts @ (List.map translate_fact pre), [],  (List.map translate_fact post))
 
 
 

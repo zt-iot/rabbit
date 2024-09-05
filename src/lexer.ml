@@ -110,9 +110,10 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
      QUOTED_STRING (r)
   | '_'                      -> f (); UNDERSCORE
   | '.'                      -> f (); DOT
+  | '&'                      -> f (); AMP
+  | '%'                      -> f (); PERCENT
   | "exists-trace"                      -> f (); EXTRACE
   | "all-trace"                      -> f (); ALLTRACE
-  | '.'                      -> f (); DOT
   | '@'                      -> f (); AT
   | '('                      -> f (); LPAREN
   | ')'                      -> f (); RPAREN

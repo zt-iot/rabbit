@@ -5,6 +5,9 @@
 (** Conversion errors *)
 type desugar_error =
   | UnknownIdentifier of string
+  | UnknownIdentifier_ch of string
+  | UnknownIdentifier_path of string
+  | UnknownIdentifier_process of string
   | UnknownIdentifier2 of string
   | UnknownFunction of string
   | AlreadyDefined of string 
@@ -33,6 +36,8 @@ let print_error err ppf =
   | WrongInputType -> Format.fprintf ppf "wrong input type"
   | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
   | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
+  | _ -> Format.fprintf ppf "" 
+  
 
 
 (* fr is used only for parsing and processing external instructions *)
@@ -237,13 +242,17 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.Fact(id, List.map (process_expr ctx lctx) el)))
             | Input.GlobalFact (id, el) ->
                (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.GlobalFact(id, List.map (process_expr ctx lctx) el)))
-            | Input.LocalFact (l, id, el) ->
+            | Input.ChannelFact (l, id, el) ->
                (* check validty of local scope l *)
                if Context.lctx_check_chan lctx l then 
-                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyChannel, id, List.map (process_expr ctx lctx) el)))
-               else if Context.lctx_check_path lctx l then 
-                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyPath, id, List.map (process_expr ctx lctx) el)))
-               else error ~loc (UnknownIdentifier2 l)
+                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.ChannelFact(l, id, List.map (process_expr ctx lctx) el)))
+               else error ~loc (UnknownIdentifier_ch l)
+            | Input.PathFact (l, id, el) ->
+               (* check validty of local scope l *)
+               if Context.lctx_check_path lctx l then 
+                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.PathFact(l, id, List.map (process_expr ctx lctx) el)))
+               else error ~loc (UnknownIdentifier_path l)
+            | _ -> error ~loc (UnknownIdentifier2 "")
          in
 
          let rec process_rules rs ret lctx = 
@@ -263,7 +272,8 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             | Error {Location.data=err; Location.loc=locc} ->
                begin match err with
                | UnknownIdentifier id -> process_rules rs ret (Context.lctx_add_new_var ~loc lctx id)
-               | UnknownIdentifier2 id -> process_rules rs ret (Context.lctx_add_new_path ~loc lctx id)
+               | UnknownIdentifier_ch id -> process_rules rs ret (Context.lctx_add_new_chan ~loc (Context.lctx_remove_var lctx id) id)
+               | UnknownIdentifier_path id -> process_rules rs ret (Context.lctx_add_new_path ~loc (Context.lctx_remove_var lctx id) id)
                | _ -> error ~loc:locc err
                end
          in
@@ -271,8 +281,10 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          let (ctx, rs, ret, lctx) = process_rules rules ret (Context.lctx_add_frame lctx) in
          let metavar = List.hd lctx.Context.lctx_var in 
          let args = List.hd (Context.lctx_pop_frame ~loc lctx).Context.lctx_var in 
-         let cargs = lctx.Context.lctx_chan in 
-         (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), pol, Context.def_add_ext_syscall def (f, (typed_args), (args, cargs), metavar, rs, ret), sys)
+         let ch_args = lctx.Context.lctx_chan in 
+         let path_args = lctx.Context.lctx_path in 
+
+         (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), pol, Context.def_add_ext_syscall def (f, (typed_args), (ch_args, path_args), metavar, rs, ret), sys)
 
 
    | Input.DeclExtAttack(f, typed_arg, rule) ->      
@@ -291,14 +303,22 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.Fact(id, List.map (process_expr ctx lctx) el)))
             | Input.GlobalFact (id, el) ->
                (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.GlobalFact(id, List.map (process_expr ctx lctx) el)))
-            | Input.LocalFact (l, id, el) ->
+            | Input.ChannelFact (l, id, el) ->
+               (* check validty of local scope l *)
                if Context.lctx_check_chan lctx l then 
-                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyChannel, id, List.map (process_expr ctx lctx) el)))
-               else if Context.lctx_check_path lctx l then 
-                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyPath, id, List.map (process_expr ctx lctx) el)))
-               else if Context.lctx_check_process lctx l then 
-                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.LocalFact(l, TyProcess, id, List.map (process_expr ctx lctx) el)))
-               else error ~loc (UnknownIdentifier2 l)
+                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.ChannelFact(l, id, List.map (process_expr ctx lctx) el)))
+               else error ~loc (UnknownIdentifier_ch l)
+            | Input.PathFact (l, id, el) ->
+               (* check validty of local scope l *)
+               if Context.lctx_check_path lctx l then 
+                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.PathFact(l, id, List.map (process_expr ctx lctx) el)))
+               else error ~loc (UnknownIdentifier_path l)
+            | Input.ProcessFact (l, id, el) ->
+               (* check validty of local scope l *)
+               if Context.lctx_check_process lctx l then 
+                  (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), Location.locate ~loc:f.Location.loc (Syntax.ProcessFact(l, id, List.map (process_expr ctx lctx) el)))
+               else error ~loc (UnknownIdentifier_process l)
+
          in
 
          let rec process_rules rs ret lctx = 
@@ -318,6 +338,9 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             | Error {Location.data=err; Location.loc=locc} ->
                begin match err with
                | UnknownIdentifier id -> process_rules rs ret (Context.lctx_add_new_var ~loc lctx id)
+               | UnknownIdentifier_ch id -> process_rules rs ret (Context.lctx_add_new_chan ~loc (Context.lctx_remove_var lctx id) id)
+               | UnknownIdentifier_path id -> process_rules rs ret (Context.lctx_add_new_path ~loc (Context.lctx_remove_var lctx id) id)
+               | UnknownIdentifier_process id -> process_rules rs ret (Context.lctx_add_new_process ~loc (Context.lctx_remove_var lctx id) id)
                | _ -> error ~loc:locc err
                end
          in
@@ -326,9 +349,11 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          let rs = match rs with | [rs] -> rs | _ -> error ~loc UnintendedError in
          let metavar = List.hd lctx.Context.lctx_var in 
          let args = List.hd (Context.lctx_pop_frame ~loc lctx).Context.lctx_var in 
-         let cargs = lctx.Context.lctx_chan in 
+         let ch_args = lctx.Context.lctx_chan in 
+         let path_args = lctx.Context.lctx_path in 
+         let process_args = lctx.Context.lctx_process in
          (Context.ctx_add_ext_attack ctx (f, fst typed_arg), pol, 
-            Context.def_add_ext_attack def (f, snd typed_arg, rs), sys)
+            Context.def_add_ext_attack def (f, (ch_args, path_args, process_args), rs), sys)
 
 
    | Input.DeclType (id, c) -> 
