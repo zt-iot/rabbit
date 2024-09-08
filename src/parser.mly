@@ -25,7 +25,7 @@
 %token CHANNEL TRANSFER PROCESS WITH FUNC MAIN RETURN 
 %token DATA READ WRITE SEND RECV EAVESDROP TAMPER DROP
 %token DATAGRAM STREAM SKIP LET CALL IF ELSE FOR IN RANGE AT INIT
-%token REQUIRES SATISFIES SATISFY EXTERNAL STRING RABBIT EXTRACE ALLTRACE PATH AMP PERCENT
+%token REQUIRES SATISFIES SATISFY EXTERNAL STRING RABBIT EXTRACE ALLTRACE PATH AMP PERCENT LOAD
 
 (* temporal logic *)
 %token TRUE
@@ -68,7 +68,8 @@ plain_decl:
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
     LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
-  
+  | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
+
   | external_syscall { $1 }
   | external_attack { $1 }
 

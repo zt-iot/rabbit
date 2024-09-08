@@ -44,6 +44,7 @@ let reserved = [
   ("instruction", INSTRUCTION) ; 
   ("syscall", SYSCALL) ; 
   ("True", TRUE) ;
+  ("load", LOAD) ;
   ]
 
 let name =

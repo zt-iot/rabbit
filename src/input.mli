@@ -68,4 +68,5 @@ and decl' =
                 (Name.ident * (Name.ident list) * stmt list * Name.ident) list * 
                 stmt list
   | DeclSys of proc list * lemma list 
+  | DeclLoad of string
 

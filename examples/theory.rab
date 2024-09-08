@@ -1,0 +1,10 @@
+
+(***********)
+(** declare external constants and functions as a equational theory *)
+(* function : arity where arity = 0 defines constant *)
+function add:2
+function O:0
+constant ichi
+
+equation add(x, O) = x
+equation add(O, x) = x

@@ -201,14 +201,16 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
    | [] -> 
       (ctx, lctx, [])
 
+let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([],[]))
 
-let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
-   let process_decl' ctx pol def sys = function
+
+let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
+   let process_decl' ctx pol def sys ps = function
    | Input.DeclExtFun (f, k) -> 
       let ctx' =
          if Context.check_used ctx f then error ~loc (AlreadyDefined f) else 
          if k = 0 then Context.ctx_add_ext_const ctx f else if k > 0 then Context.ctx_add_ext_func ctx (f, k) else error ~loc (NegativeArity k) 
-      in (ctx', pol, def, sys)
+      in (ctx', pol, def, sys, fst ps)
 
    | Input.DeclExtEq (e1, e2) -> 
       let rec collect_vars e lctx =
@@ -223,7 +225,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
       (* is this really correct??? check with x = y next time!! *)
       let (e1', lctx) = collect_vars e1 Context.lctx_init in 
       let (e2', lctx) = collect_vars e2 lctx in
-      (ctx, pol, Context.def_add_ext_eq def (List.hd lctx.Context.lctx_var, e1', e2'), sys)
+      (ctx, pol, Context.def_add_ext_eq def (List.hd lctx.Context.lctx_var, e1', e2'), sys, fst ps)
 
 
    | Input.DeclExtSyscall(f, typed_args, rules, ret) ->      
@@ -284,7 +286,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          let ch_args = lctx.Context.lctx_chan in 
          let path_args = lctx.Context.lctx_path in 
 
-         (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), pol, Context.def_add_ext_syscall def (f, (typed_args), (ch_args, path_args), metavar, rs, ret), sys)
+         (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), pol, Context.def_add_ext_syscall def (f, (typed_args), (ch_args, path_args), metavar, rs, ret), sys, fst ps)
 
 
    | Input.DeclExtAttack(f, typed_arg, rule) ->      
@@ -353,11 +355,11 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          let path_args = lctx.Context.lctx_path in 
          let process_args = lctx.Context.lctx_process in
          (Context.ctx_add_ext_attack ctx (f, fst typed_arg), pol, 
-            Context.def_add_ext_attack def (f, (ch_args, path_args, process_args), rs), sys)
+            Context.def_add_ext_attack def (f, (ch_args, path_args, process_args), rs), sys, fst ps)
 
 
    | Input.DeclType (id, c) -> 
-      if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, c), pol, def, sys)
+      if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, c), pol, def, sys, fst ps)
    
    | Input.DeclAccess(s, t, al) -> 
       let tys = Context.ctx_get_ty ~loc ctx s in
@@ -373,7 +375,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
             else error ~loc (UnknownIdentifier a)
          | _, _ -> error ~loc (WrongInputType)
          end
-      in (ctx, List.fold_left f pol al, def, sys)
+      in (ctx, List.fold_left f pol al, def, sys, fst ps)
 
    | Input.DeclAttack (tl, al) -> 
       let f t a =
@@ -389,12 +391,12 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          else error ~loc (UnknownIdentifier t) in
       let p = List.fold_left (fun p t -> 
          List.fold_left (fun p a -> Context.pol_add_attack p (f t a)) p al) pol tl in 
-      (ctx, p, def, sys)
+      (ctx, p, def, sys, fst ps)
 
   | Input.DeclInit (id, e) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 
       let e' = process_expr ctx Context.lctx_init e in 
-      (Context.ctx_add_const ctx id, pol, Context.def_add_const def (id, e'), sys)
+      (Context.ctx_add_const ctx id, pol, Context.def_add_const def (id, e'), sys, fst ps)
 
   | Input.DeclFsys (id, fl) ->
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 
@@ -405,11 +407,11 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
          | _ -> error ~loc (WrongInputType)
          ) fl in 
       let (ctx', def') = List.fold_left (fun (ctx', def') (a, e, b) -> (Context.ctx_add_fsys ctx' (id, a, b), Context.def_add_fsys def' (id, a, e))) (ctx, def) fl' in 
-      (ctx', pol, def', sys)
+      (ctx', pol, def', sys, fst ps)
 
   | Input.DeclChan (id, c) ->
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 
-      (Context.ctx_add_ch ctx (id, c), pol, def, sys)
+      (Context.ctx_add_ch ctx (id, c), pol, def, sys, fst ps)
 
   | Input.DeclProc (pid, cargs, ty, cl, fs, m) ->
       begin match Context.ctx_get_ty ~loc ctx ty 
@@ -427,7 +429,7 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                   Context.ldef_add_new_func ldef'' (fid, args, cs', Syntax.index_var ret (Context.lctx_get_var_index ~loc lctx' ret)))) (ctx, lctx, ldef) fs in
             let (ctx, _, m') = process_stmts ctx (Context.lctx_add_frame lctx) m in 
             (Context.ctx_add_proctmpl ctx (Context.mk_ctx_proctmpl (pid, lctx.Context.lctx_chan, ty, List.hd lctx.Context.lctx_var, lctx.Context.lctx_func)), pol, 
-               Context.def_add_proctmpl def pid ldef m', sys)
+               Context.def_add_proctmpl def pid ldef m', sys, fst ps)
 
       | _ -> error ~loc (WrongInputType) 
       end 
@@ -483,15 +485,25 @@ let process_decl ctx pol def sys {Location.data=c; Location.loc=loc} =
                         Context.sys_pol = pol;
                         Context.sys_def = def;
                         Context.sys_proc=processed_procs;
-                        Context.sys_lemma = processed_lemmas}::sys)
-in process_decl' ctx pol def sys c
+                        Context.sys_lemma = processed_lemmas}::sys, fst ps)
+      
+      | Input.DeclLoad fn ->
+         (*  *)
+         let ((a, b), fn') = ps in 
+         let new_fn = (Filename.dirname fn') ^ "/" ^ fn in 
+         let (ctx, pol, def, sys, parser_state) = load new_fn ctx pol def sys in 
+         let parser_state = 
+         (* marge  parser_state and ps*)
+         (fst parser_state @ a, snd parser_state @ b) in
+
+         (ctx, pol, def, sys, parser_state) 
 
 
-let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([],[]))
+in process_decl' ctx pol def sys ps c
 
-let load fn ctx pol def sys =
+and load fn ctx pol def sys =
    let decls, parser_state = Lexer.read_file Parser.file fn in 
-   let (ctx, pol, def, sys) = List.fold_left 
-   (fun (ctx, pol, def, sys) decl -> process_decl ctx pol def sys decl) 
-   (ctx, pol, def, sys) decls in (ctx, pol, def, sys, parser_state)
+   let (ctx, pol, def, sys, parser_state) = List.fold_left 
+   (fun (ctx, pol, def, sys, parser_state) decl -> process_decl ctx pol def sys (parser_state, fn) decl)  
+   (ctx, pol, def, sys, parser_state) decls in (ctx, pol, def, sys, parser_state)
 
