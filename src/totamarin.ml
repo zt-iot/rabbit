@@ -42,6 +42,7 @@ type expr =
   | Var of string
   | Apply of string * expr list
   | String of string
+  | Integer of int
   | List of expr list
 
 type equations = (expr * expr) list
@@ -81,6 +82,7 @@ let rec print_expr prt e =
 	| Var s -> s 
 	| Apply (s, el) -> s ^ "(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")"
 	| String s -> "\'"^(replace_string '/' prt.prt_sep s)^"\'"
+	| Integer i -> string_of_int i
 	| List el -> 
 		match el with
 		| [] -> "\'rabbit"^prt.prt_sep^"\'"
@@ -329,7 +331,35 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 									[("Frame", [String namespace; String state_f ; (List (eng_var_list eng_f))], false)]) in 
 
 		(eng_f,  t)
-	| Syntax.For (v, i, j, c) -> error ~loc UnintendedError 
+	| Syntax.For ((v, _, _, _), i, j, c) -> 
+		let eng_ith i = eng_set_mode (eng_set_mode (eng_add_var (eng_add_frame eng) v) "for") (string_of_int i) in
+(* 		let t = add_rule t (state_i ^eng.sep^"in" ^eng.sep^"for", 
+									[("Frame", [String namespace; String state_i ; (List (eng_var_list eng))], false)], 
+									
+									[], 
+
+									[("Frame", [String namespace; String (eng_state (eng_ith i)) ; (List (Integer i :: eng_var_list eng))], false)]) in 
+ *)
+			let eng_for, t = List.fold_left (fun (eng, t) k -> 
+
+				let t = add_rule t (eng_state (eng_ith k) ^eng.sep ^"start", 
+									[("Frame", [String namespace; String (eng_state eng) ; (List (eng_var_list eng))], false)], 
+									[],
+									[("Frame", [String namespace; String (eng_state (eng_ith k)) ; (List (Integer k :: eng_var_list eng))], false)]) in 
+
+				let eng, t = (List.fold_left (fun (eng, t) c -> translate_stmt eng t c) (eng_ith k, t) c)  
+
+				in (eng, t)) (eng, t) (let rec range i j = if i < j then i :: range (i + 1) j else [] in range i j) in 
+
+			let t = add_rule t (state_i, 
+									[("Frame", [String namespace; String (eng_state eng_for) ; (List (eng_var_list eng_for))], false)], 
+									[], 
+									[("Frame", [String namespace; String state_f ; (List (eng_var_list eng_f))], false)]) in 
+			(eng_f, t)		
+
+
+
+
 	| _ -> error ~loc UnintendedError
 in translate_atomic_stmt' eng t c 
 
@@ -474,7 +504,7 @@ let translate_process eng t {
 	let t = List.fold_left (fun t f -> translate_function eng t f) t fns in
 
 	let eng_main = eng_set_scope eng "main" in 
-	let t = add_rule t (eng_state eng_main, [("Frame", [String namespace; String (eng_state eng); List (eng_var_list eng)], false)], [], 
+	let t = add_rule t (eng_state (eng_set_mode eng_main "start"), [("Frame", [String namespace; String (eng_state eng); List (eng_var_list eng)], false)], [], 
 																					[("Frame", [String namespace; String (eng_state eng_main); List (eng_var_list eng_main)], false)]) in 
 
 	let eng = eng_add_frame eng_main in 

@@ -15,6 +15,7 @@ let reserved = [
   ("channel", CHANNEL) ; 
   ("transfer", TRANSFER) ; 
   ("path", PATH) ; 
+  ("for", FOR) ; 
   ("process", PROCESS) ;
   ("with", WITH) ;
   ("function", FUNC) ;

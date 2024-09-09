@@ -69,6 +69,11 @@ process client(c) with client_t {
 	let mytwo = add(ichi, ichi) ; 
 	let rabbit = ichi;
 	main {
+		for i in range(3, 5)
+		{
+			skip;
+		}
+
 		let _ = send_udp(c, mytwo) @ Querying();
 		let four = recv_udp(c) @ Computed(four);
 	}
@@ -80,6 +85,7 @@ process server(c) with server_t {
 		return y;
 	}
 	main {
+		skip;
 		let x = recv_udp(c) @ Receiving(x); 
 		if (x = add(ichi, ichi))
 		{
