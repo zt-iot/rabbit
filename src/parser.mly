@@ -168,10 +168,10 @@ chan_c:
 
 expr : mark_location(plain_expr) { $1 }
 plain_expr:
-  | id=NAME                    {   (Var (id)) }
+  | id=NAME                    { Var (id)  }
   | b=BOOLEAN                  { Boolean b }
   | k=NUMERAL                  { Integer k }
-  | r=FLOAT                    { Float r }
+  | r=FLOAT                    { Float r   }
   | oploc=prefix e2=expr
     { let (op, loc) = oploc in
       Apply (op, [e2])
@@ -203,8 +203,8 @@ plain_op:
 
 block_op: mark_location(plain_block_op) { $1 }
 plain_block_op:
-  | IF LPAREN e=expr RPAREN LBRACE c1=stmts RBRACE 
-    ELSE LBRACE c2=stmts RBRACE { If(e, c1, c2) }
+  | IF LPAREN e1=expr EQ e2=expr RPAREN LBRACE c1=stmts RBRACE 
+    ELSE LBRACE c2=stmts RBRACE { If(e1, e2, c1, c2) }
   | FOR i=NAME IN RANGE LPAREN n=NUMERAL COMMA m=NUMERAL RPAREN 
     LBRACE c=stmts RBRACE { For(i,n,m,c) }
 

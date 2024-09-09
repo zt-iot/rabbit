@@ -25,7 +25,7 @@ and atomic_stmt' =
   | Let of indexed_var * expr
   | Call of indexed_var * Name.ident * expr list
   | Syscall of indexed_var * Name.ident * (expr * Input.arg_type) list 
-  | If of expr * stmt list * stmt list
+  | If of expr * expr * stmt list * stmt list
   | For of indexed_var * int * int * stmt list
 
 and event = event' Location.located

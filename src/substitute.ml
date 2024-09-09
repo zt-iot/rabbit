@@ -47,9 +47,9 @@ and atomic_stmt_chan_sub c f t accesses =
     | Syntax.Let (iv, e) -> Location.locate ~loc:loc (Syntax.Let (iv, expr_chan_sub e f t accesses))
     | Syntax.Call (iv, fn, args) -> Location.locate ~loc:loc (Syntax.Call (iv, fn, List.map (fun e -> expr_chan_sub e f t accesses) args))
     | Syntax.Syscall (iv, ins, args) -> Location.locate ~loc:loc (Syntax.Syscall (iv, ins, List.map (fun (e, ty) -> expr_chan_sub e f t accesses, ty) args))
-    | Syntax.If (e, c1, c2) -> 
+    | Syntax.If (e1, e2, c1, c2) -> 
       Location.locate ~loc:loc 
-        (Syntax.If (expr_chan_sub e f t accesses, 
+        (Syntax.If (expr_chan_sub e1 f t accesses, expr_chan_sub e2 f t accesses, 
                     List.map (fun e -> stmt_chan_sub e f t accesses) c1,
                      List.map (fun e -> stmt_chan_sub e f t accesses) c2))
     | Syntax.For (iv, i, j, c) -> 
@@ -84,9 +84,9 @@ and atomic_stmt_const_sub c def =
     | Syntax.Let (iv, e) -> Location.locate ~loc:loc (Syntax.Let (iv, expr_const_sub e def))
     | Syntax.Call (iv, f, args) -> Location.locate ~loc:loc (Syntax.Call (iv, f, List.map (fun e -> expr_const_sub e def) args))
     | Syntax.Syscall (iv, ins, args) -> Location.locate ~loc:loc (Syntax.Syscall (iv, ins, List.map (fun (e, ty) -> expr_const_sub e def, ty) args))
-    | Syntax.If (e, c1, c2) -> 
+    | Syntax.If (e1, e2, c1, c2) -> 
       Location.locate ~loc:loc 
-        (Syntax.If (expr_const_sub e def, 
+        (Syntax.If (expr_const_sub e1 def, expr_const_sub e2 def, 
                     List.map (fun e -> stmt_const_sub e def) c1,
                      List.map (fun e -> stmt_const_sub e def) c2))
     | Syntax.For (iv, i, j, c) -> 

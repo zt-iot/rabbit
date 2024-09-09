@@ -81,10 +81,18 @@ process server(c) with server_t {
 	}
 	main {
 		let x = recv_udp(c) @ Receiving(x); 
+		if (x = add(ichi, ichi))
+		{
 		let y = x; 
 		let z = x;
 		let double_x = double(x, x); 
 		let _ = send_udp(c, double_x);
+		}
+		else 
+		{
+		skip;
+		}
+		skip;
 	}
 }
 

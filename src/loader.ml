@@ -174,12 +174,13 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
          end
 
 
-      | Input.If (e, c1, c2) ->
-         let e' = process_expr ctx lctx e in 
+      | Input.If (e1, e2, c1, c2) ->
+         let e1' = process_expr ctx lctx e1 in 
+         let e2' = process_expr ctx lctx e2 in 
          let lctx' = Context.lctx_add_frame lctx in 
          let (ctx1, _, c1') = process_stmts ctx lctx' c1 in 
          let (ctx2, _, c2') = process_stmts ctx1 lctx' c2 in 
-         (ctx2, lctx, Syntax.If (e', c1', c2'))
+         (ctx2, lctx, Syntax.If (e1', e2', c1', c2'))
 
       | Input.For (vid, i, j, c) ->
          let (lctx', vid') = 

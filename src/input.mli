@@ -19,7 +19,7 @@ and atomic_stmt' =
   | Let of Name.ident * expr
   | LetUnderscore of expr
   (* | Call of Name.ident * Name.ident * expr list *)
-  | If of expr * stmt list * stmt list
+  | If of expr * expr * stmt list * stmt list
   | For of Name.ident * int * int * stmt list
 
 and event = event' Location.located

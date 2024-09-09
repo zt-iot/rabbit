@@ -114,7 +114,15 @@ let print_tamarin prt ((sign, rules), init_list, lem) =
 	print_signature prt sign ^
 	(mult_list_with_concat (List.map (print_rule prt) (List.rev rules)) "")^
 	
-	List.fold_left (fun l s -> l^"\nrestriction "^s^" : \" All #i #j . "^s^"() @ #i & "^s^"() @ #j ==> #i = #j \"") "" init_list ^
+	List.fold_left (fun l s -> l^"\nrestriction "^s^" : \" All #i #j . "^s^"() @ #i & "^s^"() @ #j ==> #i = #j \"") "" init_list ^ "\n" ^
+
+	(* if then else restriction *)
+
+	(* "\nrestriction OnlyOnce : \" All x #i #j . OnlyOnce(x) @ #i & OnlyOnce(x) @ #j ==> #i = #j \"\n" ^ *)
+
+	"restriction Equality: \" All x y #i. Eq(x,y) @ #i ==> x = y\"\n" ^
+
+	"restriction Inequality: \"All x #i. Neq(x,x) @ #i ==> F\"\n" ^
 
 	List.fold_left (fun l (lem, prop) -> l^"\nlemma "^lem^" : "^prop) "" lem ^"\nend\n"
 
@@ -137,13 +145,13 @@ type engine = {
 	index : int;
 	lctx : (string list) list;
 	sep : string;
-	mode : string;
+	mode : string list;
 	fresh_ident : string; 
 	fresh_string : string;
 	filesys : string;
 }
 
-let empty_engine = {namespace = ""; scope = ""; index = 0; lctx = [[]]; sep = ""; mode = ""; fresh_ident = ""; fresh_string = ""; filesys = ""}
+let empty_engine = {namespace = ""; scope = ""; index = 0; lctx = [[]]; sep = ""; mode = []; fresh_ident = ""; fresh_string = ""; filesys = ""}
 
 let eng_set_fresh_string eng s = {eng with fresh_string=s}
 let eng_set_fresh_ident eng s = {eng with fresh_ident=s}
@@ -157,14 +165,16 @@ let flat lctx =
 	List.fold_left (fun l vl -> l @ vl) [] lctx
 
 let eng_set_mode eng m = 
-	{eng with mode=m}
+	{eng with mode=m :: eng.mode}
 
 let eng_var_list eng =
 	List.map (fun s -> if s = "" then String (eng_get_fresh_string eng) else Var s) (flat eng.lctx)
 
 let eng_state eng =
-	eng.namespace ^ (if eng.scope = "" then "" else eng.sep ^ eng.scope) ^ (if eng.index = 0 then "" else eng.sep ^ string_of_int (eng.index - 1))
-	^ (if eng.mode = "" then "" else eng.sep ^ eng.mode)
+	eng.namespace ^ 
+	(if eng.scope = "" then "" else eng.sep ^ eng.scope) ^ 
+	(if eng.index = 0 then "" else eng.sep ^ string_of_int (eng.index - 1)) ^ 
+	if List.length eng.mode = 0 then "" else eng.sep ^mult_list_with_concat (List.rev eng.mode) eng.sep
 
 let eng_add_var eng v =
    match eng.lctx with 
@@ -286,8 +296,39 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 			[("Frame", [String namespace; String state_f ; (List (eng_var_list eng_f))], false)]) in
 		(eng_f, t)
 
-	| Syntax.If (e, c1, c2) -> error ~loc UnintendedError 
+	| Syntax.If (e1, e2, c1, c2) -> 
+		let eng_then = eng_set_mode eng "then" in
+		let eng_else = eng_set_mode eng "else" in
+		
+		let t = add_rule t (state_i ^eng.sep^"in" ^eng.sep^"then", 
+									[("Frame", [String namespace; String state_i ; (List (eng_var_list eng))], false)], 
+									
+									[("Eq", [translate_expr e1; translate_expr e2], false)], 
 
+									[("Frame", [String namespace; String (eng_state eng_then) ; (List (eng_var_list eng))], false)]) in 
+		
+		let t = add_rule t (state_i ^eng.sep^"in" ^eng.sep^"else", 
+									[("Frame", [String namespace; String state_i ; (List (eng_var_list eng))], false)], 
+									[("Neq", [translate_expr e1; translate_expr e2], false)], 
+									[("Frame", [String namespace; String (eng_state eng_else) ; (List (eng_var_list eng))], false)]) in 
+
+		let eng_then, t =  (List.fold_left (fun (eng, t) c -> translate_stmt eng t c) (eng_then, t) c1) in 
+
+
+		let t = add_rule t (state_i ^eng.sep^ "out"^eng.sep^ "then", 
+									[("Frame", [String namespace; String (eng_state eng_then) ; (List (eng_var_list eng_then))], false)], 
+									[], 
+									[("Frame", [String namespace; String state_f ; (List (eng_var_list eng_f))], false)]) in 
+
+		let eng_else, t =  (List.fold_left (fun (eng, t) c -> translate_stmt eng t c) (eng_else, t) c2) in 
+
+
+		let t = add_rule t (state_i ^eng.sep^ "out"^eng.sep^ "else", 
+									[("Frame", [String namespace; String (eng_state eng_else) ; (List (eng_var_list eng_else))], false)], 
+									[], 
+									[("Frame", [String namespace; String state_f ; (List (eng_var_list eng_f))], false)]) in 
+
+		(eng_f,  t)
 	| Syntax.For (v, i, j, c) -> error ~loc UnintendedError 
 	| _ -> error ~loc UnintendedError
 in translate_atomic_stmt' eng t c 

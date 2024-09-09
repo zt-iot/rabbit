@@ -175,9 +175,9 @@ and to_xml_atomic_stmt eng {Location.data=c; Location.loc=loc}  =
       Xml.Element ("a_stmt_call", [("mem_func_ref", string_of_int (eng_get_mem_fun eng f)); ("mem_func_name", f)], (to_xml_indexed_var v) :: (List.map (to_xml_expr eng) args))
     | Syntax.Syscall (v, ins, args) -> 
       Xml.Element ("a_stmt_instruction", [("ins_name", string_of_ins ins)], (to_xml_indexed_var v) :: (List.map (to_xml_expr eng) (List.map fst args)))
-    | Syntax.If (e, c1, c2) -> 
+    | Syntax.If (e1, e2, c1, c2) -> 
       Xml.Element ("a_stmt_ite", [],
-        [(Xml.Element("cond", [], [to_xml_expr eng e])) ; (Xml.Element("then", [], List.map (to_xml_stmt eng) c1)) ; (Xml.Element("else", [], List.map (to_xml_stmt eng) c2))])
+        [(Xml.Element("cond", [], [to_xml_expr eng e1])) ; (Xml.Element("cond", [], [to_xml_expr eng e2])) ; (Xml.Element("then", [], List.map (to_xml_stmt eng) c1)) ; (Xml.Element("else", [], List.map (to_xml_stmt eng) c2))])
     | Syntax.For (v, i, j, c) -> 
       Xml.Element ("a_stmt_for", [("from", string_of_int i) ; ("to", string_of_int j)], 
         
