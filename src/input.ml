@@ -60,7 +60,7 @@ and decl' =
   | DeclType of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident list * Name.ident list
   | DeclAttack of Name.ident list * Name.ident list
-  | DeclInit of Name.ident * expr
+  | DeclInit of Name.ident * expr option
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
   | DeclChan of Name.ident * Name.ident
   | DeclProc of Name.ident * (Name.ident list) * Name.ident * 

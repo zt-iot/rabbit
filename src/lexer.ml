@@ -10,10 +10,8 @@ let reserved = [
   ("type", TYPE) ;
   ("allow", ALLOW) ;
   ("attack", ATTACK) ;
-  ("init_const", INITCONST) ;
   ("filesys", FILESYS) ;
   ("channel", CHANNEL) ; 
-  ("transfer", TRANSFER) ; 
   ("path", PATH) ; 
   ("for", FOR) ; 
   ("process", PROCESS) ;
@@ -22,11 +20,6 @@ let reserved = [
   ("main", MAIN) ;
   ("return", RETURN) ; 
   ("data", DATA) ; 
-  ("eavesdrop", EAVESDROP) ; 
-  ("tamper", TAMPER) ; 
-  ("drop", DROP) ;
-  ("datagram", DATAGRAM) ; 
-  ("stream", STREAM) ; 
   ("skip", SKIP) ;
   ("let", LET) ;
   ("call", CALL) ; 
@@ -46,6 +39,9 @@ let reserved = [
   ("syscall", SYSCALL) ; 
   ("True", TRUE) ;
   ("load", LOAD) ;
+  ("fresh", FRESH) ;
+  ("const", CONST) ;
+  
   ]
 
 let name =
@@ -62,7 +58,7 @@ let float = [%sedlex.regexp? Opt '-', Opt ("0x" | "0X" | "0b" | "0B"), Plus hexd
 
 let symbolchar = [%sedlex.regexp?  ('!' | '$' | '%' | '&' | '*' | '+' | '-' | '.' | '/' | ':' | '<' | '=' | '>' | '?'  | '^' | '|' | '~')]
 
-let prefixop = [%sedlex.regexp? ( "snd" | "fst" | "fresh" | '~' | '?' | '!'), Star symbolchar ]
+let prefixop = [%sedlex.regexp? ( "snd" | "fst" | '~' | '?' | '!'), Star symbolchar ]
 let infixop0 = [%sedlex.regexp? ('=' | '<' | '>' | '|' | '&' | '$'), Star symbolchar]
 let infixop1 = [%sedlex.regexp? ('@' | '^'), Star symbolchar ]
 let infixop2 = [%sedlex.regexp? ('+' | '-'), Star symbolchar ]

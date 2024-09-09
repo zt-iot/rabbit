@@ -56,6 +56,16 @@ allow client_t filesys_t [ropen]
 allow attack channel_t [tampar]
 
 
+const sewon = 12 
+
+const sewon2 = 13
+
+const fresh sewon4
+
+const sewon3 = sewon2 
+
+const park = add (sewon4, sewon2)
+
 
 (***********)
 (** define channels and file systems *)

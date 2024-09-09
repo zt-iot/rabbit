@@ -92,7 +92,7 @@ type definition = {
    def_ext_attack  : (Name.ident *  (Name.ident list * Name.ident list * Name.ident list) * (Syntax.fact list * Syntax.fact list )) list ;
 
 
-   def_const   :  (Name.ident * Syntax.expr) list ;
+   def_const   :  (Name.ident * Syntax.expr option) list ;
                   (* const name, and its value *) 
    def_fsys    :  (Name.ident * Name.ident * Syntax.expr) list ;
                   (* file system name, path, and stored value *) 

@@ -56,7 +56,7 @@ and atomic_stmt_chan_sub c f t accesses =
       Location.locate ~loc:loc 
         (Syntax.For (iv, i, j, List.map (fun e -> stmt_chan_sub e f t accesses) c))
 
-let rec expr_const_sub e def = 
+(* let rec expr_const_sub e def = 
   let loc = e.Location.loc in
   match e.Location.data with
   | Syntax.Const s  -> snd (Context.def_get_const def s)
@@ -93,3 +93,4 @@ and atomic_stmt_const_sub c def =
       Location.locate ~loc:loc 
         (Syntax.For (iv, i, j, List.map (fun e -> stmt_const_sub e def) c))
 
+ *)

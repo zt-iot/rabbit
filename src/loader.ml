@@ -396,7 +396,7 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
 
   | Input.DeclInit (id, e) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 
-      let e' = process_expr ctx Context.lctx_init e in 
+      let e' = match e with | Some e -> Some (process_expr ctx Context.lctx_init e) | _ -> None in 
       (Context.ctx_add_const ctx id, pol, Context.def_add_const def (id, e'), sys, fst ps)
 
   | Input.DeclFsys (id, fl) ->

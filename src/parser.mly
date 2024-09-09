@@ -22,10 +22,10 @@
 
 (* constant tokens for rabbit *)
 %token SYSTEM LEMMA TYPE ALLOW ATTACK INITCONST FILESYS CONSTANT EQUATION INSTRUCTION DOT SYSCALL 
-%token CHANNEL TRANSFER PROCESS WITH FUNC MAIN RETURN 
-%token DATA READ WRITE SEND RECV EAVESDROP TAMPER DROP
-%token DATAGRAM STREAM SKIP LET CALL IF ELSE FOR IN RANGE AT INIT
-%token REQUIRES SATISFIES SATISFY EXTERNAL STRING RABBIT EXTRACE ALLTRACE PATH AMP PERCENT LOAD
+%token CHANNEL PROCESS WITH FUNC MAIN RETURN 
+%token DATA 
+%token SKIP LET CALL IF ELSE FOR IN RANGE AT INIT
+%token REQUIRES SATISFIES SATISFY EXTERNAL STRING RABBIT EXTRACE ALLTRACE PATH AMP PERCENT LOAD FRESH CONST 
 
 (* temporal logic *)
 %token TRUE
@@ -63,13 +63,16 @@ plain_decl:
   | ALLOW ATTACK t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAttack(t,a)}  
   | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t,a)} 
 
-  | INITCONST t=NAME EQ e=expr SEMICOLON { DeclInit(t,e) }
+  
   | FILESYS t=NAME EQ LBRACKET f=separated_nonempty_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
     LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
   | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
 
+  | CONST t=NAME EQ e=expr { DeclInit(t,Some e) }
+  | CONST FRESH t=NAME { DeclInit(t,None) }
+  
   | external_syscall { $1 }
   | external_attack { $1 }
 
@@ -156,15 +159,6 @@ type_c:
   | FILESYS { CFsys }
   | PROCESS { CProc }
   | CHANNEL { CChan }
-
-attack_c:
-  | EAVESDROP { CEaves }
-  | TAMPER { CTamper }
-  | DROP { CDrop }
-
-chan_c:
-  | DATAGRAM { CDatagram }
-  | STREAM { CStream }
 
 expr : mark_location(plain_expr) { $1 }
 plain_expr:

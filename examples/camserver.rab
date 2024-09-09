@@ -1,86 +1,129 @@
-load systems
+(* Very Simple RAB file for computing 4 *)
 
-external function plus:2
-external function minus:1
-external function zero:0
-external constant one
-external constant two
-external constant three
-equation plus(one, zero) = one
-equation one = zero
+load "theory.rab"
+load "udp.rab"
 
-(* define external function as 
-	external function fname:arity *)
+(* syscall on channels *)
 
-external function fd:1
+(** asynchronous channels *)
+syscall send_async(channel c, v) 
+  : [] -> [c:store(v)]
+syscall recv_async(channel c) return v 
+  : [c:store(v)] -> [] 
 
-(*  Predefined facts for external functions: 
-		- File(x, d): path x stores data d 
-		- Store(x, d): variable x stores data d *)
+(** asynchronous channels *)
+syscall connect(channel c)
+  : [] -> [ask(c)] 
+ => [accept(c)] -> [connect(c)]
+syscall accept(channel c)
+  : [ask(c)] -> [accept(c)] 
+ => [connect(c)] -> [connect(c)]
+syscall send_sync(channel c, v)
+  : [connect(c)] -> [connect(c), dataa(c, v)] 
+ => [receipt(c)] -> []
+syscall recv_sync(channel c) return v
+  : [connect(c), dataa(c, v)] -> [connect(c), receipt(c)] 
 
-(* some external instruction better suits prelude: prelude.rabbit *)
-(* 
-external syscall open(x) : [File(x, d), Fr(y)] => [return y : Fd(x, y), File(x, d)] 
-external syscall read(x) : [Fd(y, x), File(y, d)] =>  [return d : Fd(y, x), File(y, d)]
-external syscall write(x, d) : [Fd(y, x), File(y, _)] => [Fd(y, x), File(y, d)]
-external syscall close(x) : [Fd(y, x), File(y, d)] => [File(y, d)] 
-*)
+(* filesys *)
+syscall open (path p, v) return x 
+  : [&Fr(x)] -> [p.fd(x)]  
+syscall read (path p) return x 
+  : [p.File(x)] -> [p.File(x)] 
 
-(* example external instructions: *)
-(* 
-external instruction take_picture(y) : [Fd(y, z), File(z, _)] => [Fd(y, z), File(z, (fresh d))]
-external instruction read_picture(y) : [Fd(y, z), File(z, _)] => [return fresh n : ]
-external instruction make_nonce() : [] => [return fresh n : ]
-*)
 
-type mytype: filesys
-type mytype2: process
-type mytype6: process
-type mytype7: channel
+(* attacker model *)
+attack tampar_ch (channel c) : [c:store(v), In(w)] -> [c:store(w)]
+attack eaves_ch  (channel c) : [c:store(v)]  	   -> [c:store(v), Out(v)]
+attack drop_ch   (channel c) : [c:store(v)] 	   -> []
 
-init_const sewon = zero;
 
-channel mychan1 = {
-	transfer: stream, type: mytype7
-}
+(***********)
+(** declare types with their classes *)
+type read_only 	  : filesys
 
-channel mychan2 = {
-	transfer: stream, type: mytype7
-}
+type server_t 	  : process
+type client_t 	  : process
+type client_tee_t : process
 
-channel mychan3 = {
-	transfer: stream, type: mytype7
-}
+type sync_t 	  : channel
+type async_t 	  : channel
 
-allow mytype2 mytype7 [send, recv]
+(***********)
+allow client_t async_t [send_async]
+allow server_t async_t [recv_async]
 
-filesys test = [
-	{path: haha1, data: zero, type: mytype},
-	{path: haha2, data: zero, type: mytype},
-	{path: haha3, data: zero, type: mytype}
-	]
+allow client_t sync_t 	   [connect, accept, recv_sync, send_sync]
+allow client_tee_t sync_t  [connect, accept, recv_sync, send_sync]
 
-process testtest(a, b, c) with mytype2 {
-	let e = one ; 
-	let d = a;
-	let rabbit = one;
+allow client_t filesys_t [open, read]  
 
-	function test2 (s, j){
-		skip @ Test(d);	
-		let k = d @ Test2(d); 
-		let y = send(a, k);
-		return j;
-	}
 
-	function test3 (jjj, jjjj){
-		let x = test2(jjj, jjj) @ Test3(jjj);
-		return x ; 
-	}
+(***********)
+allow attack sync_t [tampar]
+allow attack async_t [tampar]
 
+
+
+(***********)
+channel udp : async_t
+channel rcp : sync_t
+
+
+filesys camera = 
+  [ 
+    {path: "some/path", data: public, type: read_only},
+    {path: "some/path", data: private, type: read_only},
+
+  ]
+
+
+(***********)
+(** define process templates *)
+process client(c) with client_t {
+	let mytwo = add(ichi, ichi) ; 
+	let rabbit = ichi;
 	main {
-	skip;
-	}
+		for i in range(3, 5)
+		{
+			skip;
+		}
 
+		let _ = send_udp(c, mytwo) @ Querying();
+		let four = recv_udp(c) @ Computed(four);
+	}
 }
 
-system testtest(mychan1,mychan2,mychan2) with test requires [lemma a : True]
+process server(c) with server_t {
+	function double (x1, x2){
+		let y = add (x1, x1) @ Doubling(x1);
+		return y;
+	}
+	main {
+		skip;
+		let x = recv_udp(c) @ Receiving(x); 
+		if (x = add(ichi, ichi))
+		{
+		let y = x; 
+		let z = x;
+		let double_x = double(x, x); 
+		let _ = send_udp(c, double_x);
+		}
+		else 
+		{
+		skip;
+		}
+		skip;
+	}
+}
+
+
+(***********)
+(** realize a system *)
+system client(decent_channel) with boring_filesys
+||     server(decent_channel) with boring_filesys
+requires  [
+  lemma Reachability1 :
+    exists-trace "Ex x #j  . Computed(x) @ #j" ;
+  lemma Reachability2 :
+    exists-trace "Ex #j  . Computed(add(add(ichi, ichi), add(ichi,ichi))) @ #j" 
+    ]
