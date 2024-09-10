@@ -28,7 +28,7 @@ let rec expr_chan_sub e f t accesses =
   | Syntax.Channel (s, o) -> 
     if s = f then 
     begin
-      if List.exists (fun y -> o = y) accesses then () else error ~loc (AccessError o) ;
+      (* if List.exists (fun y -> o = y) accesses then () else error ~loc (AccessError o) ; *)
       Location.locate ~loc:loc (Syntax.Channel (t, o)) 
     end else e 
   | Syntax.FrVariable _ -> e

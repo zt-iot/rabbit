@@ -1,10 +1,10 @@
 open Parser
 
 let reserved = [
-  ("false", BOOLEAN false) ;
+  (* ("false", BOOLEAN false) ; *)
   ("skip", SKIP) ;
   ("then", THEN) ;
-  ("true", BOOLEAN true) ;
+  (* ("true", BOOLEAN true) ; *)
   ("system", SYSTEM) ;
   ("lemma", LEMMA) ; 
   ("type", TYPE) ;
@@ -58,7 +58,7 @@ let float = [%sedlex.regexp? Opt '-', Opt ("0x" | "0X" | "0b" | "0B"), Plus hexd
 
 let symbolchar = [%sedlex.regexp?  ('!' | '$' | '%' | '&' | '*' | '+' | '-' | '.' | '/' | ':' | '<' | '=' | '>' | '?'  | '^' | '|' | '~')]
 
-let prefixop = [%sedlex.regexp? ( "snd" | "fst" | '~' | '?' | '!'), Star symbolchar ]
+let prefixop = [%sedlex.regexp? ('~' | '?' | '!'), Star symbolchar ]
 let infixop0 = [%sedlex.regexp? ('=' | '<' | '>' | '|' | '&' | '$'), Star symbolchar]
 let infixop1 = [%sedlex.regexp? ('@' | '^'), Star symbolchar ]
 let infixop2 = [%sedlex.regexp? ('+' | '-'), Star symbolchar ]

@@ -10,7 +10,7 @@
 
 
 type to_tamarin_error =
-	| UnintendedError 
+	| UnintendedError of string
 	| NotSupportedYet 
 
 exception Error of to_tamarin_error Location.located
@@ -21,7 +21,7 @@ let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 (** Print error description. *)
 let print_error err ppf =
   match err with
-  | UnintendedError -> Format.fprintf ppf "Unintended Error: contact the developer."
+  | UnintendedError s -> Format.fprintf ppf "Unintended Error: contact the developer. hint: %s" s
   | NotSupportedYet -> Format.fprintf ppf "This feature is not supported yet."
 
 
@@ -81,8 +81,8 @@ let rec print_expr prt e =
 	match e with
 	| Var s -> s 
 	| Apply (s, el) -> s ^ "(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")"
-	| String s -> "\'"^(replace_string '/' prt.prt_sep s)^"\'"
-	| Integer i -> string_of_int i
+	| String s -> "\'rabbit" ^ prt.prt_sep ^ (replace_string '/' prt.prt_sep s)^"\'"
+	| Integer i -> "\'"^string_of_int i^"\'"
 	| List el -> 
 		match el with
 		| [] -> "\'rabbit"^prt.prt_sep^"\'"
@@ -91,9 +91,9 @@ let rec print_expr prt e =
 
 let print_signature prt (fns, eqns) = 
 	let print_functions fns = 
-	"functions: "^(mult_list_with_concat (List.map (fun (f, ar) -> f ^"/"^(string_of_int ar)) fns) ", ") ^"\n" in 
+	(if List.length fns = 0 then "" else "functions: ")^(mult_list_with_concat (List.map (fun (f, ar) -> f ^"/"^(string_of_int ar)) fns) ", ") ^"\n" in 
 	let print_equations eqns = 
-	"equations: "^(mult_list_with_concat (List.map (fun (e1, e2) -> (print_expr prt e1)^"="^(print_expr prt e2)) eqns) ", ") ^"\n" in 
+	(if List.length eqns = 0 then "" else "equations: ")^(mult_list_with_concat (List.map (fun (e1, e2) -> (print_expr prt e1)^"="^(print_expr prt e2)) eqns) ", ") ^"\n" in 
 	(print_functions fns) ^ (print_equations eqns)
 
 let print_rule2 prt (f, pre, label, post) = 
@@ -176,22 +176,27 @@ let eng_state eng =
 	eng.namespace ^ 
 	(if eng.scope = "" then "" else eng.sep ^ eng.scope) ^ 
 	(if eng.index = 0 then "" else eng.sep ^ string_of_int (eng.index - 1)) ^ 
-	if List.length eng.mode = 0 then "" else eng.sep ^mult_list_with_concat (List.rev eng.mode) eng.sep
+	if List.length eng.mode = 0 then "" else eng.sep ^
+	mult_list_with_concat (List.rev eng.mode) eng.sep
 
 let eng_add_var eng v =
    match eng.lctx with 
    | f::frames -> {eng with lctx=(v::f)::frames}
-   | _ -> error ~loc:Location.Nowhere (UnintendedError)
+   | _ -> error ~loc:Location.Nowhere (UnintendedError "adding var to translation engine")
 
 let eng_add_frame eng = {eng with lctx=([]::eng.lctx)}
 
 let eng_pop_frame eng = 
    match eng.lctx with 
    | f::frames -> {eng with lctx=frames}
-   | _ -> error ~loc:Location.Nowhere (UnintendedError)
+   | _ -> error ~loc:Location.Nowhere (UnintendedError "popping a frame")
 
 let eng_inc_index eng =
 	{eng with index=eng.index+1}      
+
+let eng_set_index eng n =
+	{eng with index=n}      
+
 
 let eng_lctx_back eng = 
 	List.map (fun s -> if s = "" then String (eng_get_fresh_string eng) else Var s) (List.hd (List.rev eng.lctx))
@@ -200,7 +205,7 @@ let eng_set_scope eng s =
 	{eng with scope=s ; index = 0}
 
 let eng_set_namespace eng n = 
-	{eng with namespace=mk_fact_name n ; scope = "" ; index = 0 ; lctx = [[]]}
+	{eng with namespace=mk_fact_name n ; scope = "" ; index = 0 ; lctx = [[]] ; mode=[]}
 
 let eng_set_sep eng sep = 
 	{eng with sep=sep}
@@ -215,18 +220,20 @@ let eng_suffix eng s v =
 let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=loc} = 
    let translate_expr' = function
 	| Syntax.ExtConst s -> Apply (s, [])
-	| Syntax.Const s -> error ~loc UnintendedError
+	| Syntax.Const s -> error ~loc (UnintendedError ("translating constant " ^ s))
 	| Syntax.Variable (v, i,j,k) -> Var v
-	| Syntax.Boolean b -> error ~loc UnintendedError
+	| Syntax.Boolean b -> error ~loc (UnintendedError "translating boolean")
 	| Syntax.String s -> String s
-	| Syntax.Integer z -> error ~loc UnintendedError
-	| Syntax.Float f -> error ~loc UnintendedError
+	| Syntax.Integer z -> error ~loc (UnintendedError "translating Integer")
+	| Syntax.Float f -> error ~loc (UnintendedError "translating float")
 	| Syntax.Apply (o, el) -> Apply (o, List.map (translate_expr ~ch:ch) el)
-	| Syntax.Tuple el -> error ~loc UnintendedError
+	| Syntax.Tuple el -> 
+		List (List.map (translate_expr ~ch:ch) el)
+
 	| Syntax.Channel (c, l) -> if ch then Var c else String c
 	| Syntax.Process v -> Var v
 	| Syntax.Path v -> Var v
-	| Syntax.FrVariable v -> error ~loc UnintendedError
+	| Syntax.FrVariable v -> error ~loc (UnintendedError "translating free var")
   in translate_expr' e
 
 let rec translate_expr2 ?(ch=false) {Location.data=e; Location.loc=loc} = 
@@ -234,20 +241,25 @@ let rec translate_expr2 ?(ch=false) {Location.data=e; Location.loc=loc} =
 	| Syntax.ExtConst s -> Apply (s, []), []
 	| Syntax.Const s -> Var s, [s]
 	| Syntax.Variable (v, i,j,k) -> Var v, []
-	| Syntax.Boolean b -> error ~loc UnintendedError
+	| Syntax.Boolean b -> error ~loc (UnintendedError "translating boolean")
 	| Syntax.String s -> String s, []
 	| Syntax.Integer z -> Integer z, []
-	| Syntax.Float f -> error ~loc UnintendedError
+	| Syntax.Float f -> error ~loc (UnintendedError "translating float")
 	| Syntax.Apply (o, el) -> 
 		let (el, sl) = List.fold_left (fun (el, sl) e -> 
 			let e, s = translate_expr2 ~ch:ch e in 
 				(el @ [e], sl @ s)) ([], []) el in 
 		Apply (o, el), sl
-	| Syntax.Tuple el -> error ~loc UnintendedError
+	| Syntax.Tuple el -> 
+			let (el, sl) = List.fold_left (fun (el, sl) e -> 
+			let e, s = translate_expr2 ~ch:ch e in 
+				(el @ [e], sl @ s)) ([], []) el in 
+		List el, sl
+
 	| Syntax.Channel (c, l) -> if ch then Var c, [] else String c, []
 	| Syntax.Process v -> Var v, []
 	| Syntax.Path v -> Var v, []
-	| Syntax.FrVariable v -> error ~loc UnintendedError
+	| Syntax.FrVariable v -> error ~loc (UnintendedError "translating free var")
   in translate_expr2' e
 
 
@@ -261,7 +273,7 @@ let rec translate_stmt eng (t : tamarin)  {Location.data=c; Location.loc=loc} =
   		(eng, (sign, Rule (n, pre, 
   			List.map (fun ev -> match ev.Location.data with Syntax.Event(id, el) -> (mk_fact_name id, List.map translate_expr el, false)) el 
   		, post) :: rules))
-  	| [] -> error ~loc UnintendedError 
+  	| [] -> error ~loc (UnintendedError  "empty rule")
   	
 and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Location.loc=loc} =
   let translate_atomic_stmt' (eng : engine) (t : tamarin) c = 
@@ -280,7 +292,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 		)
 	| Syntax.Let ((v, vi,vj,vk), e) -> 
 		let e, gv = translate_expr2 e in  
-		let gv = List.map (fun s -> ("Cosnt"^eng.sep, [String s ; Var s], true)) gv in 
+		let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], true)) gv in 
 		(eng_add_var eng_f v,
 			add_rule t (state_i, 
 									[("Frame", [String namespace; String state_i ; (List (eng_var_list eng))], false)]  @ gv , 
@@ -292,7 +304,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 		let (el, gv) = List.fold_left (fun (el, sl) e -> 
 			let e, s = translate_expr2 e in 
 				(el @ [e], sl @ s)) ([], []) args in 
-		let gv = List.map (fun s -> ("Cosnt"^eng.sep, [String s ; Var s], true)) gv in 
+		let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], true)) gv in 
 
 
 		let eng_f = eng_add_var eng_f v in 
@@ -315,7 +327,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 		let (el, gv) = List.fold_left (fun (el, sl) (e, ty) -> 
 			let e, s = translate_expr2 e in 
 				(el @ [ match ty with |Input.TyPath -> List [String (eng_get_filesys eng) ; e]|_ ->  e ], sl @ s)) ([], []) args in 
-		let gv = List.map (fun s -> ("Cosnt"^eng.sep, [String s ; Var s], true)) gv in 
+		let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], true)) gv in 
 
 
 		let eng_f = eng_add_var eng_f v in 
@@ -328,16 +340,16 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 
 		let t = add_rule t (eng_state (eng_set_mode eng "out"), 
 			[(eng_state (eng_set_mode eng "wait"), eng_var_list eng, false) ; 
-			(eng_state (eng_set_mode (eng_set_namespace eng f) "return"), [(String eng.namespace) ; (match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v) ], false)], [], 
+			(eng_state (eng_set_index (eng_set_mode (eng_set_namespace eng f) "return") 0), [(String eng.namespace) ; (match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v) ], false)], [], 
 			[("Frame", [String namespace; String state_f ; (List (eng_var_list eng_f))], false)]) in
 		(eng_f, t)
 
 	| Syntax.If (e1, e2, c1, c2) -> 
 		let e1, gv1 = translate_expr2 e1 in  
-		let gv1 = List.map (fun s -> ("Cosnt"^eng.sep, [String s ; Var s], true)) gv1 in 
+		let gv1 = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], true)) gv1 in 
 
 		let e2, gv2 = translate_expr2 e2 in  
-		let gv2 = List.map (fun s -> ("Cosnt"^eng.sep, [String s ; Var s], true)) gv2 in 
+		let gv2 = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], true)) gv2 in 
 
 		let eng_then = eng_set_mode eng "then" in
 		let eng_else = eng_set_mode eng "else" in
@@ -400,7 +412,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 
 
 
-	| _ -> error ~loc UnintendedError
+	(* | _ -> error ~loc UnintendedError *)
 in translate_atomic_stmt' eng t c 
 
 let translate_syscall eng t (f, ty_args, (ch_vars, path_vars), meta_vars, rules, ret) = 
@@ -425,7 +437,7 @@ let translate_syscall eng t (f, ty_args, (ch_vars, path_vars), meta_vars, rules,
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
 	| Syntax.PathFact (scope, s, el) -> 
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
-	| _ -> error ~loc:Nowhere UnintendedError
+	| _ -> error ~loc:Nowhere (UnintendedError "unexpected fact in syscall")
 	in
 	let (_, _, t) = List.fold_left (fun (eng, i, t) (pre, post) -> 
 		if i = List.length rules - 1 then
@@ -481,7 +493,7 @@ let translate_attack eng t (f, (ch_vars, path_vars, process_vars), (pre, post)) 
 		| TyPath -> 	
  *)(* 		| TyProcess -> 	
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
- *)		| _ -> error ~loc:Nowhere UnintendedError
+ *)		| _ -> error ~loc:Nowhere (UnintendedError "unexpected fact in attack")
 	in
 
 	add_rule t (mk_fact_name f, acp_facts @ (List.map translate_fact pre), [],  (List.map translate_fact post))
@@ -524,7 +536,7 @@ let translate_process eng t {
 		let state_f = eng_state eng_f in
 
 		let e, gv = translate_expr2 e in  
-		let gv = List.map (fun s -> ("Cosnt"^eng.sep, [String s ; Var s], true)) gv in 
+		let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], true)) gv in 
 		let t = add_rule t (state_f, 
 									[("Frame", [String namespace; String state_i; List (eng_var_list eng)], false)] @ gv, 
 									[], 
@@ -614,7 +626,7 @@ let translate_sys {
 		| None -> (* when v is fresh *) add_rule t ("Const"^eng.sep^v, [("Fr", [Var v], false)], [], [("Const"^eng.sep, [String v ; Var v], true)])
 		| Some e -> (* when v is defined *) 
 			let e, gv = translate_expr2 e in  
-			let gv = List.map (fun s -> ("Cosnt"^eng.sep, [String s ; Var s], true)) gv in 
+			let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], true)) gv in 
 			add_rule t ("Const"^eng.sep^v, gv, [], [("Const"^eng.sep, [String v ; e], true)])) t (List.rev def.Context.def_const) in
 
 (* initialize files *)
@@ -622,11 +634,13 @@ let translate_sys {
 	let t = add_comment t "initial file system:" in
 	let t, il = List.fold_left (fun (t, il) (fsys, path, e) ->
 		(* let path = (mk_dir eng fsys path) in *)
+		let e, gv = translate_expr2 e in  
+		let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], true)) gv in 
 		let name = mk_fact_name  fsys^ replace_string '/' eng.sep path ^ eng.sep ^"init" in 
 		add_rule t (name, 
-									[],
+									gv,
 									[(name, [], false)],
-									[("File", [List [String fsys; String path] ; translate_expr e], false)]), name::il) (t, []) def.Context.def_fsys in 
+									[("File", [List [String fsys; String path] ; e], false)]), name::il) (t, []) def.Context.def_fsys in 
 
 let t = add_comment t "access control:" in
 (* access control *)
@@ -685,6 +699,6 @@ let t = add_comment t "attacker policy:" in
 
 	let init_list = init_list @ il in 
 
-	(t, init_list, lem), {prt_sep=eng.sep}
+	(t, init_list, lem), {prt_sep=eng.sep;}
 
 

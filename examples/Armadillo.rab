@@ -1,4 +1,7 @@
-
+function pk:1
+function enc:2
+function sign:2
+function dec:2
 
 init_const k_mac_init = fresh();
 init_const k_enc_init = fresh();
