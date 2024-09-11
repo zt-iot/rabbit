@@ -1,4 +1,153 @@
 
+(* 
+(* security primitives *)
+function pk:1
+function enc:2
+function sign:2
+function dec:2
+function pair:2
+function verify:3
+
+function fst:1
+function snd:1
+function test:0
+function true:0
+
+(* syscall on channels *)
+
+(** asynchronous channels *)
+syscall send(channel c, v) 
+  : [] -> [c:store(v)]
+syscall recv(channel c) return v 
+  : [c:store(v)] -> [] 
+
+(** synchronous rpc channel *)
+
+syscall connect_rpc (channel c) return x
+  : [] -> [c:ask()] 
+ => [c:accept(), &Fr(x)] -> [c:connect(), chid(c, x)]
+
+syscall invoke_rpc (channel c, f, args) return x
+  	: [c:connect()] -> [c:invoke(f, args), c:connect()]
+	=>[c:returned(x)] -> []
+
+syscall close_rpc (i)
+	: [c:connect(), chid(c, i)] -> [c:close()]
+
+syscall accept_rpc (channel c)
+	: [c:ask()] -> [c:accept()] 
+	=>[c:invoke(f, args)] -> [c:returned(test)]
+	=>[c:close()] ->[]
+
+	(* => ! ([c:invoke(f, args)] -> [connect(c)] || [c:close()] -> []) *)
+
+
+(* filesys *)
+syscall fopen (path p) return x 
+  : [&Fr(x)] -> [p.fd(x)]  
+
+syscall fread (y) return x 
+  : [p.File(x), p.fd(y)] -> [p.File(x), p.fd(y)] 
+
+syscall fclose (y)
+  : [p.File(x), p.fd(y)] -> [p.File(x)] 
+
+
+(* attacker model *)
+attack tampar_ch (channel c) : [c:store(v), In(w)] -> [c:store(w)]
+attack eaves_ch  (channel c) : [c:store(v)]  	   -> [c:store(v), Out(v)]
+attack drop_ch   (channel c) : [c:store(v)] 	   -> []
+
+
+(***********)
+(** declare types with their classes *)
+type read_only 	  : filesys
+
+type server_t 	  : process
+type client_t 	  : process
+type client_ta_t  : process
+
+type sync_t 	  : channel
+type async_t 	  : channel
+
+(***********)
+allow client_t async_t [send]
+allow server_t async_t [recv]
+
+allow client_t sync_t 	   [connect_rpc, invoke_rpc, close_rpc]
+allow client_ta_t sync_t  [accept_rpc]
+
+allow server_t read_only [fopen, fread, fclose]  
+allow client_t read_only [fopen, fread, fclose]  
+allow client_ta_t read_only [fopen, fread, fclose]  
+
+(***********)
+(*
+allow attack sync_t [tampar]
+allow attack async_t [tampar]
+*)
+
+(***********)
+const fresh priv_k
+const fresh sym_k
+const fresh init_data
+
+
+(***********)
+channel udp : async_t
+channel rpc : sync_t
+
+(***********)
+filesys client_fs = 
+  [ 
+    {path: "/dev/camera", data: init_data, type: read_only}
+  ]
+
+filesys server_fs = 
+  [ 
+    {path: "/secret/pub", data: pk(priv_k), type: read_only}
+  ]
+
+filesys client_ta_fs = 
+  [ 
+    {path: "/secret/priv", data: enc(priv_k, sym_k), type: read_only}
+  ]
+
+(***********)
+process client(ch_rpc) with client_t 
+{  
+	main 
+  	{
+  		let f = fopen("/dev/camera");
+  		let d = fread(f);
+		let conn = connect_rpc(ch_rpc)  ;
+  		let sig = invoke_rpc(ch_rpc, init_data, (init_data, init_data));
+    	let _ = close_rpc(conn) @ Test();
+  	}
+}
+
+process client_ta(ch_rpc) with client_ta_t 
+{
+	let fek = sym_k;
+  	main 
+  	{
+    	let conn = accept_rpc(ch_rpc);
+  	}
+}
+
+
+(***********)
+system 
+	client(rpc) with client_fs
+||	client_ta(rpc) with client_ta_fs
+requires  [
+  lemma Reachability1 :
+    exists-trace "Ex #j  . Test() @ #j" 
+    ]
+*)
+
+
+
 (* security primitives *)
 function pk:1
 function enc:2
@@ -121,14 +270,11 @@ process client(ch_net, ch_rpc) with client_t
 
 	main 
   	{
-		let image_fd = fopen(dev_path);
-		let conn = connect_rpc(ch_rpc);
-		for i in range(1, 4) 
-		{
-			let image = fread(image_fd);
-      		let sig = invoke_rpc(ch_rpc, invoke_func, (image, privkey_path));
-      		let _ = send(ch_net, (sig, image)) @ ImgSend(image);
-    	}
+		let image_fd = fopen(dev_path) @ A();
+		let conn = connect_rpc(ch_rpc) @ B();
+		let image = fread(image_fd) @ C();
+      	let sig = invoke_rpc(ch_rpc, invoke_func, (image, privkey_path)) ;
+      	let _ = send(ch_net, (sig, image)) @ ImgSend(image);
     	let _ = fclose(image_fd);
     	let _ = close_rpc(conn);
   	}
@@ -168,8 +314,6 @@ process server(ch_net) with server_t
 	{
 	    let pubkey_fd = fopen(pubkey_path);
 	    let pubkey = fread(pubkey_fd);
-	    for i in range(1, 4) 
-	    {
 			let p = recv(ch_net);
 			let res = verify(fst(p), snd(p), pubkey);
 			if (res = true) 
@@ -180,7 +324,7 @@ process server(ch_net) with server_t
       		{
         		skip @ ImgRecvInvalid(snd(p));
       		}
-    	}
+    	
     	let _ = fclose(pubkey_fd);
   	}
 }
@@ -193,5 +337,12 @@ system
 ||	client_ta(rpc) with client_ta_fs
 requires  [
   lemma Reachability1 :
-    exists-trace "Ex x #j  . ImgRecvInvalid(x) @ #j" 
+    exists-trace "Ex #j  . A() @ #j" ;
+      lemma Reachability2 :
+    exists-trace "Ex #j  . B() @ #j"  ;
+  lemma Reachability3 :
+    exists-trace "Ex #j  . C() @ #j" 
     ]
+
+
+    

@@ -441,6 +441,7 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
             if not (Context.ctx_check_proctmpl ctx pid) then error ~loc (UnknownIdentifier pid) else
             if not (Context.ctx_check_fsys ctx fsys) then error ~loc (UnknownIdentifier fsys) else
             let (_, cargs, ptype, _, _) = Context.to_pair_ctx_proctmpl (Context.ctx_get_proctmpl ctx pid) in
+            let cargs = List.rev cargs in 
             let (_, vl, fl, m) = Context.to_pair_def_proctmpl (Context.def_get_proctmpl def pid) in
             let fpaths = List.fold_left (fun fpaths (fsys', path, ftype) -> if fsys = fsys' then (path, ftype) :: fpaths else fpaths) [] ctx.Context.ctx_fsys in 
             let fpaths = List.map (fun (path, ftype) -> 
@@ -451,16 +452,18 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
                                        if s = ptype && List.exists (fun s -> s = ftype) t then a :: accs else accs) [] pol.Context.pol_access in
                                     let attks = List.fold_left (fun attks (t, a) -> 
                                        if t = ftype then a :: attks else attks) [] pol.Context.pol_attack in
-                                    (path,v,accs, attks)) fpaths in 
+                                    (path,v,accs, attks)) fpaths in
+            (* substitute channels *)
             if (List.length cargs) !=  (List.length chans) then error ~loc (ArgNumMismatch (pid, (List.length chans), (List.length cargs)))
             else
                let (chs, vl, fl, m) = List.fold_left2 
                   (fun (chs, vl, fl, m) ch_f ch_t -> 
+                     (* print_string (ch_f ^ " to "^ch_t^"\n") ; *)
                      if Context.ctx_check_ch ctx ch_t then 
                         let (_, chan_ty) = List.find (fun (s, _
                         ) -> s = ch_t) ctx.Context.ctx_ch in  
                         let accesses = List.fold_left (fun acs (f', t', ac) -> if f' = ptype && List.exists (fun s -> s = chan_ty) t' then ac::acs else acs) [] pol.Context.pol_access in 
-                        (* !replace channel variables and check access policies! *)
+                        (* replace channel variables and check access policies! *)
                         (
                            (if List.exists (fun (ch_t', _,  _) -> ch_t = ch_t') chs then chs else
                            (ch_t, accesses,
