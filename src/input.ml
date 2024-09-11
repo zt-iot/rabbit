@@ -51,11 +51,18 @@ type lemma = lemma' Location.located
 and lemma' =
   | Lemma of Name.ident * prop 
 
+type complex_rule = complex_rule' Location.located
+and complex_rule' = 
+  | CRule of (fact list * fact list) 
+  | CRulePar of complex_rule * complex_rule
+  | CRuleRep of complex_rule 
+  | CRuleSeq of complex_rule * complex_rule 
+
 type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int
   | DeclExtEq of expr * expr
-  | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * (fact list * fact list) list * expr option
+  | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * complex_rule * expr option
   | DeclExtAttack of Name.ident * (arg_type * Name.ident) * (fact list * fact list) 
   | DeclType of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident list * Name.ident list

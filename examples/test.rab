@@ -27,7 +27,7 @@ syscall connect_rpc (channel c) return x
 
 syscall invoke_rpc (channel c, f, args) return x
   	: [c:connect()] -> [c:invoke(f, args), c:connect()]
-	=>[c:hearback(x)] -> []
+	=>[c:returns(x)] -> []
 
 syscall close_rpc (i)
 	: [c:connect(), chid(c, i)] -> [c:close()]
@@ -35,7 +35,7 @@ syscall close_rpc (i)
 syscall accept_rpc (channel c)
 	: [c:ask()] -> [c:accept()] 
 	=>
-	{!{[c:invoke(f, args)] -> [run(f, args)] => [returned(f, x)] -> [c:hearback(x)]}
+	{!{[c:invoke(f, args)] -> [run(f, args)] => [returned(f, x)] -> [c:returns(x)]}
 	||  [c:close()] -> []}
 
 
@@ -114,48 +114,31 @@ filesys client_ta_fs =
   ]
 
 (***********)
-process client(ch_net, ch_rpc) with client_t 
+process client(ch_rpc) with client_t 
 {  
-	let dev_path = "/dev/camera";
-	let privkey_path = "/secret/priv";
-	let invoke_func = "sign_image";
+	let a = "a";
+	let b = "b";
 
 	main 
   	{
-		let image_fd = fopen(dev_path) @ A();
 		
-		let conn = connect_rpc(ch_rpc) @ B();
-		
-		let image = fread(image_fd) @ C();
+			let conn = connect_rpc(ch_rpc) @ B();
       	
-      	let sig = invoke_rpc(ch_rpc, invoke_func, (image, privkey_path)) @Got(sig);
-      	
-      	let _ = send(ch_net, (sig, image)) @ ImgSend(image);
-    	
-    	let _ = fclose(image_fd);
-    	
-    	let _ = close_rpc(conn);
+  		let sig = invoke_rpc(ch_rpc, "sewon", (a, b)) @ Got(sig);
+ 	    	
+	  	let _ = close_rpc(conn);
   	}
 }
 
 process client_ta(ch_rpc) with client_ta_t 
 {
-	let fek = sym_k;
+	let c = "c";
 
-  	function sign_image(image, privkey_path) 
+  	function sewon(a, b) 
   	{
-	    
-	    let privkey_fd = fopen(privkey_path);
-	    
-	    let privkey = fread(privkey_fd);
-	    
-	    let privkey0 = dec(privkey, fek);
-	    
-	    let sig = sign(image, privkey0);
-	    
-	    let _ = fclose(privkey_fd);
-	 
-	    return sig;
+  		let d = pair(a, b); 
+  		let e = pair (c, d);
+	    return e;
 	}
   
   	main 
@@ -164,42 +147,15 @@ process client_ta(ch_rpc) with client_ta_t
   	}
 }
 
-process server(ch_net) with server_t 
-{
-	let pubkey_path = "/secret/pub";
-  
-	main 
-	{
-	    let pubkey_fd = fopen(pubkey_path);
-	    let pubkey = fread(pubkey_fd);
-			let p = recv(ch_net);
-			let res = verify(fst(p), snd(p), pubkey);
-			if (res = true) 
-			{
-        		skip @ ImgRecvValid(snd(p));
-      		} 
-      		else 
-      		{
-        		skip @ ImgRecvInvalid(snd(p));
-      		}
-    	
-    	let _ = fclose(pubkey_fd);
-  	}
-}
-
-
 (***********)
 system 
-	client(udp, rpc) with client_fs
-||	server(udp) with server_fs
+	client(rpc) with client_fs
 ||	client_ta(rpc) with client_ta_fs
 requires  [
-  lemma Reachability1 :
-    exists-trace "Ex #j  . A() @ #j" ;
       lemma Reachability2 :
     exists-trace "Ex #j  . B() @ #j"  ;
   lemma Reachability3 :
-    exists-trace "Ex #j  . Got(test()) @ #j" 
+    exists-trace "Ex x #j  . Got(x) @ #j" 
     ]
 
 

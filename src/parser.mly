@@ -17,7 +17,7 @@
 %token EQ COLONEQ
 %token COMMA SEMICOLON
 %token COLON 
-%token BBAR 
+%token BBAR BANG
 %token DARROW ARROW INT BOOL THEN UNDERSCORE
 
 (* constant tokens for rabbit *)
@@ -34,6 +34,10 @@
 %token EOF
 
 (* Precedence and fixity of infix operators *)
+%right     BBAR
+%right     DARROW
+%left      BANG
+
 %left     INFIXOP0
 %right    INFIXOP1
 %left     INFIXOP2
@@ -72,7 +76,7 @@ plain_decl:
 
   | CONST t=NAME EQ e=expr { DeclInit(t,Some e) }
   | CONST FRESH t=NAME { DeclInit(t,None) }
-  
+
   | external_syscall { $1 }
   | external_attack { $1 }
 
@@ -84,9 +88,20 @@ external_functions:
 
 external_syscall:
   |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr COLON 
-    r=separated_nonempty_list(DARROW, rule) { DeclExtSyscall(f, parems, r, Some ret) }
+    r=complex_rule { DeclExtSyscall(f, parems, r, Some ret) }
   |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN COLON 
-    r=separated_nonempty_list(DARROW, rule) { DeclExtSyscall(f, parems, r, None) }
+    r=complex_rule { DeclExtSyscall(f, parems, r, None) }
+
+
+complex_rule: 
+  | mark_location(plain_complex_rule) { $1 }
+  | LBRACE complex_rule RBRACE { $2 }
+
+plain_complex_rule:
+  | rule { CRule $1 }
+  | a=complex_rule BBAR b=complex_rule { CRulePar (a, b) }
+  | BANG complex_rule { CRuleRep $2 }
+  | a=complex_rule DARROW b=complex_rule { CRuleSeq (a, b) }
 
 external_attack:
   |  ATTACK f=NAME LPAREN parem=typed_arg RPAREN COLON r=rule { DeclExtAttack(f, parem, r) }
@@ -107,6 +122,7 @@ typed_arg:
   | PROCESS var=NAME { (TyProcess, var) }
   | PATH var=NAME { (TyPath, var) }
   
+
 
 rule:
   | LBRACKET precond=separated_list(COMMA, fact) RBRACKET ARROW LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { (precond, postcond) }

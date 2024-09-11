@@ -258,30 +258,54 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
             | _ -> error ~loc (UnknownIdentifier2 "")
          in
 
-         let rec process_rules rs ret lctx = 
+         let process_rule (pre, post) ctx lctx = 
+            let ctx, pre =
+               List.fold_left (fun (ctx, facts) f -> let ctx', f' = process_fact f ctx lctx in (ctx', f' :: facts)) (ctx, []) pre in
+            let ctx, post =
+               List.fold_left (fun (ctx, facts) f -> let ctx', f' = process_fact f ctx lctx in (ctx', f' :: facts)) (ctx, []) post in
+               (ctx, (pre, post)) in
+
+         let rec process_crule {Location.data=rs; Location.loc=loc} ctx lctx = 
+            match rs with
+            | Input.CRule (pre, post) -> 
+               let ctx, (pre, post) = process_rule (pre, post) ctx lctx in
+               (ctx, Location.locate ~loc:loc (Syntax.CRule (pre, post)))
+
+            | Input.CRulePar (r1, r2) -> 
+               let (ctx, r1) = process_crule r1 ctx lctx in 
+               let (ctx, r2) = process_crule r2 ctx lctx in 
+               (ctx, Location.locate ~loc:loc (Syntax.CRulePar (r1, r2)))
+
+            | Input.CRuleSeq (r1, r2) -> 
+               let (ctx, r1) = process_crule r1 ctx lctx in 
+               let (ctx, r2) = process_crule r2 ctx lctx in 
+               (ctx, Location.locate ~loc:loc (Syntax.CRuleSeq (r1, r2)))
+
+            | Input.CRuleRep r ->
+               match r.Location.data with 
+               | Input.CRuleRep r -> 
+                  let ctx, r = process_crule r ctx lctx in 
+                     ctx, Location.locate ~loc:loc (Syntax.CRuleRep r)
+               | _ -> 
+                  let ctx, r = process_crule r ctx lctx in 
+                  ctx, Location.locate ~loc:loc (Syntax.CRuleRep r)
+         in  
+         let rec process rs lctx =         
             try 
-               begin
-                  let ctx, rs = 
-                     List.fold_left (fun (ctx, rs) (pre, post) -> 
-                     let ctx, pre =
-                        List.fold_left (fun (ctx, facts) f -> let ctx', f' = process_fact f ctx lctx in (ctx', f' :: facts)) (ctx, []) pre in
-                     let ctx, post =
-                        List.fold_left (fun (ctx, facts) f -> let ctx', f' = process_fact f ctx lctx in (ctx', f' :: facts)) (ctx, []) post in
-                     (ctx, (pre, post) :: rs)) (ctx, []) rs in
-                  let ret = (match ret with Some r -> Some (process_expr ctx lctx r) | None -> None) in 
-                  (ctx, rs, ret, lctx)
-                end 
+               let (ctx, rs) = process_crule rs ctx lctx in 
+               let ret = (match ret with Some r -> Some (process_expr ctx lctx r) | None -> None) in 
+               (ctx, rs, ret, lctx)
             with
             | Error {Location.data=err; Location.loc=locc} ->
                begin match err with
-               | UnknownIdentifier id -> process_rules rs ret (Context.lctx_add_new_var ~loc lctx id)
-               | UnknownIdentifier_ch id -> process_rules rs ret (Context.lctx_add_new_chan ~loc (Context.lctx_remove_var lctx id) id)
-               | UnknownIdentifier_path id -> process_rules rs ret (Context.lctx_add_new_path ~loc (Context.lctx_remove_var lctx id) id)
+               | UnknownIdentifier id -> process rs (Context.lctx_add_new_var ~loc lctx id)
+               | UnknownIdentifier_ch id -> process rs (Context.lctx_add_new_chan ~loc (Context.lctx_remove_var lctx id) id)
+               | UnknownIdentifier_path id -> process rs (Context.lctx_add_new_path ~loc (Context.lctx_remove_var lctx id) id)
                | _ -> error ~loc:locc err
                end
          in
 
-         let (ctx, rs, ret, lctx) = process_rules rules ret (Context.lctx_add_frame lctx) in
+         let (ctx, rs, ret, lctx) = process rules (Context.lctx_add_frame lctx) in
          let metavar = List.hd lctx.Context.lctx_var in 
          let args = List.hd (Context.lctx_pop_frame ~loc lctx).Context.lctx_var in 
          let ch_args = lctx.Context.lctx_chan in 

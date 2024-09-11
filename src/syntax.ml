@@ -45,6 +45,13 @@ and fact' =
   | PathFact of Name.ident * Name.ident * expr list
   | ProcessFact of Name.ident * Name.ident * expr list
 
+type complex_rule = complex_rule' Location.located
+and complex_rule' = 
+  | CRule of (fact list * fact list) 
+  | CRulePar of complex_rule * complex_rule
+  | CRuleRep of complex_rule 
+  | CRuleSeq of complex_rule * complex_rule 
+
 type proc = proc' Location.located
 and proc' =
   | Proc of Name.ident * (Name.ident list) * Name.ident

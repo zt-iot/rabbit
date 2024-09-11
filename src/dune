@@ -7,6 +7,6 @@
 
 (menhir
   (modules parser)
-  (flags --explain)
+  (flags --explain --dump)
 )
 
