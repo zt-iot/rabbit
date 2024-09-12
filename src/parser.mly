@@ -143,7 +143,7 @@ plain_lemma:
 prop: mark_location(plain_prop) { $1 }
 plain_prop:
   | EXTRACE QUOTED_STRING {PlainString ("exists-trace \""^$2^"\"") }
-  | ALLTRACE QUOTED_STRING {PlainString ("all-trace \""^$2^"\"") }
+  | ALLTRACE QUOTED_STRING {PlainString ("all-traces \""^$2^"\"") }
 
 let_stmts:
   | { [] }

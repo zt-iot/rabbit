@@ -106,7 +106,9 @@ let print_signature prt (fns, eqns) =
 
 let print_rule2 prt (f, pre, label, post) = 
 	let print_fact (f, el, b) = 
-	(if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")" ^ (if b.is_delayed then "[-,no_precomp]" else "") in 
+	(if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")" 
+	(* ^ (if b.is_delayed then "[-,no_precomp]" else "")  *)
+	in 
 	let print_fact2 (f, el, b) = 
 	(if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")" in 
 	"rule "^f ^" : "^ 
@@ -288,13 +290,48 @@ let rec translate_stmt eng (t : tamarin)  {Location.data=c; Location.loc=loc} =
   match c with
   | Syntax.OpStmt a -> translate_atomic_stmt eng t a
   | Syntax.EventStmt (a, el) -> 
-  	let eng, (sign, rules) = translate_atomic_stmt eng t a in 
-  	match rules with
-  	| Rule (n, pre, label, post) :: rules -> 
-  		(eng, (sign, Rule (n, pre, 
-  			List.map (fun ev -> match ev.Location.data with Syntax.Event(id, el) -> (mk_fact_name id, List.map translate_expr el, config_linear)) el 
-  		, post) :: rules))
-  	| [] -> error ~loc (UnintendedError  "empty rule")
+  	match a.Location.data with
+  	| Syntax.Syscall ((v, vi,vj,vk), f, args) -> 
+  	(* when event is tagged to syscall, add it into the first *)
+  		let ell = el in 
+	  	let namespace =  eng.namespace in 
+		  let state_i = eng_state eng in
+		  let eng_f = eng_inc_index eng in
+		  let state_f = eng_state eng_f in
+			let (el, gv) = List.fold_left (fun (el, sl) (e, ty) -> 
+				let e, s = translate_expr2 e in 
+					(el @ [ match ty with |Input.TyPath -> List [String (eng_get_filesys eng) ; e]|_ ->  e ], sl @ s)) ([], []) args in 
+			let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+
+			let eng_wait = eng_inc_index eng in
+			let eng_f = eng_add_var (eng_inc_index eng_wait) v in 
+
+			let t = add_rule t (eng_state (eng_set_mode eng "syscall_in"), 
+											[("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; 
+												(List (eng_var_list_top eng))], config_linear)]  @ gv, 
+											List.map (fun ev -> match ev.Location.data with Syntax.Event(id, el) -> (mk_fact_name id, List.map translate_expr el, config_linear)) ell , 
+											[("Frame"^eng.sep^namespace, [String (eng_state eng_wait) ; (List (eng_var_list_loc eng)) ; 
+												(List (eng_var_list_top eng))], config_linear) ;
+												(* (eng_state (eng_set_mode eng "wait"), eng_var_list eng, config_linear) ;  *)
+												(mk_fact_name f, (String eng.namespace) :: el, config_linear)]) in
+
+
+			let t = add_rule t (eng_state (eng_set_mode eng_wait "syscall_out"), 
+				[("Frame"^eng.sep^namespace, [String (eng_state eng_wait) ; (List (eng_var_list_loc eng)) ; 
+												(List (eng_var_list_top eng))], config_linear) ; 
+				(eng_state (eng_set_index (eng_set_mode (eng_set_namespace eng f) "return") 0), [(String eng.namespace) ; (match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v) ], config_linear_delayed)], [], 
+				[("Frame"^eng.sep^namespace, [String (eng_state eng_f) ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng))], config_linear)]) in
+			(eng_f, t)
+
+
+  	| _ ->
+	  	let eng, (sign, rules) = translate_atomic_stmt eng t a in 
+	  	match rules with
+	  	| Rule (n, pre, label, post) :: rules -> 
+	  		(eng, (sign, Rule (n, pre, 
+	  			List.map (fun ev -> match ev.Location.data with Syntax.Event(id, el) -> (mk_fact_name id, List.map translate_expr el, config_linear)) el 
+	  		, post) :: rules))
+	  	| [] -> error ~loc (UnintendedError  "empty rule")
   	
 and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Location.loc=loc} =
   let translate_atomic_stmt' (eng : engine) (t : tamarin) c = 
@@ -613,12 +650,12 @@ let translate_process eng t {
 		let eng = eng_add_frame eng in 
 
 		let t = add_rule t (eng_state eng_start, 
-													[("Run"^eng.sep, [String namespace; String f; Var ("args"^eng.sep);], config_linear_delayed) ; 
+													[("Run"^eng.sep, [String namespace; String f; List (List.map (fun s -> Var s) args);], config_linear_delayed) ; 
 														("Frame"^eng.sep^namespace, [Var ("state"^eng.sep); Var ("local_frame"^eng.sep) ; Var ("top_frame"^eng.sep) ], config_linear)
 													], [],
 													[
 														("Frame"^eng.sep^"hold", [String namespace; Var ("state"^eng.sep); Var ("local_frame"^eng.sep)], config_linear) ; 
-														("Frame"^eng.sep^namespace, [String (eng_state eng); Var ("args"^eng.sep) ; Var ("top_frame"^eng.sep)], config_linear)
+														("Frame"^eng.sep^namespace, [String (eng_state eng); List (List.map (fun s -> Var s) (List.rev args)) ; Var ("top_frame"^eng.sep)], config_linear)
 													]) in
 
 		let eng = List.fold_left (fun eng v -> eng_add_var eng v) eng args in 
@@ -745,6 +782,7 @@ let t = add_comment t "access control:" in
 		(t, il) ctx.Context.ctx_ch in 
 
 		let t, il = List.fold_left (fun (t, il) (dir, path, ty) -> 
+			if p.Context.proc_filesys <> dir then (t, il) else
 			match List.find_all (fun (a, b, sys) -> a = p.Context.proc_type && List.exists (fun b -> b = ty) b) pol.Context.pol_access with
 			| [] -> (t, il)
 			| scall ->				

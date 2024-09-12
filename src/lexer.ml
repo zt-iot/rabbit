@@ -112,7 +112,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | '&'                      -> f (); AMP
   | '%'                      -> f (); PERCENT
   | "exists-trace"                      -> f (); EXTRACE
-  | "all-trace"                      -> f (); ALLTRACE
+  | "all-traces"                      -> f (); ALLTRACE
   | '@'                      -> f (); AT
   | '('                      -> f (); LPAREN
   | ')'                      -> f (); RPAREN

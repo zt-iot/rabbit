@@ -3,13 +3,18 @@ function pk:1
 function enc:2
 function sign:2
 function dec:2
-function pair:2
+
 function verify:3
 
 function fst:1
 function snd:1
 function test:0
 function true:0
+
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+equation dec(enc(x, y), y) = x
+equation verify (sign(d, k), d, pk(k)) = true
 
 (* syscall on channels *)
 
@@ -128,13 +133,14 @@ process client(ch_net, ch_rpc) with client_t
 		
 		let image = fread(image_fd) @ C();
       	
-      	let sig = invoke_rpc(ch_rpc, invoke_func, (image, privkey_path)) @Got(sig);
+      	let sig = invoke_rpc(ch_rpc, invoke_func, (image, privkey_path)); 
+      	skip @Got(sig);
       	
       	let _ = send(ch_net, (sig, image)) @ ImgSend(image);
     	
     	let _ = fclose(image_fd);
     	
-    	let _ = close_rpc(conn);
+    	let _ = close_rpc(conn) @ ClientClose ();
   	}
 }
 
@@ -160,7 +166,8 @@ process client_ta(ch_rpc) with client_ta_t
   
   	main 
   	{
-    	let conn = accept_rpc(ch_rpc);
+    	let conn = accept_rpc(ch_rpc); 
+    	skip @ ClientTAClose ();
   	}
 }
 
@@ -184,6 +191,7 @@ process server(ch_net) with server_t
       		}
     	
     	let _ = fclose(pubkey_fd);
+    	skip @ ServerClose ();
   	}
 }
 
@@ -195,11 +203,9 @@ system
 ||	client_ta(rpc) with client_ta_fs
 requires  [
   lemma Reachability1 :
-    exists-trace "Ex #j  . A() @ #j" ;
-      lemma Reachability2 :
-    exists-trace "Ex #j  . B() @ #j"  ;
-  lemma Reachability3 :
-    exists-trace "Ex #j  . Got(test()) @ #j" 
+    exists-trace "Ex #i #j #k  . ClientClose() @ i &  ClientTAClose () @ j & ServerClose () @ k " ;
+  lemma Correspondence :
+    all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
     ]
 
 

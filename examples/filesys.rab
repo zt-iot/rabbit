@@ -15,8 +15,6 @@ equation add(O, x) = x
 (***********)
 (* File system syscalls *)
 (* p:File when p:path is reserved fact *)
-syscall wopen(path p) return x : [ &Fr(x) ] -> [ Fd(p, x) ]
-syscall write(x, v) : [Fd(p, x), p:File(y)] -> [ p:File(v)]
 
 (***********)
 (** declare types with their classes *)
@@ -26,7 +24,6 @@ type channel_t 	: channel
 
 
 (***********)
-allow process_t writable_t [wopen, write]
 
 (***********)
 (** define channels and file systems *)
@@ -38,8 +35,13 @@ filesys boring_filesys = [{path: "some/path", data: O, type: writable_t}]
 (** define process templates *)
 process proc(c) with process_t {
 	main {
-		let fd = wopen("some/path");
-		let _  = write(fd, ichi) @ Computed();
+			let a="1";
+			let a1="1";
+			let a2="1";
+			let a3="1";
+			let a4="1";
+			let a5="1";
+			let a6="1" @A();
 	}
 }
 
@@ -48,5 +50,5 @@ process proc(c) with process_t {
 system proc(decent_channel) with boring_filesys
 requires  [
   lemma Reachability1 :
-    exists-trace "Ex #j  . Computed() @ #j" 
+    exists-trace "Ex #j  . A() @ #j" 
     ]
