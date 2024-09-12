@@ -398,6 +398,9 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
          | Input.CProc, [Input.CFsys] -> 
             if Context.ctx_check_ext_syscall ctx a then Context.pol_add_access pol' (s, t, a)
             else error ~loc (UnknownIdentifier a)
+         | Input.CProc, [] -> 
+            if Context.ctx_check_ext_syscall ctx a then Context.pol_add_access pol' (s, t, a)
+            else error ~loc (UnknownIdentifier a)            
          | _, _ -> error ~loc (WrongInputType)
          end
       in (ctx, List.fold_left f pol al, def, sys, fst ps)
@@ -431,8 +434,9 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
             (a, process_expr ctx Context.lctx_init e, b )
          | _ -> error ~loc (WrongInputType)
          ) fl in 
-      let (ctx', def') = List.fold_left (fun (ctx', def') (a, e, b) -> (Context.ctx_add_fsys ctx' (id, a, b), Context.def_add_fsys def' (id, a, e))) (ctx, def) fl' in 
-      (ctx', pol, def', sys, fst ps)
+      let (ctx', def') = List.fold_left 
+         (fun (ctx', def') (a, e, b) -> (Context.ctx_add_fsys ctx' (id, a, b), Context.def_add_fsys def' (id, a, e))) (ctx, def) fl' in 
+         (ctx', pol, def', sys, fst ps)
 
   | Input.DeclChan (id, c) ->
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 

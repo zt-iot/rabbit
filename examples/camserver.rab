@@ -46,6 +46,9 @@ syscall accept_rpc (channel c)
 
 	(* => ! ([c:invoke(f, args)] -> [connect(c)] || [c:close()] -> []) *)
 
+(* picture *)
+syscall get_picture () return v : [&Fr(v)] -> [] 
+
 
 (* filesys *)
 syscall fopen (path p) return x 
@@ -77,14 +80,17 @@ type async_t 	  : channel
 
 (***********)
 allow client_t async_t [send]
-allow server_t async_t [recv]
-
 allow client_t sync_t 	   [connect_rpc, invoke_rpc, close_rpc]
-allow client_ta_t sync_t  [accept_rpc]
+allow client_t [get_picture]
 
-allow server_t read_only [fopen, fread, fclose]  
-allow client_t read_only [fopen, fread, fclose]  
+allow client_ta_t sync_t  [accept_rpc]
 allow client_ta_t read_only [fopen, fread, fclose]  
+
+allow server_t async_t [recv]
+allow server_t read_only [fopen, fread, fclose]  
+
+
+
 
 (***********)
 (*
@@ -105,7 +111,7 @@ channel rpc : sync_t
 (***********)
 filesys client_fs = 
   [ 
-    {path: "/dev/camera", data: init_data, type: read_only}
+    {path: "/secret/pub", data: pk(priv_k), type: read_only}
   ]
 
 filesys server_fs = 
@@ -127,19 +133,20 @@ process client(ch_net, ch_rpc) with client_t
 
 	main 
   	{
-		let image_fd = fopen(dev_path) @ A();
 		
-		let conn = connect_rpc(ch_rpc) @ B();
+		let conn = connect_rpc(ch_rpc);
 		
-		let image = fread(image_fd) @ C();
-      	
-      	let sig = invoke_rpc(ch_rpc, invoke_func, (image, privkey_path)); 
-      	skip @Got(sig);
-      	
-      	let _ = send(ch_net, (sig, image)) @ ImgSend(image);
-    	
-    	let _ = fclose(image_fd);
-    	
+		for i in range(1, 3)
+		{
+			let image = get_picture() @ C();
+	      	
+	      	let sig = invoke_rpc(ch_rpc, invoke_func, (image, privkey_path)); 
+	      	skip @Got(sig);
+	      	
+	      	let _ = send(ch_net, (sig, image)) @ ImgSend(image);
+	    	
+		} 
+
     	let _ = close_rpc(conn) @ ClientClose ();
   	}
 }
@@ -179,6 +186,8 @@ process server(ch_net) with server_t
 	{
 	    let pubkey_fd = fopen(pubkey_path);
 	    let pubkey = fread(pubkey_fd);
+		for i in range (1, 3)
+		{
 			let p = recv(ch_net);
 			let res = verify(fst(p), snd(p), pubkey);
 			if (res = true) 
@@ -189,7 +198,7 @@ process server(ch_net) with server_t
       		{
         		skip @ ImgRecvInvalid(snd(p));
       		}
-    	
+    	}
     	let _ = fclose(pubkey_fd);
     	skip @ ServerClose ();
   	}

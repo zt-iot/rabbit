@@ -107,7 +107,7 @@ let print_signature prt (fns, eqns) =
 let print_rule2 prt (f, pre, label, post) = 
 	let print_fact (f, el, b) = 
 	(if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")" 
-	(* ^ (if b.is_delayed then "[-,no_precomp]" else "")  *)
+	^ (if b.is_delayed then "[-,no_precomp]" else "") 
 	in 
 	let print_fact2 (f, el, b) = 
 	(if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")" in 
@@ -455,13 +455,14 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 									[], 
 
 									[("Frame", [String namespace; String (eng_state (eng_ith i)) ; (List (Integer i :: eng_var_list eng))], false)]) in 
- *)
+ *)		
+ 			let eng_origin = eng in 
 			let eng_for, t = List.fold_left (fun (eng, t) k -> 
 
 				let t = add_rule t (eng_state (eng_ith k) ^eng.sep ^"start", 
-									[("Frame"^eng.sep^namespace, [String (eng_state eng) ; (List (eng_var_list_top eng)) ; (List (eng_var_list_top eng))], config_linear)], 
+									[("Frame"^eng.sep^namespace, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)], 
 									[],
-									[("Frame"^eng.sep^namespace, [String (eng_state (eng_ith k)) ; (List (Integer k :: eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]) in 
+									[("Frame"^eng.sep^namespace, [String (eng_state (eng_ith k)) ; (List (Integer k :: eng_var_list_loc (eng_origin))) ; (List (eng_var_list_top eng))], config_linear)]) in 
 
 				let eng, t = (List.fold_left (fun (eng, t) c -> translate_stmt eng t c) (eng_ith k, t) c)  
 
@@ -491,7 +492,9 @@ let translate_syscall eng t (f, ty_args, (ch_vars, path_vars), meta_vars, crule,
 
 	let acp_facts = 
 	List.map (fun v -> (eng.namespace ^ eng.sep ^"Allowed", [namespace_id ; Var v], config_persist)) ch_vars 
-	@ List.map (fun v -> (eng.namespace ^ eng.sep ^"Allowed", [namespace_id ; Var v], config_persist)) path_vars in 
+	@ List.map (fun v -> (eng.namespace ^ eng.sep ^"Allowed", [namespace_id ; Var v], config_persist)) path_vars
+	@ begin match ch_vars @ path_vars with | [] -> [(eng.namespace ^ eng.sep ^"Allowed", [namespace_id], config_persist)] | _ -> [] end
+	in 
 
 	let translate_fact f = 
 	match f.Location.data with
@@ -780,6 +783,21 @@ let t = add_comment t "access control:" in
 								[(mk_fact_name sys ^eng.sep ^"Allowed", [String procname; String c], config_persist)])
 								, name::il) (t, il) scall) 
 		(t, il) ctx.Context.ctx_ch in 
+
+		let t, il = 
+			match List.find_all (fun (a, b, sys) -> a = p.Context.proc_type && (match b with | [] -> true | _ -> false)) pol.Context.pol_access with
+			| [] -> (t, il) 
+			| scall -> 
+					List.fold_left (fun (t, il) (_, _, sys) ->
+					 let name = procname ^ eng.sep ^ sys in 
+						add_rule t 
+							(name, 
+								[], 
+								[(name, [], config_linear)], 
+								[(mk_fact_name sys ^eng.sep ^"Allowed", [String procname], config_persist)])
+								, name::il) (t, il) scall 
+
+		in 
 
 		let t, il = List.fold_left (fun (t, il) (dir, path, ty) -> 
 			if p.Context.proc_filesys <> dir then (t, il) else
