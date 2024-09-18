@@ -40,11 +40,15 @@ syscall close_rpc (i)
 syscall accept_rpc (channel c)
 	: [c:ask()] -> [c:accept()] 
 	=>
-	{!{[c:invoke(f, args)] -> [run(f, args)] => [returned(f, x)] -> [c:hearback(x)]}
-	||  [c:close()] -> []}
-
-
-	(* => ! ([c:invoke(f, args)] -> [connect(c)] || [c:close()] -> []) *)
+		[c:invoke(f, args)] -> [run(f, args)]
+	=> 
+		[returned(f, x)] -> [c:hearback(x)]
+	=>
+		[c:invoke(f, args)] -> [run(f, args)]
+	=> 
+		[returned(f, x)] -> [c:hearback(x)]
+	=> 
+		[c:close()] -> []
 
 (* picture *)
 syscall get_picture () return v : [&Fr(v)] -> [] 
@@ -213,6 +217,12 @@ system
 requires  [
   lemma Reachability1 :
     exists-trace "Ex #i #j #k  . ClientClose() @ i &  ClientTAClose () @ j & ServerClose () @ k " ;
+  lemma Reachability2 :
+    exists-trace "Ex #i . ClientClose() @ i " ;
+  lemma Reachability3 :
+    exists-trace "Ex #j  . ClientTAClose () @ j " ;
+  lemma Reachability4 :
+    exists-trace "Ex #k  .  ServerClose () @ k " ;
   lemma Correspondence :
     all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
     ]

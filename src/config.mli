@@ -6,3 +6,4 @@ val max_boxes : int ref
 val columns : int ref
 val trace : bool ref
 val verbose : bool ref
+val dev : bool ref

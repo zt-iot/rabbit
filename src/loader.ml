@@ -509,9 +509,22 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
       (* for now, have plain text for lemmas *)
       let processed_lemmas = List.map (fun l -> match l.Location.data with Input.Lemma (l, p) -> match p.Location.data with | Input.PlainString s -> (l, s) |_ -> error ~loc UnintendedError) lemmas in   
       (*  *)
-      let (processed_procs, _) = List.fold_left (fun (processed_procs,k) (pid, attks, chans, files, vl, fl, m, ptype, fsys)
-         -> ({Context.proc_pid=k; Context.proc_type =ptype; Context.proc_filesys= fsys; Context.proc_name=pid; Context.proc_attack=attks; Context.proc_channel=chans; Context.proc_file=files; Context.proc_variable=vl; Context.proc_function=fl; Context.proc_main=m} :: processed_procs, k+1)) 
-      ([],0) processed_procs in 
+      let (processed_procs) = 
+         List.fold_left 
+            (fun processed_procs (pid, attks, chans, files, vl, fl, m, ptype, fsys) ->    
+               let pnum = 
+                  List.length (List.find_all (fun p -> p.Context.proc_name = pid) processed_procs) in         
+               ({Context.proc_pid=pnum; 
+               Context.proc_type =ptype; 
+               Context.proc_filesys= fsys; 
+               Context.proc_name=pid; 
+               Context.proc_attack=attks; 
+               Context.proc_channel=chans; 
+               Context.proc_file=files; 
+               Context.proc_variable=vl; 
+               Context.proc_function=fl; 
+               Context.proc_main=m} :: processed_procs)) 
+      [] processed_procs in 
       (ctx, pol, def, {
                         Context.sys_ctx = ctx;
                         Context.sys_pol = pol;

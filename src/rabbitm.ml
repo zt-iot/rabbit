@@ -43,6 +43,10 @@ let options = Arg.align [
      Arg.String (fun str -> add_file true str),
      "<file> Load <file> into the initial environment");
 
+    ("--dev",
+     Arg.Set Config.dev,
+     "use the development version of tamarin");
+
     ("-o",
      Arg.String (fun str -> add_ofile true str),
      "<file> Printing the translated program into <file>");
@@ -87,7 +91,7 @@ let _main =
        *)
       List.fold_left (fun _ s -> 
         let t, prt = (Totamarin.translate_sys s x) in 
-        let tamarin = (Totamarin.print_tamarin prt t) in 
+        let tamarin = (Totamarin.print_tamarin prt t !Config.dev) in 
         if fst !ofile = "" then print_string "Output file not specified"
         else let oc = open_out (fst !ofile) in
         Printf.fprintf oc "%s\n" tamarin;

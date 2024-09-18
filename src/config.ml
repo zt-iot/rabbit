@@ -18,3 +18,5 @@ let columns = ref (Format.get_margin ())
 let trace = ref false
 
 let verbose = ref false
+
+let dev = ref false
