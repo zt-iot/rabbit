@@ -40,15 +40,9 @@ syscall close_rpc (i)
 syscall accept_rpc (channel c)
 	: [c:ask()] -> [c:accept()] 
 	=>
-		[c:invoke(f, args)] -> [run(f, args)]
-	=> 
-		[returned(f, x)] -> [c:hearback(x)]
-	=>
-		[c:invoke(f, args)] -> [run(f, args)]
-	=> 
-		[returned(f, x)] -> [c:hearback(x)]
-	=> 
-		[c:close()] -> []
+	{!{[c:invoke(f, args)] -> [run(f, args)] => [returned(f, x)] -> [c:hearback(x)]}
+	|| 
+	[c:close()] -> []}
 
 (* picture *)
 syscall get_picture () return v : [&Fr(v)] -> [] 
@@ -138,13 +132,13 @@ process client(ch_net, ch_rpc) with client_t
 	main 
   	{
 		
-		let conn = connect_rpc(ch_rpc);
+		let conn = connect_rpc(ch_rpc) @ A();
 		
 		for i in range(1, 3)
 		{
-			let image = get_picture() @ C();
+			let image = get_picture() @ B();
 	      	
-	      	let sig = invoke_rpc(ch_rpc, invoke_func, (image, privkey_path)); 
+	      	let sig = invoke_rpc(ch_rpc, invoke_func, (image, privkey_path)) @ C(); 
 	      	skip @Got(sig);
 	      	
 	      	let _ = send(ch_net, (sig, image)) @ ImgSend(image);
@@ -218,11 +212,11 @@ requires  [
   lemma Reachability1 :
     exists-trace "Ex #i #j #k  . ClientClose() @ i &  ClientTAClose () @ j & ServerClose () @ k " ;
   lemma Reachability2 :
-    exists-trace "Ex #i . ClientClose() @ i " ;
+    exists-trace "Ex #i . A() @ i " ;
   lemma Reachability3 :
-    exists-trace "Ex #j  . ClientTAClose () @ j " ;
+    exists-trace "Ex #j  . B () @ j " ;
   lemma Reachability4 :
-    exists-trace "Ex #k  .  ServerClose () @ k " ;
+    exists-trace "Ex #k  .  C () @ k " ;
   lemma Correspondence :
     all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
     ]

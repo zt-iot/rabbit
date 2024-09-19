@@ -288,41 +288,7 @@ let rec translate_stmt eng (t : tamarin) {Location.data=c; Location.loc=loc} sys
   match c with
   | Syntax.OpStmt a -> translate_atomic_stmt eng t a syscalls
   | Syntax.EventStmt (a, el) -> 
-  	match a.Location.data with
-  	| Syntax.Syscall ((v, vi,vj,vk), f, args) -> 
-  	(* when event is tagged to syscall, add it into the first *)
-  		let ell = el in 
-	  	let namespace =  eng.namespace in 
-		  let state_i = eng_state eng in
-		  let eng_f = eng_inc_index eng in
-		  let state_f = eng_state eng_f in
-			let (el, gv) = List.fold_left (fun (el, sl) (e, ty) -> 
-				let e, s = translate_expr2 e in 
-					(el @ [ match ty with |Input.TyPath -> List [String (eng_get_filesys eng) ; e]|_ ->  e ], sl @ s)) ([], []) args in 
-			let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
-
-			let eng_wait = eng_inc_index eng in
-			let eng_f = eng_add_var (eng_inc_index eng_wait) v in 
-
-			let t = add_rule t (eng_state (eng_set_mode eng "syscall_in"), namespace,
-											[("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; 
-												(List (eng_var_list_top eng))], config_linear)]  @ gv, 
-											List.map (fun ev -> match ev.Location.data with Syntax.Event(id, el) -> (mk_fact_name id, List.map translate_expr el, config_linear)) ell , 
-											[("Frame"^eng.sep^namespace, [String (eng_state eng_wait) ; (List (eng_var_list_loc eng)) ; 
-												(List (eng_var_list_top eng))], config_linear) ;
-												(* (eng_state (eng_set_mode eng "wait"), eng_var_list eng, config_linear) ;  *)
-												(mk_fact_name f, (String eng.namespace) :: el, config_linear)]) in
-
-
-			let t = add_rule t (eng_state (eng_set_mode eng_wait "syscall_out"), namespace,
-				[("Frame"^eng.sep^namespace, [String (eng_state eng_wait) ; (List (eng_var_list_loc eng)) ; 
-												(List (eng_var_list_top eng))], config_linear) ; 
-				(eng_state (eng_set_index (eng_set_mode (eng_set_namespace eng f) "return") 0), [(String eng.namespace) ; (match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v) ], config_linear_delayed)], [], 
-				[("Frame"^eng.sep^namespace, [String (eng_state eng_f) ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng))], config_linear)]) in
-			(eng_f, t)
-
-
-  	| _ ->
+ 
 	  	let eng, (sign, rules) = translate_atomic_stmt eng t a syscalls in 
 	  	match rules with
 	  	| Rule (n, act, pre, label, post) :: rules -> 
@@ -357,8 +323,9 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 			))
 	
 	| Syntax.Call ((v, vi,vj,vk), f, args) -> 
+		error ~loc:Nowhere (UnintendedError "function call")
 
-		let (el, gv) = List.fold_left (fun (el, sl) e -> 
+(* 		let (el, gv) = List.fold_left (fun (el, sl) e -> 
 			let e, s = translate_expr2 e in 
 				(el @ [e], sl @ s)) ([], []) args in 
 		let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
@@ -378,9 +345,9 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 			(eng_state (eng_set_mode (eng_set_scope eng f) "return"), [(match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v)], config_linear_delayed)], [], 
 			[("Frame"^eng.sep^namespace, [String state_f ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng))], config_linear)]) in
 		(eng_f, t)
-
+ *)
 	| Syntax.Syscall ((v, vi,vj,vk), f, args) -> 
-
+		begin
 		let (el, gv) = List.fold_left (fun (el, sl) (e, ty) -> 
 			let e, s = translate_expr2 e in 
 				(el @ [ match ty with |Input.TyPath -> List [String (eng_get_filesys eng) ; e]|_ ->  e ], sl @ s)) ([], []) args in 
@@ -390,117 +357,130 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 	(*****************************)
 	(*****************************)
 	(*****************************)
-
 		match List.find_opt (fun (f', ty_args, (ch_vars, path_vars), meta_vars, crule, ret) -> f = f') syscalls with
 		| None -> error ~loc:Nowhere (UnintendedError "undefined syscall")
 		| Some (f, ty_args, (ch_vars, path_vars), meta_vars, crule, ret) -> 
+			let f = mk_fact_name f in 
+			let processed_args = List.map2 (fun a b -> (a, b)) (List.map snd ty_args) el in
 
+			let rec translate_and_subst_expr {Location.data=e; Location.loc=loc} = 
+			   let translate_and_subst_expr' = function
+					| Syntax.ExtConst s -> Apply (s, [])
+					| Syntax.Const s -> error ~loc (UnintendedError "global constant in fact")
+					| Syntax.Variable (v, i,j,k) -> 
+						begin match List.find_opt (fun (a, b) -> a = v) processed_args with
+						| Some (a, b) -> b
+						| None -> if List.exists (fun s -> s = v) meta_vars then Var (v ^ eng.sep) else Var v end
+					| Syntax.Boolean b -> error ~loc (UnintendedError "translating boolean")
+					| Syntax.String s -> String s
+					| Syntax.Integer z -> Integer z
+					| Syntax.Float f -> error ~loc (UnintendedError "translating float")
+					| Syntax.Apply (o, el) -> Apply (o, List.map translate_and_subst_expr el)
+					| Syntax.Tuple el ->  List (List.map translate_and_subst_expr el)
+					
+					| Syntax.Channel (v, l) -> 
+							begin match List.find_opt (fun (a, b) -> a = v) processed_args with
+						| Some (a, b) -> b
+						| None -> if List.exists (fun s -> s = v) meta_vars then Var (v ^ eng.sep) else Var v end
 
+					| Syntax.Process v -> 
+											begin match List.find_opt (fun (a, b) -> a = v) processed_args with
+						| Some (a, b) -> b
+						| None -> if List.exists (fun s -> s = v) meta_vars then Var (v ^ eng.sep) else Var v end
 
-			let translate_syscall t (f, ty_args, (ch_vars, path_vars), meta_vars, crule, ret) = 
-				let args = List.map snd ty_args in 
-				let namespace_string = 
-					(let rec f s = if List.exists (fun u -> u = s) (args @ meta_vars) then f (s ^ "_") else s in f "proc") in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+					| Syntax.Path v -> 
+											begin match List.find_opt (fun (a, b) -> a = v) processed_args with
+						| Some (a, b) -> b
+						| None -> if List.exists (fun s -> s = v) meta_vars then Var (v ^ eng.sep) else Var v end
 
-				let namespace_id = (Var namespace_string) in
-				let eng = eng_set_namespace eng f in 
-				let eng = eng_set_lctx eng [args] in 
-				let eng = eng_add_var eng namespace_string in
+					
+					| Syntax.FrVariable v -> error ~loc (UnintendedError "translating free var")
+				  
+				  in translate_and_subst_expr' e
+			in
 
-				let acp_facts = 
-				List.map (fun v -> (eng.namespace ^ eng.sep ^"Allowed", [namespace_id ; Var v], config_persist)) ch_vars 
-				@ List.map (fun v -> (eng.namespace ^ eng.sep ^"Allowed", [namespace_id ; Var v], config_persist)) path_vars
-				@ begin match ch_vars @ path_vars with | [] -> [(eng.namespace ^ eng.sep ^"Allowed", [namespace_id], config_persist)] | _ -> [] end
-				in 
+			let acp_facts = 
+			List.map (fun v -> (f ^ eng.sep ^"Allowed", [String eng.namespace ; translate_and_subst_expr (Location.locate ~loc:Nowhere (Syntax.Variable (v, 0,0,0)))], config_persist)) ch_vars 
+			@ List.map (fun v -> (f ^ eng.sep ^"Allowed", [String eng.namespace ; translate_and_subst_expr (Location.locate ~loc:Nowhere (Syntax.Variable (v, 0,0,0)))], config_persist)) path_vars
+			@ begin match ch_vars @ path_vars with | [] -> [(f ^ eng.sep ^"Allowed", [String eng.namespace], config_persist)] | _ -> [] end
+			in 
 
-				let translate_fact f = 
+			let translate_fact f = 
+				begin
 				match f.Location.data with
-				| Syntax.GlobalFact (s, el) -> (s, (List.map  (translate_expr ~ch:true) el), config_linear)
+				| Syntax.GlobalFact (s, el) -> (s, (List.map  (translate_and_subst_expr) el), config_linear)
 				| Syntax.Fact (s, el) -> 
 				(* reserved facts: *)
+				let namespace_id = (String namespace) in
+
 				if s = "run" then
 						match el with
 						| f :: args ->
-							("Run"^eng.sep, [namespace_id ; (translate_expr ~ch:true f) ; List (List.map (translate_expr ~ch:true) args)], config_linear_delayed)
-						| _ ->				(mk_fact_name s, namespace_id :: (List.map  (translate_expr ~ch:true) el), config_linear_delayed)
+							("Run"^eng.sep, [namespace_id ; (translate_and_subst_expr f) ; List (List.map (translate_and_subst_expr) args)], config_linear_delayed)
+						| _ ->				(mk_fact_name s, namespace_id :: (List.map  (translate_and_subst_expr) el), config_linear_delayed)
 				else if s = "returned" then
 						match el with
 						| f :: args ->
-							("Return"^eng.sep, [namespace_id ; (translate_expr ~ch:true f) ; List (List.map (translate_expr ~ch:true) args)], config_linear_delayed)
-						| _ ->				(mk_fact_name s, namespace_id :: (List.map  (translate_expr ~ch:true) el), config_linear_delayed)
+							("Return"^eng.sep, [namespace_id ; (translate_and_subst_expr f) ; List (List.map (translate_and_subst_expr) args)], config_linear_delayed)
+						| _ ->				(mk_fact_name s, namespace_id :: (List.map  (translate_and_subst_expr) el), config_linear_delayed)
 					else
-						(mk_fact_name s, namespace_id :: (List.map  (translate_expr ~ch:true) el), config_linear_delayed)
+						(mk_fact_name s, namespace_id :: (List.map  (translate_and_subst_expr) el), config_linear_delayed)
 
 				| Syntax.ChannelFact (scope, s, el) -> 
-						(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), config_linear_delayed)
+						(mk_fact_name s, (translate_and_subst_expr (Location.locate ~loc:Nowhere (Syntax.Variable (scope, 0,0,0)))) :: (List.map  (translate_and_subst_expr) el), config_linear_delayed)
 				| Syntax.PathFact (scope, s, el) -> 
-						(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), config_linear_delayed)
+						(mk_fact_name s, (translate_and_subst_expr (Location.locate ~loc:Nowhere (Syntax.Variable (scope, 0,0,0)))) :: (List.map  (translate_and_subst_expr) el), config_linear_delayed)
 				| _ -> error ~loc:Nowhere (UnintendedError "unexpected fact in syscall")
-				in
+			end
+			in	
 
-				let rec translate_crule eng init_state final_state  {Location.data=crule; Location.loc=loc}  =
-					match crule with
-					| Syntax.CRule (pre, post) -> 
-						let eng_f = eng_inc_index eng in 
-						(eng_f, [(eng_state eng, "",
-										(match init_state with | None -> [(eng_state eng, eng_var_list eng, config_linear)] | Some x -> x) 
-										@ (List.map translate_fact pre),
-										[],
-										(match final_state with | None -> [(eng_state eng_f, eng_var_list eng, config_linear)] | Some x -> x) 
-										@ (List.map translate_fact post))])
-					
-					| Syntax.CRuleSeq (r1, r2) ->
-						let (eng, r1) = translate_crule eng init_state None r1 in 
-						let (eng, r2) = translate_crule eng (Some [(eng_state eng, eng_var_list eng, config_linear)]) final_state r2 in 
-						(eng, r1 @ r2)
+			let rec translate_crule eng init_state final_state  {Location.data=crule; Location.loc=loc}  =
+				begin
+				match crule with
+				| Syntax.CRule (pre, post) -> 
+					let eng_f = eng_inc_index eng in 
+					(eng_f, [(eng_state eng, namespace,
+									(match init_state with | None -> [("Frame"^eng.sep^namespace, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ] | Some x -> x) 
+									@ (List.map translate_fact pre),
+									[],
+									(match final_state with | None -> [("Frame"^eng.sep^namespace, [String (eng_state eng_f) ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear) ] | Some x -> x) 
+									@ (List.map translate_fact post))])
+				
+				| Syntax.CRuleSeq (r1, r2) ->
+					let (eng, r1) = translate_crule eng init_state None r1 in 
+					let (eng, r2) = translate_crule eng (Some [("Frame"^eng.sep^namespace, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ]) final_state r2 in 
+					(eng, r1 @ r2)
 
-					| Syntax.CRulePar (r1, r2) ->
-						let eng1 = eng_set_mode eng "p1" in 
-						let eng2 = eng_set_mode eng "p2" in 
-						let (eng1', r1) = translate_crule eng1 init_state final_state r1 in
-						let (eng2', r2) = translate_crule eng2 init_state final_state r2 in
-						(eng, r1 @ r2)
+				| Syntax.CRulePar (r1, r2) ->
+					let eng1 = eng_set_mode eng "p1" in 
+					let eng2 = eng_set_mode eng "p2" in 
+					let (eng1', r1) = translate_crule eng1 init_state final_state r1 in
+					let (eng2', r2) = translate_crule eng2 init_state final_state r2 in
+					(eng, r1 @ r2)
 
-					| Syntax.CRuleRep r -> 
-						let eng, r = translate_crule eng init_state init_state r in 
-						(eng, r)
-					in 
+				| Syntax.CRuleRep r -> 
+					let eng, r = translate_crule eng init_state init_state r in 
+					(eng, r)
+				end
+				in 
 
-				let init_state = (eng_state eng, eng_var_list eng, config_linear_delayed) :: acp_facts in 
-				let final_state = (eng_suffix eng eng.namespace "return", [namespace_id ;
-							match ret with 
-							| Some e -> translate_expr ~ch:true e
-							| None -> String (eng_get_fresh_string eng)], config_linear_delayed) in 
+			let init_state = ("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) :: acp_facts in 
+			let final_state = ("Frame"^eng.sep^namespace, 
+				[String state_f ; 
+					(List ( begin match ret with 
+									| Some e -> translate_and_subst_expr e
+									| None -> String (eng_get_fresh_string eng) end :: eng_var_list_loc eng)) ; 
+					(List (eng_var_list_top eng))], config_linear) in 
 
-				let (eng, r) = translate_crule eng (Some init_state) (Some [final_state]) crule in 
+			let (_, r) = translate_crule (eng_set_mode eng f) (Some init_state) (Some [final_state]) crule in 
 
-				List.fold_left (fun t r -> add_rule t r) t r 
-
-
+			(eng_add_var eng_f v, List.fold_left (fun t r -> add_rule t r) t r)
+		end
 (*****************************)
 (*****************************)
 (*****************************)
 (* end *)
 
-		let eng_wait = eng_inc_index eng in
-		let eng_f = eng_add_var (eng_inc_index eng_wait) v in 
-
-		let t = add_rule t (eng_state (eng_set_mode eng "syscall_in"), namespace,
-										[("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; 
-											(List (eng_var_list_top eng))], config_linear)]  @ gv, 
-										[], 
-										[("Frame"^eng.sep^namespace, [String (eng_state eng_wait) ; (List (eng_var_list_loc eng)) ; 
-											(List (eng_var_list_top eng))], config_linear) ;
-											(* (eng_state (eng_set_mode eng "wait"), eng_var_list eng, config_linear) ;  *)
-											(mk_fact_name f, (String eng.namespace) :: el, config_linear)]) in
-
-
-		let t = add_rule t (eng_state (eng_set_mode eng_wait "syscall_out"), namespace,
-			[("Frame"^eng.sep^namespace, [String (eng_state eng_wait) ; (List (eng_var_list_loc eng)) ; 
-											(List (eng_var_list_top eng))], config_linear) ; 
-			(eng_state (eng_set_index (eng_set_mode (eng_set_namespace eng f) "return") 0), [(String eng.namespace) ; (match v with |"" -> Var (eng_get_fresh_ident eng) |_->Var v) ], config_linear_delayed)], [], 
-			[("Frame"^eng.sep^namespace, [String (eng_state eng_f) ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng))], config_linear)]) in
-		(eng_f, t)
 
 	| Syntax.If (e1, e2, c1, c2) -> 
 		let e1, gv1 = translate_expr2 e1 in  
@@ -574,7 +554,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 	(* | _ -> error ~loc UnintendedError *)
 in translate_atomic_stmt' eng t c syscalls
 
-let translate_syscall eng t (f, ty_args, (ch_vars, path_vars), meta_vars, crule, ret) = 
+(* let translate_syscall eng t (f, ty_args, (ch_vars, path_vars), meta_vars, crule, ret) = 
 	let args = List.map snd ty_args in 
 	let namespace_string = 
 		(let rec f s = if List.exists (fun u -> u = s) (args @ meta_vars) then f (s ^ "_") else s in f "proc") in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
@@ -652,7 +632,7 @@ let translate_syscall eng t (f, ty_args, (ch_vars, path_vars), meta_vars, crule,
 	let (eng, r) = translate_crule eng (Some init_state) (Some [final_state]) crule in 
 
 	List.fold_left (fun t r -> add_rule t r) t r 
-
+ *)
 
 let translate_attack eng t (f, (ch_vars, path_vars, process_vars), (pre, post)) = 
 	
@@ -831,9 +811,9 @@ let translate_sys {
 	let t = add_comment t "external equations:" in
 	let t = List.fold_left (fun t (_, e1, e2) -> add_eqn t (translate_expr e1, translate_expr e2)) t (List.rev def.Context.def_ext_eq) in
 
-	let t = add_comment t "external system calls:" in
+	(* let t = add_comment t "external system calls:" in
 	let t = List.fold_left (fun t r -> translate_syscall eng t r) t (List.rev def.Context.def_ext_syscall) in
-
+ *)
 	let t = add_comment t "external attacks:" in
 	let t = List.fold_left (fun t r -> translate_attack eng t r) t (List.rev def.Context.def_ext_attack) in
 
@@ -864,7 +844,7 @@ let t = add_comment t "access control:" in
 (* access control *)
 	   (* pol_access : (Name.ident * Name.ident list * Name.ident) list ; *)
 	let t, il = List.fold_left (fun (t, il) p ->
-		let procname = String.capitalize_ascii (p.Context.proc_name ^ (string_of_int p.Context.proc_pid)) in 
+		let procname = String.capitalize_ascii (p.Context.proc_name ^ (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid)) in 
 		let t, il = List.fold_left (fun (t, il) (c, ty) -> 
 			match List.find_all (fun (a, b, sys) -> a = p.Context.proc_type && List.exists (fun b -> b = ty) b) pol.Context.pol_access with
 			| [] -> (t, il) 
