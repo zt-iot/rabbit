@@ -438,8 +438,13 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 				begin
 				match crule with
 				| Syntax.CRule (pre, post) -> 
+					let rname = 
+						match init_state with
+						| None -> eng_state eng 
+						| Some ((_, (String s) :: l, _)::l') -> s
+					in 
 					let eng_f = eng_inc_index eng in 
-					(eng_f, [(eng_state eng, namespace,
+					(eng_f, [(rname, namespace,
 									(match init_state with | None -> [("Frame"^eng.sep^namespace, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ] | Some x -> x) 
 									@ (List.map translate_fact pre),
 									[],
@@ -727,7 +732,7 @@ let translate_process eng t {
 		let eng_start = eng_set_mode eng_start "run" in 
 		let eng = eng_add_frame eng in 
 
-		let t = add_rule t (eng_state eng_start, namespace,
+		let t = add_rule t (eng_state eng_start, namespace^eng.sep^f,
 													[("Run"^eng.sep, [String namespace; String f; List (List.map (fun s -> Var s) args);], config_linear_delayed) ; 
 														("Frame"^eng.sep^namespace, [Var ("state"^eng.sep); Var ("local_frame"^eng.sep) ; Var ("top_frame"^eng.sep) ], config_linear)
 													], [],

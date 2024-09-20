@@ -39,10 +39,10 @@ syscall close_rpc (i)
 
 syscall accept_rpc (channel c)
 	: [c:ask()] -> [c:accept()] 
-	=>
-	{!{[c:invoke(f, args)] -> [run(f, args)] => [returned(f, x)] -> [c:hearback(x)]}
-	|| 
-	[c:close()] -> []}
+
+syscall run_rpc (channel c)
+	: [c:invoke(f, args)] -> [run(f, args)] => [returned(f, x)] -> [c:hearback(x)]
+
 
 (* picture *)
 syscall get_picture () return v : [&Fr(v)] -> [] 
@@ -81,7 +81,7 @@ allow client_t async_t [send]
 allow client_t sync_t 	   [connect_rpc, invoke_rpc, close_rpc]
 allow client_t [get_picture]
 
-allow client_ta_t sync_t  [accept_rpc]
+allow client_ta_t sync_t  [accept_rpc, run_rpc]
 allow client_ta_t read_only [fopen, fread, fclose]  
 
 allow server_t async_t [recv]
@@ -145,7 +145,8 @@ process client(ch_net, ch_rpc) with client_t
 	    	
 		} 
 
-    	let _ = close_rpc(conn) @ ClientClose ();
+    	let _ = close_rpc(conn) ;
+    	skip @ ClientClose ();
   	}
 }
 
@@ -171,8 +172,11 @@ process client_ta(ch_rpc) with client_ta_t
   
   	main 
   	{
-    	let conn = accept_rpc(ch_rpc); 
+    	let _ = accept_rpc(ch_rpc); 
+    	let _ = run_rpc(ch_rpc);
+    	let _ = run_rpc(ch_rpc);
     	skip @ ClientTAClose ();
+    	
   	}
 }
 
