@@ -65,6 +65,7 @@ let rec process_expr ?(fr=[]) ctx lctx {Location.data=c; Location.loc=loc} =
       else 
       if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o) else
       if Context.ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr ~fr ctx lctx a) el)) else
+      if Context.lctx_check_var lctx o then Syntax.Run (o, (List.map (fun a -> process_expr ~fr ctx lctx a) el)) else
       error ~loc (UnknownIdentifier o)
    | Input.Tuple el -> Syntax.Tuple (List.map (fun a -> process_expr ~fr  ctx lctx a) el)
   in

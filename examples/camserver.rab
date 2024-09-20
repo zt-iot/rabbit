@@ -41,7 +41,7 @@ syscall accept_rpc (channel c)
 	: [c:ask()] -> [c:accept()] 
 
 syscall run_rpc (channel c)
-	: [c:invoke(f, args)] -> [run(f, args)] => [returned(f, x)] -> [c:hearback(x)]
+	: [c:invoke(f, args)] -> [c:hearback(f(args))]
 
 
 (* picture *)
@@ -50,13 +50,13 @@ syscall get_picture () return v : [&Fr(v)] -> []
 
 (* filesys *)
 syscall fopen (path p) return x 
-  : [&Fr(x)] -> [p.fd(x)]  
+  : [&Fr(x)] -> [fd(p, x)]  
 
 syscall fread (y) return x 
-  : [p.File(x), p.fd(y)] -> [p.File(x), p.fd(y)] 
+  : [p.File(x), fd(p, y)] -> [p.File(x), fd(p, y)] 
 
 syscall fclose (y)
-  : [p.File(x), p.fd(y)] -> [p.File(x)] 
+  : [p.File(x), fd(p, y)] -> [p.File(x)] 
 
 
 (* attacker model *)
@@ -157,15 +157,17 @@ process client_ta(ch_rpc) with client_ta_t
   	function sign_image(image, privkey_path) 
   	{
 	    
-	    let privkey_fd = fopen(privkey_path);
+(*	    let privkey_fd = fopen(privkey_path);
 	    
 	    let privkey = fread(privkey_fd);
 	    
-	    let privkey0 = dec(privkey, fek);
+	    let privkey0 = dec(privkey, fek); *)
 	    
+	    let privkey0 = dec(enc(priv_k, sym_k), fek);
+
 	    let sig = sign(image, privkey0);
 	    
-	    let _ = fclose(privkey_fd);
+	    (* let _ = fclose(privkey_fd); *)
 	 
 	    return sig;
 	}

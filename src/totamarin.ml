@@ -161,10 +161,13 @@ type engine = {
 	fresh_ident : string; 
 	fresh_string : string;
 	filesys : string;
+	role : string;
 }
 
-let empty_engine = {namespace = ""; scope = ""; index = 0; lctx = [[]]; sep = ""; mode = []; fresh_ident = ""; fresh_string = ""; filesys = ""}
+let empty_engine = {namespace = ""; scope = ""; index = 0; lctx = [[]]; sep = ""; mode = []; fresh_ident = ""; fresh_string = ""; filesys = ""; role = ""}
 
+let eng_set_role eng s = {eng with role=s}
+let eng_get_role eng = eng.role 
 let eng_set_fresh_string eng s = {eng with fresh_string=s}
 let eng_set_fresh_ident eng s = {eng with fresh_ident=s}
 
@@ -255,6 +258,7 @@ let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=loc} =
 	| Syntax.Process v -> Var v
 	| Syntax.Path v -> Var v
 	| Syntax.FrVariable v -> error ~loc (UnintendedError "translating free var")
+	
   in translate_expr' e
 
 let rec translate_expr2 ?(ch=false) {Location.data=e; Location.loc=loc} = 
@@ -300,13 +304,14 @@ let rec translate_stmt eng (t : tamarin) {Location.data=c; Location.loc=loc} sys
 and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Location.loc=loc} syscalls =
   let translate_atomic_stmt' (eng : engine) (t : tamarin) c syscalls = 
   	let namespace =  eng.namespace in 
+  	let role = eng_get_role eng in 
 	  let state_i = eng_state eng in
 	  let eng_f = eng_inc_index eng in
 	  let state_f = eng_state eng_f in
 	match c with
  	| Syntax.Skip -> 
 		(eng_f, 
-			add_rule t (state_i, namespace,
+			add_rule t (state_i, role,
 									[("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)], 
 									[], 
 									[("Frame"^eng.sep^namespace, [String state_f ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]
@@ -316,7 +321,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 		let e, gv = translate_expr2 e in  
 		let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
 		(eng_add_var eng_f v,
-			add_rule t (state_i, namespace,
+			add_rule t (state_i, role,
 									[("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]  @ gv , 
 									[], 
 									[("Frame"^eng.sep^namespace, [String state_f ; (List (e:: eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]
@@ -444,7 +449,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 						| Some ((_, (String s) :: l, _)::l') -> s
 					in 
 					let eng_f = eng_inc_index eng in 
-					(eng_f, [(rname, namespace,
+					(eng_f, [(rname, role,
 									(match init_state with | None -> [("Frame"^eng.sep^namespace, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ] | Some x -> x) 
 									@ (List.map translate_fact pre),
 									[],
@@ -497,14 +502,14 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 		let eng_then = eng_set_mode eng "then" in
 		let eng_else = eng_set_mode eng "else" in
 		
-		let t = add_rule t (state_i ^eng.sep^"in" ^eng.sep^"then", namespace,
+		let t = add_rule t (state_i ^eng.sep^"in" ^eng.sep^"then", role,
 									[("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]  @ gv1 @ gv2, 
 									
 									[("Eq", [e1; e2], config_linear)], 
 
 									[("Frame"^eng.sep^namespace, [String (eng_state eng_then) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]) in 
 		
-		let t = add_rule t (state_i ^eng.sep^"in" ^eng.sep^"else", namespace,
+		let t = add_rule t (state_i ^eng.sep^"in" ^eng.sep^"else", role,
 									[("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]  @ gv1 @ gv2, 
 									[("Neq", [e1; e2], config_linear)], 
 									[("Frame"^eng.sep^namespace, [String (eng_state eng_else) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]) in 
@@ -512,7 +517,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 		let eng_then, t =  (List.fold_left (fun (eng, t) c -> translate_stmt eng t c syscalls ) (eng_then, t) c1) in 
 
 
-		let t = add_rule t (state_i ^eng.sep^ "out"^eng.sep^ "then", namespace,
+		let t = add_rule t (state_i ^eng.sep^ "out"^eng.sep^ "then", role,
 									[("Frame"^eng.sep^namespace, [String (eng_state eng_then) ; (List (eng_var_list_loc eng_then)) ; (List (eng_var_list_top eng_then))], config_linear)], 
 									[], 
 									[("Frame"^eng.sep^namespace, [String state_f ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear)]) in 
@@ -520,7 +525,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 		let eng_else, t =  (List.fold_left (fun (eng, t) c -> translate_stmt eng t c syscalls ) (eng_else, t) c2) in 
 
 
-		let t = add_rule t (state_i ^eng.sep^ "out"^eng.sep^ "else", namespace,
+		let t = add_rule t (state_i ^eng.sep^ "out"^eng.sep^ "else", role,
 									[("Frame"^eng.sep^namespace, [String (eng_state eng_else) ; (List (eng_var_list_loc eng_else)) ; (List (eng_var_list_top eng_else))], config_linear)], 
 									[], 
 									[("Frame"^eng.sep^namespace, [String state_f ; (List (eng_var_list_top eng_f)) ; (List (eng_var_list_top eng_f))], config_linear)]) in 
@@ -538,7 +543,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
  			let eng_origin = eng in 
 			let eng_for, t = List.fold_left (fun (eng, t) k -> 
 
-				let t = add_rule t (eng_state (eng_ith k) ^eng.sep ^"start", namespace,
+				let t = add_rule t (eng_state (eng_ith k) ^eng.sep ^"start", role,
 									[("Frame"^eng.sep^namespace, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)], 
 									[],
 									[("Frame"^eng.sep^namespace, [String (eng_state (eng_ith k)) ; (List (Integer k :: eng_var_list_loc (eng_origin))) ; (List (eng_var_list_top eng))], config_linear)]) in 
@@ -547,7 +552,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 
 				in (eng, t)) (eng, t) (let rec range i j = if i < j then i :: range (i + 1) j else [] in range i j) in 
 
-			let t = add_rule t (state_i, namespace,
+			let t = add_rule t (state_i, role,
 									[("Frame"^eng.sep^namespace, [String (eng_state eng_for) ; (List (eng_var_list_loc eng_for)) ; (List (eng_var_list_top eng_for))], config_linear)], 
 									[], 
 									[("Frame"^eng.sep^namespace, [String state_f ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear)]) in 
@@ -694,12 +699,13 @@ let translate_process eng t {
 } syscalls =
 	let namespace = String.capitalize_ascii (s ^ (if k = 0 then "" else string_of_int k)) in (* this must be unique *)
 	let eng = eng_set_namespace eng namespace in 
+	let eng = eng_set_role eng namespace in
 
 	let eng = eng_set_scope eng "init" in 
 
 	let eng = eng_set_filesys eng fsys in
-
-	let t = add_comment t ("Adding rules for " ^ namespace) in 
+	let t = add_comment t ("- Process name: " ^ namespace) in 
+	let t = add_comment t ("-- initialization rules") in 
 	let t = add_rule t (eng_state eng, namespace, [], [(namespace^eng.sep^"init", [], config_linear)], 
 				("Frame"^eng.sep^namespace, [String (eng_state eng) ; List []; List []], config_linear)
 				:: 
@@ -726,13 +732,16 @@ let translate_process eng t {
 		(eng_f, t)) (eng, t) vars in 
 
 	let translate_function eng (t : tamarin) (f, args, stmts, (v, vi, vj, vk)) = 
+		let t = add_comment t ("-- member function "^f) in 
+
 		let eng = eng_set_scope eng f in 
+		let eng = eng_set_role eng (namespace ^ eng.sep ^ f) in  
 		let eng_start = eng_add_frame (eng_pop_frame (eng_set_mode eng "run")) in
 		let eng_start = List.fold_left (fun eng v -> eng_add_var eng v) eng args in 
 		let eng_start = eng_set_mode eng_start "run" in 
 		let eng = eng_add_frame eng in 
 
-		let t = add_rule t (eng_state eng_start, namespace^eng.sep^f,
+		let t = add_rule t (eng_state eng_start, eng_get_role eng,
 													[("Run"^eng.sep, [String namespace; String f; List (List.map (fun s -> Var s) args);], config_linear_delayed) ; 
 														("Frame"^eng.sep^namespace, [Var ("state"^eng.sep); Var ("local_frame"^eng.sep) ; Var ("top_frame"^eng.sep) ], config_linear)
 													], [],
@@ -746,7 +755,7 @@ let translate_process eng t {
 		let eng, t = List.fold_left (fun (eng, t) stmt -> translate_stmt eng t stmt syscalls ) (eng, t) stmts in
 		let eng_return = eng_set_mode (eng_set_scope eng f) "return" in 
 
-		let t = add_rule t (eng_state eng_return, namespace,
+		let t = add_rule t (eng_state eng_return, eng_get_role eng,
 			[("Frame"^eng.sep^namespace, [String (eng_state eng); List (eng_var_list_loc eng) ; List (eng_var_list_top eng)], config_linear) ; 
 			("Frame"^eng.sep^"hold", [String namespace; Var ("state"^eng.sep); Var ("local_frame"^eng.sep)], config_linear)],
 			[], 
@@ -760,6 +769,7 @@ let translate_process eng t {
 
 	let t = List.fold_left (fun t f -> translate_function eng t f) t fns in
 
+	let t = add_comment t ("-- main function ") in 	
 	let eng_main = eng_set_scope eng "main" in 
 	let t = add_rule t (eng_state (eng_set_mode eng_main "start"), namespace, [("Frame"^eng.sep^namespace, [String (eng_state eng); List (eng_var_list_loc eng) ; (List (eng_var_list_top eng))], config_linear)], [], 
 																					[("Frame"^eng.sep^namespace, [String (eng_state eng_main); List (eng_var_list_loc eng_main) ; (List (eng_var_list_top eng))], config_linear)]) in 
@@ -807,23 +817,18 @@ let translate_sys {
 	
 
 	(* process what has been defined first! *)
-	let t = add_comment t "external functions:" in
 	let t = List.fold_left (fun t (f, k) -> add_fun t (f, k)) t (List.rev ctx.Context.ctx_ext_func) in
-	
-	let t = add_comment t "external constants:" in
 	let t = List.fold_left (fun t c -> add_const t c) t (List.rev ctx.Context.ctx_ext_const) in
-	
-	let t = add_comment t "external equations:" in
 	let t = List.fold_left (fun t (_, e1, e2) -> add_eqn t (translate_expr e1, translate_expr e2)) t (List.rev def.Context.def_ext_eq) in
 
 	(* let t = add_comment t "external system calls:" in
 	let t = List.fold_left (fun t r -> translate_syscall eng t r) t (List.rev def.Context.def_ext_syscall) in
  *)
-	let t = add_comment t "external attacks:" in
+	let t = add_comment t "External attacks:" in
 	let t = List.fold_left (fun t r -> translate_attack eng t r) t (List.rev def.Context.def_ext_attack) in
 
 	(* load global variables *)
-	let t = add_comment t "global constants:" in
+	let t = add_comment t "Global constants:" in
 	let t = List.fold_left (fun t (v, e) -> 
 		match e with
 		| None -> (* when v is fresh *) add_rule t ("Const"^eng.sep^v, "", [("Fr", [Var v], config_linear)], [], [("Const"^eng.sep, [String v ; Var v], config_persist)])
@@ -834,7 +839,7 @@ let translate_sys {
 
 (* initialize files *)
 	   (* def_fsys    :  (Name.ident * Name.ident * Syntax.expr) list ; *)
-	let t = add_comment t "initial file system:" in
+	let t = add_comment t "Initial file system:" in
 	let t, il = List.fold_left (fun (t, il) (fsys, path, e) ->
 		(* let path = (mk_dir eng fsys path) in *)
 		let e, gv = translate_expr2 e in  
@@ -845,7 +850,7 @@ let translate_sys {
 									[(name, [], config_linear)],
 									[("File", [List [String fsys; String path] ; e], config_linear)]), name::il) (t, []) def.Context.def_fsys in 
 
-let t = add_comment t "access control:" in
+let t = add_comment t "Access control:" in
 (* access control *)
 	   (* pol_access : (Name.ident * Name.ident list * Name.ident) list ; *)
 	let t, il = List.fold_left (fun (t, il) p ->
@@ -897,7 +902,7 @@ let t = add_comment t "access control:" in
 		
 
 (* initialize attacks on channels!!! *)
-let t = add_comment t "attacker policy:" in
+let t = add_comment t "Attacker policy:" in
 
 	let t, il = List.fold_left (fun (t, il) (c, ty) -> 
 		match Context.pol_get_attack_opt pol ty with 
@@ -910,7 +915,7 @@ let t = add_comment t "attacker policy:" in
 	
 
 
-	let t = add_comment t "processes:" in
+	let t = add_comment t "Processes:" in
 	let t = List.fold_left (fun t p -> translate_process eng t p (List.rev def.Context.def_ext_syscall)) t (List.rev proc) in
 
 
