@@ -87,7 +87,7 @@ type definition = {
    def_ext_eq  :  (Name.ident list * Syntax.expr * Syntax.expr) list ;
                   (* free variables, e1, e2  such that e1 = e2 under the free variables *)
  
-   def_ext_syscall : (Name.ident *  (Input.arg_type * Name.ident) list * (Name.ident list * Name.ident list) * Name.ident list * Syntax.complex_rule * Syntax.expr option) list ;
+   def_ext_syscall : (Name.ident *  (Input.arg_type * Name.ident) list * (Name.ident list * Name.ident list) * Name.ident list * (Name.ident * Syntax.expr) list * Syntax.complex_rule * Syntax.expr option) list ;
    
    def_ext_attack  : (Name.ident *  (Name.ident list * Name.ident list * Name.ident list) * (Syntax.fact list * Syntax.fact list )) list ;
 

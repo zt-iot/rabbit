@@ -136,6 +136,8 @@ let print_tamarin prt ((sign, rules), init_list, lem) dev =
 
 	"restriction Inequality: \"All x #i. Neq(x,x) @ #i ==> F\"\n" ^
 
+	"rule Equality_gen: [] --> [!Eq"^prt.prt_sep^"(x,x)]\n" ^
+
 	List.fold_left (fun l (lem, prop) -> l^"\nlemma "^lem^" : "^prop) "" lem ^"\nend\n"
 
 (* 
@@ -162,14 +164,18 @@ type engine = {
 	fresh_string : string;
 	filesys : string;
 	role : string;
+	func : string; 
 }
 
-let empty_engine = {namespace = ""; scope = ""; index = 0; lctx = [[]]; sep = ""; mode = []; fresh_ident = ""; fresh_string = ""; filesys = ""; role = ""}
+let empty_engine = {namespace = ""; scope = ""; func = ""; index = 0; lctx = [[]]; sep = ""; mode = []; fresh_ident = ""; fresh_string = ""; filesys = ""; role = ""}
 
 let eng_set_role eng s = {eng with role=s}
 let eng_get_role eng = eng.role 
 let eng_set_fresh_string eng s = {eng with fresh_string=s}
 let eng_set_fresh_ident eng s = {eng with fresh_ident=s}
+let eng_set_func eng s = {eng with func=s}
+let eng_get_frame_title eng = 
+	"Frame"^eng.sep^eng.namespace ^ (if eng.func = "" then "" else eng.sep ^ eng.func) 
 
 let eng_get_fresh_string eng = eng.fresh_string
 let eng_get_fresh_ident eng = eng.fresh_ident
@@ -312,9 +318,9 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
  	| Syntax.Skip -> 
 		(eng_f, 
 			add_rule t (state_i, role,
-									[("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)], 
+									[(eng_get_frame_title eng, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)], 
 									[], 
-									[("Frame"^eng.sep^namespace, [String state_f ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]
+									[(eng_get_frame_title eng, [String state_f ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]
 			)
 		)
 	| Syntax.Let ((v, vi,vj,vk), e) -> 
@@ -322,9 +328,9 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 		let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
 		(eng_add_var eng_f v,
 			add_rule t (state_i, role,
-									[("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]  @ gv , 
+									[(eng_get_frame_title eng, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]  @ gv , 
 									[], 
-									[("Frame"^eng.sep^namespace, [String state_f ; (List (e:: eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]
+									[(eng_get_frame_title eng, [String state_f ; (List (e:: eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]
 			))
 	
 	| Syntax.Call ((v, vi,vj,vk), f, args) -> 
@@ -362,14 +368,14 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 	(*****************************)
 	(*****************************)
 	(*****************************)
-		match List.find_opt (fun (f', ty_args, (ch_vars, path_vars), meta_vars, crule, ret) -> f = f') syscalls with
+		match List.find_opt (fun (f', ty_args, (ch_vars, path_vars), meta_vars, substs, crule, ret) -> f = f') syscalls with
 		| None -> error ~loc:Nowhere (UnintendedError "undefined syscall")
-		| Some (f, ty_args, (ch_vars, path_vars), meta_vars, crule, ret) -> 
+		| Some (f, ty_args, (ch_vars, path_vars), meta_vars, substs, crule, ret) -> 
 			let f = mk_fact_name f in 
 			let processed_args = List.map2 (fun a b -> (a, b)) (List.map snd ty_args) el in
 
-			let rec translate_and_subst_expr {Location.data=e; Location.loc=loc} = 
-			   let translate_and_subst_expr' = function
+			let rec translate_and_subst_expr processed_args {Location.data=e; Location.loc=loc}  = 
+			   let translate_and_subst_expr' processed_args = function
 					| Syntax.ExtConst s -> Apply (s, [])
 					| Syntax.Const s -> error ~loc (UnintendedError "global constant in fact")
 					| Syntax.Variable (v, i,j,k) -> 
@@ -380,8 +386,8 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 					| Syntax.String s -> String s
 					| Syntax.Integer z -> Integer z
 					| Syntax.Float f -> error ~loc (UnintendedError "translating float")
-					| Syntax.Apply (o, el) -> Apply (o, List.map translate_and_subst_expr el)
-					| Syntax.Tuple el ->  List (List.map translate_and_subst_expr el)
+					| Syntax.Apply (o, el) -> Apply (o, List.map (translate_and_subst_expr processed_args) el )
+					| Syntax.Tuple el ->  List (List.map (translate_and_subst_expr processed_args) el)
 					
 					| Syntax.Channel (v, l) -> 
 							begin match List.find_opt (fun (a, b) -> a = v) processed_args with
@@ -401,40 +407,33 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 					
 					| Syntax.FrVariable v -> error ~loc (UnintendedError "translating free var")
 				  
-				  in translate_and_subst_expr' e
+				  in translate_and_subst_expr' processed_args e
 			in
 
+			let subst_facts =
+			List.map (fun (y, e) ->
+				("!Eq"^eng.sep, [Var y; translate_and_subst_expr processed_args e], config_linear)) substs in 
+
 			let acp_facts = 
-			List.map (fun v -> (f ^ eng.sep ^"Allowed", [String eng.namespace ; translate_and_subst_expr (Location.locate ~loc:Nowhere (Syntax.Variable (v, 0,0,0)))], config_persist)) ch_vars 
-			@ List.map (fun v -> (f ^ eng.sep ^"Allowed", [String eng.namespace ; translate_and_subst_expr (Location.locate ~loc:Nowhere (Syntax.Variable (v, 0,0,0)))], config_persist)) path_vars
+			List.map (fun v -> (f ^ eng.sep ^"Allowed", [String eng.namespace ; translate_and_subst_expr processed_args (Location.locate ~loc:Nowhere (Syntax.Variable (v, 0,0,0)))], config_persist)) ch_vars 
+			@ List.map (fun v -> (f ^ eng.sep ^"Allowed", [String eng.namespace ; translate_and_subst_expr processed_args (Location.locate ~loc:Nowhere (Syntax.Variable (v, 0,0,0)))], config_persist)) path_vars
 			@ begin match ch_vars @ path_vars with | [] -> [(f ^ eng.sep ^"Allowed", [String eng.namespace], config_persist)] | _ -> [] end
 			in 
 
 			let translate_fact f = 
 				begin
 				match f.Location.data with
-				| Syntax.GlobalFact (s, el) -> (s, (List.map  (translate_and_subst_expr) el), config_linear)
+				| Syntax.GlobalFact (s, el) -> (s, (List.map  (translate_and_subst_expr processed_args) el), config_linear)
 				| Syntax.Fact (s, el) -> 
 				(* reserved facts: *)
 				let namespace_id = (String namespace) in
 
-				if s = "run" then
-						match el with
-						| f :: args ->
-							("Run"^eng.sep, [namespace_id ; (translate_and_subst_expr f) ; List (List.map (translate_and_subst_expr) args)], config_linear_delayed)
-						| _ ->				(mk_fact_name s, namespace_id :: (List.map  (translate_and_subst_expr) el), config_linear_delayed)
-				else if s = "returned" then
-						match el with
-						| f :: args ->
-							("Return"^eng.sep, [namespace_id ; (translate_and_subst_expr f) ; List (List.map (translate_and_subst_expr) args)], config_linear_delayed)
-						| _ ->				(mk_fact_name s, namespace_id :: (List.map  (translate_and_subst_expr) el), config_linear_delayed)
-					else
-						(mk_fact_name s, namespace_id :: (List.map  (translate_and_subst_expr) el), config_linear_delayed)
+						(mk_fact_name s, namespace_id :: (List.map  (translate_and_subst_expr processed_args) el), config_linear_delayed)
 
 				| Syntax.ChannelFact (scope, s, el) -> 
-						(mk_fact_name s, (translate_and_subst_expr (Location.locate ~loc:Nowhere (Syntax.Variable (scope, 0,0,0)))) :: (List.map  (translate_and_subst_expr) el), config_linear_delayed)
+						(mk_fact_name s, (translate_and_subst_expr processed_args (Location.locate ~loc:Nowhere (Syntax.Variable (scope, 0,0,0)))) :: (List.map  (translate_and_subst_expr processed_args) el), config_linear_delayed)
 				| Syntax.PathFact (scope, s, el) -> 
-						(mk_fact_name s, (translate_and_subst_expr (Location.locate ~loc:Nowhere (Syntax.Variable (scope, 0,0,0)))) :: (List.map  (translate_and_subst_expr) el), config_linear_delayed)
+						(mk_fact_name s, String (eng_get_filesys eng) :: (translate_and_subst_expr processed_args (Location.locate ~loc:Nowhere (Syntax.Variable (scope, 0,0,0)))) :: (List.map  (translate_and_subst_expr processed_args) el), config_linear_delayed)
 				| _ -> error ~loc:Nowhere (UnintendedError "unexpected fact in syscall")
 			end
 			in	
@@ -450,15 +449,52 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 					in 
 					let eng_f = eng_inc_index eng in 
 					(eng_f, [(rname, role,
-									(match init_state with | None -> [("Frame"^eng.sep^namespace, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ] | Some x -> x) 
+									(match init_state with | None -> [(eng_get_frame_title eng, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ] | Some x -> x) 
 									@ (List.map translate_fact pre),
 									[],
-									(match final_state with | None -> [("Frame"^eng.sep^namespace, [String (eng_state eng_f) ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear) ] | Some x -> x) 
+									(match final_state with | None -> [(eng_get_frame_title eng, [String (eng_state eng_f) ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear) ] | Some x -> x) 
 									@ (List.map translate_fact post))])
 				
+
+				| Syntax.CRuleStmt (pre, stmts, post) -> 
+				begin match stmts with
+				| [{Location.data=Syntax.OpStmt {Location.data=Syntax.Call((y, _, _, _), f, args) ; Location.loc=_} ; Location.loc=_}] -> 
+						let rname = 
+						match init_state with
+						| None -> eng_state eng 
+						| Some ((_, (String s) :: l, _)::l') -> s
+						in 
+						let eng_int = eng_set_mode eng f in 
+						let eng_f = eng_inc_index eng in 
+						let rule_call = (rname, role,
+									(match init_state with | None -> [(eng_get_frame_title eng, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ] | Some x -> x) 
+									@ (List.map translate_fact pre),
+									[],
+									[(eng_get_frame_title eng, [String (eng_state eng_int) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ;
+										("Run"^eng.sep, [String namespace; 
+																		(translate_and_subst_expr processed_args (Location.locate ~loc:Nowhere (Syntax.Variable (f, 0,0,0)))); 
+																		List (List.map  (translate_and_subst_expr processed_args) args);
+																		List (eng_var_list_top eng)], config_linear)]) in 
+
+						let rule_return = (rname^eng.sep, role, 
+										[(eng_get_frame_title eng, [String (eng_state eng_int) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ;
+										("Return"^eng.sep, [String namespace; 
+																		(translate_and_subst_expr processed_args (Location.locate ~loc:Nowhere (Syntax.Variable (f, 0,0,0)))); 
+																		Var y;
+																		Var ("top_frame" ^eng.sep)], config_linear)],
+										[],
+										(match final_state with | None -> [(eng_get_frame_title eng, [String (eng_state eng_f) ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear) ] | Some x -> x) 
+										@ (List.map translate_fact post)) in 
+						(eng_f, [rule_call; rule_return])
+
+
+
+				| _ -> error ~loc:Nowhere NotSupportedYet
+				end
+
 				| Syntax.CRuleSeq (r1, r2) ->
 					let (eng, r1) = translate_crule eng init_state None r1 in 
-					let (eng, r2) = translate_crule eng (Some [("Frame"^eng.sep^namespace, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ]) final_state r2 in 
+					let (eng, r2) = translate_crule eng (Some [(eng_get_frame_title eng, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ]) final_state r2 in 
 					(eng, r1 @ r2)
 
 				| Syntax.CRulePar (r1, r2) ->
@@ -474,11 +510,11 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 				end
 				in 
 
-			let init_state = ("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) :: acp_facts in 
-			let final_state = ("Frame"^eng.sep^namespace, 
+			let init_state = (eng_get_frame_title eng, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) :: acp_facts @ subst_facts in 
+			let final_state = (eng_get_frame_title eng, 
 				[String state_f ; 
 					(List ( begin match ret with 
-									| Some e -> translate_and_subst_expr e
+									| Some e -> translate_and_subst_expr processed_args e
 									| None -> String (eng_get_fresh_string eng) end :: eng_var_list_loc eng)) ; 
 					(List (eng_var_list_top eng))], config_linear) in 
 
@@ -503,32 +539,32 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 		let eng_else = eng_set_mode eng "else" in
 		
 		let t = add_rule t (state_i ^eng.sep^"in" ^eng.sep^"then", role,
-									[("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]  @ gv1 @ gv2, 
+									[(eng_get_frame_title eng, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]  @ gv1 @ gv2, 
 									
 									[("Eq", [e1; e2], config_linear)], 
 
-									[("Frame"^eng.sep^namespace, [String (eng_state eng_then) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]) in 
+									[(eng_get_frame_title eng, [String (eng_state eng_then) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]) in 
 		
 		let t = add_rule t (state_i ^eng.sep^"in" ^eng.sep^"else", role,
-									[("Frame"^eng.sep^namespace, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]  @ gv1 @ gv2, 
+									[(eng_get_frame_title eng, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]  @ gv1 @ gv2, 
 									[("Neq", [e1; e2], config_linear)], 
-									[("Frame"^eng.sep^namespace, [String (eng_state eng_else) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]) in 
+									[(eng_get_frame_title eng, [String (eng_state eng_else) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]) in 
 
 		let eng_then, t =  (List.fold_left (fun (eng, t) c -> translate_stmt eng t c syscalls ) (eng_then, t) c1) in 
 
 
 		let t = add_rule t (state_i ^eng.sep^ "out"^eng.sep^ "then", role,
-									[("Frame"^eng.sep^namespace, [String (eng_state eng_then) ; (List (eng_var_list_loc eng_then)) ; (List (eng_var_list_top eng_then))], config_linear)], 
+									[(eng_get_frame_title eng, [String (eng_state eng_then) ; (List (eng_var_list_loc eng_then)) ; (List (eng_var_list_top eng_then))], config_linear)], 
 									[], 
-									[("Frame"^eng.sep^namespace, [String state_f ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear)]) in 
+									[(eng_get_frame_title eng, [String state_f ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear)]) in 
 
 		let eng_else, t =  (List.fold_left (fun (eng, t) c -> translate_stmt eng t c syscalls ) (eng_else, t) c2) in 
 
 
 		let t = add_rule t (state_i ^eng.sep^ "out"^eng.sep^ "else", role,
-									[("Frame"^eng.sep^namespace, [String (eng_state eng_else) ; (List (eng_var_list_loc eng_else)) ; (List (eng_var_list_top eng_else))], config_linear)], 
+									[(eng_get_frame_title eng, [String (eng_state eng_else) ; (List (eng_var_list_loc eng_else)) ; (List (eng_var_list_top eng_else))], config_linear)], 
 									[], 
-									[("Frame"^eng.sep^namespace, [String state_f ; (List (eng_var_list_top eng_f)) ; (List (eng_var_list_top eng_f))], config_linear)]) in 
+									[(eng_get_frame_title eng, [String state_f ; (List (eng_var_list_top eng_f)) ; (List (eng_var_list_top eng_f))], config_linear)]) in 
 
 		(eng_f,  t)
 	| Syntax.For ((v, _, _, _), i, j, c) -> 
@@ -544,18 +580,18 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 			let eng_for, t = List.fold_left (fun (eng, t) k -> 
 
 				let t = add_rule t (eng_state (eng_ith k) ^eng.sep ^"start", role,
-									[("Frame"^eng.sep^namespace, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)], 
+									[(eng_get_frame_title eng, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)], 
 									[],
-									[("Frame"^eng.sep^namespace, [String (eng_state (eng_ith k)) ; (List (Integer k :: eng_var_list_loc (eng_origin))) ; (List (eng_var_list_top eng))], config_linear)]) in 
+									[(eng_get_frame_title eng, [String (eng_state (eng_ith k)) ; (List (Integer k :: eng_var_list_loc (eng_origin))) ; (List (eng_var_list_top eng))], config_linear)]) in 
 
 				let eng, t = (List.fold_left (fun (eng, t) c -> translate_stmt eng t c syscalls ) (eng_ith k, t) c)  
 
 				in (eng, t)) (eng, t) (let rec range i j = if i < j then i :: range (i + 1) j else [] in range i j) in 
 
 			let t = add_rule t (state_i, role,
-									[("Frame"^eng.sep^namespace, [String (eng_state eng_for) ; (List (eng_var_list_loc eng_for)) ; (List (eng_var_list_top eng_for))], config_linear)], 
+									[(eng_get_frame_title eng, [String (eng_state eng_for) ; (List (eng_var_list_loc eng_for)) ; (List (eng_var_list_top eng_for))], config_linear)], 
 									[], 
-									[("Frame"^eng.sep^namespace, [String state_f ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear)]) in 
+									[(eng_get_frame_title eng, [String state_f ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear)]) in 
 			(eng_f, t)		
 
 
@@ -707,7 +743,7 @@ let translate_process eng t {
 	let t = add_comment t ("- Process name: " ^ namespace) in 
 	let t = add_comment t ("-- initialization rules") in 
 	let t = add_rule t (eng_state eng, namespace, [], [(namespace^eng.sep^"init", [], config_linear)], 
-				("Frame"^eng.sep^namespace, [String (eng_state eng) ; List []; List []], config_linear)
+				(eng_get_frame_title eng, [String (eng_state eng) ; List []; List []], config_linear)
 				:: 
 				
 				(List.map (fun attk -> (mk_fact_name attk ^ eng.sep ^"Allowed", [String namespace], config_persist)) attks)
@@ -726,29 +762,26 @@ let translate_process eng t {
 		let e, gv = translate_expr2 e in  
 		let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
 		let t = add_rule t (state_f, namespace,
-									[("Frame"^eng.sep^namespace, [String state_i;  List [] ; List (eng_var_list_top eng)], config_linear)] @ gv, 
+									[(eng_get_frame_title eng, [String state_i;  List [] ; List (eng_var_list_top eng)], config_linear)] @ gv, 
 									[], 
-									[("Frame"^eng.sep^namespace, [String state_f ; List []; List (e :: eng_var_list_top eng)], config_linear)]) in
+									[(eng_get_frame_title eng, [String state_f ; List []; List (e :: eng_var_list_top eng)], config_linear)]) in
 		(eng_f, t)) (eng, t) vars in 
 
 	let translate_function eng (t : tamarin) (f, args, stmts, (v, vi, vj, vk)) = 
 		let t = add_comment t ("-- member function "^f) in 
 
-		let eng = eng_set_scope eng f in 
+		let eng = eng_set_scope eng f in
 		let eng = eng_set_role eng (namespace ^ eng.sep ^ f) in  
 		let eng_start = eng_add_frame (eng_pop_frame (eng_set_mode eng "run")) in
 		let eng_start = List.fold_left (fun eng v -> eng_add_var eng v) eng args in 
 		let eng_start = eng_set_mode eng_start "run" in 
 		let eng = eng_add_frame eng in 
+		let eng = eng_set_func eng f in 
 
 		let t = add_rule t (eng_state eng_start, eng_get_role eng,
-													[("Run"^eng.sep, [String namespace; String f; List (List.map (fun s -> Var s) args);], config_linear_delayed) ; 
-														("Frame"^eng.sep^namespace, [Var ("state"^eng.sep); Var ("local_frame"^eng.sep) ; Var ("top_frame"^eng.sep) ], config_linear)
-													], [],
-													[
-														("Frame"^eng.sep^"hold", [String namespace; Var ("state"^eng.sep); Var ("local_frame"^eng.sep)], config_linear) ; 
-														("Frame"^eng.sep^namespace, [String (eng_state eng); List (List.map (fun s -> Var s) (List.rev args)) ; Var ("top_frame"^eng.sep)], config_linear)
-													]) in
+													[("Run"^eng.sep, [String namespace; String f; List (List.map (fun s -> Var s) args); Var ("top_frame"^eng.sep)], config_linear_delayed)], 
+													[],
+													[(eng_get_frame_title eng, [String (eng_state eng); List (List.map (fun s -> Var s) (List.rev args)) ; Var ("top_frame"^eng.sep)], config_linear)]) in
 
 		let eng = List.fold_left (fun eng v -> eng_add_var eng v) eng args in 
 		(* let t = add_rule t (eng.namespace^f, [(eng.namespace^f, eng_var_list eng)], [], [(eng_state eng, eng_var_list eng)]) in *)
@@ -756,11 +789,9 @@ let translate_process eng t {
 		let eng_return = eng_set_mode (eng_set_scope eng f) "return" in 
 
 		let t = add_rule t (eng_state eng_return, eng_get_role eng,
-			[("Frame"^eng.sep^namespace, [String (eng_state eng); List (eng_var_list_loc eng) ; List (eng_var_list_top eng)], config_linear) ; 
-			("Frame"^eng.sep^"hold", [String namespace; Var ("state"^eng.sep); Var ("local_frame"^eng.sep)], config_linear)],
+			[(eng_get_frame_title eng, [String (eng_state eng); List (eng_var_list_loc eng) ; List (eng_var_list_top eng)], config_linear)],
 			[], 
-			[("Return"^eng.sep, [String namespace ; String f; Var v], config_linear);
-			("Frame"^eng.sep^namespace, [Var ("state"^eng.sep); Var ("local_frame"^eng.sep) ; List (eng_var_list_top eng)], config_linear)])
+			[("Return"^eng.sep, [String namespace ; String f; Var v; List (eng_var_list_top eng)], config_linear)])
 		in t in  
 
 
@@ -771,8 +802,8 @@ let translate_process eng t {
 
 	let t = add_comment t ("-- main function ") in 	
 	let eng_main = eng_set_scope eng "main" in 
-	let t = add_rule t (eng_state (eng_set_mode eng_main "start"), namespace, [("Frame"^eng.sep^namespace, [String (eng_state eng); List (eng_var_list_loc eng) ; (List (eng_var_list_top eng))], config_linear)], [], 
-																					[("Frame"^eng.sep^namespace, [String (eng_state eng_main); List (eng_var_list_loc eng_main) ; (List (eng_var_list_top eng))], config_linear)]) in 
+	let t = add_rule t (eng_state (eng_set_mode eng_main "start"), namespace, [(eng_get_frame_title eng, [String (eng_state eng); List (eng_var_list_loc eng) ; (List (eng_var_list_top eng))], config_linear)], [], 
+																					[(eng_get_frame_title eng, [String (eng_state eng_main); List (eng_var_list_loc eng_main) ; (List (eng_var_list_top eng))], config_linear)]) in 
 
 	let eng = eng_add_frame eng_main in 
 	let eng, t = List.fold_left (fun (eng, t) stmt -> translate_stmt eng t stmt syscalls ) (eng, t) m in
@@ -848,7 +879,7 @@ let translate_sys {
 		add_rule t (name, "",
 									gv,
 									[(name, [], config_linear)],
-									[("File", [List [String fsys; String path] ; e], config_linear)]), name::il) (t, []) def.Context.def_fsys in 
+									[("File", [String fsys; List [String fsys; String path] ; e], config_linear)]), name::il) (t, []) def.Context.def_fsys in 
 
 let t = add_comment t "Access control:" in
 (* access control *)

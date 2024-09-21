@@ -17,7 +17,7 @@ and expr' =
   | Channel of string * Name.ident (* second field records necessary permissions.. *) 
   | Path of string  (* only needed for syscall defintiions *) 
   | Process of string (* only needed for syscall defintiions *)
-  | Run of string * expr list (* only needed for syscall defintiions *)
+  (* | Run of string * expr list (* only needed for syscall defintiions *) *)
   | FrVariable of string
 
 type atomic_stmt = atomic_stmt' Location.located
@@ -49,6 +49,7 @@ and fact' =
 type complex_rule = complex_rule' Location.located
 and complex_rule' = 
   | CRule of (fact list * fact list) 
+  | CRuleStmt of (fact list * stmt list * fact list) 
   | CRulePar of complex_rule * complex_rule
   | CRuleRep of complex_rule 
   | CRuleSeq of complex_rule * complex_rule 

@@ -118,6 +118,8 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | ')'                      -> f (); RPAREN
   | '['                      -> f (); LBRACKET
   | ']'                      -> f (); RBRACKET
+  | "-{"                     -> f (); LOPEN
+  | "}->"                    -> f (); RCLOSE
   | '{'                      -> f (); LBRACE
   | '}'                      -> f (); RBRACE
   | "||"                     -> f (); BBAR

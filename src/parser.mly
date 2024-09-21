@@ -24,7 +24,7 @@
 %token SYSTEM LEMMA TYPE ALLOW ATTACK INITCONST FILESYS CONSTANT EQUATION INSTRUCTION DOT SYSCALL 
 %token CHANNEL PROCESS WITH FUNC MAIN RETURN 
 %token DATA 
-%token SKIP LET CALL IF ELSE FOR IN RANGE AT INIT
+%token SKIP LET CALL IF ELSE FOR IN RANGE AT INIT LOPEN RCLOSE
 %token REQUIRES SATISFIES SATISFY EXTERNAL STRING RABBIT EXTRACE ALLTRACE PATH AMP PERCENT LOAD FRESH CONST 
 
 (* temporal logic *)
@@ -87,11 +87,21 @@ external_functions:
   |  CONSTANT id=NAME  { DeclExtFun(id, 0) }
 
 external_syscall:
-  |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr COLON 
-    r=complex_rule { DeclExtSyscall(f, parems, r, Some ret) }
+  |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr
+      COLON r=complex_rule { DeclExtSyscall(f, parems, [], r, Some ret) }
+  
   |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN COLON 
-    r=complex_rule { DeclExtSyscall(f, parems, r, None) }
+    r=complex_rule { DeclExtSyscall(f, parems, [], r, None) }
 
+  |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr
+      LBRACE s=separated_list(COMMA, substs) RBRACE COLON 
+      r=complex_rule { DeclExtSyscall(f, parems, s, r, Some ret) }
+
+  |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN 
+    LBRACE s=separated_list(COMMA, substs) RBRACE COLON r=complex_rule { DeclExtSyscall(f, parems, [], r, None) }
+
+substs:
+  | var=NAME EQ e=expr { (var, e) }
 
 complex_rule: 
   | mark_location(plain_complex_rule) { $1 }
@@ -99,9 +109,13 @@ complex_rule:
 
 plain_complex_rule:
   | rule { CRule $1 }
+  | LBRACKET precond=separated_list(COMMA, fact) RBRACKET 
+    LOPEN s=stmts RCLOSE LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { CRuleStmt (precond, s, postcond) }
   | a=complex_rule BBAR b=complex_rule { CRulePar (a, b) }
   | BANG complex_rule { CRuleRep $2 }
   | a=complex_rule DARROW b=complex_rule { CRuleSeq (a, b) }
+
+
 
 external_attack:
   |  ATTACK f=NAME LPAREN parem=typed_arg RPAREN COLON r=rule { DeclExtAttack(f, parem, r) }

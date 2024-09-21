@@ -65,7 +65,6 @@ let rec process_expr ?(fr=[]) ctx lctx {Location.data=c; Location.loc=loc} =
       else 
       if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o) else
       if Context.ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr ~fr ctx lctx a) el)) else
-      if Context.lctx_check_var lctx o then Syntax.Run (o, (List.map (fun a -> process_expr ~fr ctx lctx a) el)) else
       error ~loc (UnknownIdentifier o)
    | Input.Tuple el -> Syntax.Tuple (List.map (fun a -> process_expr ~fr  ctx lctx a) el)
   in
@@ -154,6 +153,15 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
              (* not enough argumentes *)
                error ~loc (ArgNumMismatch (o, (List.length args), (Context.lctx_get_func_arity lctx o)))
             end else
+            (* if a function is applied to a local variable. 
+               this should only be allowed in system call processing. *)
+            if Context.lctx_check_var lctx o then 
+            begin
+               (* call *)
+               let args' = List.map (fun arg -> process_expr ctx lctx arg) args in
+                 (ctx, lctx'', Syntax.Call (vid', o, args'))
+            end else
+
             if Context.ctx_check_ext_syscall ctx o then
             begin
                let args_ty = Context.ctx_get_ext_syscall_arity ~loc:e.Location.loc ctx o in
@@ -230,7 +238,7 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
       (ctx, pol, Context.def_add_ext_eq def (List.hd lctx.Context.lctx_var, e1', e2'), sys, fst ps)
 
 
-   | Input.DeclExtSyscall(f, typed_args, rules, ret) ->      
+   | Input.DeclExtSyscall(f, typed_args, substs, rules, ret) ->      
       if Context.check_used ctx f then error ~loc (AlreadyDefined f) else 
          (* parse arguments *)
          let lctx = List.fold_left (fun lctx' ta -> 
@@ -239,6 +247,25 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
             | (Input.TyChannel, v) -> Context.lctx_add_new_chan ~loc lctx' v
             | (Input.TyPath, v) -> Context.lctx_add_new_path ~loc lctx' v
             | (Input.TyProcess, v) -> error ~loc (UnknownIdentifier2 v)) (Context.lctx_init) typed_args in
+
+         let lctx = Context.lctx_add_frame lctx in 
+
+         let lctx, substs = List.fold_left (fun (lctx, substs) (y, e) ->
+            if not (List.exists (fun (_, s) -> s = y) typed_args) then 
+            error ~loc (UnknownIdentifier y) else
+            let rec f e lctx = 
+               try 
+                  lctx, process_expr ctx lctx e  
+               with 
+               | Error {Location.data=err; Location.loc=locc} ->
+                  begin match err with
+                  | UnknownIdentifier id -> 
+                     f e (Context.lctx_add_new_var ~loc:locc lctx id)
+                  | _ -> error ~loc:locc err
+               end
+            in 
+            let lctx, e = f e lctx in 
+            lctx, substs @ [(y, e)]) (lctx, []) substs in 
 
          let process_fact f ctx lctx =
             match f.Location.data with
@@ -271,6 +298,25 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
             | Input.CRule (pre, post) -> 
                let ctx, (pre, post) = process_rule (pre, post) ctx lctx in
                (ctx, Location.locate ~loc:loc (Syntax.CRule (pre, post)))
+
+            | Input.CRuleStmt (pre, stmts, post) -> 
+               let ctx, pre =
+                  List.fold_left (fun (ctx, facts) f -> let ctx', f' = process_fact f ctx lctx in (ctx', f' :: facts)) (ctx, []) pre in
+               begin try 
+               let (ctx, lctx, stmts) = 
+                  process_stmts ctx lctx stmts in
+               let ctx, post =
+                  List.fold_left (fun (ctx, facts) f -> let ctx', f' = process_fact f ctx lctx in (ctx', f' :: facts)) (ctx, []) post 
+               in 
+               (ctx, Location.locate ~loc:loc (Syntax.CRuleStmt (pre, stmts, post)))
+               with 
+               | Error {Location.data=err; Location.loc=locc} ->
+                  match err with
+                  | UnknownIdentifier id -> error ~loc (UnknownIdentifier2 id)
+                  | UnknownIdentifier_ch id -> error ~loc (UnknownIdentifier2 id)
+                  | UnknownIdentifier_path id -> error ~loc (UnknownIdentifier2 id)
+               | _ -> error ~loc:locc err
+               end 
 
             | Input.CRulePar (r1, r2) -> 
                let (ctx, r1) = process_crule r1 ctx lctx in 
@@ -306,13 +352,13 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
                end
          in
 
-         let (ctx, rs, ret, lctx) = process rules (Context.lctx_add_frame lctx) in
+         let (ctx, rs, ret, lctx) = process rules lctx in
          let metavar = List.hd lctx.Context.lctx_var in 
          let args = List.hd (Context.lctx_pop_frame ~loc lctx).Context.lctx_var in 
          let ch_args = lctx.Context.lctx_chan in 
          let path_args = lctx.Context.lctx_path in 
 
-         (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), pol, Context.def_add_ext_syscall def (f, (typed_args), (ch_args, path_args), metavar, rs, ret), sys, fst ps)
+         (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), pol, Context.def_add_ext_syscall def (f, (typed_args), (ch_args, path_args), metavar, substs, rs, ret), sys, fst ps)
 
 
    | Input.DeclExtAttack(f, typed_arg, rule) ->      
