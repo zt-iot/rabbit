@@ -1,6 +1,6 @@
 # Rabbitm
 
-An implementation of a system programming language for verified IoT systems.
+An implementation of a to-Tamarin translator programming language for verified IoT systems.
 
 ## Prerequisites
 
@@ -17,6 +17,8 @@ You can follow [these instructions](https://www.ocaml.org/docs/up-and-running) f
     opam install sedlex
     opam install xml-light
 
+To run output Tarmain files `.spthy`, of course Tamarin is required. Rabbit implementation aligns with Tamarin version 1.8 and with the  development version 1.9. Follow the instruction in https://tamarin-prover.com/manual/master/book/002_installation.html to install Tamarin.
+
 ## Compilation
 
 To compile Rabbit, run the following command in this project directory:
@@ -25,8 +27,10 @@ To compile Rabbit, run the following command in this project directory:
 
 Dune compiles the program and hides the executable in `_build/default/src/rabbitm.exe`, so try running it with
 
-    _build/default/src/rabbitm.exe examples/verysimple.rab
+    _build/default/src/rabbitm.exe examples/camserver.rab -o _output/camserver.spthy
 
-It currenlty parse the given .rab file and print the processed system into XML to the terminal.
+that outputs a Tamarin file `output/camserver.spthy` that models `examples/camserver.rab`. Having `--dev` option, the output Tamarin file aligns with the development version of Tamarin. 
 
-At this moment of development, only the `verysimple.rab` is the working example in the `examples/` directory. (Please ignore the other files.)
+Running Tamarin is expected to be done separately. An advice is, when a rabbit file becomes a little complicated, verification time of Tamairn tends to vary a lot by the applied [_heuristics_](https://tamarin-prover.com/manual/master/book/011_advanced-features.html). It seems `I` is a good option; E.g. try
+
+    tamarin-prover _output/camserver.spthy --prove=Correspondence --heuristic=I
