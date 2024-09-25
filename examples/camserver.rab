@@ -3,13 +3,10 @@ function pk:1
 function enc:2
 function sign:2
 function dec:2
-
 function verify:3
-
 function h:1
 function fst:1
 function snd:1
-function test:0
 function true:0
 
 equation fst ((x, y)) = x
@@ -29,25 +26,21 @@ syscall recv(channel c) return v
 
 syscall connect_rpc (channel c) return x
   : [] -> [c:ask()] 
- => [c:accept(), &Fr(x)] -> [c:connect(), chid(c, x)]
+	=> [c:accept(), &Fr(x)] -> [c:connect(), chid(c, x)]
 
 syscall invoke_rpc (channel c, f, args) return x
   	: [c:connect()] -> [c:invoke(f, args), c:connect()]
-	=>[c:hearback(x)] -> []
+		=> [c:hearback(x)] -> []
 
 syscall close_rpc (i)
 	: [c:connect(), chid(c, i)] -> [c:close()]
 
 syscall accept_rpc (channel c)
 	: [c:ask()] -> [c:accept()] 
-
-syscall run_rpc (channel c)
-	: [c:invoke(f, args)] -{ let y = f(args); }-> [ c:hearback(y) ]
-
-
+	=> {![c:invoke(f, args)] -{ let y = f(args); }-> [ c:hearback(y) ] 
+		 	 || [c:close()] -> []}
 (* picture *)
 syscall get_picture () return v : [&Fr(v)] -> [] 
-
 
 (* filesys *)
 syscall fopen (path p) return h(p) 
@@ -75,7 +68,7 @@ allow client_t async_t [send]
 allow client_t sync_t 	   [connect_rpc, invoke_rpc, close_rpc]
 allow client_t [get_picture]
 
-allow client_ta_t sync_t  [accept_rpc, run_rpc]
+allow client_ta_t sync_t  [accept_rpc]
 allow client_ta_t read_only [fopen, fread, fclose] 
 allow server_t async_t [recv]
 allow server_t read_only [fopen, fread, fclose]  
@@ -89,12 +82,6 @@ attack eaves_mem (process p) : [p%frame(l, t)] -> [Out(l), Out(t)]
 
 allow attack async_t [tampar_ch]
 allow attack client_t [eaves_mem]
-
-
-
-(***********)
-(*
-*)
 
 (***********)
 const fresh priv_k
@@ -130,9 +117,8 @@ process client(ch_net, ch_rpc) with client_t
 	let invoke_func = "sign_image";
 
 	main 
-  	{
-		
-		let conn = connect_rpc(ch_rpc) @ A();
+  	{	
+			let conn = connect_rpc(ch_rpc) @ A();
 		
 		for i in range(1, 3)
 		{
@@ -175,10 +161,8 @@ process client_ta(ch_rpc) with client_ta_t
   	main 
   	{
     	let _ = accept_rpc(ch_rpc); 
-    	let _ = run_rpc(ch_rpc);
-    	let _ = run_rpc(ch_rpc);
-    	skip @ ClientTAClose ();
-    	
+    	skip @ TAClose ();
+
   	}
 }
 
@@ -208,7 +192,6 @@ process server(ch_net) with server_t
   	}
 }
 
-
 (***********)
 system 
 	client(udp, rpc) with client_fs
@@ -216,9 +199,9 @@ system
 ||	client_ta(rpc) with client_ta_fs
 requires  [
   lemma Reachability1 :
-    exists-trace "Ex #i #j #k  . ClientClose() @ i &  ClientTAClose () @ j & ServerClose () @ k " ;
+    exists-trace "Ex #i #j #k  . ClientClose() @ #i  & TAClose @ #j & ServerClose () @ #k" ;
   lemma Correspondence :
-    all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
+    all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ #i & #i < #j" 
     ]
 
 

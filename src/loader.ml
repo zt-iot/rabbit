@@ -41,8 +41,8 @@ let print_error err ppf =
 
 
 (* fr is used only for parsing and processing external instructions *)
-let rec process_expr ?(fr=[]) ctx lctx {Location.data=c; Location.loc=loc} = 
-   let process_expr' ?(fr=[]) ctx lctx = function
+let rec process_expr ctx lctx {Location.data=c; Location.loc=loc} = 
+   let process_expr' ctx lctx = function
    | Input.Var id -> 
       if Context.ctx_check_const ctx id then Syntax.Const id
       else if Context.ctx_check_ext_const ctx id then Syntax.ExtConst id
@@ -56,19 +56,12 @@ let rec process_expr ?(fr=[]) ctx lctx {Location.data=c; Location.loc=loc} =
    | Input.Integer z -> Syntax.Integer z
    | Input.Float f -> Syntax.Float f
    | Input.Apply(o, el) ->
-      if o = "fresh" then 
-         if List.exists (fun n -> n = 0) fr then error ~loc ForbiddenFresh else 
-            begin match el with
-            | [s] -> begin match s.Location.data with | Input.Var s -> Syntax.FrVariable s | _ -> error ~loc UnintendedError  end 
-            | _   -> error ~loc UnintendedError  
-            end 
-      else 
       if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o) else
-      if Context.ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr ~fr ctx lctx a) el)) else
+      if Context.ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr ctx lctx a) el)) else
       error ~loc (UnknownIdentifier o)
-   | Input.Tuple el -> Syntax.Tuple (List.map (fun a -> process_expr ~fr  ctx lctx a) el)
+   | Input.Tuple el -> Syntax.Tuple (List.map (fun a -> process_expr ctx lctx a) el)
   in
-  let c = process_expr' ~fr ctx lctx c in
+  let c = process_expr' ctx lctx c in
   Location.locate ~loc c
 
 (* let infer_ty ctx lctx {Location.data=c; Location.loc=loc} = 
@@ -354,7 +347,7 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
 
          let (ctx, rs, ret, lctx) = process rules lctx in
          let metavar = List.hd lctx.Context.lctx_var in 
-         let args = List.hd (Context.lctx_pop_frame ~loc lctx).Context.lctx_var in 
+         (* let args = List.hd (Context.lctx_pop_frame ~loc lctx).Context.lctx_var in  *)
          let ch_args = lctx.Context.lctx_chan in 
          let path_args = lctx.Context.lctx_path in 
 
@@ -421,8 +414,8 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
 
          let (ctx, rs, ret, lctx) = process_rules [rule] None (Context.lctx_add_frame lctx) in
          let rs = match rs with | [rs] -> rs | _ -> error ~loc UnintendedError in
-         let metavar = List.hd lctx.Context.lctx_var in 
-         let args = List.hd (Context.lctx_pop_frame ~loc lctx).Context.lctx_var in 
+         (* let metavar = List.hd lctx.Context.lctx_var in  *)
+         (* let args = List.hd (Context.lctx_pop_frame ~loc lctx).Context.lctx_var in  *)
          let ch_args = lctx.Context.lctx_chan in 
          let path_args = lctx.Context.lctx_path in 
          let process_args = lctx.Context.lctx_process in
@@ -554,7 +547,11 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
 
                )) procs in
       (* for now, have plain text for lemmas *)
-      let processed_lemmas = List.map (fun l -> match l.Location.data with Input.Lemma (l, p) -> match p.Location.data with | Input.PlainString s -> (l, s) |_ -> error ~loc UnintendedError) lemmas in   
+      let processed_lemmas = List.map (fun l -> 
+         match l.Location.data with 
+         | Input.Lemma (l, p) -> 
+            match p.Location.data with 
+               | Input.PlainString s -> (l, s)) lemmas in   
       (*  *)
       let (processed_procs) = 
          List.fold_left 

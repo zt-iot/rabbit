@@ -134,8 +134,8 @@ let _main =
     Print.message ~loc "Syntax error" "%t" (Loader.print_error err)
   | Context.Error {Location.data=err; Location.loc} ->
     Print.message ~loc "Context error" "%t" (Context.print_error err)
-  | Toxml.Error {Location.data=err; Location.loc} ->
-    Print.message ~loc "ToXml error" "%t" (Toxml.print_error err)
+  (* | Toxml.Error {Location.data=err; Location.loc} ->
+    Print.message ~loc "ToXml error" "%t" (Toxml.print_error err) *)
   | Substitute.Error {Location.data=err; Location.loc} ->
     Print.message ~loc "Substitute error" "%t" (Substitute.print_error err)
   | Totamarin.Error {Location.data=err; Location.loc} ->

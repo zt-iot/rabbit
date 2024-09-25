@@ -1,10 +1,7 @@
 open Parser
 
 let reserved = [
-  (* ("false", BOOLEAN false) ; *)
   ("skip", SKIP) ;
-  ("then", THEN) ;
-  (* ("true", BOOLEAN true) ; *)
   ("system", SYSTEM) ;
   ("lemma", LEMMA) ; 
   ("type", TYPE) ;
@@ -22,22 +19,14 @@ let reserved = [
   ("data", DATA) ; 
   ("skip", SKIP) ;
   ("let", LET) ;
-  ("call", CALL) ; 
   ("if", IF) ;
   ("in", IN) ;
   ("else", ELSE) ;
   ("range", RANGE) ; 
-  ("init", INIT) ; 
   ("requires", REQUIRES) ; 
-  ("external", EXTERNAL) ; 
-  ("satisfies", SATISFIES) ; 
-  ("satisfy", SATISFY) ; 
   ("constant", CONSTANT) ; 
   ("equation", EQUATION) ; 
-  ("satisfy", SATISFY) ; 
-  ("instruction", INSTRUCTION) ; 
   ("syscall", SYSCALL) ; 
-  ("True", TRUE) ;
   ("load", LOAD) ;
   ("fresh", FRESH) ;
   ("const", CONST) ;
@@ -126,7 +115,6 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | "=>" | 8658 | 10233      -> f (); DARROW
   | "->" | 8594 | 10230      -> f (); ARROW
   | "="                      -> f (); EQ
-  | ":="                     -> f (); COLONEQ
   | ','                      -> f (); COMMA
   | ':'                      -> f (); COLON
   | ';'                      -> f (); SEMICOLON

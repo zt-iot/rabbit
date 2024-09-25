@@ -1,4 +1,4 @@
-type to_xml_error =
+(* type to_xml_error =
   | UnintendedError 
 
 exception Error of to_xml_error Location.located
@@ -138,7 +138,6 @@ let rec to_xml_expr eng {Location.data=c; Location.loc=loc} =
         (List.map (to_xml_expr eng) el))
     | Syntax.Tuple el -> Xml.Element ("expr_tuple", [], List.map (to_xml_expr eng) el)
     | Syntax.Channel (s,_) -> Xml.Element ("expr_channel", [("ch_name", s) ; ("ch_ref", string_of_int (eng_get_ch eng s))], [])
-    | Syntax.FrVariable s -> error ~loc UnintendedError  
   in Xml.Element ("expr", [], [to_xml_expr' eng c])
 
 and to_xml_ext_eq eng (nl, e1, e2)  = 
@@ -267,3 +266,4 @@ let to_xml_sys
 
 (* <!ELEMENT system (ext_const*,ext_func*,ext_eq*,event*,channel*,process*)
 
+ *)

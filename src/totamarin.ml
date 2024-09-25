@@ -270,7 +270,6 @@ let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=loc} =
 	| Syntax.Channel (c, l) -> if ch then Var c else String c
 	| Syntax.Process v -> Var v
 	| Syntax.Path v -> Var v
-	| Syntax.FrVariable v -> error ~loc (UnintendedError "translating free var")
 	
   in translate_expr' e
 
@@ -297,7 +296,6 @@ let rec translate_expr2 ?(ch=false) {Location.data=e; Location.loc=loc} =
 	| Syntax.Channel (c, l) -> if ch then Var c, [] else String c, []
 	| Syntax.Process v -> Var v, []
 	| Syntax.Path v -> Var v, []
-	| Syntax.FrVariable v -> error ~loc (UnintendedError "translating free var")
   in translate_expr2' e
 
 
@@ -310,9 +308,10 @@ let rec translate_stmt eng (t : tamarin) {Location.data=c; Location.loc=loc} sys
 	  	match rules with
 	  	| Rule (n, act, pre, label, post) :: rules -> 
 	  		(eng, (sign, Rule (n, act, pre, 
-	  			List.map (fun ev -> match ev.Location.data with Syntax.Event(id, el) -> (mk_fact_name id, List.map translate_expr el, config_linear)) el 
+	  			List.map (fun ev -> match ev.Location.data with Syntax.Event(id, el) -> (mk_fact_name id, List.map (translate_expr ~ch:false) el, config_linear)) el 
 	  		, post) :: rules))
 	  	| [] -> error ~loc (UnintendedError  "empty rule")
+	  	| _ -> error ~loc (UnintendedError  "comment appears")
   	
 and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Location.loc=loc} syscalls priority_conf =
   let translate_atomic_stmt' (eng : engine) (t : tamarin) c syscalls priority_conf = 
@@ -341,7 +340,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 			))
 	
 	| Syntax.Call ((v, vi,vj,vk), f, args) -> 
-		error ~loc:Nowhere (UnintendedError "function call")
+		error ~loc:Location.Nowhere (UnintendedError "function call")
 
 (* 		let (el, gv) = List.fold_left (fun (el, sl) e -> 
 			let e, s = translate_expr2 e in 
@@ -376,7 +375,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 	(*****************************)
 	(*****************************)
 		match List.find_opt (fun (f', ty_args, (ch_vars, path_vars), meta_vars, substs, crule, ret) -> f = f') syscalls with
-		| None -> error ~loc:Nowhere (UnintendedError "undefined syscall")
+		| None -> error ~loc:Location.Nowhere (UnintendedError "undefined syscall")
 		| Some (f, ty_args, (ch_vars, path_vars), meta_vars, substs, crule, ret) -> 
 			let f = mk_fact_name f in 
 			let processed_args = List.map2 (fun a b -> (a, b)) (List.map snd ty_args) el in
@@ -411,9 +410,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 						| Some (a, b) -> b
 						| None -> if List.exists (fun s -> s = v) meta_vars then Var (v ^ eng.sep) else Var v end
 
-					
-					| Syntax.FrVariable v -> error ~loc (UnintendedError "translating free var")
-				  
+								  
 				  in translate_and_subst_expr' processed_args e
 			in
 
@@ -422,8 +419,8 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 				("!Eq"^eng.sep, [Var y; translate_and_subst_expr processed_args e], config_linear)) substs in 
 
 			let acp_facts = 
-			List.map (fun v -> (f ^ eng.sep ^"Allowed", [String eng.namespace ; translate_and_subst_expr processed_args (Location.locate ~loc:Nowhere (Syntax.Variable (v, 0,0,0)))], config_persist)) ch_vars 
-			@ List.map (fun v -> (f ^ eng.sep ^"Allowed", [String eng.namespace ; translate_and_subst_expr processed_args (Location.locate ~loc:Nowhere (Syntax.Variable (v, 0,0,0)))], config_persist)) path_vars
+			List.map (fun v -> (f ^ eng.sep ^"Allowed", [String eng.namespace ; translate_and_subst_expr processed_args (Location.locate ~loc:Location.Nowhere (Syntax.Variable (v, 0,0,0)))], config_persist)) ch_vars 
+			@ List.map (fun v -> (f ^ eng.sep ^"Allowed", [String eng.namespace ; translate_and_subst_expr processed_args (Location.locate ~loc:Location.Nowhere (Syntax.Variable (v, 0,0,0)))], config_persist)) path_vars
 			@ begin match ch_vars @ path_vars with | [] -> [(f ^ eng.sep ^"Allowed", [String eng.namespace], config_persist)] | _ -> [] end
 			in 
 
@@ -438,10 +435,10 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 						(mk_fact_name s, namespace_id :: (List.map  (translate_and_subst_expr processed_args) el), config_linear_delayed)
 
 				| Syntax.ChannelFact (scope, s, el) -> 
-						(mk_fact_name s, (translate_and_subst_expr processed_args (Location.locate ~loc:Nowhere (Syntax.Variable (scope, 0,0,0)))) :: (List.map  (translate_and_subst_expr processed_args) el), config_linear_delayed)
+						(mk_fact_name s, (translate_and_subst_expr processed_args (Location.locate ~loc:Location.Nowhere (Syntax.Variable (scope, 0,0,0)))) :: (List.map  (translate_and_subst_expr processed_args) el), config_linear_delayed)
 				| Syntax.PathFact (scope, s, el) -> 
-						(mk_fact_name s, String (eng_get_filesys eng) :: (translate_and_subst_expr processed_args (Location.locate ~loc:Nowhere (Syntax.Variable (scope, 0,0,0)))) :: (List.map  (translate_and_subst_expr processed_args) el), config_linear_delayed)
-				| _ -> error ~loc:Nowhere (UnintendedError "unexpected fact in syscall")
+						(mk_fact_name s, String (eng_get_filesys eng) :: (translate_and_subst_expr processed_args (Location.locate ~loc:Location.Nowhere (Syntax.Variable (scope, 0,0,0)))) :: (List.map  (translate_and_subst_expr processed_args) el), config_linear_delayed)
+				| _ -> error ~loc:Location.Nowhere (UnintendedError "unexpected fact in syscall")
 			end
 			in	
 
@@ -453,11 +450,12 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 						match init_state with
 						| None -> eng_state eng 
 						| Some ((_, (String s) :: l, _)::l') -> s
+						| _ -> error ~loc:loc (UnintendedError "strange in reading the initial state")
 					in 
 					let eng_f = eng_inc_index eng in 
 					(eng_f, [(rname, role,
 									(match init_state with | None -> [(eng_get_frame_title eng, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], priority_conf) ] | Some x -> x) 
-									@ (List.map translate_fact pre),
+									@ (List.map translate_fact pre) @ gv,
 									[],
 									(match final_state with | None -> [(eng_get_frame_title eng, [String (eng_state eng_f) ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear) ] | Some x -> x) 
 									@ (List.map translate_fact post))])
@@ -470,25 +468,26 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 						match init_state with
 						| None -> eng_state eng 
 						| Some ((_, (String s) :: l, _)::l') -> s
+						| _ -> error ~loc:loc (UnintendedError "strange in reading the initial state")
 						in 
 						let eng_int = eng_set_mode eng f in 
 						let eng_f = eng_inc_index eng in 
 						let rule_call = (rname, role,
 									(match init_state with | None -> [(eng_get_frame_title eng, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], priority_conf) ] | Some x -> x) 
-									@ (List.map translate_fact pre),
+									@ (List.map translate_fact pre) @ gv,
 									[],
 									[(eng_get_frame_title eng, [String (eng_state eng_int) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ;
 										("Run"^eng.sep, [String namespace; 
-																		(translate_and_subst_expr processed_args (Location.locate ~loc:Nowhere (Syntax.Variable (f, 0,0,0)))); 
+																		(translate_and_subst_expr processed_args (Location.locate ~loc:Location.Nowhere (Syntax.Variable (f, 0,0,0)))); 
 																		List (List.map  (translate_and_subst_expr processed_args) args);
 																		List (eng_var_list_top eng)], config_linear)]) in 
 
 						let rule_return = (rname^eng.sep, role, 
 										[(eng_get_frame_title eng, [String (eng_state eng_int) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], priority_conf) ;
 										("Return"^eng.sep, [String namespace; 
-																		(translate_and_subst_expr processed_args (Location.locate ~loc:Nowhere (Syntax.Variable (f, 0,0,0)))); 
+																		(translate_and_subst_expr processed_args (Location.locate ~loc:Location.Nowhere (Syntax.Variable (f, 0,0,0)))); 
 																		Var y;
-																		Var ("top_frame" ^eng.sep)], config_linear)],
+																		Var ("top_frame" ^eng.sep)], config_linear)]  @ gv,
 										[],
 										(match final_state with | None -> [(eng_get_frame_title eng, [String (eng_state eng_f) ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear) ] | Some x -> x) 
 										@ (List.map translate_fact post)) in 
@@ -496,7 +495,7 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 
 
 
-				| _ -> error ~loc:Nowhere NotSupportedYet
+				| _ -> error ~loc:Location.Nowhere NotSupportedYet
 				end
 
 				| Syntax.CRuleSeq (r1, r2) ->
@@ -645,7 +644,7 @@ in translate_atomic_stmt' eng t c syscalls priority_conf
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), config_linear_delayed)
 	| Syntax.PathFact (scope, s, el) -> 
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), config_linear_delayed)
-	| _ -> error ~loc:Nowhere (UnintendedError "unexpected fact in syscall")
+	| _ -> error ~loc:Location.Nowhere (UnintendedError "unexpected fact in syscall")
 	in
 
 	let rec translate_crule eng init_state final_state  {Location.data=crule; Location.loc=loc}  =
@@ -717,7 +716,8 @@ let translate_attack eng t (f, (ch_vars, path_vars, process_vars), (pre, post)) 
 		| TyPath -> 	
  *)(* 		| TyProcess -> 	
 			(mk_fact_name s, (Var scope) :: (List.map  (translate_expr ~ch:true) el), false)
- *)		| _ -> error ~loc:Nowhere (UnintendedError "unexpected fact in attack")
+ *)		
+ (* | _ -> error ~loc:Location.Nowhere (UnintendedError "unexpected fact in attack") *)
 	in
 
 	add_rule t (mk_fact_name (f ^ eng.sep ^ name), "", (List.map translate_fact pre), [],  (List.map translate_fact post))
@@ -730,6 +730,7 @@ let translate_process eng t {
   Context.proc_attack=attks;
   Context.proc_channel=chs;
   Context.proc_file=fls;
+  Context.proc_type=pty_unused;
   Context.proc_filesys=fsys;
   Context.proc_variable=vars;
   Context.proc_function=fns;
@@ -774,7 +775,7 @@ let translate_process eng t {
 
 		let eng = eng_set_scope eng f in
 		let eng = eng_set_role eng (namespace ^ eng.sep ^ f) in  
-		let eng_start = eng_add_frame (eng_pop_frame (eng_set_mode eng "run")) in
+		(* let eng_start = eng_add_frame (eng_pop_frame (eng_set_mode eng "run")) in *)
 		let eng_start = List.fold_left (fun eng v -> eng_add_var eng v) eng args in 
 		let eng_start = eng_set_mode eng_start "run" in 
 		let eng = eng_add_frame eng in 
@@ -870,7 +871,7 @@ let translate_sys {
 				let chs = List.find_all (fun (ch, ch_t) -> List.exists (fun x -> x = ch_t) ch_tys) ctx.Context.ctx_ch in
 				List.fold_left (fun t ch -> translate_attack eng t r ch) t (List.map fst chs) 
 
-			| [], [path_var], [] -> error ~loc:Nowhere (UnintendedError "attack..")
+			| [], [path_var], [] -> error ~loc:Location.Nowhere (UnintendedError "attack..")
 
 			| [], [], [proc_var] -> 
 				(* when it is an attack on a channel *)
@@ -881,7 +882,7 @@ let translate_sys {
 				List.fold_left (fun t ch -> translate_attack eng t r ch) t (List.map (fun p -> 
 						String.capitalize_ascii (p.Context.proc_name ^ (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid))
 				) procs)
-			| _, _, _ -> error ~loc:Nowhere (UnintendedError "attack..")) t (List.rev def.Context.def_ext_attack) in
+			| _, _, _ -> error ~loc:Location.Nowhere (UnintendedError "attack..")) t (List.rev def.Context.def_ext_attack) in
 
 	(* load global variables *)
 	let t = add_comment t "Global constants:" in

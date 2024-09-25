@@ -18,7 +18,7 @@ and expr' =
   | Path of string  (* only needed for syscall defintiions *) 
   | Process of string (* only needed for syscall defintiions *)
   (* | Run of string * expr list (* only needed for syscall defintiions *) *)
-  | FrVariable of string
+  (* | FrVariable of string *)
 
 type atomic_stmt = atomic_stmt' Location.located
 and atomic_stmt' = 
