@@ -1,5 +1,5 @@
 (lang dune 3.11)
-(name Rabbitm)
+(name Rabbit)
 (version 0.1)
 (generate_opam_files true)
 (using menhir 2.1)

@@ -21,24 +21,12 @@ let options = Arg.align [
      Arg.Set_int Config.columns,
      " Set the maximum number of columns of pretty printing");
 
-(*     ("--no-prelude",
-     Arg.Unit (fun () -> Config.prelude_file := Config.PreludeNone),
-     " Do not load the prelude.m31 file");
-
-    ("--prelude",
-     Arg.String (fun str -> Config.prelude_file := Config.PreludeFile str),
-     "<file> Specify the prelude file to load initially");
- *)
     ("-v",
      Arg.Unit (fun () ->
          Format.printf "Rabbit- %s (%s)@." Build.version Sys.os_type ;
          exit 0),
      " Print version information and exit");
 
-(*     ("-n",
-     Arg.Clear Config.interactive_shell,
-     " Do not run the interactive toplevel");
- *)
     ("-l",
      Arg.String (fun str -> add_file true str),
      "<file> Load <file> into the initial environment");
@@ -50,15 +38,7 @@ let options = Arg.align [
     ("-o",
      Arg.String (fun str -> add_ofile true str),
      "<file> Printing the translated program into <file>");
-
-     ("--trace",
-     Arg.Set Config.trace,
-     " Print trace information during evaluation");
- 
-    ("--verbose",
-     Arg.Set Config.verbose,
-     " Print information during computation")
-  ]
+    ]
 
 (** Main program *)
 let _main =
@@ -85,48 +65,17 @@ let _main =
           let (ctx, pol, def, sys, (a', b')) = Loader.load fn ctx pol def sys in 
           (ctx, pol, def, sys, (a'@a, b'@b))) 
         Loader.process_init  !files in
-      (* Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
-      Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
-      Print.message "Policy" "%t" (Printer.pprint_access_policy pol) ;
-       *)
-      List.fold_left (fun _ s -> 
+        List.fold_left (fun _ s -> 
         let t, prt = (Totamarin.translate_sys s x) in 
         let tamarin = (Totamarin.print_tamarin prt t !Config.dev) in 
-        if fst !ofile = "" then print_string "Output file not specified"
+        if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Error" "%s" "output file not specified"
         else let oc = open_out (fst !ofile) in
         Printf.fprintf oc "%s\n" tamarin;
         close_out oc;
-        print_string ("translation saved into: "^ (fst !ofile))
+        Print.message ~loc:Location.Nowhere "Error" "%s" (fst !ofile)
         ) () sys;
     ()
-    (* 
-    let (ctx, pol, def, sys) = 
-      List.fold_left 
-        (fun (ctx, pol, def, sys) (fn, quiet) -> Loader.load fn ctx pol def sys) 
-        Loader.process_init  !files in
-      Print.message "Context" "%t" (Printer.pprint_context ctx)  ; 
-      Print.message "Definition" "%t" (Printer.pprint_definition def)  ;
-      Print.message "Policy" "%t" (Printer.pprint_access_policy pol)
-  *)
-      (* try *)
-   (*      let dtd = Dtd.parse_file "src/toxml.dtd" in
-        let checked = Dtd.check dtd in
-        List.fold_left (fun _ s -> 
-    *)       (* let xml = Toxml.to_xml_sys s in  *)
-          (* Printf.printf "before checking dtd: \n %s" (Xml.to_string_fmt xml);  *)
-          (* let xml = Dtd.prove checked "system" xml in 
-          Printf.printf "XML created and verified with src/toxml.dtd : \n\n %s\n" (Xml.to_string_fmt xml); 
-          ) () sys; *)
-      (* with Dtd.Parse_error e -> print_endline (Dtd.parse_error e)
-      | Dtd.Check_error e -> print_endline (Dtd.check_error e)
-      | Dtd.Prove_error e -> print_endline (Dtd.prove_error e)
-       *)
-(*     let topstate = 
-      List.fold_left
-        (fun (ctx, lctx, ldef) fn -> Desugar.load fn ctx lctx ldef)
-        (* (fun topstate (fn, quiet) -> Toplevel.load_file ~quiet topstate fn) *)
-        Desugar.process_init !files in ()
- *) 
+
   with
   | Ulexbuf.Error {Location.data=err; Location.loc} ->
     Print.message ~loc "Parsing error" "%t" (Ulexbuf.print_error err)
