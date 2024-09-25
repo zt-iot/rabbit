@@ -1,2 +1,0 @@
-syscall send_udp(channel c, v) : [] -> [c:store(v)]
-syscall recv_udp(channel c) return v : [c:store(v)] -> [] 
