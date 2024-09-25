@@ -1,0 +1,24 @@
+(** asynchronous channels *)
+syscall send(channel c, v) 
+  : [] -> [c:store(v)]
+syscall recv(channel c) return v 
+  : [c:store(v)] -> [] 
+
+(** synchronous rpc channel *)
+syscall connect_rpc (channel c) return x
+  : [] -> [c:ask()] 
+	=> [c:accept(), &Fr(x)] -> [c:connect(), chid(c, x)]
+
+syscall invoke_rpc (channel c, f, args) return x
+  : [c:connect()] -> [c:invoke(f, args), c:connect()]
+	=> [c:hearback(x)] -> []
+
+syscall close_rpc (i)
+	: [c:connect(), chid(c, i)] -> [c:close()]
+
+syscall accept_rpc (channel c)
+	: [c:ask()] -> [c:accept()] 
+
+syscall run_rpc (channel c)
+	: [c:invoke(f, args)] -{ let y = f(args); }-> [ c:hearback(y) ]
+

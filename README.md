@@ -1,6 +1,6 @@
-# Rabbitm
+# Rabbit
 
-An implementation of a to-Tamarin translator programming language for verified IoT systems.
+An implementation of a to-Tamarin translator for the Rabbit programming language for verified IoT systems.
 
 ## Prerequisites
 
@@ -17,7 +17,7 @@ You can follow [these instructions](https://www.ocaml.org/docs/up-and-running) f
     opam install sedlex
     opam install xml-light
 
-To run output Tarmain files `.spthy`, of course Tamarin is required. Rabbit implementation aligns with Tamarin version 1.8 and with the  development version 1.9. Follow the instruction in https://tamarin-prover.com/manual/master/book/002_installation.html to install Tamarin.
+To run output Tarmain files `.spthy`, of course Tamarin is required. Rabbit implementation aligns with Tamarin version 1.8 and with the  development version 1.9. Follow this [instruction](https://tamarin-prover.com/manual/master/book/002_installation.html) to install Tamarin.
 
 ## Compilation
 
@@ -25,9 +25,9 @@ To compile Rabbit, run the following command in this project directory:
 
     dune build
 
-Dune compiles the program and hides the executable in `_build/default/src/rabbitm.exe`, so try running it with
+Dune compiles the program and hides the executable in `_build/default/src/rabbit.exe`, so try running it with
 
-    _build/default/src/rabbitm.exe examples/camserver.rab -o _output/camserver.spthy
+    _build/default/src/rabbit.exe examples/camserver.rab -o _output/camserver.spthy
 
 that outputs a Tamarin file `output/camserver.spthy` that models `examples/camserver.rab`. Having `--dev` option, the output Tamarin file aligns with the development version of Tamarin. 
 

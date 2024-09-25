@@ -72,7 +72,7 @@ let _main =
         else let oc = open_out (fst !ofile) in
         Printf.fprintf oc "%s\n" tamarin;
         close_out oc;
-        Print.message ~loc:Location.Nowhere "Error" "%s" (fst !ofile)
+        Print.message ~loc:Location.Nowhere "Translated into" "%s" (fst !ofile)
         ) () sys;
     ()
 

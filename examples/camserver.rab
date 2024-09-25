@@ -3,53 +3,24 @@ function pk:1
 function enc:2
 function sign:2
 function dec:2
-
-function verify:3
-
-function h:1
 function fst:1
 function snd:1
-function test:0
-function true:0
-
 equation fst ((x, y)) = x
 equation snd ((x, y)) = y
+function true:0
+function verify:3
 equation dec(enc(x, y), y) = x
 equation verify (sign(d, k), d, pk(k)) = true
 
-(* syscall on channels *)
-
-(** asynchronous channels *)
-syscall send(channel c, v) 
-  : [] -> [c:store(v)]
-syscall recv(channel c) return v 
-  : [c:store(v)] -> [] 
-
-(** synchronous rpc channel *)
-
-syscall connect_rpc (channel c) return x
-  : [] -> [c:ask()] 
-	=> [c:accept(), &Fr(x)] -> [c:connect(), chid(c, x)]
-
-syscall invoke_rpc (channel c, f, args) return x
-  	: [c:connect()] -> [c:invoke(f, args), c:connect()]
-	=>[c:hearback(x)] -> []
-
-syscall close_rpc (i)
-	: [c:connect(), chid(c, i)] -> [c:close()]
-
-syscall accept_rpc (channel c)
-	: [c:ask()] -> [c:accept()] 
-
-syscall run_rpc (channel c)
-	: [c:invoke(f, args)] -{ let y = f(args); }-> [ c:hearback(y) ]
-
+(* load syscalls on channels *)
+load "udp_rpc.rab"
 
 (* picture *)
 syscall get_picture () return v : [&Fr(v)] -> [] 
 
-
 (* filesys *)
+function h:1
+
 syscall fopen (path p) return h(p) 
   : [] -> [p.open()]  
 
@@ -61,68 +32,67 @@ syscall fclose (y) {y = h(p)}
 
 (***********)
 (** declare types with their classes *)
-type read_only 	  : filesys
+type readonly_t   : filesys
 
 type server_t 	  : process
 type client_t 	  : process
 type client_ta_t  : process
 
-type sync_t 	  : channel
-type async_t 	  : channel
+type udp_t 	 			: channel
+type rpc_t 	  		: channel
 
 (***********)
-allow client_t async_t [send]
-allow client_t sync_t 	   [connect_rpc, invoke_rpc, close_rpc]
+(** access control *)
+allow client_t udp_t [send]
+allow server_t udp_t [recv]
+
+allow client_t rpc_t [connect_rpc, invoke_rpc, close_rpc]
+allow client_ta_t rpc_t  [accept_rpc, run_rpc]
+
 allow client_t [get_picture]
 
-allow client_ta_t sync_t  [accept_rpc, run_rpc]
-allow client_ta_t read_only [fopen, fread, fclose] 
-allow server_t async_t [recv]
-allow server_t read_only [fopen, fread, fclose]  
+allow client_ta_t readonly_t  [fopen, fread, fclose] 
+allow server_t readonly_t     [fopen, fread, fclose]  
 
 
-
-(* attacker model *)
+(***********)
+(** attacker model *)
 attack tampar_ch (channel c) : [c:store(v), In(w)] -> [c:store(w)]
 attack eaves_mem (process p) : [p%frame(l, t)] -> [Out(l), Out(t)]
 
-
-allow attack async_t [tampar_ch]
+allow attack udp_t 		[tampar_ch]
 allow attack client_t [eaves_mem]
 
-
-
 (***********)
-(*
-*)
-
-(***********)
+(** global constants *)
 const fresh priv_k
 const fresh sym_k
 const fresh init_data
 
 
 (***********)
-channel udp : async_t
-channel rpc : sync_t
+(** installed channels and filesystems *)
+channel udp : udp_t
 
-(***********)
+channel rpc : rpc_t
+
 filesys client_fs = 
   [ 
-    {path: "/secret/pub", data: pk(priv_k), type: read_only}
+    {path: "/secret/pub", data: pk(priv_k), type: readonly_t}
   ]
 
 filesys server_fs = 
   [ 
-    {path: "/secret/pub", data: pk(priv_k), type: read_only}
+    {path: "/secret/pub", data: pk(priv_k), type: readonly_t}
   ]
 
 filesys client_ta_fs = 
   [ 
-    {path: "/secret/priv", data: enc(priv_k, sym_k), type: read_only}
+    {path: "/secret/priv", data: enc(priv_k, sym_k), type: readonly_t}
   ]
 
 (***********)
+(** process templates *)
 process client(ch_net, ch_rpc) with client_t 
 {  
 	let dev_path = "/dev/camera";
