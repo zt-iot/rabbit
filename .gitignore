@@ -4,3 +4,7 @@ _opam
 *.spthy
 *~
 *.aes
+_test/
+_output/
+*/.*
+\#*#
