@@ -198,6 +198,7 @@ let eng_set_mode eng m =
 let eng_var_list eng =
   List.map (fun s -> if s = "" then String (eng_get_fresh_string eng) else Var s) (flat eng.lctx)
 
+
 let eng_var_list_loc eng = 
   match List.rev eng.lctx with
   | t :: l -> List.map (fun s -> if s = "" then String (eng_get_fresh_string eng) else Var s) (flat (List.rev l))
@@ -331,13 +332,23 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
        )
     | Syntax.Let ((v, vi,vj,vk), e) -> 
        let e, gv = translate_expr2 e in  
-       let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
-       (eng_add_var eng_f v,
-	add_rule t (state_i, role,
-		    [(eng_get_frame_title eng, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], priority_conf)]  @ gv , 
-		    [], 
-		    [(eng_get_frame_title eng, [String state_f ; (List (e:: eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]
-       ))
+       let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in
+       if vi + vj = 0 then
+         (eng_add_var eng_f v,
+	  add_rule t (state_i, role,
+		      [(eng_get_frame_title eng, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], priority_conf)]  @ gv , 
+		      [], 
+		      [(eng_get_frame_title eng, [String state_f ; (List (e:: eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear)]))
+       else
+         (* replace variable *)
+         let f =
+           List.map (fun w -> match w with | Var w -> if w = v then e else Var w | _ -> w) in
+         (eng_f,
+	  add_rule t (state_i, role,
+		      [(eng_get_frame_title eng, [String state_i ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], priority_conf)]  @ gv , 
+		      [], 
+		      [(eng_get_frame_title eng, [String state_f ; (List (f (eng_var_list_loc eng))) ; (List (f (eng_var_list_top eng)))], config_linear)]))
+
 
     | Syntax.Call ((v, vi,vj,vk), f, args) -> 
        error ~loc:Location.Nowhere (UnintendedError "function call")
