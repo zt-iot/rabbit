@@ -38,8 +38,8 @@ type server_t 	  : process
 type client_t 	  : process
 type client_ta_t  : process
 
-type udp_t 	 			: channel
-type rpc_t 	  		: channel
+type udp_t 	  : channel
+type rpc_t 	  : channel
 
 (***********)
 (** access control *)
@@ -57,11 +57,13 @@ allow server_t readonly_t     [fopen, fread, fclose]
 
 (***********)
 (** attacker model *)
-attack tampar_ch (channel c) : [c:store(v), In(w)] -> [c:store(w)]
-attack eaves_mem (process p) : [p%frame(l, t)] -> [Out(l), Out(t)]
 
-allow attack udp_t 		[tampar_ch]
-allow attack client_t [eaves_mem]
+attack tampar_ch (channel c) : [c:store(v), In(w)] -> [c:store(w)]
+passive attack eaves_mem (v) : [] -> [&Out(v)]
+
+allow attack udp_t [tampar_ch]
+allow client_t [eaves_mem]
+
 
 (***********)
 (** global constants *)
@@ -108,10 +110,11 @@ process client(ch_net, ch_rpc) with client_t
 		{
 			let image = get_picture() @ B();
 	      	
-	      	let sig = invoke_rpc(ch_rpc, invoke_func, (image, privkey_path)) @ C(); 
-	      	skip @Got(sig);
-	      	
-	      	let _ = send(ch_net, (sig, image)) @ ImgSend(image);
+			let sig = invoke_rpc(ch_rpc, invoke_func, (image, privkey_path)); 
+
+			eaves_mem((sig, image));
+
+			let _ = send(ch_net, (sig, image)) @ ImgSend(image);
 	    	
 		} 
 
@@ -127,18 +130,20 @@ process client_ta(ch_rpc) with client_ta_t
   	function sign_image(image, privkey_path) 
   	{
 	    
-	    let privkey_fd = fopen(privkey_path);
+	    (* let privkey_fd = fopen(privkey_path);
 	    
 	    let privkey = fread(privkey_fd);
 	    
-	    let privkey0 = dec(privkey, fek); 
+	    let privkey0 = dec(privkey, fek);  
 	    
-(*     	let privkey0 = dec(enc(priv_k, sym_k), fek);  *)
-
 	    let sig = sign(image, privkey0);
 	    
-	    let _ = fclose(privkey_fd); 
+
+	    let _ = fclose(privkey_fd); *)
 	 
+	    let sig = sign(image, dec(enc(priv_k, sym_k), fek));
+
+
 	    return sig;
 	}
   
