@@ -220,7 +220,8 @@ op : mark_location(plain_op) { $1 }
 plain_op:
   | SKIP { Skip }
   | LET UNDERSCORE EQ e=expr { LetUnderscore (e) } 
-  | LET id=NAME EQ e=expr { Let (id, e) }
+  | LET id=NAME EQ e=expr { Let (id, e, true) }
+  | id=NAME EQ e=expr { Let (id, e, false) }
 
 block_op: mark_location(plain_block_op) { $1 }
 plain_block_op:

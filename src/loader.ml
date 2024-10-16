@@ -129,10 +129,13 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
          | _ -> (ctx, lctx'', Syntax.Let(vid', process_expr ctx lctx e))
          end
 
-      | Input.Let (vid, e) ->
+      | Input.Let (vid, e, isnewvar) ->
          let (lctx'', vid') =
-            if Context.lctx_check_var lctx vid then (lctx, Syntax.index_var vid (Context.lctx_get_var_index ~loc lctx vid)) else
-            let lctx' = Context.lctx_add_new_var ~loc lctx vid in (lctx', Syntax.index_var vid (Context.lctx_get_var_index  ~loc lctx' vid))
+           if Context.lctx_check_var lctx vid then
+             if isnewvar then error ~loc (AlreadyDefined vid) else  (lctx, Syntax.index_var vid (Context.lctx_get_var_index ~loc lctx vid))
+           else
+             if isnewvar then let lctx' = Context.lctx_add_new_var ~loc lctx vid in (lctx', Syntax.index_var vid (Context.lctx_get_var_index  ~loc lctx' vid))
+             else error ~loc (UnknownIdentifier vid)
          in
          begin match e.Location.data with 
          |  Input.Apply(o, args) -> 
@@ -174,7 +177,6 @@ let rec process_stmt ctx lctx {Location.data=c; Location.loc=loc} =
             else (ctx, lctx'', Syntax.Let(vid', process_expr ctx lctx e))
          | _ -> (ctx, lctx'', Syntax.Let(vid', process_expr ctx lctx e))
          end
-
 
       | Input.If (e1, e2, c1, c2) ->
          let e1' = process_expr ctx lctx e1 in 

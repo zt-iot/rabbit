@@ -16,7 +16,7 @@ and expr' =
 type atomic_stmt = atomic_stmt' Location.located
 and atomic_stmt' = 
   | Skip
-  | Let of Name.ident * expr
+  | Let of Name.ident * expr * bool
   | LetUnderscore of expr
   (* | Call of Name.ident * Name.ident * expr list *)
   | If of expr * expr * stmt list * stmt list
