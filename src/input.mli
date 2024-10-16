@@ -41,7 +41,7 @@ and fact' =
 
 type proc = proc' Location.located
 and proc' =
-  | Proc of Name.ident * (Name.ident list) * Name.ident
+  | Proc of Name.ident * (Name.ident list) * Name.ident option
 
 type prop = prop' Location.located
 and prop' =

@@ -6,6 +6,7 @@ let reserved = [
   ("lemma", LEMMA) ; 
   ("type", TYPE) ;
   ("allow", ALLOW) ;
+  ("passive", PASSIVE) ;
   ("attack", ATTACK) ;
   ("filesys", FILESYS) ;
   ("channel", CHANNEL) ; 

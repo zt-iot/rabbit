@@ -20,7 +20,7 @@
 %token DARROW ARROW UNDERSCORE
 
 (* constant tokens for rabbit *)
-%token LOAD EQUATION CONSTANT CONST SYSCALL ATTACK ALLOW TYPE 
+%token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE 
 %token CHANNEL PROCESS PATH DATA FILESYS 
 %token WITH FUNC MAIN RETURN SKIP LET IF ELSE FOR IN RANGE 
 %token SYSTEM LEMMA AT DOT 
@@ -66,12 +66,16 @@ plain_decl:
 
   
   | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
+
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
+
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
     LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
+
   | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
 
   | CONST t=NAME EQ e=expr { DeclInit(t,Some e) }
+
   | CONST FRESH t=NAME { DeclInit(t,None) }
 
   | external_syscall { $1 }
@@ -84,18 +88,21 @@ external_functions:
   |  CONSTANT id=NAME  { DeclExtFun(id, 0) }
 
 external_syscall:
-  |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr
+  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr
       COLON r=complex_rule { DeclExtSyscall(f, parems, [], r, Some ret) }
   
-  |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN COLON 
+  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN COLON 
     r=complex_rule { DeclExtSyscall(f, parems, [], r, None) }
 
-  |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr
+  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr
       LBRACE s=separated_list(COMMA, substs) RBRACE COLON 
       r=complex_rule { DeclExtSyscall(f, parems, s, r, Some ret) }
 
-  |  SYSCALL f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN 
-    LBRACE s=separated_list(COMMA, substs) RBRACE COLON r=complex_rule { DeclExtSyscall(f, parems, [], r, None) }
+  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN LBRACE s=separated_list(COMMA, substs) RBRACE COLON r=complex_rule { DeclExtSyscall(f, parems, [], r, None) }
+
+syscall_tk:
+  | SYSCALL {()}
+  | PASSIVE ATTACK {()}
 
 substs:
   | var=NAME EQ e=expr { (var, e) }
@@ -145,7 +152,9 @@ sys:
 proc: mark_location(plain_proc) { $1 }
 plain_proc:
   | id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH f=NAME 
-    { Proc (id, parems, f) }
+    { Proc (id, parems, Some f) }
+  | id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN 
+    { Proc (id, parems, None) }
 
 lemma: mark_location(plain_lemma) { $1 }
 plain_lemma:
@@ -222,6 +231,7 @@ plain_op:
   | LET UNDERSCORE EQ e=expr { LetUnderscore (e) } 
   | LET id=NAME EQ e=expr { Let (id, e, true) }
   | id=NAME EQ e=expr { Let (id, e, false) }
+  | e=expr {LetUnderscore (e) }
 
 block_op: mark_location(plain_block_op) { $1 }
 plain_block_op:

@@ -509,20 +509,25 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
          match proc.Location.data with 
          | Input.Proc(pid, chans, fsys) -> 
             if not (Context.ctx_check_proctmpl ctx pid) then error ~loc (UnknownIdentifier pid) else
-            if not (Context.ctx_check_fsys ctx fsys) then error ~loc (UnknownIdentifier fsys) else
+              (match fsys with | Some fsys -> if not (Context.ctx_check_fsys ctx fsys) then error ~loc (UnknownIdentifier fsys) else () | _ -> ()); 
             let (_, cargs, ptype, _, _) = Context.to_pair_ctx_proctmpl (Context.ctx_get_proctmpl ctx pid) in
             let cargs = List.rev cargs in 
             let (_, vl, fl, m) = Context.to_pair_def_proctmpl (Context.def_get_proctmpl def pid) in
-            let fpaths = List.fold_left (fun fpaths (fsys', path, ftype) -> if fsys = fsys' then (path, ftype) :: fpaths else fpaths) [] ctx.Context.ctx_fsys in 
-            let fpaths = List.map (fun (path, ftype) -> 
-                                    let (_ , _ , v) = List.find (fun (fsys', path', val') -> fsys' = fsys && path = path') def.Context.def_fsys in 
-                                    (path, v, ftype)) fpaths in 
-            let fpaths = List.map (fun (path, v, ftype) -> 
-                                    let accs = List.fold_left (fun accs (s, t, a) -> 
-                                       if s = ptype && List.exists (fun s -> s = ftype) t then a :: accs else accs) [] pol.Context.pol_access in
-                                    let attks = List.fold_left (fun attks (t, a) -> 
-                                       if t = ftype then a :: attks else attks) [] pol.Context.pol_attack in
-                                    (path,v,accs, attks)) fpaths in
+            let fpaths =
+              match fsys with
+              | Some fsys -> 
+                 let fpaths = List.fold_left (fun fpaths (fsys', path, ftype) -> if fsys = fsys' then (path, ftype) :: fpaths else fpaths) [] ctx.Context.ctx_fsys in 
+                 let fpaths = List.map (fun (path, ftype) -> 
+                                  let (_ , _ , v) = List.find (fun (fsys', path', val') -> fsys' = fsys && path = path') def.Context.def_fsys in 
+                                  (path, v, ftype)) fpaths in 
+                 let fpaths = List.map (fun (path, v, ftype) -> 
+                                  let accs = List.fold_left (fun accs (s, t, a) -> 
+                                                 if s = ptype && List.exists (fun s -> s = ftype) t then a :: accs else accs) [] pol.Context.pol_access in
+                                  let attks = List.fold_left (fun attks (t, a) -> 
+                                                  if t = ftype then a :: attks else attks) [] pol.Context.pol_attack in
+                                  (path,v,accs, attks)) fpaths in fpaths
+              | None -> []
+            in
             (* substitute channels *)
             if (List.length cargs) !=  (List.length chans) then error ~loc (ArgNumMismatch (pid, (List.length chans), (List.length cargs)))
             else

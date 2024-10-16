@@ -111,7 +111,7 @@ type process = {
    proc_type      :  string; 
    proc_attack    :  Name.ident list ; 
    proc_channel   :  (Name.ident * Name.ident list * Name.ident list) list;
-   proc_filesys   :  Name.ident;
+   proc_filesys   :  Name.ident option;
    proc_file      :  (Name.ident * Syntax.expr * Name.ident list * Name.ident list) list ;
    proc_variable  :  (Name.ident * Syntax.expr) list ; 
    proc_function  :  (Name.ident * Name.ident list * Syntax.stmt list * Syntax.indexed_var ) list ;
