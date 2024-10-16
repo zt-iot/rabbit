@@ -7,7 +7,8 @@
 
 type to_tamarin_error =
   | UnintendedError of string
-  | NotSupportedYet 
+  | NotSupportedYet
+  | MustbeVar of string
 
 exception Error of to_tamarin_error Location.located
 
@@ -19,7 +20,7 @@ let print_error err ppf =
   match err with
   | UnintendedError s -> Format.fprintf ppf "Unintended Error: contact the developer. [Hint: %s]" s
   | NotSupportedYet -> Format.fprintf ppf "This feature is not supported yet."
-
+  | MustbeVar v -> Format.fprintf ppf "Argument %s must be a variable." v
 
 let mk_fact_name s = 
   String.capitalize_ascii s
@@ -487,8 +488,8 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 				       (match init_state with | None -> [(eng_get_frame_title eng, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], priority_conf) ] | Some x -> x) 
 				       @ (List.map translate_fact pre) @ gv,
 				       [],
-				       [(eng_get_frame_title eng, [String (eng_state eng_int) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear) ;
-					("Run"^eng.sep, [String namespace; 
+				       [(eng_get_frame_title eng, [String (eng_state eng_int) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], config_linear); 
+                                        ("Run"^eng.sep, [String namespace; 
 							 (translate_and_subst_expr processed_args (Location.locate ~loc:Location.Nowhere (Syntax.Variable (f, 0,0,0)))); 
 							 List (List.map  (translate_and_subst_expr processed_args) args);
 							 List (eng_var_list_top eng)], config_linear)]) in 
@@ -499,6 +500,40 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 							      (translate_and_subst_expr processed_args (Location.locate ~loc:Location.Nowhere (Syntax.Variable (f, 0,0,0)))); 
 							      Var y;
 							      Var ("top_frame" ^eng.sep)], config_linear)]  @ gv,
+					 [],
+					 (match final_state with | None -> [(eng_get_frame_title eng, [String (eng_state eng_f) ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear) ] | Some x -> x) 
+					 @ (List.map translate_fact post)) in 
+		      (eng_f, [rule_call; rule_return])
+
+
+                   | [{Location.data=Syntax.OpStmt {Location.data=Syntax.Let((y, i, j, k), e) ; Location.loc=_} ; Location.loc=_}] -> 
+                      (* error if it is introducing new variable. *)
+                      (if i + j = 0 then error ~loc:Location.Nowhere NotSupportedYet else ());
+                      let y_v =
+                        match snd (List.find (fun (a, e) -> a = y) processed_args) with
+                        | Var v -> v
+                        | _ -> error ~loc:Location.Nowhere (MustbeVar y)
+                      in                                                                                                        
+                      let myf =
+                        List.map (fun w -> match w with | Var w -> if w = y_v then (translate_and_subst_expr processed_args e) else Var w | _ -> w) in
+
+                      let rname = 
+			match init_state with
+			| None -> eng_state eng 
+			| Some ((_, (String s) :: l, _)::l') -> s
+			| _ -> error ~loc:loc (UnintendedError "strange in reading the initial state")
+		      in
+                      
+		      let eng_int = eng_set_mode eng f in 
+		      let eng_f = eng_inc_index eng in 
+		      let rule_call = (rname, role,
+				       (match init_state with | None -> [(eng_get_frame_title eng, [String (eng_state eng) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], priority_conf) ] | Some x -> x) 
+				       @ (List.map translate_fact pre) @ gv,
+				       [],
+				       [(eng_get_frame_title eng, [String (eng_state eng_int) ; (List (myf (eng_var_list_loc eng))) ; (List (myf (eng_var_list_top eng)))], config_linear)]) in 
+
+		      let rule_return = (rname^eng.sep, role, 
+					 [(eng_get_frame_title eng, [String (eng_state eng_int) ; (List (eng_var_list_loc eng)) ; (List (eng_var_list_top eng))], priority_conf)]  @ gv,
 					 [],
 					 (match final_state with | None -> [(eng_get_frame_title eng, [String (eng_state eng_f) ; (List (eng_var_list_loc eng_f)) ; (List (eng_var_list_top eng_f))], config_linear) ] | Some x -> x) 
 					 @ (List.map translate_fact post)) in 
