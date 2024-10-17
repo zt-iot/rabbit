@@ -14,7 +14,7 @@
 
 (* Parentheses & punctuations *)
 %token LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE LOPEN RCLOSE 
-%token EQ
+%token COLONEQ EQ
 %token COMMA SEMICOLON COLON
 %token BBAR BANG
 %token DARROW ARROW UNDERSCORE
@@ -230,7 +230,7 @@ plain_op:
   | SKIP { Skip }
   | LET UNDERSCORE EQ e=expr { LetUnderscore (e) } 
   | LET id=NAME EQ e=expr { Let (id, e, true) }
-  | id=NAME EQ e=expr { Let (id, e, false) }
+  | id=NAME COLONEQ e=expr { Let (id, e, false) }
   | e=expr {LetUnderscore (e) }
 
 block_op: mark_location(plain_block_op) { $1 }

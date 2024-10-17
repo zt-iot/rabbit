@@ -115,6 +115,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | "||"                     -> f (); BBAR
   | "=>" | 8658 | 10233      -> f (); DARROW
   | "->" | 8594 | 10230      -> f (); ARROW
+  | ":="                     -> f (); COLONEQ
   | "="                      -> f (); EQ
   | ','                      -> f (); COMMA
   | ':'                      -> f (); COLON
