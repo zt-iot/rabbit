@@ -34,3 +34,8 @@ that outputs a Tamarin file `output/camserver.spthy` that models `examples/camse
 Running Tamarin is expected to be done separately. An advice is, when a rabbit file becomes a little complicated, verification time of Tamairn tends to vary a lot by the applied [_heuristics_](https://tamarin-prover.com/manual/master/book/011_advanced-features.html). It seems `I` is a good option; E.g. try
 
     tamarin-prover _output/camserver.spthy --prove=Correspondence --heuristic=I
+
+
+## Tutorial
+
+Find a tutorial on how to program in Rabbit [here](https://hackmd.io/@VcOgfdUPTgqt1HEQTKaaqw/BkOXorVzkl).
