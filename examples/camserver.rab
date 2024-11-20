@@ -190,11 +190,9 @@ system
 ||	server(udp) with server_fs
 ||	client_ta(rpc) with client_ta_fs
 requires  [
-  lemma Reachability1 :
-    exists-trace "Ex #i #j #k  . ClientClose() @ i &  ClientTAClose () @ j & ServerClose () @ k " ;
-  lemma Correspondence :
-    all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
-    ]
+	lemma Reachability : reachable ClientClose(), ClientTAClose (), ServerClose () ;
+  lemma Correspondence : corresponds ImgRecvValid(x) ~> ImgSend (x) 
+  ]
 
 
     

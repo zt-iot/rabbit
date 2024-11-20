@@ -62,6 +62,12 @@ type fpath = fpath' Location.located
 and fpath' = 
   | Fpath of (Name.ident * expr * Name.ident)
 
+type lemma = lemma' Location.located
+and lemma' = 
+  | PlainLemma of Name.ident * Name.ident  
+  | ReachabilityLemma of Name.ident * Name.ident list * event list
+  | CorrespondenceLemma of Name.ident * Name.ident list * event * event 
+
 (* type prop = prop' Location.located
 and prop' =
   | True

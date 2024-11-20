@@ -223,7 +223,7 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
          with
          | Error {Location.data=err; Location.loc=locc} ->
             begin match err with
-            | UnknownIdentifier id -> collect_vars e1 (Context.lctx_add_new_var ~loc lctx id)
+            | UnknownIdentifier id -> collect_vars e (Context.lctx_add_new_var ~loc lctx id)
             | _ -> error ~loc:locc err
             end
       in 
@@ -555,10 +555,49 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
                )) procs in
       (* for now, have plain text for lemmas *)
       let processed_lemmas = List.map (fun l -> 
-         match l.Location.data with 
+         let tmp = 
+         begin match l.Location.data with 
          | Input.Lemma (l, p) -> 
+            let rec collect_vars e lctx =
+               try let e = process_expr ctx lctx e in (e, lctx)
+               with
+               | Error {Location.data=err; Location.loc=locc} ->
+                  begin match err with
+                  | UnknownIdentifier id -> collect_vars e (Context.lctx_add_new_var ~loc lctx id)
+                  | _ -> error ~loc:locc err
+                  end
+               in 
+
             match p.Location.data with 
-               | Input.PlainString s -> (l, s)) lemmas in   
+               | Input.PlainString s -> Syntax.PlainLemma (l, s)
+               | Input.Reachability evs -> 
+                  let (lctx, evl) = 
+                     List.fold_left (fun (lctx, evl) ev -> 
+                        match ev.Location.data with
+                        | Input.Event (ename, els) ->
+                           let (lctx, els) = 
+                              List.fold_left (fun (lctx, els) e ->
+                                                let (e', lctx) = collect_vars e lctx in
+                                                   (lctx, els @ [e'])) (lctx, []) els in 
+                           (lctx, evl @ [Location.locate ~loc:ev.Location.loc (Syntax.Event (ename, els))])) (Context.lctx_init, []) evs in
+                  Syntax.ReachabilityLemma (l, List.hd lctx.Context.lctx_var, evl)
+
+               | Input.Correspondence (e1, e2) ->
+                  let (lctx, evl) = 
+                     List.fold_left (fun (lctx, evl) ev -> 
+                        match ev.Location.data with
+                        | Input.Event (ename, els) ->
+                           let (lctx, els) = 
+                              List.fold_left (fun (lctx, els) e ->
+                                                let (e', lctx) = collect_vars e lctx in
+                                                   (lctx, els @ [e'])) (lctx, []) els in 
+                           (lctx, evl @ [Location.locate ~loc:ev.Location.loc (Syntax.Event (ename, els))])) (Context.lctx_init, []) [e1 ; e2] in
+                  match evl with
+                  | [e1; e2] ->
+                     Syntax.CorrespondenceLemma (l, List.hd lctx.Context.lctx_var, e1, e2)
+            end in 
+            Location.locate ~loc:l.Location.loc tmp
+         ) lemmas in   
       (*  *)
       let (processed_procs) = 
          List.fold_left 

@@ -25,7 +25,7 @@
 %token WITH FUNC MAIN RETURN SKIP LET IF ELSE FOR IN RANGE 
 %token SYSTEM LEMMA AT DOT 
 
-%token REQUIRES EXTRACE ALLTRACE AMP PERCENT FRESH 
+%token REQUIRES EXTRACE ALLTRACE AMP PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
 
 (* End of input token *)
 %token EOF
@@ -147,7 +147,7 @@ rule:
 
 sys:
   | SYSTEM p=separated_nonempty_list(BBAR, proc) REQUIRES 
-    LBRACKET a=separated_nonempty_list(SEMICOLON, lemma) RBRACKET { DeclSys(p, a) }
+    LBRACKET a=separated_nonempty_list(SEMICOLON, lemma)  RBRACKET { DeclSys(p, a) }
 
 proc: mark_location(plain_proc) { $1 }
 plain_proc:
@@ -162,6 +162,9 @@ plain_lemma:
 
 prop: mark_location(plain_prop) { $1 }
 plain_prop:
+  | REACHABLE a=separated_nonempty_list(COMMA, event) {Reachability (a)}
+  | CORRESPONDS a=event LEADSTO b=event {Correspondence (a, b)}
+  
   | EXTRACE QUOTED_STRING {PlainString ("exists-trace \""^$2^"\"") }
   | ALLTRACE QUOTED_STRING {PlainString ("all-traces \""^$2^"\"") }
 

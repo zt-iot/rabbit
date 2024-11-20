@@ -46,6 +46,8 @@ and proc' =
 type prop = prop' Location.located
 and prop' =
   | PlainString of string
+  | Reachability of event list
+  | Correspondence of event * event
 
 type lemma = lemma' Location.located
 and lemma' =

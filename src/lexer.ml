@@ -31,7 +31,8 @@ let reserved = [
   ("load", LOAD) ;
   ("fresh", FRESH) ;
   ("const", CONST) ;
-  
+  ("reachable", REACHABLE) ;
+  ("corresponds", CORRESPONDS) 
   ]
 
 let name =
@@ -96,6 +97,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
      let r = String.sub s 1 (l - 2) in 
      Ulexbuf.record_string r lexbuf;
      QUOTED_STRING (r)
+  | "~>"                     -> f (); LEADSTO
   | '_'                      -> f (); UNDERSCORE
   | '.'                      -> f (); DOT
   | '!'                      -> f (); BANG

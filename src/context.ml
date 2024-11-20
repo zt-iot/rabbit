@@ -123,7 +123,7 @@ type system = {
    sys_def : definition ;
    sys_pol : access_policy ;
    sys_proc : process list ;
-   sys_lemma : (string * string) list
+   sys_lemma : Syntax.lemma list ;
 }
 
 type local_context = {

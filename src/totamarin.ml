@@ -105,6 +105,10 @@ let print_signature prt (fns, eqns) =
     (if List.length eqns = 0 then "" else "equations: ")^(mult_list_with_concat (List.map (fun (e1, e2) -> (print_expr prt e1)^"="^(print_expr prt e2)) eqns) ", ") ^"\n" in 
   (print_functions fns) ^ (print_equations eqns)
 
+let print_fact_plain prt (f, el) = 
+  f^"(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")" 
+
+
 let print_rule2 prt (f, act, pre, label, post) dev = 
   let print_fact (f, el, b) = 
     (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")" 
@@ -129,6 +133,26 @@ let print_comment s = "\n// "^s^"\n\n"
 
 let print_rule prt r dev = match r with | Rule (a, b, c, d, e) -> print_rule2 prt (a, b, c, d, e) dev | Comment s ->print_comment s 
 
+type lemma = 
+  | PlainLemma of string * string
+  | ReachabilityLemma of string * string list * (string * expr list) list
+  | CorrespondenceLemma of string * string list * (string * expr list) * (string * expr list)
+
+let print_lemma prt lemma = 
+  match lemma with
+  | PlainLemma (l, p) -> "\nlemma "^l^" : "^p 
+  | ReachabilityLemma (l, vars, facts) -> "\nlemma "^l^ " : exists-trace \"Ex "^
+    (mult_list_with_concat vars " ") ^" " ^
+    (mult_list_with_concat (List.map (fun (f, _) -> "#"^f^prt.prt_sep) facts) " ") ^ " . " ^
+    (mult_list_with_concat (List.map (fun (f, el) -> print_fact_plain prt (f, el) ^ " @ " ^f^prt.prt_sep) facts) " & ") ^ " \""
+
+  | CorrespondenceLemma (l, vars, (f1, el1), (f2, el2)) -> "\nlemma "^l^ " : all-traces \"All "^
+    (mult_list_with_concat vars " ") ^" " ^ "#"^f1^prt.prt_sep ^" . " ^
+    print_fact_plain prt (f1, el1) ^ " @ " ^ f1^prt.prt_sep ^" ==> "^
+    "Ex " ^ "#"^f2^prt.prt_sep ^ " . " ^ print_fact_plain prt (f2, el2) ^ " @ " ^ f2^prt.prt_sep ^" & "^
+    f2^prt.prt_sep ^" < "^ f1^prt.prt_sep ^ " \""
+
+
 let print_tamarin prt ((sign, rules), init_list, lem) dev = 
   "theory rabbit\n\nbegin\n"^
     print_signature prt sign ^
@@ -146,7 +170,7 @@ let print_tamarin prt ((sign, rules), init_list, lem) dev =
 
 	      "rule Equality_gen: [] --> [!Eq"^prt.prt_sep^"(x,x)]\n" ^
 
-	        List.fold_left (fun l (lem, prop) -> l^"\nlemma "^lem^" : "^prop) "" lem ^"\nend\n"
+	        List.fold_left (fun l lem -> l ^ print_lemma prt lem) "" lem ^"\nend\n"
 
 (* 
 
@@ -1027,6 +1051,24 @@ let translate_sys {
 	                               ) ^ eng.sep^"init") proc in 
 
   let init_list = init_list @ il in 
+
+  (* translating lemmas now *)
+  let lem = List.map (fun l ->
+    match l.Location.data with
+    | Syntax.PlainLemma (l, p) -> PlainLemma (l, p)
+    | Syntax.ReachabilityLemma (l, vars, evs) -> 
+      ReachabilityLemma (l, vars, 
+        List.map (fun ev -> 
+          match ev.Location.data with
+          | Syntax.Event (id, el) -> (mk_fact_name id), List.map (translate_expr ~ch:false) el
+        ) evs)
+    | Syntax.CorrespondenceLemma (l, vars, e1, e2) -> 
+      CorrespondenceLemma (l, vars, 
+          (match e1.Location.data with
+          | Syntax.Event (id, el) -> (mk_fact_name id, List.map (translate_expr ~ch:false) el)),
+          (match e2.Location.data with
+          | Syntax.Event (id, el) -> (mk_fact_name id, List.map (translate_expr ~ch:false) el)))
+    ) lem in
 
   (t, init_list, lem), {prt_sep=eng.sep;}
 
