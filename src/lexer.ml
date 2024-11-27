@@ -120,6 +120,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | ":="                     -> f (); COLONEQ
   | "="                      -> f (); EQ
   | ','                      -> f (); COMMA
+  | "::"                      -> f (); DCOLON
   | ':'                      -> f (); COLON
   | ';'                      -> f (); SEMICOLON
   (* We record the location of operators here because menhir cannot handle %infix and

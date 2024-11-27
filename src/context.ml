@@ -29,12 +29,10 @@ let print_error err ppf =
   | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
 
 
-
-
 (* process tempates spec and definition *)
 type ctx_process_template = {
    ctx_proctmpl_id   :  Name.ident ; 
-   ctx_proctmpl_ch   :  Name.ident list ; 
+   ctx_proctmpl_ch   :  (Name.ident * Name.ident) list ; 
    ctx_proctmpl_ty   :  Name.ident ;
    ctx_proctmpl_var  :  Name.ident list ;
    ctx_proctmpl_func :  (Name.ident * int) list  
@@ -195,6 +193,15 @@ let ctx_get_proctmpl ctx o =
 let ctx_get_ty ~loc ctx s =
    try let (id, ty) = List.find (fun (id, _) -> id = s) ctx.ctx_ty in ty 
    with Not_found -> error ~loc (UnknownIdentifier s)
+
+(* check *)
+let ctx_check_ty_ch ctx ty =
+   List.exists (fun (s, t) -> 
+      if s = ty then
+      match t with
+      | Input.CChan -> true 
+      | _ -> false
+      else false) ctx.ctx_ty
 
 
 (* add *)

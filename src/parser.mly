@@ -23,7 +23,7 @@
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE 
 %token CHANNEL PROCESS PATH DATA FILESYS 
 %token WITH FUNC MAIN RETURN SKIP LET IF ELSE FOR IN RANGE 
-%token SYSTEM LEMMA AT DOT 
+%token SYSTEM LEMMA AT DOT DCOLON
 
 %token REQUIRES EXTRACE ALLTRACE AMP PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
 
@@ -69,7 +69,7 @@ plain_decl:
 
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
 
-  | PROCESS id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH ty=NAME 
+  | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME 
     LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
 
   | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
@@ -82,6 +82,9 @@ plain_decl:
   | external_attack { $1 }
 
   | sys { $1 }
+
+colon_name_pair :
+  | a=NAME COLON b=NAME { (a, b) }
 
 external_functions:
   |  FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
@@ -119,20 +122,16 @@ plain_complex_rule:
   | BANG complex_rule { CRuleRep $2 }
   | a=complex_rule DARROW b=complex_rule { CRuleSeq (a, b) }
 
-
-
 external_attack:
   |  ATTACK f=NAME LPAREN parem=typed_arg RPAREN COLON r=rule { DeclExtAttack(f, parem, r) }
 
-
 fact : mark_location(plain_fact) { $1 }
 plain_fact:
-  | scope=NAME COLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact(scope, id, es) }
+  | scope=NAME DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact(scope, id, es) }
   | scope=NAME DOT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { PathFact(scope, id, es) }
   | scope=NAME PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
-  | AMP id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact(id, es) }
+  | DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact(id, es) }
   | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact(id, es) }
-
 
 typed_arg:
   | var=NAME { (TyValue, var) }
@@ -140,8 +139,6 @@ typed_arg:
   | PROCESS var=NAME { (TyProcess, var) }
   | PATH var=NAME { (TyPath, var) }
   
-
-
 rule:
   | LBRACKET precond=separated_list(COMMA, fact) RBRACKET ARROW LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { (precond, postcond) }
 
@@ -185,7 +182,6 @@ fun_decl:
 
 main_stmt:
   | MAIN LBRACE c=stmts RBRACE { c }
-
 
 fpath:
   | LBRACE PATH COLON fp=QUOTED_STRING COMMA DATA COLON e=expr COMMA TYPE COLON t=NAME RBRACE

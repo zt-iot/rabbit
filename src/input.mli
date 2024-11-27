@@ -73,7 +73,7 @@ and decl' =
   | DeclInit of Name.ident * expr option
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
   | DeclChan of Name.ident * Name.ident
-  | DeclProc of Name.ident * (Name.ident list) * Name.ident * 
+  | DeclProc of Name.ident * (Name.ident * Name.ident) list * Name.ident * 
                 ((Name.ident * expr) list) * 
                 (Name.ident * (Name.ident list) * stmt list * Name.ident) list * 
                 stmt list

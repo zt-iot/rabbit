@@ -17,6 +17,7 @@ type desugar_error =
   | ForbiddenFresh 
   | UnintendedError 
   | WrongInputType
+  | WrongChannelType of string * string
 
 exception Error of desugar_error Location.located
 
@@ -36,6 +37,8 @@ let print_error err ppf =
   | WrongInputType -> Format.fprintf ppf "wrong input type"
   | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
   | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
+  | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given"  x y
+
   | _ -> Format.fprintf ppf "" 
   
 
@@ -489,7 +492,13 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
       with 
       | Input.CProc -> 
          if Context.check_used ctx pid then error ~loc (AlreadyDefined pid) else 
-         let lctx = List.fold_left (fun lctx' cid -> Context.lctx_add_new_chan ~loc lctx' cid) Context.lctx_init cargs in
+         let lctx = List.fold_left (fun lctx' (cid, cty) -> 
+            if Context.ctx_check_ty_ch ctx cty 
+            then 
+               Context.lctx_add_new_chan ~loc lctx' cid
+            else
+               error ~loc (UnknownIdentifier cty)
+            ) Context.lctx_init cargs in
          let (lctx, ldef) = List.fold_left (fun (lctx', ldef') (vid, e) -> 
             (Context.lctx_add_new_var ~loc lctx' vid, Context.ldef_add_new_var ldef' (vid, process_expr ctx lctx' e))) (lctx, Context.ldef_init) cl in
          let (ctx, lctx, ldef) = List.fold_left (fun (ctx'', lctx'', ldef'') (fid, args, cs, ret) -> 
@@ -499,11 +508,13 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
             (ctx', Context.lctx_add_new_func ~loc lctx'' (fid, List.length args), 
                   Context.ldef_add_new_func ldef'' (fid, args, cs', Syntax.index_var ret (Context.lctx_get_var_index ~loc lctx' ret)))) (ctx, lctx, ldef) fs in
             let (ctx, _, m') = process_stmts ctx (Context.lctx_add_frame lctx) m in 
-            (Context.ctx_add_proctmpl ctx (Context.mk_ctx_proctmpl (pid, lctx.Context.lctx_chan, ty, List.hd lctx.Context.lctx_var, lctx.Context.lctx_func)), pol, 
+            (Context.ctx_add_proctmpl ctx (Context.mk_ctx_proctmpl (pid, List.rev cargs, ty, List.hd lctx.Context.lctx_var, lctx.Context.lctx_func)), pol, 
                Context.def_add_proctmpl def pid ldef m', sys, fst ps)
 
       | _ -> error ~loc (WrongInputType) 
       end 
+
+
    | Input.DeclSys (procs, lemmas) ->
       let processed_procs = List.map (fun proc -> 
          match proc.Location.data with 
@@ -532,11 +543,12 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
             if (List.length cargs) !=  (List.length chans) then error ~loc (ArgNumMismatch (pid, (List.length chans), (List.length cargs)))
             else
                let (chs, vl, fl, m) = List.fold_left2 
-                  (fun (chs, vl, fl, m) ch_f ch_t -> 
+                  (fun (chs, vl, fl, m) (ch_f, ty_f) ch_t -> 
                      (* print_string (ch_f ^ " to "^ch_t^"\n") ; *)
                      if Context.ctx_check_ch ctx ch_t then 
                         let (_, chan_ty) = List.find (fun (s, _
-                        ) -> s = ch_t) ctx.Context.ctx_ch in  
+                        ) -> s = ch_t) ctx.Context.ctx_ch in
+                        (if chan_ty = ty_f then () else error ~loc (WrongChannelType (ch_f^":"^ty_f, ch_t^":"^chan_ty)));  
                         let accesses = List.fold_left (fun acs (f', t', ac) -> if f' = ptype && List.exists (fun s -> s = chan_ty) t' then ac::acs else acs) [] pol.Context.pol_access in 
                         (* replace channel variables and check access policies! *)
                         (
