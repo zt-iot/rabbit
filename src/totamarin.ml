@@ -452,7 +452,10 @@ and translate_atomic_stmt (eng : engine) (t: tamarin)  {Location.data=c; Locatio
 
 	    let subst_facts =
 	      List.map (fun (y, e) ->
-		  ("!Eq"^eng.sep, [Var y; translate_and_subst_expr processed_args e], config_linear)) substs in 
+		  ("!Eq"^eng.sep, [
+        begin match List.find_opt (fun (a, b) -> a = y) processed_args with
+        | Some (a, b) -> b
+        | None -> error ~loc:Location.Nowhere (UnintendedError "unexpected fact in syscall") end ; translate_and_subst_expr processed_args e], config_linear)) substs in 
 
 	    let acp_facts = 
 	      List.map (fun v -> (f ^ eng.sep ^"Allowed", [String eng.namespace ; translate_and_subst_expr processed_args (Location.locate ~loc:Location.Nowhere (Syntax.Variable (v, 0,0,0)))], config_persist)) ch_vars 

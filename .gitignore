@@ -6,5 +6,6 @@ _opam
 *.aes
 _test/
 _output/
+_*/
 */.*
 \#*#
