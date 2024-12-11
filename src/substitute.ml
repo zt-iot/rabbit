@@ -52,7 +52,7 @@ let fact_chan_sub f fr t accesses =
 let facts_chan_sub fl f t accesses = 
   List.map (fun ft -> fact_chan_sub ft f t accesses) fl
 
-let rec cmd_chan_sub c f t accesses = 
+let rec cmd_chan_sub (ltctx, c) f t accesses = 
   let loc = c.Location.loc in
   let c = 
     match c.Location.data with
@@ -60,7 +60,7 @@ let rec cmd_chan_sub c f t accesses =
     | Syntax.Wait (fl, c) -> Syntax.Wait (facts_chan_sub fl f t accesses, cmd_chan_sub c f t accesses)
     | Syntax.Let (v, e) -> Syntax.Let (v, expr_chan_sub e f t accesses)
     | Syntax.Assign (v, e) -> Syntax.Assign (v, expr_chan_sub e f t accesses)
-    | Syntax.FCall (v, fn, el) -> Syntax.FCall (v, expr_chan_sub fn f t accesses, List.map (fun e -> expr_chan_sub e f t accesses) el) 
+    | Syntax.FCall (v, fn, el) -> Syntax.FCall (v, fn, List.map (fun e -> expr_chan_sub e f t accesses) el) 
     | Syntax.SCall (v, s, el) -> Syntax.SCall (v, s, List.map (fun e -> expr_chan_sub e f t accesses) el) 
     | Syntax.Case (al, c1, bl, c2) -> Syntax.Case (facts_chan_sub al f t accesses, cmd_chan_sub c1 f t accesses, facts_chan_sub bl f t accesses, cmd_chan_sub c2 f t accesses)
     | Syntax.While (al, bl, c) -> Syntax.While (facts_chan_sub al f t accesses, facts_chan_sub bl f t accesses, cmd_chan_sub c f t accesses)
@@ -68,4 +68,4 @@ let rec cmd_chan_sub c f t accesses =
     | Syntax.Skip -> Syntax.Skip
     | Syntax.Put (fl) -> Syntax.Put (facts_chan_sub fl f t accesses)
     in
-  Location.locate ~loc:loc c
+  ltctx, Location.locate ~loc:loc c

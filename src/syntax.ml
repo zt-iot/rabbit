@@ -28,7 +28,12 @@ and fact' =
   | PathFact of Name.ident * Name.ident * expr list
   | ProcessFact of Name.ident * Name.ident * expr list
 
-type cmd = cmd' Location.located
+
+
+(* meta vars, local vars, top-level variables *)
+type local_typing_context = (Name.ident list) list * Name.ident list list
+
+type cmd = local_typing_context * cmd' Location.located
 and cmd' = 
   | Skip
   | Sequence of cmd * cmd
@@ -36,7 +41,7 @@ and cmd' =
   | Put of fact list
   | Let of Name.ident * expr 
   | Assign of Name.ident * expr
-  | FCall of Name.ident option * expr * expr list
+  | FCall of Name.ident option * Name.ident * expr list
   | SCall of Name.ident option * Name.ident * expr list
   | Case of fact list * cmd * fact list * cmd 
   | While of fact list * fact list * cmd

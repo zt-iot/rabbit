@@ -18,6 +18,7 @@ type desugar_error =
   | ForbiddenFresh 
   | UnintendedError 
   | WrongInputType
+  | NoBindingVariable
   | WrongChannelType of string * string
 
 exception Error of desugar_error Location.located
@@ -40,7 +41,7 @@ let print_error err ppf =
   | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
   | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
   | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given"  x y
-
+  | NoBindingVariable -> Format.fprintf ppf "no binding variable"
   | _ -> Format.fprintf ppf "" 
   
 
@@ -165,37 +166,42 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
          let lctx = Context.lctx_add_new_var ~loc lctx v in
          (ctx, lctx, Syntax.Let(v, process_expr ctx lctx e))
 
-      | Input.Assign (v, e) -> 
-         (if Context.lctx_check_var lctx v then () else error ~loc (UnknownIdentifier v));
-         (ctx, lctx, Syntax.Assign(v, process_expr ctx lctx e))
-
-      | Input.FCall (ov, f, el) ->
-         begin match ov with
-         | Some v -> 
-            (if Context.lctx_check_var lctx v then () else error ~loc (UnknownIdentifier v));
-            (ctx, lctx, Syntax.FCall (Some v, process_expr ctx lctx f, List.map (process_expr ctx lctx) el))
-         | None -> 
-            (ctx, lctx, Syntax.FCall (None, process_expr ctx lctx f, List.map (process_expr ctx lctx) el))
-         end
-      | Input.SCall (ov, o, args) ->
-         (* test if o is defined *)
-         (if Context.ctx_check_ext_syscall ctx o then () else error ~loc (UnknownIdentifier o));   
-         let args_ty = Context.ctx_get_ext_syscall_arity ~loc ctx o in
-         (* test if the number of arguments are correct *)
-         (if List.length args = List.length args_ty then () else error ~loc (ArgNumMismatch (o, List.length args, List.length args_ty)));
-         (match ov with
-         | Some v -> 
-            (if Context.lctx_check_var lctx v then () else error ~loc (UnknownIdentifier v));
-         | None -> ());
-         (ctx, lctx, Syntax.SCall(ov, o, 
-            List.map2 (fun arg arg_ty -> 
-               let e = process_expr ctx lctx arg in                   
-                  (match e.Location.data, arg_ty with
-                  | Syntax.Channel (s, _), Input.TyChannel -> Location.locate ~loc:e.Location.loc (Syntax.Channel (s, o))
-                  | _, Input.TyChannel -> error ~loc (WrongInputType)
-                  | _, _ -> e)
-                  (* , arg_ty *)
-               ) args args_ty))
+      | Input.Assign (ov, e) -> 
+         (match ov with | Some v -> if Context.lctx_check_var lctx v then () else error ~loc (UnknownIdentifier v) | _ -> ());
+         begin match e.Location.data with
+         | Input.Apply(o, args) ->
+            if Context.ctx_check_ext_syscall ctx o 
+            then 
+               (*  when o is a system call *)
+               begin
+                  let args_ty = Context.ctx_get_ext_syscall_arity ~loc ctx o in
+                  (if List.length args = List.length args_ty then () else error ~loc (ArgNumMismatch (o, List.length args, List.length args_ty)));
+                  (ctx, lctx, Syntax.SCall(ov, o, 
+                     List.map2 (fun arg arg_ty -> 
+                        let e = process_expr ctx lctx arg in                   
+                           (match e.Location.data, arg_ty with
+                           | Syntax.Channel (s, _), Input.TyChannel -> Location.locate ~loc:e.Location.loc (Syntax.Channel (s, o))
+                           | _, Input.TyChannel -> error ~loc (WrongInputType)
+                           | _, _ -> e)
+                           (* , arg_ty *)
+                        ) args args_ty))
+               end
+            (*  when o is a function *)
+            else if Context.lctx_check_func lctx o then
+            begin
+               (if List.length args = Context.lctx_get_func_arity lctx o then () else error ~loc (ArgNumMismatch (o, List.length args, (Context.lctx_get_func_arity lctx o))));
+               (ctx, lctx, Syntax.FCall(ov, o, List.map (process_expr ctx lctx) args))
+            end
+            else 
+            (* when o is a term *)
+            match ov with
+            | Some v -> (ctx, lctx, Syntax.Assign(v, process_expr ctx lctx e))
+            | _ -> error ~loc (NoBindingVariable)
+         | _ ->           
+            match ov with
+            | Some v -> (ctx, lctx, Syntax.Assign(v, process_expr ctx lctx e))
+            | _ -> error ~loc (NoBindingVariable)
+         end 
 
       | Input.Case (al, c1, bl, c2) ->
          let plctx = Context.lctx_add_frame lctx in
@@ -220,7 +226,7 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
          (ctx, lctx, Syntax.Event (fl))
       in 
       let (ctx, lctx, c) = process_cmd' ctx lctx c in 
-      (ctx, lctx, Location.locate ~loc c)
+      (ctx, lctx, ((lctx.Context.lctx_meta, lctx.Context.lctx_var), Location.locate ~loc c))
 
 
 let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([],[]))

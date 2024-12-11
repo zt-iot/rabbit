@@ -22,7 +22,7 @@
 (* constant tokens for rabbit *)
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE 
 %token CHANNEL PROCESS PATH DATA FILESYS 
-%token WITH FUNC MAIN RETURN SKIP LET WAIT PUT CASE END BAR DO FCALL SCALL BACKSLASH WHILE
+%token WITH FUNC MAIN RETURN SKIP LET WAIT PUT CASE END BAR DO BACKSLASH WHILE
 %token SYSTEM LEMMA AT DOT DCOLON
 
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
@@ -195,9 +195,7 @@ plain_cmd:
   | WAIT LBRACKET precond=separated_list(COMMA, fact) RBRACKET c=cmd END { Wait (precond, c) }
   | PUT LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { Put (postcond) }
   | LET id=NAME EQ e=expr { Let (id, e) }
-  | id=NAME COLONEQ e=expr { Assign (id, e) }
-  | FCALL id=uname COLONEQ  LPAREN f=expr SEMICOLON args=separated_list(COMMA, expr) RPAREN { FCall (id, f, args) }
-  | SCALL id=uname COLONEQ f=NAME LPAREN args=separated_list(COMMA, expr) RPAREN { SCall (id, f, args) }
+  | id=uname COLONEQ e=expr { Assign (id, e) }
   | CASE LBRACKET a1=separated_list(COMMA, fact) RBRACKET c1=cmd BAR 
          LBRACKET a2=separated_list(COMMA, fact) RBRACKET c2=cmd BAR END { Case(a1, c1, a2, c2) }
   | WHILE LBRACKET a1=separated_list(COMMA, fact) RBRACKET BACKSLASH 

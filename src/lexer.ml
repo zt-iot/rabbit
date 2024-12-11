@@ -33,9 +33,7 @@ let reserved = [
   ("case", CASE) ; 
   ("while", WHILE) ; 
   ("end", END) ; 
-  ("do", DO) ; 
-  ("fcall", FCALL) ; 
-  ("scall", SCALL)
+  ("do", DO) 
   ]
 
 let name =

@@ -28,9 +28,7 @@ and cmd' =
   | Wait of fact list * cmd
   | Put of fact list
   | Let of Name.ident * expr 
-  | Assign of Name.ident * expr
-  | FCall of Name.ident option * expr * expr list
-  | SCall of Name.ident option * Name.ident * expr list
+  | Assign of Name.ident option * expr
   | Case of fact list * cmd * fact list * cmd 
   | While of fact list * fact list * cmd
   | Event of fact list

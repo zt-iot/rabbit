@@ -309,9 +309,17 @@ let rec translate_expr2 ?(ch=false) {Location.data=e; Location.loc=loc} =
   in translate_expr2' e
 
 (* let rec translate_stmt eng (t : tamarin) {Location.data=c; Location.loc=loc} syscalls priority_conf =  *)
-let rec translate_cmd eng (t : tamarin) {Location.data=c; Location.loc=loc} = 
+(* [c](eng) = (rule list, eng') 
+    eng can print state
+*)
+(* let rec translate_cmd eng (t : tamarin) {Location.data=c; Location.loc=loc} = 
   match c with
-  | Input.Skip -> (ctx, lctx, Syntax.Skip)
+  | Input.Skip -> 
+    let eng_f = engine_index_inc eng in
+    let state_i = engine_state eng in
+    let state_f = engine_state
+    [make_rule eng ]
+  (ctx, lctx, Syntax.Skip)
   
   | Input.Sequence (c1, c2) -> 
      let (ctx, lctx, c1) = process_cmd ctx lctx c1 in
@@ -391,7 +399,7 @@ let rec translate_cmd eng (t : tamarin) {Location.data=c; Location.loc=loc} =
   (ctx, lctx, Location.locate ~loc c)
 
 
-
+ *)
 let translate_process eng t {
         Context.proc_pid=k;
         Context.proc_name=s;
