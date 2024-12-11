@@ -44,8 +44,8 @@ member functions and their arities *)
 type def_process_template = {
    def_proctmpl_id   :  Name.ident ; 
    def_proctmpl_var  :  (Name.ident * Syntax.expr) list ; 
-   def_proctmpl_func :  (Name.ident * Name.ident list * Syntax.stmt list * Syntax.indexed_var) list ; 
-   def_proctmpl_main :  Syntax.stmt list   
+   def_proctmpl_func :  (Name.ident * Name.ident list * Syntax.cmd * Syntax.expr) list ; 
+   def_proctmpl_main :  Syntax.cmd   
 }
 
 let mk_ctx_proctmpl (a, b, c, d, e) = {ctx_proctmpl_id=a; ctx_proctmpl_ch=b; ctx_proctmpl_ty=c; ctx_proctmpl_var=d; ctx_proctmpl_func=e}
@@ -85,7 +85,7 @@ type definition = {
    def_ext_eq  :  (Name.ident list * Syntax.expr * Syntax.expr) list ;
                   (* free variables, e1, e2  such that e1 = e2 under the free variables *)
  
-   def_ext_syscall : (Name.ident *  (Input.arg_type * Name.ident) list * (Name.ident list * Name.ident list) * Name.ident list * (Name.ident * Syntax.expr) list * Syntax.complex_rule * Syntax.expr option) list ;
+   def_ext_syscall : (Name.ident *  (Input.arg_type * Name.ident) list * Syntax.cmd * Syntax.expr) list ;
    
    def_ext_attack  : (Name.ident *  (Name.ident list * Name.ident list * Name.ident list) * (Syntax.fact list * Syntax.fact list )) list ;
 
@@ -112,8 +112,8 @@ type process = {
    proc_filesys   :  Name.ident option;
    proc_file      :  (Name.ident * Syntax.expr * Name.ident list * Name.ident list) list ;
    proc_variable  :  (Name.ident * Syntax.expr) list ; 
-   proc_function  :  (Name.ident * Name.ident list * Syntax.stmt list * Syntax.indexed_var ) list ;
-   proc_main      :  Syntax.stmt list 
+   proc_function  :  (Name.ident * Name.ident list * Syntax.cmd * Syntax.expr) list ;
+   proc_main      :  Syntax.cmd 
 }
 
 type system = {
@@ -133,9 +133,11 @@ type local_context = {
 
                      lctx_var : (Name.ident list) list ; 
 
+                     lctx_meta : (Name.ident list) list ; 
+
                      lctx_func : (Name.ident * int) list }
 
-type local_definition ={ldef_var : (Name.ident * Syntax.expr) list ; ldef_func : (Name.ident * (Name.ident list) * Syntax.stmt list * Syntax.indexed_var) list }
+type local_definition ={ldef_var : (Name.ident * Syntax.expr) list ; ldef_func : (Name.ident * (Name.ident list) * Syntax.cmd * Syntax.expr) list }
 
 (** finding the frame number and the de brujin index of the given bariable *)
 let find_index f l =
@@ -304,6 +306,10 @@ let lctx_check_process lctx c =
 let lctx_check_var lctx v =
    List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_var false 
 
+let lctx_check_meta lctx v =
+   List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_meta false 
+
+
 let lctx_remove_var lctx v =
    let lctx_var' = List.map (fun vl -> List.find_all (fun s -> not (s = v)) vl)  lctx.lctx_var in
    {lctx with lctx_var=lctx_var'}
@@ -313,6 +319,7 @@ let lctx_check_func lctx f =
 
 let lctx_check_id lctx id = 
    lctx_check_var lctx id || 
+   lctx_check_meta lctx id || 
    lctx_check_chan lctx id || 
    lctx_check_func lctx id || 
    lctx_check_path lctx id || 
@@ -339,12 +346,18 @@ let lctx_add_new_var ~loc lctx v =
    | f::frames -> {lctx with lctx_var=(v::f)::frames}
    | _ -> error ~loc (UnintendedError)
 
-let lctx_add_frame lctx = {lctx with lctx_var=([]::lctx.lctx_var)}
+let lctx_add_new_meta ~loc lctx v = 
+   if lctx_check_id lctx v  then error ~loc (AlreadyDefined v) else 
+   match lctx.lctx_meta with 
+   | f::frames -> {lctx with lctx_meta=(v::f)::frames}
+   | _ -> error ~loc (UnintendedError)
+
+let lctx_add_frame lctx = {lctx with lctx_var=([]::lctx.lctx_var); lctx_meta=([]::lctx.lctx_meta)}
 
 let lctx_pop_frame ~loc lctx = 
-   match lctx.lctx_var with 
-   | f::frames -> {lctx with lctx_var=frames}
-   | _ -> error ~loc (UnintendedError)
+   match lctx.lctx_var, lctx.lctx_meta with 
+   | f::frames, f'::frames' -> {lctx with lctx_var=frames; lctx_meta=frames'}
+   | _, _ -> error ~loc (UnintendedError)
 
 let lctx_get_func_arity lctx f = 
    let (_, k) = List.find (fun (i, _) -> i = f) lctx.lctx_func in k
@@ -376,7 +389,7 @@ let pol_init = {pol_access = [] ; pol_attack = []}
    sys_pol = [];
    sys_proc =[] }
  *)
-let lctx_init = {lctx_chan = []; lctx_path = []; lctx_process = []; lctx_var = [ [] ]; lctx_func = []}
+let lctx_init = {lctx_chan = []; lctx_path = []; lctx_process = []; lctx_var = [ [] ]; lctx_meta = [ [] ]; lctx_func = []}
 let ldef_init = {ldef_var=[]; ldef_func=[]}
 
 

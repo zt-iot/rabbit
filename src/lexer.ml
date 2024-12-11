@@ -11,7 +11,6 @@ let reserved = [
   ("filesys", FILESYS) ;
   ("channel", CHANNEL) ; 
   ("path", PATH) ; 
-  ("for", FOR) ; 
   ("process", PROCESS) ;
   ("with", WITH) ;
   ("function", FUNC) ;
@@ -20,10 +19,6 @@ let reserved = [
   ("data", DATA) ; 
   ("skip", SKIP) ;
   ("let", LET) ;
-  ("if", IF) ;
-  ("in", IN) ;
-  ("else", ELSE) ;
-  ("range", RANGE) ; 
   ("requires", REQUIRES) ; 
   ("constant", CONSTANT) ; 
   ("equation", EQUATION) ; 
@@ -32,7 +27,15 @@ let reserved = [
   ("fresh", FRESH) ;
   ("const", CONST) ;
   ("reachable", REACHABLE) ;
-  ("corresponds", CORRESPONDS) 
+  ("corresponds", CORRESPONDS) ;
+  ("wait", WAIT) ; 
+  ("put", PUT) ; 
+  ("case", CASE) ; 
+  ("while", WHILE) ; 
+  ("end", END) ; 
+  ("do", DO) ; 
+  ("fcall", FCALL) ; 
+  ("scall", SCALL)
   ]
 
 let name =
@@ -100,8 +103,6 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | "~>"                     -> f (); LEADSTO
   | '_'                      -> f (); UNDERSCORE
   | '.'                      -> f (); DOT
-  | '!'                      -> f (); BANG
-  | '&'                      -> f (); AMP
   | '%'                      -> f (); PERCENT
   | "exists-trace"                      -> f (); EXTRACE
   | "all-traces"                      -> f (); ALLTRACE
@@ -110,17 +111,17 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | ')'                      -> f (); RPAREN
   | '['                      -> f (); LBRACKET
   | ']'                      -> f (); RBRACKET
-  | "-{"                     -> f (); LOPEN
-  | "}->"                    -> f (); RCLOSE
+  | '\\'                     -> f (); BACKSLASH
   | '{'                      -> f (); LBRACE
   | '}'                      -> f (); RBRACE
   | "||"                     -> f (); BBAR
-  | "=>" | 8658 | 10233      -> f (); DARROW
-  | "->" | 8594 | 10230      -> f (); ARROW
+  | '|'                      -> f (); BAR
+  (* | "=>" | 8658 | 10233      -> f (); DARROW
+     | "->" | 8594 | 10230      -> f (); ARROW *)  
   | ":="                     -> f (); COLONEQ
   | "="                      -> f (); EQ
   | ','                      -> f (); COMMA
-  | "::"                      -> f (); DCOLON
+  | "::"                     -> f (); DCOLON
   | ':'                      -> f (); COLON
   | ';'                      -> f (); SEMICOLON
   (* We record the location of operators here because menhir cannot handle %infix and

@@ -13,24 +13,6 @@ and expr' =
   | Apply of operator * expr list
   | Tuple of expr list
 
-type atomic_stmt = atomic_stmt' Location.located
-and atomic_stmt' = 
-  | Skip
-  | Let of Name.ident * expr * bool
-  | LetUnderscore of expr
-  (* | Call of Name.ident * Name.ident * expr list *)
-  | If of expr * expr * stmt list * stmt list
-  | For of Name.ident * int * int * stmt list
-
-and event = event' Location.located
-and event' = 
-  | Event of Name.ident * (expr list)
-
-and stmt = stmt' Location.located
-and stmt' = 
-  | OpStmt of atomic_stmt
-  | EventStmt of atomic_stmt * event list
-
 type fact = fact' Location.located
 and fact' = 
   | Fact of Name.ident * expr list
@@ -39,6 +21,20 @@ and fact' =
   | PathFact of Name.ident * Name.ident * expr list
   | ProcessFact of Name.ident * Name.ident * expr list
 
+type cmd = cmd' Location.located
+and cmd' = 
+  | Skip
+  | Sequence of cmd * cmd
+  | Wait of fact list * cmd
+  | Put of fact list
+  | Let of Name.ident * expr 
+  | Assign of Name.ident * expr
+  | FCall of Name.ident option * expr * expr list
+  | SCall of Name.ident option * Name.ident * expr list
+  | Case of fact list * cmd * fact list * cmd 
+  | While of fact list * fact list * cmd
+  | Event of fact list
+
 type proc = proc' Location.located
 and proc' =
   | Proc of Name.ident * (Name.ident list) * Name.ident option
@@ -46,26 +42,18 @@ and proc' =
 type prop = prop' Location.located
 and prop' =
   | PlainString of string
-  | Reachability of event list
-  | Correspondence of event * event
+  | Reachability of fact list
+  | Correspondence of fact * fact
 
 type lemma = lemma' Location.located
 and lemma' =
   | Lemma of Name.ident * prop 
 
-type complex_rule = complex_rule' Location.located
-and complex_rule' = 
-  | CRule of (fact list * fact list) 
-  | CRuleStmt of (fact list * stmt list * fact list) 
-  | CRulePar of complex_rule * complex_rule
-  | CRuleRep of complex_rule 
-  | CRuleSeq of complex_rule * complex_rule 
-
 type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int
   | DeclExtEq of expr * expr
-  | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * (Name.ident * expr) list * complex_rule * expr option
+  | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * cmd * expr
   | DeclExtAttack of Name.ident * (arg_type * Name.ident) * (fact list * fact list) 
   | DeclType of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident list * Name.ident list
@@ -75,8 +63,7 @@ and decl' =
   | DeclChan of Name.ident * Name.ident
   | DeclProc of Name.ident * (Name.ident * Name.ident) list * Name.ident * 
                 ((Name.ident * expr) list) * 
-                (Name.ident * (Name.ident list) * stmt list * Name.ident) list * 
-                stmt list
+                (Name.ident * (Name.ident list) * cmd * expr) list * cmd
   | DeclSys of proc list * lemma list 
   | DeclLoad of string
 

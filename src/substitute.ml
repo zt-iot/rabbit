@@ -1,6 +1,7 @@
 type substitute_error =
   | AccessError of string
   | PremissionError of string
+  | UnintendedError of string
 
 exception Error of substitute_error Location.located
 
@@ -12,6 +13,7 @@ let print_error err ppf =
   match err with
   | AccessError a -> Format.fprintf ppf "Channel access %s not granted" (a)
   | PremissionError a -> Format.fprintf ppf "Channel access %s not granted" (a)
+  | UnintendedError a -> Format.fprintf ppf "Unintended Error (%s)" (a)
 
 let rec expr_chan_sub e f t accesses = 
   let loc = e.Location.loc in
@@ -34,25 +36,36 @@ let rec expr_chan_sub e f t accesses =
 
   | _ -> e
 
+let fact_chan_sub f fr t accesses =
+  let loc = f.Location.loc in
+  let f = 
+   match f.Location.data with
+   | Syntax.Fact (v, el) -> Syntax.Fact (v, (List.map (fun e -> expr_chan_sub e fr t accesses) el))
+   | Syntax.GlobalFact (v, el) -> Syntax.GlobalFact (v, (List.map (fun e -> expr_chan_sub e fr t accesses) el))
+   | Syntax.PathFact (l, id, el) -> Syntax.PathFact (l, id, (List.map (fun e -> expr_chan_sub e fr t accesses) el))
+   | Syntax.ChannelFact (l, id, el) ->
+      Syntax.ChannelFact ((if l = fr then t else l), id, (List.map (fun e -> expr_chan_sub e fr t accesses) el))
+  | _ -> error ~loc (UnintendedError "")
+ in Location.locate ~loc:loc f
 
-let rec stmt_chan_sub c f t accesses =
+
+let facts_chan_sub fl f t accesses = 
+  List.map (fun ft -> fact_chan_sub ft f t accesses) fl
+
+let rec cmd_chan_sub c f t accesses = 
   let loc = c.Location.loc in
-  match c.Location.data with
-  | Syntax.OpStmt a -> Location.locate ~loc:loc (Syntax.OpStmt (atomic_stmt_chan_sub a f t accesses))
-  | Syntax.EventStmt (a, el) -> Location.locate ~loc:loc (Syntax.EventStmt ((atomic_stmt_chan_sub a f t accesses), el))
-  
-and atomic_stmt_chan_sub c f t accesses = 
-    let loc = c.Location.loc in
+  let c = 
     match c.Location.data with
-    | Syntax.Skip -> c
-    | Syntax.Let (iv, e) -> Location.locate ~loc:loc (Syntax.Let (iv, expr_chan_sub e f t accesses))
-    | Syntax.Call (iv, fn, args) -> Location.locate ~loc:loc (Syntax.Call (iv, fn, List.map (fun e -> expr_chan_sub e f t accesses) args))
-    | Syntax.Syscall (iv, ins, args) -> Location.locate ~loc:loc (Syntax.Syscall (iv, ins, List.map (fun (e, ty) -> expr_chan_sub e f t accesses, ty) args))
-    | Syntax.If (e1, e2, c1, c2) -> 
-      Location.locate ~loc:loc 
-        (Syntax.If (expr_chan_sub e1 f t accesses, expr_chan_sub e2 f t accesses, 
-                    List.map (fun e -> stmt_chan_sub e f t accesses) c1,
-                     List.map (fun e -> stmt_chan_sub e f t accesses) c2))
-    | Syntax.For (iv, i, j, c) -> 
-      Location.locate ~loc:loc 
-        (Syntax.For (iv, i, j, List.map (fun e -> stmt_chan_sub e f t accesses) c))
+    | Syntax.Sequence (c1, c2) -> Syntax.Sequence (cmd_chan_sub c1 f t accesses, cmd_chan_sub c2 f t accesses) 
+    | Syntax.Wait (fl, c) -> Syntax.Wait (facts_chan_sub fl f t accesses, cmd_chan_sub c f t accesses)
+    | Syntax.Let (v, e) -> Syntax.Let (v, expr_chan_sub e f t accesses)
+    | Syntax.Assign (v, e) -> Syntax.Assign (v, expr_chan_sub e f t accesses)
+    | Syntax.FCall (v, fn, el) -> Syntax.FCall (v, expr_chan_sub fn f t accesses, List.map (fun e -> expr_chan_sub e f t accesses) el) 
+    | Syntax.SCall (v, s, el) -> Syntax.SCall (v, s, List.map (fun e -> expr_chan_sub e f t accesses) el) 
+    | Syntax.Case (al, c1, bl, c2) -> Syntax.Case (facts_chan_sub al f t accesses, cmd_chan_sub c1 f t accesses, facts_chan_sub bl f t accesses, cmd_chan_sub c2 f t accesses)
+    | Syntax.While (al, bl, c) -> Syntax.While (facts_chan_sub al f t accesses, facts_chan_sub bl f t accesses, cmd_chan_sub c f t accesses)
+    | Syntax.Event (fl) -> Syntax.Event (facts_chan_sub fl f t accesses)
+    | Syntax.Skip -> Syntax.Skip
+    | Syntax.Put (fl) -> Syntax.Put (facts_chan_sub fl f t accesses)
+    in
+  Location.locate ~loc:loc c

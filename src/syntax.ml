@@ -7,7 +7,7 @@ type expr = expr' Location.located
 and expr' =
   | Const of Name.ident
   | ExtConst of Name.ident
-  | Variable of indexed_var
+  | Variable of string
   | Boolean of bool
   | String of string
   | Integer of int
@@ -20,24 +20,6 @@ and expr' =
   (* | Run of string * expr list (* only needed for syscall defintiions *) *)
   (* | FrVariable of string *)
 
-type atomic_stmt = atomic_stmt' Location.located
-and atomic_stmt' = 
-  | Skip
-  | Let of indexed_var * expr
-  | Call of indexed_var * Name.ident * expr list
-  | Syscall of indexed_var * Name.ident * (expr * Input.arg_type) list 
-  | If of expr * expr * stmt list * stmt list
-  | For of indexed_var * int * int * stmt list
-
-and event = event' Location.located
-and event' = 
-  | Event of Name.ident * (expr list)
-
-and stmt = stmt' Location.located
-and stmt' = 
-  | OpStmt of atomic_stmt
-  | EventStmt of atomic_stmt * event list
-
 type fact = fact' Location.located
 and fact' = 
   | Fact of Name.ident * expr list
@@ -46,13 +28,20 @@ and fact' =
   | PathFact of Name.ident * Name.ident * expr list
   | ProcessFact of Name.ident * Name.ident * expr list
 
-type complex_rule = complex_rule' Location.located
-and complex_rule' = 
-  | CRule of (fact list * fact list) 
-  | CRuleStmt of (fact list * stmt list * fact list) 
-  | CRulePar of complex_rule * complex_rule
-  | CRuleRep of complex_rule 
-  | CRuleSeq of complex_rule * complex_rule 
+type cmd = cmd' Location.located
+and cmd' = 
+  | Skip
+  | Sequence of cmd * cmd
+  | Wait of fact list * cmd
+  | Put of fact list
+  | Let of Name.ident * expr 
+  | Assign of Name.ident * expr
+  | FCall of Name.ident option * expr * expr list
+  | SCall of Name.ident option * Name.ident * expr list
+  | Case of fact list * cmd * fact list * cmd 
+  | While of fact list * fact list * cmd
+  | Event of fact list
+
 
 type proc = proc' Location.located
 and proc' =
@@ -65,30 +54,6 @@ and fpath' =
 type lemma = lemma' Location.located
 and lemma' = 
   | PlainLemma of Name.ident * Name.ident  
-  | ReachabilityLemma of Name.ident * Name.ident list * event list
-  | CorrespondenceLemma of Name.ident * Name.ident list * event * event 
+  | ReachabilityLemma of Name.ident * Name.ident list * fact list
+  | CorrespondenceLemma of Name.ident * Name.ident list * fact * fact 
 
-(* type prop = prop' Location.located
-and prop' =
-  | True
-
-type lemma = lemma' Location.located
-and lemma' =
-  | Lemma of Name.ident * prop 
-
-type sys = sys' Location.located
-and sys' = 
-  | Sys of proc list * lemma list
-
-let string_of_type_class c = 
-   match c with 
-   | Input.CProc -> "Proc"
-   | Input.CFsys -> "Fsys" 
-   | Input.CChan -> "Chan"
-
-let string_of_attack_class a = 
-   match a with
-   | Input.CEaves -> "Eaves" 
-   | Input.CTamper -> "Tamper"
-   | Input.CDrop  -> "Drop"
- *)
