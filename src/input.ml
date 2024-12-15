@@ -27,11 +27,12 @@ and cmd' =
   | Sequence of cmd * cmd
   | Wait of fact list * cmd
   | Put of fact list
-  | Let of Name.ident * expr 
+  | Let of Name.ident * expr * cmd 
   | Assign of Name.ident option * expr
-  | Case of fact list * cmd * fact list * cmd 
-  | While of fact list * fact list * cmd
+  | Case of cmd * cmd 
+  | While of cmd * cmd
   | Event of fact list
+  | Return of expr
 
 type proc = proc' Location.located
 and proc' =
@@ -51,7 +52,7 @@ type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int
   | DeclExtEq of expr * expr
-  | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * cmd * expr
+  | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * cmd
   | DeclExtAttack of Name.ident * (arg_type * Name.ident) * (fact list * fact list) 
   | DeclType of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident list * Name.ident list
@@ -61,7 +62,7 @@ and decl' =
   | DeclChan of Name.ident * Name.ident
   | DeclProc of Name.ident * (Name.ident * Name.ident) list * Name.ident * 
                 ((Name.ident * expr) list) * 
-                (Name.ident * (Name.ident list) * cmd * expr) list * cmd
+                (Name.ident * (Name.ident list) * cmd) list * cmd
   | DeclSys of proc list * lemma list 
   | DeclLoad of string
 

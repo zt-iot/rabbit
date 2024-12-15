@@ -44,7 +44,7 @@ member functions and their arities *)
 type def_process_template = {
    def_proctmpl_id   :  Name.ident ; 
    def_proctmpl_var  :  (Name.ident * Syntax.expr) list ; 
-   def_proctmpl_func :  (Name.ident * Name.ident list * Syntax.cmd * Syntax.expr) list ; 
+   def_proctmpl_func :  (Name.ident * Name.ident list * Syntax.cmd) list ; 
    def_proctmpl_main :  Syntax.cmd   
 }
 
@@ -85,7 +85,7 @@ type definition = {
    def_ext_eq  :  (Name.ident list * Syntax.expr * Syntax.expr) list ;
                   (* free variables, e1, e2  such that e1 = e2 under the free variables *)
  
-   def_ext_syscall : (Name.ident *  (Input.arg_type * Name.ident) list * Syntax.cmd * Syntax.expr) list ;
+   def_ext_syscall : (Name.ident *  (Input.arg_type * Name.ident) list * Syntax.cmd) list ;
    
    def_ext_attack  : (Name.ident *  (Name.ident list * Name.ident list * Name.ident list) * (Syntax.fact list * Syntax.fact list )) list ;
 
@@ -112,7 +112,7 @@ type process = {
    proc_filesys   :  Name.ident option;
    proc_file      :  (Name.ident * Syntax.expr * Name.ident list * Name.ident list) list ;
    proc_variable  :  (Name.ident * Syntax.expr) list ; 
-   proc_function  :  (Name.ident * Name.ident list * Syntax.cmd * Syntax.expr) list ;
+   proc_function  :  (Name.ident * Name.ident list * Syntax.cmd) list ;
    proc_main      :  Syntax.cmd 
 }
 
@@ -131,13 +131,15 @@ type local_context = {
 
                      lctx_process : Name.ident list ; 
 
-                     lctx_var : (Name.ident list) list ; 
+                     lctx_loc_var : (Name.ident) list ; 
 
-                     lctx_meta : (Name.ident list) list ; 
+                     lctx_top_var : (Name.ident) list ; 
+
+                     lctx_meta_var : (Name.ident) list ; 
 
                      lctx_func : (Name.ident * int) list }
 
-type local_definition ={ldef_var : (Name.ident * Syntax.expr) list ; ldef_func : (Name.ident * (Name.ident list) * Syntax.cmd * Syntax.expr) list }
+type local_definition ={ldef_var : (Name.ident * Syntax.expr) list ; ldef_func : (Name.ident * (Name.ident list) * Syntax.cmd) list }
 
 (** finding the frame number and the de brujin index of the given bariable *)
 let find_index f l =
@@ -304,15 +306,18 @@ let lctx_check_process lctx c =
 
 
 let lctx_check_var lctx v =
-   List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_var false 
+   List.exists (fun s -> s = v) (lctx.lctx_loc_var @ lctx.lctx_top_var)
+
+   (* List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_loc_var false  *)
 
 let lctx_check_meta lctx v =
-   List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_meta false 
+   List.exists (fun s -> s = v) (lctx.lctx_meta_var)
 
-
+   (* List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_meta false  *)
+(* 
 let lctx_remove_var lctx v =
    let lctx_var' = List.map (fun vl -> List.find_all (fun s -> not (s = v)) vl)  lctx.lctx_var in
-   {lctx with lctx_var=lctx_var'}
+   {lctx with lctx_var=lctx_var'} *)
 
 let lctx_check_func lctx f = 
    List.exists (fun (i, _) -> i = f) lctx.lctx_func 
@@ -342,30 +347,42 @@ let lctx_add_new_process ~loc lctx c =
 
 let lctx_add_new_var ~loc lctx v = 
    if lctx_check_id lctx v  then error ~loc (AlreadyDefined v) else 
-   match lctx.lctx_var with 
+   {lctx with lctx_loc_var=v::lctx.lctx_loc_var}
+
+let lctx_add_new_loc_var ~loc lctx v = 
+   if lctx_check_id lctx v  then error ~loc (AlreadyDefined v) else 
+   {lctx with lctx_loc_var=v::lctx.lctx_loc_var}
+
+let lctx_add_new_top_var ~loc lctx v = 
+   if lctx_check_id lctx v  then error ~loc (AlreadyDefined v) else 
+   {lctx with lctx_top_var=v::lctx.lctx_top_var}
+
+(*    match lctx.lctx_loc_var with 
    | f::frames -> {lctx with lctx_var=(v::f)::frames}
    | _ -> error ~loc (UnintendedError)
-
+ *)
 let lctx_add_new_meta ~loc lctx v = 
    if lctx_check_id lctx v  then error ~loc (AlreadyDefined v) else 
-   match lctx.lctx_meta with 
+   {lctx with lctx_meta_var=v::lctx.lctx_meta_var}
+(*    match lctx.lctx_meta with 
    | f::frames -> {lctx with lctx_meta=(v::f)::frames}
    | _ -> error ~loc (UnintendedError)
+ *)
 
-let lctx_add_frame lctx = {lctx with lctx_var=([]::lctx.lctx_var); lctx_meta=([]::lctx.lctx_meta)}
+(* let lctx_add_frame lctx = {lctx with lctx_var=([]::lctx.lctx_var); lctx_meta=([]::lctx.lctx_meta)} *)
 
-let lctx_pop_frame ~loc lctx = 
+(* let lctx_pop_frame ~loc lctx = 
    match lctx.lctx_var, lctx.lctx_meta with 
    | f::frames, f'::frames' -> {lctx with lctx_var=frames; lctx_meta=frames'}
    | _, _ -> error ~loc (UnintendedError)
-
+ *)
 let lctx_get_func_arity lctx f = 
    let (_, k) = List.find (fun (i, _) -> i = f) lctx.lctx_func in k
 
 let lctx_add_new_func ~loc lctx (f, i) = 
    if lctx_check_func lctx f then error ~loc (AlreadyDefined f) else {lctx with lctx_func=(f, i)::lctx.lctx_func}
 
-let lctx_get_var_index ~loc lctx v =
+(* let lctx_get_var_index ~loc lctx v =
    match find_index (fun l -> List.exists (fun s -> s = v) l) lctx.lctx_var with
    | Some i ->
       begin let lctxi = List.nth lctx.lctx_var i in 
@@ -376,7 +393,7 @@ let lctx_get_var_index ~loc lctx v =
          )
          (* (List.length lctx.lctx_var - i - 1, List.length lctxi - j - 1) *)
       | None -> error ~loc (UnintendedError) end
-   | None -> error ~loc (UnknownIdentifier v)
+   | None -> error ~loc (UnknownIdentifier v) *)
 
 
 (** Initial contexts *)
@@ -389,7 +406,7 @@ let pol_init = {pol_access = [] ; pol_attack = []}
    sys_pol = [];
    sys_proc =[] }
  *)
-let lctx_init = {lctx_chan = []; lctx_path = []; lctx_process = []; lctx_var = [ [] ]; lctx_meta = [ [] ]; lctx_func = []}
+let lctx_init = {lctx_chan = []; lctx_path = []; lctx_process = []; lctx_loc_var = []; lctx_meta_var = []; lctx_top_var = []; lctx_func = []}
 let ldef_init = {ldef_var=[]; ldef_func=[]}
 
 

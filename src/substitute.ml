@@ -20,7 +20,9 @@ let rec expr_chan_sub e f t accesses =
   match e.Location.data with
   | Syntax.Const _  -> e
   | Syntax.ExtConst s  -> e
-  | Syntax.Variable iv  -> e
+  | Syntax.LocVariable (v, i)  -> e
+  | Syntax.MetaVariable (v, i)  -> e
+  | Syntax.TopVariable (v, i)  -> e
   | Syntax.Boolean b  -> e
   | Syntax.String s  -> e
   | Syntax.Integer k  -> e
@@ -57,13 +59,13 @@ let rec cmd_chan_sub (ltctx, c) f t accesses =
   let c = 
     match c.Location.data with
     | Syntax.Sequence (c1, c2) -> Syntax.Sequence (cmd_chan_sub c1 f t accesses, cmd_chan_sub c2 f t accesses) 
-    | Syntax.Wait (fl, c) -> Syntax.Wait (facts_chan_sub fl f t accesses, cmd_chan_sub c f t accesses)
-    | Syntax.Let (v, e) -> Syntax.Let (v, expr_chan_sub e f t accesses)
+    | Syntax.Wait (vl, fl, c) -> Syntax.Wait (vl, facts_chan_sub fl f t accesses, cmd_chan_sub c f t accesses)
+    | Syntax.Let (v, e, c) -> Syntax.Let (v, expr_chan_sub e f t accesses, cmd_chan_sub c f t accesses)
     | Syntax.Assign (v, e) -> Syntax.Assign (v, expr_chan_sub e f t accesses)
     | Syntax.FCall (v, fn, el) -> Syntax.FCall (v, fn, List.map (fun e -> expr_chan_sub e f t accesses) el) 
     | Syntax.SCall (v, s, el) -> Syntax.SCall (v, s, List.map (fun e -> expr_chan_sub e f t accesses) el) 
-    | Syntax.Case (al, c1, bl, c2) -> Syntax.Case (facts_chan_sub al f t accesses, cmd_chan_sub c1 f t accesses, facts_chan_sub bl f t accesses, cmd_chan_sub c2 f t accesses)
-    | Syntax.While (al, bl, c) -> Syntax.While (facts_chan_sub al f t accesses, facts_chan_sub bl f t accesses, cmd_chan_sub c f t accesses)
+    | Syntax.Case (c1, c2) -> Syntax.Case (cmd_chan_sub c1 f t accesses, cmd_chan_sub c2 f t accesses)
+    | Syntax.While (c1, c2) -> Syntax.While (cmd_chan_sub c1 f t accesses, cmd_chan_sub c2 f t accesses)
     | Syntax.Event (fl) -> Syntax.Event (facts_chan_sub fl f t accesses)
     | Syntax.Skip -> Syntax.Skip
     | Syntax.Put (fl) -> Syntax.Put (facts_chan_sub fl f t accesses)

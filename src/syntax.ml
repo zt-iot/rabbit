@@ -7,7 +7,9 @@ type expr = expr' Location.located
 and expr' =
   | Const of Name.ident
   | ExtConst of Name.ident
-  | Variable of string
+  | TopVariable of string * int
+  | LocVariable of string * int
+  | MetaVariable of string * int
   | Boolean of bool
   | String of string
   | Integer of int
@@ -31,21 +33,22 @@ and fact' =
 
 
 (* meta vars, local vars, top-level variables *)
-type local_typing_context = (Name.ident list) list * Name.ident list list
+type local_typing_context = Name.ident list * Name.ident list * Name.ident list
 
 type cmd = local_typing_context * cmd' Location.located
 and cmd' = 
   | Skip
   | Sequence of cmd * cmd
-  | Wait of fact list * cmd
+  | Wait of string list * fact list * cmd
   | Put of fact list
-  | Let of Name.ident * expr 
-  | Assign of Name.ident * expr
-  | FCall of Name.ident option * Name.ident * expr list
-  | SCall of Name.ident option * Name.ident * expr list
-  | Case of fact list * cmd * fact list * cmd 
-  | While of fact list * fact list * cmd
+  | Let of Name.ident * expr * cmd
+  | Assign of (Name.ident * (int * bool)) * expr (* (k, true) : k'th in top-level (k, false): k'th in local *)
+  | FCall of (Name.ident * (int * bool)) option * Name.ident * expr list
+  | SCall of (Name.ident * (int * bool)) option * Name.ident * expr list
+  | Case of cmd * cmd 
+  | While of cmd * cmd
   | Event of fact list
+  | Return of expr
 
 
 type proc = proc' Location.located

@@ -33,7 +33,10 @@ let reserved = [
   ("case", CASE) ; 
   ("while", WHILE) ; 
   ("end", END) ; 
-  ("do", DO) 
+  ("do", DO) ;
+  ("repeat", REPEAT);
+  ("until", UNTIL);
+  ("in", IN)
   ]
 
 let name =

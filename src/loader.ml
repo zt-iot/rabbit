@@ -45,6 +45,13 @@ let print_error err ppf =
   | _ -> Format.fprintf ppf "" 
   
 
+let find_index f lst =
+  let rec aux i = function
+    | [] -> None
+    | x :: xs -> if f x then Some i else aux (i + 1) xs
+  in
+  aux 0 lst
+
 let rec process_expr ctx lctx {Location.data=c; Location.loc=loc} = 
    let process_expr' ctx lctx = function
    | Input.Var id -> 
@@ -53,8 +60,17 @@ let rec process_expr ctx lctx {Location.data=c; Location.loc=loc} =
       else if Context.lctx_check_chan lctx id then Syntax.Channel (id, "")
       else if Context.lctx_check_path lctx id then Syntax.Path id
       else if Context.lctx_check_process lctx id then Syntax.Process id
-      else if Context.lctx_check_var lctx id then Syntax.Variable id
-      else error ~loc (UnknownIdentifier id) 
+      else begin
+         match find_index (fun v -> v = id) lctx.Context.lctx_top_var with
+         | Some i -> Syntax.TopVariable (id, i)
+         | None -> 
+            match find_index (fun v -> v = id) lctx.Context.lctx_loc_var with
+            | Some i -> Syntax.LocVariable (id, i)
+            | None -> 
+               match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
+               | Some i -> Syntax.MetaVariable (id, i)
+               | None -> error ~loc (UnknownIdentifier id) 
+      end
    | Input.Boolean b -> Syntax.Boolean b
    | Input.String s -> Syntax.String s 
    | Input.Integer z -> Syntax.Integer z
@@ -77,9 +93,18 @@ let rec process_expr2 ctx lctx {Location.data=c; Location.loc=loc} =
       else if Context.lctx_check_chan lctx id then Syntax.Channel (id, "")
       else if Context.lctx_check_path lctx id then Syntax.Path id
       else if Context.lctx_check_process lctx id then Syntax.Process id
-      else if Context.lctx_check_var lctx id then Syntax.Variable id
-      else if Context.lctx_check_meta lctx id then Syntax.Variable id
-      else error ~loc (UnknownVariable id) 
+      else 
+      begin
+         match find_index (fun v -> v = id) lctx.Context.lctx_top_var with
+         | Some i -> Syntax.TopVariable (id, i)
+         | None -> 
+            match find_index (fun v -> v = id) lctx.Context.lctx_loc_var with
+            | Some i -> Syntax.LocVariable (id, i)
+            | None -> 
+               match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
+               | Some i -> Syntax.MetaVariable (id, i)
+               | None -> error ~loc (UnknownVariable id) 
+      end
    | Input.Boolean b -> Syntax.Boolean b
    | Input.String s -> Syntax.String s 
    | Input.Integer z -> Syntax.Integer z
@@ -124,23 +149,29 @@ let process_facts_closed ctx lctx fl =
       let (ctx, f) = process_fact_closed ctx lctx f in 
       (ctx, fl @ [f])) (ctx, []) fl
 
-let rec process_fact ctx lctx f =
+let rec collect_meta_fact ctx lctx f =
    try 
       let (ctx, f) = process_fact_closed ctx lctx f in
-      (ctx, lctx, f)
+      (ctx, lctx, f), []
    with 
    | Error {Location.data=err; Location.loc=locc} ->
       begin match err with
       | UnknownVariable v -> 
-         process_fact ctx (Context.lctx_add_new_meta ~loc:locc lctx v) f
+         let (r, l) = collect_meta_fact ctx (Context.lctx_add_new_meta ~loc:locc lctx v) f in
+         (r, l @ [v])
       | _ -> error ~loc:locc err
    end
 
-let process_facts ctx lctx fl = 
-   List.fold_left (fun (ctx, lctx, fl) f -> 
-      let (ctx, lctx, f) = process_fact ctx lctx f in 
-      (ctx, lctx, fl @ [f])) (ctx, lctx, []) fl
+let collect_meta_facts ctx lctx fl = 
+   List.fold_left (fun ((ctx, lctx, fl), ls) f -> 
+      let (ctx, lctx, f), l = collect_meta_fact ctx lctx f in 
+      ((ctx, lctx, fl @ [f]), ls @ l)) ((ctx, lctx, []), []) fl
 
+let process_facts ctx lctx fl = 
+   let _, vl = collect_meta_facts ctx lctx fl in
+   let lctx = {lctx with Context.lctx_meta_var = vl@lctx.Context.lctx_meta_var} in 
+   let (ctx, fl) = process_facts_closed ctx lctx fl in
+   (ctx, lctx, fl), vl
 
 let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} = 
    let process_cmd' ctx lctx = function
@@ -152,81 +183,101 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
          (ctx, lctx, Syntax.Sequence (c1, c2))
 
       | Input.Wait (fl, c) -> 
-         let lctx' = Context.lctx_add_frame lctx in
-         let (ctx, lctx', fl) = process_facts ctx lctx' fl in  
+         (* let lctx' = Context.lctx_add_frame lctx in *)
+         let (ctx, lctx', fl), vl = process_facts ctx lctx fl in  
          let (ctx, lctx', c) = process_cmd ctx lctx' c in
-         (ctx, lctx, Syntax.Wait (fl, c))
+         (ctx, lctx, Syntax.Wait (vl, fl, c))
 
       | Input.Put fl -> 
          let (ctx, fl) = process_facts_closed ctx lctx fl in 
          (ctx, lctx, Syntax.Put (fl))
 
-      | Input.Let (v, e) -> 
+      | Input.Let (v, e, c) -> 
          (if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ());
-         let lctx = Context.lctx_add_new_var ~loc lctx v in
-         (ctx, lctx, Syntax.Let(v, process_expr ctx lctx e))
+         let lctx' = Context.lctx_add_new_var ~loc lctx v in
+         let (ctx, _, c) = process_cmd ctx lctx' c in 
+         (ctx, lctx, Syntax.Let(v, process_expr ctx lctx e, c))
 
       | Input.Assign (ov, e) -> 
-         (match ov with | Some v -> if Context.lctx_check_var lctx v then () else error ~loc (UnknownIdentifier v) | _ -> ());
+         let ov = 
+         (match ov with 
+            | Some id -> 
+               begin match find_index (fun v -> v = id) lctx.Context.lctx_top_var with
+               | Some i -> (Some (id, (i, true)))
+               | None -> 
+                  match find_index (fun v -> v = id) lctx.Context.lctx_loc_var with
+                  | Some i -> (Some (id, (i, false)))
+                  | None -> error ~loc (UnknownIdentifier id) 
+(*                      match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
+                     | Some i -> Syntax.MetaVariable (id, i)
+                     | None -> error ~loc (UnknownIdentifier id) 
+ *)
+             end 
+            | None -> None) in 
          begin match e.Location.data with
          | Input.Apply(o, args) ->
-            if Context.ctx_check_ext_syscall ctx o 
-            then 
-               (*  when o is a system call *)
-               begin
-                  let args_ty = Context.ctx_get_ext_syscall_arity ~loc ctx o in
-                  (if List.length args = List.length args_ty then () else error ~loc (ArgNumMismatch (o, List.length args, List.length args_ty)));
-                  (ctx, lctx, Syntax.SCall(ov, o, 
-                     List.map2 (fun arg arg_ty -> 
-                        let e = process_expr ctx lctx arg in                   
-                           (match e.Location.data, arg_ty with
-                           | Syntax.Channel (s, _), Input.TyChannel -> Location.locate ~loc:e.Location.loc (Syntax.Channel (s, o))
-                           | _, Input.TyChannel -> error ~loc (WrongInputType)
-                           | _, _ -> e)
-                           (* , arg_ty *)
-                        ) args args_ty))
-               end
-            (*  when o is a function *)
-            else if Context.lctx_check_func lctx o then
             begin
-               (if List.length args = Context.lctx_get_func_arity lctx o then () else error ~loc (ArgNumMismatch (o, List.length args, (Context.lctx_get_func_arity lctx o))));
-               (ctx, lctx, Syntax.FCall(ov, o, List.map (process_expr ctx lctx) args))
+               if Context.ctx_check_ext_syscall ctx o 
+               then 
+                  (*  when o is a system call *)
+                  begin
+                     let args_ty = Context.ctx_get_ext_syscall_arity ~loc ctx o in
+                     (if List.length args = List.length args_ty then () else error ~loc (ArgNumMismatch (o, List.length args, List.length args_ty)));
+                     (ctx, lctx, Syntax.SCall(ov, o, 
+                        List.map2 (fun arg arg_ty -> 
+                           let e = process_expr ctx lctx arg in                   
+                              (match e.Location.data, arg_ty with
+                              | Syntax.Channel (s, _), Input.TyChannel -> Location.locate ~loc:e.Location.loc (Syntax.Channel (s, o))
+                              | _, Input.TyChannel -> error ~loc (WrongInputType)
+                              | _, _ -> e)
+                              (* , arg_ty *)
+                           ) args args_ty))
+                  end
+               (*  when o is a function *)
+               else if Context.lctx_check_func lctx o then
+               begin
+                  (if List.length args = Context.lctx_get_func_arity lctx o then () else error ~loc (ArgNumMismatch (o, List.length args, (Context.lctx_get_func_arity lctx o))));
+                  (ctx, lctx, Syntax.FCall(ov, o, List.map (process_expr ctx lctx) args))
+               end
+               else 
+               (* when o is a term *)
+               match ov with
+               | Some v -> (ctx, lctx, Syntax.Assign(v, process_expr ctx lctx e))
+               | _ -> error ~loc (NoBindingVariable)
             end
-            else 
-            (* when o is a term *)
-            match ov with
-            | Some v -> (ctx, lctx, Syntax.Assign(v, process_expr ctx lctx e))
-            | _ -> error ~loc (NoBindingVariable)
          | _ ->           
             match ov with
             | Some v -> (ctx, lctx, Syntax.Assign(v, process_expr ctx lctx e))
             | _ -> error ~loc (NoBindingVariable)
          end 
 
-      | Input.Case (al, c1, bl, c2) ->
-         let plctx = Context.lctx_add_frame lctx in
-         
-         let (ctx, lctx1, al) = process_facts ctx plctx al in 
-         let (ctx, _, c1) = process_cmd ctx lctx1 c1 in 
+      | Input.Case (c1, c2) ->         
+         (* let (ctx, lctx1, al) = process_facts ctx lctx al in  *)
+         let (ctx, _, c1) = process_cmd ctx lctx c1 in 
 
-         let (ctx, lctx2, bl) = process_facts ctx plctx bl in 
-         let (ctx, _, c2) = process_cmd ctx lctx2 c2 in 
+         (* let (ctx, lctx2, bl) = process_facts ctx lctx bl in  *)
+         let (ctx, _, c2) = process_cmd ctx lctx c2 in 
 
-         (ctx, lctx, Syntax.Case (al, c1, bl, c2))
+         (ctx, lctx, Syntax.Case (c1, c2))
 
-     | Input.While (al, bl, c) ->
-         let plctx = Context.lctx_add_frame lctx in
-         let (ctx, plctx, al) = process_facts ctx plctx al in
+     | Input.While (c1, c2) ->
+         (* let (ctx, plctx, al) = process_facts ctx lctx al in
          let (ctx, plctx, bl) = process_facts ctx plctx bl in
-         let (ctx, plctx, c) = process_cmd ctx plctx c in 
-         (ctx, lctx, Syntax.While (al, bl, c))
+          *)
+         let (ctx, _, c1) = process_cmd ctx lctx c1 in 
+         let (ctx, _, c2) = process_cmd ctx lctx c2 in 
+         (ctx, lctx, Syntax.While (c1, c2))
 
      | Input.Event (fl) ->
          let (ctx, fl) = process_facts_closed ctx lctx fl in
          (ctx, lctx, Syntax.Event (fl))
+
+      | Input.Return e ->
+         (ctx, lctx, Syntax.Return (process_expr ctx lctx e))
+
       in 
       let (ctx, lctx, c) = process_cmd' ctx lctx c in 
-      (ctx, lctx, ((lctx.Context.lctx_meta, lctx.Context.lctx_var), Location.locate ~loc c))
+      (ctx, lctx, ((lctx.Context.lctx_meta_var, lctx.Context.lctx_loc_var, lctx.Context.lctx_top_var), Location.locate ~loc c))
 
 
 let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([],[]))
@@ -263,10 +314,10 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
       (* is this really correct??? check with x = y next time!! *)
       let (e1', lctx) = collect_vars e1 Context.lctx_init in 
       let (e2', lctx) = collect_vars e2 lctx in
-      (ctx, pol, Context.def_add_ext_eq def (List.hd lctx.Context.lctx_var, e1', e2'), sys, fst ps)
+      (ctx, pol, Context.def_add_ext_eq def (lctx.Context.lctx_loc_var, e1', e2'), sys, fst ps)
 
 
-   | Input.DeclExtSyscall(f, typed_args, c, e) ->      
+   | Input.DeclExtSyscall(f, typed_args, c) ->      
       (if Context.check_used ctx f then error ~loc (AlreadyDefined f) else ());
 
          (* parse arguments *)
@@ -277,14 +328,14 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
             | (Input.TyPath, v) -> Context.lctx_add_new_path ~loc lctx' v
             | (Input.TyProcess, v) -> error ~loc (UnknownIdentifier2 v)) (Context.lctx_init) typed_args in
 
-         let lctx = Context.lctx_add_frame lctx in 
+         (* let lctx = Context.lctx_add_frame lctx in  *)
          let (ctx, lctx, c) = process_cmd ctx lctx c in
          let ch_args = lctx.Context.lctx_chan in 
          let path_args = lctx.Context.lctx_path in 
 
          (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), 
             pol, 
-            Context.def_add_ext_syscall def (f, typed_args, c, process_expr ctx lctx e), sys, fst ps)
+            Context.def_add_ext_syscall def (f, typed_args, c), sys, fst ps)
 
    | Input.DeclType (id, c) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, c), pol, def, sys, fst ps)
@@ -360,20 +411,20 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
 
       (* load top-level variables *)
       let (lctx, ldef) = List.fold_left (fun (lctx', ldef') (vid, e) -> 
-         (Context.lctx_add_new_var ~loc lctx' vid, Context.ldef_add_new_var ldef' (vid, process_expr ctx lctx' e))) (lctx, Context.ldef_init) cl in
+         (Context.lctx_add_new_top_var ~loc lctx' vid, Context.ldef_add_new_var ldef' (vid, process_expr ctx lctx' e))) (lctx, Context.ldef_init) cl in
 
       (* load functions *)
-      let (ctx, lctx, ldef) = List.fold_left (fun (ctx'', lctx'', ldef'') (fid, args, cs, ret) -> 
+      let (ctx, lctx, ldef) = List.fold_left (fun (ctx'', lctx'', ldef'') (fid, args, cs) -> 
          if Context.lctx_check_func lctx'' fid then error ~loc (AlreadyDefined fid) else 
-         let lctx = List.fold_left (fun lctx' vid -> Context.lctx_add_new_var ~loc lctx' vid) (Context.lctx_add_frame lctx'') args in
+         let lctx = List.fold_left (fun lctx' vid -> Context.lctx_add_new_var ~loc lctx' vid) lctx'' args in
          let (ctx', lctx', cs')  = process_cmd ctx'' lctx cs in 
          (ctx', Context.lctx_add_new_func ~loc lctx'' (fid, List.length args), 
-               Context.ldef_add_new_func ldef'' (fid, args, cs', process_expr ctx' lctx' ret))) (ctx, lctx, ldef) fs in
+               Context.ldef_add_new_func ldef'' (fid, args, cs'))) (ctx, lctx, ldef) fs in
 
       (* load main function *)
-      let (ctx, _, m') = process_cmd ctx (Context.lctx_add_frame lctx) m in 
+      let (ctx, _, m') = process_cmd ctx lctx m in 
 
-      (Context.ctx_add_proctmpl ctx (Context.mk_ctx_proctmpl (pid, List.rev cargs, ty, List.hd lctx.Context.lctx_var, lctx.Context.lctx_func)), pol, 
+      (Context.ctx_add_proctmpl ctx (Context.mk_ctx_proctmpl (pid, List.rev cargs, ty, lctx.Context.lctx_top_var, lctx.Context.lctx_func)), pol, 
          Context.def_add_proctmpl def pid ldef m', sys, fst ps)
 
       
@@ -419,7 +470,7 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
                            (ch_t, accesses,
                               List.fold_left (fun attks (s, a) -> if s = ch_t then a :: attks else attks ) [] pol.Context.pol_attack) :: chs),
                               List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e ch_f ch_t accesses)) vl,
-                              List.map (fun (fn, args, c, ret) -> (fn, args, Substitute.cmd_chan_sub c ch_f ch_t accesses, ret)) fl,
+                              List.map (fun (fn, args, c) -> (fn, args, Substitute.cmd_chan_sub c ch_f ch_t accesses)) fl,
                               Substitute.cmd_chan_sub m ch_f ch_t accesses)
                      else error ~loc (UnknownIdentifier ch_t)) ([], vl, fl, m) cargs chans in 
                (pid, 

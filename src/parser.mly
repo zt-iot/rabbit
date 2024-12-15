@@ -23,7 +23,7 @@
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE 
 %token CHANNEL PROCESS PATH DATA FILESYS 
 %token WITH FUNC MAIN RETURN SKIP LET WAIT PUT CASE END BAR DO BACKSLASH WHILE
-%token SYSTEM LEMMA AT DOT DCOLON
+%token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN
 
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
 
@@ -31,7 +31,8 @@
 %token EOF
 
 (* Precedence and fixity of infix operators *)
-%right     SEMICOLON
+%nonassoc IN
+%right    SEMICOLON
 
 %left     INFIXOP0
 %right    INFIXOP1
@@ -86,7 +87,7 @@ colon_name_pair :
 
 external_syscall:
   |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN 
-      LBRACE c=cmd SEMICOLON RETURN r=expr RBRACE { DeclExtSyscall(f, parems, c, r) }
+      LBRACE c=cmd SEMICOLON RBRACE { DeclExtSyscall(f, parems, c) }
 
 syscall_tk:
   | SYSCALL {()}
@@ -142,7 +143,7 @@ fun_decls:
 
 fun_decl:
   | FUNC id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN 
-    LBRACE c=cmd RETURN r=expr SEMICOLON RBRACE { (id, parems, c, r) }
+    LBRACE c=cmd SEMICOLON RBRACE { (id, parems, c) }
 
 main_stmt:
   | MAIN LBRACE c=cmd RBRACE { c }
@@ -194,14 +195,13 @@ plain_cmd:
   | c1=cmd SEMICOLON c2=cmd { Sequence(c1, c2) }
   | WAIT LBRACKET precond=separated_list(COMMA, fact) RBRACKET c=cmd END { Wait (precond, c) }
   | PUT LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { Put (postcond) }
-  | LET id=NAME EQ e=expr { Let (id, e) }
+  | LET id=NAME EQ e=expr IN c=cmd { Let (id, e, c) }
   | id=uname COLONEQ e=expr { Assign (id, e) }
-  | CASE LBRACKET a1=separated_list(COMMA, fact) RBRACKET c1=cmd BAR 
-         LBRACKET a2=separated_list(COMMA, fact) RBRACKET c2=cmd BAR END { Case(a1, c1, a2, c2) }
-  | WHILE LBRACKET a1=separated_list(COMMA, fact) RBRACKET BACKSLASH 
-          LBRACKET a2=separated_list(COMMA, fact) RBRACKET 
-    DO c=cmd END  { While(a1, a2, c) }
+  | CASE LBRACKET c1=cmd BAR 
+         LBRACKET c2=cmd BAR END { Case(c1, c2) }
+  | REPEAT c1=cmd UNTIL c2=cmd END { While(c1, c2) }
   | AT LBRACKET a=separated_list(COMMA, fact) RBRACKET { Event(a) }
+  | RETURN e=expr { Return e }
 
 uname: 
   | UNDERSCORE { None }
