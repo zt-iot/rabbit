@@ -87,7 +87,7 @@ colon_name_pair :
 
 external_syscall:
   |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN 
-      LBRACE c=cmd SEMICOLON RBRACE { DeclExtSyscall(f, parems, c) }
+      LBRACE c=cmd RBRACE { DeclExtSyscall(f, parems, c) }
 
 syscall_tk:
   | SYSCALL {()}
@@ -135,7 +135,7 @@ let_stmts:
   | l=let_stmt ls=let_stmts { l :: ls }
 
 let_stmt:
-  | LET id=NAME EQ e=expr SEMICOLON { (id, e) }
+  | LET id=NAME EQ e=expr { (id, e) }
 
 fun_decls:
   | { [] }
@@ -143,7 +143,7 @@ fun_decls:
 
 fun_decl:
   | FUNC id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN 
-    LBRACE c=cmd SEMICOLON RBRACE { (id, parems, c) }
+    LBRACE c=cmd RBRACE { (id, parems, c) }
 
 main_stmt:
   | MAIN LBRACE c=cmd RBRACE { c }
