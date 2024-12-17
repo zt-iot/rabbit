@@ -64,6 +64,7 @@ allow client_t udp_t [send]
 allow server_t udp_t [recv]
 
 allow client_t rpc_t [connect_rpc, invoke_rpc, close_rpc]
+allow client_ta_t rpc_t [accept_rpc]
 allow client_ta_t rpc_t [.]
 
 allow client_t [get_picture]
@@ -123,14 +124,13 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
 	main 
   	{
 
-  		wait [AA(x)] wait [BB(y)] put [CC(x, y)] end end ;
-
-		
+			@ [::AAA()];
 			let conn = connect_rpc(ch_rpc) in 
+			@ [::BBB()];
 			
 			let image = get_picture() in 
     	@ [::Took(image)];
-			let sig = invoke_rpc(ch_rpc, invoke_func, image, privkey_path) in
+			let sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
 
 			_ := eaves_mem((sig, image));
 
@@ -221,6 +221,10 @@ requires  [
   lemma Reachable2 :
     exists-trace "Ex #j  . B() @ #j" ;
   lemma Reachable3 :
+    exists-trace "Ex #j  . AAA() @ #j" ;
+  lemma Reachable4 :
+    exists-trace "Ex #j  . BBB() @ #j" ;
+  lemma Reachable5 :
     exists-trace "Ex x #j  . Took(x) @ #j" ;
   lemma Reachable :
     exists-trace "Ex x #j  . ImgSend(x) @ #j" ;

@@ -1,4 +1,4 @@
-(lang dune 3.16)
+(lang dune 3.15)
 (name Rabbit)
 (version 0.1)
 (generate_opam_files true)
