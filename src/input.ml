@@ -20,6 +20,7 @@ and fact' =
   | ChannelFact of Name.ident * Name.ident * expr list
   | PathFact of Name.ident * Name.ident * expr list
   | ProcessFact of Name.ident * Name.ident * expr list
+  | ResFact of int * expr list (* 0: eq 1: neq *)
 
 type cmd = cmd' Location.located
 and cmd' = 
@@ -55,7 +56,7 @@ and decl' =
   | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * cmd
   | DeclExtAttack of Name.ident * (arg_type * Name.ident) * (fact list * fact list) 
   | DeclType of Name.ident * type_class
-  | DeclAccess of Name.ident * Name.ident list * Name.ident list
+  | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   | DeclAttack of Name.ident list * Name.ident list
   | DeclInit of Name.ident * expr option
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)

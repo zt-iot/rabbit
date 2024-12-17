@@ -37,6 +37,9 @@ type functions = (string * int) list
 
 type expr = 
   | Var of string
+  | MetaVar of int
+  | LocVar of int
+  | TopVar of int
   | Apply of string * expr list
   | String of string
   | Integer of int
@@ -89,6 +92,9 @@ let replace_string s t str =
 let rec print_expr prt e = 
   match e with
   | Var s -> s 
+  | MetaVar i -> "meta"^prt.prt_sep^string_of_int i
+  | LocVar i -> "loc"^prt.prt_sep^string_of_int i
+  | TopVar i -> "top"^prt.prt_sep^string_of_int i
   | Apply (s, el) -> s ^ "(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")"
   | String s -> "\'rabbit" ^ prt.prt_sep ^ (replace_string '/' prt.prt_sep s)^"\'"
   | Integer i -> "\'"^string_of_int i^"\'"
@@ -153,22 +159,29 @@ let print_lemma prt lemma =
     f2^prt.prt_sep ^" < "^ f1^prt.prt_sep ^ " \""
 
 
-let print_tamarin prt ((sign, rules), init_list, lem) dev = 
+let print_tamarin prt ((sign, rules), init_list, procs, lem) dev = 
   "theory rabbit\n\nbegin\n"^
     print_signature prt sign ^
       (mult_list_with_concat (List.map (fun r -> print_rule prt r dev) (List.rev rules)) "")^
 	
 	List.fold_left (fun l s -> l^"\nrestriction "^s^" : \" All #i #j . "^s^"() @ #i & "^s^"() @ #j ==> #i = #j \"") "" init_list ^ "\n" ^
 
+  "\nrestriction Init"^prt.prt_sep^" : \" All x #i #j . Init"^prt.prt_sep^"(x) @ #i & Init"^prt.prt_sep^"(x) @ #j ==> #i = #j \"\n" ^
+
 	  (* if then else restriction *)
 
 	  (* "\nrestriction OnlyOnce : \" All x #i #j . OnlyOnce(x) @ #i & OnlyOnce(x) @ #j ==> #i = #j \"\n" ^ *)
 
-	  "restriction Equality: \" All x y #i. Eq(x,y) @ #i ==> x = y\"\n" ^
+	     "restriction Equality: \" All x y #i. Eq(x,y) @ #i ==> x = y\"\n" ^
 
-	    "restriction Inequality: \"All x #i. Neq(x,x) @ #i ==> F\"\n" ^
+  	    "restriction Inequality: \"All x #i. Neq(x,x) @ #i ==> F\"\n" ^
 
-	      "rule Equality_gen: [] --> [!Eq"^prt.prt_sep^"(x,x)]\n" ^
+        "rule Equality_gen: [] --> [!Eq"^prt.prt_sep^"(x,x)]\n" ^
+
+        "rule NEquality_gen: [] --[NEq_"^prt.prt_sep^"(x,y)]-> [!NEq"^prt.prt_sep^"(x,y)]\n" ^
+      
+        "restriction NEquality_rule: \"All x #i. NEq_"^prt.prt_sep^"(x,x) @ #i ==> F\""^
+
 
 	        List.fold_left (fun l lem -> l ^ print_lemma prt lem) "" lem ^"\nend\n"
 
@@ -189,44 +202,44 @@ let engine_index_inc eng scope =
     end
   | Some s -> {eng with index=(s, 0)::eng.index}
 
-let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=loc} = 
+let rec translate_expr ?(ch=false) sep {Location.data=e; Location.loc=loc} = 
   let translate_expr' = function
     | Syntax.ExtConst s -> Apply (s, [])
     | Syntax.Const s -> error ~loc (UnintendedError ("translating constant " ^ s))
-    | Syntax.TopVariable (v, i) -> Var v
-    | Syntax.LocVariable (v, i) -> Var v
-    | Syntax.MetaVariable (v, i) -> Var v
+    | Syntax.TopVariable (v, i) -> TopVar i
+    | Syntax.LocVariable (v, i) -> LocVar i
+    | Syntax.MetaVariable (v, i) -> MetaVar i
     | Syntax.Boolean b -> error ~loc (UnintendedError "translating boolean")
     | Syntax.String s -> String s
     | Syntax.Integer z -> error ~loc (UnintendedError "translating Integer")
     | Syntax.Float f -> error ~loc (UnintendedError "translating float")
-    | Syntax.Apply (o, el) -> Apply (o, List.map (translate_expr ~ch:ch) el)
+    | Syntax.Apply (o, el) -> Apply (o, List.map (translate_expr ~ch:ch sep) el)
     | Syntax.Tuple el -> 
-       List (List.map (translate_expr ~ch:ch) el)
+       List (List.map (translate_expr ~ch:ch sep) el)
     | Syntax.Channel (c, l) -> if ch then Var c else String c
     | Syntax.Process v -> Var v
     | Syntax.Path v -> Var v
   in translate_expr' e
 
-let rec translate_expr2 ?(ch=false) {Location.data=e; Location.loc=loc} = 
+let rec translate_expr2 ?(ch=false) sep {Location.data=e; Location.loc=loc} = 
   let translate_expr2' = function
     | Syntax.ExtConst s -> Apply (s, []), []
     | Syntax.Const s -> Var s, [s]
-    | Syntax.TopVariable (v, i) -> Var v, []
-    | Syntax.LocVariable (v, i) -> Var v, []
-    | Syntax.MetaVariable (v, i) -> Var v, []
+    | Syntax.TopVariable (v, i) -> TopVar i, []
+    | Syntax.LocVariable (v, i) -> LocVar i, []
+    | Syntax.MetaVariable (v, i) -> MetaVar i, []
     | Syntax.Boolean b -> error ~loc (UnintendedError "translating boolean")
     | Syntax.String s -> String s, []
     | Syntax.Integer z -> Integer z, []
     | Syntax.Float f -> error ~loc (UnintendedError "translating float")
     | Syntax.Apply (o, el) -> 
        let (el, sl) = List.fold_left (fun (el, sl) e -> 
-			  let e, s = translate_expr2 ~ch:ch e in 
+			  let e, s = translate_expr2 ~ch:ch sep e in 
 			  (el @ [e], sl @ s)) ([], []) el in 
        Apply (o, el), sl
     | Syntax.Tuple el -> 
        let (el, sl) = List.fold_left (fun (el, sl) e -> 
-			  let e, s = translate_expr2 ~ch:ch e in 
+			  let e, s = translate_expr2 ~ch:ch sep e in 
 			  (el @ [e], sl @ s)) ([], []) el in 
        List el, sl
     | Syntax.Channel (c, l) -> if ch then Var c, [] else String c, []
@@ -249,7 +262,8 @@ let engine_state_name eng =
   "State"^eng.sep^eng.namespace
 
 let mk_my_fact_name eng s = 
-  (String.capitalize_ascii s)^eng.sep
+  (String.capitalize_ascii s)
+  (* ^eng.sep *)
 
 let engine_state_aux eng =
   (
@@ -261,8 +275,8 @@ let engine_state_aux eng =
 let engine_state eng =
   String (engine_state_aux eng)
 
-let make_rule_name eng = 
-  eng.namespace^eng.sep^engine_state_aux eng 
+let make_rule_name eng scope = 
+  eng.namespace^eng.sep^engine_state_aux eng ^ (match scope with Some scope -> (mult_list_with_concat (List.map string_of_int scope) "_") | None -> "")
 
 let lctx_to_var_list lctx =
   (List.map (fun s -> Var s) lctx)
@@ -285,9 +299,9 @@ let mk_state eng return_var (meta_num, loc_num, top_num) =
     [
       engine_state eng;
       return_var; 
-      List (List.map (fun i -> Var ("meta" ^ eng.sep ^ string_of_int i)) (int_to_list meta_num)); 
-      List (List.map (fun i -> Var ("loc" ^ eng.sep ^ string_of_int i)) (int_to_list loc_num)); 
-      List (List.map (fun i -> Var ("top" ^ eng.sep ^ string_of_int i)) (int_to_list top_num))
+      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
+      List (List.map (fun i -> LocVar i) (int_to_list loc_num)); 
+      List (List.map (fun i -> TopVar i) (int_to_list top_num))
       ], config_linear) 
 
 
@@ -296,9 +310,9 @@ let mk_state_app eng return_var (meta_num, loc_num, top_num) e =
     [
       engine_state eng;
       return_var; 
-      List (List.map (fun i -> Var ("meta" ^ eng.sep ^ string_of_int i)) (int_to_list meta_num)); 
-      List (e :: (List.map (fun i -> Var ("loc" ^ eng.sep ^ string_of_int i)) (int_to_list loc_num))); 
-      List (List.map (fun i -> Var ("top" ^ eng.sep ^ string_of_int i)) (int_to_list top_num))
+      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
+      List (e :: (List.map (fun i -> LocVar i) (int_to_list loc_num))); 
+      List (List.map (fun i -> TopVar i) (int_to_list top_num))
       ], config_linear) 
 
 let mk_state_app_list eng return_var (meta_num, loc_num, top_num) el = 
@@ -306,9 +320,9 @@ let mk_state_app_list eng return_var (meta_num, loc_num, top_num) el =
     [
       engine_state eng;
       return_var; 
-      List (List.map (fun i -> Var ("meta" ^ eng.sep ^ string_of_int i)) (int_to_list meta_num)); 
-      List (el @ (List.map (fun i -> Var ("loc" ^ eng.sep ^ string_of_int i)) (int_to_list loc_num))); 
-      List (List.map (fun i -> Var ("top" ^ eng.sep ^ string_of_int i)) (int_to_list top_num))
+      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
+      List (el @ (List.map (fun i -> LocVar i) (int_to_list loc_num))); 
+      List (List.map (fun i -> TopVar i) (int_to_list top_num))
       ], config_linear) 
 
 let mk_state_app_top eng return_var (meta_num, loc_num, top_num) e = 
@@ -316,9 +330,9 @@ let mk_state_app_top eng return_var (meta_num, loc_num, top_num) e =
     [
       engine_state eng;
       return_var; 
-      List (List.map (fun i -> Var ("meta" ^ eng.sep ^ string_of_int i)) (int_to_list meta_num)); 
-      List ((List.map (fun i -> Var ("loc" ^ eng.sep ^ string_of_int i)) (int_to_list loc_num))); 
-      List (e ::  (List.map (fun i -> Var ("top" ^ eng.sep ^ string_of_int i)) (int_to_list top_num)))
+      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
+      List ((List.map (fun i -> LocVar i) (int_to_list loc_num))); 
+      List (e ::  (List.map (fun i -> TopVar i) (int_to_list top_num)))
       ], config_linear) 
 
 let mk_state_shift eng return_var (meta_num, loc_num, top_num) (n, m, l) = 
@@ -326,9 +340,9 @@ let mk_state_shift eng return_var (meta_num, loc_num, top_num) (n, m, l) =
     [
       engine_state eng;
       return_var; 
-      List (List.map (fun i -> Var ("meta" ^ eng.sep ^ string_of_int (i+n))) (int_to_list meta_num)); 
-      List (List.map (fun i -> Var ("loc" ^ eng.sep ^ string_of_int (i+m))) (int_to_list loc_num)); 
-      List (List.map (fun i -> Var ("top" ^ eng.sep ^ string_of_int (i+l))) (int_to_list top_num))
+      List (List.map (fun i -> MetaVar (i+n)) (int_to_list meta_num)); 
+      List (List.map (fun i -> LocVar (i+m)) (int_to_list loc_num)); 
+      List (List.map (fun i -> TopVar (i+l)) (int_to_list top_num))
      ], config_linear) 
 
 let mk_state_replace eng return_var (meta_num, loc_num, top_num) (j, b) e = 
@@ -336,9 +350,9 @@ let mk_state_replace eng return_var (meta_num, loc_num, top_num) (j, b) e =
     [      
       engine_state eng;
       return_var; 
-      List (List.map (fun i -> Var ("meta" ^ eng.sep ^ string_of_int (i))) (int_to_list meta_num)); 
-      List (List.map (fun i -> if (not b) && i = j then e else Var ("loc" ^ eng.sep ^ string_of_int (i))) (int_to_list loc_num)); 
-      List (List.map (fun i -> if b && i = j then e else Var ("top" ^ eng.sep ^ string_of_int (i))) (int_to_list top_num)) 
+      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
+      List (List.map (fun i -> if (not b) && i = j then e else LocVar i) (int_to_list loc_num)); 
+      List (List.map (fun i -> if b && i = j then e else TopVar i) (int_to_list top_num)) 
     ], config_linear) 
 
 let mk_state_replace_and_shift eng return_var (meta_num, loc_num, top_num) (n, m, l) (j, b) e = 
@@ -346,9 +360,9 @@ let mk_state_replace_and_shift eng return_var (meta_num, loc_num, top_num) (n, m
     [      
       engine_state eng;
       return_var;  
-      List (List.map (fun i -> Var ("meta" ^ eng.sep ^ string_of_int (i+n))) (int_to_list meta_num)); 
-      List (List.map (fun i -> if (not b) && i = j then e else Var ("loc" ^ eng.sep ^ string_of_int (i+m))) (int_to_list loc_num)); 
-      List (List.map (fun i -> if b && i = j  then e else Var ("top" ^ eng.sep ^ string_of_int (i+l))) (int_to_list top_num))
+      List (List.map (fun i -> MetaVar (i+n)) (int_to_list meta_num)); 
+      List (List.map (fun i -> if (not b) && i = j then e else LocVar (i+m)) (int_to_list loc_num)); 
+      List (List.map (fun i -> if b && i = j  then e else TopVar (i+l)) (int_to_list top_num))
     ], config_linear) 
 
 
@@ -363,37 +377,57 @@ let mk_state_replace_and_shift eng return_var (meta_num, loc_num, top_num) (n, m
 let translate_fact eng f = 
   match f.Location.data with
   | Syntax.Fact(id, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
                                   (el @ [e], gv @ g)) ([],[]) el in    
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
     (mk_my_fact_name eng id, (String eng.namespace) :: el, config_linear), gv, []
 
   | Syntax.GlobalFact(id, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
                                   (el @ [e], gv @ g)) ([],[]) el in    
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
 
     (mk_my_fact_name eng id, el, config_linear), gv, []
 
   | Syntax.ChannelFact(ch, id, el) ->
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-                                  (el @ [e], gv @ g)) ([],[]) el in    
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+                                  (el @ [e], gv @ g)) ([],[]) (ch::el) in    
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
     
     (* let acp = ("ACP"^eng.sep^"chan", String eng.namespace, String ch, config_persist) in  *)
     
-    (mk_my_fact_name eng id, (String ch) :: el, config_linear), gv, [ch]
+    (mk_my_fact_name eng id, el, config_linear), gv, [translate_expr eng.sep ch]
 
   | Syntax.PathFact (path, id, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-                                  (el @ [e], gv @ g)) ([],[]) el in    
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+                                  (el @ [e], gv @ g)) ([],[]) (path::el) in    
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
     
     (* let acp = ("ACP"^eng.sep"path", String eng.namespace, String ch, config_persist) in  *)
 
-    (mk_my_fact_name eng id, (String path) :: el, config_linear), gv, [path]
+    (mk_my_fact_name eng id, (String eng.namespace)::el, config_linear), gv, [translate_expr eng.sep path]
 
-  | Syntax.ProcessFact (_,_,_) -> 
+  | Syntax.ResFact (0, el) -> 
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+                                  (el @ [e], gv @ g)) ([],[]) (el) in    
+    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    
+    (* let acp = ("ACP"^eng.sep"path", String eng.namespace, String ch, config_persist) in  *)
+
+    ("Eq"^eng.sep, el, config_persist), gv, []
+
+  | Syntax.ResFact (1, el) -> 
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+                                  (el @ [e], gv @ g)) ([],[]) (el) in    
+    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    
+    (* let acp = ("ACP"^eng.sep"path", String eng.namespace, String ch, config_persist) in  *)
+
+    ("NEq"^eng.sep, el, config_persist), gv, []
+
+
+
+  | _ -> 
     error ~loc:Location.Nowhere (UnintendedError "process fact")
 
 let translate_facts eng fl =
@@ -401,19 +435,57 @@ let translate_facts eng fl =
               let (f, gv', acps') = translate_fact eng f in 
               (fl @ [f], gv@gv', acps@acps')) ([],[],[]) fl
 
+let rec expr_shift_meta shift e = 
+  let e' = 
+  match e.Location.data with
+  | Syntax.MetaVariable (v, i) -> Syntax.MetaVariable (v, i+ shift)
+  | Syntax.Apply (o, el) -> 
+    Syntax.Apply (o, List.map (expr_shift_meta shift) el)  
+  | Syntax.Tuple el -> 
+    Syntax.Tuple (List.map (expr_shift_meta shift) el)  
+  | _ -> e.Location.data
+  in Location.locate ~loc:e.Location.loc e' 
 
-let rec translate_cmd eng funs syscalls vars scope syscall (_, {Location.data=c; Location.loc=loc}) = 
+let fact_shift_meta shift f = 
+  match f.Location.data with
+  | Syntax.Fact(id, el) -> 
+    Syntax.Fact(id, (List.map (expr_shift_meta shift) el))
+
+  | Syntax.GlobalFact(id, el) -> 
+    Syntax.GlobalFact(id, (List.map (expr_shift_meta shift) el))
+
+  | Syntax.ChannelFact(ch, id, el) -> 
+    Syntax.ChannelFact(expr_shift_meta shift ch, id, (List.map (expr_shift_meta shift) el))
+
+  | Syntax.PathFact (path, id, el) -> 
+    Syntax.PathFact(expr_shift_meta shift path, id, (List.map (expr_shift_meta shift) el))
+  
+  | Syntax.ResFact (i, el) -> 
+    Syntax.ResFact(i, (List.map (expr_shift_meta shift) el))
+
+  | _ -> 
+    error ~loc:Location.Nowhere (UnintendedError "process fact")
+
+let rec tamarin_expr_shift_meta shift e = 
+  match e with
+  | MetaVar i -> MetaVar (i + shift)
+  | Apply (s, el) ->
+    Apply (s, List.map (tamarin_expr_shift_meta shift) el)
+  | List el -> List (List.map (tamarin_expr_shift_meta shift) el)
+  | _ -> e
+
+let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Location.loc=loc} = 
   let return_var = Var ("return"^eng.sep) in
   let return_unit = String ("unit"^eng.sep) in 
   let (meta_num, loc_num, top_num) = vars in 
 
   match c with
   | Syntax.Return e ->
-    let e, gv = translate_expr2 e in  
+    let e, gv = translate_expr2 eng.sep e in  
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
 
     let eng_f = engine_index_inc eng scope in
-    ([(make_rule_name eng, 
+    ([(make_rule_name eng scope, 
         [mk_state eng return_unit vars] @ gv, 
         [],
         [mk_state eng_f e vars])
@@ -422,7 +494,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall (_, {Location.data=c;
 
   | Syntax.Skip -> 
     let eng_f = engine_index_inc eng scope in
-    ([(make_rule_name eng, 
+    ([(make_rule_name eng scope, 
         [mk_state eng return_unit vars], 
         [],
         [mk_state eng_f return_unit vars])
@@ -438,43 +510,68 @@ let rec translate_cmd eng funs syscalls vars scope syscall (_, {Location.data=c;
 
     let fl, gv, acps = translate_facts eng fl in
     let acps = List.map (fun target -> ("ACP"^eng.sep, [String eng.namespace; 
-                                                        String target; 
+                                                        target; 
                                                         String syscall], config_persist)) acps in
-    let eng_f = engine_index_inc eng scope in
-    let initial_rule = (make_rule_name eng, 
-                        [mk_state_shift eng return_unit vars (List.length vl, 0, 0)] @ fl @ gv @ acps ,
-                        [],
-                        [mk_state eng_f return_unit (meta_num + List.length vl, loc_num, top_num)]) in 
+    let (rl, eng_f) = translate_cmd eng funs syscalls (meta_num + List.length vl, loc_num, top_num) None syscall c in
+    (* find states that is eng and replace precond: *)
+    let rl = List.map
+      (fun r -> 
+        let (rname, preconds, label, postcons) = r in
+        let preconds = List.fold_left 
+          (fun preconds (fn, args , conf) ->
+            match args with
+            | [String st; ret; meta; loc; top] ->
+                if fn = engine_state_name eng && st = engine_state_aux eng 
+                then
+                  (* when this is the rule, find postcondition's meta variable number then lift current *)
+                  let meta_num' = List.fold_left (fun i (fn, args , conf) ->
+                                                  match args with 
+                                                  | [String st; ret; List meta; loc; top] ->
+                                                      if fn = engine_state_name eng then List.length meta else (if i > -1 then i else -1)
+                                                  | _ -> if i > -1 then i else -1) (-1) postcons in
 
-    let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num + List.length vl, loc_num, top_num) None syscall c in
+                  let shift = meta_num' - List.length vl - meta_num in
+
+                  let fl = List.map (fun (a, b, c) -> (a, List.map (tamarin_expr_shift_meta shift) b, c)) fl in 
+
+                  let gv = List.map (fun (a, b, c) -> (a, List.map (tamarin_expr_shift_meta shift) b, c)) gv in 
+
+                  preconds @ [mk_state_shift eng return_unit vars (List.length vl, 0, 0)] @ fl @ gv @ acps
+
+                else 
+                  preconds @ [(fn, args , conf)]
+            | _ -> preconds @ [(fn, args , conf)]) [] preconds in
+          (rname, preconds, label, postcons)) rl in
+
+    (* pop meta variables *)
     let eng_ff = engine_index_inc eng_f None in
 
-    let final_rule = (make_rule_name eng, 
+    let final_rule = (make_rule_name eng_f scope, 
                         [mk_state eng_f return_var (meta_num + List.length vl, loc_num, top_num)],
                         [],
                         [mk_state_shift eng_ff return_var vars (List.length vl, 0, 0)]) in     
-    (initial_rule :: rl @ [final_rule], eng_ff)
+    (rl @ [final_rule], eng_ff)
 
   | Syntax.Put fl -> 
     let fl, gv, acps = translate_facts eng fl in
     let acps = List.map (fun target -> ("ACP"^eng.sep, [String eng.namespace; 
-                                                    String target; 
+                                                    target; 
                                                     String syscall], config_persist)) acps in
     let eng_f = engine_index_inc eng scope in
-    ([(make_rule_name eng, 
+    ([(make_rule_name eng scope, 
       [mk_state eng return_unit vars] @ gv @ acps, 
       [],
       [mk_state eng_f return_unit vars] @ fl )], eng_f)
 
   | Syntax.Let (v, e, c) -> 
     
-    let e, gv = translate_expr2 e in  
+    let e, gv = translate_expr2 eng.sep e in  
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
     
     let eng_f = engine_index_inc eng scope in
 
     let initial_rule = 
-      (make_rule_name eng, 
+      (make_rule_name eng scope, 
         [mk_state eng return_unit vars] @ gv, 
         [],
         [mk_state_app eng_f return_unit vars e]) in 
@@ -482,7 +579,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall (_, {Location.data=c;
     let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num, loc_num+1, top_num) None syscall c in
     let eng_ff = engine_index_inc eng_f None in
 
-    let final_rule = (make_rule_name eng_f, 
+    let final_rule = (make_rule_name eng_f scope, 
                       [mk_state eng_f return_var (meta_num, loc_num+1, top_num)], 
                       [],
                       [mk_state_shift eng_ff return_var (meta_num, loc_num, top_num) (0,1,0)]) in 
@@ -493,18 +590,18 @@ let rec translate_cmd eng funs syscalls vars scope syscall (_, {Location.data=c;
 
   | Syntax.Assign ((v, di), e) -> 
 
-    let e, gv = translate_expr2 e in  
+    let e, gv = translate_expr2 eng.sep e in  
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
 
     let eng_f = engine_index_inc eng scope in
-    ([(make_rule_name eng, 
+    ([(make_rule_name eng scope, 
       [mk_state eng return_unit vars] @ gv, 
       [],
       [mk_state_replace eng_f return_unit vars di e])], eng_f)
 
 
   | Syntax.FCall (ov, f, el) ->
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
                                   (el @ [e], gv @ g)) ([],[]) el in    
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
     
@@ -513,7 +610,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall (_, {Location.data=c;
 
 
     let eng_f = engine_index_inc eng scope in
-    let initial_rule = (make_rule_name eng, 
+    let initial_rule = (make_rule_name eng scope, 
               [mk_state eng return_unit vars] @ gv, 
               [],
               [mk_state_app_list eng_f return_unit vars el]) in
@@ -526,13 +623,13 @@ let rec translate_cmd eng funs syscalls vars scope syscall (_, {Location.data=c;
     let final_rule = 
       begin match ov with
       | Some (_, v) -> 
-        (make_rule_name eng_f, 
+        (make_rule_name eng_f scope, 
           [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num)],
           [],
           [mk_state_replace_and_shift eng_ff return_unit vars (0, (List.length el), 0) v return_var])
 
       | None -> 
-        (make_rule_name eng_f, 
+        (make_rule_name eng_f scope, 
           [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num)],
           [],
           [mk_state_shift eng_ff return_unit vars (0, (List.length el), 0) ])
@@ -542,7 +639,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall (_, {Location.data=c;
 
 
   | Syntax.SCall (ov, o, el) ->
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
                                   (el @ [e], gv @ g)) ([],[]) el in    
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
     
@@ -551,7 +648,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall (_, {Location.data=c;
 
 
     let eng_f = engine_index_inc eng scope in
-    let initial_rule = (make_rule_name eng, 
+    let initial_rule = (make_rule_name eng scope, 
               [mk_state eng return_unit vars] @ gv, 
               [],
               [mk_state_app_list eng_f return_unit vars el]) in
@@ -564,13 +661,13 @@ let rec translate_cmd eng funs syscalls vars scope syscall (_, {Location.data=c;
     let final_rule = 
       begin match ov with
       | Some (_, v) -> 
-        (make_rule_name eng_f, 
+        (make_rule_name eng_f scope, 
           [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num)],
           [],
           [mk_state_replace_and_shift eng_ff return_unit vars (0, (List.length el), 0) v return_var])
 
       | None -> 
-        (make_rule_name eng_f, 
+        (make_rule_name eng_f scope, 
           [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num)],
           [],
           [mk_state_shift eng_ff return_unit vars (0, (List.length el), 0)])
@@ -592,10 +689,10 @@ let rec translate_cmd eng funs syscalls vars scope syscall (_, {Location.data=c;
     let (r2, eng2) = translate_cmd eng funs syscalls vars scope2 syscall c2 in
     let eng_f = engine_index_inc eng None in
 
-    let final_rule_1 = (make_rule_name eng1, 
+    let final_rule_1 = (make_rule_name eng1 scope, 
       [mk_state eng1 return_var vars], [], [mk_state eng_f return_var vars]) in 
 
-    let final_rule_2 = (make_rule_name eng2, 
+    let final_rule_2 = (make_rule_name eng2 scope, 
       [mk_state eng2 return_var vars], [], [mk_state eng_f return_var vars]) in 
 
     (r1@r2@[final_rule_1; final_rule_2], eng_f)
@@ -609,14 +706,14 @@ let rec translate_cmd eng funs syscalls vars scope syscall (_, {Location.data=c;
         Some (0::l)
       end in 
     let (r1, eng1) = translate_cmd eng funs syscalls vars scope1 syscall c1 in
-    let loop = (make_rule_name eng1, [mk_state eng1 return_var vars], [], [mk_state eng return_unit vars]) in 
+    let loop = (make_rule_name eng1 scope, [mk_state eng1 return_var vars], [], [mk_state eng return_unit vars]) in 
     let (r2, eng) = translate_cmd eng funs syscalls vars scope syscall c2 in
     (r1@[loop]@r2, eng)
 
  | Syntax.Event (fl) ->
     let fl, gv, acps = translate_facts eng fl in 
     let eng_f = engine_index_inc eng scope in
-    ([(make_rule_name eng, 
+    ([(make_rule_name eng scope, 
         [mk_state eng return_unit vars] @ gv, 
         fl,
         [mk_state eng_f return_unit vars])
@@ -636,7 +733,20 @@ let translate_process sep t {
         Context.proc_main=m
       } syscalls =
   let namespace = String.capitalize_ascii (s ^ (if k = 0 then "" else string_of_int k)) in (* this must be unique *)
-  
+  let t = add_comment t ("- Process name: " ^ namespace) in 
+
+  let t = add_comment t "Initial file system:" in
+  let t = List.fold_left (fun t (path, e, _, _) ->
+      (* let path = (mk_dir eng fsys path) in *)
+      let e, gv = translate_expr2 sep e in  
+      let gv = List.map (fun s -> ("Const"^sep, [String s ; Var s], config_persist)) gv in 
+      let name = mk_fact_name  namespace^ replace_string '/' sep path in 
+      add_rule t (name, "",
+            gv,
+            [("Init"^sep, [List [String namespace; String path]], config_linear)],
+            [("File", [String namespace; String path ; e], config_linear)])) t fls in 
+
+
   let eng = engine_set_namespace empty_engine namespace in 
   let eng = engine_set_sep eng sep in 
   let eng_f = engine_index_inc eng None in
@@ -646,12 +756,11 @@ let translate_process sep t {
   (* let eng = eng_set_role eng namespace in *)
   (* let eng = eng_set_filesys eng (match fsys with Some fsys -> fsys | None -> "") in *)
 
-  let t = add_comment t ("- Process name: " ^ namespace) in 
   let t = add_comment t ("-- initialization rules") in 
   let t = add_rule t 
-          (make_rule_name eng, namespace,
+          (make_rule_name eng None, namespace,
           [], 
-          [("Init"^namespace, [String namespace], config_linear)], 
+          [("Init"^sep, [String namespace], config_linear)], 
 	        [mk_state eng_f return_unit (0, 0, 0)]) in
   let eng = eng_f in 
 
@@ -659,11 +768,11 @@ let translate_process sep t {
   let (eng, t, _) = List.fold_left
 		   (fun (eng, t, i) (x, e) -> 
 		     let eng_f = engine_index_inc eng None in 
-		     let e, gv = translate_expr2 e in  
+		     let e, gv = translate_expr2 sep e in  
 		     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
 
 		     let t = add_rule t 
-                  (make_rule_name eng, namespace,
+                  (make_rule_name eng None, namespace,
 					         [mk_state eng return_unit (0,0,i)] @ gv, 
 					         [],  
 					         [mk_state_app_top eng_f return_unit (0,0,i) e]) in
@@ -710,7 +819,7 @@ let translate_sys {
   (* process what has been defined first! *)
   let t = List.fold_left (fun t (f, k) -> add_fun t (f, k)) t (List.rev ctx.Context.ctx_ext_func) in
   let t = List.fold_left (fun t c -> add_const t c) t (List.rev ctx.Context.ctx_ext_const) in
-  let t = List.fold_left (fun t (_, e1, e2) -> add_eqn t (translate_expr e1, translate_expr e2)) t (List.rev def.Context.def_ext_eq) in
+  let t = List.fold_left (fun t (_, e1, e2) -> add_eqn t (translate_expr sep e1, translate_expr sep e2)) t (List.rev def.Context.def_ext_eq) in
 
   (* let t = add_comment t "external system calls:" in
      let t = List.fold_left (fun t r -> translate_syscall eng t r) t (List.rev def.Context.def_ext_syscall) in*)
@@ -748,22 +857,24 @@ let translate_sys {
 	      match e with
 	      | None -> (* when v is fresh *) add_rule t ("Const"^sep^v, "", [("Fr", [Var v], config_linear)], [], [("Const"^sep, [String v ; Var v], config_persist)])
 	      | Some e -> (* when v is defined *) 
-		 let e, gv = translate_expr2 e in  
+		 let e, gv = translate_expr2 sep e in  
 		 let gv = List.map (fun s -> ("Const"^sep, [String s ; Var s], config_persist)) gv in 
 		 add_rule t ("Const"^sep^v, "", gv, [], [("Const"^sep, [String v ; e], config_persist)])) t (List.rev def.Context.def_const) in
 
   (* initialize files *)
   (* def_fsys    :  (Name.ident * Name.ident * Syntax.expr) list ; *)
-  let t = add_comment t "Initial file system:" in
+(*   let t = add_comment t "Initial file system:" in
   let t, il = List.fold_left (fun (t, il) (fsys, path, e) ->
 		  (* let path = (mk_dir eng fsys path) in *)
-		  let e, gv = translate_expr2 e in  
+		  let e, gv = translate_expr2 sep e in  
 		  let gv = List.map (fun s -> ("Const"^sep, [String s ; Var s], config_persist)) gv in 
 		  let name = mk_fact_name  fsys^ replace_string '/' sep path ^ sep ^"init" in 
 		  add_rule t (name, "",
 			      gv,
 			      [(name, [], config_linear)],
-			      [("File", [String fsys; List [String fsys; String path] ; e], config_linear)]), name::il) (t, []) def.Context.def_fsys in 
+			      [("File", [String fsys; String path ; e], config_linear)]), name::il) (t, []) def.Context.def_fsys in 
+
+ *)  let il =[] in 
 
   let t = add_comment t "Access control:" in
   (* access control *)
@@ -780,9 +891,21 @@ let translate_sys {
 					   (name, "",
 					    [], 
 					    [(name, [], config_linear)], 
-					    [(mk_fact_name sys ^ sep ^"Allowed", [String procname; String c], config_persist)])
-					 , name::il) (t, il) scall) 
-		                (t, il) ctx.Context.ctx_ch in 
+					    [("ACP"^sep, [String procname; String c; String sys], config_persist)])
+					 , name::il) (t, il) scall) (t, il) ctx.Context.ctx_ch in 
+
+      let t, il = List.fold_left (fun (t, il) (c, ty) -> 
+                match List.find_all (fun (a, b) -> a = p.Context.proc_type && List.exists (fun b -> b = ty) b) pol.Context.pol_access_all with
+                | [] -> (t, il) 
+                | _ -> 
+             
+                 let name = procname ^ sep ^ c ^ sep in 
+                  add_rule t 
+                  (name, "",
+                  [], 
+                  [(name, [], config_linear)], 
+                  [("ACP"^sep, [String procname; String c; String ""], config_persist)]), name::il) (t, il) ctx.Context.ctx_ch in 
+
 
 		  let t, il = 
 		    match List.find_all (fun (a, b, sys) -> a = p.Context.proc_type && (match b with | [] -> true | _ -> false)) pol.Context.pol_access with
@@ -799,7 +922,7 @@ let translate_sys {
 
 		  in 
 
-		  let t, il = List.fold_left (fun (t, il) (dir, path, ty) -> 
+(*  		  let t, il = List.fold_left (fun (t, il) (dir, path, ty) -> 
 			          if (match p.Context.proc_filesys with Some a -> a | None -> "") <> dir then (t, il) else
 			            match List.find_all (fun (a, b, sys) -> a = p.Context.proc_type && List.exists (fun b -> b = ty) b) pol.Context.pol_access with
 			            | [] -> (t, il)
@@ -812,7 +935,23 @@ let translate_sys {
 					      [(name, [], config_linear)], 
 					      [(mk_fact_name sys ^ sep ^"Allowed", [String procname; List [String dir ; String path]], config_persist)])
 				           , name::il) (t, il) scall
-		                ) (t, il) ctx.Context.ctx_fsys in 
+		                ) (t, il) ctx.Context.ctx_fsys in  *)
+ 
+      let t, il = List.fold_left (fun (t, il) (dir, path, ty) -> 
+          if (match p.Context.proc_filesys with Some a -> a | None -> "") <> dir then (t, il) else
+            match List.find_all (fun (a, b, sys) -> a = p.Context.proc_type && List.exists (fun b -> b = ty) b) pol.Context.pol_access with
+            | [] -> (t, il)
+            | scall ->        
+         List.fold_left (fun (t, il) (_, _, sys) ->
+       let name = procname ^ sep ^ dir ^ sep ^replace_string '/' sep path ^ sep ^ sys in 
+       add_rule t 
+         (name, "",
+          [], 
+          [(name, [], config_linear)], 
+          [("ACP"^sep, [String procname; String path; String sys], config_persist)])
+             , name::il) (t, il) scall
+              ) (t, il) ctx.Context.ctx_fsys in 
+
 		  (t, il)) (t, il) proc in
   
 
@@ -836,7 +975,9 @@ let translate_sys {
   let init_list = List.map (fun p -> String.capitalize_ascii (p.Context.proc_name ^ 
                                     (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid )
 	                                   ) ^ sep^"init") proc in 
-
+  let procs = List.map (fun p -> String.capitalize_ascii (p.Context.proc_name ^ 
+                                    (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid )
+                                     ) ) proc in 
   let init_list = init_list @ il in 
 
   (* translating lemmas now *)
@@ -860,6 +1001,6 @@ let translate_sys {
     | _ -> error ~loc:Location.Nowhere (UnintendedError "")
 ) lem in
 
-  (t, init_list, lem), {prt_sep=sep;}
+  (t, init_list, procs, lem), {prt_sep=sep;}
 
 

@@ -16,19 +16,36 @@ equation verify (sign(d, k), d, pk(k)) = true
 load "udp_rpc.rab"
 
 (* picture *)
-syscall get_picture () return v : [::Fr(v)] -> [] 
+syscall get_picture () {
+	wait [::Fr(v)] 
+		return v 
+	end
+}
 
 (* filesys *)
 function h:1
 
-syscall fopen (path p) return h(p) 
-  : [] -> [p.open()]  
+syscall fopen (p) {
+	put[p.open()]; 
+	return h(p)
+}
 
-syscall fread (y) return x {y = h(p)}
-  : [p.File(x), p.open()] -> [p.File(x), p.open()] 
+syscall fread (y){
+	wait[y = h(p)] 
+		wait[p.File(x), p.open()]
+			put[p.File(x), p.open()];
+			return x
+		end
+	end
+}
 
-syscall fclose (y) {y = h(p)}
-  : [p.open()] -> [] 
+syscall fclose (y) {
+	wait[y = h(p)]
+		wait[p.open()]
+			skip
+		end
+	end
+}
 
 (***********)
 (** declare types with their classes *)
@@ -47,7 +64,7 @@ allow client_t udp_t [send]
 allow server_t udp_t [recv]
 
 allow client_t rpc_t [connect_rpc, invoke_rpc, close_rpc]
-allow client_ta_t rpc_t  [accept_rpc, run_rpc]
+allow client_ta_t rpc_t [.]
 
 allow client_t [get_picture]
 
@@ -58,10 +75,12 @@ allow server_t readonly_t     [fopen, fread, fclose]
 (***********)
 (** attacker model *)
 
-attack tampar_ch (channel c) : [c::store(v), In(w)] -> [c::store(w)]
-passive attack eaves_mem (v) : [] -> [::Out(v)]
+(** attack tampar_ch (channel c) : [c::store(v), In(w)] -> [c::store(w)]*)
+passive attack eaves_mem (v) {
+	put [::Out(v)]
+}
 
-allow attack udp_t [tampar_ch]
+(** allow attack udp_t [tampar_ch] *)
 allow client_t [eaves_mem]
 
 
@@ -97,89 +116,96 @@ filesys client_ta_fs =
 (** process templates *)
 process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t 
 {  
-	let dev_path = "/dev/camera";
-	let privkey_path = "/secret/priv";
-	let invoke_func = "sign_image";
+	let dev_path = "/dev/camera"
+	let privkey_path = "/secret/priv"
+	let invoke_func = "sign_image"
 
 	main 
   	{
+
+  		wait [AA(x)] wait [BB(y)] put [CC(x, y)] end end ;
+
 		
-		let conn = connect_rpc(ch_rpc) @ A();
-		
-		for i in range(1, 3)
-		{
-			let image = get_picture() @ B();
-	      	
-			let sig = invoke_rpc(ch_rpc, invoke_func, (image, privkey_path)); 
+			let conn = connect_rpc(ch_rpc) in 
+			
+			let image = get_picture() in 
+    	@ [::Took(image)];
+			let sig = invoke_rpc(ch_rpc, invoke_func, image, privkey_path) in
 
-			eaves_mem((sig, image));
+			_ := eaves_mem((sig, image));
 
-			let _ = send(ch_net, (sig, image)) @ ImgSend(image);
-	    	
-		} 
+			_ := send(ch_net, (sig, image)); 
 
-    	let _ = close_rpc(conn) ;
-    	skip @ ClientClose ();
+			@ [::ImgSend(image)];
+		    	
+	  	_ := close_rpc(conn) ;
+
+	  	@ [::ClientClose ()]
+  	
   	}
 }
 
 process client_ta(ch_rpc : rpc_t) : client_ta_t 
 {
-	let fek = sym_k;
+	let fek = sym_k
 
-  	function sign_image(image, privkey_path) 
-  	{
-	    
-	    let privkey_fd = fopen(privkey_path);
-	    
-	    let privkey = fread(privkey_fd);
-	    
-	    let privkey0 = dec(privkey, fek);  
-	    
-	    let sig = sign(image, privkey0);
-	    
+	function sign_image(image, privkey_path) 
+	{
+    
+    let privkey_fd = fopen(privkey_path) in
+    
+    let privkey = fread(privkey_fd) in
+    
+    let privkey0 = dec(privkey, fek) in 
+    
+    let sig = sign(image, privkey0) in
+    
+    _ := fclose(privkey_fd);
 
-	    let _ = fclose(privkey_fd);
-	 
-(*	    let sig = sign(image, dec(enc(priv_k, sym_k), fek)); *)
-
-
-	    return sig;
+    return sig
 	}
   
-  	main 
-  	{
-    	let _ = accept_rpc(ch_rpc); 
-    	let _ = run_rpc(ch_rpc);
-    	let _ = run_rpc(ch_rpc);
-    	skip @ ClientTAClose ();
-    	
-  	}
+	main 
+	{
+		_ := accept_rpc(ch_rpc);
+		repeat
+			wait [ch_rpc::invoke("sign_image", image, priv_path)]
+  			let signed = sign_image(image, priv_path) in
+	  		put[ch_rpc::returned(signed)]
+  		end
+		until
+			wait [ch_rpc::exit()] skip end
+		end;
+		@ [::ClientTAClose ()]
+  	
+	}
 }
 
 process server(ch_net : udp_t) : server_t 
 {
-	let pubkey_path = "/secret/pub";
+	let pubkey_path = "/secret/pub"
   
 	main 
 	{
-	    let pubkey_fd = fopen(pubkey_path);
-	    let pubkey = fread(pubkey_fd);
-		for i in range (1, 3)
-		{
-			let p = recv(ch_net);
-			let res = verify(fst(p), snd(p), pubkey);
-			if (res = true) 
-			{
-        		skip @ ImgRecvValid(snd(p));
-      		} 
-      		else 
-      		{
-        		skip @ ImgRecvInvalid(snd(p));
-      		}
-    	}
-    	let _ = fclose(pubkey_fd);
-    	skip @ ServerClose ();
+	    let pubkey_fd = fopen(pubkey_path) in 
+	    @ [::A()];
+	    let pubkey = fread(pubkey_fd) in 
+	    @ [::B()];
+	    repeat
+	    	let p = recv(ch_net) in
+				let res = verify(fst(p), snd(p), pubkey) in 
+				case 
+					wait [res =  true] 
+						@[::ImgRecvValid(snd(p))]
+					end
+				|
+					wait [res <> true]
+						@[::ImgRecvInvalid(snd(p))]
+					end
+				end
+			until
+				wait [::False()] skip end
+			end 	    
   	}
 }
 
@@ -190,8 +216,17 @@ system
 ||	server(udp) with server_fs
 ||	client_ta(rpc) with client_ta_fs
 requires  [
-	lemma Reachability : reachable ClientClose(), ClientTAClose (), ServerClose () ;
-  lemma Correspondence : corresponds ImgRecvValid(x) ~> ImgSend (x) 
+  lemma Reachable1 :
+    exists-trace "Ex #j  . A() @ #j" ;
+  lemma Reachable2 :
+    exists-trace "Ex #j  . B() @ #j" ;
+  lemma Reachable3 :
+    exists-trace "Ex x #j  . Took(x) @ #j" ;
+  lemma Reachable :
+    exists-trace "Ex x #j  . ImgSend(x) @ #j" ;
+
+  lemma Correspondence :
+    all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
   ]
 
 

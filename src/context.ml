@@ -100,6 +100,7 @@ type definition = {
 (* acc : access_policy records declared access policies of the system *)
 type access_policy = {
    pol_access : (Name.ident * Name.ident list * Name.ident) list ;
+   pol_access_all : (Name.ident * Name.ident list) list; 
    pol_attack : (Name.ident * Name.ident) list 
 }
 
@@ -280,6 +281,7 @@ let def_get_const def id =
 
 (** pol related funcitons *)
 let pol_add_access pol x = {pol with pol_access=x::pol.pol_access}
+let pol_add_access_all pol x = {pol with pol_access_all=x::pol.pol_access_all}
 let pol_add_attack pol x = {pol with pol_attack=x::pol.pol_attack}
 
 let pol_get_attack_opt pol x = 
@@ -399,7 +401,7 @@ let lctx_add_new_func ~loc lctx (f, i) =
 (** Initial contexts *)
 let ctx_init = {ctx_ext_func = [] ; ctx_ext_const = [] ; ctx_ext_syscall = []; ctx_ext_attack = [] ; ctx_ty = [] ; ctx_const = [] ; ctx_fsys = [] ; ctx_ch = [] ; ctx_proctmpl = [] ; ctx_event = []; ctx_fact = []}
 let def_init = {def_ext_eq = [] ; def_const = [] ; def_ext_syscall = [] ; def_ext_attack = [] ; def_fsys=[] ; def_proctmpl = []}
-let pol_init = {pol_access = [] ; pol_attack = []}
+let pol_init = {pol_access = [] ; pol_access_all=[]; pol_attack = []}
 (* let sys_init = {   
    sys_ctx = []; 
    sys_def = [];

@@ -36,7 +36,7 @@ let reserved = [
   ("do", DO) ;
   ("repeat", REPEAT);
   ("until", UNTIL);
-  ("in", IN)
+  ("in", IN);
   ]
 
 let name =
@@ -115,6 +115,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | '\\'                     -> f (); BACKSLASH
   | '{'                      -> f (); LBRACE
   | '}'                      -> f (); RBRACE
+  | "<>"                     -> f (); NEQ
   | "||"                     -> f (); BBAR
   | '|'                      -> f (); BAR
   (* | "=>" | 8658 | 10233      -> f (); DARROW

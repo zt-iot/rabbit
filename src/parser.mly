@@ -14,7 +14,7 @@
 
 (* Parentheses & punctuations *)
 %token LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE 
-%token COLONEQ EQ
+%token COLONEQ EQ NEQ
 %token COMMA SEMICOLON COLON
 %token BBAR
 %token UNDERSCORE
@@ -63,7 +63,8 @@ plain_decl:
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
   
   | ALLOW ATTACK t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAttack(t,a)}  
-  | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t,a)} 
+  | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t, Some a)} 
+  | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)} 
 
   | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
 
@@ -100,6 +101,8 @@ plain_fact:
   | scope=NAME PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
   | DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact(id, es) }
   | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact(id, es) }
+  | e1=expr EQ e2=expr { ResFact(0, [e1; e2]) }
+  | e1=expr NEQ e2=expr { ResFact(1, [e1; e2]) }
 
 typed_arg:
   | var=NAME { (TyValue, var) }
@@ -197,8 +200,8 @@ plain_cmd:
   | PUT LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { Put (postcond) }
   | LET id=NAME EQ e=expr IN c=cmd { Let (id, e, c) }
   | id=uname COLONEQ e=expr { Assign (id, e) }
-  | CASE LBRACKET c1=cmd BAR 
-         LBRACKET c2=cmd BAR END { Case(c1, c2) }
+  | CASE c1=cmd BAR 
+         c2=cmd END { Case(c1, c2) }
   | REPEAT c1=cmd UNTIL c2=cmd END { While(c1, c2) }
   | AT LBRACKET a=separated_list(COMMA, fact) RBRACKET { Event(a) }
   | RETURN e=expr { Return e }

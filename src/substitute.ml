@@ -44,9 +44,11 @@ let fact_chan_sub f fr t accesses =
    match f.Location.data with
    | Syntax.Fact (v, el) -> Syntax.Fact (v, (List.map (fun e -> expr_chan_sub e fr t accesses) el))
    | Syntax.GlobalFact (v, el) -> Syntax.GlobalFact (v, (List.map (fun e -> expr_chan_sub e fr t accesses) el))
-   | Syntax.PathFact (l, id, el) -> Syntax.PathFact (l, id, (List.map (fun e -> expr_chan_sub e fr t accesses) el))
+   | Syntax.PathFact (l, id, el) -> Syntax.PathFact (expr_chan_sub l fr t accesses, id, (List.map (fun e -> expr_chan_sub e fr t accesses) el))
    | Syntax.ChannelFact (l, id, el) ->
-      Syntax.ChannelFact ((if l = fr then t else l), id, (List.map (fun e -> expr_chan_sub e fr t accesses) el))
+      Syntax.ChannelFact (expr_chan_sub l fr t accesses, id, (List.map (fun e -> expr_chan_sub e fr t accesses) el))
+   | Syntax.ResFact (v, el) -> Syntax.ResFact (v, (List.map (fun e -> expr_chan_sub e fr t accesses) el))
+
   | _ -> error ~loc (UnintendedError "")
  in Location.locate ~loc:loc f
 
@@ -54,7 +56,7 @@ let fact_chan_sub f fr t accesses =
 let facts_chan_sub fl f t accesses = 
   List.map (fun ft -> fact_chan_sub ft f t accesses) fl
 
-let rec cmd_chan_sub (ltctx, c) f t accesses = 
+let rec cmd_chan_sub c f t accesses = 
   let loc = c.Location.loc in
   let c = 
     match c.Location.data with
@@ -69,5 +71,6 @@ let rec cmd_chan_sub (ltctx, c) f t accesses =
     | Syntax.Event (fl) -> Syntax.Event (facts_chan_sub fl f t accesses)
     | Syntax.Skip -> Syntax.Skip
     | Syntax.Put (fl) -> Syntax.Put (facts_chan_sub fl f t accesses)
+    | Syntax.Return e -> Syntax.Return (expr_chan_sub e f t accesses)
     in
-  ltctx, Location.locate ~loc:loc c
+  Location.locate ~loc:loc c

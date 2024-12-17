@@ -11,7 +11,7 @@ homepage: "https://github.com/username/reponame"
 doc: "https://url/to/documentation"
 bug-reports: "https://github.com/username/reponame/issues"
 depends: [
-  "dune" {>= "3.11"}
+  "dune" {>= "3.16"}
   "odoc" {with-doc}
 ]
 build: [

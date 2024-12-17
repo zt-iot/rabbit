@@ -29,20 +29,22 @@ let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 (** Print error description. *)
 let print_error err ppf =
   match err with
-  | UnknownVariable x -> Format.fprintf ppf "unknown identifier %s" x
+  | UnknownVariable x -> Format.fprintf ppf "unknown variable %s" x
   | UnknownIdentifier x -> Format.fprintf ppf "unknown identifier %s" x
-  | UnknownIdentifier2 x -> Format.fprintf ppf "unknown identifier %s" x
+  | UnknownIdentifier_ch x -> Format.fprintf ppf "unknown identifier channel %s" x
+  | UnknownIdentifier_path x -> Format.fprintf ppf "unknown identifier path %s" x
+  | UnknownIdentifier_process x -> Format.fprintf ppf "unknown identifier process %s" x
+  | UnknownIdentifier2 x -> Format.fprintf ppf "unknown identifier2 %s" x
   | UnknownFunction x -> Format.fprintf ppf "unknown function %s" x
   | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
   | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
   | ArgNumMismatch (x, i, j) -> Format.fprintf ppf "%s arguments provided while %s requires %s" (string_of_int i) x (string_of_int j)
+  | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
+  | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
   | UnintendedError -> Format.fprintf ppf "unintended behavior. contact the developer"
   | WrongInputType -> Format.fprintf ppf "wrong input type"
-  | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
-  | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
-  | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given"  x y
   | NoBindingVariable -> Format.fprintf ppf "no binding variable"
-  | _ -> Format.fprintf ppf "" 
+  | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given"  x y
   
 
 let find_index f lst =
@@ -130,18 +132,20 @@ let process_fact_closed ctx lctx f =
          Location.locate ~loc:f.Location.loc (Syntax.GlobalFact(id, List.map (process_expr2 ctx lctx) el)))
    | Input.ChannelFact (l, id, el) ->
       (* check validty of local scope l *)
-      if Context.lctx_check_chan lctx l || Context.lctx_check_meta lctx l then 
          (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), 
-            Location.locate ~loc:f.Location.loc (Syntax.ChannelFact(l, id, List.map (process_expr2 ctx lctx) el)))
-      else if Context.lctx_check_id lctx l then error ~loc (UnknownVariable id)
-      else error ~loc (UnknownIdentifier_ch l)
+                  Location.locate ~loc:f.Location.loc 
+                  (Syntax.ChannelFact(process_expr2 ctx lctx (Location.locate ~loc (Input.Var l)),
+                        id, List.map (process_expr2 ctx lctx) el)))
    | Input.PathFact (l, id, el) ->
       (* check validty of local scope l *)
-      if Context.lctx_check_path lctx l || Context.lctx_check_meta lctx l then 
          (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), 
-            Location.locate ~loc:f.Location.loc (Syntax.PathFact(l, id, List.map (process_expr2 ctx lctx) el)))
-      else if Context.lctx_check_id lctx l then error ~loc (UnknownVariable id)
-      else error ~loc (UnknownIdentifier_path l)
+                  Location.locate ~loc:f.Location.loc 
+                  (Syntax.PathFact(process_expr2 ctx lctx (Location.locate ~loc (Input.Var l)),
+                        id, List.map (process_expr2 ctx lctx) el)))
+   | Input.ResFact(i, el) ->
+         (ctx, Location.locate ~loc:f.Location.loc 
+                  (Syntax.ResFact(i, List.map (process_expr2 ctx lctx) el)))
+
    | _ -> error ~loc (UnknownIdentifier2 "")
 
 let process_facts_closed ctx lctx fl = 
@@ -193,11 +197,31 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
          (ctx, lctx, Syntax.Put (fl))
 
       | Input.Let (v, e, c) -> 
-         (if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ());
-         let lctx' = Context.lctx_add_new_var ~loc lctx v in
-         let (ctx, _, c) = process_cmd ctx lctx' c in 
-         (ctx, lctx, Syntax.Let(v, process_expr ctx lctx e, c))
-
+         begin 
+         match e.Location.data with
+         | Input.Apply(o, args) ->
+            let eloc = e.Location.loc in
+            begin
+               if Context.ctx_check_ext_syscall ctx o || Context.lctx_check_func lctx o
+               then let ctx, lctx, c = process_cmd ctx lctx (Location.locate ~loc:loc 
+                                          (Input.Let (v, Location.locate ~loc:eloc (Input.String ""), 
+                                             Location.locate ~loc:eloc (Input.Sequence (
+                                             Location.locate ~loc:eloc (Input.Assign (Some v, e)), c))))) in 
+                     (ctx, lctx, c.Location.data)
+               else
+                  begin
+                     (if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ());
+                     let lctx' = Context.lctx_add_new_var ~loc lctx v in
+                     let (ctx, _, c) = process_cmd ctx lctx' c in 
+                     (ctx, lctx, Syntax.Let(v, process_expr ctx lctx e, c))
+                  end
+            end
+         | _ -> 
+                  (if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ());
+                  let lctx' = Context.lctx_add_new_var ~loc lctx v in
+                  let (ctx, _, c) = process_cmd ctx lctx' c in 
+                  (ctx, lctx, Syntax.Let(v, process_expr ctx lctx e, c))
+         end
       | Input.Assign (ov, e) -> 
          let ov = 
          (match ov with 
@@ -277,7 +301,8 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
 
       in 
       let (ctx, lctx, c) = process_cmd' ctx lctx c in 
-      (ctx, lctx, ((lctx.Context.lctx_meta_var, lctx.Context.lctx_loc_var, lctx.Context.lctx_top_var), Location.locate ~loc c))
+      (ctx, lctx, Location.locate ~loc c)
+      (* (ctx, lctx, ((lctx.Context.lctx_meta_var, lctx.Context.lctx_loc_var, lctx.Context.lctx_top_var), Location.locate ~loc c)) *)
 
 
 let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([],[]))
@@ -340,7 +365,8 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
    | Input.DeclType (id, c) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, c), pol, def, sys, fst ps)
    
-   | Input.DeclAccess(s, t, al) -> 
+   | Input.DeclAccess(s, t, Some al) -> 
+
       let tys = Context.ctx_get_ty ~loc ctx s in
       let tyt = List.map (Context.ctx_get_ty ~loc ctx) t in 
       let f pol' a =
@@ -358,6 +384,22 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
          | _, _ -> error ~loc (WrongInputType)
          end
       in (ctx, List.fold_left f pol al, def, sys, fst ps)
+
+   | Input.DeclAccess(s, t, None) -> 
+
+      let tys = Context.ctx_get_ty ~loc ctx s in
+      let tyt = List.map (Context.ctx_get_ty ~loc ctx) t in 
+      let pol = 
+         begin match tys, tyt with
+         | Input.CProc, [Input.CChan] -> 
+            Context.pol_add_access_all pol (s, t)
+            
+         | Input.CProc, [Input.CFsys] -> 
+            Context.pol_add_access_all pol (s, t)
+            
+         | _, _ -> error ~loc (WrongInputType)
+         end in 
+       (ctx, pol, def, sys, fst ps)
 
    | Input.DeclAttack (tl, al) -> 
       let f t a =

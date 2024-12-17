@@ -26,16 +26,17 @@ type fact = fact' Location.located
 and fact' = 
   | Fact of Name.ident * expr list
   | GlobalFact of Name.ident * expr list
-  | ChannelFact of Name.ident * Name.ident * expr list
-  | PathFact of Name.ident * Name.ident * expr list
+  | ChannelFact of expr * Name.ident * expr list
+  | PathFact of expr * Name.ident * expr list
   | ProcessFact of Name.ident * Name.ident * expr list
+  | ResFact of int * expr list
 
 
 
 (* meta vars, local vars, top-level variables *)
-type local_typing_context = Name.ident list * Name.ident list * Name.ident list
+(* type local_typing_context = Name.ident list * Name.ident list * Name.ident list *)
 
-type cmd = local_typing_context * cmd' Location.located
+type cmd = cmd' Location.located
 and cmd' = 
   | Skip
   | Sequence of cmd * cmd
