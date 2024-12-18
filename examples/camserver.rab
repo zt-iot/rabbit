@@ -17,7 +17,7 @@ load "udp_rpc.rab"
 
 (* picture *)
 syscall get_picture () {
-	wait [::Fr(v)] 
+	wait [::Fr(v)] then 
 		return v 
 	end
 }
@@ -31,8 +31,8 @@ syscall fopen (p) {
 }
 
 syscall fread (y){
-	wait[y = h(p)] 
-		wait[p.File(x), p.open()]
+	wait[y = h(p)] then 
+		wait[p.File(x), p.open()] then 
 			put[p.File(x), p.open()];
 			return x
 		end
@@ -40,8 +40,8 @@ syscall fread (y){
 }
 
 syscall fclose (y) {
-	wait[y = h(p)]
-		wait[p.open()]
+	wait[y = h(p)] then 
+		wait[p.open()] then 
 			skip
 		end
 	end
@@ -149,7 +149,7 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
 
 	function sign_image(image, privkey_path) 
 	{
-    
+    (* 
     let privkey_fd = fopen(privkey_path) in
     
     let privkey = fread(privkey_fd) in
@@ -160,19 +160,30 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
     
     _ := fclose(privkey_fd);
 
-    return sig
+    return sig *)
+
+    let sig = sign(image, dec(enc(priv_k, sym_k), fek)) in
+    	return sig
+
 	}
   
 	main 
 	{
 		_ := accept_rpc(ch_rpc);
 		repeat
-			wait [ch_rpc::invoke("sign_image", image, priv_path)]
-  			let signed = sign_image(image, priv_path) in
-	  		put[ch_rpc::returned(signed)]
-  		end
+				wait [ch_rpc::invoke(fname, image, priv_path)] then 
+					case
+					|	wait [fname = "sign_image"] then 
+							let signed = sign_image(image, priv_path) in
+		  					put[ch_rpc::returned(signed)]		
+		  			end
+		  		| wait [fname <> "sign_image"] then 
+		  				@[InValidName(fname)]
+		  			end 
+		  		end
+		  	end
 		until
-			wait [ch_rpc::exit()] skip end
+			wait [ch_rpc::exit()] then skip end
 		end;
 		@ [::ClientTAClose ()]
   	
@@ -193,16 +204,15 @@ process server(ch_net : udp_t) : server_t
 	    	let p = recv(ch_net) in
 				let res = verify(fst(p), snd(p), pubkey) in 
 				case 
-					wait [res =  true] 
+				|	wait [res =  true] then 
 						@[::ImgRecvValid(snd(p))]
 					end
-				|
-					wait [res <> true]
+				| wait [res <> true] then 
 						@[::ImgRecvInvalid(snd(p))]
 					end
 				end
 			until
-				wait [::False()] skip end
+				wait [::False()] then skip end
 			end 	    
   	}
 }

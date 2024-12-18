@@ -4,7 +4,7 @@ syscall send(c, v) {
 }
 
 syscall recv(c) {
-	wait [c::store(v)] 
+	wait [c::store(v)] then
 		return v 
 	end
 }
@@ -12,25 +12,25 @@ syscall recv(c) {
 (** synchronous rpc channel *)
 syscall connect_rpc (c) {
 	put [c::req()];
-	wait [c::ack(), ::Fr(x)] 
+	wait [c::ack(), ::Fr(x)] then
 		put [c::conn(), chid(c, x)]; 
 		return x
 	end
 } 
 
 syscall invoke_rpc (cid, f, arg1, arg2) {
-	wait[chid(c, cid)]
+	wait[chid(c, cid)] then
 		put [c::invoke(f, arg1, arg2), chid(c, cid)]; 
-		wait [c::returned(v)] return v
+		wait [c::returned(v)] then return v
 		end
 	end	
 }
 
 syscall close_rpc (cid){
-	wait[c::conn(), chid(c, cid)] put[c::exit()] end
+	wait[c::conn(), chid(c, cid)] then put[c::exit()] end
 }
 
 syscall accept_rpc (c){
-	wait [c::req()] put [c::ack()] end
+	wait [c::req()] then put [c::ack()] end
 }
 

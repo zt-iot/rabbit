@@ -178,19 +178,33 @@ let print_tamarin prt ((sign, rules), init_list, procs, lem) dev =
 
 	  (* "\nrestriction OnlyOnce : \" All x #i #j . OnlyOnce(x) @ #i & OnlyOnce(x) @ #j ==> #i = #j \"\n" ^ *)
 
-	     "restriction Equality: \" All x y #i. Eq(x,y) @ #i ==> x = y\"\n" ^
+    "restriction Equality: \" All x y #i. Eq(x,y) @ #i ==> x = y\"\n" 
 
-  	    "restriction Inequality: \"All x #i. Neq(x,x) @ #i ==> F\"\n" ^
+    ^
 
-        "rule Equality_gen: [] --> [!Eq"^prt.prt_sep^"(x,x)]\n" ^
+    "restriction Inequality: \"All x #i. Neq(x,x) @ #i ==> F\"\n" 
 
-        "rule NEquality_gen: [] --[NEq_"^prt.prt_sep^"(x,y)]-> [!NEq"^prt.prt_sep^"(x,y)]\n" ^
-      
-        "restriction NEquality_rule: \"All x #i. NEq_"^prt.prt_sep^"(x,x) @ #i ==> F\""^
+    ^
 
-        "lemma traces[reuse] : all-traces \"All x y #i #j . Trace__(x, y) @ #i & Trace__(x, y) @ #j ==> #i = #j\"\n"^
+    "rule Equality_gen: [] --> [!Eq"^prt.prt_sep^"(x,x)]\n" 
 
-	        List.fold_left (fun l lem -> l ^ print_lemma prt lem) "" lem ^"\nend\n"
+    ^
+
+    "rule NEquality_gen: [] --[NEq_"^prt.prt_sep^"(x,y)]-> [!NEq"^prt.prt_sep^"(x,y)]\n" 
+
+    ^
+
+    "restriction NEquality_rule: \"All x #i. NEq_"^prt.prt_sep^"(x,x) @ #i ==> F\"\n"
+
+    ^
+
+    List.fold_left (fun s p -> 
+      let tfact = "Trace"^prt.prt_sep^p in 
+      s^"lemma "^tfact^"[use_induction,reuse] : all-traces \"All x y #i #j . "^tfact^"(x, y) @ #i & "^tfact^"(x, y) @ #j ==> #i = #j\"\n") "" (List.rev procs) 
+
+    ^
+
+    List.fold_left (fun l lem -> l ^ print_lemma prt lem) "" lem ^"\nend\n"
 
 type engine = {
     namespace : string; 
@@ -488,12 +502,16 @@ let rec pop_hd n lst =
   | [] -> error ~loc:Location.Nowhere (UnintendedError "pop empty list")
   else if n = 0 then lst else error ~loc:Location.Nowhere (UnintendedError "pop negative elements")
 
+let trace_fact eng tnum = ("Trace"^eng.sep^eng.namespace, [String (engine_state_aux eng) ; tnum], config_linear)
+
+
 let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Location.loc=loc} = 
   let return_var = Var ("return"^eng.sep) in
   let return_unit = String ("unit"^eng.sep) in 
   let (meta_num, loc_num, top_num) = vars in 
   let trace_num = (Int ("n"^eng.sep^eng.sep)) in
-  let trace_fact rname = ("Trace"^eng.sep, [String rname ; trace_num], config_linear) in
+  let trace_fact eng = ("Trace"^eng.sep^eng.namespace, [String (engine_state_aux eng) ; trace_num], config_linear) in
+
   match c with
   | Syntax.Return e ->
     let e, gv = translate_expr2 eng.sep e in  
@@ -503,7 +521,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     ([(
         (make_rule_name eng scope)^"_return", 
         [mk_state eng return_unit vars trace_num] @ gv, 
-        [trace_fact (make_rule_name eng scope)],
+        [trace_fact eng],
         [mk_state eng_f e vars trace_num])
       ], eng_f)
 
@@ -513,7 +531,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     ([(
         (make_rule_name eng scope)^"skip", 
         [mk_state eng return_unit vars trace_num], 
-        [trace_fact (make_rule_name eng scope)],
+        [trace_fact eng],
         [mk_state eng_f return_unit vars trace_num])
       ], eng_f)
 
@@ -533,7 +551,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let initial_rule = (
                         (make_rule_name eng scope)^"_wait", 
                         [mk_state_shift eng return_unit vars (List.length vl, 0, 0) trace_num] @ fl @ gv @ acps ,
-                        [trace_fact (make_rule_name eng scope)],
+                        [trace_fact eng],
                         [mk_state eng_f return_unit (meta_num + List.length vl, loc_num, top_num) trace_num]) in 
 
     let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num + List.length vl, loc_num, top_num) None syscall c in
@@ -568,7 +586,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let eng_f = engine_index_inc eng scope in
     ([((make_rule_name eng scope)^"_put", 
       [mk_state eng return_unit vars trace_num] @ gv @ acps, 
-      [trace_fact (make_rule_name eng scope)],
+      [trace_fact eng],
       [mk_state eng_f return_unit vars trace_num] @ fl )], eng_f)
 
   | Syntax.Let (v, e, c) -> 
@@ -581,7 +599,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let initial_rule = 
       ((make_rule_name eng scope)^"_let", 
         [mk_state eng return_unit vars trace_num] @ gv, 
-        [trace_fact (make_rule_name eng scope)],
+        [trace_fact eng],
         [mk_state_app eng_f return_unit vars e trace_num]) in 
 
     let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num, loc_num+1, top_num) None syscall c in
@@ -618,7 +636,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let eng_f = engine_index_inc eng scope in
     ([((make_rule_name eng scope)^"_assign", 
       [mk_state eng return_unit vars trace_num] @ gv, 
-      [trace_fact (make_rule_name eng scope)],
+      [trace_fact eng],
       [mk_state_replace eng_f return_unit vars di e trace_num])], eng_f)
 
 
@@ -636,7 +654,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let initial_rule = 
               ((make_rule_name eng scope)^"_fcall", 
               [mk_state eng return_unit vars trace_num] @ gv, 
-              [trace_fact (make_rule_name eng scope)],
+              [trace_fact eng],
               [mk_state_app_list eng_f return_unit vars el trace_num]) in
 
     let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num, loc_num + (List.length el), top_num) None syscall cmd in
@@ -649,13 +667,13 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
       | Some (_, v) -> 
         (make_rule_name eng_f scope, 
           [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num],
-          [trace_fact (make_rule_name eng_f scope)],
+          [trace_fact eng_f],
           [mk_state_replace_and_shift eng_ff return_unit vars (0, (List.length el), 0) v return_var trace_num])
 
       | None -> 
         (make_rule_name eng_f scope, 
           [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num],
-          [trace_fact (make_rule_name eng_f scope)],
+          [trace_fact eng_f],
           [mk_state_shift eng_ff return_unit vars (0, (List.length el), 0) trace_num])
       end
     in 
@@ -676,7 +694,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let initial_rule = 
               ((make_rule_name eng scope)^"_scall", 
               [mk_state eng return_unit vars trace_num] @ gv, 
-              [trace_fact (make_rule_name eng scope)],
+              [trace_fact eng],
               [mk_state_app_list eng_f return_unit vars el trace_num]) in
 
     let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num, loc_num + (List.length el), top_num) None o cmd in
@@ -689,13 +707,13 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
       | Some (_, v) -> 
         (make_rule_name eng_f scope, 
           [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num],
-          [trace_fact (make_rule_name eng_f scope)],
+          [trace_fact eng_f],
           [mk_state_replace_and_shift eng_ff return_unit vars (0, (List.length el), 0) v return_var trace_num])
 
       | None -> 
         (make_rule_name eng_f scope, 
           [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num],
-          [trace_fact (make_rule_name eng_f scope)],
+          [trace_fact eng_f],
           [mk_state_shift eng_ff return_unit vars (0, (List.length el), 0) trace_num])
       end
     in 
@@ -716,10 +734,10 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let eng_f = engine_index_inc eng None in
 
     let final_rule_1 = (make_rule_name eng1 scope, 
-      [mk_state eng1 return_var vars trace_num], [trace_fact (make_rule_name eng1 scope)], [mk_state eng_f return_var vars trace_num]) in 
+      [mk_state eng1 return_var vars trace_num], [trace_fact eng1], [mk_state eng_f return_var vars trace_num]) in 
 
     let final_rule_2 = (make_rule_name eng2 scope, 
-      [mk_state eng2 return_var vars trace_num], [trace_fact (make_rule_name eng2 scope)], [mk_state eng_f return_var vars trace_num]) in 
+      [mk_state eng2 return_var vars trace_num], [trace_fact eng2], [mk_state eng_f return_var vars trace_num]) in 
 
     (r1@r2@[final_rule_1; final_rule_2], eng_f)
 
@@ -732,7 +750,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
         Some (0::l)
       end in 
     let (r1, eng1) = translate_cmd eng funs syscalls vars scope1 syscall c1 in
-    let loop = (make_rule_name eng1 scope, [mk_state eng1 return_var vars trace_num], [trace_fact (make_rule_name eng1 scope)], [mk_state eng return_unit vars (AddOne trace_num)]) in 
+    let loop = (make_rule_name eng1 scope, [mk_state eng1 return_var vars trace_num], [trace_fact eng1], [mk_state eng return_unit vars (AddOne trace_num)]) in 
     let (r2, eng) = translate_cmd eng funs syscalls vars scope syscall c2 in
     (r1@[loop]@r2, eng)
 
@@ -800,7 +818,7 @@ let translate_process sep t {
 		     let t = add_rule t 
                   (make_rule_name eng None, namespace,
 					         [mk_state eng return_unit (0,0,i) (Int ("n" ^ sep ^sep))] @ gv, 
-					         [("Trace"^sep, [String (make_rule_name eng None) ; (Int ("n" ^ sep ^sep))], config_linear)],  
+					         [trace_fact eng (Int ("n" ^ sep ^sep))],  
 					         [mk_state_app_top eng_f return_unit (0,0,i) e (Int ("n" ^ sep ^sep))]) in
 	       (eng_f, t, i+1)) (eng, t, 0) (List.rev vars) in 
 

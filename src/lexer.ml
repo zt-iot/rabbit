@@ -31,12 +31,11 @@ let reserved = [
   ("wait", WAIT) ; 
   ("put", PUT) ; 
   ("case", CASE) ; 
-  ("while", WHILE) ; 
   ("end", END) ; 
-  ("do", DO) ;
   ("repeat", REPEAT);
   ("until", UNTIL);
   ("in", IN);
+  ("then", THEN)
   ]
 
 let name =
@@ -112,7 +111,6 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | ')'                      -> f (); RPAREN
   | '['                      -> f (); LBRACKET
   | ']'                      -> f (); RBRACKET
-  | '\\'                     -> f (); BACKSLASH
   | '{'                      -> f (); LBRACE
   | '}'                      -> f (); RBRACE
   | "<>"                     -> f (); NEQ
