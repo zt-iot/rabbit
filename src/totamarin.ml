@@ -802,7 +802,7 @@ let translate_process sep t {
 					         [mk_state eng return_unit (0,0,i) (Int ("n" ^ sep ^sep))] @ gv, 
 					         [("Trace"^sep, [String (make_rule_name eng None) ; (Int ("n" ^ sep ^sep))], config_linear)],  
 					         [mk_state_app_top eng_f return_unit (0,0,i) e (Int ("n" ^ sep ^sep))]) in
-	       (eng_f, t, i+1)) (eng, t, 0) vars in 
+	       (eng_f, t, i+1)) (eng, t, 0) (List.rev vars) in 
 
   let t = add_comment t ("-- main function ") in 	
   

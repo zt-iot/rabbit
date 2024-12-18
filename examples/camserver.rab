@@ -124,12 +124,10 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
 	main 
   	{
 
-			@ [::AAA()];
 			let conn = connect_rpc(ch_rpc) in 
-			@ [::BBB()];
 			
 			let image = get_picture() in 
-    	@ [::Took(image)];
+
 			let sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
 
 			_ := eaves_mem((sig, image));
@@ -227,11 +225,9 @@ requires  [
   lemma Reachable5 :
     exists-trace "Ex x #j  . Took(x) @ #j" ;
   lemma Reachable :
-    exists-trace "Ex x #j  . ImgSend(x) @ #j" ;
+    exists-trace "Ex x #i #j  . ClientClose() @ #j & ImgRecvValid(x) @ #i" ;
 
   lemma Correspondence :
     all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
   ]
 
-
-    
