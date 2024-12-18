@@ -79,6 +79,8 @@ plain_decl:
 
   | CONST FRESH t=NAME { DeclInit(t,None) }
 
+  | ATTACK f=NAME LPAREN arg=typed_arg RPAREN LBRACE c=cmd RBRACE { DeclExtAttack (f, arg, c) }
+
   | external_syscall { $1 }
 
   | sys { $1 }

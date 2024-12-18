@@ -76,7 +76,12 @@ allow server_t readonly_t     [fopen, fread, fclose]
 (***********)
 (** attacker model *)
 
-(** attack tampar_ch (channel c) : [c::store(v), In(w)] -> [c::store(w)]*)
+attack tampar_ch (c) {
+	wait [c::store, In(w)] then 
+		put [c::store(w)]
+	end
+}
+
 passive attack eaves_mem (v) {
 	put [::Out(v)]
 }
@@ -221,7 +226,7 @@ process server(ch_net : udp_t) : server_t
 (***********)
 system 
 	client(udp, rpc) with client_fs
-||	server(udp) with server_fs
+||	server(udp) with server_fs 
 ||	client_ta(rpc) with client_ta_fs
 requires  [
   lemma Reachable1 :

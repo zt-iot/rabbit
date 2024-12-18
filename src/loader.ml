@@ -125,7 +125,7 @@ let process_fact_closed ctx lctx f =
    let loc = f.Location.loc in 
    match f.Location.data with
    | Input.Fact (id, el) ->
-      (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), 
+      (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), 
          Location.locate ~loc:f.Location.loc (Syntax.Fact(id, List.map (process_expr2 ctx lctx) el)))
    | Input.GlobalFact (id, el) ->
       (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), 
@@ -341,7 +341,6 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
       let (e2', lctx) = collect_vars e2 lctx in
       (ctx, pol, Context.def_add_ext_eq def (lctx.Context.lctx_loc_var, e1', e2'), sys, fst ps)
 
-
    | Input.DeclExtSyscall(f, typed_args, c) ->      
       (if Context.check_used ctx f then error ~loc (AlreadyDefined f) else ());
 
@@ -362,6 +361,26 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
             pol, 
             Context.def_add_ext_syscall def (f, typed_args, c), sys, fst ps)
 
+(*    | Input.DeclExtAttack(f, typed_arg, c) ->      
+      (if Context.check_used ctx f then error ~loc (AlreadyDefined f) else ());
+
+         (* parse arguments *)
+         let lctx = List.fold_left (fun lctx' ta -> 
+            match ta with
+            | (Input.TyValue, v) -> Context.lctx_add_new_var ~loc lctx' v
+            | (Input.TyChannel, v) -> Context.lctx_add_new_chan ~loc lctx' v
+            | (Input.TyPath, v) -> Context.lctx_add_new_path ~loc lctx' v
+            | (Input.TyProcess, v) -> error ~loc (UnknownIdentifier2 v)) (Context.lctx_init) typed_args in
+
+         (* let lctx = Context.lctx_add_frame lctx in  *)
+         let (ctx, lctx, c) = process_cmd ctx lctx c in
+         let ch_args = lctx.Context.lctx_chan in 
+         let path_args = lctx.Context.lctx_path in 
+
+         (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), 
+            pol, 
+            Context.def_add_ext_syscall def (f, typed_args, c), sys, fst ps)
+ *)
    | Input.DeclType (id, c) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, c), pol, def, sys, fst ps)
    
