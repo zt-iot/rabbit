@@ -26,14 +26,14 @@ syscall get_picture () {
 function h:1
 
 syscall fopen (p) {
-	put[p.open()]; 
+	put[open(p)]; 
 	return h(p)
 }
 
 syscall fread (y){
 	wait[y = h(p)] then 
-		wait[p.File(x), p.open()] then 
-			put[p.File(x), p.open()];
+		wait[p.File(x), open(p)] then 
+			put[p.File(x), open(p)];
 			return x
 		end
 	end
@@ -41,7 +41,7 @@ syscall fread (y){
 
 syscall fclose (y) {
 	wait[y = h(p)] then 
-		wait[p.open()] then 
+		wait[open(p)] then 
 			skip
 		end
 	end
@@ -76,11 +76,13 @@ allow server_t readonly_t     [fopen, fread, fclose]
 (***********)
 (** attacker model *)
 
+(*
 attack tampar_ch (c) {
 	wait [c::store, In(w)] then 
 		put [c::store(w)]
 	end
 }
+*)
 
 passive attack eaves_mem (v) {
 	put [::Out(v)]

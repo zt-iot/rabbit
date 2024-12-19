@@ -1,0 +1,132 @@
+(* security primitives *)
+function pk:1
+function enc:2
+function sign:2
+function dec:2
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+function true:0
+function verify:3
+equation dec(enc(x, y), y) = x
+equation verify (sign(d, k), d, pk(k)) = true
+
+
+
+(***********)
+(** declare types with their classes *)
+type readonly_t   : filesys
+
+type server_t 	  : process
+type client_t 	  : process
+type client_ta_t  : process
+
+type udp_t 	  : channel
+type rpc_t 	  : channel
+
+(***********)
+(** access control *)
+
+
+(***********)
+(** attacker model *)
+
+(***********)
+(** global constants *)
+const fresh priv_k
+const fresh sym_k
+const fresh init_data
+
+
+(***********)
+(** installed channels and filesystems *)
+channel udp : udp_t
+
+channel rpc : rpc_t
+
+filesys client_fs = 
+  [ 
+    {path: "/secret/pub", data: pk(priv_k), type: readonly_t}
+  ]
+
+filesys server_fs = 
+  [ 
+    {path: "/secret/pub", data: pk(priv_k), type: readonly_t}
+  ]
+
+filesys client_ta_fs = 
+  [ 
+    {path: "/secret/priv", data: enc(priv_k, sym_k), type: readonly_t}
+  ]
+
+(***********)
+(** process templates *)
+process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t 
+{  
+	let dev_path = "/dev/camera"
+	let privkey_path = "/secret/priv"
+	let invoke_func = "sign_image"
+
+	main 
+  	{
+	  		@[::A()];
+  		put[Sewon("fun"), Haruka("happy")];
+  		 @[::B()];
+  		wait[Sewon(x)] then 
+  			put[TypeTheory(x)];
+  			skip;
+  			skip;
+  			skip;
+  			skip
+  		end;
+  		@[::C()]
+
+
+  	}
+}
+
+process client_ta(ch_rpc : rpc_t) : client_ta_t 
+{
+
+  
+	main 
+	{
+skip	
+}
+}
+
+process server(ch_net : udp_t) : server_t 
+{
+	let pubkey_path = "/secret/pub"
+  
+	main 
+	{
+	skip
+  	}
+}
+
+
+(***********)
+system 
+	client(udp, rpc) with client_fs
+||	server(udp) with server_fs 
+||	client_ta(rpc) with client_ta_fs
+requires  [
+  lemma Reachable1 :
+    exists-trace "Ex #j  . A() @ #j" ;
+  lemma Reachable2 :
+    exists-trace "Ex #j  . B() @ #j" ;
+  lemma Reachable3 :
+    exists-trace "Ex #j  . C() @ #j" ;
+  lemma Reachable4 :
+    exists-trace "Ex #j  . BBB() @ #j" ;
+  lemma Reachable5 :
+    exists-trace "Ex x #j  . Took(x) @ #j" ;
+  lemma Reachable :
+    exists-trace "Ex x #i #j  . ClientClose() @ #j & ImgRecvValid(x) @ #i" ;
+
+  lemma Correspondence :
+    all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
+  ]
+

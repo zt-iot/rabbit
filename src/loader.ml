@@ -127,22 +127,22 @@ let process_fact_closed ctx lctx f =
    | Input.Fact (id, el) ->
       (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), 
          Location.locate ~loc:f.Location.loc (Syntax.Fact(id, List.map (process_expr2 ctx lctx) el)))
-   | Input.GlobalFact (id, el) ->
+   | Input.GlobalFact (id, el) -> 
       (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), 
          Location.locate ~loc:f.Location.loc (Syntax.GlobalFact(id, List.map (process_expr2 ctx lctx) el)))
-   | Input.ChannelFact (l, id, el) ->
+   | Input.ChannelFact (l, id, el) -> 
       (* check validty of local scope l *)
-         (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), 
+         (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), 
                   Location.locate ~loc:f.Location.loc 
                   (Syntax.ChannelFact(process_expr2 ctx lctx (Location.locate ~loc (Input.Var l)),
                         id, List.map (process_expr2 ctx lctx) el)))
-   | Input.PathFact (l, id, el) ->
+   | Input.PathFact (l, id, el) -> 
       (* check validty of local scope l *)
-         (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), 
+         (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), 
                   Location.locate ~loc:f.Location.loc 
                   (Syntax.PathFact(process_expr2 ctx lctx (Location.locate ~loc (Input.Var l)),
                         id, List.map (process_expr2 ctx lctx) el)))
-   | Input.ResFact(i, el) ->
+   | Input.ResFact(i, el) -> 
          (ctx, Location.locate ~loc:f.Location.loc 
                   (Syntax.ResFact(i, List.map (process_expr2 ctx lctx) el)))
 

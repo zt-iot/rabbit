@@ -210,9 +210,10 @@ type engine = {
     namespace : string; 
     index : ((int list) * int) list;
     sep : string;
+    lfacts : string list;
   }
 
-let empty_engine = {namespace = ""; index = [([],0)]; sep = "";}
+let empty_engine = {namespace = ""; index = [([],0)]; sep = ""; lfacts = []}
 
 let engine_index_inc eng scope = 
   match scope with
@@ -386,6 +387,30 @@ let mk_state_replace_and_shift eng return_var (meta_num, loc_num, top_num) (n, m
       List (List.map (fun i -> if b && i = j  then e else TopVar (i+l)) (int_to_list top_num))
     ], config_linear) 
 
+let engine_fbook_name eng =
+  "Fact"^eng.sep^eng.namespace
+
+let mk_fact_book_fold eng tnum = 
+  (engine_fbook_name eng, 
+    [List [engine_state eng; tnum] ; Var ("fb"^eng.sep)]
+    ,
+    config_linear)
+
+let mk_fact_book eng subs tnum = 
+  (engine_fbook_name eng, 
+    [List [engine_state eng; tnum] ;
+    List (List.map (fun fname ->
+      match List.find_opt (fun (f, args) -> f = fname) subs with
+      | None -> Var ("fb"^eng.sep^fname)
+      | Some (_, args) -> List (String "fb" :: args)) eng.lfacts)]
+    ,
+    config_linear)
+
+let mk_fact_book_init eng unique = 
+(engine_fbook_name eng, 
+  [List [engine_state eng; One] ; 
+  List (List.map (fun fname -> String (unique^eng.sep)) eng.lfacts)],
+config_linear)
 
 (* let append_loc state e =
   (engine_state eng, 
@@ -414,9 +439,7 @@ let translate_fact eng f =
     let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
                                   (el @ [e], gv @ g)) ([],[]) (ch::el) in    
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
-    
-    (* let acp = ("ACP"^eng.sep^"chan", String eng.namespace, String ch, config_persist) in  *)
-    
+        
     (mk_my_fact_name eng id, el, config_linear), gv, [translate_expr eng.sep ch]
 
   | Syntax.PathFact (path, id, el) -> 
@@ -424,8 +447,6 @@ let translate_fact eng f =
                                   (el @ [e], gv @ g)) ([],[]) (path::el) in    
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
     
-    (* let acp = ("ACP"^eng.sep"path", String eng.namespace, String ch, config_persist) in  *)
-
     (mk_my_fact_name eng id, (String eng.namespace)::el, config_linear), gv, [translate_expr eng.sep path]
 
   | Syntax.ResFact (0, el) -> 
@@ -433,8 +454,6 @@ let translate_fact eng f =
                                   (el @ [e], gv @ g)) ([],[]) (el) in    
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
     
-    (* let acp = ("ACP"^eng.sep"path", String eng.namespace, String ch, config_persist) in  *)
-
     ("Eq"^eng.sep, el, config_persist), gv, []
 
   | Syntax.ResFact (1, el) -> 
@@ -442,11 +461,7 @@ let translate_fact eng f =
                                   (el @ [e], gv @ g)) ([],[]) (el) in    
     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
     
-    (* let acp = ("ACP"^eng.sep"path", String eng.namespace, String ch, config_persist) in  *)
-
     ("NEq"^eng.sep, el, config_persist), gv, []
-
-
 
   | _ -> 
     error ~loc:Location.Nowhere (UnintendedError "process fact")
@@ -455,6 +470,57 @@ let translate_facts eng fl =
   List.fold_left (fun (fl, gv, acps) f -> 
               let (f, gv', acps') = translate_fact eng f in 
               (fl @ [f], gv@gv', acps@acps')) ([],[],[]) fl
+
+let translate_fact2 eng f = 
+  match f.Location.data with
+  | Syntax.Fact(id, el) -> 
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+                                  (el @ [e], gv @ g)) ([],[]) el in    
+    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    [], [(id, el)], gv, []
+
+  | Syntax.GlobalFact(id, el) -> 
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+                                  (el @ [e], gv @ g)) ([],[]) el in    
+    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+
+    [(mk_my_fact_name eng id, el, config_linear)], [], gv, []
+
+  | Syntax.ChannelFact(ch, id, el) ->
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+                                  (el @ [e], gv @ g)) ([],[]) (ch::el) in    
+    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+        
+    [(mk_my_fact_name eng id, el, config_linear)], [], gv, [translate_expr eng.sep ch]
+
+  | Syntax.PathFact (path, id, el) -> 
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+                                  (el @ [e], gv @ g)) ([],[]) (path::el) in    
+    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    
+    [(mk_my_fact_name eng id, (String eng.namespace)::el, config_linear)], [], gv, [translate_expr eng.sep path]
+
+  | Syntax.ResFact (0, el) -> 
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+                                  (el @ [e], gv @ g)) ([],[]) (el) in    
+    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    
+    [("Eq"^eng.sep, el, config_persist)], [], gv, []
+
+  | Syntax.ResFact (1, el) -> 
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+                                  (el @ [e], gv @ g)) ([],[]) (el) in    
+    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    
+    [("NEq"^eng.sep, el, config_persist)], [], gv, []
+
+  | _ -> 
+    error ~loc:Location.Nowhere (UnintendedError "process fact")
+
+let translate_facts2 eng fl =
+  List.fold_left (fun (fl, ll, gv, acps) f -> 
+              let (f, l, gv', acps') = translate_fact2 eng f in 
+              (fl @ f, ll @ l, gv@gv', acps@acps')) ([],[],[],[]) fl
 
 let rec expr_shift_meta shift e = 
   let e' = 
@@ -505,7 +571,14 @@ let rec pop_hd n lst =
 let trace_fact eng tnum = ("Trace"^eng.sep^eng.namespace, [String (engine_state_aux eng) ; tnum], config_linear)
 
 
-let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Location.loc=loc} = 
+let rec translate_cmd 
+  eng (* tranlating engine contains namespace, unique separator, and multi-index, and factbook *) 
+  funs 
+  syscalls 
+  vars 
+  scope 
+  syscall 
+  {Location.data=c; Location.loc=loc} = 
   let return_var = Var ("return"^eng.sep) in
   let return_unit = String ("unit"^eng.sep) in 
   let (meta_num, loc_num, top_num) = vars in 
@@ -520,9 +593,9 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let eng_f = engine_index_inc eng scope in
     ([(
         (make_rule_name eng scope)^"_return", 
-        [mk_state eng return_unit vars trace_num] @ gv, 
+        [mk_state eng return_unit vars trace_num; mk_fact_book_fold eng trace_num] @ gv, 
         [trace_fact eng],
-        [mk_state eng_f e vars trace_num])
+        [mk_state eng_f e vars trace_num; mk_fact_book_fold eng_f trace_num])
       ], eng_f)
 
 
@@ -530,9 +603,9 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let eng_f = engine_index_inc eng scope in
     ([(
         (make_rule_name eng scope)^"skip", 
-        [mk_state eng return_unit vars trace_num], 
+        [mk_state eng return_unit vars trace_num; mk_fact_book_fold eng trace_num], 
         [trace_fact eng],
-        [mk_state eng_f return_unit vars trace_num])
+        [mk_state eng_f return_unit vars trace_num; mk_fact_book_fold eng_f trace_num])
       ], eng_f)
 
 
@@ -543,16 +616,20 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
 
   | Syntax.Wait (vl, fl, c) -> 
 
-    let fl, gv, acps = translate_facts eng fl in
+    let fl, ll, gv, acps = translate_facts2 eng fl in
     let acps = List.map (fun target -> ("ACP"^eng.sep, [String eng.namespace; 
                                                         target; 
                                                         String syscall], config_persist)) acps in
+    (* let fl, subs = List.fold_left (fun (fl, subs) f) *)
     let eng_f = engine_index_inc eng scope in
     let initial_rule = (
                         (make_rule_name eng scope)^"_wait", 
-                        [mk_state_shift eng return_unit vars (List.length vl, 0, 0) trace_num] @ fl @ gv @ acps ,
+                        [mk_state_shift eng return_unit vars (List.length vl, 0, 0) trace_num; 
+                         mk_fact_book eng ll trace_num] 
+                        @ fl @ gv @ acps ,
                         [trace_fact eng],
-                        [mk_state eng_f return_unit (meta_num + List.length vl, loc_num, top_num) trace_num]) in 
+                        [mk_state eng_f return_unit (meta_num + List.length vl, loc_num, top_num) trace_num;
+                         mk_fact_book eng_f ll trace_num]) in 
 
     let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num + List.length vl, loc_num, top_num) None syscall c in
 
@@ -579,15 +656,15 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     (initial_rule::rl, eng_f)
 
   | Syntax.Put fl -> 
-    let fl, gv, acps = translate_facts eng fl in
+    let fl, ll, gv, acps = translate_facts2 eng fl in
     let acps = List.map (fun target -> ("ACP"^eng.sep, [String eng.namespace; 
                                                     target; 
                                                     String syscall], config_persist)) acps in
     let eng_f = engine_index_inc eng scope in
     ([((make_rule_name eng scope)^"_put", 
-      [mk_state eng return_unit vars trace_num] @ gv @ acps, 
+      [mk_state eng return_unit vars trace_num; mk_fact_book eng [] trace_num] @ gv @ acps, 
       [trace_fact eng],
-      [mk_state eng_f return_unit vars trace_num] @ fl )], eng_f)
+      [mk_state eng_f return_unit vars trace_num; mk_fact_book eng_f ll trace_num] @ fl )], eng_f)
 
   | Syntax.Let (v, e, c) -> 
     
@@ -598,9 +675,9 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
 
     let initial_rule = 
       ((make_rule_name eng scope)^"_let", 
-        [mk_state eng return_unit vars trace_num] @ gv, 
+        [mk_state eng return_unit vars trace_num; mk_fact_book_fold eng trace_num] @ gv, 
         [trace_fact eng],
-        [mk_state_app eng_f return_unit vars e trace_num]) in 
+        [mk_state_app eng_f return_unit vars e trace_num; mk_fact_book_fold eng_f trace_num]) in 
 
     let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num, loc_num+1, top_num) None syscall c in
    
@@ -635,9 +712,9 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
 
     let eng_f = engine_index_inc eng scope in
     ([((make_rule_name eng scope)^"_assign", 
-      [mk_state eng return_unit vars trace_num] @ gv, 
+      [mk_state eng return_unit vars trace_num; mk_fact_book_fold eng trace_num] @ gv, 
       [trace_fact eng],
-      [mk_state_replace eng_f return_unit vars di e trace_num])], eng_f)
+      [mk_state_replace eng_f return_unit vars di e trace_num; mk_fact_book_fold eng_f trace_num])], eng_f)
 
 
   | Syntax.FCall (ov, f, el) ->
@@ -653,9 +730,9 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let eng_f = engine_index_inc eng scope in
     let initial_rule = 
               ((make_rule_name eng scope)^"_fcall", 
-              [mk_state eng return_unit vars trace_num] @ gv, 
+              [mk_state eng return_unit vars trace_num; mk_fact_book_fold eng trace_num] @ gv, 
               [trace_fact eng],
-              [mk_state_app_list eng_f return_unit vars el trace_num]) in
+              [mk_state_app_list eng_f return_unit vars el trace_num; mk_fact_book_fold eng_f trace_num]) in
 
     let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num, loc_num + (List.length el), top_num) None syscall cmd in
     
@@ -666,15 +743,15 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
       begin match ov with
       | Some (_, v) -> 
         (make_rule_name eng_f scope, 
-          [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num],
+          [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num; mk_fact_book_fold eng_f trace_num],
           [trace_fact eng_f],
-          [mk_state_replace_and_shift eng_ff return_unit vars (0, (List.length el), 0) v return_var trace_num])
+          [mk_state_replace_and_shift eng_ff return_unit vars (0, (List.length el), 0) v return_var trace_num; mk_fact_book_fold eng_ff trace_num])
 
       | None -> 
         (make_rule_name eng_f scope, 
-          [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num],
+          [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num; mk_fact_book_fold eng_f trace_num],
           [trace_fact eng_f],
-          [mk_state_shift eng_ff return_unit vars (0, (List.length el), 0) trace_num])
+          [mk_state_shift eng_ff return_unit vars (0, (List.length el), 0) trace_num; mk_fact_book_fold eng_ff trace_num])
       end
     in 
     (initial_rule :: rl @ [final_rule], eng_ff)
@@ -693,9 +770,9 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let eng_f = engine_index_inc eng scope in
     let initial_rule = 
               ((make_rule_name eng scope)^"_scall", 
-              [mk_state eng return_unit vars trace_num] @ gv, 
+              [mk_state eng return_unit vars trace_num; mk_fact_book_fold eng trace_num] @ gv, 
               [trace_fact eng],
-              [mk_state_app_list eng_f return_unit vars el trace_num]) in
+              [mk_state_app_list eng_f return_unit vars el trace_num; mk_fact_book_fold eng_f trace_num]) in
 
     let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num, loc_num + (List.length el), top_num) None o cmd in
     
@@ -706,15 +783,15 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
       begin match ov with
       | Some (_, v) -> 
         (make_rule_name eng_f scope, 
-          [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num],
+          [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num; mk_fact_book_fold eng_f trace_num],
           [trace_fact eng_f],
-          [mk_state_replace_and_shift eng_ff return_unit vars (0, (List.length el), 0) v return_var trace_num])
+          [mk_state_replace_and_shift eng_ff return_unit vars (0, (List.length el), 0) v return_var trace_num; mk_fact_book_fold eng_ff trace_num])
 
       | None -> 
         (make_rule_name eng_f scope, 
-          [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num],
+          [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num; mk_fact_book_fold eng_f trace_num],
           [trace_fact eng_f],
-          [mk_state_shift eng_ff return_unit vars (0, (List.length el), 0) trace_num])
+          [mk_state_shift eng_ff return_unit vars (0, (List.length el), 0) trace_num; mk_fact_book_fold eng_ff trace_num])
       end
     in 
     (initial_rule :: rl @ [final_rule], eng_ff)
@@ -734,10 +811,10 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let eng_f = engine_index_inc eng None in
 
     let final_rule_1 = (make_rule_name eng1 scope, 
-      [mk_state eng1 return_var vars trace_num], [trace_fact eng1], [mk_state eng_f return_var vars trace_num]) in 
+      [mk_state eng1 return_var vars trace_num; mk_fact_book_fold eng1 trace_num], [trace_fact eng1], [mk_state eng_f return_var vars trace_num; mk_fact_book_fold eng_f trace_num]) in 
 
     let final_rule_2 = (make_rule_name eng2 scope, 
-      [mk_state eng2 return_var vars trace_num], [trace_fact eng2], [mk_state eng_f return_var vars trace_num]) in 
+      [mk_state eng2 return_var vars trace_num; mk_fact_book_fold eng1 trace_num], [trace_fact eng2], [mk_state eng_f return_var vars trace_num; mk_fact_book_fold eng_f trace_num]) in 
 
     (r1@r2@[final_rule_1; final_rule_2], eng_f)
 
@@ -750,7 +827,7 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
         Some (0::l)
       end in 
     let (r1, eng1) = translate_cmd eng funs syscalls vars scope1 syscall c1 in
-    let loop = (make_rule_name eng1 scope, [mk_state eng1 return_var vars trace_num], [trace_fact eng1], [mk_state eng return_unit vars (AddOne trace_num)]) in 
+    let loop = (make_rule_name eng1 scope, [mk_state eng1 return_var vars trace_num; mk_fact_book_fold eng1 trace_num], [trace_fact eng1], [mk_state eng return_unit vars (AddOne trace_num); mk_fact_book_fold eng trace_num]) in 
     let (r2, eng) = translate_cmd eng funs syscalls vars scope syscall c2 in
     (r1@[loop]@r2, eng)
 
@@ -758,9 +835,9 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let fl, gv, acps = translate_facts eng fl in 
     let eng_f = engine_index_inc eng scope in
     ([((make_rule_name eng scope)^"_event", 
-        [mk_state eng return_unit vars trace_num] @ gv, 
+        [mk_state eng return_unit vars trace_num; mk_fact_book_fold eng trace_num] @ gv, 
         fl,
-        [mk_state eng_f return_unit vars trace_num])
+        [mk_state eng_f return_unit vars trace_num; mk_fact_book_fold eng_f trace_num])
       ], eng_f)
 
 
@@ -775,7 +852,7 @@ let translate_process sep t {
         Context.proc_variable=vars;
         Context.proc_function=fns;
         Context.proc_main=m
-      } syscalls =
+      } syscalls lfacts uid =
   let namespace = String.capitalize_ascii (s ^ (if k = 0 then "" else string_of_int k)) in (* this must be unique *)
   let t = add_comment t ("- Process name: " ^ namespace) in 
 
@@ -793,6 +870,7 @@ let translate_process sep t {
 
   let eng = engine_set_namespace empty_engine namespace in 
   let eng = engine_set_sep eng sep in 
+  let eng = {eng with lfacts=lfacts} in 
   let eng_f = engine_index_inc eng None in
   let return_var = Var ("return"^eng.sep) in
   let return_unit = String ("unit"^eng.sep) in 
@@ -805,7 +883,7 @@ let translate_process sep t {
           (make_rule_name eng None, namespace,
           [], 
           [("Init"^sep, [String namespace], config_linear)], 
-	        [mk_state eng_f return_unit (0, 0, 0) One]) in
+	        [mk_state eng_f return_unit (0, 0, 0) One; mk_fact_book_init eng_f uid]) in
   let eng = eng_f in 
 
   (* initialize memory *)
@@ -817,9 +895,12 @@ let translate_process sep t {
 
 		     let t = add_rule t 
                   (make_rule_name eng None, namespace,
-					         [mk_state eng return_unit (0,0,i) (Int ("n" ^ sep ^sep))] @ gv, 
+					         [mk_state eng return_unit (0,0,i) (Int ("n" ^ sep ^sep)); 
+                    mk_fact_book_fold eng (Int ("n" ^ sep ^sep))
+                   ] @ gv, 
 					         [trace_fact eng (Int ("n" ^ sep ^sep))],  
-					         [mk_state_app_top eng_f return_unit (0,0,i) e (Int ("n" ^ sep ^sep))]) in
+					         [mk_state_app_top eng_f return_unit (0,0,i) e (Int ("n" ^ sep ^sep)); 
+                    mk_fact_book_fold eng_f (Int ("n" ^ sep ^sep))]) in
 	       (eng_f, t, i+1)) (eng, t, 0) (List.rev vars) in 
 
   let t = add_comment t ("-- main function ") in 	
@@ -848,6 +929,9 @@ let translate_sys {
         Context.sys_proc = proc ;
         Context.sys_lemma = lem
       } (used_idents, used_string) = 
+
+  let lfacts = List.fold_left (fun lfacts (lfact, _, b) -> if b = true then lfacts @ [lfact] else lfacts) [] ctx.Context.ctx_fact in 
+
   let t = empty_tamarin in
   (* let eng = empty_engine in *)
   let sep = (let names = get_fact_names ctx in 
@@ -1014,7 +1098,7 @@ let translate_sys {
    *)
 
   let t = add_comment t "Processes:" in
-  let t = List.fold_left (fun t p -> translate_process sep t p (List.rev def.Context.def_ext_syscall)) t (List.rev proc) in
+  let t = List.fold_left (fun t p -> translate_process sep t p (List.rev def.Context.def_ext_syscall) lfacts fresh_string) t (List.rev proc) in
 
   let init_list = List.map (fun p -> String.capitalize_ascii (p.Context.proc_name ^ 
                                     (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid )
