@@ -323,7 +323,8 @@ let mk_state eng return_var (meta_num, loc_num, top_num) tnum =
       return_var; 
       List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
       List (List.map (fun i -> LocVar i) (int_to_list loc_num)); 
-      List (List.map (fun i -> TopVar i) (int_to_list top_num))
+      List (List.map (fun i -> TopVar i) (int_to_list top_num));
+      
       ], config_linear) 
 
 
