@@ -1,9 +1,29 @@
-(* 
-   For translating to and printing Tamarin models.
+(* For translating to and printing Tamarin models.
    * 'Rabbit' is a string value palceholder for void output of system calls and functions.
    * GlobalFact is fact that does not bound to any process or channel. Currently 
    it only contains reserved facts.
  *)
+let separator = ref "_"
+
+let mk_my_fact_name s = 
+  (String.capitalize_ascii s)
+
+let replace_string s t str = 
+  String.concat t (String.split_on_char s str)
+
+ let int_to_list n =
+  let rec aux i acc =
+    if i < 0 then acc
+    else aux (i - 1) (i :: acc)
+  in
+  aux (n - 1) []
+
+
+let mult_list_with_concat l sep = 
+  match l with
+  | h :: t -> h ^ (List.fold_left (fun r s-> r ^ sep ^ s) "" t) 
+  | [] -> ""
+
 
 type to_tamarin_error =
   | UnintendedError of string
@@ -63,116 +83,273 @@ let config_linear_prior = {is_persist=false; priority = 3}
 let config_linear_less = {is_persist=false; priority = 1}
 let config_persist_less = {is_persist=true; priority = 1}
 
-
-
 type fact = string * expr list * rule_config 
 (* true is persistent fact *)
-type rule = 
-  | Rule of string * string * fact list * fact list * fact list
-  | Comment of string
+
+
+(* state consists of its identifier and numbers of variables.
+    How to read: *)
+type action = 
+  | ActionReturn of expr
+  | ActionAssign of (int * bool) * expr
+  | ActionSeq of action * action
+  | ActionAddMeta of int
+  | ActionIntro of expr list
+  | ActionPopLoc of int
+  | ActionPopMeta of int
+
+type state = {
+  state_namespace : string;
+  state_index : ((int list) * int) list; 
+  state_vars : int * int * int;
+}
+
+type transition = {
+  transition_namespace : string;
+  transition_name : string;
+  transition_from : state;
+  transition_to : state;
+  transition_pre : fact list;
+  transition_post : fact list;
+  transition_function_facts : action;
+  transition_label : fact list;
+}
+
+type model = {
+  model_name : string;
+  model_states : state list;
+  model_transitions : transition list;
+}
+
+let empty_model name = {model_name = name; model_states = []; model_transitions = []}
+
+let add_state m s = {m with model_states = s :: m.model_states}
+
+let add_transition m t = {m with model_transitions = t :: m.model_transitions}
+
+let get_state_fact_name (s : state) = 
+  "State" ^  !separator  ^ s.state_namespace
+
+let state_index_to_string_aux (st : state) =
+  (List.fold_left (fun s (scope, ind) -> s ^  !separator  ^
+    (mult_list_with_concat (List.map string_of_int scope) "_")
+    ^ "_" ^ string_of_int ind) "" (List.rev st.state_index)) 
+
+let state_index_to_string st = String (state_index_to_string_aux st)
+  
+let mk_state (st : state) return_var = 
+  let meta_num, loc_num, top_num = st.state_vars in
+  (get_state_fact_name st, 
+    [
+      List [state_index_to_string st];
+      return_var; 
+      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
+      List (List.map (fun i -> LocVar i) (int_to_list loc_num)); 
+      List (List.map (fun i -> TopVar i) (int_to_list top_num))
+      ], config_linear) 
+(* 
+
+let mk_state_app eng return_var (meta_num, loc_num, top_num) e tnum = 
+  (get_state_fact_name st, 
+      [
+      List [engine_state eng; tnum] ;
+      return_var; 
+      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
+      List (e :: (List.map (fun i -> LocVar i) (int_to_list loc_num))); 
+      List (List.map (fun i -> TopVar i) (int_to_list top_num))
+      ], config_linear) 
+
+let mk_state_app_list eng return_var (meta_num, loc_num, top_num) el tnum = 
+  (get_state_fact_name st, 
+      [
+      List [engine_state eng; tnum] ;
+      return_var; 
+      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
+      List (el @ (List.map (fun i -> LocVar i) (int_to_list loc_num))); 
+      List (List.map (fun i -> TopVar i) (int_to_list top_num))
+      ], config_linear) 
+
+let mk_state_app_top eng return_var (meta_num, loc_num, top_num) e tnum = 
+  (get_state_fact_name st, 
+      [
+      List [engine_state eng; tnum] ;
+      return_var; 
+      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
+      List ((List.map (fun i -> LocVar i) (int_to_list loc_num))); 
+      List (e ::  (List.map (fun i -> TopVar i) (int_to_list top_num)))
+      ], config_linear) 
+
+let mk_state_shift eng return_var (meta_num, loc_num, top_num) (n, m, l) tnum = 
+  (get_state_fact_name st, 
+      [
+      List [engine_state eng; tnum] ;
+      return_var; 
+      List (List.map (fun i -> MetaVar (i+n)) (int_to_list meta_num)); 
+      List (List.map (fun i -> LocVar (i+m)) (int_to_list loc_num)); 
+      List (List.map (fun i -> TopVar (i+l)) (int_to_list top_num))
+     ], config_linear) 
+
+let mk_state_replace eng return_var (meta_num, loc_num, top_num) (j, b) e tnum = 
+  (get_state_fact_name st, 
+      [      
+      List [engine_state eng; tnum] ;
+      return_var; 
+      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
+      List (List.map (fun i -> if (not b) && i = j then e else LocVar i) (int_to_list loc_num)); 
+      List (List.map (fun i -> if b && i = j then e else TopVar i) (int_to_list top_num)) 
+    ], config_linear) 
+
+let mk_state_replace_and_shift eng return_var (meta_num, loc_num, top_num) (n, m, l) (j, b) e tnum =  
+  (get_state_fact_name st, 
+      [      
+      List [engine_state eng; tnum] ;
+      return_var;  
+      List (List.map (fun i -> MetaVar (i+n)) (int_to_list meta_num)); 
+      List (List.map (fun i -> if (not b) && i = j then e else LocVar (i+m)) (int_to_list loc_num)); 
+      List (List.map (fun i -> if b && i = j  then e else TopVar (i+l)) (int_to_list top_num))
+    ], config_linear) 
+ *)
+ type rule = 
+ | Rule of string * string * fact list * fact list * fact list
+ | Comment of string
 
 type tamarin = signature * rule list
 
 let add_rule t (a, b, c, d, e) = (fst t, (Rule (a, b, c, d, e)) :: ( (snd t)))
 let add_comment t s = (fst t, (Comment s) :: ((snd t)))
 
+
+
+(* tamarin as a pair of a sigature and a finite list of models *)
+(* model and its initialization rules *)
+type tamarin = signature * (model * rule list) list 
+
 let add_fun ((fns,eqns), rules) f = ((f::fns, eqns), rules)
 let add_const ((fns,eqns), rules) c = (((c,0)::fns, eqns), rules)
 let add_eqn ((fns,eqns), rules) eq = ((fns, eq::eqns), rules)
 
-
 let empty_tamarin = empty_signature , []
 
-let mult_list_with_concat l sep = 
-  match l with
-  | h :: t -> h ^ (List.fold_left (fun r s-> r ^ sep ^ s) "" t) 
-  | [] -> ""
+let get_return_var () =
+  Var ("return" ^ !separator ^ "var") 
 
-type printer = {prt_sep:string}
-let replace_string s t str = 
-  String.concat t (String.split_on_char s str)
-
-let rec print_expr prt e = 
+let rec print_expr e = 
   match e with
   | Var s -> s 
-  | MetaVar i -> "meta"^prt.prt_sep^string_of_int i
-  | LocVar i -> "loc"^prt.prt_sep^string_of_int i
-  | TopVar i -> "top"^prt.prt_sep^string_of_int i
-  | Apply (s, el) -> s ^ "(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")"
-  | String s -> "\'rab" ^ prt.prt_sep ^ (replace_string '/' prt.prt_sep s)^"\'"
+  | MetaVar i -> "meta"^ !separator ^string_of_int i
+  | LocVar i -> "loc"^ !separator ^string_of_int i
+  | TopVar i -> "top"^ !separator ^string_of_int i
+  | Apply (s, el) -> s ^ "(" ^ (mult_list_with_concat (List.map (print_expr) el) ", ") ^ ")"
+  | String s -> "\'rab" ^  !separator  ^ (replace_string '/'  !separator  s)^"\'"
   | Integer i -> "\'"^string_of_int i^"\'"
   | List el -> 
      (match el with
-     | [] -> "\'rab"^prt.prt_sep^"\'"
-     | [e] -> print_expr prt e 
-     | _ -> 	"<" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ">")
+     | [] -> "\'rab"^ !separator ^"\'"
+     | [e] -> print_expr e 
+     | _ -> 	"<" ^ (mult_list_with_concat (List.map (print_expr) el) ", ") ^ ">")
   | One -> "%1"
   | Int v -> "%"^v
-  | AddOne e -> (print_expr prt e)^" %+ %1"
+  | AddOne e -> (print_expr e)^" %+ %1"
 
-let print_signature prt (fns, eqns) = 
+let print_signature (fns, eqns) = 
   let print_functions fns = 
     (if List.length fns = 0 then "" else "functions: ")^(mult_list_with_concat (List.map (fun (f, ar) -> f ^"/"^(string_of_int ar)) fns) ", ") ^"\n" in 
   let print_equations eqns = 
-    (if List.length eqns = 0 then "" else "equations: ")^(mult_list_with_concat (List.map (fun (e1, e2) -> (print_expr prt e1)^"="^(print_expr prt e2)) eqns) ", ") ^"\n" in 
+    (if List.length eqns = 0 then "" else "equations: ")^(mult_list_with_concat (List.map (fun (e1, e2) -> (print_expr e1)^"="^(print_expr e2)) eqns) ", ") ^"\n" in 
   (print_functions fns) ^ (print_equations eqns)
 
-let print_fact_plain prt (f, el) = 
-  f^"(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")" 
+let print_fact_plain (f, el) = 
+  f^"(" ^ (mult_list_with_concat (List.map (print_expr) el) ", ") ^ ")" 
 
-
-let print_rule2 prt (f, act, pre, label, post) dev = 
+let print_transition (tr : transition) (is_dev : bool) = 
+  (* name of this rule: *)
+  let f = tr.transition_namespace ^ !separator ^ tr.transition_name in 
+  let pre = tr.transition_pre in
+  let post = tr.transition_post in
+  let label = tr.transition_label in
+  let initial_state_fact = mk_state tr.transition_from (get_return_var ()) in 
+  let final_state_fact = mk_state tr.transition_to (get_return_var ()) in 
+  (* how to print a fact *)
   let print_fact (f, el, b) = 
-    (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")" 
+    (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" 
     ^ if b.priority = 0 then "[-,no_precomp]" 
       else if b.priority = 1 then "[-]" 
       else if b.priority = 2 then ""
       else if b.priority = 3 then "[+]" else "" 
   in 
   let print_fact2 (f, el, b) = 
-    (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map (print_expr prt) el) ", ") ^ ")" in 
-  "rule "^f ^
-    (if act = "" || not dev then "" else "[role=\"" ^act^ "\"]") ^
-      " : "^ 
-	"["^(mult_list_with_concat (List.map print_fact pre) ", ") ^ "]" ^
-	  (match label with 
+    (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" in 
+
+
+
+    "rule "^f ^ (if tr.transition_namespace = "" || not is_dev then "" else "[role=\"" ^ tr.transition_namespace ^ "\"]") ^ " : " ^ 
+	
+    "["^(mult_list_with_concat (List.map print_fact (initial_state_fact :: pre)) ", ") ^ "]" ^
+	  
+    (* when the transition has label *)
+    (match tr.transition_label with 
 	   | [] -> "-->" 
 	   | _ -> 	"--[" ^ (mult_list_with_concat (List.map print_fact2 label) ", ") ^ "]->")^
 
-	    "["^(mult_list_with_concat (List.map print_fact2 post) ", ") ^ "] \n"	
+	    "["^(mult_list_with_concat (List.map print_fact2 (final_state_fact :: post)) ", ") ^ "] \n"	
+
+let print_model m is_dev = 
+  List.map (fun t -> print_transition t is_dev) m.model_transitions |> String.concat "\n"
+
+let print_rule2 (f, act, pre, label, post) dev = 
+  let print_fact (f, el, b) = 
+    (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" 
+    ^ if b.priority = 0 then "[-,no_precomp]" 
+      else if b.priority = 1 then "[-]" 
+      else if b.priority = 2 then ""
+      else if b.priority = 3 then "[+]" else "" 
+  in 
+  let print_fact2 (f, el, b) = 
+    (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" in 
+  "rule "^f ^
+    (if act = "" || not dev then "" else "[role=\"" ^act^ "\"]") ^
+      " : "^ 
+  "["^(mult_list_with_concat (List.map print_fact pre) ", ") ^ "]" ^
+    (match label with 
+      | [] -> "-->" 
+      | _ -> 	"--[" ^ (mult_list_with_concat (List.map print_fact2 label) ", ") ^ "]->")^
+
+      "["^(mult_list_with_concat (List.map print_fact2 post) ", ") ^ "] \n"	
 
 let print_comment s = "\n// "^s^"\n\n" 
-
-let print_rule prt r dev = match r with | Rule (a, b, c, d, e) -> print_rule2 prt (a, b, c, d, e) dev | Comment s ->print_comment s 
+  
+let print_rule prt r dev = match r with | Rule (a, b, c, d, e) -> print_rule2 (a, b, c, d, e) dev | Comment s ->print_comment s 
+  
+  
 
 type lemma = 
   | PlainLemma of string * string
   | ReachabilityLemma of string * string list * (string * expr list) list
   | CorrespondenceLemma of string * string list * (string * expr list) * (string * expr list)
 
-let print_lemma prt lemma = 
+let print_lemma lemma = 
   match lemma with
   | PlainLemma (l, p) -> "\nlemma "^l^" : "^p 
   | ReachabilityLemma (l, vars, facts) -> "\nlemma "^l^ " : exists-trace \"Ex "^
     (mult_list_with_concat vars " ") ^" " ^
-    (mult_list_with_concat (List.map (fun (f, _) -> "#"^f^prt.prt_sep) facts) " ") ^ " . " ^
-    (mult_list_with_concat (List.map (fun (f, el) -> print_fact_plain prt (f, el) ^ " @ " ^f^prt.prt_sep) facts) " & ") ^ " \""
+    (mult_list_with_concat (List.map (fun (f, _) -> "#"^f^ !separator ) facts) " ") ^ " . " ^
+    (mult_list_with_concat (List.map (fun (f, el) -> print_fact_plain (f, el) ^ " @ " ^f^ !separator ) facts) " & ") ^ " \""
 
   | CorrespondenceLemma (l, vars, (f1, el1), (f2, el2)) -> "\nlemma "^l^ " : all-traces \"All "^
-    (mult_list_with_concat vars " ") ^" " ^ "#"^f1^prt.prt_sep ^" . " ^
-    print_fact_plain prt (f1, el1) ^ " @ " ^ f1^prt.prt_sep ^" ==> "^
-    "Ex " ^ "#"^f2^prt.prt_sep ^ " . " ^ print_fact_plain prt (f2, el2) ^ " @ " ^ f2^prt.prt_sep ^" & "^
-    f2^prt.prt_sep ^" < "^ f1^prt.prt_sep ^ " \""
+    (mult_list_with_concat vars " ") ^" " ^ "#"^f1^ !separator  ^" . " ^
+    print_fact_plain (f1, el1) ^ " @ " ^ f1^ !separator  ^" ==> "^
+    "Ex " ^ "#"^f2^ !separator  ^ " . " ^ print_fact_plain (f2, el2) ^ " @ " ^ f2^ !separator  ^" & "^
+    f2^ !separator  ^" < "^ f1^ !separator  ^ " \""
 
 
-let print_tamarin prt ((sign, rules), init_list, procs, lem) dev = 
+let print_tamarin ((sign, models), init_list, procs, lem) is_dev = 
   "theory rabbit\n\nbegin\nbuiltins: natural-numbers\n\n"^
-    print_signature prt sign ^
-      (mult_list_with_concat (List.map (fun r -> print_rule prt r dev) (List.rev rules)) "")^
+  print_signature sign ^
+    (mult_list_with_concat (List.map (fun m -> print_model m is_dev) (List.rev models)) "")^
 	
-	List.fold_left (fun l s -> l^"\nrestriction "^s^" : \" All #i #j . "^s^"() @ #i & "^s^"() @ #j ==> #i = #j \"") "" init_list ^ "\n" ^
+  	List.fold_left (fun l s -> l^"\nrestriction "^s^" : \" All #i #j . "^s^"() @ #i & "^s^"() @ #j ==> #i = #j \"") "" init_list ^ "\n" ^
 
-  "\nrestriction Init"^prt.prt_sep^" : \" All x #i #j . Init"^prt.prt_sep^"(x) @ #i & Init"^prt.prt_sep^"(x) @ #j ==> #i = #j \"\n" ^
+    "\nrestriction Init"^ !separator ^" : \" All x #i #j . Init"^ !separator ^"(x) @ #i & Init"^ !separator ^"(x) @ #j ==> #i = #j \"\n" ^
 
 	  (* if then else restriction *)
 
@@ -186,44 +363,40 @@ let print_tamarin prt ((sign, rules), init_list, procs, lem) dev =
 
     ^
 
-    "rule Equality_gen: [] --> [!Eq"^prt.prt_sep^"(x,x)]\n" 
+    "rule Equality_gen: [] --> [!Eq"^ !separator ^"(x,x)]\n" 
 
     ^
 
-    "rule NEquality_gen: [] --[NEq_"^prt.prt_sep^"(x,y)]-> [!NEq"^prt.prt_sep^"(x,y)]\n" 
+    "rule NEquality_gen: [] --[NEq_"^ !separator ^"(x,y)]-> [!NEq"^ !separator ^"(x,y)]\n" 
 
     ^
 
-    "restriction NEquality_rule: \"All x #i. NEq_"^prt.prt_sep^"(x,x) @ #i ==> F\"\n"
+    "restriction NEquality_rule: \"All x #i. NEq_"^ !separator ^"(x,x) @ #i ==> F\"\n"
 
     ^
 
     List.fold_left (fun s p -> 
-      let tfact = "Trace"^prt.prt_sep^p in 
+      let tfact = "Trace"^ !separator ^p in 
       s^"lemma "^tfact^"[use_induction,reuse] : all-traces \"All x y #i #j . "^tfact^"(x, y) @ #i & "^tfact^"(x, y) @ #j ==> #i = #j\"\n") "" (List.rev procs) 
 
     ^
 
-    List.fold_left (fun l lem -> l ^ print_lemma prt lem) "" lem ^"\nend\n"
+    List.fold_left (fun l lem -> l ^ print_lemma lem) "" lem ^"\nend\n"
 
-type engine = {
-    namespace : string; 
-    index : ((int list) * int) list;
-    sep : string;
-  }
 
-let empty_engine = {namespace = ""; index = [([],0)]; sep = "";}
-
-let engine_index_inc eng scope = 
+let index_inc index scope = 
   match scope with
   | None ->
-    begin match eng.index with
-    | (l,i)::lst -> {eng with index=(l,i+1)::lst}
+    begin match index with
+    | (l,i)::lst -> (l,i+1)::lst
     | _ -> error ~loc:Location.Nowhere (UnintendedError "index ill-defined")
     end
-  | Some s -> {eng with index=(s, 0)::eng.index}
+  | Some s -> (s, 0)::index
 
-let rec translate_expr ?(ch=false) sep {Location.data=e; Location.loc=loc} = 
+let next_state st scope = 
+  {st with state_index = index_inc st.state_index scope}
+
+let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=loc} = 
   let translate_expr' = function
     | Syntax.ExtConst s -> Apply (s, [])
     | Syntax.Const s -> error ~loc (UnintendedError ("translating constant " ^ s))
@@ -234,15 +407,15 @@ let rec translate_expr ?(ch=false) sep {Location.data=e; Location.loc=loc} =
     | Syntax.String s -> String s
     | Syntax.Integer z -> error ~loc (UnintendedError "translating Integer")
     | Syntax.Float f -> error ~loc (UnintendedError "translating float")
-    | Syntax.Apply (o, el) -> Apply (o, List.map (translate_expr ~ch:ch sep) el)
+    | Syntax.Apply (o, el) -> Apply (o, List.map (translate_expr ~ch:ch) el)
     | Syntax.Tuple el -> 
-       List (List.map (translate_expr ~ch:ch sep) el)
+       List (List.map (translate_expr ~ch:ch) el)
     | Syntax.Channel (c, l) -> if ch then Var c else String c
     | Syntax.Process v -> Var v
     | Syntax.Path v -> Var v
   in translate_expr' e
 
-let rec translate_expr2 ?(ch=false) sep {Location.data=e; Location.loc=loc} = 
+let rec translate_expr2 ?(ch=false) {Location.data=e; Location.loc=loc} = 
   let translate_expr2' = function
     | Syntax.ExtConst s -> Apply (s, []), []
     | Syntax.Const s -> Var s, [s]
@@ -255,12 +428,12 @@ let rec translate_expr2 ?(ch=false) sep {Location.data=e; Location.loc=loc} =
     | Syntax.Float f -> error ~loc (UnintendedError "translating float")
     | Syntax.Apply (o, el) -> 
        let (el, sl) = List.fold_left (fun (el, sl) e -> 
-			  let e, s = translate_expr2 ~ch:ch sep e in 
+			  let e, s = translate_expr2 ~ch:ch e in 
 			  (el @ [e], sl @ s)) ([], []) el in 
        Apply (o, el), sl
     | Syntax.Tuple el -> 
        let (el, sl) = List.fold_left (fun (el, sl) e -> 
-			  let e, s = translate_expr2 ~ch:ch sep e in 
+			  let e, s = translate_expr2 ~ch:ch e in 
 			  (el @ [e], sl @ s)) ([], []) el in 
        List el, sl
     | Syntax.Channel (c, l) -> if ch then Var c, [] else String c, []
@@ -268,36 +441,10 @@ let rec translate_expr2 ?(ch=false) sep {Location.data=e; Location.loc=loc} =
     | Syntax.Path v -> Var v, []
   in translate_expr2' e
 
-(* let rec translate_stmt eng (t : tamarin) {Location.data=c; Location.loc=loc} syscalls priority_conf =  *)
-(* [c](eng) = (rule list, eng') 
-    eng can print state
-*)
-(* engine has 
-  (1) separator
-  (2) index structure
-  (3) and scope  *)
-let engine_set_namespace eng nspace = {eng with namespace=nspace}
-let engine_set_sep eng sep = {eng with sep=sep}
 
-let engine_state_name eng =
-  "State"^eng.sep^eng.namespace
 
-let mk_my_fact_name eng s = 
-  (String.capitalize_ascii s)
-  (* ^eng.sep *)
-
-let engine_state_aux eng =
-  (
-    List.fold_left (fun s (scope, ind) -> s ^ eng.sep ^
-    (mult_list_with_concat (List.map string_of_int scope) "_")
-    ^ "_" ^ string_of_int ind) "" (List.rev eng.index)
-  ) 
-
-let engine_state eng =
-  String (engine_state_aux eng)
-
-let make_rule_name eng scope = 
-  eng.namespace^engine_state_aux eng ^ (match scope with Some scope -> (mult_list_with_concat (List.map string_of_int scope) "_") | None -> "")
+(* let make_rule_name eng scope = 
+  eng.namespace^engine_state_aux eng ^ (match scope with Some scope -> (mult_list_with_concat (List.map string_of_int scope) "_") | None -> "") *)
 
 let lctx_to_var_list lctx =
   (List.map (fun s -> Var s) lctx)
@@ -308,152 +455,72 @@ let rec var_list_replace lctx s e =
   | _ :: l -> error ~loc:Location.Nowhere (UnintendedError "lctx is not list") 
   | [] -> [] 
 
-let int_to_list n =
-  let rec aux i acc =
-    if i < 0 then acc
-    else aux (i - 1) (i :: acc)
-  in
-  aux (n - 1) []
-
-let mk_state eng return_var (meta_num, loc_num, top_num) tnum = 
-  (engine_state_name eng, 
-    [
-      List [engine_state eng; tnum] ;
-      return_var; 
-      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
-      List (List.map (fun i -> LocVar i) (int_to_list loc_num)); 
-      List (List.map (fun i -> TopVar i) (int_to_list top_num))
-      ], config_linear) 
-
-
-let mk_state_app eng return_var (meta_num, loc_num, top_num) e tnum = 
-  (engine_state_name eng, 
-    [
-      List [engine_state eng; tnum] ;
-      return_var; 
-      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
-      List (e :: (List.map (fun i -> LocVar i) (int_to_list loc_num))); 
-      List (List.map (fun i -> TopVar i) (int_to_list top_num))
-      ], config_linear) 
-
-let mk_state_app_list eng return_var (meta_num, loc_num, top_num) el tnum = 
-  (engine_state_name eng, 
-    [
-      List [engine_state eng; tnum] ;
-      return_var; 
-      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
-      List (el @ (List.map (fun i -> LocVar i) (int_to_list loc_num))); 
-      List (List.map (fun i -> TopVar i) (int_to_list top_num))
-      ], config_linear) 
-
-let mk_state_app_top eng return_var (meta_num, loc_num, top_num) e tnum = 
-  (engine_state_name eng, 
-    [
-      List [engine_state eng; tnum] ;
-      return_var; 
-      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
-      List ((List.map (fun i -> LocVar i) (int_to_list loc_num))); 
-      List (e ::  (List.map (fun i -> TopVar i) (int_to_list top_num)))
-      ], config_linear) 
-
-let mk_state_shift eng return_var (meta_num, loc_num, top_num) (n, m, l) tnum = 
-  (engine_state_name eng, 
-    [
-      List [engine_state eng; tnum] ;
-      return_var; 
-      List (List.map (fun i -> MetaVar (i+n)) (int_to_list meta_num)); 
-      List (List.map (fun i -> LocVar (i+m)) (int_to_list loc_num)); 
-      List (List.map (fun i -> TopVar (i+l)) (int_to_list top_num))
-     ], config_linear) 
-
-let mk_state_replace eng return_var (meta_num, loc_num, top_num) (j, b) e tnum = 
-  (engine_state_name eng, 
-    [      
-      List [engine_state eng; tnum] ;
-      return_var; 
-      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
-      List (List.map (fun i -> if (not b) && i = j then e else LocVar i) (int_to_list loc_num)); 
-      List (List.map (fun i -> if b && i = j then e else TopVar i) (int_to_list top_num)) 
-    ], config_linear) 
-
-let mk_state_replace_and_shift eng return_var (meta_num, loc_num, top_num) (n, m, l) (j, b) e tnum =  
-  (engine_state_name eng, 
-    [      
-      List [engine_state eng; tnum] ;
-      return_var;  
-      List (List.map (fun i -> MetaVar (i+n)) (int_to_list meta_num)); 
-      List (List.map (fun i -> if (not b) && i = j then e else LocVar (i+m)) (int_to_list loc_num)); 
-      List (List.map (fun i -> if b && i = j  then e else TopVar (i+l)) (int_to_list top_num))
-    ], config_linear) 
-
 
 (* let append_loc state e =
   (engine_state eng, 
     [return_var; 
-     List (List.map (fun i -> Var ("meta"^eng.sep ^ (int_to_list meta_num)))); 
-     List (List.map (fun i -> Var ("meta"^eng.sep ^ (int_to_list loc_num)))); 
-     List (List.map (fun i -> Var ("meta"^eng.sep ^ (int_to_list top_num))));
+     List (List.map (fun i -> Var ("meta"^ !separator  ^ (int_to_list meta_num)))); 
+     List (List.map (fun i -> Var ("meta"^ !separator  ^ (int_to_list loc_num)))); 
+     List (List.map (fun i -> Var ("meta"^ !separator  ^ (int_to_list top_num))));
      ])  *)
 
-let translate_fact eng f = 
+let translate_fact namespace f = 
   match f.Location.data with
   | Syntax.Fact(id, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) el in    
-    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
-    (mk_my_fact_name eng id, (String eng.namespace) :: el, config_linear), gv, []
+    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+    (mk_my_fact_name id, (String namespace) :: el, config_linear), gv, []
 
   | Syntax.GlobalFact(id, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) el in    
-    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
 
-    (mk_my_fact_name eng id, el, config_linear), gv, []
+    (mk_my_fact_name id, el, config_linear), gv, []
 
   | Syntax.ChannelFact(ch, id, el) ->
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) (ch::el) in    
-    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
     
-    (* let acp = ("ACP"^eng.sep^"chan", String eng.namespace, String ch, config_persist) in  *)
+    (* let acp = ("ACP"^ !separator ^"chan", String eng.namespace, String ch, config_persist) in  *)
     
-    (mk_my_fact_name eng id, el, config_linear), gv, [translate_expr eng.sep ch]
+    (mk_my_fact_name id, el, config_linear), gv, [translate_expr ch]
 
   | Syntax.PathFact (path, id, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) (path::el) in    
-    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
     
-    (* let acp = ("ACP"^eng.sep"path", String eng.namespace, String ch, config_persist) in  *)
+    (* let acp = ("ACP"^ !separator "path", String eng.namespace, String ch, config_persist) in  *)
 
-    (mk_my_fact_name eng id, (String eng.namespace)::el, config_linear), gv, [translate_expr eng.sep path]
+    (mk_my_fact_name id, (String namespace)::el, config_linear), gv, [translate_expr path]
 
   | Syntax.ResFact (0, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) (el) in    
-    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
     
-    (* let acp = ("ACP"^eng.sep"path", String eng.namespace, String ch, config_persist) in  *)
+    (* let acp = ("ACP"^ !separator "path", String eng.namespace, String ch, config_persist) in  *)
 
-    ("Eq"^eng.sep, el, config_persist), gv, []
+    ("Eq"^ !separator , el, config_persist), gv, []
 
   | Syntax.ResFact (1, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) (el) in    
-    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
     
-    (* let acp = ("ACP"^eng.sep"path", String eng.namespace, String ch, config_persist) in  *)
+    (* let acp = ("ACP"^ !separator "path", String eng.namespace, String ch, config_persist) in  *)
 
-    ("NEq"^eng.sep, el, config_persist), gv, []
-
-
+    ("NEq"^ !separator , el, config_persist), gv, []
 
   | _ -> 
     error ~loc:Location.Nowhere (UnintendedError "process fact")
 
-let translate_facts eng fl =
+let translate_facts namespace fl =
   List.fold_left (fun (fl, gv, acps) f -> 
-              let (f, gv', acps') = translate_fact eng f in 
+              let (f, gv', acps') = translate_fact namespace f in 
               (fl @ [f], gv@gv', acps@acps')) ([],[],[]) fl
 
 let rec expr_shift_meta shift e = 
@@ -502,187 +569,204 @@ let rec pop_hd n lst =
   | [] -> error ~loc:Location.Nowhere (UnintendedError "pop empty list")
   else if n = 0 then lst else error ~loc:Location.Nowhere (UnintendedError "pop negative elements")
 
-let trace_fact eng tnum = ("Trace"^eng.sep^eng.namespace, [String (engine_state_aux eng) ; tnum], config_linear)
 
-
-let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Location.loc=loc} = 
-  let return_var = Var ("return"^eng.sep) in
-  let return_unit = String ("unit"^eng.sep) in 
+(* 
+  given a model, the current state that is promised to be already in the model,
+  this function returns an extended model 
+*)
+let rec translate_cmd mo st funs syscalls vars scope syscall {Location.data=c; Location.loc=loc} = 
+  let return_var = Var ("return"^ !separator ) in
+  let return_unit = String ("unit"^ !separator ) in 
   let (meta_num, loc_num, top_num) = vars in 
-  let trace_num = (Int ("n"^eng.sep^eng.sep)) in
-  let trace_fact eng = ("Trace"^eng.sep^eng.namespace, [String (engine_state_aux eng) ; trace_num], config_linear) in
-
+  
   match c with
   | Syntax.Return e ->
-    let e, gv = translate_expr2 eng.sep e in  
-    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
-
-    let eng_f = engine_index_inc eng scope in
-    ([(
-        (make_rule_name eng scope)^"_return", 
-        [mk_state eng return_unit vars trace_num] @ gv, 
-        [trace_fact eng],
-        [mk_state eng_f e vars trace_num])
-      ], eng_f)
+    let e, gv = translate_expr2 e in  
+    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+    let st_f = next_state st scope in 
+    let mo = add_state mo st_f in 
+    let mo = add_transition mo {
+      transition_namespace = mo.model_name;
+      transition_name = "return";
+      transition_from = st;
+      transition_to = st_f;
+      transition_pre = gv;
+      transition_post = [];
+      transition_function_facts = ActionReturn e;
+      transition_label = []
+    } in
+    (mo, st_f)
 
 
   | Syntax.Skip -> 
-    let eng_f = engine_index_inc eng scope in
-    ([(
-        (make_rule_name eng scope)^"skip", 
-        [mk_state eng return_unit vars trace_num], 
-        [trace_fact eng],
-        [mk_state eng_f return_unit vars trace_num])
-      ], eng_f)
-
+    let st_f = next_state st scope in 
+    let mo = add_state mo st_f in 
+    let mo = add_transition mo {
+      transition_namespace = mo.model_name;
+      transition_name = "skip";
+      transition_from = st;
+      transition_to = st_f;
+      transition_pre = [];
+      transition_post = [];
+      transition_function_facts = ActionReturn return_unit;
+      transition_label = []
+    } in
+    (mo, st_f)
 
   | Syntax.Sequence (c1, c2) -> 
-    let (rl1, eng) = translate_cmd eng funs syscalls vars scope syscall c1 in
-    let (rl2, eng) = translate_cmd eng funs syscalls vars None syscall c2 in
-    (rl1 @ rl2, eng)
+    let (mo, st) = translate_cmd mo st funs syscalls vars scope syscall c1 in
+    let (mo, st) = translate_cmd mo st funs syscalls vars None syscall c2 in
+    (mo, st)
 
   | Syntax.Put fl -> 
-    let fl, gv, acps = translate_facts eng fl in
-    let acps = List.map (fun target -> ("ACP"^eng.sep, [String eng.namespace; 
+    let fl, gv, acps = translate_facts mo.model_name fl in
+    let acps = List.map (fun target -> ("ACP"^ !separator , [String mo.model_name; 
                                                     target; 
                                                     String syscall], config_persist)) acps in
-    let eng_f = engine_index_inc eng scope in
-    ([((make_rule_name eng scope)^"_put", 
-      [mk_state eng return_unit vars trace_num] @ gv @ acps, 
-      [trace_fact eng],
-      [mk_state eng_f return_unit vars trace_num] @ fl )], eng_f)
+    let st_f = next_state st scope in
+    let mo = add_state mo st_f in
+    let mo = add_transition mo {
+      transition_namespace = mo.model_name;
+      transition_name = "put";
+      transition_from = st;
+      transition_to = st_f;
+      transition_pre = gv @ acps;
+      transition_post = fl;
+      transition_function_facts = ActionReturn return_unit;
+      transition_label = []
+    } in                                            
+    (mo, st_f)
 
   | Syntax.Let (v, e, c) -> 
     
-    let e, gv = translate_expr2 eng.sep e in  
-    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    let e, gv = translate_expr2 e in  
+    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
     
-    let eng_f = engine_index_inc eng scope in
-
-    let initial_rule = 
-      ((make_rule_name eng scope)^"_let", 
-        [mk_state eng return_unit vars trace_num] @ gv, 
-        [trace_fact eng],
-        [mk_state_app eng_f return_unit vars e trace_num]) in 
-
-    let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num, loc_num+1, top_num) None syscall c in
-   
-   (* pop loc variables *)
-    let rl = List.map
-      (fun r -> 
-        let (rname, preconds, label, postconds) = r in
-        let postconds = List.fold_left 
-          (fun postconds (fn, args , conf) ->
-            match args with
-            | [List [String st; num] ; ret; meta; List  loc; top] ->
-                if st = engine_state_aux eng_f
-                then
-                  (* when this is the rule, find postcondition's meta variable number then lift current *)
-
-                  postconds @ [(fn, [List [String st; num]; ret; meta; List (pop_hd 1 loc); top], conf)]
-
-                else 
-                  postconds @ [(fn, args , conf)]
-            | _ -> postconds @ [(fn, args , conf)]) [] postconds in
-          (rname, preconds, label, postconds)) rl in
-
+    let st_f = next_state st scope in 
+    let mo = add_state mo st_f in
+    let mo = add_transition mo {
+      transition_namespace = mo.model_name;
+      transition_name = "let_intro";
+      transition_from = st;
+      transition_to = st_f;
+      transition_pre = gv;
+      transition_post = [];
+      transition_function_facts = ActionIntro [e];
+      transition_label = []
+    } in
   
-    (initial_rule :: rl, eng_f)
-
-
+    let (mo, st) = translate_cmd mo st_f funs syscalls (meta_num, loc_num+1, top_num) None syscall c in
+    let st_f = next_state st scope in 
+    let mo = add_state mo st_f in
+    let mo = add_transition mo {
+      transition_namespace = mo.model_name;
+      transition_name = "let_out";
+      transition_from = st;
+      transition_to = st_f;
+      transition_pre = gv;
+      transition_post = [];
+      transition_function_facts = ActionPopLoc 1;
+      transition_label = []
+    } in
+    (mo, st_f)
 
   | Syntax.Assign ((v, di), e) -> 
 
-    let e, gv = translate_expr2 eng.sep e in  
-    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
-
-    let eng_f = engine_index_inc eng scope in
-    ([((make_rule_name eng scope)^"_assign", 
-      [mk_state eng return_unit vars trace_num] @ gv, 
-      [trace_fact eng],
-      [mk_state_replace eng_f return_unit vars di e trace_num])], eng_f)
-
+    let e, gv = translate_expr2 e in  
+    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+    let st_f = next_state st scope in
+    let mo = add_state mo st_f in
+    let mo = add_transition mo {
+      transition_namespace = mo.model_name;
+      transition_name = "assign";
+      transition_from = st;
+      transition_to = st_f;
+      transition_pre = gv;
+      transition_post = [];
+      transition_function_facts = ActionAssign (di, e);
+      transition_label = []
+    } in
+    (mo, st_f)
 
   | Syntax.FCall (ov, f, el) ->
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) el in  
     let el = List.rev el in  
-    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
     
     let (f, args, cmd) = List.find (fun (f', args, cmd) -> f = f') funs in 
 
+    let st_f = next_state st scope in
+    let mo = add_state mo st_f in
+    let mo = add_transition mo {
+      transition_namespace = mo.model_name;
+      transition_name = "fcall_intro";
+      transition_from = st;
+      transition_to = st_f;
+      transition_pre = gv;
+      transition_post = [];
+      transition_function_facts = ActionIntro el;
+      transition_label = []
+    } in
 
-
-    let eng_f = engine_index_inc eng scope in
-    let initial_rule = 
-              ((make_rule_name eng scope)^"_fcall", 
-              [mk_state eng return_unit vars trace_num] @ gv, 
-              [trace_fact eng],
-              [mk_state_app_list eng_f return_unit vars el trace_num]) in
-
-    let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num, loc_num + (List.length el), top_num) None syscall cmd in
-    
-
-    let eng_ff = engine_index_inc eng_f None in
-
-    let final_rule = 
-      begin match ov with
-      | Some (_, v) -> 
-        (make_rule_name eng_f scope, 
-          [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num],
-          [trace_fact eng_f],
-          [mk_state_replace_and_shift eng_ff return_unit vars (0, (List.length el), 0) v return_var trace_num])
-
-      | None -> 
-        (make_rule_name eng_f scope, 
-          [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num],
-          [trace_fact eng_f],
-          [mk_state_shift eng_ff return_unit vars (0, (List.length el), 0) trace_num])
-      end
-    in 
-    (initial_rule :: rl @ [final_rule], eng_ff)
-
+    let (mo, st) = translate_cmd mo st_f funs syscalls (meta_num, loc_num + (List.length el), top_num) None syscall cmd in
+    let st_f = next_state st scope in
+    let mo = add_state mo st_f in
+    let mo = add_transition mo {
+      transition_namespace = mo.model_name;
+      transition_name = "fcall_out";
+      transition_from = st;
+      transition_to = st_f;
+      transition_pre = [];
+      transition_post = [];
+      transition_function_facts = 
+      (match ov with
+      | None -> ActionPopLoc (List.length el)
+      | Some (_, v) -> ActionSeq (ActionPopLoc (List.length el), ActionAssign (v, return_var))
+      );
+      transition_label = []
+    } in
+    (mo, st_f)      
 
   | Syntax.SCall (ov, o, el) ->
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 eng.sep e in
+    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) el in    
     let el = List.rev el in 
-    let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
     
     let (f, args, cmd) = List.find (fun (f', args, cmd) -> o = f') syscalls in 
 
+    let st_f = next_state st scope in
+    let mo = add_state mo st_f in
+    let mo = add_transition mo {
+      transition_namespace = mo.model_name;
+      transition_name = "scall_intro";
+      transition_from = st;
+      transition_to = st_f;
+      transition_pre = gv;
+      transition_post = [];
+      transition_function_facts = ActionIntro el;
+      transition_label = []
+    } in
 
-
-    let eng_f = engine_index_inc eng scope in
-    let initial_rule = 
-              ((make_rule_name eng scope)^"_scall", 
-              [mk_state eng return_unit vars trace_num] @ gv, 
-              [trace_fact eng],
-              [mk_state_app_list eng_f return_unit vars el trace_num]) in
-
-    let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num, loc_num + (List.length el), top_num) None o cmd in
-    
-
-    let eng_ff = engine_index_inc eng_f None in
-
-    let final_rule = 
-      begin match ov with
-      | Some (_, v) -> 
-        (make_rule_name eng_f scope, 
-          [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num],
-          [trace_fact eng_f],
-          [mk_state_replace_and_shift eng_ff return_unit vars (0, (List.length el), 0) v return_var trace_num])
-
-      | None -> 
-        (make_rule_name eng_f scope, 
-          [mk_state eng_f return_var (meta_num, loc_num + (List.length el), top_num) trace_num],
-          [trace_fact eng_f],
-          [mk_state_shift eng_ff return_unit vars (0, (List.length el), 0) trace_num])
-      end
-    in 
-    (initial_rule :: rl @ [final_rule], eng_ff)
-
-
+    let (mo, st) = translate_cmd mo st_f funs syscalls (meta_num, loc_num + (List.length el), top_num) None o cmd in
+    let st_f = next_state st scope in
+    let mo = add_state mo st_f in
+    let mo = add_transition mo {
+      transition_namespace = mo.model_name;
+      transition_name = "scall_out";
+      transition_from = st;
+      transition_to = st_f;
+      transition_pre = [];
+      transition_post = [];
+      transition_function_facts = 
+      (match ov with
+      | None -> ActionPopLoc (List.length el)
+      | Some (_, v) -> ActionSeq (ActionPopLoc (List.length el), ActionAssign (v, return_var))
+      );
+      transition_label = []
+    } in
+    (mo, st_f)
 
   | Syntax.Case (cs) ->
     let scope_lst =
@@ -692,17 +776,24 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
       | Some l ->
         List.map (fun i -> Some (i :: l)) (List.init (List.length cs) (fun i -> i))
       end in 
+    
+    let st_f = next_state st None in
+    (* let st_f = engine_index_inc eng None in *)
 
-    let eng_f = engine_index_inc eng None in
+    let mo = List.fold_left2 (fun mo scope (vl, fl, c) -> 
+      let (mo, st) = translate_guarded_cmd mo st funs syscalls vars scope syscall (vl, fl, c) in
+      add_transition mo {
+        transition_namespace = mo.model_name;
+        transition_name = "case_out";
+        transition_from = st;
+        transition_to = st_f;
+        transition_pre = [];
+        transition_post = [];
+        transition_function_facts = ActionPopMeta (List.length vl);
+        transition_label = []
+      }) mo scope_lst cs in
 
-    let rl = List.map2 
-    (fun scope c -> 
-      let (rl, eng) = translate_guarded_cmd eng funs syscalls vars scope syscall c in
-      let final_rule = (make_rule_name eng scope, 
-        [mk_state eng return_var vars trace_num], [trace_fact eng], [mk_state eng_f return_var vars trace_num]) in
-      rl @ [final_rule]) scope_lst cs in
-
-    (List.flatten rl, eng_f)
+    (add_state mo st_f, st_f)
 
  | Syntax.While (cs1, cs2) ->
     let scope_lst1 =
@@ -720,73 +811,76 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
         List.map (fun i -> Some (i :: l)) (List.init (List.length cs2) (fun i -> i + (List.length cs1)))
       end in 
   
-    let eng_f = engine_index_inc eng None in
+    let st_f = next_state st None in
 
-    let rl1 = List.map2 
-      (fun scope c -> 
-        let (rl, eng) = translate_guarded_cmd eng funs syscalls vars scope syscall c in
-        let loop_rule = (make_rule_name eng scope, [mk_state eng return_var vars trace_num], [trace_fact eng], [mk_state eng return_unit vars (AddOne trace_num)]) in 
-        rl @ [loop_rule]) scope_lst1 cs1 in
+    let mo = List.fold_left2 (fun mo scope (vl, fl, c) -> 
+      let (mo, st_f) = translate_guarded_cmd mo st funs syscalls vars scope syscall (vl, fl, c) in
+      add_transition mo {
+        transition_namespace = mo.model_name;
+        transition_name = "repeat";
+        transition_from = st_f;
+        transition_to = st;
+        transition_pre = [];
+        transition_post = [];
+        transition_function_facts = ActionPopMeta (List.length vl);
+        transition_label = []
+      }) mo scope_lst1 cs1 in
 
-    let rl2 = List.map2 
-      (fun scope c -> 
-        let (rl, eng) = translate_guarded_cmd eng funs syscalls vars scope syscall c in
-        let final_rule = (make_rule_name eng scope, [mk_state eng return_var vars trace_num], [trace_fact eng], [mk_state eng_f return_var vars trace_num]) in
-        rl @ [final_rule]) scope_lst2 cs2 in
+    let mo = List.fold_left2 (fun mo scope (vl, fl, c) -> 
+      let (mo, st) = translate_guarded_cmd mo st funs syscalls vars scope syscall (vl, fl, c) in
+      add_transition mo {
+        transition_namespace = mo.model_name;
+        transition_name = "repeat_out";
+        transition_from = st_f;
+        transition_to = st;
+        transition_pre = [];
+        transition_post = [];
+        transition_function_facts = ActionPopMeta (List.length vl);
+        transition_label = []
+      }) mo scope_lst2 cs2 in
     
-    (List.flatten (rl1 @ rl2), eng_f)
+    (add_state mo st_f, st_f)
 
  | Syntax.Event (fl) ->
-    let fl, gv, acps = translate_facts eng fl in 
-    let eng_f = engine_index_inc eng scope in
-    ([((make_rule_name eng scope)^"_event", 
-        [mk_state eng return_unit vars trace_num] @ gv, 
-        fl,
-        [mk_state eng_f return_unit vars trace_num])
-      ], eng_f)
+    let fl, gv, acps = translate_facts mo.model_name fl in 
+    let st_f = next_state st scope in
+    let mo = add_state mo st_f in
+    let mo = add_transition mo {
+      transition_namespace = mo.model_name;
+      transition_name = "event";
+      transition_from = st;
+      transition_to = st_f;
+      transition_pre = gv;
+      transition_post = [];
+      transition_function_facts = ActionReturn return_unit;
+      transition_label = fl
+    } in
+  (mo, st_f)
 
-
-and translate_guarded_cmd eng funs syscalls vars scope syscall (vl, fl, c) = 
-  let return_var = Var ("return"^eng.sep) in
-  let return_unit = String ("unit"^eng.sep) in 
+and translate_guarded_cmd mo st funs syscalls vars scope syscall (vl, fl, c) = 
+  let return_var = Var ("return"^ !separator ) in
+  let return_unit = String ("unit"^ !separator ) in 
   let (meta_num, loc_num, top_num) = vars in 
-  let trace_num = (Int ("n"^eng.sep^eng.sep)) in
-  let trace_fact eng = ("Trace"^eng.sep^eng.namespace, [String (engine_state_aux eng) ; trace_num], config_linear) in
 
-  let fl, gv, acps = translate_facts eng fl in
-  let acps = List.map (fun target -> ("ACP"^eng.sep, [String eng.namespace; 
+  let fl, gv, acps = translate_facts mo.model_name fl in
+  let acps = List.map (fun target -> ("ACP"^ !separator , [String mo.model_name; 
                                                       target; 
                                                       String syscall], config_persist)) acps in
-  let eng_f = engine_index_inc eng scope in
-  let initial_rule = (
-                      (make_rule_name eng scope)^"_wait", 
-                      [mk_state_shift eng return_unit vars (List.length vl, 0, 0) trace_num] @ fl @ gv @ acps ,
-                      [trace_fact eng],
-                      [mk_state eng_f return_unit (meta_num + List.length vl, loc_num, top_num) trace_num]) in 
-
-  let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num + List.length vl, loc_num, top_num) None syscall c in
-
-  (* pop meta variables *)
-  let rl = List.map
-    (fun r -> 
-      let (rname, preconds, label, postconds) = r in
-      let postconds = List.fold_left 
-        (fun postconds (fn, args , conf) ->
-          match args with
-          | [List [String st; num] ; ret; List meta; loc; top] ->
-              if st = engine_state_aux eng_f
-              then
-                (* when this is the rule, find postcondition's meta variable number then lift current *)
-
-                postconds @ [(fn, [List [String st; num] ; ret; List (pop_hd (List.length vl) meta); loc; top], conf)]
-
-              else 
-                postconds @ [(fn, args , conf)]
-          | _ -> postconds @ [(fn, args , conf)]) [] postconds in
-        (rname, preconds, label, postconds)) rl in
-
-
-  (initial_rule::rl, eng_f)
+  let st_f = next_state st scope in
+  let mo = add_state mo st_f in
+  (* let eng_f = engine_index_inc eng scope in *)
+  let mo = add_transition mo {
+    transition_namespace = mo.model_name;
+    transition_name = "guarded";
+    transition_from = st;
+    transition_to = st_f;
+    transition_pre = fl @ gv @ acps;
+    transition_post = [];
+    transition_function_facts = ActionAddMeta (List.length vl);
+    transition_label = []
+  } in
+  let (mo, st_f) = translate_cmd mo st_f funs syscalls (meta_num + List.length vl, loc_num, top_num) None syscall c in
+  (mo, st_f)
 
 
 
@@ -804,9 +898,9 @@ let translate_process sep t {
         Context.proc_main=m
       } syscalls =
   let namespace = String.capitalize_ascii (s ^ (if k = 0 then "" else string_of_int k)) in (* this must be unique *)
-  let t = add_comment t ("- Process name: " ^ namespace) in 
+  (* let t = add_comment t ("- Process name: " ^ namespace) in  *)
 
-  let t = add_comment t "Initial file system:" in
+  (* let t = add_comment t "Initial file system:" in *)
   let t = List.fold_left (fun t (path, e, _, _) ->
       (* let path = (mk_dir eng fsys path) in *)
       let e, gv = translate_expr2 sep e in  
@@ -821,8 +915,8 @@ let translate_process sep t {
   let eng = engine_set_namespace empty_engine namespace in 
   let eng = engine_set_sep eng sep in 
   let eng_f = engine_index_inc eng None in
-  let return_var = Var ("return"^eng.sep) in
-  let return_unit = String ("unit"^eng.sep) in 
+  let return_var = Var ("return"^ !separator ) in
+  let return_unit = String ("unit"^ !separator ) in 
 
   (* let eng = eng_set_role eng namespace in *)
   (* let eng = eng_set_filesys eng (match fsys with Some fsys -> fsys | None -> "") in *)
@@ -840,7 +934,7 @@ let translate_process sep t {
 		   (fun (eng, t, i) (x, e) -> 
 		     let eng_f = engine_index_inc eng None in 
 		     let e, gv = translate_expr2 sep e in  
-		     let gv = List.map (fun s -> ("Const"^eng.sep, [String s ; Var s], config_persist)) gv in 
+		     let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
 
 		     let t = add_rule t 
                   (make_rule_name eng None, namespace,
@@ -1031,11 +1125,11 @@ let translate_sys {
 
      let t, il = List.fold_left (fun (t, il) (c, ty) -> 
      match Context.pol_get_attack_opt pol ty with 
-     | Some attk -> add_rule t (mk_fact_name c ^ eng.sep ^ attk, "",
+     | Some attk -> add_rule t (mk_fact_name c ^  !separator  ^ attk, "",
      [], 
-     [(mk_fact_name c ^ eng.sep ^ attk ^ eng.sep ^ "init", [], config_linear)], 
-     [(mk_fact_name attk ^ eng.sep ^"Allowed", [String c], config_linear)]
-     ), (mk_fact_name c ^ eng.sep ^ attk ^ eng.sep ^ "init"):: il
+     [(mk_fact_name c ^  !separator  ^ attk ^  !separator  ^ "init", [], config_linear)], 
+     [(mk_fact_name attk ^  !separator  ^"Allowed", [String c], config_linear)]
+     ), (mk_fact_name c ^  !separator  ^ attk ^  !separator  ^ "init"):: il
      | None -> t, il) (t, il) ctx.Context.ctx_ch in 
      
    *)
