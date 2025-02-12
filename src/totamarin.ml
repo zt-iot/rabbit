@@ -288,16 +288,16 @@ let mk_my_fact_name eng s =
 
 let engine_state_aux eng =
   (
-    List.fold_left (fun s (scope, ind) -> s ^ 
+    List.fold_left (fun s (scope, ind) -> s ^ eng.sep ^
     (mult_list_with_concat (List.map string_of_int scope) "_")
-    ^ eng.sep ^ string_of_int ind) "" eng.index
+    ^ "_" ^ string_of_int ind) "" (List.rev eng.index)
   ) 
 
 let engine_state eng =
   String (engine_state_aux eng)
 
 let make_rule_name eng scope = 
-  eng.namespace^eng.sep^engine_state_aux eng ^ (match scope with Some scope -> (mult_list_with_concat (List.map string_of_int scope) "_") | None -> "")
+  eng.namespace^engine_state_aux eng ^ (match scope with Some scope -> (mult_list_with_concat (List.map string_of_int scope) "_") | None -> "")
 
 let lctx_to_var_list lctx =
   (List.map (fun s -> Var s) lctx)
