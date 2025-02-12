@@ -40,14 +40,13 @@ type cmd = cmd' Location.located
 and cmd' = 
   | Skip
   | Sequence of cmd * cmd
-  | Wait of string list * fact list * cmd
   | Put of fact list
   | Let of Name.ident * expr * cmd
   | Assign of (Name.ident * (int * bool)) * expr (* (k, true) : k'th in top-level (k, false): k'th in local *)
   | FCall of (Name.ident * (int * bool)) option * Name.ident * expr list
   | SCall of (Name.ident * (int * bool)) option * Name.ident * expr list
-  | Case of cmd * cmd 
-  | While of cmd * cmd
+  | Case of (string list * fact list * cmd) list
+  | While of (string list * fact list * cmd) list * (string list * fact list * cmd) list
   | Event of fact list
   | Return of expr
 

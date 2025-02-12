@@ -541,43 +541,6 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
     let (rl2, eng) = translate_cmd eng funs syscalls vars None syscall c2 in
     (rl1 @ rl2, eng)
 
-  | Syntax.Wait (vl, fl, c) -> 
-
-    let fl, gv, acps = translate_facts eng fl in
-    let acps = List.map (fun target -> ("ACP"^eng.sep, [String eng.namespace; 
-                                                        target; 
-                                                        String syscall], config_persist)) acps in
-    let eng_f = engine_index_inc eng scope in
-    let initial_rule = (
-                        (make_rule_name eng scope)^"_wait", 
-                        [mk_state_shift eng return_unit vars (List.length vl, 0, 0) trace_num] @ fl @ gv @ acps ,
-                        [trace_fact eng],
-                        [mk_state eng_f return_unit (meta_num + List.length vl, loc_num, top_num) trace_num]) in 
-
-    let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num + List.length vl, loc_num, top_num) None syscall c in
-
-    (* pop meta variables *)
-    let rl = List.map
-      (fun r -> 
-        let (rname, preconds, label, postconds) = r in
-        let postconds = List.fold_left 
-          (fun postconds (fn, args , conf) ->
-            match args with
-            | [List [String st; num] ; ret; List meta; loc; top] ->
-                if st = engine_state_aux eng_f
-                then
-                  (* when this is the rule, find postcondition's meta variable number then lift current *)
-
-                  postconds @ [(fn, [List [String st; num] ; ret; List (pop_hd (List.length vl) meta); loc; top], conf)]
-
-                else 
-                  postconds @ [(fn, args , conf)]
-            | _ -> postconds @ [(fn, args , conf)]) [] postconds in
-          (rname, preconds, label, postconds)) rl in
-
-
-    (initial_rule::rl, eng_f)
-
   | Syntax.Put fl -> 
     let fl, gv, acps = translate_facts eng fl in
     let acps = List.map (fun target -> ("ACP"^eng.sep, [String eng.namespace; 
@@ -721,38 +684,57 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
 
 
 
-  | Syntax.Case (c1, c2) ->
-    let scope1, scope2 =
+  | Syntax.Case (cs) ->
+    let scope_lst =
       begin match scope with
       | None ->
-        Some [0], Some [1]
+        List.map (fun i -> Some [i]) (List.init (List.length cs) (fun i -> i))
       | Some l ->
-        Some (0::l), Some (1::l)
+        List.map (fun i -> Some (i :: l)) (List.init (List.length cs) (fun i -> i))
       end in 
-    let (r1, eng1) = translate_cmd eng funs syscalls vars scope1 syscall c1 in
-    let (r2, eng2) = translate_cmd eng funs syscalls vars scope2 syscall c2 in
+
     let eng_f = engine_index_inc eng None in
 
-    let final_rule_1 = (make_rule_name eng1 scope, 
-      [mk_state eng1 return_var vars trace_num], [trace_fact eng1], [mk_state eng_f return_var vars trace_num]) in 
+    let rl = List.map2 
+    (fun scope c -> 
+      let (rl, eng) = translate_guarded_cmd eng funs syscalls vars scope syscall c in
+      let final_rule = (make_rule_name eng scope, 
+        [mk_state eng return_var vars trace_num], [trace_fact eng], [mk_state eng_f return_var vars trace_num]) in
+      rl @ [final_rule]) scope_lst cs in
 
-    let final_rule_2 = (make_rule_name eng2 scope, 
-      [mk_state eng2 return_var vars trace_num], [trace_fact eng2], [mk_state eng_f return_var vars trace_num]) in 
+    (List.flatten rl, eng_f)
 
-    (r1@r2@[final_rule_1; final_rule_2], eng_f)
-
- | Syntax.While (c1, c2) ->
-     let scope1 =
+ | Syntax.While (cs1, cs2) ->
+    let scope_lst1 =
       begin match scope with
       | None ->
-        Some [0]
+        List.map (fun i -> Some [i]) (List.init (List.length cs1) (fun i -> i))
       | Some l ->
-        Some (0::l)
+        List.map (fun i -> Some (i :: l)) (List.init (List.length cs1) (fun i -> i))
       end in 
-    let (r1, eng1) = translate_cmd eng funs syscalls vars scope1 syscall c1 in
-    let loop = (make_rule_name eng1 scope, [mk_state eng1 return_var vars trace_num], [trace_fact eng1], [mk_state eng return_unit vars (AddOne trace_num)]) in 
-    let (r2, eng) = translate_cmd eng funs syscalls vars scope syscall c2 in
-    (r1@[loop]@r2, eng)
+    let scope_lst2 =
+      begin match scope with
+      | None ->
+        List.map (fun i -> Some [i]) (List.init (List.length cs2) (fun i -> i + (List.length cs1)))
+      | Some l ->
+        List.map (fun i -> Some (i :: l)) (List.init (List.length cs2) (fun i -> i + (List.length cs1)))
+      end in 
+  
+    let eng_f = engine_index_inc eng None in
+
+    let rl1 = List.map2 
+      (fun scope c -> 
+        let (rl, eng) = translate_guarded_cmd eng funs syscalls vars scope syscall c in
+        let loop_rule = (make_rule_name eng scope, [mk_state eng return_var vars trace_num], [trace_fact eng], [mk_state eng return_unit vars (AddOne trace_num)]) in 
+        rl @ [loop_rule]) scope_lst1 cs1 in
+
+    let rl2 = List.map2 
+      (fun scope c -> 
+        let (rl, eng) = translate_guarded_cmd eng funs syscalls vars scope syscall c in
+        let final_rule = (make_rule_name eng scope, [mk_state eng return_var vars trace_num], [trace_fact eng], [mk_state eng_f return_var vars trace_num]) in
+        rl @ [final_rule]) scope_lst2 cs2 in
+    
+    (List.flatten (rl1 @ rl2), eng_f)
 
  | Syntax.Event (fl) ->
     let fl, gv, acps = translate_facts eng fl in 
@@ -762,6 +744,51 @@ let rec translate_cmd eng funs syscalls vars scope syscall {Location.data=c; Loc
         fl,
         [mk_state eng_f return_unit vars trace_num])
       ], eng_f)
+
+
+and translate_guarded_cmd eng funs syscalls vars scope syscall (vl, fl, c) = 
+  let return_var = Var ("return"^eng.sep) in
+  let return_unit = String ("unit"^eng.sep) in 
+  let (meta_num, loc_num, top_num) = vars in 
+  let trace_num = (Int ("n"^eng.sep^eng.sep)) in
+  let trace_fact eng = ("Trace"^eng.sep^eng.namespace, [String (engine_state_aux eng) ; trace_num], config_linear) in
+
+  let fl, gv, acps = translate_facts eng fl in
+  let acps = List.map (fun target -> ("ACP"^eng.sep, [String eng.namespace; 
+                                                      target; 
+                                                      String syscall], config_persist)) acps in
+  let eng_f = engine_index_inc eng scope in
+  let initial_rule = (
+                      (make_rule_name eng scope)^"_wait", 
+                      [mk_state_shift eng return_unit vars (List.length vl, 0, 0) trace_num] @ fl @ gv @ acps ,
+                      [trace_fact eng],
+                      [mk_state eng_f return_unit (meta_num + List.length vl, loc_num, top_num) trace_num]) in 
+
+  let (rl, eng_f) = translate_cmd eng_f funs syscalls (meta_num + List.length vl, loc_num, top_num) None syscall c in
+
+  (* pop meta variables *)
+  let rl = List.map
+    (fun r -> 
+      let (rname, preconds, label, postconds) = r in
+      let postconds = List.fold_left 
+        (fun postconds (fn, args , conf) ->
+          match args with
+          | [List [String st; num] ; ret; List meta; loc; top] ->
+              if st = engine_state_aux eng_f
+              then
+                (* when this is the rule, find postcondition's meta variable number then lift current *)
+
+                postconds @ [(fn, [List [String st; num] ; ret; List (pop_hd (List.length vl) meta); loc; top], conf)]
+
+              else 
+                postconds @ [(fn, args , conf)]
+          | _ -> postconds @ [(fn, args , conf)]) [] postconds in
+        (rname, preconds, label, postconds)) rl in
+
+
+  (initial_rule::rl, eng_f)
+
+
 
 
 let translate_process sep t {

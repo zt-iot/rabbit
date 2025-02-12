@@ -20,9 +20,9 @@
 %token UNDERSCORE
 
 (* constant tokens for rabbit *)
-%token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE 
+%token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
 %token CHANNEL PROCESS PATH DATA FILESYS 
-%token WITH FUNC MAIN RETURN SKIP LET WAIT PUT CASE END BAR
+%token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR
 %token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN
 
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
@@ -194,20 +194,19 @@ plain_expr:
 %inline prefix:
   | op=PREFIXOP { op }
 
+guarded_cmd:
+  | LBRACKET precond=separated_list(COMMA, fact) RBRACKET ARROW c=cmd { (precond, c) }
+
 cmd: mark_location(plain_cmd) { $1 } 
 plain_cmd:
   | SKIP { Skip }
   | c1=cmd SEMICOLON c2=cmd { Sequence(c1, c2) }
-  | WAIT LBRACKET precond=separated_list(COMMA, fact) RBRACKET THEN c=cmd END { Wait (precond, c) }
   | PUT LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { Put (postcond) }
   | LET id=NAME EQ e=expr IN c=cmd { Let (id, e, c) }
   | id=uname COLONEQ e=expr { Assign (id, e) }
-  | CASE c1=cmd BAR 
-         c2=cmd END { Case(c1, c2) }
-  | CASE BAR c1=cmd BAR 
-         c2=cmd END { Case(c1, c2) }
-  | REPEAT c1=cmd UNTIL c2=cmd END { While(c1, c2) }
-  | AT LBRACKET a=separated_list(COMMA, fact) RBRACKET { Event(a) }
+  | CASE BAR? guarded_cmds=separated_nonempty_list(BAR, guarded_cmd) END { Case(guarded_cmds) }
+  | REPEAT BAR? c1=separated_nonempty_list(BAR, guarded_cmd) UNTIL BAR? c2=separated_nonempty_list(BAR, guarded_cmd) END { While(c1, c2) }
+  | EVENT LBRACKET a=separated_list(COMMA, fact) RBRACKET { Event(a) }
   | RETURN e=expr { Return e }
 
 uname: 

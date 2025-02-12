@@ -186,12 +186,6 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
          let (ctx, lctx, c2) = process_cmd ctx lctx c2 in
          (ctx, lctx, Syntax.Sequence (c1, c2))
 
-      | Input.Wait (fl, c) -> 
-         (* let lctx' = Context.lctx_add_frame lctx in *)
-         let (ctx, lctx', fl), vl = process_facts ctx lctx fl in  
-         let (ctx, lctx', c) = process_cmd ctx lctx' c in
-         (ctx, lctx, Syntax.Wait (vl, fl, c))
-
       | Input.Put fl -> 
          let (ctx, fl) = process_facts_closed ctx lctx fl in 
          (ctx, lctx, Syntax.Put (fl))
@@ -275,22 +269,32 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
             | _ -> error ~loc (NoBindingVariable)
          end 
 
-      | Input.Case (c1, c2) ->         
-         (* let (ctx, lctx1, al) = process_facts ctx lctx al in  *)
-         let (ctx, _, c1) = process_cmd ctx lctx c1 in 
+            
+      | Input.Case (cs) ->
 
-         (* let (ctx, lctx2, bl) = process_facts ctx lctx bl in  *)
-         let (ctx, _, c2) = process_cmd ctx lctx c2 in 
+         let ctx, cs = List.fold_left 
+            (fun (ctx, cs) (fl, c) -> 
+               let (ctx, lctx', fl), vl = process_facts ctx lctx fl in 
+               let (ctx, _, c) = process_cmd ctx lctx' c in 
+               (ctx, cs @ [(vl, fl, c)])) (ctx, []) cs in         
 
-         (ctx, lctx, Syntax.Case (c1, c2))
+         (ctx, lctx, Syntax.Case (cs))
 
-     | Input.While (c1, c2) ->
-         (* let (ctx, plctx, al) = process_facts ctx lctx al in
-         let (ctx, plctx, bl) = process_facts ctx plctx bl in
-          *)
-         let (ctx, _, c1) = process_cmd ctx lctx c1 in 
-         let (ctx, _, c2) = process_cmd ctx lctx c2 in 
-         (ctx, lctx, Syntax.While (c1, c2))
+     | Input.While (cs1, cs2) ->
+
+         let ctx, cs1 = List.fold_left 
+         (fun (ctx, cs) (fl, c) -> 
+            let (ctx, lctx', fl), vl = process_facts ctx lctx fl in 
+            let (ctx, _, c) = process_cmd ctx lctx' c in 
+            (ctx, cs @ [(vl, fl, c)])) (ctx, []) cs1 in         
+
+         let ctx, cs2 = List.fold_left 
+         (fun (ctx, cs) (fl, c) -> 
+            let (ctx, lctx', fl), vl = process_facts ctx lctx fl in 
+            let (ctx, _, c) = process_cmd ctx lctx' c in 
+            (ctx, cs @ [(vl, fl, c)])) (ctx, []) cs2 in         
+
+         (ctx, lctx, Syntax.While (cs1, cs2))
 
      | Input.Event (fl) ->
          let (ctx, fl) = process_facts_closed ctx lctx fl in

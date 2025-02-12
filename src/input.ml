@@ -26,14 +26,15 @@ type cmd = cmd' Location.located
 and cmd' = 
   | Skip
   | Sequence of cmd * cmd
-  | Wait of fact list * cmd
+  (* | Wait of fact list * cmd *)
   | Put of fact list
   | Let of Name.ident * expr * cmd 
   | Assign of Name.ident option * expr
-  | Case of cmd * cmd 
-  | While of cmd * cmd
+  | Case of (fact list * cmd) list
+  | While of (fact list * cmd) list * (fact list * cmd) list
   | Event of fact list
   | Return of expr
+  (* return can be enhanced through introducing type system hopefully  *)
 
 type proc = proc' Location.located
 and proc' =

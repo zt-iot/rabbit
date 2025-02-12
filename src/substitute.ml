@@ -61,13 +61,17 @@ let rec cmd_chan_sub c f t accesses =
   let c = 
     match c.Location.data with
     | Syntax.Sequence (c1, c2) -> Syntax.Sequence (cmd_chan_sub c1 f t accesses, cmd_chan_sub c2 f t accesses) 
-    | Syntax.Wait (vl, fl, c) -> Syntax.Wait (vl, facts_chan_sub fl f t accesses, cmd_chan_sub c f t accesses)
+    (* | Syntax.Wait (vl, fl, c) -> Syntax.Wait (vl, facts_chan_sub fl f t accesses, cmd_chan_sub c f t accesses) *)
     | Syntax.Let (v, e, c) -> Syntax.Let (v, expr_chan_sub e f t accesses, cmd_chan_sub c f t accesses)
     | Syntax.Assign (v, e) -> Syntax.Assign (v, expr_chan_sub e f t accesses)
     | Syntax.FCall (v, fn, el) -> Syntax.FCall (v, fn, List.map (fun e -> expr_chan_sub e f t accesses) el) 
     | Syntax.SCall (v, s, el) -> Syntax.SCall (v, s, List.map (fun e -> expr_chan_sub e f t accesses) el) 
-    | Syntax.Case (c1, c2) -> Syntax.Case (cmd_chan_sub c1 f t accesses, cmd_chan_sub c2 f t accesses)
-    | Syntax.While (c1, c2) -> Syntax.While (cmd_chan_sub c1 f t accesses, cmd_chan_sub c2 f t accesses)
+    | Syntax.Case (cl) -> Syntax.Case 
+      (List.map (fun (vl, fl, c) -> (vl, facts_chan_sub fl f t accesses, cmd_chan_sub c f t accesses)) cl)
+    | Syntax.While (cl1, cl2) -> 
+      Syntax.While (
+        (List.map (fun (vl, fl, c) -> (vl, facts_chan_sub fl f t accesses, cmd_chan_sub c f t accesses)) cl1),
+        (List.map (fun (vl, fl, c) -> (vl, facts_chan_sub fl f t accesses, cmd_chan_sub c f t accesses)) cl2))
     | Syntax.Event (fl) -> Syntax.Event (facts_chan_sub fl f t accesses)
     | Syntax.Skip -> Syntax.Skip
     | Syntax.Put (fl) -> Syntax.Put (facts_chan_sub fl f t accesses)

@@ -28,14 +28,14 @@ let reserved = [
   ("const", CONST) ;
   ("reachable", REACHABLE) ;
   ("corresponds", CORRESPONDS) ;
-  ("wait", WAIT) ; 
   ("put", PUT) ; 
   ("case", CASE) ; 
   ("end", END) ; 
   ("repeat", REPEAT);
   ("until", UNTIL);
   ("in", IN);
-  ("then", THEN)
+  ("then", THEN) ;
+  ("event", EVENT)
   ]
 
 let name =
@@ -100,12 +100,12 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
      let r = String.sub s 1 (l - 2) in 
      Ulexbuf.record_string r lexbuf;
      QUOTED_STRING (r)
-  | "~>"                     -> f (); LEADSTO
+  | "~>" | 8605              -> f (); LEADSTO
   | '_'                      -> f (); UNDERSCORE
   | '.'                      -> f (); DOT
   | '%'                      -> f (); PERCENT
-  | "exists-trace"                      -> f (); EXTRACE
-  | "all-traces"                      -> f (); ALLTRACE
+  | "exists-trace"           -> f (); EXTRACE
+  | "all-traces"             -> f (); ALLTRACE
   | '@'                      -> f (); AT
   | '('                      -> f (); LPAREN
   | ')'                      -> f (); RPAREN
@@ -113,11 +113,11 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | ']'                      -> f (); RBRACKET
   | '{'                      -> f (); LBRACE
   | '}'                      -> f (); RBRACE
-  | "<>"                     -> f (); NEQ
+  | "<>" | 8800              -> f (); NEQ
   | "||"                     -> f (); BBAR
   | '|'                      -> f (); BAR
-  (* | "=>" | 8658 | 10233      -> f (); DARROW
-     | "->" | 8594 | 10230      -> f (); ARROW *)  
+  | "=>" | 8658 | 10233      -> f (); DARROW
+  | "->" | 8594 | 10230      -> f (); ARROW 
   | ":="                     -> f (); COLONEQ
   | "="                      -> f (); EQ
   | ','                      -> f (); COMMA

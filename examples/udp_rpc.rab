@@ -1,36 +1,38 @@
 (** asynchronous channels *)
 syscall send(c, v) {
-	put [c::store(v)]
+  put [c::store(v)]
 }
 
 syscall recv(c) {
-	wait [c::store(v)] then
-		return v 
-	end
+  case 
+  | [c::store(v)] → return v 
+  end
 }
 
 (** synchronous rpc channel *)
 syscall connect_rpc (c) {
-	put [c::req()];
-	wait [c::ack(), ::Fr(x)] then
-		put [c::conn(), chid(c, x)]; 
-		return x
-	end
+  put [c::req()];
+  case 
+  | [c::ack(), ::Fr(x)] →
+    put [c::conn(), chid(c, x)]; 
+    return x
+  end
 } 
 
 syscall invoke_rpc (cid, f, arg1, arg2) {
-	wait[chid(c, cid)] then
-		put [c::invoke(f, arg1, arg2), chid(c, cid)]; 
-		wait [c::returned(v)] then return v
-		end
-	end	
+  case 
+  | [chid(c, cid)] →
+    put [c::invoke(f, arg1, arg2), chid(c, cid)]; 
+    case [c::returned(v)] → return v
+    end
+  end	
 }
 
 syscall close_rpc (cid){
-	wait[c::conn(), chid(c, cid)] then put[c::exit()] end
+  case [c::conn(), chid(c, cid)] → put[c::exit()] end
 }
 
 syscall accept_rpc (c){
-	wait [c::req()] then put [c::ack()] end
+  case [c::req()] → put [c::ack()] end
 }
 

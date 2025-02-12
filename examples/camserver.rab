@@ -17,9 +17,7 @@ load "udp_rpc.rab"
 
 (* picture *)
 syscall get_picture () {
-	wait [::Fr(v)] then 
-		return v 
-	end
+  case [::Fr(v)] → return v end
 }
 
 (* filesys *)
@@ -31,20 +29,22 @@ syscall fopen (p) {
 }
 
 syscall fread (y){
-	wait[y = h(p)] then 
-		wait[p.File(x), p.open()] then 
-			put[p.File(x), p.open()];
-			return x
-		end
-	end
+  case
+  | [y = h(p)] →
+    case 
+    | [p.File(x), p.open()] →
+      put[p.File(x), p.open()];
+      return x
+    end
+  end
 }
 
 syscall fclose (y) {
-	wait[y = h(p)] then 
-		wait[p.open()] then 
-			skip
-		end
-	end
+  case [y = h(p)] →
+    case [p.open()] → 
+      skip
+    end
+  end
 }
 
 (***********)
@@ -76,11 +76,13 @@ allow server_t readonly_t     [fopen, fread, fclose]
 (***********)
 (** attacker model *)
 
+(*
 attack tampar_ch (c) {
-	wait [c::store, In(w)] then 
-		put [c::store(w)]
-	end
+  case [c::store(j), In(w)] ->
+    put [c::store(w)]
+  end
 }
+*)
 
 passive attack eaves_mem (v) {
 	put [::Out(v)]
@@ -129,21 +131,21 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
 	main 
   	{
 
-			let conn = connect_rpc(ch_rpc) in 
-			
-			let image = get_picture() in 
+		let conn = connect_rpc(ch_rpc) in 
+		
+		let image = get_picture() in 
 
-			let sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
+		let sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
 
-			_ := eaves_mem((sig, image));
+		_ := eaves_mem((sig, image));
 
-			_ := send(ch_net, (sig, image)); 
+		_ := send(ch_net, (sig, image)); 
 
-			@ [::ImgSend(image)];
+		event [::ImgSend(image)];
 		    	
 	  	_ := close_rpc(conn) ;
 
-	  	@ [::ClientClose ()]
+	  	event [::ClientClose ()]
   	
   	}
 }
@@ -176,22 +178,20 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
 	{
 		_ := accept_rpc(ch_rpc);
 		repeat
-				wait [ch_rpc::invoke(fname, image, priv_path)] then 
-					case
-					|	wait [fname = "sign_image"] then 
-							let signed = sign_image(image, priv_path) in
-		  					put[ch_rpc::returned(signed)]		
-		  			end
-		  		| wait [fname <> "sign_image"] then 
-		  				@[InValidName(fname)]
-		  			end 
-		  		end
-		  	end
+			[ch_rpc::invoke(fname, image, priv_path)] ->
+				case
+					[fname = "sign_image"] ->
+						let signed = sign_image(image, priv_path) in
+							put[ch_rpc::returned(signed)]		
+				
+					| [fname <> "sign_image"] ->
+						event [InValidName(fname)]
+				end 
 		until
-			wait [ch_rpc::exit()] then skip end
+			[ch_rpc::exit()] -> skip 
 		end;
-		@ [::ClientTAClose ()]
-  	
+		event [::ClientTAClose ()]
+
 	}
 }
 
@@ -202,23 +202,24 @@ process server(ch_net : udp_t) : server_t
 	main 
 	{
 	    let pubkey_fd = fopen(pubkey_path) in 
-	    @ [::A()];
+	    event [::A()];
 	    let pubkey = fread(pubkey_fd) in 
-	    @ [::B()];
-	    repeat
+	    event [::B()];
+	    repeat 
+		| [] -> 
 	    	let p = recv(ch_net) in
-				let res = verify(fst(p), snd(p), pubkey) in 
-				case 
-				|	wait [res =  true] then 
-						@[::ImgRecvValid(snd(p))]
-					end
-				| wait [res <> true] then 
-						@[::ImgRecvInvalid(snd(p))]
-					end
-				end
-			until
-				wait [::False()] then skip end
-			end 	    
+			let res = verify(fst(p), snd(p), pubkey) in 
+			case 
+				[res =  true] ->
+					event [::ImgRecvValid(snd(p))]
+					
+				| [res <> true] -> 
+					event [::ImgRecvInvalid(snd(p))]
+			end
+					
+		until
+			[::False()] -> skip 
+		end 	    
   	}
 }
 
