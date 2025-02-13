@@ -364,7 +364,7 @@ let print_fact_plain (f, el) =
 
 let print_transition (tr : transition) (is_dev : bool) = 
   (* name of this rule: *)
-  let f = tr.transition_namespace ^ !separator ^ tr.transition_name in 
+  let f = tr.transition_namespace ^ !separator ^ tr.transition_name ^ !separator ^ state_index_to_string_aux tr.transition_from ^ !separator ^ state_index_to_string_aux tr.transition_to in 
   let pre = tr.transition_pre in
   let post = tr.transition_post in
   let label = tr.transition_label in
