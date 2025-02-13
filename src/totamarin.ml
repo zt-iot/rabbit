@@ -4,6 +4,8 @@
    it only contains reserved facts.
  *)
 let separator = ref "_"
+let fresh_ident = ref "rab"
+let fresh_string = ref "rab"
 
 let mk_my_fact_name s = 
   (String.capitalize_ascii s)
@@ -97,6 +99,7 @@ type action =
   | ActionIntro of expr list
   | ActionPopLoc of int
   | ActionPopMeta of int
+  | ActionLetTop of expr
 
 type state = {
   state_namespace : string;
@@ -115,15 +118,40 @@ type transition = {
   transition_label : fact list;
 }
 
+type rule = 
+| Rule of string * string * fact list * fact list * fact list
+| Comment of string
+
+(* type tamarin = signature * rule list *)
+
 type model = {
   model_name : string;
   model_states : state list;
   model_transitions : transition list;
+  model_init_rules : rule list ;
+  model_init_state : state
 }
 
-let empty_model name = {model_name = name; model_states = []; model_transitions = []}
+let add_rule (mo : model) (a, b, c, d, e) = 
+  {mo with model_init_rules = (Rule (a, b, c, d, e)) :: mo.model_init_rules}
+
+let add_comment (mo : model) r = 
+  {mo with model_init_rules = (Comment r) :: mo.model_init_rules}
+  
+let add_comment t s = ((Comment s) :: ((t)))
 
 let add_state m s = {m with model_states = s :: m.model_states}
+
+let initial_state name = 
+{
+  state_namespace = name;
+  state_index = [];
+  state_vars = (0, 0, 0)
+}
+
+let initial_model name = 
+  let st = initial_state name in
+  {model_name = name; model_states = [st]; model_transitions = []; model_init_rules = []; model_init_state = st}, st
 
 let add_transition m t = {m with model_transitions = t :: m.model_transitions}
 
@@ -209,26 +237,28 @@ let mk_state_replace_and_shift eng return_var (meta_num, loc_num, top_num) (n, m
       List (List.map (fun i -> if b && i = j  then e else TopVar (i+l)) (int_to_list top_num))
     ], config_linear) 
  *)
- type rule = 
- | Rule of string * string * fact list * fact list * fact list
- | Comment of string
-
-type tamarin = signature * rule list
-
-let add_rule t (a, b, c, d, e) = (fst t, (Rule (a, b, c, d, e)) :: ( (snd t)))
-let add_comment t s = (fst t, (Comment s) :: ((snd t)))
-
-
 
 (* tamarin as a pair of a sigature and a finite list of models *)
 (* model and its initialization rules *)
-type tamarin = signature * (model * rule list) list 
+type tamarin = signature * model list * rule list
 
-let add_fun ((fns,eqns), rules) f = ((f::fns, eqns), rules)
-let add_const ((fns,eqns), rules) c = (((c,0)::fns, eqns), rules)
-let add_eqn ((fns,eqns), rules) eq = ((fns, eq::eqns), rules)
+let add_fun (((fns,eqns), mo, rules) : tamarin) f : tamarin = ((f::fns, eqns), mo, rules)
+let add_const (((fns,eqns), mo, rules) : tamarin) c = (((c,0)::fns, eqns), mo, rules)
+let add_eqn (((fns,eqns), mo, rules): tamarin) eq = ((fns, eq::eqns), mo, rules)
 
-let empty_tamarin = empty_signature , []
+let add_model (t : tamarin) m = 
+  let (si, mo, rules) = t in 
+    (si, m :: mo, rules)
+
+let tamarin_add_rule (t : tamarin) (a, b, c, d, e) = 
+  let (si, mo, rules) = t in 
+    (si, mo, (Rule (a, b, c, d, e)) :: rules)
+
+let tamarin_add_comment (t : tamarin) s = 
+  let (si, mo, rules) = t in 
+    (si, mo, (Comment s :: rules))
+
+let empty_tamarin : tamarin  = empty_signature , [], []
 
 let get_return_var () =
   Var ("return" ^ !separator ^ "var") 
@@ -393,8 +423,16 @@ let index_inc index scope =
     end
   | Some s -> (s, 0)::index
 
-let next_state st scope = 
-  {st with state_index = index_inc st.state_index scope}
+let next_state ?(shift=(0,0,0)) st scope  = 
+  let (a, b, c) = shift in 
+  let (meta_num, loc_num, top_num) = st.state_vars in
+  {st with state_index = index_inc st.state_index scope; 
+           state_vars = (meta_num + a, loc_num + b, top_num + c)}
+  (* {st with state_index = index_inc st.state_index scope} *)
+
+(* let next_state_app st scope num = 
+  {st with state_index = index_inc st.state_index scope} *)
+  
 
 let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=loc} = 
   let translate_expr' = function
@@ -574,7 +612,7 @@ let rec pop_hd n lst =
   given a model, the current state that is promised to be already in the model,
   this function returns an extended model 
 *)
-let rec translate_cmd mo st funs syscalls vars scope syscall {Location.data=c; Location.loc=loc} = 
+let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location.data=c; Location.loc=loc} = 
   let return_var = Var ("return"^ !separator ) in
   let return_unit = String ("unit"^ !separator ) in 
   let (meta_num, loc_num, top_num) = vars in 
@@ -583,7 +621,7 @@ let rec translate_cmd mo st funs syscalls vars scope syscall {Location.data=c; L
   | Syntax.Return e ->
     let e, gv = translate_expr2 e in  
     let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
-    let st_f = next_state st scope in 
+    let (st_f : state) = next_state st scope in 
     let mo = add_state mo st_f in 
     let mo = add_transition mo {
       transition_namespace = mo.model_name;
@@ -642,7 +680,7 @@ let rec translate_cmd mo st funs syscalls vars scope syscall {Location.data=c; L
     let e, gv = translate_expr2 e in  
     let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
     
-    let st_f = next_state st scope in 
+    let st_f = next_state ~shift:(0,1,0) st scope  in 
     let mo = add_state mo st_f in
     let mo = add_transition mo {
       transition_namespace = mo.model_name;
@@ -656,7 +694,8 @@ let rec translate_cmd mo st funs syscalls vars scope syscall {Location.data=c; L
     } in
   
     let (mo, st) = translate_cmd mo st_f funs syscalls (meta_num, loc_num+1, top_num) None syscall c in
-    let st_f = next_state st scope in 
+
+    let st_f = next_state ~shift:(0,-1,0) st scope in 
     let mo = add_state mo st_f in
     let mo = add_transition mo {
       transition_namespace = mo.model_name;
@@ -696,7 +735,7 @@ let rec translate_cmd mo st funs syscalls vars scope syscall {Location.data=c; L
     
     let (f, args, cmd) = List.find (fun (f', args, cmd) -> f = f') funs in 
 
-    let st_f = next_state st scope in
+    let st_f = next_state ~shift:(0,List.length el,0) st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
       transition_namespace = mo.model_name;
@@ -710,7 +749,8 @@ let rec translate_cmd mo st funs syscalls vars scope syscall {Location.data=c; L
     } in
 
     let (mo, st) = translate_cmd mo st_f funs syscalls (meta_num, loc_num + (List.length el), top_num) None syscall cmd in
-    let st_f = next_state st scope in
+
+    let st_f = next_state ~shift:(0,- (List.length el),0) st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
       transition_namespace = mo.model_name;
@@ -736,7 +776,7 @@ let rec translate_cmd mo st funs syscalls vars scope syscall {Location.data=c; L
     
     let (f, args, cmd) = List.find (fun (f', args, cmd) -> o = f') syscalls in 
 
-    let st_f = next_state st scope in
+    let st_f = next_state ~shift:(0,List.length el,0) st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
       transition_namespace = mo.model_name;
@@ -750,7 +790,8 @@ let rec translate_cmd mo st funs syscalls vars scope syscall {Location.data=c; L
     } in
 
     let (mo, st) = translate_cmd mo st_f funs syscalls (meta_num, loc_num + (List.length el), top_num) None o cmd in
-    let st_f = next_state st scope in
+
+    let st_f = next_state ~shift:(0, - (List.length el),0) st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
       transition_namespace = mo.model_name;
@@ -776,9 +817,9 @@ let rec translate_cmd mo st funs syscalls vars scope syscall {Location.data=c; L
       | Some l ->
         List.map (fun i -> Some (i :: l)) (List.init (List.length cs) (fun i -> i))
       end in 
-    
+
+    (* final state for all branches *)
     let st_f = next_state st None in
-    (* let st_f = engine_index_inc eng None in *)
 
     let mo = List.fold_left2 (fun mo scope (vl, fl, c) -> 
       let (mo, st) = translate_guarded_cmd mo st funs syscalls vars scope syscall (vl, fl, c) in
@@ -858,15 +899,13 @@ let rec translate_cmd mo st funs syscalls vars scope syscall {Location.data=c; L
   (mo, st_f)
 
 and translate_guarded_cmd mo st funs syscalls vars scope syscall (vl, fl, c) = 
-  let return_var = Var ("return"^ !separator ) in
-  let return_unit = String ("unit"^ !separator ) in 
   let (meta_num, loc_num, top_num) = vars in 
 
   let fl, gv, acps = translate_facts mo.model_name fl in
   let acps = List.map (fun target -> ("ACP"^ !separator , [String mo.model_name; 
                                                       target; 
                                                       String syscall], config_persist)) acps in
-  let st_f = next_state st scope in
+  let st_f = next_state ~shift:(List.length vl, 0, 0) st scope in
   let mo = add_state mo st_f in
   (* let eng_f = engine_index_inc eng scope in *)
   let mo = add_transition mo {
@@ -885,7 +924,7 @@ and translate_guarded_cmd mo st funs syscalls vars scope syscall (vl, fl, c) =
 
 
 
-let translate_process sep t {
+let translate_process {
         Context.proc_pid=k;
         Context.proc_name=s;
         Context.proc_attack=attks;
@@ -898,58 +937,51 @@ let translate_process sep t {
         Context.proc_main=m
       } syscalls =
   let namespace = String.capitalize_ascii (s ^ (if k = 0 then "" else string_of_int k)) in (* this must be unique *)
+  let return_unit = String ("unit"^ !separator ) in 
+  let sep = !separator in
   (* let t = add_comment t ("- Process name: " ^ namespace) in  *)
 
-  (* let t = add_comment t "Initial file system:" in *)
-  let t = List.fold_left (fun t (path, e, _, _) ->
+  let mo, st = initial_model namespace in 
+
+
+  (* initialize file system *)
+  let mo = List.fold_left (fun mo (path, e, _, _) ->
       (* let path = (mk_dir eng fsys path) in *)
-      let e, gv = translate_expr2 sep e in  
-      let gv = List.map (fun s -> ("Const"^sep, [String s ; Var s], config_persist)) gv in 
-      let name = mk_fact_name  namespace^ replace_string '/' sep path in 
-      add_rule t (name, "",
+      let e, gv = translate_expr2 e in  
+      let gv = List.map (fun s -> ("Const"^ !separator, [String s ; Var s], config_persist)) gv in 
+      let name = mk_fact_name  namespace^ replace_string '/' !separator path in 
+      add_rule mo (name, "",
             gv,
-            [("Init"^sep, [List [String namespace; String path]], config_linear)],
-            [("File", [String namespace; String path ; e], config_linear)])) t fls in 
-
-
-  let eng = engine_set_namespace empty_engine namespace in 
-  let eng = engine_set_sep eng sep in 
-  let eng_f = engine_index_inc eng None in
-  let return_var = Var ("return"^ !separator ) in
-  let return_unit = String ("unit"^ !separator ) in 
-
-  (* let eng = eng_set_role eng namespace in *)
-  (* let eng = eng_set_filesys eng (match fsys with Some fsys -> fsys | None -> "") in *)
-
-  let t = add_comment t ("-- initialization rules") in 
-  let t = add_rule t 
-          (make_rule_name eng None, namespace,
-          [], 
-          [("Init"^sep, [String namespace], config_linear)], 
-	        [mk_state eng_f return_unit (0, 0, 0) One]) in
-  let eng = eng_f in 
-
+            [("Init"^ !separator, [List [String namespace; String path]], config_linear)],
+            [("File", [String namespace; String path ; e], config_linear)])) mo fls in 
+          
   (* initialize memory *)
-  let (eng, t, _) = List.fold_left
-		   (fun (eng, t, i) (x, e) -> 
-		     let eng_f = engine_index_inc eng None in 
-		     let e, gv = translate_expr2 sep e in  
-		     let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+  let (mo, st) = List.fold_left
+		   (fun (mo, st) (x, e) -> 
+          let st_f = next_state ~shift:(0,0,1) st None in 
+          let mo = add_state mo st_f in
+          let e, gv = translate_expr2 e in  
+          let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+          let mo = add_transition mo {
+            transition_namespace = mo.model_name;
+            transition_name = "init_mem";
+            transition_from = st;
+            transition_to = st_f;
+            transition_pre = gv;
+            transition_post = [];
+            transition_function_facts = ActionLetTop [e];
+            transition_label = []
+          } in
+          (mo, st_f)) (mo, st) (List.rev vars) in 
 
-		     let t = add_rule t 
-                  (make_rule_name eng None, namespace,
-					         [mk_state eng return_unit (0,0,i) (Int ("n" ^ sep ^sep))] @ gv, 
-					         [trace_fact eng (Int ("n" ^ sep ^sep))],  
-					         [mk_state_app_top eng_f return_unit (0,0,i) e (Int ("n" ^ sep ^sep))]) in
-	       (eng_f, t, i+1)) (eng, t, 0) (List.rev vars) in 
 
-  let t = add_comment t ("-- main function ") in 	
+  (* translate the main function *)
+  let (mo, st) = translate_cmd mo st fns syscalls (0, 0, List.length vars) None "" m in
   
-  let (r, eng) = translate_cmd eng fns syscalls (0, 0, List.length vars) None "" m in
-
-  List.fold_left (fun t r -> add_rule t 
+  mo
+  (* List.fold_left (fun t r -> add_rule t 
     (let (rname, pre, lab, post) = r in
-    (rname, namespace, pre, lab, post))) t r 
+    (rname, namespace, pre, lab, post))) t r  *)
 
 
 let get_fact_names ctx = 
@@ -969,27 +1001,31 @@ let translate_sys {
         Context.sys_proc = proc ;
         Context.sys_lemma = lem
       } (used_idents, used_string) = 
-  let t = empty_tamarin in
-  (* let eng = empty_engine in *)
-  let sep = (let names = get_fact_names ctx in 
-	           let rec f s = if List.exists (fun u -> contains u s) names then f (s ^"_") else s in 
-	           f "_") in
-  let fresh_ident = (let rec f s = if List.exists (fun u -> u = s) used_idents then f (s^"_") else s in 
-		                f "rab") in 
 
-  let fresh_string = (let rec f s = if List.exists (fun u -> u = s) used_string then f (s^"_") else s in 
-		                  f "rab") in 
+  separator := (let names = get_fact_names ctx in 
+   let rec f s = if List.exists (fun u -> contains u s) names then f (s ^"_") else s in 
+    f "_");
+  
+  fresh_ident := (let rec f s = if List.exists (fun u -> u = s) used_idents then f (s^"_") else s in 
+	  f "rab") ;
+
+  fresh_string := (let rec f s = if List.exists (fun u -> u = s) used_string then f (s^"_") else s in 
+		                  f "rab") ;
   
 
-  (* process what has been defined first! *)
+  let sep = !separator in
+
+  let t : tamarin = empty_tamarin in
+
+  (* process signature *)
   let t = List.fold_left (fun t (f, k) -> add_fun t (f, k)) t (List.rev ctx.Context.ctx_ext_func) in
   let t = List.fold_left (fun t c -> add_const t c) t (List.rev ctx.Context.ctx_ext_const) in
-  let t = List.fold_left (fun t (_, e1, e2) -> add_eqn t (translate_expr sep e1, translate_expr sep e2)) t (List.rev def.Context.def_ext_eq) in
+  let t = List.fold_left (fun t (_, e1, e2) -> add_eqn t (translate_expr e1, translate_expr e2)) t (List.rev def.Context.def_ext_eq) in
 
   (* let t = add_comment t "external system calls:" in
      let t = List.fold_left (fun t r -> translate_syscall eng t r) t (List.rev def.Context.def_ext_syscall) in*)
 
-  let t = add_comment t "Attacks:" in
+  (* let t = add_comment t "Attacks:" in *)
 (*   let t = List.fold_left (fun t r -> 
 
 	      let (f, (ch_vars, path_vars, process_vars), (pre, post)) = r in
@@ -1017,14 +1053,17 @@ let translate_sys {
  *)
   (* load global variables *)
 
-  let t = add_comment t "Global constants:" in
+  (* let t = add_comment t "Global constants:" in *)
+
+  (* global constants *)
   let t = List.fold_left (fun t (v, e) -> 
 	      match e with
-	      | None -> (* when v is fresh *) add_rule t ("Const"^sep^v, "", [("Fr", [Var v], config_linear)], [], [("Const"^sep, [String v ; Var v], config_persist)])
+	      | None -> (* when v is fresh *) 
+          tamarin_add_rule t ("Const"^sep^v, "", [("Fr", [Var v], config_linear)], [], [("Const"^sep, [String v ; Var v], config_persist)])
 	      | Some e -> (* when v is defined *) 
-		 let e, gv = translate_expr2 sep e in  
-		 let gv = List.map (fun s -> ("Const"^sep, [String s ; Var s], config_persist)) gv in 
-		 add_rule t ("Const"^sep^v, "", gv, [], [("Const"^sep, [String v ; e], config_persist)])) t (List.rev def.Context.def_const) in
+          let e, gv = translate_expr2 e in  
+          let gv = List.map (fun s -> ("Const"^sep, [String s ; Var s], config_persist)) gv in 
+      		tamarin_add_rule t ("Const"^sep^v, "", gv, [], [("Const"^sep, [String v ; e], config_persist)])) t (List.rev def.Context.def_const) in
 
   (* initialize files *)
   (* def_fsys    :  (Name.ident * Name.ident * Syntax.expr) list ; *)
@@ -1041,7 +1080,7 @@ let translate_sys {
 
  *)  let il =[] in 
 
-  let t = add_comment t "Access control:" in
+  let t = tamarin_add_comment t "Access control:" in
   (* access control *)
   (* pol_access : (Name.ident * Name.ident list * Name.ident) list ; *)
   let t, il = List.fold_left (fun (t, il) p ->
@@ -1052,7 +1091,7 @@ let translate_sys {
 			          | scall -> 
 				     List.fold_left (fun (t, il) (_, _, sys) ->
 					 let name = procname ^ sep ^ c ^ sep ^ sys in 
-					 add_rule t 
+					 tamarin_add_rule t 
 					   (name, "",
 					    [], 
 					    [(name, [], config_linear)], 
@@ -1065,7 +1104,7 @@ let translate_sys {
                 | _ -> 
              
                  let name = procname ^ sep ^ c ^ sep in 
-                  add_rule t 
+                 tamarin_add_rule t 
                   (name, "",
                   [], 
                   [(name, [], config_linear)], 
@@ -1078,7 +1117,7 @@ let translate_sys {
 		    | scall -> 
 		       List.fold_left (fun (t, il) (_, _, sys) ->
 			   let name = procname ^ sep ^ sys in 
-			   add_rule t 
+			   tamarin_add_rule t 
 			     (name, "",
 			      [], 
 			      [(name, [], config_linear)], 
@@ -1109,7 +1148,7 @@ let translate_sys {
             | scall ->        
          List.fold_left (fun (t, il) (_, _, sys) ->
        let name = procname ^ sep ^ dir ^ sep ^replace_string '/' sep path ^ sep ^ sys in 
-       add_rule t 
+       tamarin_add_rule t 
          (name, "",
           [], 
           [(name, [], config_linear)], 
@@ -1134,16 +1173,8 @@ let translate_sys {
      
    *)
 
-  let t = add_comment t "Processes:" in
-  let t = List.fold_left (fun t p -> translate_process sep t p (List.rev def.Context.def_ext_syscall)) t (List.rev proc) in
-
-  let init_list = List.map (fun p -> String.capitalize_ascii (p.Context.proc_name ^ 
-                                    (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid )
-	                                   ) ^ sep^"init") proc in 
-  let procs = List.map (fun p -> String.capitalize_ascii (p.Context.proc_name ^ 
-                                    (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid )
-                                     ) ) proc in 
-  let init_list = init_list @ il in 
+  (* let t = add_comment t "Processes:" in *)
+  let t = List.fold_left (fun t p -> add_model t (translate_process p (List.rev def.Context.def_ext_syscall))) t (List.rev proc) in
 
   (* translating lemmas now *)
   let lem = List.map (fun l ->
@@ -1164,8 +1195,8 @@ let translate_sys {
  *)    
 
     | _ -> error ~loc:Location.Nowhere (UnintendedError "")
-) lem in
+  ) lem in
 
-  (t, init_list, procs, lem), {prt_sep=sep;}
+  (t, lem)
 
 
