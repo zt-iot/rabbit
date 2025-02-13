@@ -1,0 +1,52 @@
+(* Minimal working rabbit code for testing purpose *)
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+
+
+type server_t  : process
+
+process server() : server_t
+{  
+	let a = "a"
+	let b = "b"
+	let c = "c"
+
+	main 
+  	{
+        c := "d";
+        case 
+        [A(x), B(y), C(z)] ->
+            a := x; 
+            case
+            [B(k), A(a), C(x)] -> c := k end;
+            b := z
+        end
+        
+  	}
+}
+
+
+
+(***********)
+system 
+	server()
+requires  [
+  lemma Reachable1 :
+    exists-trace "Ex #j  . A() @ #j" ;
+  lemma Reachable2 :
+    exists-trace "Ex #j  . B() @ #j" ;
+  lemma Reachable3 :
+    exists-trace "Ex #j  . AAA() @ #j" ;
+  lemma Reachable4 :
+    exists-trace "Ex #j  . BBB() @ #j" ;
+  lemma Reachable5 :
+    exists-trace "Ex x #j  . Took(x) @ #j" ;
+  lemma Reachable :
+    exists-trace "Ex x #i #j  . ClientClose() @ #j & ImgRecvValid(x) @ #i" ;
+
+  lemma Correspondence :
+    all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
+  ]
+

@@ -87,8 +87,8 @@ let rec process_expr ctx lctx {Location.data=c; Location.loc=loc} =
   Location.locate ~loc c
 
 
-let rec process_expr2 ctx lctx {Location.data=c; Location.loc=loc} = 
-   let process_expr2' ctx lctx = function
+let rec process_expr2 new_meta_vars ctx lctx {Location.data=c; Location.loc=loc} = 
+   let process_expr2' new_meta_vars ctx lctx = function
    | Input.Var id -> 
       if Context.ctx_check_const ctx id then Syntax.Const id
       else if Context.ctx_check_ext_const ctx id then Syntax.ExtConst id
@@ -105,7 +105,10 @@ let rec process_expr2 ctx lctx {Location.data=c; Location.loc=loc} =
             | None -> 
                match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
                | Some i -> Syntax.MetaVariable (id, i)
-               | None -> error ~loc (UnknownVariable id) 
+               | None -> 
+                  match find_index (fun v -> v = id) new_meta_vars with
+                  | Some i -> Syntax.MetaNewVariable (id, i)
+                  | None -> error ~loc (UnknownVariable id) 
       end
    | Input.Boolean b -> Syntax.Boolean b
    | Input.String s -> Syntax.String s 
@@ -113,68 +116,68 @@ let rec process_expr2 ctx lctx {Location.data=c; Location.loc=loc} =
    | Input.Float f -> Syntax.Float f
    | Input.Apply(o, el) ->
       if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o) else
-      if Context.ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr2 ctx lctx a) el)) else
+      if Context.ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr2 new_meta_vars ctx lctx a) el)) else
       error ~loc (UnknownIdentifier o)
-   | Input.Tuple el -> Syntax.Tuple (List.map (fun a -> process_expr2 ctx lctx a) el)
+   | Input.Tuple el -> Syntax.Tuple (List.map (fun a -> process_expr2 new_meta_vars ctx lctx a) el)
   in
-  let c = process_expr2' ctx lctx c in
+  let c = process_expr2' new_meta_vars ctx lctx c in
   Location.locate ~loc c
 
 
-let process_fact_closed ctx lctx f =
+let process_fact_closed new_meta_vars ctx lctx f =
    let loc = f.Location.loc in 
    match f.Location.data with
    | Input.Fact (id, el) ->
       (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), 
-         Location.locate ~loc:f.Location.loc (Syntax.Fact(id, List.map (process_expr2 ctx lctx) el)))
+         Location.locate ~loc:f.Location.loc (Syntax.Fact(id, List.map (process_expr2 new_meta_vars ctx lctx) el)))
    | Input.GlobalFact (id, el) ->
       (Context.ctx_add_or_check_fact ~loc ctx (id, List.length el), 
-         Location.locate ~loc:f.Location.loc (Syntax.GlobalFact(id, List.map (process_expr2 ctx lctx) el)))
+         Location.locate ~loc:f.Location.loc (Syntax.GlobalFact(id, List.map (process_expr2 new_meta_vars ctx lctx) el)))
    | Input.ChannelFact (l, id, el) ->
       (* check validty of local scope l *)
          (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), 
                   Location.locate ~loc:f.Location.loc 
-                  (Syntax.ChannelFact(process_expr2 ctx lctx (Location.locate ~loc (Input.Var l)),
-                        id, List.map (process_expr2 ctx lctx) el)))
+                  (Syntax.ChannelFact(process_expr2 new_meta_vars ctx lctx (Location.locate ~loc (Input.Var l)),
+                        id, List.map (process_expr2 new_meta_vars ctx lctx) el)))
    | Input.PathFact (l, id, el) ->
       (* check validty of local scope l *)
          (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), 
                   Location.locate ~loc:f.Location.loc 
-                  (Syntax.PathFact(process_expr2 ctx lctx (Location.locate ~loc (Input.Var l)),
-                        id, List.map (process_expr2 ctx lctx) el)))
+                  (Syntax.PathFact(process_expr2 new_meta_vars ctx lctx (Location.locate ~loc (Input.Var l)),
+                        id, List.map (process_expr2 new_meta_vars ctx lctx) el)))
    | Input.ResFact(i, el) ->
          (ctx, Location.locate ~loc:f.Location.loc 
-                  (Syntax.ResFact(i, List.map (process_expr2 ctx lctx) el)))
+                  (Syntax.ResFact(i, List.map (process_expr2 new_meta_vars ctx lctx) el)))
 
    | _ -> error ~loc (UnknownIdentifier2 "")
 
-let process_facts_closed ctx lctx fl = 
+let process_facts_closed new_meta_vars ctx lctx fl = 
    List.fold_left (fun (ctx, fl) f -> 
-      let (ctx, f) = process_fact_closed ctx lctx f in 
+      let (ctx, f) = process_fact_closed new_meta_vars ctx lctx f in 
       (ctx, fl @ [f])) (ctx, []) fl
 
-let rec collect_meta_fact ctx lctx f =
+let rec collect_meta_fact new_meta_vars ctx lctx f =
    try 
-      let (ctx, f) = process_fact_closed ctx lctx f in
+      let (ctx, f) = process_fact_closed new_meta_vars ctx lctx f in
       (ctx, lctx, f), []
    with 
    | Error {Location.data=err; Location.loc=locc} ->
       begin match err with
       | UnknownVariable v -> 
-         let (r, l) = collect_meta_fact ctx (Context.lctx_add_new_meta ~loc:locc lctx v) f in
+         let (r, l) = collect_meta_fact (v::new_meta_vars) ctx lctx f in
          (r, l @ [v])
       | _ -> error ~loc:locc err
    end
 
 let collect_meta_facts ctx lctx fl = 
    List.fold_left (fun ((ctx, lctx, fl), ls) f -> 
-      let (ctx, lctx, f), l = collect_meta_fact ctx lctx f in 
+      let (ctx, lctx, f), l = collect_meta_fact [] ctx lctx f in 
       ((ctx, lctx, fl @ [f]), ls @ l)) ((ctx, lctx, []), []) fl
 
 let process_facts ctx lctx fl = 
    let _, vl = collect_meta_facts ctx lctx fl in
-   let lctx = {lctx with Context.lctx_meta_var = vl@lctx.Context.lctx_meta_var} in 
-   let (ctx, fl) = process_facts_closed ctx lctx fl in
+   (* let lctx = {lctx with Context.lctx_meta_var = vl@lctx.Context.lctx_meta_var} in  *)
+   let (ctx, fl) = process_facts_closed vl ctx lctx fl in
    (ctx, lctx, fl), vl
 
 let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} = 
@@ -187,7 +190,7 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
          (ctx, lctx, Syntax.Sequence (c1, c2))
 
       | Input.Put fl -> 
-         let (ctx, fl) = process_facts_closed ctx lctx fl in 
+         let (ctx, fl) = process_facts_closed [] ctx lctx fl in 
          (ctx, lctx, Syntax.Put (fl))
 
       | Input.Let (v, e, c) -> 
@@ -275,7 +278,7 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
          let ctx, cs = List.fold_left 
             (fun (ctx, cs) (fl, c) -> 
                let (ctx, lctx', fl), vl = process_facts ctx lctx fl in 
-               let (ctx, _, c) = process_cmd ctx lctx' c in 
+               let (ctx, _, c) = process_cmd ctx {lctx with Context.lctx_meta_var = vl@lctx.Context.lctx_meta_var} c in 
                (ctx, cs @ [(vl, fl, c)])) (ctx, []) cs in         
 
          (ctx, lctx, Syntax.Case (cs))
@@ -285,19 +288,19 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
          let ctx, cs1 = List.fold_left 
          (fun (ctx, cs) (fl, c) -> 
             let (ctx, lctx', fl), vl = process_facts ctx lctx fl in 
-            let (ctx, _, c) = process_cmd ctx lctx' c in 
+            let (ctx, _, c) = process_cmd ctx {lctx with Context.lctx_meta_var = vl@lctx.Context.lctx_meta_var} c in 
             (ctx, cs @ [(vl, fl, c)])) (ctx, []) cs1 in         
 
          let ctx, cs2 = List.fold_left 
          (fun (ctx, cs) (fl, c) -> 
             let (ctx, lctx', fl), vl = process_facts ctx lctx fl in 
-            let (ctx, _, c) = process_cmd ctx lctx' c in 
+            let (ctx, _, c) = process_cmd ctx {lctx with Context.lctx_meta_var = vl@lctx.Context.lctx_meta_var} c in 
             (ctx, cs @ [(vl, fl, c)])) (ctx, []) cs2 in         
 
          (ctx, lctx, Syntax.While (cs1, cs2))
 
      | Input.Event (fl) ->
-         let (ctx, fl) = process_facts_closed ctx lctx fl in
+         let (ctx, fl) = process_facts_closed [] ctx lctx fl in
          (ctx, lctx, Syntax.Event (fl))
 
       | Input.Return e ->

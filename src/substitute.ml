@@ -22,6 +22,7 @@ let rec expr_chan_sub e f t accesses =
   | Syntax.ExtConst s  -> e
   | Syntax.LocVariable (v, i)  -> e
   | Syntax.MetaVariable (v, i)  -> e
+  | Syntax.MetaNewVariable (v, i)  -> e
   | Syntax.TopVariable (v, i)  -> e
   | Syntax.Boolean b  -> e
   | Syntax.String s  -> e

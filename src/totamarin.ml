@@ -7,6 +7,10 @@ let separator = ref "_"
 let fresh_ident = ref "rab"
 let fresh_string = ref "rab"
 
+
+
+
+
 let mk_my_fact_name s = 
   (String.capitalize_ascii s)
 
@@ -62,6 +66,7 @@ type expr =
   | MetaVar of int
   | LocVar of int
   | TopVar of int
+  | MetaNewVar of int
   | Apply of string * expr list
   | String of string
   | Integer of int
@@ -69,6 +74,7 @@ type expr =
   | One
   | Int of string
   | AddOne of expr
+  | Unit 
 
 type equations = (expr * expr) list
 type signature = functions * equations 
@@ -99,7 +105,48 @@ type action =
   | ActionIntro of expr list
   | ActionPopLoc of int
   | ActionPopMeta of int
-  | ActionLetTop of expr
+  | ActionLetTop of expr list
+
+  let rec replace_nth lst i new_val =
+  match lst with
+  | [] -> [] (* If the list is empty, return an empty list *)
+  | x :: xs ->
+      if i = 0 then new_val :: xs  (* Replace the i-th element *)
+      else x :: replace_nth xs (i - 1) new_val (* Recur for the rest *)
+
+let rec pop_n k lst =
+  if k <= 0 then ([], lst) (* If k is 0 or negative, return the original list *)
+  else match lst with
+    | [] -> ([], []) (* Not enough elements, return empty popped list *)
+    | x :: xs ->
+        let (popped, rest) = pop_n (k - 1) xs in
+        (x :: popped, rest)
+
+let rec action_sem (a : action) ((ret, meta_lst, loc_lst, top_lst) : expr * expr list * expr list * expr list) : expr * expr list * expr list * expr list =
+  match a with
+  | ActionReturn e -> (e, meta_lst, loc_lst, top_lst)
+  | ActionAssign ((i, b), e) -> (Unit, meta_lst, (if not b then replace_nth loc_lst i e else loc_lst), (if b then replace_nth top_lst i e else top_lst))
+  | ActionSeq (a, b) -> action_sem b (action_sem a (ret, meta_lst, loc_lst, top_lst))
+  | ActionAddMeta k -> (Unit, 
+   List.map (fun i -> MetaNewVar i) (int_to_list k)
+    @ meta_lst, loc_lst, top_lst)
+  | ActionIntro el -> (Unit, meta_lst, el @ loc_lst, top_lst)
+  | ActionPopLoc k -> (Unit, meta_lst, snd (pop_n k loc_lst), top_lst)
+  | ActionPopMeta k -> (Unit, snd (pop_n k meta_lst), loc_lst, top_lst)
+  | ActionLetTop e -> (Unit, meta_lst, loc_lst, e @ top_lst)
+
+  
+
+    (* let mk_state_replace eng return_var (meta_num, loc_num, top_num) (j, b) e tnum = 
+      (get_state_fact_name st, 
+          [      
+          List [engine_state eng; tnum] ;
+          return_var; 
+          List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
+          List (List.map (fun i -> if (not b) && i = j then e else LocVar i) (int_to_list loc_num)); 
+          List (List.map (fun i -> if b && i = j then e else TopVar i) (int_to_list top_num)) 
+        ], config_linear)  *)
+    
 
 type state = {
   state_namespace : string;
@@ -145,7 +192,7 @@ let add_state m s = {m with model_states = s :: m.model_states}
 let initial_state name = 
 {
   state_namespace = name;
-  state_index = [];
+  state_index = [([],0)];
   state_vars = (0, 0, 0)
 }
 
@@ -165,7 +212,7 @@ let state_index_to_string_aux (st : state) =
 
 let state_index_to_string st = String (state_index_to_string_aux st)
   
-let mk_state (st : state) return_var = 
+let mk_initial_state (st : state) return_var = 
   let meta_num, loc_num, top_num = st.state_vars in
   (get_state_fact_name st, 
     [
@@ -175,7 +222,19 @@ let mk_state (st : state) return_var =
       List (List.map (fun i -> LocVar i) (int_to_list loc_num)); 
       List (List.map (fun i -> TopVar i) (int_to_list top_num))
       ], config_linear) 
-(* 
+
+let mk_final_state st st_f a return_var = 
+  let meta_num, loc_num, top_num = st.state_vars in
+  let (ret, meta, loc, top) = action_sem a 
+  (
+    return_var,
+     (List.map (fun i -> MetaVar i) (int_to_list meta_num)), 
+     (List.map (fun i -> LocVar i) (int_to_list loc_num)),
+     (List.map (fun i -> TopVar i) (int_to_list top_num))
+  ) in 
+  (get_state_fact_name st_f, 
+    [List [state_index_to_string st_f]; ret; List meta; List loc; List top], config_linear) 
+      (* 
 
 let mk_state_app eng return_var (meta_num, loc_num, top_num) e tnum = 
   (get_state_fact_name st, 
@@ -238,27 +297,37 @@ let mk_state_replace_and_shift eng return_var (meta_num, loc_num, top_num) (n, m
     ], config_linear) 
  *)
 
+
+ (* tamarin lemma *)
+ type lemma = 
+  | PlainLemma of string * string
+  | ReachabilityLemma of string * string list * (string * expr list) list
+  | CorrespondenceLemma of string * string list * (string * expr list) * (string * expr list)
+
 (* tamarin as a pair of a sigature and a finite list of models *)
 (* model and its initialization rules *)
-type tamarin = signature * model list * rule list
+type tamarin = signature * model list * rule list * lemma list
 
-let add_fun (((fns,eqns), mo, rules) : tamarin) f : tamarin = ((f::fns, eqns), mo, rules)
-let add_const (((fns,eqns), mo, rules) : tamarin) c = (((c,0)::fns, eqns), mo, rules)
-let add_eqn (((fns,eqns), mo, rules): tamarin) eq = ((fns, eq::eqns), mo, rules)
+let add_fun (((fns,eqns), mo, rules, lemmas) : tamarin) f : tamarin = ((f::fns, eqns), mo, rules, lemmas)
+let add_const (((fns,eqns), mo, rules, lemmas) : tamarin) c = (((c,0)::fns, eqns), mo, rules, lemmas)
+let add_eqn (((fns,eqns), mo, rules, lemmas): tamarin) eq = ((fns, eq::eqns), mo, rules, lemmas)
 
 let add_model (t : tamarin) m = 
-  let (si, mo, rules) = t in 
-    (si, m :: mo, rules)
+  let (si, mo, rules, lemmas) = t in 
+    (si, m :: mo, rules, lemmas)
 
 let tamarin_add_rule (t : tamarin) (a, b, c, d, e) = 
-  let (si, mo, rules) = t in 
-    (si, mo, (Rule (a, b, c, d, e)) :: rules)
+  let (si, mo, rules, lemmas) = t in 
+    (si, mo, (Rule (a, b, c, d, e)) :: rules, lemmas)
 
 let tamarin_add_comment (t : tamarin) s = 
-  let (si, mo, rules) = t in 
-    (si, mo, (Comment s :: rules))
+  let (si, mo, rules, lemmas) = t in 
+    (si, mo, (Comment s :: rules), lemmas)
 
-let empty_tamarin : tamarin  = empty_signature , [], []
+let tamarin_add_lemma ((si, mo, rules, lemmas): tamarin) lem = 
+  (si, mo, rules, lem :: lemmas)
+
+let empty_tamarin : tamarin  = empty_signature , [] , [] , []
 
 let get_return_var () =
   Var ("return" ^ !separator ^ "var") 
@@ -280,6 +349,8 @@ let rec print_expr e =
   | One -> "%1"
   | Int v -> "%"^v
   | AddOne e -> (print_expr e)^" %+ %1"
+  | Unit -> "\'rab"^ !separator ^"\'"
+  | MetaNewVar i -> "new"^ !separator ^string_of_int i
 
 let print_signature (fns, eqns) = 
   let print_functions fns = 
@@ -297,8 +368,8 @@ let print_transition (tr : transition) (is_dev : bool) =
   let pre = tr.transition_pre in
   let post = tr.transition_post in
   let label = tr.transition_label in
-  let initial_state_fact = mk_state tr.transition_from (get_return_var ()) in 
-  let final_state_fact = mk_state tr.transition_to (get_return_var ()) in 
+  let initial_state_fact = mk_initial_state tr.transition_from (get_return_var ()) in 
+  let final_state_fact = mk_final_state tr.transition_from tr.transition_to tr.transition_function_facts (get_return_var ()) in 
   (* how to print a fact *)
   let print_fact (f, el, b) = 
     (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" 
@@ -348,14 +419,9 @@ let print_rule2 (f, act, pre, label, post) dev =
 
 let print_comment s = "\n// "^s^"\n\n" 
   
-let print_rule prt r dev = match r with | Rule (a, b, c, d, e) -> print_rule2 (a, b, c, d, e) dev | Comment s ->print_comment s 
+let print_rule r dev = match r with | Rule (a, b, c, d, e) -> print_rule2 (a, b, c, d, e) dev | Comment s ->print_comment s 
   
   
-
-type lemma = 
-  | PlainLemma of string * string
-  | ReachabilityLemma of string * string list * (string * expr list) list
-  | CorrespondenceLemma of string * string list * (string * expr list) * (string * expr list)
 
 let print_lemma lemma = 
   match lemma with
@@ -372,46 +438,39 @@ let print_lemma lemma =
     f2^ !separator  ^" < "^ f1^ !separator  ^ " \""
 
 
-let print_tamarin ((sign, models), init_list, procs, lem) is_dev = 
+(* signature * model list * rule list * lemma list *)
+let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev = 
   "theory rabbit\n\nbegin\nbuiltins: natural-numbers\n\n"^
-  print_signature sign ^
-    (mult_list_with_concat (List.map (fun m -> print_model m is_dev) (List.rev models)) "")^
-	
-  	List.fold_left (fun l s -> l^"\nrestriction "^s^" : \" All #i #j . "^s^"() @ #i & "^s^"() @ #j ==> #i = #j \"") "" init_list ^ "\n" ^
 
+    (* print signature *)
+    (print_comment "The signature of our model:\n\n") ^
+    print_signature si ^
+
+    (* print initializing rules *)
+    (print_comment "Initializing the gloval constants and access policy rules:\n\n") ^
+    (mult_list_with_concat (List.map (fun r -> print_rule r is_dev) (List.rev r_lst)) "\n")^
+	
+    (* print models  *)
+    (mult_list_with_concat (List.map (fun m -> 
+      (print_comment ("Model:  "^ m.model_name ^"\n\n")) ^
+      print_model m is_dev
+    ) (List.rev mo_lst)) "\n")^
+	
+    (* default restrictions *)
     "\nrestriction Init"^ !separator ^" : \" All x #i #j . Init"^ !separator ^"(x) @ #i & Init"^ !separator ^"(x) @ #j ==> #i = #j \"\n" ^
 
-	  (* if then else restriction *)
+    "restriction Equality: \" All x y #i. Eq(x,y) @ #i ==> x = y\"\n"  ^
 
-	  (* "\nrestriction OnlyOnce : \" All x #i #j . OnlyOnce(x) @ #i & OnlyOnce(x) @ #j ==> #i = #j \"\n" ^ *)
+    "restriction Inequality: \"All x #i. Neq(x,x) @ #i ==> F\"\n"  ^
 
-    "restriction Equality: \" All x y #i. Eq(x,y) @ #i ==> x = y\"\n" 
+    "rule Equality_gen: [] --> [!Eq"^ !separator ^"(x,x)]\n" ^
 
-    ^
+    "rule NEquality_gen: [] --[NEq_"^ !separator ^"(x,y)]-> [!NEq"^ !separator ^"(x,y)]\n" ^
 
-    "restriction Inequality: \"All x #i. Neq(x,x) @ #i ==> F\"\n" 
+    "restriction NEquality_rule: \"All x #i. NEq_"^ !separator ^"(x,x) @ #i ==> F\"\n" ^
 
-    ^
-
-    "rule Equality_gen: [] --> [!Eq"^ !separator ^"(x,x)]\n" 
-
-    ^
-
-    "rule NEquality_gen: [] --[NEq_"^ !separator ^"(x,y)]-> [!NEq"^ !separator ^"(x,y)]\n" 
-
-    ^
-
-    "restriction NEquality_rule: \"All x #i. NEq_"^ !separator ^"(x,x) @ #i ==> F\"\n"
-
-    ^
-
-    List.fold_left (fun s p -> 
-      let tfact = "Trace"^ !separator ^p in 
-      s^"lemma "^tfact^"[use_induction,reuse] : all-traces \"All x y #i #j . "^tfact^"(x, y) @ #i & "^tfact^"(x, y) @ #j ==> #i = #j\"\n") "" (List.rev procs) 
-
-    ^
-
-    List.fold_left (fun l lem -> l ^ print_lemma lem) "" lem ^"\nend\n"
+    (* print lemmas *)
+    List.fold_left (fun l lem -> l ^ print_lemma lem) "" lem_lst ^"\nend\n"
 
 
 let index_inc index scope = 
@@ -441,6 +500,7 @@ let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=loc} =
     | Syntax.TopVariable (v, i) -> TopVar i
     | Syntax.LocVariable (v, i) -> LocVar i
     | Syntax.MetaVariable (v, i) -> MetaVar i
+    | Syntax.MetaNewVariable (v, i) -> MetaNewVar i
     | Syntax.Boolean b -> error ~loc (UnintendedError "translating boolean")
     | Syntax.String s -> String s
     | Syntax.Integer z -> error ~loc (UnintendedError "translating Integer")
@@ -460,6 +520,7 @@ let rec translate_expr2 ?(ch=false) {Location.data=e; Location.loc=loc} =
     | Syntax.TopVariable (v, i) -> TopVar i, []
     | Syntax.LocVariable (v, i) -> LocVar i, []
     | Syntax.MetaVariable (v, i) -> MetaVar i, []
+    | Syntax.MetaNewVariable (v, i) -> MetaNewVar i, []
     | Syntax.Boolean b -> error ~loc (UnintendedError "translating boolean")
     | Syntax.String s -> String s, []
     | Syntax.Integer z -> Integer z, []
@@ -614,7 +675,6 @@ let rec pop_hd n lst =
 *)
 let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location.data=c; Location.loc=loc} = 
   let return_var = Var ("return"^ !separator ) in
-  let return_unit = String ("unit"^ !separator ) in 
   let (meta_num, loc_num, top_num) = vars in 
   
   match c with
@@ -646,7 +706,7 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
       transition_to = st_f;
       transition_pre = [];
       transition_post = [];
-      transition_function_facts = ActionReturn return_unit;
+      transition_function_facts = ActionReturn Unit;
       transition_label = []
     } in
     (mo, st_f)
@@ -670,7 +730,7 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
       transition_to = st_f;
       transition_pre = gv @ acps;
       transition_post = fl;
-      transition_function_facts = ActionReturn return_unit;
+      transition_function_facts = ActionReturn Unit;
       transition_label = []
     } in                                            
     (mo, st_f)
@@ -893,7 +953,7 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
       transition_to = st_f;
       transition_pre = gv;
       transition_post = [];
-      transition_function_facts = ActionReturn return_unit;
+      transition_function_facts = ActionReturn Unit;
       transition_label = fl
     } in
   (mo, st_f)
@@ -937,8 +997,6 @@ let translate_process {
         Context.proc_main=m
       } syscalls =
   let namespace = String.capitalize_ascii (s ^ (if k = 0 then "" else string_of_int k)) in (* this must be unique *)
-  let return_unit = String ("unit"^ !separator ) in 
-  let sep = !separator in
   (* let t = add_comment t ("- Process name: " ^ namespace) in  *)
 
   let mo, st = initial_model namespace in 
@@ -1177,26 +1235,25 @@ let translate_sys {
   let t = List.fold_left (fun t p -> add_model t (translate_process p (List.rev def.Context.def_ext_syscall))) t (List.rev proc) in
 
   (* translating lemmas now *)
-  let lem = List.map (fun l ->
-    match l.Location.data with
-    | Syntax.PlainLemma (l, p) -> PlainLemma (l, p)
-(*     | Syntax.ReachabilityLemma (l, vars, evs) -> 
-      ReachabilityLemma (l, vars, 
-        List.map (fun ev -> 
-          match ev.Location.data with
-          | Syntax.Event (id, el) -> (mk_fact_name id), List.map (translate_expr ~ch:false) el
-        ) evs)
-    | Syntax.CorrespondenceLemma (l, vars, e1, e2) -> 
-      CorrespondenceLemma (l, vars, 
-          (match e1.Location.data with
-          | Syntax.Event (id, el) -> (mk_fact_name id, List.map (translate_expr ~ch:false) el)),
-          (match e2.Location.data with
-          | Syntax.Event (id, el) -> (mk_fact_name id, List.map (translate_expr ~ch:false) el)))
- *)    
+  let t = List.fold_left (fun t l ->
+    let l =
+      match l.Location.data with
+      | Syntax.PlainLemma (l, p) -> PlainLemma (l, p)
+  (*     | Syntax.ReachabilityLemma (l, vars, evs) -> 
+        ReachabilityLemma (l, vars, 
+          List.map (fun ev -> 
+            match ev.Location.data with
+            | Syntax.Event (id, el) -> (mk_fact_name id), List.map (translate_expr ~ch:false) el
+          ) evs)
+      | Syntax.CorrespondenceLemma (l, vars, e1, e2) -> 
+        CorrespondenceLemma (l, vars, 
+            (match e1.Location.data with
+            | Syntax.Event (id, el) -> (mk_fact_name id, List.map (translate_expr ~ch:false) el)),
+            (match e2.Location.data with
+            | Syntax.Event (id, el) -> (mk_fact_name id, List.map (translate_expr ~ch:false) el)))
+  *)    
 
-    | _ -> error ~loc:Location.Nowhere (UnintendedError "")
-  ) lem in
-
-  (t, lem)
-
+      | _ -> error ~loc:Location.Nowhere (UnintendedError "")
+    in tamarin_add_lemma t l) t lem in
+  t
 

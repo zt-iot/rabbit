@@ -66,8 +66,8 @@ let _main =
           (ctx, pol, def, sys, (a'@a, b'@b))) 
         Loader.process_init  !files in
         List.fold_left (fun _ s -> 
-        let t, prt = (Totamarin.translate_sys s x) in 
-        let tamarin = (Totamarin.print_tamarin prt t !Config.dev) in 
+        let t = (Totamarin.translate_sys s x) in 
+        let tamarin = (Totamarin.print_tamarin t !Config.dev) in 
         if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Error" "%s" "output file not specified"
         else let oc = open_out (fst !ofile) in
         Printf.fprintf oc "%s\n" tamarin;

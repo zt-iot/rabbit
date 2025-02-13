@@ -30,20 +30,15 @@ syscall fopen (p) {
 
 syscall fread (y){
   case
-  | [y = h(p)] →
-    case 
-    | [p.File(x), p.open()] →
+  | [y = h(p), p.File(x), p.open()] →
       put[p.File(x), p.open()];
       return x
-    end
   end
 }
 
 syscall fclose (y) {
-  case [y = h(p)] →
-    case [p.open()] → 
+  case [y = h(p), p.open()] →
       skip
-    end
   end
 }
 

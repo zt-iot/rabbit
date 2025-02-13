@@ -10,6 +10,7 @@ and expr' =
   | TopVariable of string * int
   | LocVariable of string * int
   | MetaVariable of string * int
+  | MetaNewVariable of string * int
   | Boolean of bool
   | String of string
   | Integer of int
