@@ -7,3 +7,4 @@ val columns : int ref
 val trace : bool ref
 val verbose : bool ref
 val dev : bool ref
+val optimize : bool ref

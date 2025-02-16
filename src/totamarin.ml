@@ -8,8 +8,20 @@ let fresh_ident = ref "rab"
 let fresh_string = ref "rab"
 
 
+let rec replace_nth lst i new_val =
+  match lst with
+  | [] -> [] (* If the list is empty, return an empty list *)
+  | x :: xs ->
+      if i = 0 then new_val :: xs  (* Replace the i-th element *)
+      else x :: replace_nth xs (i - 1) new_val (* Recur for the rest *)
 
-
+let rec pop_n k lst =
+  if k <= 0 then ([], lst) (* If k is 0 or negative, return the original list *)
+  else match lst with
+    | [] -> ([], []) (* Not enough elements, return empty popped list *)
+    | x :: xs ->
+        let (popped, rest) = pop_n (k - 1) xs in
+        (x :: popped, rest)
 
 let mk_my_fact_name s = 
   (String.capitalize_ascii s)
@@ -76,6 +88,9 @@ type expr =
   | AddOne of expr
   | Unit 
 
+let get_return_var () =
+  Var ("return" ^ !separator ^ "var") 
+  
 type equations = (expr * expr) list
 type signature = functions * equations 
 
@@ -91,8 +106,45 @@ let config_linear_prior = {is_persist=false; priority = 3}
 let config_linear_less = {is_persist=false; priority = 1}
 let config_persist_less = {is_persist=true; priority = 1}
 
-type fact = string * expr list * rule_config 
+(* type fact = string * expr list * rule_config  *)
 (* true is persistent fact *)
+
+type fact = 
+  | Fact of 
+    string (* fact name *)
+    * string (* name space*)
+    * expr list
+  | ConstantFact of expr * expr 
+  | GlobalFact of string * expr list
+  | ChannelFact of string * expr * expr list
+  | PathFact of string  
+    * string (* namespace *)
+    * expr (* path *)
+    * expr list
+  | ProcessFact of string 
+    * expr 
+    * expr list
+  | ResFact of int * expr list
+  | AccessFact of string * expr * string 
+  | FileFact of string  * string * expr
+  | InitFact of expr list 
+  
+let print_fact' (f : fact) = 
+  match f with
+  | Fact (fid, nsp, el) -> (mk_my_fact_name fid, String nsp :: el, config_linear)
+  | ConstantFact (e1, e2) -> ("Const"^ !separator , [e1 ; e2], config_persist) 
+  | GlobalFact (fid, el) -> (mk_my_fact_name fid, el, config_linear)
+  | ChannelFact (fid, ch, el) -> (mk_my_fact_name fid, ch :: el, config_linear)
+  | PathFact (fid, nsp, path, el) -> (mk_my_fact_name fid, String nsp :: path :: el, config_linear)
+  | ResFact (0, el) -> ("Eq"^ !separator , el, config_persist)
+  | ResFact (1, el) -> ("NEq"^ !separator , el, config_persist)
+  | ResFact (2, el) -> ("Fr", el, config_persist)
+  | AccessFact (nsp, target, syscall) -> ("ACP"^ !separator, [String nsp; target; String syscall], config_persist )
+  | FileFact (nsp, path, e) -> ("File", [String nsp; String path; e], config_linear)
+  | InitFact el -> ("Init"^ !separator, el, config_linear)
+  | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact")
+
+let mk_constant_fact s = ConstantFact (String s, Var s)
 
 
 (* state consists of its identifier and numbers of variables.
@@ -106,21 +158,6 @@ type action =
   | ActionPopLoc of int
   | ActionPopMeta of int
   | ActionLetTop of expr list
-
-  let rec replace_nth lst i new_val =
-  match lst with
-  | [] -> [] (* If the list is empty, return an empty list *)
-  | x :: xs ->
-      if i = 0 then new_val :: xs  (* Replace the i-th element *)
-      else x :: replace_nth xs (i - 1) new_val (* Recur for the rest *)
-
-let rec pop_n k lst =
-  if k <= 0 then ([], lst) (* If k is 0 or negative, return the original list *)
-  else match lst with
-    | [] -> ([], []) (* Not enough elements, return empty popped list *)
-    | x :: xs ->
-        let (popped, rest) = pop_n (k - 1) xs in
-        (x :: popped, rest)
 
 let rec action_sem (a : action) ((ret, meta_lst, loc_lst, top_lst) : expr * expr list * expr list * expr list) : expr * expr list * expr list * expr list =
   match a with
@@ -136,7 +173,6 @@ let rec action_sem (a : action) ((ret, meta_lst, loc_lst, top_lst) : expr * expr
   | ActionLetTop e -> (Unit, meta_lst, loc_lst, e @ top_lst)
 
   
-
     (* let mk_state_replace eng return_var (meta_num, loc_num, top_num) (j, b) e tnum = 
       (get_state_fact_name st, 
           [      
@@ -146,7 +182,8 @@ let rec action_sem (a : action) ((ret, meta_lst, loc_lst, top_lst) : expr * expr
           List (List.map (fun i -> if (not b) && i = j then e else LocVar i) (int_to_list loc_num)); 
           List (List.map (fun i -> if b && i = j then e else TopVar i) (int_to_list top_num)) 
         ], config_linear)  *)
-    
+
+
 
 type state = {
   state_namespace : string;
@@ -155,15 +192,26 @@ type state = {
 }
 
 type transition = {
+  transition_id : int;
   transition_namespace : string;
   transition_name : string;
   transition_from : state;
   transition_to : state;
   transition_pre : fact list;
   transition_post : fact list;
-  transition_function_facts : action;
+  transition_state_transition : (expr * expr list * expr list  * expr list) * (expr * expr list * expr list  * expr list) ;
   transition_label : fact list;
+  transition_is_loop_back : bool;
 }
+
+let mk_state_transition_from_action a (meta_num, loc_num, top_num) = 
+  let return_var = get_return_var () in
+  let meta_var = (List.map (fun i -> MetaVar i) (int_to_list meta_num)) in 
+  let loc_var = (List.map (fun i -> LocVar i) (int_to_list loc_num)) in 
+  let top_var = (List.map (fun i -> TopVar i) (int_to_list top_num)) in 
+  (return_var, meta_var, loc_var, top_var),   
+  action_sem a (return_var, meta_var, loc_var, top_var)
+
 
 type rule = 
 | Rule of string * string * fact list * fact list * fact list
@@ -176,7 +224,8 @@ type model = {
   model_states : state list;
   model_transitions : transition list;
   model_init_rules : rule list ;
-  model_init_state : state
+  model_init_state : state ;
+  model_transition_id_max : int
 }
 
 let add_rule (mo : model) (a, b, c, d, e) = 
@@ -198,9 +247,9 @@ let initial_state name =
 
 let initial_model name = 
   let st = initial_state name in
-  {model_name = name; model_states = [st]; model_transitions = []; model_init_rules = []; model_init_state = st}, st
+  {model_name = name; model_states = [st]; model_transitions = []; model_init_rules = []; model_init_state = st; model_transition_id_max =0}, st
 
-let add_transition m t = {m with model_transitions = t :: m.model_transitions}
+let add_transition m t = {m with model_transitions = t :: m.model_transitions; model_transition_id_max = m.model_transition_id_max + 1}
 
 let get_state_fact_name (s : state) = 
   "State" ^  !separator  ^ s.state_namespace
@@ -212,7 +261,7 @@ let state_index_to_string_aux (st : state) =
 
 let state_index_to_string st = String (state_index_to_string_aux st)
   
-let mk_initial_state (st : state) return_var = 
+(* let mk_initial_state (st : state) return_var = 
   let meta_num, loc_num, top_num = st.state_vars in
   (get_state_fact_name st, 
     [
@@ -221,82 +270,16 @@ let mk_initial_state (st : state) return_var =
       List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
       List (List.map (fun i -> LocVar i) (int_to_list loc_num)); 
       List (List.map (fun i -> TopVar i) (int_to_list top_num))
-      ], config_linear) 
+      ], config_linear)  *)
 
-let mk_final_state st st_f a return_var = 
-  let meta_num, loc_num, top_num = st.state_vars in
-  let (ret, meta, loc, top) = action_sem a 
-  (
-    return_var,
-     (List.map (fun i -> MetaVar i) (int_to_list meta_num)), 
-     (List.map (fun i -> LocVar i) (int_to_list loc_num)),
-     (List.map (fun i -> TopVar i) (int_to_list top_num))
-  ) in 
+(* let mk_final_state st_f (ret, meta, loc, top) = 
   (get_state_fact_name st_f, 
-    [List [state_index_to_string st_f]; ret; List meta; List loc; List top], config_linear) 
-      (* 
+    [List [state_index_to_string st_f]; ret; List meta; List loc; List top], config_linear)  *)
 
-let mk_state_app eng return_var (meta_num, loc_num, top_num) e tnum = 
+let mk_state st (ret, meta, loc, top) = 
   (get_state_fact_name st, 
-      [
-      List [engine_state eng; tnum] ;
-      return_var; 
-      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
-      List (e :: (List.map (fun i -> LocVar i) (int_to_list loc_num))); 
-      List (List.map (fun i -> TopVar i) (int_to_list top_num))
-      ], config_linear) 
-
-let mk_state_app_list eng return_var (meta_num, loc_num, top_num) el tnum = 
-  (get_state_fact_name st, 
-      [
-      List [engine_state eng; tnum] ;
-      return_var; 
-      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
-      List (el @ (List.map (fun i -> LocVar i) (int_to_list loc_num))); 
-      List (List.map (fun i -> TopVar i) (int_to_list top_num))
-      ], config_linear) 
-
-let mk_state_app_top eng return_var (meta_num, loc_num, top_num) e tnum = 
-  (get_state_fact_name st, 
-      [
-      List [engine_state eng; tnum] ;
-      return_var; 
-      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
-      List ((List.map (fun i -> LocVar i) (int_to_list loc_num))); 
-      List (e ::  (List.map (fun i -> TopVar i) (int_to_list top_num)))
-      ], config_linear) 
-
-let mk_state_shift eng return_var (meta_num, loc_num, top_num) (n, m, l) tnum = 
-  (get_state_fact_name st, 
-      [
-      List [engine_state eng; tnum] ;
-      return_var; 
-      List (List.map (fun i -> MetaVar (i+n)) (int_to_list meta_num)); 
-      List (List.map (fun i -> LocVar (i+m)) (int_to_list loc_num)); 
-      List (List.map (fun i -> TopVar (i+l)) (int_to_list top_num))
-     ], config_linear) 
-
-let mk_state_replace eng return_var (meta_num, loc_num, top_num) (j, b) e tnum = 
-  (get_state_fact_name st, 
-      [      
-      List [engine_state eng; tnum] ;
-      return_var; 
-      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
-      List (List.map (fun i -> if (not b) && i = j then e else LocVar i) (int_to_list loc_num)); 
-      List (List.map (fun i -> if b && i = j then e else TopVar i) (int_to_list top_num)) 
-    ], config_linear) 
-
-let mk_state_replace_and_shift eng return_var (meta_num, loc_num, top_num) (n, m, l) (j, b) e tnum =  
-  (get_state_fact_name st, 
-      [      
-      List [engine_state eng; tnum] ;
-      return_var;  
-      List (List.map (fun i -> MetaVar (i+n)) (int_to_list meta_num)); 
-      List (List.map (fun i -> if (not b) && i = j then e else LocVar (i+m)) (int_to_list loc_num)); 
-      List (List.map (fun i -> if b && i = j  then e else TopVar (i+l)) (int_to_list top_num))
-    ], config_linear) 
- *)
-
+  [List [state_index_to_string st]; ret; List meta; List loc; List top], config_linear) 
+    
 
  (* tamarin lemma *)
  type lemma = 
@@ -329,8 +312,6 @@ let tamarin_add_lemma ((si, mo, rules, lemmas): tamarin) lem =
 
 let empty_tamarin : tamarin  = empty_signature , [] , [] , []
 
-let get_return_var () =
-  Var ("return" ^ !separator ^ "var") 
 
 let rec print_expr e = 
   match e with
@@ -368,8 +349,8 @@ let print_transition (tr : transition) (is_dev : bool) =
   let pre = tr.transition_pre in
   let post = tr.transition_post in
   let label = tr.transition_label in
-  let initial_state_fact = mk_initial_state tr.transition_from (get_return_var ()) in 
-  let final_state_fact = mk_final_state tr.transition_from tr.transition_to tr.transition_function_facts (get_return_var ()) in 
+  let initial_state_fact = mk_state tr.transition_from (fst tr.transition_state_transition)  in 
+  let final_state_fact = mk_state tr.transition_to (snd tr.transition_state_transition) in 
   (* how to print a fact *)
   let print_fact (f, el, b) = 
     (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" 
@@ -385,14 +366,14 @@ let print_transition (tr : transition) (is_dev : bool) =
 
     "rule "^f ^ (if tr.transition_namespace = "" || not is_dev then "" else "[role=\"" ^ tr.transition_namespace ^ "\"]") ^ " : " ^ 
 	
-    "["^(mult_list_with_concat (List.map print_fact (initial_state_fact :: pre)) ", ") ^ "]" ^
+    "["^(mult_list_with_concat (List.map print_fact (initial_state_fact :: (List.map print_fact' pre))) ", ") ^ "]" ^
 	  
     (* when the transition has label *)
     (match tr.transition_label with 
 	   | [] -> "-->" 
-	   | _ -> 	"--[" ^ (mult_list_with_concat (List.map print_fact2 label) ", ") ^ "]->")^
+	   | _ -> 	"--[" ^ (mult_list_with_concat (List.map print_fact2 (List.map print_fact' label)) ", ") ^ "]->")^
 
-	    "["^(mult_list_with_concat (List.map print_fact2 (final_state_fact :: post)) ", ") ^ "] \n"	
+	    "["^(mult_list_with_concat (List.map print_fact2 (final_state_fact :: (List.map print_fact' post))) ", ") ^ "] \n"	
 
 let print_model m is_dev = 
   List.map (fun t -> print_transition t is_dev) m.model_transitions |> String.concat "\n"
@@ -419,7 +400,7 @@ let print_rule2 (f, act, pre, label, post) dev =
 
 let print_comment s = "\n// "^s^"\n\n" 
   
-let print_rule r dev = match r with | Rule (a, b, c, d, e) -> print_rule2 (a, b, c, d, e) dev | Comment s ->print_comment s 
+let print_rule r dev = match r with | Rule (a, b, c, d, e) -> print_rule2 (a, b, List.map print_fact' c, List.map print_fact' d, List.map print_fact' e) dev | Comment s ->print_comment s 
   
   
 
@@ -568,51 +549,55 @@ let translate_fact namespace f =
   | Syntax.Fact(id, el) -> 
     let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) el in    
-    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
-    (mk_my_fact_name id, (String namespace) :: el, config_linear), gv, []
+    let gv = List.map (fun s -> mk_constant_fact s) gv in 
+    Fact (id, namespace, el), gv, []
 
   | Syntax.GlobalFact(id, el) -> 
     let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) el in    
-    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> mk_constant_fact s) gv in 
 
-    (mk_my_fact_name id, el, config_linear), gv, []
+    GlobalFact (id, el), gv, []
 
   | Syntax.ChannelFact(ch, id, el) ->
     let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-                                  (el @ [e], gv @ g)) ([],[]) (ch::el) in    
-    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+                                  (el @ [e], gv @ g)) ([],[]) (el) in    
+    let e, g = translate_expr2 ch in
+
+    let gv = List.map (fun s -> mk_constant_fact s) (gv @ g) in 
     
     (* let acp = ("ACP"^ !separator ^"chan", String eng.namespace, String ch, config_persist) in  *)
     
-    (mk_my_fact_name id, el, config_linear), gv, [translate_expr ch]
+    ChannelFact (id, e, el), gv, [e]
 
   | Syntax.PathFact (path, id, el) -> 
     let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-                                  (el @ [e], gv @ g)) ([],[]) (path::el) in    
-    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+                                  (el @ [e], gv @ g)) ([],[]) (el) in    
+    let e, g = translate_expr2 path in
+
+    let gv = List.map (fun s -> mk_constant_fact s) (gv @ g) in 
     
     (* let acp = ("ACP"^ !separator "path", String eng.namespace, String ch, config_persist) in  *)
 
-    (mk_my_fact_name id, (String namespace)::el, config_linear), gv, [translate_expr path]
+    PathFact (id, namespace, e, el), gv, [e]
 
   | Syntax.ResFact (0, el) -> 
     let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) (el) in    
-    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> mk_constant_fact s) gv in 
     
     (* let acp = ("ACP"^ !separator "path", String eng.namespace, String ch, config_persist) in  *)
 
-    ("Eq"^ !separator , el, config_persist), gv, []
+    ResFact (0, el), gv, []
 
   | Syntax.ResFact (1, el) -> 
     let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) (el) in    
-    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> mk_constant_fact s) gv in 
     
     (* let acp = ("ACP"^ !separator "path", String eng.namespace, String ch, config_persist) in  *)
 
-    ("NEq"^ !separator , el, config_persist), gv, []
+    ResFact (1, el), gv, []
 
   | _ -> 
     error ~loc:Location.Nowhere (UnintendedError "process fact")
@@ -680,18 +665,20 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
   match c with
   | Syntax.Return e ->
     let e, gv = translate_expr2 e in  
-    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> mk_constant_fact s) gv in 
     let (st_f : state) = next_state st scope in 
     let mo = add_state mo st_f in 
     let mo = add_transition mo {
+      transition_id = List.length mo.model_transitions;
       transition_namespace = mo.model_name;
       transition_name = "return";
       transition_from = st;
       transition_to = st_f;
       transition_pre = gv;
       transition_post = [];
-      transition_function_facts = ActionReturn e;
-      transition_label = []
+      transition_state_transition = mk_state_transition_from_action (ActionReturn e) vars;
+      transition_label = [];
+      transition_is_loop_back = false 
     } in
     (mo, st_f)
 
@@ -700,14 +687,17 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
     let st_f = next_state st scope in 
     let mo = add_state mo st_f in 
     let mo = add_transition mo {
+      transition_id = List.length mo.model_transitions;
       transition_namespace = mo.model_name;
       transition_name = "skip";
       transition_from = st;
       transition_to = st_f;
       transition_pre = [];
-      transition_post = [];
-      transition_function_facts = ActionReturn Unit;
-      transition_label = []
+      transition_post = [];      
+      transition_state_transition = mk_state_transition_from_action (ActionReturn Unit) vars; 
+      transition_label = [];
+      transition_is_loop_back = false 
+
     } in
     (mo, st_f)
 
@@ -718,39 +708,43 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
 
   | Syntax.Put fl -> 
     let fl, gv, acps = translate_facts mo.model_name fl in
-    let acps = List.map (fun target -> ("ACP"^ !separator , [String mo.model_name; 
-                                                    target; 
-                                                    String syscall], config_persist)) acps in
+    let acps = List.map (fun target -> AccessFact(mo.model_name, target, syscall)) acps in
     let st_f = next_state st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
+      transition_id = List.length mo.model_transitions;
       transition_namespace = mo.model_name;
       transition_name = "put";
       transition_from = st;
       transition_to = st_f;
       transition_pre = gv @ acps;
       transition_post = fl;
-      transition_function_facts = ActionReturn Unit;
-      transition_label = []
+      transition_state_transition = mk_state_transition_from_action (ActionReturn Unit) vars; 
+      transition_label = [];
+      transition_is_loop_back = false 
+
     } in                                            
     (mo, st_f)
 
   | Syntax.Let (v, e, c) -> 
     
     let e, gv = translate_expr2 e in  
-    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> mk_constant_fact s) gv in 
     
     let st_f = next_state ~shift:(0,1,0) st scope  in 
     let mo = add_state mo st_f in
     let mo = add_transition mo {
+      transition_id = List.length mo.model_transitions;
       transition_namespace = mo.model_name;
       transition_name = "let_intro";
       transition_from = st;
       transition_to = st_f;
       transition_pre = gv;
       transition_post = [];
-      transition_function_facts = ActionIntro [e];
-      transition_label = []
+      transition_state_transition = mk_state_transition_from_action (ActionIntro [e]) vars; 
+      transition_label = [];
+      transition_is_loop_back = false 
+
     } in
   
     let (mo, st) = translate_cmd mo st_f funs syscalls (meta_num, loc_num+1, top_num) None syscall c in
@@ -758,32 +752,38 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
     let st_f = next_state ~shift:(0,-1,0) st scope in 
     let mo = add_state mo st_f in
     let mo = add_transition mo {
+      transition_id = List.length mo.model_transitions;
       transition_namespace = mo.model_name;
       transition_name = "let_out";
       transition_from = st;
       transition_to = st_f;
       transition_pre = gv;
       transition_post = [];
-      transition_function_facts = ActionPopLoc 1;
-      transition_label = []
+      transition_state_transition = mk_state_transition_from_action (ActionPopLoc 1) st.state_vars; 
+      transition_label = [];
+      transition_is_loop_back = false 
+
     } in
     (mo, st_f)
 
   | Syntax.Assign ((v, di), e) -> 
 
     let e, gv = translate_expr2 e in  
-    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> mk_constant_fact s) gv in 
     let st_f = next_state st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
+      transition_id = List.length mo.model_transitions;
       transition_namespace = mo.model_name;
       transition_name = "assign";
       transition_from = st;
       transition_to = st_f;
       transition_pre = gv;
       transition_post = [];
-      transition_function_facts = ActionAssign (di, e);
-      transition_label = []
+      transition_state_transition = mk_state_transition_from_action (ActionAssign (di, e)) st.state_vars; 
+      transition_label = [];
+      transition_is_loop_back = false 
+
     } in
     (mo, st_f)
 
@@ -791,21 +791,24 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
     let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) el in  
     let el = List.rev el in  
-    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> mk_constant_fact s) gv in 
     
     let (f, args, cmd) = List.find (fun (f', args, cmd) -> f = f') funs in 
 
     let st_f = next_state ~shift:(0,List.length el,0) st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
+      transition_id = List.length mo.model_transitions;
       transition_namespace = mo.model_name;
       transition_name = "fcall_intro";
       transition_from = st;
       transition_to = st_f;
       transition_pre = gv;
       transition_post = [];
-      transition_function_facts = ActionIntro el;
-      transition_label = []
+      transition_state_transition = mk_state_transition_from_action (ActionIntro el) st.state_vars; 
+      transition_label = [];
+      transition_is_loop_back = false 
+
     } in
 
     let (mo, st) = translate_cmd mo st_f funs syscalls (meta_num, loc_num + (List.length el), top_num) None syscall cmd in
@@ -813,18 +816,20 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
     let st_f = next_state ~shift:(0,- (List.length el),0) st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
+      transition_id = List.length mo.model_transitions;
       transition_namespace = mo.model_name;
       transition_name = "fcall_out";
       transition_from = st;
       transition_to = st_f;
       transition_pre = [];
       transition_post = [];
-      transition_function_facts = 
-      (match ov with
+      transition_state_transition = mk_state_transition_from_action (match ov with
       | None -> ActionPopLoc (List.length el)
       | Some (_, v) -> ActionSeq (ActionPopLoc (List.length el), ActionAssign (v, return_var))
-      );
-      transition_label = []
+      ) st.state_vars; 
+      transition_label = [];
+      transition_is_loop_back = false 
+
     } in
     (mo, st_f)      
 
@@ -832,21 +837,24 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
     let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
                                   (el @ [e], gv @ g)) ([],[]) el in    
     let el = List.rev el in 
-    let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+    let gv = List.map (fun s -> mk_constant_fact s) gv in 
     
     let (f, args, cmd) = List.find (fun (f', args, cmd) -> o = f') syscalls in 
 
     let st_f = next_state ~shift:(0,List.length el,0) st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
+      transition_id = List.length mo.model_transitions;
       transition_namespace = mo.model_name;
       transition_name = "scall_intro";
       transition_from = st;
       transition_to = st_f;
       transition_pre = gv;
       transition_post = [];
-      transition_function_facts = ActionIntro el;
-      transition_label = []
+      transition_state_transition = mk_state_transition_from_action (ActionIntro el) st.state_vars; 
+      transition_label = [];
+      transition_is_loop_back = false 
+
     } in
 
     let (mo, st) = translate_cmd mo st_f funs syscalls (meta_num, loc_num + (List.length el), top_num) None o cmd in
@@ -854,18 +862,20 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
     let st_f = next_state ~shift:(0, - (List.length el),0) st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
+      transition_id = List.length mo.model_transitions;
       transition_namespace = mo.model_name;
       transition_name = "scall_out";
       transition_from = st;
       transition_to = st_f;
       transition_pre = [];
       transition_post = [];
-      transition_function_facts = 
-      (match ov with
+      transition_state_transition = mk_state_transition_from_action (match ov with
       | None -> ActionPopLoc (List.length el)
       | Some (_, v) -> ActionSeq (ActionPopLoc (List.length el), ActionAssign (v, return_var))
-      );
-      transition_label = []
+      ) st.state_vars; 
+      transition_label = [];
+      transition_is_loop_back = false 
+
     } in
     (mo, st_f)
 
@@ -884,14 +894,16 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
     let mo = List.fold_left2 (fun mo scope (vl, fl, c) -> 
       let (mo, st) = translate_guarded_cmd mo st funs syscalls vars scope syscall (vl, fl, c) in
       add_transition mo {
+        transition_id = List.length mo.model_transitions;
         transition_namespace = mo.model_name;
         transition_name = "case_out";
         transition_from = st;
         transition_to = st_f;
         transition_pre = [];
         transition_post = [];
-        transition_function_facts = ActionPopMeta (List.length vl);
-        transition_label = []
+        transition_state_transition = mk_state_transition_from_action (ActionPopMeta (List.length vl)) st.state_vars; 
+        transition_label = [];
+        transition_is_loop_back = false   
       }) mo scope_lst cs in
 
     (add_state mo st_f, st_f)
@@ -917,27 +929,31 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
     let mo = List.fold_left2 (fun mo scope (vl, fl, c) -> 
       let (mo, st_f) = translate_guarded_cmd mo st funs syscalls vars scope syscall (vl, fl, c) in
       add_transition mo {
+        transition_id = List.length mo.model_transitions;
         transition_namespace = mo.model_name;
         transition_name = "repeat";
         transition_from = st_f;
         transition_to = st;
         transition_pre = [];
         transition_post = [];
-        transition_function_facts = ActionPopMeta (List.length vl);
-        transition_label = []
+        transition_state_transition = mk_state_transition_from_action (ActionPopMeta (List.length vl)) st_f.state_vars; 
+        transition_label = [];
+        transition_is_loop_back = true   
       }) mo scope_lst1 cs1 in
 
     let mo = List.fold_left2 (fun mo scope (vl, fl, c) -> 
       let (mo, st) = translate_guarded_cmd mo st funs syscalls vars scope syscall (vl, fl, c) in
       add_transition mo {
+        transition_id = List.length mo.model_transitions;
         transition_namespace = mo.model_name;
         transition_name = "repeat_out";
         transition_from = st_f;
         transition_to = st;
         transition_pre = [];
         transition_post = [];
-        transition_function_facts = ActionPopMeta (List.length vl);
-        transition_label = []
+        transition_state_transition = mk_state_transition_from_action (ActionPopMeta (List.length vl)) st_f.state_vars; 
+        transition_label = [];
+        transition_is_loop_back = false   
       }) mo scope_lst2 cs2 in
     
     (add_state mo st_f, st_f)
@@ -947,14 +963,16 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
     let st_f = next_state st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
+      transition_id = List.length mo.model_transitions;
       transition_namespace = mo.model_name;
       transition_name = "event";
       transition_from = st;
       transition_to = st_f;
       transition_pre = gv;
       transition_post = [];
-      transition_function_facts = ActionReturn Unit;
-      transition_label = fl
+      transition_state_transition = mk_state_transition_from_action (ActionReturn Unit) st.state_vars; 
+      transition_label = fl;
+      transition_is_loop_back = false 
     } in
   (mo, st_f)
 
@@ -962,21 +980,22 @@ and translate_guarded_cmd mo st funs syscalls vars scope syscall (vl, fl, c) =
   let (meta_num, loc_num, top_num) = vars in 
 
   let fl, gv, acps = translate_facts mo.model_name fl in
-  let acps = List.map (fun target -> ("ACP"^ !separator , [String mo.model_name; 
-                                                      target; 
-                                                      String syscall], config_persist)) acps in
+  let acps = List.map (fun target -> AccessFact(mo.model_name,target,syscall)) acps in
   let st_f = next_state ~shift:(List.length vl, 0, 0) st scope in
   let mo = add_state mo st_f in
   (* let eng_f = engine_index_inc eng scope in *)
   let mo = add_transition mo {
+    transition_id = List.length mo.model_transitions;
     transition_namespace = mo.model_name;
     transition_name = "guarded";
     transition_from = st;
     transition_to = st_f;
     transition_pre = fl @ gv @ acps;
     transition_post = [];
-    transition_function_facts = ActionAddMeta (List.length vl);
-    transition_label = []
+    transition_state_transition = mk_state_transition_from_action (ActionAddMeta (List.length vl)) st.state_vars;
+    transition_label = [];
+    transition_is_loop_back = false 
+
   } in
   let (mo, st_f) = translate_cmd mo st_f funs syscalls (meta_num + List.length vl, loc_num, top_num) None syscall c in
   (mo, st_f)
@@ -1006,12 +1025,12 @@ let translate_process {
   let mo = List.fold_left (fun mo (path, e, _, _) ->
       (* let path = (mk_dir eng fsys path) in *)
       let e, gv = translate_expr2 e in  
-      let gv = List.map (fun s -> ("Const"^ !separator, [String s ; Var s], config_persist)) gv in 
+      let gv = List.map (fun s -> mk_constant_fact s) gv in 
       let name = mk_fact_name  namespace^ replace_string '/' !separator path in 
       add_rule mo (name, "",
             gv,
-            [("Init"^ !separator, [List [String namespace; String path]], config_linear)],
-            [("File", [String namespace; String path ; e], config_linear)])) mo fls in 
+            [InitFact([String namespace; String path])],
+            [FileFact(namespace, path, e)])) mo fls in 
           
   (* initialize memory *)
   let (mo, st) = List.fold_left
@@ -1019,16 +1038,19 @@ let translate_process {
           let st_f = next_state ~shift:(0,0,1) st None in 
           let mo = add_state mo st_f in
           let e, gv = translate_expr2 e in  
-          let gv = List.map (fun s -> ("Const"^ !separator , [String s ; Var s], config_persist)) gv in 
+          let gv = List.map (fun s -> mk_constant_fact s) gv in 
           let mo = add_transition mo {
+            transition_id = List.length mo.model_transitions;
             transition_namespace = mo.model_name;
             transition_name = "init_mem";
             transition_from = st;
             transition_to = st_f;
             transition_pre = gv;
             transition_post = [];
-            transition_function_facts = ActionLetTop [e];
-            transition_label = []
+            transition_state_transition = mk_state_transition_from_action (ActionLetTop [e]) st.state_vars;
+            transition_label = [];
+            transition_is_loop_back = false 
+      
           } in
           (mo, st_f)) (mo, st) (List.rev vars) in 
 
@@ -1117,11 +1139,11 @@ let translate_sys {
   let t = List.fold_left (fun t (v, e) -> 
 	      match e with
 	      | None -> (* when v is fresh *) 
-          tamarin_add_rule t ("Const"^sep^v, "", [("Fr", [Var v], config_linear)], [], [("Const"^sep, [String v ; Var v], config_persist)])
+          tamarin_add_rule t ("Const"^sep^v, "", [ResFact(2, [Var v])], [], [mk_constant_fact v])
 	      | Some e -> (* when v is defined *) 
           let e, gv = translate_expr2 e in  
-          let gv = List.map (fun s -> ("Const"^sep, [String s ; Var s], config_persist)) gv in 
-      		tamarin_add_rule t ("Const"^sep^v, "", gv, [], [("Const"^sep, [String v ; e], config_persist)])) t (List.rev def.Context.def_const) in
+          let gv = List.map (fun s -> mk_constant_fact s) gv in 
+      		tamarin_add_rule t ("Const"^sep^v, "", gv, [], [ConstantFact(Var v, e)])) t (List.rev def.Context.def_const) in
 
   (* initialize files *)
   (* def_fsys    :  (Name.ident * Name.ident * Syntax.expr) list ; *)
@@ -1152,8 +1174,8 @@ let translate_sys {
 					 tamarin_add_rule t 
 					   (name, "",
 					    [], 
-					    [(name, [], config_linear)], 
-					    [("ACP"^sep, [String procname; String c; String sys], config_persist)])
+					    [], 
+					    [AccessFact(procname, String c, sys)])
 					 , name::il) (t, il) scall) (t, il) ctx.Context.ctx_ch in 
 
       let t, il = List.fold_left (fun (t, il) (c, ty) -> 
@@ -1165,24 +1187,9 @@ let translate_sys {
                  tamarin_add_rule t 
                   (name, "",
                   [], 
-                  [(name, [], config_linear)], 
-                  [("ACP"^sep, [String procname; String c; String ""], config_persist)]), name::il) (t, il) ctx.Context.ctx_ch in 
+                  [], 
+                  [AccessFact(procname, String c, "")]), name::il) (t, il) ctx.Context.ctx_ch in 
 
-
-		  let t, il = 
-		    match List.find_all (fun (a, b, sys) -> a = p.Context.proc_type && (match b with | [] -> true | _ -> false)) pol.Context.pol_access with
-		    | [] -> (t, il) 
-		    | scall -> 
-		       List.fold_left (fun (t, il) (_, _, sys) ->
-			   let name = procname ^ sep ^ sys in 
-			   tamarin_add_rule t 
-			     (name, "",
-			      [], 
-			      [(name, [], config_linear)], 
-			      [(mk_fact_name sys ^ sep ^"Allowed", [String procname], config_persist)])
-			   , name::il) (t, il) scall 
-
-		  in 
 
 (*  		  let t, il = List.fold_left (fun (t, il) (dir, path, ty) -> 
 			          if (match p.Context.proc_filesys with Some a -> a | None -> "") <> dir then (t, il) else
@@ -1209,8 +1216,8 @@ let translate_sys {
        tamarin_add_rule t 
          (name, "",
           [], 
-          [(name, [], config_linear)], 
-          [("ACP"^sep, [String procname; String path; String sys], config_persist)])
+          [], 
+          [AccessFact(procname, String path, sys)])
              , name::il) (t, il) scall
               ) (t, il) ctx.Context.ctx_fsys in 
 

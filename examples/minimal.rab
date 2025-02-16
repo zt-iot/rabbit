@@ -16,11 +16,14 @@ process server() : server_t
 	main 
   	{
         c := "d";
+        let k = "haha" in
         case 
-        [A(x), B(y), C(z)] ->
+        [A(x), B(y), C(z), D(j)] ->
             a := x; 
             case
-            [B(k), A(a), C(x)] -> c := k end;
+            [B(k), A(a), C(x)] -> c := k end; 
+            put [D("aaa")];
+            case [D(ko)] -> skip end;
             b := z
         end
         

@@ -35,6 +35,10 @@ let options = Arg.align [
      Arg.Set Config.dev,
      "use the development version of tamarin");
 
+    ("--post-process",
+     Arg.Set Config.optimize,
+     "post-process to optimize the produced tamarin model");
+
     ("-o",
      Arg.String (fun str -> add_ofile true str),
      "<file> Printing the translated program into <file>");
@@ -66,8 +70,12 @@ let _main =
           (ctx, pol, def, sys, (a'@a, b'@b))) 
         Loader.process_init  !files in
         List.fold_left (fun _ s -> 
-        let t = (Totamarin.translate_sys s x) in 
-        let tamarin = (Totamarin.print_tamarin t !Config.dev) in 
+        let (si, mo_lst, rule_lst, lem_lst)  = (Totamarin.translate_sys s x) in 
+        let t = 
+          if !Config.optimize then (si, List.map Postprocessing.optimize mo_lst, rule_lst, lem_lst) 
+          else (si, mo_lst, rule_lst, lem_lst)
+        in
+        let tamarin = (Totamarin.print_tamarin t !Config.dev) in
         if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Error" "%s" "output file not specified"
         else let oc = open_out (fst !ofile) in
         Printf.fprintf oc "%s\n" tamarin;
