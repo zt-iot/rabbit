@@ -730,7 +730,7 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
       transition_name = "let_out";
       transition_from = st;
       transition_to = st_f;
-      transition_pre = gv;
+      transition_pre = [];
       transition_post = [];
       transition_state_transition = mk_state_transition_from_action (ActionPopLoc 1) st.state_vars; 
       transition_label = [];
@@ -1096,10 +1096,13 @@ let translate_sys {
   (* let t = add_comment t "Global constants:" in *)
 
   (* global constants *)
+  let t = tamarin_add_comment t "Global Constants:" in
+
   let t = List.fold_left (fun t (v, e) -> 
 	      match e with
 	      | None -> (* when v is fresh *) 
-          tamarin_add_rule t ("Const"^sep^v, "", [ResFact(2, [Var v])], [], [mk_constant_fact v])
+          tamarin_add_rule t 
+          ("Const"^sep^v, "", [ResFact(2, [Var v])], [InitFact [String ("Const"^sep^v)]], [mk_constant_fact v])
 	      | Some e -> (* when v is defined *) 
           let e, gv = translate_expr2 e in  
           let gv = List.map (fun s -> mk_constant_fact s) gv in 
