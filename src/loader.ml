@@ -171,7 +171,7 @@ let rec collect_meta_fact new_meta_vars ctx lctx f =
 
 let collect_meta_facts ctx lctx fl = 
    List.fold_left (fun ((ctx, lctx, fl), ls) f -> 
-      let (ctx, lctx, f), l = collect_meta_fact [] ctx lctx f in 
+      let (ctx, lctx, f), l = collect_meta_fact ls ctx lctx f in 
       ((ctx, lctx, fl @ [f]), ls @ l)) ((ctx, lctx, []), []) fl
 
 let process_facts ctx lctx fl = 
@@ -361,33 +361,30 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
 
          (* let lctx = Context.lctx_add_frame lctx in  *)
          let (ctx, lctx, c) = process_cmd ctx lctx c in
-         let ch_args = lctx.Context.lctx_chan in 
-         let path_args = lctx.Context.lctx_path in 
 
          (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), 
             pol, 
             Context.def_add_ext_syscall def (f, typed_args, c), sys, fst ps)
 
-(*    | Input.DeclExtAttack(f, typed_arg, c) ->      
+   | Input.DeclExtAttack(f, typed_arg, c) ->      
       (if Context.check_used ctx f then error ~loc (AlreadyDefined f) else ());
 
          (* parse arguments *)
-         let lctx = List.fold_left (fun lctx' ta -> 
-            match ta with
-            | (Input.TyValue, v) -> Context.lctx_add_new_var ~loc lctx' v
-            | (Input.TyChannel, v) -> Context.lctx_add_new_chan ~loc lctx' v
-            | (Input.TyPath, v) -> Context.lctx_add_new_path ~loc lctx' v
-            | (Input.TyProcess, v) -> error ~loc (UnknownIdentifier2 v)) (Context.lctx_init) typed_args in
+         let lctx = 
+            begin match typed_arg with
+            | (Input.TyValue, v) -> Context.lctx_add_new_meta ~loc Context.lctx_init v
+            | (Input.TyChannel, v) -> Context.lctx_add_new_meta ~loc Context.lctx_init v
+            | (Input.TyPath, v) -> Context.lctx_add_new_meta ~loc Context.lctx_init v
+            | (Input.TyProcess, v) -> error ~loc (UnknownIdentifier2 v) 
+         end  in 
 
          (* let lctx = Context.lctx_add_frame lctx in  *)
          let (ctx, lctx, c) = process_cmd ctx lctx c in
-         let ch_args = lctx.Context.lctx_chan in 
-         let path_args = lctx.Context.lctx_path in 
 
-         (Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args), 
+         (Context.ctx_add_ext_attack ctx (f, fst typed_arg), 
             pol, 
-            Context.def_add_ext_syscall def (f, typed_args, c), sys, fst ps)
- *)
+            Context.def_add_ext_attack def (f, typed_arg, c), sys, fst ps)
+
    | Input.DeclType (id, c) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, c), pol, def, sys, fst ps)
    

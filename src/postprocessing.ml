@@ -204,8 +204,8 @@ let reduce_conditions post pre' =
 let rec optimize_at (m : model) (st : state) =
 
   let tr1_lst = forward_transitions_from m st in
-  print_endline (string_of_int (List.length tr1_lst));
-  print_endline (state_index_to_string_aux st);
+  (* print_endline (string_of_int (List.length tr1_lst));
+  print_endline (state_index_to_string_aux st); *)
 
   let m = List.fold_left (fun m tr -> optimize_at m tr.transition_to) m tr1_lst in 
 
@@ -215,19 +215,18 @@ let rec optimize_at (m : model) (st : state) =
     let m = List.fold_left (fun m (tr2 : transition) -> 
       let st_f = tr2.transition_to in 
       (* judge if we will merge these edges st -[tr1]-> st_m -> [tr2] -> st_f  *)
-      let label = 
+      let is_labelled = 
         begin match tr1.transition_label, tr2.transition_label with
-        | [], l -> Some (Inr tr2.transition_label)
-        | l, [] -> Some (Inl tr1.transition_label)
-        | _, _ -> None
+        | [], [] -> false
+        | _, _ -> true
       end in
       let nonlocal = List.exists (fun a -> is_nonlocal_fact a) tr2.transition_pre in
       let out_num = List.length (forward_transitions_from m st_m) in
       let in_num = List.length (forward_transitions_to m st_m) in
       let inout = out_num > 1 && in_num > 1 in
       (* if label = None, dont merge *)
-      match label, nonlocal, inout with
-      | Some label, false, false ->
+      match is_labelled, nonlocal, inout with
+      | false, false, false ->
 
 
         print_endline "Merging";
@@ -250,7 +249,7 @@ let rec optimize_at (m : model) (st : state) =
 
               let m = (if out_num ==1 then model_remove_transition_by_id m tr1.transition_id else m) in 
               let m = (if in_num == 1 then model_remove_transition_by_id m tr2.transition_id else m) in 
-              add_transition m {
+              let tr = {
                 transition_id = m.model_transition_id_max;
                 transition_namespace = m.model_name;
                 transition_name = "merged";
@@ -264,15 +263,12 @@ let rec optimize_at (m : model) (st : state) =
                     List.map (fun e -> expr_subst_vars e substs) meta,
                     List.map (fun e -> expr_subst_vars e substs) loc,
                     List.map (fun e -> expr_subst_vars e substs) top);
-                transition_label = 
-                  (match label with
-                  | Inl label -> 
-                    label
-                  | Inr label ->
-                    List.map (fun f -> fact_subst_vars f substs) label)
-                ;
+                transition_label = [];
                 transition_is_loop_back = false       
-              }        
+              } in 
+              print_endline "Merged into:";
+              print_endline ("- " ^ print_transition tr true);
+              add_transition m tr
             | _ -> m 
         end 
       | _ -> 

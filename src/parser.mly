@@ -197,7 +197,9 @@ plain_expr:
 guarded_cmd:
   | LBRACKET precond=separated_list(COMMA, fact) RBRACKET ARROW c=cmd { (precond, c) }
 
-cmd: mark_location(plain_cmd) { $1 } 
+cmd: 
+  | LBRACE c=cmd RBRACE { c }
+  | mark_location(plain_cmd) { $1 } 
 plain_cmd:
   | SKIP { Skip }
   | c1=cmd SEMICOLON c2=cmd { Sequence(c1, c2) }
@@ -208,6 +210,7 @@ plain_cmd:
   | REPEAT BAR? c1=separated_nonempty_list(BAR, guarded_cmd) UNTIL BAR? c2=separated_nonempty_list(BAR, guarded_cmd) END { While(c1, c2) }
   | EVENT LBRACKET a=separated_list(COMMA, fact) RBRACKET { Event(a) }
   | RETURN e=expr { Return e }
+  
 
 uname: 
   | UNDERSCORE { None }

@@ -87,7 +87,7 @@ type definition = {
  
    def_ext_syscall : (Name.ident *  (Input.arg_type * Name.ident) list * Syntax.cmd) list ;
    
-   def_ext_attack  : (Name.ident *  (Name.ident list * Name.ident list * Name.ident list) * (Syntax.fact list * Syntax.fact list )) list ;
+   def_ext_attack  : (Name.ident *  (Input.arg_type * Name.ident) * Syntax.cmd) list ;
 
 
    def_const   :  (Name.ident * Syntax.expr option) list ;

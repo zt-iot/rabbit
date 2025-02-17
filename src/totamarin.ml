@@ -126,6 +126,7 @@ type fact =
     * expr list
   | ResFact of int * expr list
   | AccessFact of string * expr * string 
+  | AttackFact of string * expr 
   | FileFact of string  * string * expr
   | InitFact of expr list 
 
@@ -140,8 +141,9 @@ let print_fact' (f : fact) : fact' =
   | PathFact (fid, nsp, path, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp,path :: el, config_linear)
   | ResFact (0, el) -> ("Eq"^ !separator , el, config_persist)
   | ResFact (1, el) -> ("NEq"^ !separator , el, config_persist)
-  | ResFact (2, el) -> ("Fr", el, config_persist)
+  | ResFact (2, el) -> ("Fr", el, config_linear)
   | AccessFact (nsp, target, syscall) -> ("ACP"^ !separator, [String nsp; target; String syscall], config_persist )
+  | AttackFact (attack, target) ->  ("Attack"^ !separator, [String attack; target], config_persist )
   | FileFact (nsp, path, e) -> ("File"^ !separator ^ nsp, [String path; e], config_linear)
   | InitFact el -> ("Init"^ !separator, el, config_linear)
   | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact")
@@ -170,22 +172,9 @@ let rec action_sem (a : action) ((ret, meta_lst, loc_lst, top_lst) : expr * expr
    List.map (fun i -> MetaNewVar i) (int_to_list k)
     @ meta_lst, loc_lst, top_lst)
   | ActionIntro el -> (Unit, meta_lst, el @ loc_lst, top_lst)
-  | ActionPopLoc k -> (Unit, meta_lst, snd (pop_n k loc_lst), top_lst)
-  | ActionPopMeta k -> (Unit, snd (pop_n k meta_lst), loc_lst, top_lst)
+  | ActionPopLoc k -> (ret, meta_lst, snd (pop_n k loc_lst), top_lst)
+  | ActionPopMeta k -> (ret, snd (pop_n k meta_lst), loc_lst, top_lst)
   | ActionLetTop e -> (Unit, meta_lst, loc_lst, e @ top_lst)
-
-  
-    (* let mk_state_replace eng return_var (meta_num, loc_num, top_num) (j, b) e tnum = 
-      (get_state_fact_name st, 
-          [      
-          List [engine_state eng; tnum] ;
-          return_var; 
-          List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
-          List (List.map (fun i -> if (not b) && i = j then e else LocVar i) (int_to_list loc_num)); 
-          List (List.map (fun i -> if b && i = j then e else TopVar i) (int_to_list top_num)) 
-        ], config_linear)  *)
-
-
 
 type state = {
   state_namespace : string;
@@ -267,6 +256,25 @@ let initial_model name =
   model_init_rules = [Rule ("Init"^name, name, [], [print_fact' (InitFact ([String name]))], [mk_state st (Unit, [], [], [])])]; 
   model_init_state = st; model_transition_id_max =0}, st
 
+let initial_state name = 
+{
+  state_namespace = name;
+  state_index = [([],0)];
+  state_vars = (1, 0, 0)
+}
+  
+let initial_attacker_model name = 
+  let st = initial_state name in
+  {model_name = name; model_states = [st]; model_transitions = []; 
+  model_init_rules = [
+    Rule ("Init"^name, 
+    name, 
+    [print_fact' (AttackFact (name, MetaNewVar 0))], 
+    [], 
+    [mk_state st (Unit, [MetaNewVar 0], [], [])])]; 
+    model_init_state = st; model_transition_id_max =0}, st
+  
+
 let add_transition m t = {m with model_transitions = t :: m.model_transitions; model_transition_id_max = m.model_transition_id_max + 1}
 
 
@@ -345,7 +353,7 @@ let print_fact2 (f, el, b) =
 
 
 let transition_to_rule (tr : transition) : rule =    
-  let f = tr.transition_namespace ^ !separator ^ tr.transition_name ^ !separator ^ state_index_to_string_aux tr.transition_from ^ !separator ^ state_index_to_string_aux tr.transition_to in 
+  let f = tr.transition_namespace ^ !separator ^ tr.transition_name ^ !separator ^ state_index_to_string_aux tr.transition_from ^ !separator ^ state_index_to_string_aux tr.transition_to ^ !separator ^ string_of_int tr.transition_id in 
   let pre = tr.transition_pre in
   let post = tr.transition_post in
   let label = tr.transition_label in
@@ -412,11 +420,11 @@ let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev =
 	
     (* default restrictions *)
     "\nrestriction Init"^ !separator ^" : \" All x #i #j . Init"^ !separator ^"(x) @ #i & Init"^ !separator ^"(x) @ #j ==> #i = #j \"\n" ^
-
+(* 
     "restriction Equality: \" All x y #i. Eq(x,y) @ #i ==> x = y\"\n"  ^
 
     "restriction Inequality: \"All x #i. Neq(x,x) @ #i ==> F\"\n"  ^
-
+ *)
     "rule Equality_gen: [] --> [!Eq"^ !separator ^"(x,x)]\n" ^
 
     "rule NEquality_gen: [] --[NEq_"^ !separator ^"(x,y)]-> [!NEq"^ !separator ^"(x,y)]\n" ^
@@ -508,14 +516,6 @@ let rec var_list_replace lctx s e =
   | _ :: l -> error ~loc:Location.Nowhere (UnintendedError "lctx is not list") 
   | [] -> [] 
 
-
-(* let append_loc state e =
-  (engine_state eng, 
-    [return_var; 
-     List (List.map (fun i -> Var ("meta"^ !separator  ^ (int_to_list meta_num)))); 
-     List (List.map (fun i -> Var ("meta"^ !separator  ^ (int_to_list loc_num)))); 
-     List (List.map (fun i -> Var ("meta"^ !separator  ^ (int_to_list top_num))));
-     ])  *)
 
 let translate_fact namespace f = 
   match f.Location.data with
@@ -1001,7 +1001,7 @@ let translate_process {
       let name = mk_fact_name  namespace^ replace_string '/' !separator path in 
       add_rule mo (name, "",
             gv,
-            [InitFact([String namespace; String path])],
+            [InitFact([List [String namespace; String path]])],
             [FileFact(namespace, path, e)])) mo fls in 
      
   (* initialize rule *)
@@ -1082,35 +1082,15 @@ let translate_sys {
   let t = List.fold_left (fun t c -> add_const t c) t (List.rev ctx.Context.ctx_ext_const) in
   let t = List.fold_left (fun t (_, e1, e2) -> add_eqn t (translate_expr e1, translate_expr e2)) t (List.rev def.Context.def_ext_eq) in
 
-  (* let t = add_comment t "external system calls:" in
-     let t = List.fold_left (fun t r -> translate_syscall eng t r) t (List.rev def.Context.def_ext_syscall) in*)
+  let t = tamarin_add_comment t "Attacks:" in
+  let t = List.fold_left (fun t (f, (ty, var), cmd) -> 
+    
+    let namespace = String.capitalize_ascii f in (* this must be unique *)
+    (* let t = add_comment t ("- Process name: " ^ namespace) in  *)
+    let mo, st = initial_attacker_model namespace in 
+    let (mo, st) = translate_cmd mo st [] [] (1, 0, 0) None "" cmd in
+    add_model t mo) t (List.rev def.Context.def_ext_attack) in
 
-  (* let t = add_comment t "Attacks:" in *)
-(*   let t = List.fold_left (fun t r -> 
-
-	      let (f, (ch_vars, path_vars, process_vars), (pre, post)) = r in
-	      match ch_vars, path_vars, process_vars with
-	      | [ch_var], [], [] -> 
-		 (* when it is an attack on a channel *)
-		 (* find types of channels under this attack *)
-		 let ch_tys = List.map fst (List.find_all (fun (ch_t, a) -> a = f) pol.Context.pol_attack) in
-		 (* find ch names with ch_ty *)
-		 let chs = List.find_all (fun (ch, ch_t) -> List.exists (fun x -> x = ch_t) ch_tys) ctx.Context.ctx_ch in
-		 List.fold_left (fun t ch -> translate_attack eng t r ch) t (List.map fst chs) 
-
-	      | [], [path_var], [] -> error ~loc:Location.Nowhere (UnintendedError "attack..")
-
-	      | [], [], [proc_var] -> 
-		 (* when it is an attack on a channel *)
-		 (* find types of channels under this attack *)
-		 let proc_tys = List.map fst (List.find_all (fun (ch_t, a) -> a = f) pol.Context.pol_attack) in
-		 (* find ch names with ch_ty *)
-		 let procs = List.find_all (fun p -> List.exists (fun x -> x = p.Context.proc_type) proc_tys) proc in
-		 List.fold_left (fun t ch -> translate_attack eng t r ch) t (List.map (fun p -> 
-						                                 String.capitalize_ascii (p.Context.proc_name ^ (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid))
-				                                               ) procs)
-	      | _, _, _ -> error ~loc:Location.Nowhere (UnintendedError "attack..")) t (List.rev def.Context.def_ext_attack) in
- *)
   (* load global variables *)
 
   (* let t = add_comment t "Global constants:" in *)
@@ -1205,18 +1185,16 @@ let translate_sys {
   
 
   (* initialize attacks on channels!!! *)
-  (* let t = add_comment t "Attacker policy:" in
+  let t = tamarin_add_comment t "Attacker policy:" in
 
-     let t, il = List.fold_left (fun (t, il) (c, ty) -> 
-     match Context.pol_get_attack_opt pol ty with 
-     | Some attk -> add_rule t (mk_fact_name c ^  !separator  ^ attk, "",
-     [], 
-     [(mk_fact_name c ^  !separator  ^ attk ^  !separator  ^ "init", [], config_linear)], 
-     [(mk_fact_name attk ^  !separator  ^"Allowed", [String c], config_linear)]
-     ), (mk_fact_name c ^  !separator  ^ attk ^  !separator  ^ "init"):: il
-     | None -> t, il) (t, il) ctx.Context.ctx_ch in 
+     let t = List.fold_left (fun t (c, ty) -> 
+      match Context.pol_get_attack_opt pol ty with 
+      | Some attk -> 
+        let t = tamarin_add_rule t (mk_fact_name c ^  !separator  ^ attk, "", [], [], [AttackFact(mk_fact_name attk, String c)]) in 
+        tamarin_add_rule t (mk_fact_name c ^  !separator  ^ attk ^ !separator, "", [], [], [AccessFact(mk_fact_name attk, String c, "")])
+     | None -> t) t ctx.Context.ctx_ch in 
      
-   *)
+  
 
   (* let t = add_comment t "Processes:" in *)
   let t = List.fold_left (fun t p -> add_model t (translate_process p (List.rev def.Context.def_ext_syscall))) t (List.rev proc) in

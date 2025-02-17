@@ -24,20 +24,22 @@ syscall get_picture () {
 function h:1
 
 syscall fopen (p) {
-	put[p.open()]; 
-	return h(p)
+	case [p.File(x), ::Fr(y)] ->
+		put[p.File(x), fd(y, p)]; 
+		return y
+	end
 }
 
 syscall fread (y){
   case
-  | [y = h(p), p.File(x), p.open()] →
-      put[p.File(x), p.open()];
+  | [fd(y, p), p.File(x)] →
+      put[p.File(x), fd(y, p)];
       return x
   end
 }
 
 syscall fclose (y) {
-  case [y = h(p), p.open()] →
+  case [fd(y, p)] →
       skip
   end
 }
@@ -71,19 +73,20 @@ allow server_t readonly_t     [fopen, fread, fclose]
 (***********)
 (** attacker model *)
 
-(*
-attack tampar_ch (c) {
-  case [c::store(j), In(w)] ->
+
+attack tampar_ch (channel c) {
+  case [c::store(j), ::In(w)] ->
     put [c::store(w)]
   end
 }
-*)
+
+allow attack udp_t [tampar_ch] 
 
 passive attack eaves_mem (v) {
 	put [::Out(v)]
 }
 
-(** allow attack udp_t [tampar_ch] *)
+
 allow client_t [eaves_mem]
 
 
@@ -127,17 +130,23 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
   	{
 
 		let conn = connect_rpc(ch_rpc) in 
-		
+		{
 		let image = get_picture() in 
+		
+			let sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
+			event [::ImgSend(image)];
+			_ := send(ch_net, (sig, image))
+		};
+		let image = get_picture() in 
+		{
+			let sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
+			_ := eaves_mem((sig, image));
+			event [::Eavesed((sig, image))];
+			event [::ImgSend(image)];
+			_ := send(ch_net, (sig, image))
+		};
 
-		let sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
 
-		_ := eaves_mem((sig, image));
-
-		_ := send(ch_net, (sig, image)); 
-
-		event [::ImgSend(image)];
-		    	
 	  	_ := close_rpc(conn) ;
 
 	  	event [::ClientClose ()]
@@ -151,21 +160,21 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
 
 	function sign_image(image, privkey_path) 
 	{
-    (* 
-    let privkey_fd = fopen(privkey_path) in
-    
-    let privkey = fread(privkey_fd) in
-    
-    let privkey0 = dec(privkey, fek) in 
-    
-    let sig = sign(image, privkey0) in
-    
-    _ := fclose(privkey_fd);
+		(*
+		let privkey_fd = fopen(privkey_path) in
+		
+		let privkey = fread(privkey_fd) in
+		
+		let privkey0 = dec(privkey, fek) in 
+		
+		let sig = sign(image, privkey0) in
+		
+		_ := fclose(privkey_fd);
 
-    return sig *)
+	    return sig *)
 
-    let sig = sign(image, dec(enc(priv_k, sym_k), fek)) in
-    	return sig
+    let sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in
+    	return sig 
 
 	}
   
@@ -229,16 +238,15 @@ requires  [
     exists-trace "Ex #j  . A() @ #j" ;
   lemma Reachable2 :
     exists-trace "Ex #j  . B() @ #j" ;
-  lemma Reachable3 :
-    exists-trace "Ex #j  . AAA() @ #j" ;
-  lemma Reachable4 :
-    exists-trace "Ex #j  . BBB() @ #j" ;
-  lemma Reachable5 :
-    exists-trace "Ex x #j  . Took(x) @ #j" ;
   lemma Reachable :
     exists-trace "Ex x #i #j  . ClientClose() @ #j & ImgRecvValid(x) @ #i" ;
-
   lemma Correspondence :
     all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
   ]
 
+
+(*
+  lemma Correspondence :
+    all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
+
+*)
