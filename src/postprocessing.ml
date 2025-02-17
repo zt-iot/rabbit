@@ -1,3 +1,22 @@
+open Totamarin
+
+type postprocessing_error =
+  | UnintendedError' of string
+  | ConflictingCondition'
+
+
+exception Error of postprocessing_error
+
+(** [error err] raises the given runtime error. *)
+let error' err = Stdlib.raise (Error err)
+
+(** Print error description. *)
+let print_error err ppf =
+  match err with
+  | UnintendedError' s -> Format.fprintf ppf "unintended behavior. contact the developer %s" s
+  | _ ->   Format.fprintf ppf ""
+
+
 (* optimize models.contents
     For each process fact, we determine, over-approximately, whether the fact is
     boolean. A fact is boolean if there cannot be more than one instance of it at each 
@@ -8,11 +27,10 @@
 (* given a model and an identifier of a local fact, 
   determine if it is boolean  *)
 (* let is_boolean (m : Totamarin.model) (f : string)  *)
-  type ('a, 'b) sum = 
-  | Inl of 'a  (* Left injection *)
-  | Inr of 'b  (* Right injection *)
+type ('a, 'b) sum = 
+| Inl of 'a  (* Left injection *)
+| Inr of 'b  (* Right injection *)
 
-open Totamarin
 
 let rec state_eq_ind (i : ((int list) * int) list) j = 
   match i, j with
@@ -43,10 +61,10 @@ let is_nonlocal_fact f =
 
 let rec expr_unify_vars e =
   match e with 
-  | MetaVar i -> Var ("meta"^ !separator ^string_of_int i)
-  | LocVar i -> Var ("loc"^ !separator ^string_of_int i)
-  | TopVar i -> Var ("top"^ !separator ^string_of_int i)
-  | MetaNewVar i -> Var ("new"^ !separator ^string_of_int i)
+  | MetaVar i -> Var ("m"^ !separator ^string_of_int i)
+  | LocVar i -> Var ("l"^ !separator ^string_of_int i)
+  | TopVar i -> Var ("t"^ !separator ^string_of_int i)
+  | MetaNewVar i -> Var ("n"^ !separator ^string_of_int i)
   | Apply (f, el) -> Apply (f, List.map expr_unify_vars el)
   | List el -> List (List.map expr_unify_vars el)
   | AddOne e -> AddOne (expr_unify_vars e)
@@ -108,6 +126,7 @@ let unify_then_expand_variables (tr : transition) (i : int) =
   {tr with 
     transition_pre = List.map p tr.transition_pre;
     transition_post = List.map p tr.transition_post;
+    transition_label = List.map p tr.transition_label;
     transition_state_transition = 
     let (a, b, c, d), (e, f, g, h) = tr.transition_state_transition in
     (q a, List.map q b, List.map q c, List.map q d), 
@@ -125,6 +144,62 @@ let make_variables_unique (m : model) =
       List.map (fun tr -> unify_then_expand_variables tr tr.transition_id) m.model_transitions 
   }
 
+(* given the postcondition of the first transition and the precondition of the second of 
+  some consecutive transitions, assumign the second, already variabes are substituted,
+  give new pre and post conditions. If failed, return None
+  *)
+
+
+let fact_eq_by_fid f fid' =
+  begin match f with 
+  | Fact (fid, _, _) -> fid = fid'
+  | GlobalFact (fid, _) -> fid = fid'
+  | ChannelFact (fid, _, _) -> fid = fid'
+  | PathFact (fid, _, _, _) -> fid = fid'
+  | _ -> false
+  end
+
+let fact_eq_file_fact f =
+  begin match f with 
+  | FileFact (_, _, _) -> true
+  | _ -> false
+  end
+  
+
+let reduce_conditions post pre' = 
+  begin try 
+    let pre = List.fold_left 
+    (fun pre f -> 
+      match f with
+      | Fact (fid, _, _) 
+      | PathFact (fid, _, _, _) ->
+        begin match List.filter (fun f -> fact_eq_by_fid f fid) post with
+        | [] -> f :: pre
+        | _ -> error' ConflictingCondition'
+        end
+      | FileFact (_, _, _) ->
+        begin match List.filter (fun f -> fact_eq_file_fact f) post with
+        | [] -> f :: pre
+        | _ -> error' ConflictingCondition'
+        end
+      | _ -> f :: pre) [] pre' in 
+
+      let post = List.filter 
+      (fun f ->
+        begin match f with
+        | Fact (fid, _, _) | PathFact (fid, _, _, _) -> not (List.exists (fun f -> fact_eq_by_fid f fid) pre')
+        | FileFact (_, _, _) -> not (List.exists (fun f -> fact_eq_file_fact f) pre')
+        | _ -> true end) post in 
+      Some (post, pre)
+  with 
+  | Error err ->
+    begin match err with
+    | ConflictingCondition' -> None 
+    | _ -> error' err
+    end
+  end
+
+    
 (* p *)
 let rec optimize_at (m : model) (st : state) =
 
@@ -160,8 +235,6 @@ let rec optimize_at (m : model) (st : state) =
         print_endline ("- " ^ print_transition tr2 true);
 
         begin
-          let m = (if out_num ==1 then model_remove_transition_by_id m tr1.transition_id else m) in 
-          let m = (if in_num == 1 then model_remove_transition_by_id m tr2.transition_id else m) in 
           let (ret1, meta1, loc1, top1) = (snd tr1.transition_state_transition) in
           let (ret2, meta2, loc2, top2) = (fst tr2.transition_state_transition) in
           let substs = List.map2 (fun f t -> 
@@ -170,57 +243,37 @@ let rec optimize_at (m : model) (st : state) =
             | _ -> error ~loc:Location.Nowhere (UnintendedError "from is not a variable")            
             ) (ret2 :: meta2 @ loc2 @ top2) (ret1 :: meta1 @ loc1 @ top1) in
             let (ret, meta, loc, top) = (snd tr2.transition_state_transition) in
-            let pre2' = List.map (fun f -> fact_subst_vars f substs) tr2.transition_pre in 
+            let pre2 = List.map (fun f -> fact_subst_vars f substs) tr2.transition_pre in 
             let post2 = List.map (fun f -> fact_subst_vars f substs) tr2.transition_post in 
-            let pre2 = List.fold_left 
-              (fun pre2 f -> 
-                match f with
-                | Fact (fid, _, el) ->
-                  print_endline ("processing: "^ fid);
-                  begin match List.find_opt 
-                    (fun f -> 
-                      match f with 
-                      | Fact (fid', _, el') ->  
-                        print_endline ("comparing : "^ fid');
-                        fid = fid'
-                      | _ -> false) tr1.transition_post with
-                  | None -> f::pre2
-                  | Some f' -> 
-                    begin match f' with
-                    | Fact (_, _,el') -> 
-                      pre2 @ (List.map2 (fun e e' -> ResFact(0, [e; e'])) el el')
-                    | _ -> error ~loc:Location.Nowhere (UnintendedError "")
-                    end
-                  end
-                | f -> f::pre2) [] pre2' in 
-            let post1 = List.filter (fun f ->
-              begin match f with
-              | Fact (fid, _, _) ->
-                not (List.exists (fun f -> match f with | Fact(fid', _, _) -> fid = fid' | _ -> false) pre2')
-              | _ -> true end) tr1.transition_post in 
-          add_transition m {
-            transition_id = m.model_transition_id_max;
-            transition_namespace = m.model_name;
-            transition_name = "merged";
-            transition_from = st;
-            transition_to = st_f;
-            transition_pre = tr1.transition_pre @ pre2;
-            transition_post = post1 @ post2;
-            transition_state_transition = 
-              fst tr1.transition_state_transition, 
-                (expr_subst_vars ret substs, 
-                List.map (fun e -> expr_subst_vars e substs) meta,
-                List.map (fun e -> expr_subst_vars e substs) loc,
-                List.map (fun e -> expr_subst_vars e substs) top);
-            transition_label = 
-              (match label with
-              | Inl label -> 
-                label
-              | Inr label ->
-                List.map (fun f -> fact_subst_vars f substs) label)
-            ;
-            transition_is_loop_back = false       
-          }        
+            match reduce_conditions tr1.transition_post pre2 with
+            | Some (post1, pre2) ->
+
+              let m = (if out_num ==1 then model_remove_transition_by_id m tr1.transition_id else m) in 
+              let m = (if in_num == 1 then model_remove_transition_by_id m tr2.transition_id else m) in 
+              add_transition m {
+                transition_id = m.model_transition_id_max;
+                transition_namespace = m.model_name;
+                transition_name = "merged";
+                transition_from = st;
+                transition_to = st_f;
+                transition_pre = tr1.transition_pre @ pre2;
+                transition_post = post1 @ post2;
+                transition_state_transition = 
+                  fst tr1.transition_state_transition, 
+                    (expr_subst_vars ret substs, 
+                    List.map (fun e -> expr_subst_vars e substs) meta,
+                    List.map (fun e -> expr_subst_vars e substs) loc,
+                    List.map (fun e -> expr_subst_vars e substs) top);
+                transition_label = 
+                  (match label with
+                  | Inl label -> 
+                    label
+                  | Inr label ->
+                    List.map (fun f -> fact_subst_vars f substs) label)
+                ;
+                transition_is_loop_back = false       
+              }        
+            | _ -> m 
         end 
       | _ -> 
         m

@@ -128,19 +128,21 @@ type fact =
   | AccessFact of string * expr * string 
   | FileFact of string  * string * expr
   | InitFact of expr list 
-  
-let print_fact' (f : fact) = 
+
+type fact' = string * expr list * rule_config
+
+let print_fact' (f : fact) : fact' = 
   match f with
-  | Fact (fid, nsp, el) -> (mk_my_fact_name fid, String nsp :: el, config_linear)
+  | Fact (fid, nsp, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp, el, config_linear)
   | ConstantFact (e1, e2) -> ("Const"^ !separator , [e1 ; e2], config_persist) 
   | GlobalFact (fid, el) -> (mk_my_fact_name fid, el, config_linear)
   | ChannelFact (fid, ch, el) -> (mk_my_fact_name fid, ch :: el, config_linear)
-  | PathFact (fid, nsp, path, el) -> (mk_my_fact_name fid, String nsp :: path :: el, config_linear)
+  | PathFact (fid, nsp, path, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp,path :: el, config_linear)
   | ResFact (0, el) -> ("Eq"^ !separator , el, config_persist)
   | ResFact (1, el) -> ("NEq"^ !separator , el, config_persist)
   | ResFact (2, el) -> ("Fr", el, config_persist)
   | AccessFact (nsp, target, syscall) -> ("ACP"^ !separator, [String nsp; target; String syscall], config_persist )
-  | FileFact (nsp, path, e) -> ("File", [String nsp; String path; e], config_linear)
+  | FileFact (nsp, path, e) -> ("File"^ !separator ^ nsp, [String path; e], config_linear)
   | InitFact el -> ("Init"^ !separator, el, config_linear)
   | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact")
 
@@ -212,9 +214,23 @@ let mk_state_transition_from_action a (meta_num, loc_num, top_num) =
   (return_var, meta_var, loc_var, top_var),   
   action_sem a (return_var, meta_var, loc_var, top_var)
 
+let get_state_fact_name (s : state) = 
+  "State" ^  !separator  ^ s.state_namespace
+
+let state_index_to_string_aux (st : state) =
+  (List.fold_left (fun s (scope, ind) -> s ^  !separator  ^
+    (mult_list_with_concat (List.map string_of_int scope) "_")
+    ^ "_" ^ string_of_int ind) "" (List.rev st.state_index)) 
+
+let state_index_to_string st = String (state_index_to_string_aux st)
+  
+let mk_state st (ret, meta, loc, top) : fact' = 
+  (get_state_fact_name st, 
+  [List [state_index_to_string st]; ret; List meta; List loc; List top], config_linear) 
+      
 
 type rule = 
-| Rule of string * string * fact list * fact list * fact list
+| Rule of string * string * fact' list * fact' list * fact' list
 | Comment of string
 
 (* type tamarin = signature * rule list *)
@@ -229,7 +245,7 @@ type model = {
 }
 
 let add_rule (mo : model) (a, b, c, d, e) = 
-  {mo with model_init_rules = (Rule (a, b, c, d, e)) :: mo.model_init_rules}
+  {mo with model_init_rules = (Rule (a, b, List.map print_fact' c, List.map print_fact' d, List.map print_fact' e)) :: mo.model_init_rules}
 
 let add_comment (mo : model) r = 
   {mo with model_init_rules = (Comment r) :: mo.model_init_rules}
@@ -247,39 +263,13 @@ let initial_state name =
 
 let initial_model name = 
   let st = initial_state name in
-  {model_name = name; model_states = [st]; model_transitions = []; model_init_rules = []; model_init_state = st; model_transition_id_max =0}, st
+  {model_name = name; model_states = [st]; model_transitions = []; 
+  model_init_rules = [Rule ("Init"^name, name, [], [print_fact' (InitFact ([String name]))], [mk_state st (Unit, [], [], [])])]; 
+  model_init_state = st; model_transition_id_max =0}, st
 
 let add_transition m t = {m with model_transitions = t :: m.model_transitions; model_transition_id_max = m.model_transition_id_max + 1}
 
-let get_state_fact_name (s : state) = 
-  "State" ^  !separator  ^ s.state_namespace
 
-let state_index_to_string_aux (st : state) =
-  (List.fold_left (fun s (scope, ind) -> s ^  !separator  ^
-    (mult_list_with_concat (List.map string_of_int scope) "_")
-    ^ "_" ^ string_of_int ind) "" (List.rev st.state_index)) 
-
-let state_index_to_string st = String (state_index_to_string_aux st)
-  
-(* let mk_initial_state (st : state) return_var = 
-  let meta_num, loc_num, top_num = st.state_vars in
-  (get_state_fact_name st, 
-    [
-      List [state_index_to_string st];
-      return_var; 
-      List (List.map (fun i -> MetaVar i) (int_to_list meta_num)); 
-      List (List.map (fun i -> LocVar i) (int_to_list loc_num)); 
-      List (List.map (fun i -> TopVar i) (int_to_list top_num))
-      ], config_linear)  *)
-
-(* let mk_final_state st_f (ret, meta, loc, top) = 
-  (get_state_fact_name st_f, 
-    [List [state_index_to_string st_f]; ret; List meta; List loc; List top], config_linear)  *)
-
-let mk_state st (ret, meta, loc, top) = 
-  (get_state_fact_name st, 
-  [List [state_index_to_string st]; ret; List meta; List loc; List top], config_linear) 
-    
 
  (* tamarin lemma *)
  type lemma = 
@@ -301,7 +291,7 @@ let add_model (t : tamarin) m =
 
 let tamarin_add_rule (t : tamarin) (a, b, c, d, e) = 
   let (si, mo, rules, lemmas) = t in 
-    (si, mo, (Rule (a, b, c, d, e)) :: rules, lemmas)
+    (si, mo, (Rule (a, b,List.map print_fact' c,List.map print_fact' d,List.map print_fact' e)) :: rules, lemmas)
 
 let tamarin_add_comment (t : tamarin) s = 
   let (si, mo, rules, lemmas) = t in 
@@ -343,51 +333,27 @@ let print_signature (fns, eqns) =
 let print_fact_plain (f, el) = 
   f^"(" ^ (mult_list_with_concat (List.map (print_expr) el) ", ") ^ ")" 
 
-let print_transition (tr : transition) (is_dev : bool) = 
-  (* name of this rule: *)
+let print_fact (f, el, b) = 
+  (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" 
+  ^ if b.priority = 0 then "[-,no_precomp]" 
+    else if b.priority = 1 then "[-]" 
+    else if b.priority = 2 then ""
+    else if b.priority = 3 then "[+]" else "" 
+
+let print_fact2 (f, el, b) = 
+  (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" 
+
+
+let transition_to_rule (tr : transition) : rule =    
   let f = tr.transition_namespace ^ !separator ^ tr.transition_name ^ !separator ^ state_index_to_string_aux tr.transition_from ^ !separator ^ state_index_to_string_aux tr.transition_to in 
   let pre = tr.transition_pre in
   let post = tr.transition_post in
   let label = tr.transition_label in
   let initial_state_fact = mk_state tr.transition_from (fst tr.transition_state_transition)  in 
   let final_state_fact = mk_state tr.transition_to (snd tr.transition_state_transition) in 
-  (* how to print a fact *)
-  let print_fact (f, el, b) = 
-    (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" 
-    ^ if b.priority = 0 then "[-,no_precomp]" 
-      else if b.priority = 1 then "[-]" 
-      else if b.priority = 2 then ""
-      else if b.priority = 3 then "[+]" else "" 
-  in 
-  let print_fact2 (f, el, b) = 
-    (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" in 
+  Rule (f, tr.transition_namespace, initial_state_fact :: List.map print_fact' pre, List.map print_fact'  label, final_state_fact ::List.map print_fact' post)
 
-
-
-    "rule "^f ^ (if tr.transition_namespace = "" || not is_dev then "" else "[role=\"" ^ tr.transition_namespace ^ "\"]") ^ " : " ^ 
-	
-    "["^(mult_list_with_concat (List.map print_fact (initial_state_fact :: (List.map print_fact' pre))) ", ") ^ "]" ^
-	  
-    (* when the transition has label *)
-    (match tr.transition_label with 
-	   | [] -> "-->" 
-	   | _ -> 	"--[" ^ (mult_list_with_concat (List.map print_fact2 (List.map print_fact' label)) ", ") ^ "]->")^
-
-	    "["^(mult_list_with_concat (List.map print_fact2 (final_state_fact :: (List.map print_fact' post))) ", ") ^ "] \n"	
-
-let print_model m is_dev = 
-  List.map (fun t -> print_transition t is_dev) m.model_transitions |> String.concat "\n"
-
-let print_rule2 (f, act, pre, label, post) dev = 
-  let print_fact (f, el, b) = 
-    (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" 
-    ^ if b.priority = 0 then "[-,no_precomp]" 
-      else if b.priority = 1 then "[-]" 
-      else if b.priority = 2 then ""
-      else if b.priority = 3 then "[+]" else "" 
-  in 
-  let print_fact2 (f, el, b) = 
-    (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" in 
+let print_rule_aux (f, act, pre, label, post) dev = 
   "rule "^f ^
     (if act = "" || not dev then "" else "[role=\"" ^act^ "\"]") ^
       " : "^ 
@@ -400,9 +366,16 @@ let print_rule2 (f, act, pre, label, post) dev =
 
 let print_comment s = "\n// "^s^"\n\n" 
   
-let print_rule r dev = match r with | Rule (a, b, c, d, e) -> print_rule2 (a, b, List.map print_fact' c, List.map print_fact' d, List.map print_fact' e) dev | Comment s ->print_comment s 
-  
-  
+let print_rule r dev = match r with | Rule (a, b, c, d, e) -> print_rule_aux (a, b,  c,  d, e) dev | Comment s ->print_comment s 
+
+let print_transition (tr : transition) (is_dev : bool) = 
+  let r = transition_to_rule tr in 
+  print_rule r is_dev
+
+let print_model m is_dev = 
+  (* initialization rule  *)
+  (List.map (fun r -> print_rule r is_dev) m.model_init_rules |> String.concat "\n")  ^ "\n" ^
+  (List.map (fun t -> print_transition t is_dev) m.model_transitions |> String.concat "\n")
 
 let print_lemma lemma = 
   match lemma with
@@ -659,7 +632,7 @@ let rec pop_hd n lst =
   this function returns an extended model 
 *)
 let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location.data=c; Location.loc=loc} = 
-  let return_var = Var ("return"^ !separator ) in
+  let return_var = get_return_var () in
   let (meta_num, loc_num, top_num) = vars in 
   
   match c with
@@ -1020,7 +993,6 @@ let translate_process {
 
   let mo, st = initial_model namespace in 
 
-
   (* initialize file system *)
   let mo = List.fold_left (fun mo (path, e, _, _) ->
       (* let path = (mk_dir eng fsys path) in *)
@@ -1031,7 +1003,15 @@ let translate_process {
             gv,
             [InitFact([String namespace; String path])],
             [FileFact(namespace, path, e)])) mo fls in 
-          
+     
+  (* initialize rule *)
+  (* let mo = add_rule mo (name, "",
+  [],
+  [InitFact([String namespace; String path])],
+  [FileFact(namespace, path, e)]) in *)
+
+
+
   (* initialize memory *)
   let (mo, st) = List.fold_left
 		   (fun (mo, st) (x, e) -> 
