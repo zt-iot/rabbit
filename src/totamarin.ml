@@ -129,6 +129,7 @@ type fact =
   | AttackFact of string * expr 
   | FileFact of string  * string * expr
   | InitFact of expr list 
+  | LoopFact of string * int * bool
 
 type fact' = string * expr list * rule_config
 
@@ -146,6 +147,7 @@ let print_fact' (f : fact) : fact' =
   | AttackFact (attack, target) ->  ("Attack"^ !separator, [String attack; target], config_persist )
   | FileFact (nsp, path, e) -> ("File"^ !separator ^ nsp, [String path; e], config_linear)
   | InitFact el -> ("Init"^ !separator, el, config_linear)
+  | LoopFact (nsp, tid, b) -> ("Loop" ^ ! separator ^ (if b then "Start" else "Back"), [String (nsp ^ !separator ^ string_of_int tid)], config_linear)
   | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact")
 
 let mk_constant_fact s = ConstantFact (String s, Var s)
@@ -431,6 +433,9 @@ let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev =
 
     "restriction NEquality_rule: \"All x #i. NEq_"^ !separator ^"(x,x) @ #i ==> F\"\n" ^
 
+    "lemma AlwaysStarts"^ ! separator ^ "[reuse,use_induction]:\n
+    \"All x #i. Loop"^ ! separator ^"Back(x) @i ==> Ex #j. Loop"^ ! separator ^"Start(x) @j & j < i\"\n"^
+    
     (* print lemmas *)
     List.fold_left (fun l lem -> l ^ print_lemma lem) "" lem_lst ^"\nend\n"
 
@@ -882,20 +887,29 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
     (add_state mo st_f, st_f)
 
  | Syntax.While (cs1, cs2) ->
+
+    let st_i = next_state st scope in
+    let tid = List.length mo.model_transitions in 
+    let mo = add_transition mo {
+      transition_id = tid;
+      transition_namespace = mo.model_name;
+      transition_name = "repeat_in";
+      transition_from = st;
+      transition_to = st_i;
+      transition_pre = [];
+      transition_post = [];
+      transition_state_transition = mk_state_transition_from_action (ActionReturn Unit) st.state_vars; 
+      transition_label = [
+        (LoopFact (mo.model_name, tid, true))
+      ];
+      transition_is_loop_back = false   
+    } in
+    let st = st_i in 
+
     let scope_lst1 =
-      begin match scope with
-      | None ->
-        List.map (fun i -> Some [i]) (List.init (List.length cs1) (fun i -> i))
-      | Some l ->
-        List.map (fun i -> Some (i :: l)) (List.init (List.length cs1) (fun i -> i))
-      end in 
+        List.map (fun i -> Some [i]) (List.init (List.length cs1) (fun i -> i)) in 
     let scope_lst2 =
-      begin match scope with
-      | None ->
-        List.map (fun i -> Some [i]) (List.init (List.length cs2) (fun i -> i + (List.length cs1)))
-      | Some l ->
-        List.map (fun i -> Some (i :: l)) (List.init (List.length cs2) (fun i -> i + (List.length cs1)))
-      end in 
+        List.map (fun i -> Some [i]) (List.init (List.length cs2) (fun i -> i + (List.length cs1))) in 
   
     let st_f = next_state st None in
 
@@ -910,7 +924,9 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
         transition_pre = [];
         transition_post = [];
         transition_state_transition = mk_state_transition_from_action (ActionPopMeta (List.length vl)) st_f.state_vars; 
-        transition_label = [];
+        transition_label = [
+          (LoopFact (mo.model_name, tid, false))
+        ];
         transition_is_loop_back = true   
       }) mo scope_lst1 cs1 in
 
@@ -920,8 +936,8 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
         transition_id = List.length mo.model_transitions;
         transition_namespace = mo.model_name;
         transition_name = "repeat_out";
-        transition_from = st_f;
-        transition_to = st;
+        transition_from = st;
+        transition_to = st_f;
         transition_pre = [];
         transition_post = [];
         transition_state_transition = mk_state_transition_from_action (ActionPopMeta (List.length vl)) st_f.state_vars; 

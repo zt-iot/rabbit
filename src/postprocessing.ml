@@ -81,6 +81,7 @@ let fact_rec_on_expr f (p : expr -> expr) =
   | AccessFact (nsp, ch, sys) -> AccessFact (nsp, p ch, sys)
   | FileFact (nsp, path, data) -> FileFact(nsp, path, p data)
   | InitFact el -> InitFact (List.map p el)
+  | LoopFact _ -> f
   | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact isnt there")
 
 let fact_unify_vars f =
