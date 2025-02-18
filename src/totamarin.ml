@@ -129,7 +129,10 @@ type fact =
   | AttackFact of string * expr 
   | FileFact of string  * string * expr
   | InitFact of expr list 
-  | LoopFact of string * int * bool
+  | LoopFact of 
+    string (* namespace *)
+    * int (* transition id of the initial transition of the loop *)
+    * int (* 0: loop in 2 : loop back 3 : loop out *)
 
 type fact' = string * expr list * rule_config
 
@@ -147,7 +150,8 @@ let print_fact' (f : fact) : fact' =
   | AttackFact (attack, target) ->  ("Attack"^ !separator, [String attack; target], config_persist )
   | FileFact (nsp, path, e) -> ("File"^ !separator ^ nsp, [String path; e], config_linear)
   | InitFact el -> ("Init"^ !separator, el, config_linear)
-  | LoopFact (nsp, tid, b) -> ("Loop" ^ ! separator ^ (if b then "Start" else "Back"), [String (nsp ^ !separator ^ string_of_int tid)], config_linear)
+  | LoopFact (nsp, tid, b) -> ("Loop" ^ ! separator ^ 
+    (if b =0 then "Start" else if b = 1 then "Back" else "Finish"), [String (nsp ^ !separator ^ string_of_int tid)], config_linear)
   | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact")
 
 let mk_constant_fact s = ConstantFact (String s, Var s)
@@ -433,9 +437,20 @@ let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev =
 
     "restriction NEquality_rule: \"All x #i. NEq_"^ !separator ^"(x,x) @ #i ==> F\"\n" ^
 
+    
+    (* "lemma AlwaysStarts_"^ ! separator ^ "[sources]:\n
+    \"All x #i. Loop"^ ! separator ^"Back(x) @i ==> Ex #j. Loop"^ ! separator ^"Start(x) @j & j < i\"\n"^
+    
+    "lemma AlwaysStartsWhenEnds_"^ ! separator ^ "[sources]:\n
+    \"All x #i. Loop"^ ! separator ^"Finish(x) @i ==> Ex #j. Loop"^ ! separator ^"Start(x) @j & j < i\"\n"^ *)
+
+
     "lemma AlwaysStarts"^ ! separator ^ "[reuse,use_induction]:\n
     \"All x #i. Loop"^ ! separator ^"Back(x) @i ==> Ex #j. Loop"^ ! separator ^"Start(x) @j & j < i\"\n"^
     
+    "lemma AlwaysStartsWhenEnds"^ ! separator ^ "[reuse,use_induction]:\n
+    \"All x #i. Loop"^ ! separator ^"Finish(x) @i ==> Ex #j. Loop"^ ! separator ^"Start(x) @j & j < i\"\n"^
+
     (* print lemmas *)
     List.fold_left (fun l lem -> l ^ print_lemma lem) "" lem_lst ^"\nend\n"
 
@@ -900,7 +915,7 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
       transition_post = [];
       transition_state_transition = mk_state_transition_from_action (ActionReturn Unit) st.state_vars; 
       transition_label = [
-        (LoopFact (mo.model_name, tid, true))
+        (LoopFact (mo.model_name, tid, 0))
       ];
       transition_is_loop_back = false   
     } in
@@ -925,7 +940,7 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
         transition_post = [];
         transition_state_transition = mk_state_transition_from_action (ActionPopMeta (List.length vl)) st_f.state_vars; 
         transition_label = [
-          (LoopFact (mo.model_name, tid, false))
+          (LoopFact (mo.model_name, tid, 1))
         ];
         transition_is_loop_back = true   
       }) mo scope_lst1 cs1 in
@@ -941,7 +956,9 @@ let rec translate_cmd mo (st : state) funs syscalls vars scope syscall {Location
         transition_pre = [];
         transition_post = [];
         transition_state_transition = mk_state_transition_from_action (ActionPopMeta (List.length vl)) st_f.state_vars; 
-        transition_label = [];
+        transition_label = [          
+          (LoopFact (mo.model_name, tid, 2))
+        ];
         transition_is_loop_back = false   
       }) mo scope_lst2 cs2 in
     
