@@ -8,6 +8,17 @@ let fresh_ident = ref "rab"
 let fresh_string = ref "rab"
 
 
+let mult_list_with_concat l sep = 
+  match l with
+  | h :: t -> h ^ (List.fold_left (fun r s-> r ^ sep ^ s) "" t) 
+  | [] -> ""
+
+let index_to_string idx =
+  (List.fold_left (fun s (scope, ind) -> s ^  !separator  ^
+    (mult_list_with_concat (List.map string_of_int scope) "_")
+    ^ "_" ^ string_of_int ind) "" (List.rev idx)) 
+  
+
 let rec replace_nth lst i new_val =
   match lst with
   | [] -> [] (* If the list is empty, return an empty list *)
@@ -35,13 +46,6 @@ let replace_string s t str =
     else aux (i - 1) (i :: acc)
   in
   aux (n - 1) []
-
-
-let mult_list_with_concat l sep = 
-  match l with
-  | h :: t -> h ^ (List.fold_left (fun r s-> r ^ sep ^ s) "" t) 
-  | [] -> ""
-
 
 type to_tamarin_error =
   | UnintendedError of string
@@ -133,7 +137,8 @@ type fact =
     string (* namespace *)
     * int (* transition id of the initial transition of the loop *)
     * int (* 0: loop in 2 : loop back 3 : loop out *)
-
+  | TransitionFact of string * int * expr
+  
 type fact' = string * expr list * rule_config
 
 let print_fact' (f : fact) : fact' = 
@@ -152,6 +157,7 @@ let print_fact' (f : fact) : fact' =
   | InitFact el -> ("Init"^ !separator, el, config_linear)
   | LoopFact (nsp, tid, b) -> ("Loop" ^ ! separator ^ 
     (if b =0 then "Start" else if b = 1 then "Back" else "Finish"), [String (nsp ^ !separator ^ string_of_int tid)], config_linear)
+  | TransitionFact (nsp, ind, e) -> ("Transition"^ !separator ^ nsp, [String (string_of_int ind); e], config_linear)
   | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact")
 
 let mk_constant_fact s = ConstantFact (String s, Var s)
@@ -212,10 +218,10 @@ let mk_state_transition_from_action a (meta_num, loc_num, top_num) =
 let get_state_fact_name (s : state) = 
   "State" ^  !separator  ^ s.state_namespace
 
+
+
 let state_index_to_string_aux (st : state) =
-  (List.fold_left (fun s (scope, ind) -> s ^  !separator  ^
-    (mult_list_with_concat (List.map string_of_int scope) "_")
-    ^ "_" ^ string_of_int ind) "" (List.rev st.state_index)) 
+  index_to_string st.state_index
 
 let state_index_to_string st = String (state_index_to_string_aux st)
   
@@ -256,10 +262,24 @@ let initial_state name =
   state_vars = (0, 0, 0)
 }
 
+let mk_state_transition st (ret, meta, loc, top) is_initial is_loop : fact' = 
+  (get_state_fact_name st, 
+  [List [state_index_to_string st; 
+    if is_loop then 
+      AddOne (Int ("v"^ !separator)) else 
+    if is_initial then 
+      One else
+        Int ("v"^ !separator)]; ret; List meta; List loc; List top], config_linear) 
+
+
 let initial_model name = 
   let st = initial_state name in
   {model_name = name; model_states = [st]; model_transitions = []; 
-  model_init_rules = [Rule ("Init"^name, name, [], [print_fact' (InitFact ([String name]))], [mk_state st (Unit, [], [], [])])]; 
+  model_init_rules = [Rule ("Init"^name, name, [], [print_fact' (InitFact ([String name]))], [(
+    if !Config.tag_transition 
+      then  mk_state_transition st (Unit, [], [], []) true false 
+      else mk_state st (Unit, [], [], []) 
+      )])]; 
   model_init_state = st; model_transition_id_max =0}, st
 
 let initial_state name = 
@@ -357,7 +377,6 @@ let print_fact (f, el, b) =
 let print_fact2 (f, el, b) = 
   (if b.is_persist then "!" else "") ^f^"(" ^ (mult_list_with_concat (List.map print_expr el) ", ") ^ ")" 
 
-
 let transition_to_rule (tr : transition) : rule =    
   let f = tr.transition_namespace ^ !separator ^ tr.transition_name ^ !separator ^ state_index_to_string_aux tr.transition_from ^ !separator ^ state_index_to_string_aux tr.transition_to ^ !separator ^ string_of_int tr.transition_id in 
   let pre = tr.transition_pre in
@@ -367,6 +386,22 @@ let transition_to_rule (tr : transition) : rule =
   let final_state_fact = mk_state tr.transition_to (snd tr.transition_state_transition) in 
   Rule (f, tr.transition_namespace, initial_state_fact :: List.map print_fact' pre, List.map print_fact'  label, final_state_fact ::List.map print_fact' post)
 
+
+    
+let transition_to_transition_rule (tr : transition) : rule =    
+  let f = tr.transition_namespace ^ 
+      !separator ^ tr.transition_name ^ 
+      !separator ^ state_index_to_string_aux tr.transition_from ^ 
+      !separator ^ state_index_to_string_aux tr.transition_to ^ 
+      !separator ^ string_of_int tr.transition_id in 
+  let pre = tr.transition_pre in
+  let post = tr.transition_post in
+  let label = TransitionFact(tr.transition_namespace, tr.transition_id, Int ("v"^ !separator)) :: tr.transition_label in
+  let initial_state_fact = mk_state_transition tr.transition_from (fst tr.transition_state_transition) (tr.transition_id = 0) false in 
+  let final_state_fact = mk_state_transition tr.transition_to (snd tr.transition_state_transition) (tr.transition_id = 0) tr.transition_is_loop_back in 
+  Rule (f, tr.transition_namespace, initial_state_fact :: List.map print_fact' pre, List.map print_fact'  label, final_state_fact ::List.map print_fact' post)
+  
+  
 let print_rule_aux (f, act, pre, label, post) dev = 
   "rule "^f ^
     (if act = "" || not dev then "" else "[role=\"" ^act^ "\"]") ^
@@ -391,6 +426,15 @@ let print_model m is_dev =
   (List.map (fun r -> print_rule r is_dev) m.model_init_rules |> String.concat "\n")  ^ "\n" ^
   (List.map (fun t -> print_transition t is_dev) m.model_transitions |> String.concat "\n")
 
+let print_transition_transition_rule (tr : transition) (is_dev : bool) = 
+  let r = transition_to_transition_rule tr in 
+  print_rule r is_dev
+
+let print_model_transition_rule m is_dev = 
+  (* initialization rule  *)
+  (List.map (fun r -> print_rule r is_dev) m.model_init_rules |> String.concat "\n")  ^ "\n" ^
+  (List.map (fun t -> print_transition_transition_rule t is_dev) m.model_transitions |> String.concat "\n")
+  
 let print_lemma lemma = 
   match lemma with
   | PlainLemma (l, p) -> "\nlemma "^l^" : "^p 
@@ -407,7 +451,7 @@ let print_lemma lemma =
 
 
 (* signature * model list * rule list * lemma list *)
-let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev = 
+let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev print_transition_label = 
   "theory rabbit\n\nbegin\nbuiltins: natural-numbers\n\n"^
 
     (* print signature *)
@@ -420,8 +464,8 @@ let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev =
 	
     (* print models  *)
     (mult_list_with_concat (List.map (fun m -> 
-      (print_comment ("Model:  "^ m.model_name ^"\n\n")) ^
-      print_model m is_dev
+      (print_comment ("Model:  "^ m.model_name ^"\n")) ^
+      (if print_transition_label then print_model_transition_rule else print_model) m is_dev
     ) (List.rev mo_lst)) "\n")^
 	
     (* default restrictions *)
@@ -451,6 +495,12 @@ let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev =
     "lemma AlwaysStartsWhenEnds"^ ! separator ^ "[reuse,use_induction]:\n
     \"All x #i. Loop"^ ! separator ^"Finish(x) @i ==> Ex #j. Loop"^ ! separator ^"Start(x) @j & j < i\"\n"^
 
+    (mult_list_with_concat (List.map (fun mo -> 
+      "lemma transition"^ ! separator ^ mo.model_name ^ "[reuse]:\n
+      \"All x %i #j #k . Transition"^ ! separator ^ mo.model_name ^ "(x, %i) @#j &
+       Transition"^ ! separator ^ mo.model_name ^ "(x, %i) @ #k ==> #j = #k\"\n"   
+      ) (List.rev mo_lst)) "\n")^
+    
     (* print lemmas *)
     List.fold_left (fun l lem -> l ^ print_lemma lem) "" lem_lst ^"\nend\n"
 

@@ -39,6 +39,10 @@ let options = Arg.align [
      Arg.Set Config.optimize,
      "post-process to optimize the produced tamarin model");
 
+     ("--tag-transition",
+     Arg.Set Config.tag_transition,
+     "post-process to optimize the produced tamarin model");
+
     ("-o",
      Arg.String (fun str -> add_ofile true str),
      "<file> Printing the translated program into <file>");
@@ -75,7 +79,7 @@ let _main =
           if !Config.optimize then (si, List.map Postprocessing.optimize mo_lst, rule_lst, lem_lst) 
           else (si, mo_lst, rule_lst, lem_lst)
         in
-        let tamarin = (Totamarin.print_tamarin t !Config.dev) in
+        let tamarin = (Totamarin.print_tamarin t !Config.dev !Config.tag_transition) in
         if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Error" "%s" "output file not specified"
         else let oc = open_out (fst !ofile) in
         Printf.fprintf oc "%s\n" tamarin;

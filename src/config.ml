@@ -22,3 +22,6 @@ let verbose = ref false
 let dev = ref false
 
 let optimize = ref false
+
+let tag_transition = ref false
+

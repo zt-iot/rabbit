@@ -278,6 +278,7 @@ let rec optimize_at (m : model) (st : state) =
     ) m tr2_lst in m) m tr1_lst in
   m 
 
+
 let optimize (m : model) =
 let m = make_variables_unique m in 
   optimize_at m (m.model_init_state)
