@@ -35,7 +35,8 @@ let reserved = [
   ("until", UNTIL);
   ("in", IN);
   ("then", THEN) ;
-  ("event", EVENT)
+  ("event", EVENT) ;
+  ("on", ON)
   ]
 
 let name =

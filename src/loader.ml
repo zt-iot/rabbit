@@ -366,24 +366,26 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
             pol, 
             Context.def_add_ext_syscall def (f, typed_args, c), sys, fst ps)
 
-   | Input.DeclExtAttack(f, typed_arg, c) ->      
+   | Input.DeclExtAttack(f, t, typed_args, c) ->      
       (if Context.check_used ctx f then error ~loc (AlreadyDefined f) else ());
+      (if not (Context.ctx_check_ext_syscall ctx t) then error ~loc (UnknownIdentifier t) else ());
+      let args_ty = Context.ctx_get_ext_syscall_arity ~loc ctx t in
+      (if List.length typed_args = List.length args_ty then () else error ~loc (ArgNumMismatch (t, List.length typed_args, List.length args_ty)));
 
-         (* parse arguments *)
-         let lctx = 
-            begin match typed_arg with
-            | (Input.TyValue, v) -> Context.lctx_add_new_meta ~loc Context.lctx_init v
-            | (Input.TyChannel, v) -> Context.lctx_add_new_meta ~loc Context.lctx_init v
-            | (Input.TyPath, v) -> Context.lctx_add_new_meta ~loc Context.lctx_init v
-            | (Input.TyProcess, v) -> error ~loc (UnknownIdentifier2 v) 
-         end  in 
+      (* parse arguments *)
+      let lctx = List.fold_left (fun lctx' ta -> 
+         match ta with
+         | (Input.TyValue, v) -> Context.lctx_add_new_var ~loc lctx' v
+         | (Input.TyChannel, v) -> Context.lctx_add_new_chan ~loc lctx' v
+         | (Input.TyPath, v) -> Context.lctx_add_new_path ~loc lctx' v
+         | (Input.TyProcess, v) -> error ~loc (UnknownIdentifier2 v)) (Context.lctx_init) typed_args in
 
          (* let lctx = Context.lctx_add_frame lctx in  *)
-         let (ctx, lctx, c) = process_cmd ctx lctx c in
+      let (ctx, lctx, c) = process_cmd ctx lctx c in
 
-         (Context.ctx_add_ext_attack ctx (f, fst typed_arg), 
-            pol, 
-            Context.def_add_ext_attack def (f, typed_arg, c), sys, fst ps)
+      (Context.ctx_add_ext_attack ctx (f, t, List.map fst typed_args), 
+         pol, 
+         Context.def_add_ext_attack def (f,t, typed_args, c), sys, fst ps)
 
    | Input.DeclType (id, c) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, c), pol, def, sys, fst ps)
@@ -428,12 +430,12 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
       let f t a =
          if Context.ctx_check_ty ctx t then
          if Context.ctx_check_ext_attack ctx a then
-         match Context.ctx_get_ty ~loc ctx t, Context.ctx_get_ext_attack_arity ~loc ctx a with
+         (* match Context.ctx_get_ty ~loc ctx t, Context.ctx_get_ext_attack_arity ~loc ctx a with
          | Input.CProc, Input.TyProcess 
          | Input.CChan, Input.TyChannel 
-         | Input.CFsys, Input.TyPath ->
+         | Input.CFsys, Input.TyPath -> *)
             (t, a)
-         | _, _ -> error ~loc (WrongInputType)
+         (* | _, _ -> error ~loc (WrongInputType) *)
          else error ~loc (UnknownIdentifier a)
          else error ~loc (UnknownIdentifier t) in
       let p = List.fold_left (fun p t -> 

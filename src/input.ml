@@ -55,7 +55,7 @@ and decl' =
   | DeclExtFun of Name.ident * int
   | DeclExtEq of expr * expr
   | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * cmd
-  | DeclExtAttack of Name.ident * (arg_type * Name.ident) * cmd
+  | DeclExtAttack of Name.ident * Name.ident * (arg_type * Name.ident) list * cmd
   | DeclType of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   | DeclAttack of Name.ident list * Name.ident list

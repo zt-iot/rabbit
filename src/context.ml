@@ -62,7 +62,7 @@ type context = {
                      (* ext_func name, its arity *)
    ctx_ext_syscall:  (Name.ident * Input.arg_type list) list ; 
                      (* ext_syscalltruction name, its arity *)
-   ctx_ext_attack :  (Name.ident * Input.arg_type) list ; 
+   ctx_ext_attack :  (Name.ident * Name.ident *  Input.arg_type list) list ; 
 
    ctx_ty         :  (Name.ident * Input.type_class) list ;
                      (* type name, its class *)
@@ -87,8 +87,7 @@ type definition = {
  
    def_ext_syscall : (Name.ident *  (Input.arg_type * Name.ident) list * Syntax.cmd) list ;
    
-   def_ext_attack  : (Name.ident *  (Input.arg_type * Name.ident) * Syntax.cmd) list ;
-
+   def_ext_attack  : (Name.ident * Name.ident *  (Input.arg_type * Name.ident) list  * Syntax.cmd) list ;
 
    def_const   :  (Name.ident * Syntax.expr option) list ;
                   (* const name, and its value *) 
@@ -173,7 +172,7 @@ let ctx_check_fact ctx id =
 let ctx_check_ext_syscall ctx eid = 
    List.exists (fun (s, _) -> s = eid) ctx.ctx_ext_syscall
 let ctx_check_ext_attack ctx eid = 
-   List.exists (fun (s, _) -> s = eid) ctx.ctx_ext_attack
+   List.exists (fun (s, _, _) -> s = eid) ctx.ctx_ext_attack
 
 
 (* get access *)
@@ -189,7 +188,7 @@ let ctx_get_ext_syscall_arity ~loc ctx eid =
 
 let ctx_get_ext_attack_arity ~loc ctx eid =
    if ctx_check_ext_attack ctx eid then 
-   let (_, k) = List.find (fun (s, _) -> s = eid) ctx.ctx_ext_attack in k
+   let (_, _, k) = List.find (fun (s, _, _) -> s = eid) ctx.ctx_ext_attack in k
    else error ~loc (UnknownIdentifier eid)
 
 

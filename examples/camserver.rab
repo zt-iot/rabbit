@@ -73,6 +73,14 @@ allow server_t readonly_t     [fopen, fread, fclose]
 (***********)
 (** attacker model *)
 
+attack tampar_channel on recv (c) {
+  case [c::store(j), ::In(w)] ->
+	return w
+  end
+}
+
+allow attack server_t [tampar_channel] 
+
 (*
 attack tampar_ch on recv (c) {
   case [c::store(j), ::In(w)] ->
@@ -136,7 +144,7 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
 			let image = get_picture() in 
 			_ := eaves_mem(image);
 			(* let sig = invoke_rpc(conn, invoke_func, image, privkey_path) in *)
-			let sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in 
+			 let sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in 
 			_ := eaves_mem(sig);
 			event [::ImgSend(image)];
 			_ := send(ch_net, (sig, image))
