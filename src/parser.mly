@@ -209,7 +209,7 @@ plain_cmd:
   | CASE BAR? guarded_cmds=separated_nonempty_list(BAR, guarded_cmd) END { Case(guarded_cmds) }
   | REPEAT BAR? c1=separated_nonempty_list(BAR, guarded_cmd) UNTIL BAR? c2=separated_nonempty_list(BAR, guarded_cmd) END { While(c1, c2) }
   | EVENT LBRACKET a=separated_list(COMMA, fact) RBRACKET { Event(a) }
-  | RETURN e=expr { Return e }
+  | e=expr { Return e }
   
 
 uname: 

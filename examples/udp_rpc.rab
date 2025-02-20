@@ -5,8 +5,8 @@ syscall send(c, v) {
 
 syscall recv(c) {
   case 
-  | [c::store(v)] → return v 
-(*  | [c::store(v), ::In(w)] → return w *)
+  | [c::store(v)] →   v 
+(*  | [c::store(v), ::In(w)] →   w *)
   end
 }
 
@@ -16,7 +16,7 @@ syscall connect_rpc (c) {
   case 
   | [c::ack(), ::Fr(x)] →
     put [c::conn(), chid(x, c)]; 
-    return x
+      x
   end
 } 
 
@@ -24,7 +24,7 @@ syscall invoke_rpc (cid, f, arg1, arg2) {
   case 
   | [chid(cid, c)] →
     put [c::invoke(f, arg1, arg2), chid(cid, c)]; 
-    case [c::returned(v)] → return v
+    case [c:: ed(v)] →   v
     end
   end	
 }

@@ -5,9 +5,9 @@ equation fst ((x, y)) = x
 equation snd ((x, y)) = y
 
 
-type server_t  : process
+type    : process
 
-process server() : server_t
+process server() :  
 {  
 	let a = "a"
 	let b = "b"
