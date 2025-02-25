@@ -51,6 +51,11 @@ and cmd' =
   | Event of fact list
   | Return of expr
 
+  | New of Name.ident * Name.ident * expr list * cmd 
+  | Get of Name.ident list * expr * Name.ident * cmd
+  | Del of expr * Name.ident
+
+
 
 type proc = proc' Location.located
 and proc' =

@@ -36,6 +36,12 @@ let reserved = [
   ("in", IN);
   ("then", THEN) ;
   ("event", EVENT) ;
+  ("on", ON) ; 
+  ("var", VAR) ;
+  ("new", NEW) ;
+  ("delete", DEL) ;
+  ("get", GET) ;
+  ("by", BY) ;
   ("on", ON)
   ]
 

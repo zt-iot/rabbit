@@ -23,7 +23,7 @@
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
 %token CHANNEL PROCESS PATH DATA FILESYS 
 %token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR
-%token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON 
+%token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY
 
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
 
@@ -140,7 +140,7 @@ let_stmts:
   | l=let_stmt ls=let_stmts { l :: ls }
 
 let_stmt:
-  | LET id=NAME EQ e=expr { (id, e) }
+  | VAR id=NAME EQ e=expr { (id, e) }
 
 fun_decls:
   | { [] }
@@ -204,13 +204,22 @@ plain_cmd:
   | SKIP { Skip }
   | c1=cmd SEMICOLON c2=cmd { Sequence(c1, c2) }
   | PUT LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { Put (postcond) }
-  | LET id=NAME EQ e=expr IN c=cmd { Let (id, e, c) }
+  | VAR id=NAME EQ e=expr IN c=cmd { Let (id, e, c) }
   | id=uname COLONEQ e=expr { Assign (id, e) }
-  | CASE BAR? guarded_cmds=separated_nonempty_list(BAR, guarded_cmd) END { Case(guarded_cmds) }
-  | REPEAT BAR? c1=separated_nonempty_list(BAR, guarded_cmd) UNTIL BAR? c2=separated_nonempty_list(BAR, guarded_cmd) END { While(c1, c2) }
-  | EVENT LBRACKET a=separated_list(COMMA, fact) RBRACKET { Event(a) }
-  | e=expr { Return e }
+  | CASE 
+    BAR? guarded_cmds=separated_nonempty_list(BAR, guarded_cmd) END { Case(guarded_cmds) }
+  | REPEAT BAR? c1=separated_nonempty_list(BAR, guarded_cmd) 
+    UNTIL BAR? c2=separated_nonempty_list(BAR, guarded_cmd) 
+    END                                                             { While(c1, c2) }
+  | EVENT LBRACKET a=separated_list(COMMA, fact) RBRACKET           { Event(a) }
   
+  | LET ids=separated_list(COMMA, NAME) EQ e=expr DOT fid=NAME IN c=cmd { Get (ids, e, fid, c) }
+  | NEW id=NAME EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd { New (id, fid, args, c) }
+  | NEW id=NAME IN c=cmd { New (id, "", [], c) }
+  | DEL e=expr DOT fid=NAME { Del (e, fid) }
+
+  | e=expr { Return e }
+
 
 uname: 
   | UNDERSCORE { None }

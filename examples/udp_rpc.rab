@@ -14,23 +14,23 @@ syscall recv(c) {
 syscall connect_rpc (c) {
   put [c::req()];
   case 
-  | [c::ack(), ::Fr(x)] →
-    put [c::conn(), chid(x, c)]; 
-      x
+  | [c::ack()] →
+    let x = new chid (c) in 
+    put [c::conn()]; 
+    x
   end
 } 
 
 syscall invoke_rpc (cid, f, arg1, arg2) {
-  case 
-  | [chid(cid, c)] →
-    put [c::invoke(f, arg1, arg2), chid(cid, c)]; 
-    case [c:: ed(v)] →   v
-    end
-  end	
+  let c = get chid by cid in
+  put [c::invoke(f, arg1, arg2)]; 
+  case [c:: Returned(v)] → v end
 }
 
 syscall close_rpc (cid){
-  case [c::conn(), chid(cid, c)] → put[c::exit()] end
+  let c = get chid by cid in
+  remove chid by cid;
+  put[c::exit()]
 }
 
 syscall accept_rpc (c){

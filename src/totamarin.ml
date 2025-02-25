@@ -138,6 +138,11 @@ type fact =
     * int (* transition id of the initial transition of the loop *)
     * int (* 0: loop in 2 : loop back 3 : loop out *)
   | TransitionFact of string * int * expr
+  | InjectiveFact of 
+    string * (* fact name *)
+    string * (* namespace *)
+    expr list (* arguments *)
+  | FreshFact of expr
   
 type fact' = string * expr list * rule_config
 
@@ -158,6 +163,8 @@ let print_fact' (f : fact) : fact' =
   | LoopFact (nsp, tid, b) -> ("Loop" ^ ! separator ^ 
     (if b =0 then "Start" else if b = 1 then "Back" else "Finish"), [String (nsp ^ !separator ^ string_of_int tid)], config_linear)
   | TransitionFact (nsp, ind, e) -> ("Transition"^ !separator ^ nsp, [String (string_of_int ind); e], config_linear)
+  | InjectiveFact (fid, nsp, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp, el, config_linear)
+  | FreshFact (e) -> ("Fr", [e], config_linear)
   | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact")
 
 let mk_constant_fact s = ConstantFact (String s, Var s)
@@ -1069,6 +1076,59 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
       transition_is_loop_back = false 
     } in
   (mo, st_f)
+
+  (* | New of Name.ident * Name.ident * expr list * cmd 
+  | Get of Name.ident list * expr * Name.ident * cmd
+  | Del of expr * Name.ident *)
+
+| Syntax.New (v, fid, el, c) ->
+  let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
+    (el @ [e], gv @ g)) ([],[]) el in    
+  let el = List.rev el in 
+  let gv = List.map (fun s -> mk_constant_fact s) gv in 
+
+  (* | InjectiveFact of 
+    string * (* fact name *)
+    string * (* namespace *)
+    expr list (* arguments *)
+  | FreshFact of expr *)
+
+  let st_f = next_state ~shift:(1,0,0) st scope  in 
+  let mo = add_state mo st_f in
+  let mo = add_transition mo {
+    transition_id = List.length mo.model_transitions;
+    transition_namespace = mo.model_name;
+    transition_name = "new_intro";
+    transition_from = st;
+    transition_to = st_f;
+    transition_pre = (FreshFact (MetaNewVar 0))::gv;
+    transition_post = [InjectiveFact (fid, mo.model_name, (MetaNewVar 0) :: el)];
+    transition_state_transition = mk_state_transition_from_action (ActionAddMeta 1) vars; 
+    transition_label = [];
+    transition_is_loop_back = false 
+  } in
+
+  let (mo, st) = translate_cmd mo st_f funs syscalls attacks (meta_num+1, loc_num, top_num) None syscall c in
+
+  let st_f = next_state ~shift:(-1,0,0) st scope in 
+  let mo = add_state mo st_f in
+  let mo = add_transition mo {
+    transition_id = List.length mo.model_transitions;
+    transition_namespace = mo.model_name;
+    transition_name = "new_out";
+    transition_from = st;
+    transition_to = st_f;
+    transition_pre = [];
+    transition_post = [];
+    transition_state_transition = mk_state_transition_from_action (ActionPopMeta 1) st.state_vars; 
+    transition_label = [];
+    transition_is_loop_back = false 
+  } in
+  (mo, st_f)
+
+
+
+
 
 and translate_guarded_cmd mo st funs syscalls attacks vars scope syscall (vl, fl, c) = 
   let (meta_num, loc_num, top_num) = vars in 

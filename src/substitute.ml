@@ -77,5 +77,8 @@ let rec cmd_chan_sub c f t accesses =
     | Syntax.Skip -> Syntax.Skip
     | Syntax.Put (fl) -> Syntax.Put (facts_chan_sub fl f t accesses)
     | Syntax.Return e -> Syntax.Return (expr_chan_sub e f t accesses)
-    in
+    | Syntax.New (v, fid, el, c) -> Syntax.New (v, fid, List.map (fun e -> expr_chan_sub e f t accesses) el, cmd_chan_sub c f t accesses)
+    | Syntax.Get (vl, id, fid, c) -> Syntax.Get (vl, expr_chan_sub id f t accesses, fid, cmd_chan_sub c f t accesses)
+    | Syntax.Del (id, fid) -> Syntax.Del (expr_chan_sub id f t accesses, fid)
+  in
   Location.locate ~loc:loc c

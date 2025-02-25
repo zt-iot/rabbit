@@ -306,7 +306,35 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
       | Input.Return e ->
          (ctx, lctx, Syntax.Return (process_expr ctx lctx e))
 
+
+      | Input.New (v, fid, el, c) ->
+         (if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ());
+         let ctx = Context.ctx_add_or_check_inj_fact ~loc ctx (fid, List.length el) in 
+         (* (if Context.ctx_check_inj_fact ctx fid then error ~loc (AlreadyDefined v) else ()); *)
+         let lctx' = Context.lctx_add_new_meta ~loc lctx v in
+         let (ctx, _, c) = process_cmd ctx lctx' c in 
+         (ctx, lctx, Syntax.New(v, fid, List.map (process_expr ctx lctx) el, c))
+
+
+      | Input.Get (vl, id, fid, c) ->
+         (if not (Context.ctx_check_inj_fact ctx fid) then error ~loc (UnknownIdentifier fid) else ());
+         (
+            let i = Context.ctx_get_inj_fact_arity ~loc ctx fid in 
+            let j = List.length vl in if not (i = j) then error ~loc (ArgNumMismatch (fid,i,j)) else ());
+            let lctx' = List.fold_left (fun lctx' v ->
+            (if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ());
+            Context.lctx_add_new_meta ~loc lctx' v
+            ) lctx vl in
+         let (ctx, _, c) = process_cmd ctx lctx' c in 
+         (ctx, lctx, Syntax.Get(vl, process_expr ctx lctx id, fid, c))
+   
+
+      | Input.Del (id, fid) ->
+         (if not (Context.ctx_check_inj_fact ctx fid) then error ~loc (UnknownIdentifier fid) else ());
+         (ctx, lctx, Syntax.Del(process_expr ctx lctx id, fid))  
+
       in 
+      
       let (ctx, lctx, c) = process_cmd' ctx lctx c in 
       (ctx, lctx, Location.locate ~loc c)
       (* (ctx, lctx, ((lctx.Context.lctx_meta_var, lctx.Context.lctx_loc_var, lctx.Context.lctx_top_var), Location.locate ~loc c)) *)

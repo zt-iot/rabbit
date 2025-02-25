@@ -17,31 +17,27 @@ load "udp_rpc.rab"
 
 (* picture *)
 syscall get_picture () {
-  case [::Fr(v)] → v end
+  let v = new () in 
+  v
 }
 
 (* filesys *)
 function h:1
 
 syscall fopen (p) {
-  case [p.File(x), ::Fr(y)] ->
-    put[p.File(x), fd(y, p)]; 
-    y
+  case [p.File(x)] ->
+  | let y = new Fd(x) in 
+    put[p.File(x)]; y
   end
 }
 
 syscall fread (y){
-  case
-  | [fd(y, p), p.File(x)] →
-    put[p.File(x), fd(y, p)];
-    x
-  end
+  let x = y.Fd in
+  x
 }
 
 syscall fclose (y) {
-  case [fd(y, p)] →
-    skip
-  end
+  delete y.Fd
 }
 
 (***********)
@@ -131,19 +127,19 @@ filesys client_ta_fs =
 (** process templates *)
 process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t 
 {  
-  let dev_path = "/dev/camera"
-  let privkey_path = "/secret/priv"
-  let invoke_func = "sign_image"
+  var dev_path = "/dev/camera"
+  var privkey_path = "/secret/priv"
+  var invoke_func = "sign_image"
 
   main 
   {
 
-    let conn = connect_rpc(ch_rpc) in 
+    var conn = connect_rpc(ch_rpc) in 
     repeat 
     | [] ->
-      let image = get_picture() in 
+      var image = get_picture() in 
       _ := eaves_mem(image);
-      let sig = invoke_rpc(conn, invoke_func, image, privkey_path) in 
+      var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in 
       (* let sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in *)
       _ := eaves_mem(sig);
       event [::ImgSend(image)];
@@ -161,24 +157,24 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
 
 process client_ta(ch_rpc : rpc_t) : client_ta_t 
 {
-  let fek = sym_k
+  var fek = sym_k
 
   function sign_image(image, privkey_path) 
   {
   (*
-    let privkey_fd = fopen(privkey_path) in
+    var privkey_fd = fopen(privkey_path) in
 
-    let privkey = fread(privkey_fd) in
+    var privkey = fread(privkey_fd) in
 
-    let privkey0 = dec(privkey, fek) in 
+    var privkey0 = dec(privkey, fek) in 
 
-    let sig = sign(image, privkey0) in
+    var sig = sign(image, privkey0) in
 
     _ := fclose(privkey_fd);
 
     sig *)
 
-    let sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in
+    var sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in
     sig 
   }
 
@@ -190,8 +186,8 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
     | [ch_rpc::invoke(fname, image, priv_path)] →
       case
       | [fname = "sign_image"] →
-        let signed = sign_image(image, priv_path) in
-        put[ch_rpc:: ed(signed)]		
+        var signed = sign_image(image, priv_path) in
+        put[ch_rpc:: Returned(signed)]		
 
       | [fname <> "sign_image"] →
         event [InValidName(fname)]
@@ -206,16 +202,16 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
 
 process server(ch_net : udp_t) : server_t 
 {
-  let pubkey_path = "/secret/pub"
+  var pubkey_path = "/secret/pub"
 
   main 
   {
-    let pubkey_fd = fopen(pubkey_path) in 
-    let pubkey = fread(pubkey_fd) in 
+    var pubkey_fd = fopen(pubkey_path) in 
+    var pubkey = fread(pubkey_fd) in 
     repeat 
     | [] →
-      let p = recv(ch_net) in
-      let res = verify(fst(p), snd(p), pubkey) in 
+      var p = recv(ch_net) in
+      var res = verify(fst(p), snd(p), pubkey) in 
       case 
       | [res =  true] →
         event [::ImgRecvValid(snd(p))]

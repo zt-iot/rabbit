@@ -21,6 +21,7 @@ and fact' =
   | PathFact of Name.ident * Name.ident * expr list
   | ProcessFact of Name.ident * Name.ident * expr list
   | ResFact of int * expr list (* 0: eq 1: neq *)
+  (* | InjFact of  *)
 
 type cmd = cmd' Location.located
 and cmd' = 
@@ -34,7 +35,10 @@ and cmd' =
   | While of (fact list * cmd) list * (fact list * cmd) list
   | Event of fact list
   | Return of expr
-  (* return can be enhanced through introducing type system hopefully  *)
+
+  | New of Name.ident * Name.ident * expr list * cmd 
+  | Get of Name.ident list * expr * Name.ident * cmd
+  | Del of expr * Name.ident
 
 type proc = proc' Location.located
 and proc' =

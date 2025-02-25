@@ -75,7 +75,9 @@ type context = {
    ctx_proctmpl   :  ctx_process_template list;
    ctx_event      :  (Name.ident * int) list ;
                      (* event predicate name, its arity *)
-   ctx_fact :        (Name.ident * int * bool) list
+   ctx_fact :        (Name.ident * int * bool) list ;
+
+   ctx_inj_fact :    (Name.ident * int) list
 
 
 }
@@ -173,8 +175,9 @@ let ctx_check_ext_syscall ctx eid =
    List.exists (fun (s, _) -> s = eid) ctx.ctx_ext_syscall
 let ctx_check_ext_attack ctx eid = 
    List.exists (fun (s, _, _) -> s = eid) ctx.ctx_ext_attack
-
-
+let ctx_check_inj_fact ctx id = 
+   List.exists (fun (s, _) -> s = id) ctx.ctx_inj_fact
+   
 (* get access *)
 let ctx_get_event_arity ~loc ctx eid =
    if ctx_check_event ctx eid then 
@@ -191,6 +194,11 @@ let ctx_get_ext_attack_arity ~loc ctx eid =
    let (_, _, k) = List.find (fun (s, _, _) -> s = eid) ctx.ctx_ext_attack in k
    else error ~loc (UnknownIdentifier eid)
 
+let ctx_get_inj_fact_arity ~loc ctx fid =
+   if ctx_check_inj_fact ctx fid then 
+   let (_, k) = List.find (fun (s, _) -> s = fid) ctx.ctx_inj_fact in k
+   else error ~loc (UnknownIdentifier fid)
+   
 
 let ctx_get_proctmpl ctx o = 
    List.find (fun x -> x.ctx_proctmpl_id = o) ctx.ctx_proctmpl
@@ -227,7 +235,9 @@ let ctx_add_fact ctx (id, k) =
    {ctx with ctx_fact=(id,k,false)::ctx.ctx_fact}      
 let ctx_add_lfact ctx (id, k) = 
    {ctx with ctx_fact=(id,k,true)::ctx.ctx_fact}      
-
+let ctx_add_inj_fact ctx (id, k) = 
+   {ctx with ctx_inj_fact=(id,k)::ctx.ctx_inj_fact}      
+   
 let check_fresh ctx s =
    if ctx_check_ext_func ctx s || 
       ctx_check_ext_const ctx s || 
@@ -239,7 +249,9 @@ let check_fresh ctx s =
       ctx_check_ext_syscall ctx s || 
       ctx_check_ext_attack ctx s || 
       ctx_check_event ctx s ||
-      ctx_check_fact ctx s then false else true 
+      ctx_check_fact ctx s || 
+      ctx_check_inj_fact ctx s 
+      then false else true 
 
 let check_used ctx s = if (check_fresh ctx s) then false else true
 
@@ -256,6 +268,15 @@ let ctx_add_or_check_lfact ~loc ctx (id, k) =
       if not b then error ~loc WrongInputType else if k = k' then ctx else error ~loc (ArgNumMismatch (id, k, k'))
    else
       if check_used ctx id then error ~loc (AlreadyDefined id) else ctx_add_lfact ctx (id, k)
+
+let ctx_add_or_check_inj_fact ~loc ctx (id, k) = 
+   if ctx_check_inj_fact ctx id then 
+      let (_, k') = List.find (fun (s,_) -> s = id) ctx.ctx_inj_fact in 
+      if k = k' then ctx else error ~loc (ArgNumMismatch (id, k, k'))
+   else
+      if check_used ctx id then error ~loc (AlreadyDefined id) else ctx_add_inj_fact ctx (id, k)
+
+      
 
 (** def related functions *)
 let def_add_ext_eq def x = {def with def_ext_eq=x::def.def_ext_eq}
@@ -398,8 +419,22 @@ let lctx_add_new_func ~loc lctx (f, i) =
 
 
 (** Initial contexts *)
-let ctx_init = {ctx_ext_func = [] ; ctx_ext_const = [] ; ctx_ext_syscall = []; ctx_ext_attack = [] ; ctx_ty = [] ; ctx_const = [] ; ctx_fsys = [] ; ctx_ch = [] ; ctx_proctmpl = [] ; ctx_event = []; ctx_fact = []}
+let ctx_init = 
+   {ctx_ext_func = [] ; 
+   ctx_ext_const = [] ; 
+   ctx_ext_syscall = []; 
+   ctx_ext_attack = [] ; 
+   ctx_ty = [] ; 
+   ctx_const = [] ; 
+   ctx_fsys = [] ; 
+   ctx_ch = [] ; 
+   ctx_proctmpl = [] ;
+   ctx_event = []; 
+   ctx_fact = [];
+   ctx_inj_fact = []}
+
 let def_init = {def_ext_eq = [] ; def_const = [] ; def_ext_syscall = [] ; def_ext_attack = [] ; def_fsys=[] ; def_proctmpl = []}
+
 let pol_init = {pol_access = [] ; pol_access_all=[]; pol_attack = []}
 (* let sys_init = {   
    sys_ctx = []; 
