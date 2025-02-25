@@ -1102,7 +1102,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     transition_from = st;
     transition_to = st_f;
     transition_pre = (FreshFact (MetaNewVar 0))::gv;
-    transition_post = [InjectiveFact (fid, mo.model_name, (MetaNewVar 0) :: el)];
+    transition_post = [InjectiveFact (fid, mo.model_name, [(MetaNewVar 0) ; List el])];
     transition_state_transition = mk_state_transition_from_action (ActionAddMeta 1) vars; 
     transition_label = [];
     transition_is_loop_back = false 
@@ -1128,6 +1128,68 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
 
 
 
+  | Get (vl, id, fid, c) ->
+    let e, g = translate_expr2 id in
+    let g = List.map (fun s -> mk_constant_fact s) g in 
+
+  (* | InjectiveFact of 
+    string * (* fact name *)
+    string * (* namespace *)
+    expr list (* arguments *)
+  | FreshFact of expr *)
+
+  let st_f = next_state ~shift:(List.length vl,0,0) st scope  in 
+  let mo = add_state mo st_f in
+  let mo = add_transition mo {
+    transition_id = List.length mo.model_transitions;
+    transition_namespace = mo.model_name;
+    transition_name = "get_intro";
+    transition_from = st;
+    transition_to = st_f;
+    transition_pre = [InjectiveFact (fid, mo.model_name, [e ; List (List.map (fun i -> MetaNewVar i) (int_to_list (List.length vl)))] ) ] @ g;
+    transition_post = [InjectiveFact (fid, mo.model_name, [e ; List (List.map (fun i -> MetaNewVar i) (int_to_list (List.length vl)))] ) ];
+    transition_state_transition = mk_state_transition_from_action (ActionAddMeta (List.length vl)) vars; 
+    transition_label = [];
+    transition_is_loop_back = false 
+  } in
+
+  let (mo, st) = translate_cmd mo st_f funs syscalls attacks (meta_num + (List.length vl), loc_num, top_num) None syscall c in
+
+  let st_f = next_state ~shift:(-(List.length vl),0,0) st scope in 
+  let mo = add_state mo st_f in
+  let mo = add_transition mo {
+    transition_id = List.length mo.model_transitions;
+    transition_namespace = mo.model_name;
+    transition_name = "get_out";
+    transition_from = st;
+    transition_to = st_f;
+    transition_pre = [];
+    transition_post = [];
+    transition_state_transition = mk_state_transition_from_action (ActionPopMeta (List.length vl)) st.state_vars; 
+    transition_label = [];
+    transition_is_loop_back = false 
+  } in
+  (mo, st_f)
+
+  | Del (id, fid) ->    
+    let e, g = translate_expr2 id in
+    let g = List.map (fun s -> mk_constant_fact s) g in 
+    let st_f = next_state st scope  in 
+    let mo = add_state mo st_f in
+    let mo = add_transition mo {
+      transition_id = List.length mo.model_transitions;
+      transition_namespace = mo.model_name;
+      transition_name = "del";
+      transition_from = st;
+      transition_to = st_f;
+      transition_pre = [InjectiveFact (fid, mo.model_name, [e ;  MetaNewVar 0]) ] @g;
+      transition_post = [];
+      transition_state_transition = mk_state_transition_from_action (ActionReturn Unit) vars; 
+      transition_label = [];
+      transition_is_loop_back = false 
+    } in
+    (mo, st_f)
+  
 
 
 and translate_guarded_cmd mo st funs syscalls attacks vars scope syscall (vl, fl, c) = 
