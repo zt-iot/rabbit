@@ -141,7 +141,8 @@ type fact =
   | InjectiveFact of 
     string * (* fact name *)
     string * (* namespace *)
-    expr list (* arguments *)
+    expr * (* identity *)
+    expr (* arguments *)
   | FreshFact of expr
   
 type fact' = string * expr list * rule_config
@@ -163,7 +164,7 @@ let print_fact' (f : fact) : fact' =
   | LoopFact (nsp, tid, b) -> ("Loop" ^ ! separator ^ 
     (if b =0 then "Start" else if b = 1 then "Back" else "Finish"), [String (nsp ^ !separator ^ string_of_int tid)], config_linear)
   | TransitionFact (nsp, ind, e) -> ("Transition"^ !separator ^ nsp, [String (string_of_int ind); e], config_linear)
-  | InjectiveFact (fid, nsp, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp, el, config_linear)
+  | InjectiveFact (fid, nsp, id, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp, [id ; el], config_linear)
   | FreshFact (e) -> ("Fr", [e], config_linear)
   | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact")
 
@@ -503,7 +504,7 @@ let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev print_transiti
     \"All x #i. Loop"^ ! separator ^"Finish(x) @i ==> Ex #j. Loop"^ ! separator ^"Start(x) @j & j < i\"\n"^
 
     (mult_list_with_concat (List.map (fun mo -> 
-      "lemma transition"^ ! separator ^ mo.model_name ^ "[reuse]:\n
+      "lemma transition"^ ! separator ^ mo.model_name ^ "[reuse,use_induction]:\n
       \"All x %i #j #k . Transition"^ ! separator ^ mo.model_name ^ "(x, %i) @#j &
        Transition"^ ! separator ^ mo.model_name ^ "(x, %i) @ #k ==> #j = #k\"\n"   
       ) (List.rev mo_lst)) "\n")^
@@ -948,7 +949,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
           transition_label = [];
           transition_is_loop_back = false 
         } in
-        let (mo, st) = translate_cmd mo st_i2 funs syscalls attacks (meta_num, loc_num + (List.length el), top_num) None o cmd in
+        let (mo, st) = translate_cmd mo st_i2 funs syscalls attacks (meta_num, loc_num + (List.length el), top_num) None o c in
         add_transition mo {
           transition_id = List.length mo.model_transitions;
           transition_namespace = mo.model_name;
@@ -1084,7 +1085,6 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
 | Syntax.New (v, fid, el, c) ->
   let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
     (el @ [e], gv @ g)) ([],[]) el in    
-  let el = List.rev el in 
   let gv = List.map (fun s -> mk_constant_fact s) gv in 
 
   (* | InjectiveFact of 
@@ -1102,7 +1102,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     transition_from = st;
     transition_to = st_f;
     transition_pre = (FreshFact (MetaNewVar 0))::gv;
-    transition_post = [InjectiveFact (fid, mo.model_name, [(MetaNewVar 0) ; List el])];
+    transition_post = (if fid = "" then [] else [InjectiveFact (fid, mo.model_name, (MetaNewVar 0), List el)]);
     transition_state_transition = mk_state_transition_from_action (ActionAddMeta 1) vars; 
     transition_label = [];
     transition_is_loop_back = false 
@@ -1146,8 +1146,8 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     transition_name = "get_intro";
     transition_from = st;
     transition_to = st_f;
-    transition_pre = [InjectiveFact (fid, mo.model_name, [e ; List (List.map (fun i -> MetaNewVar i) (int_to_list (List.length vl)))] ) ] @ g;
-    transition_post = [InjectiveFact (fid, mo.model_name, [e ; List (List.map (fun i -> MetaNewVar i) (int_to_list (List.length vl)))] ) ];
+    transition_pre = [InjectiveFact (fid, mo.model_name, e, List (List.map (fun i -> MetaNewVar i) (int_to_list (List.length vl))))] @ g;
+    transition_post = [InjectiveFact (fid, mo.model_name, e, List (List.map (fun i -> MetaNewVar i) (int_to_list (List.length vl))))];
     transition_state_transition = mk_state_transition_from_action (ActionAddMeta (List.length vl)) vars; 
     transition_label = [];
     transition_is_loop_back = false 
@@ -1182,7 +1182,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
       transition_name = "del";
       transition_from = st;
       transition_to = st_f;
-      transition_pre = [InjectiveFact (fid, mo.model_name, [e ;  MetaNewVar 0]) ] @g;
+      transition_pre = [InjectiveFact (fid, mo.model_name, e, (MetaNewVar 0)) ] @g;
       transition_post = [];
       transition_state_transition = mk_state_transition_from_action (ActionReturn Unit) vars; 
       transition_label = [];

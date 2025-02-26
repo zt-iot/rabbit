@@ -324,7 +324,7 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
             let lctx' = List.fold_left (fun lctx' v ->
             (if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ());
             Context.lctx_add_new_meta ~loc lctx' v
-            ) lctx vl in
+            ) lctx (List.rev vl) in
          let (ctx, _, c) = process_cmd ctx lctx' c in 
          (ctx, lctx, Syntax.Get(vl, process_expr ctx lctx id, fid, c))
    

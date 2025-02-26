@@ -17,7 +17,7 @@ load "udp_rpc.rab"
 
 (* picture *)
 syscall get_picture () {
-  let v = new () in 
+  new v in 
   v
 }
 
@@ -26,8 +26,8 @@ function h:1
 
 syscall fopen (p) {
   case [p.File(x)] ->
-  | let y = new Fd(x) in 
-    put[p.File(x)]; y
+    new y = Fd(x) in 
+    put [p.File(x)]; y
   end
 }
 
@@ -139,8 +139,8 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
     | [] ->
       var image = get_picture() in 
       _ := eaves_mem(image);
-      var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in 
-      (* let sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in *)
+      (* var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in *)
+      var sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in 
       _ := eaves_mem(sig);
       event [::ImgSend(image)];
       _ := send(ch_net, (sig, image))

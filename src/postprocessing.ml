@@ -81,9 +81,10 @@ let fact_rec_on_expr f (p : expr -> expr) =
   | AccessFact (nsp, ch, sys) -> AccessFact (nsp, p ch, sys)
   | FileFact (nsp, path, data) -> FileFact(nsp, path, p data)
   | InitFact el -> InitFact (List.map p el)
-  | InjectiveFact (fid, nsp, el) -> InjectiveFact (fid, nsp, List.map p el)
+  | InjectiveFact (fid, nsp, e, el) -> InjectiveFact (fid, nsp, p e,  p el)
+  | FreshFact e ->  FreshFact (p e) 
   | LoopFact _ 
-  | AttackFact _  | FreshFact _ -> f
+  | AttackFact _  -> f
   | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact isnt there")
 
 let fact_unify_vars f =
@@ -159,6 +160,7 @@ let fact_eq_by_fid f fid' =
   | GlobalFact (fid, _) -> fid = fid'
   | ChannelFact (fid, _, _) -> fid = fid'
   | PathFact (fid, _, _, _) -> fid = fid'
+  | InjectiveFact (fid, _,_, _) -> fid = fid'
   | _ -> false
   end
 
@@ -168,7 +170,11 @@ let fact_eq_file_fact f =
   | _ -> false
   end
   
-
+(* 
+  given f : [...] -> post and g : pre' --> [...] 
+  optionally give new pair of pre and post. 
+  pre', expressions are already substituted
+*)
 let reduce_conditions post pre' = 
   begin try 
     let pre = List.fold_left 
@@ -178,6 +184,19 @@ let reduce_conditions post pre' =
       | PathFact (fid, _, _, _) ->
         begin match List.filter (fun f -> fact_eq_by_fid f fid) post with
         | [] -> f :: pre
+        | _ -> error' ConflictingCondition'
+        end
+      | InjectiveFact (fid, _, e', arg') -> 
+        begin match List.filter (fun f -> fact_eq_by_fid f fid) post with
+        | [] -> f :: pre
+        | [InjectiveFact (_, _, e, arg)] -> 
+          print_endline "Testing";
+          print_endline ("- " ^ print_expr e);
+          print_endline ("- " ^ print_expr e');
+  
+          if e = e' 
+            then (print_endline ("- judged equal"); (ResFact (0, [arg; arg']))::pre )
+            else (print_endline ("- judged inequal"); error' ConflictingCondition')
         | _ -> error' ConflictingCondition'
         end
       | FileFact (_, _, _) ->
@@ -190,7 +209,7 @@ let reduce_conditions post pre' =
       let post = List.filter 
       (fun f ->
         begin match f with
-        | Fact (fid, _, _) | PathFact (fid, _, _, _) -> not (List.exists (fun f -> fact_eq_by_fid f fid) pre')
+        | Fact (fid, _, _) | PathFact (fid, _, _, _) | InjectiveFact (fid, _, _, _) -> not (List.exists (fun f -> fact_eq_by_fid f fid) pre')
         | FileFact (_, _, _) -> not (List.exists (fun f -> fact_eq_file_fact f) pre')
         | _ -> true end) post in 
       Some (post, pre)

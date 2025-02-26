@@ -101,3 +101,6 @@ let _main =
     Print.message ~loc "Substitute error" "%t" (Substitute.print_error err)
   | Totamarin.Error {Location.data=err; Location.loc} ->
     Print.message ~loc "Translate error" "%t" (Totamarin.print_error err)
+  | Postprocessing.Error err ->
+    Print.message ~loc:Location.Nowhere "Translate error" "%t" (Postprocessing.print_error err)
+      
