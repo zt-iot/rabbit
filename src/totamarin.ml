@@ -1128,7 +1128,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
 
 
 
-  | Get (vl, id, fid, c) ->
+  | Syntax.Get (vl, id, fid, c) ->
     let e, g = translate_expr2 id in
     let g = List.map (fun s -> mk_constant_fact s) g in 
 
@@ -1171,7 +1171,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
   } in
   (mo, st_f)
 
-  | Del (id, fid) ->    
+  | Syntax.Del (id, fid) ->    
     let e, g = translate_expr2 id in
     let g = List.map (fun s -> mk_constant_fact s) g in 
     let st_f = next_state st scope  in 
