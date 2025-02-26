@@ -233,8 +233,35 @@ let state_index_to_string_aux (st : state) =
 
 let state_index_to_string st = String (state_index_to_string_aux st)
   
+
+let rec print_expr e = 
+  match e with
+  | Var s -> s 
+  | MetaVar i -> "meta"^ !separator ^string_of_int i
+  | LocVar i -> "loc"^ !separator ^string_of_int i
+  | TopVar i -> "top"^ !separator ^string_of_int i
+  | Apply (s, el) -> s ^ "(" ^ (mult_list_with_concat (List.map (print_expr) el) ", ") ^ ")"
+  | String s -> "\'rab" ^  !separator  ^ (replace_string '/'  !separator  s)^"\'"
+  | Integer i -> "\'"^string_of_int i^"\'"
+  | List el -> 
+     (match el with
+     | [] -> "\'rab"^ !separator ^"\'"
+     | [e] -> print_expr e 
+     | _ -> 	"<" ^ (mult_list_with_concat (List.map (print_expr) el) ", ") ^ ">")
+  | One -> "%1"
+  | Int v -> "%"^v
+  | AddOne e -> (print_expr e)^" %+ %1"
+  | Unit -> "\'rab"^ !separator ^"\'"
+  | MetaNewVar i -> "new"^ !separator ^string_of_int i
+  
 let mk_state st (ret, meta, loc, top) : fact' = 
-  (get_state_fact_name st, 
+  (* (let (a,b,c) = st.state_vars in
+    if not (List.length meta = a ) || not (List.length loc = b ) || not (List.length top = c ) then
+      print_endline (print_expr (state_index_to_string st))
+    else ()); *)
+  (get_state_fact_name st 
+  (* ^ (let (a,b,c) = st.state_vars in "_" ^(string_of_int a)^"_" ^(string_of_int b)^"_" ^(string_of_int c)) *)
+  , 
   [List [state_index_to_string st]; ret; List meta; List loc; List top], config_linear) 
       
 
@@ -345,25 +372,6 @@ let tamarin_add_lemma ((si, mo, rules, lemmas): tamarin) lem =
 let empty_tamarin : tamarin  = empty_signature , [] , [] , []
 
 
-let rec print_expr e = 
-  match e with
-  | Var s -> s 
-  | MetaVar i -> "meta"^ !separator ^string_of_int i
-  | LocVar i -> "loc"^ !separator ^string_of_int i
-  | TopVar i -> "top"^ !separator ^string_of_int i
-  | Apply (s, el) -> s ^ "(" ^ (mult_list_with_concat (List.map (print_expr) el) ", ") ^ ")"
-  | String s -> "\'rab" ^  !separator  ^ (replace_string '/'  !separator  s)^"\'"
-  | Integer i -> "\'"^string_of_int i^"\'"
-  | List el -> 
-     (match el with
-     | [] -> "\'rab"^ !separator ^"\'"
-     | [e] -> print_expr e 
-     | _ -> 	"<" ^ (mult_list_with_concat (List.map (print_expr) el) ", ") ^ ">")
-  | One -> "%1"
-  | Int v -> "%"^v
-  | AddOne e -> (print_expr e)^" %+ %1"
-  | Unit -> "\'rab"^ !separator ^"\'"
-  | MetaNewVar i -> "new"^ !separator ^string_of_int i
 
 let print_signature (fns, eqns) = 
   let print_functions fns = 
@@ -892,7 +900,8 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     
     let (f, args, cmd) = List.find (fun (f', args, cmd) -> o = f') syscalls in 
 
-    let st_i = next_state ~shift:(0,List.length el,0) st scope in
+    let st_i = next_state ~shift:(0,List.length el,0) st (Some [0]) in
+    
     let mo = add_state mo st_i in
     let mo = add_transition mo {
       transition_id = List.length mo.model_transitions;
@@ -908,22 +917,22 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
 
     } in
 
-    let (mo, st) = translate_cmd mo st_i funs syscalls attacks (meta_num, loc_num + (List.length el), top_num) None o cmd in
+    let (mo, st_m) = translate_cmd mo st_i funs syscalls attacks (meta_num, loc_num + (List.length el), top_num) None o cmd in
 
-    let st_f = next_state ~shift:(0, - (List.length el),0) st None in
+    let st_f = next_state st None in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
       transition_id = List.length mo.model_transitions;
       transition_namespace = mo.model_name;
       transition_name = "scall_out";
-      transition_from = st;
+      transition_from = st_m;
       transition_to = st_f;
       transition_pre = [];
       transition_post = [];
       transition_state_transition = mk_state_transition_from_action (match ov with
       | None -> ActionPopLoc (List.length el)
       | Some (_, v) -> ActionSeq (ActionPopLoc (List.length el), ActionAssign (v, return_var))
-      ) st.state_vars; 
+      ) st_m.state_vars; 
       transition_label = [];
       transition_is_loop_back = false 
 
@@ -933,35 +942,35 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     begin match List.find_all (fun (a, t, _,cmd) -> t = o) attacks with
     | [] ->  (mo, st_f)
     | lst -> 
-      let scope_lst = List.map (fun i -> Some [i]) (List.init (List.length lst) (fun i -> i)) in 
+      let scope_lst = List.map (fun i -> Some [i+1]) (List.init (List.length lst) (fun i -> i)) in 
       let mo = List.fold_left2 (fun mo scope (a,_, _, c) -> 
-        let st_i2 = next_state st_i scope in
+        let st_i2 = next_state ~shift:(0,List.length el,0) st scope in
         let mo = add_state mo st_i2 in  
         let mo = add_transition mo {
           transition_id = List.length mo.model_transitions;
           transition_namespace = mo.model_name;
           transition_name = "attack_intro";
-          transition_from = st_i;
+          transition_from = st;
           transition_to = st_i2;
-          transition_pre = [AttackFact (mo.model_name, String a)];
+          transition_pre = AttackFact (mo.model_name, String a) :: gv;
           transition_post = [];
-          transition_state_transition = mk_state_transition_from_action (ActionReturn Unit) st.state_vars; 
+          transition_state_transition = mk_state_transition_from_action (ActionIntro el) st.state_vars; 
           transition_label = [];
           transition_is_loop_back = false 
         } in
-        let (mo, st) = translate_cmd mo st_i2 funs syscalls attacks (meta_num, loc_num + (List.length el), top_num) None o c in
+        let (mo, st_m) = translate_cmd mo st_i2 funs syscalls attacks (meta_num, loc_num + (List.length el), top_num) None o c in
         add_transition mo {
           transition_id = List.length mo.model_transitions;
           transition_namespace = mo.model_name;
           transition_name = "attack_out";
-          transition_from = st;
+          transition_from = st_m;
           transition_to = st_f;
           transition_pre = [];
           transition_post = [];
           transition_state_transition = mk_state_transition_from_action (match ov with
           | None -> ActionPopLoc (List.length el)
           | Some (_, v) -> ActionSeq (ActionPopLoc (List.length el), ActionAssign (v, return_var))
-          ) st.state_vars; 
+          ) st_m.state_vars; 
           transition_label = [];
           transition_is_loop_back = false   
         }) mo scope_lst lst in
@@ -1051,7 +1060,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
         transition_to = st_f;
         transition_pre = [];
         transition_post = [];
-        transition_state_transition = mk_state_transition_from_action (ActionPopMeta (List.length vl)) st_f.state_vars; 
+        transition_state_transition = mk_state_transition_from_action (ActionPopMeta (List.length vl)) st.state_vars; 
         transition_label = [          
           (LoopFact (mo.model_name, tid, 2))
         ];

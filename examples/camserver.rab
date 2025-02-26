@@ -59,6 +59,7 @@ allow server_t udp_t [recv]
 allow client_t rpc_t [connect_rpc, invoke_rpc, close_rpc]
 allow client_ta_t rpc_t [accept_rpc]
 allow client_ta_t rpc_t [.]
+allow client_t rpc_t [.]
 
 allow client_t [get_picture]
 
@@ -139,8 +140,8 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
     | [] ->
       var image = get_picture() in 
       _ := eaves_mem(image);
-      (* var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in *)
-      var sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in 
+      var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
+      (* var sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in *)
       _ := eaves_mem(sig);
       event [::ImgSend(image)];
       _ := send(ch_net, (sig, image))
