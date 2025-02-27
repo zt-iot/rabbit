@@ -139,11 +139,16 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
     repeat 
     | [] ->
       var image = get_picture() in 
+      
       _ := eaves_mem(image);
+
       var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
       (* var sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in *)
+      
       _ := eaves_mem(sig);
+      
       event [::ImgSend(image)];
+      
       _ := send(ch_net, (sig, image))
 
     until 
@@ -162,7 +167,6 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
 
   function sign_image(image, privkey_path) 
   {
-  (*
     var privkey_fd = fopen(privkey_path) in
 
     var privkey = fread(privkey_fd) in
@@ -173,9 +177,6 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
 
     _ := fclose(privkey_fd);
 
-    sig *)
-
-    var sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in
     sig 
   }
 

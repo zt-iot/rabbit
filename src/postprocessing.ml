@@ -291,14 +291,27 @@ let rec optimize_at (m : model) (st : state) =
               print_endline "Merged into:";
               print_endline ("- " ^ print_transition tr true);
               add_transition m tr
-            | _ -> m 
+            | _ -> print_endline "Failed to merge"; m 
         end 
       | _ -> 
+        print_endline "Not Merging";
+        print_endline ("- " ^ print_transition tr1 true);
+        print_endline ("- " ^ print_transition tr2 true);
+
         m
     ) m tr2_lst in m) m tr1_lst in
   m 
 
 
+let optimize' (m : model) = optimize_at m (m.model_init_state) 
+
 let optimize (m : model) =
 let m = make_variables_unique m in 
-  optimize_at m (m.model_init_state)
+  let rec op m = 
+    let m' = optimize' m in
+    begin if List.length m'.model_transitions < List.length m.model_transitions then 
+      op m' 
+    else 
+      m'
+    end in 
+    op m
