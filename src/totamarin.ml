@@ -78,6 +78,7 @@ let contains s1 s2 =
 type functions = (string * int) list 
 
 type expr = 
+  | FVar of expr
   | Var of string
   | MetaVar of int
   | LocVar of int
@@ -164,8 +165,8 @@ let print_fact' (f : fact) : fact' =
   | LoopFact (nsp, tid, b) -> ("Loop" ^ ! separator ^ 
     (if b =0 then "Start" else if b = 1 then "Back" else "Finish"), [String (nsp ^ !separator ^ string_of_int tid)], config_linear)
   | TransitionFact (nsp, ind, e) -> ("Transition"^ !separator ^ nsp, [String (string_of_int ind); e], config_linear)
-  | InjectiveFact (fid, nsp, id, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp, [id ; el], config_linear)
-  | FreshFact (e) -> ("Fr", [e], config_linear)
+  | InjectiveFact (fid, nsp, id, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp, [FVar id ; el], config_linear)
+  | FreshFact (e) -> ("Fr", [FVar e], config_linear)
   | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact")
 
 let mk_constant_fact s = ConstantFact (String s, Var s)
@@ -236,6 +237,9 @@ let state_index_to_string st = String (state_index_to_string_aux st)
 
 let rec print_expr e = 
   match e with
+  | FVar e -> 
+    (* "~"^ *)
+  print_expr e
   | Var s -> s 
   | MetaVar i -> "meta"^ !separator ^string_of_int i
   | LocVar i -> "loc"^ !separator ^string_of_int i

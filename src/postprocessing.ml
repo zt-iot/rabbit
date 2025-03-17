@@ -68,6 +68,7 @@ let rec expr_unify_vars e =
   | Apply (f, el) -> Apply (f, List.map expr_unify_vars el)
   | List el -> List (List.map expr_unify_vars el)
   | AddOne e -> AddOne (expr_unify_vars e)
+  | FVar e -> FVar (expr_unify_vars e)
   | _ -> e
 
 let fact_rec_on_expr f (p : expr -> expr) = 
@@ -96,6 +97,7 @@ let rec expr_expand_var e ind =
   | Apply (f, el) -> Apply (f, List.map (fun e -> expr_expand_var e ind) el)
   | List el -> List (List.map (fun e -> expr_expand_var e ind) el)
   | AddOne e -> AddOne (expr_expand_var e ind)
+  | FVar e -> FVar (expr_expand_var e ind)
   | MetaVar i | LocVar i | TopVar i -> error ~loc:Location.Nowhere (UnintendedError "variables should have been unified")
   | _ -> e
 
@@ -109,6 +111,7 @@ match e1 with
 | Apply (f, el) -> Apply (f, List.map (fun e -> expr_subst_var e s e2) el)
 | List el -> List (List.map (fun e -> expr_subst_var e s e2) el)
 | AddOne e -> AddOne (expr_subst_var e s e2)
+| FVar e -> FVar (expr_subst_var e s e2)
 | MetaVar i | LocVar i | TopVar i -> error ~loc:Location.Nowhere (UnintendedError "variables should have been unified")
 | _ -> e1
 
@@ -239,8 +242,22 @@ let rec optimize_at (m : model) (st : state) =
       (* judge if we will merge these edges st -[tr1]-> st_m -> [tr2] -> st_f  *)
       let is_labelled = 
         begin match tr1.transition_label, tr2.transition_label with
-        | [], [] -> false
-        | _, _ -> true
+        | [], [] -> Some (Inl [])
+        | l, [] -> 
+          begin
+          (* when only tr1 has a label, merge when tr2 is local *)
+            if List.exists (fun a -> is_nonlocal_fact a) tr2.transition_pre || List.exists (fun a -> is_nonlocal_fact a) tr2.transition_post then
+              None
+            else Some (Inl l)
+          end
+        | [], l -> 
+          begin
+            (* when only tr2 has a label, merge when tr1's post is local *)
+              if List.exists (fun a -> is_nonlocal_fact a) tr1.transition_post then
+                None
+              else Some (Inr l)
+            end
+        | _, _ -> None
       end in
       let nonlocal = List.exists (fun a -> is_nonlocal_fact a) tr2.transition_pre in
       let out_num = List.length (forward_transitions_from m st_m) in
@@ -248,7 +265,7 @@ let rec optimize_at (m : model) (st : state) =
       let inout = out_num > 1 && in_num > 1 in
       (* if label = None, dont merge *)
       match is_labelled, nonlocal, inout with
-      | false, false, false ->
+      | Some la, false, false ->
 
 
         print_endline "Merging";
@@ -266,6 +283,11 @@ let rec optimize_at (m : model) (st : state) =
             let (ret, meta, loc, top) = (snd tr2.transition_state_transition) in
             let pre2 = List.map (fun f -> fact_subst_vars f substs) tr2.transition_pre in 
             let post2 = List.map (fun f -> fact_subst_vars f substs) tr2.transition_post in 
+            let la = 
+              begin match la with
+              | Inl la -> la 
+              | Inr la -> List.map (fun f -> fact_subst_vars f substs) la 
+              end in
             match reduce_conditions tr1.transition_post pre2 with
             | Some (post1, pre2) ->
 
@@ -285,7 +307,7 @@ let rec optimize_at (m : model) (st : state) =
                     List.map (fun e -> expr_subst_vars e substs) meta,
                     List.map (fun e -> expr_subst_vars e substs) loc,
                     List.map (fun e -> expr_subst_vars e substs) top);
-                transition_label = [];
+                transition_label = la;
                 transition_is_loop_back = false       
               } in 
               print_endline "Merged into:";
