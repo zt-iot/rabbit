@@ -167,3 +167,120 @@ lemma Correspondence : all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . 
 lemma Reachable : exists-trace "Ex x #i #j #k  . ClientClose() @ #j & ClientTAClose() @ #k & ImgRecvValid(x) @ #i"
 end
 
+
+/*
+==============================================================================
+summary of summaries:
+
+analyzed: camserver.spthy
+
+  processing time: 15.46s
+  
+  WARNING: 4 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  AlwaysStarts__ (all-traces): verified (40 steps)
+  AlwaysStartsWhenEnds__ (all-traces): verified (23 steps)
+  transition__Client (all-traces): analysis incomplete (1 steps)
+  transition__Server (all-traces): analysis incomplete (1 steps)
+  transition__Client_ta (all-traces): analysis incomplete (1 steps)
+  Correspondence (all-traces): analysis incomplete (1 steps)
+  Reachable (exists-trace): analysis incomplete (1 steps)
+
+==============================================================================
+==============================================================================
+summary of summaries:
+
+analyzed: camserver.spthy
+
+  processing time: 939.29s
+  
+  WARNING: 4 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  AlwaysStarts__ (all-traces): analysis incomplete (1 steps)
+  AlwaysStartsWhenEnds__ (all-traces): analysis incomplete (1 steps)
+  transition__Client (all-traces): verified (29184 steps)
+  transition__Server (all-traces): analysis incomplete (1 steps)
+  transition__Client_ta (all-traces): analysis incomplete (1 steps)
+  Correspondence (all-traces): analysis incomplete (1 steps)
+  Reachable (exists-trace): analysis incomplete (1 steps)
+
+==============================================================================
+==============================================================================
+summary of summaries:
+
+analyzed: camserver.spthy
+
+  processing time: 19.15s
+  
+  WARNING: 4 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  AlwaysStarts__ (all-traces): analysis incomplete (1 steps)
+  AlwaysStartsWhenEnds__ (all-traces): analysis incomplete (1 steps)
+  transition__Client (all-traces): analysis incomplete (1 steps)
+  transition__Server (all-traces): verified (228 steps)
+  transition__Client_ta (all-traces): analysis incomplete (1 steps)
+  Correspondence (all-traces): analysis incomplete (1 steps)
+  Reachable (exists-trace): analysis incomplete (1 steps)
+
+==============================================================================
+==============================================================================
+summary of summaries:
+
+analyzed: camserver.spthy
+
+  processing time: 28.08s
+  
+  WARNING: 4 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  AlwaysStarts__ (all-traces): analysis incomplete (1 steps)
+  AlwaysStartsWhenEnds__ (all-traces): analysis incomplete (1 steps)
+  transition__Client (all-traces): analysis incomplete (1 steps)
+  transition__Server (all-traces): analysis incomplete (1 steps)
+  transition__Client_ta (all-traces): verified (440 steps)
+  Correspondence (all-traces): analysis incomplete (1 steps)
+  Reachable (exists-trace): analysis incomplete (1 steps)
+
+==============================================================================
+==============================================================================
+summary of summaries:
+
+analyzed: camserver.spthy
+
+  processing time: 596.45s
+  
+  WARNING: 4 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  AlwaysStarts__ (all-traces): analysis incomplete (1 steps)
+  AlwaysStartsWhenEnds__ (all-traces): analysis incomplete (1 steps)
+  transition__Client (all-traces): analysis incomplete (1 steps)
+  transition__Server (all-traces): analysis incomplete (1 steps)
+  transition__Client_ta (all-traces): analysis incomplete (1 steps)
+  Correspondence (all-traces): falsified - found trace (25 steps)
+  Reachable (exists-trace): analysis incomplete (1 steps)
+
+==============================================================================
+==============================================================================
+summary of summaries:
+
+analyzed: camserver.spthy
+
+  processing time: 187.49s
+  
+  WARNING: 4 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  AlwaysStarts__ (all-traces): analysis incomplete (1 steps)
+  AlwaysStartsWhenEnds__ (all-traces): analysis incomplete (1 steps)
+  transition__Client (all-traces): analysis incomplete (1 steps)
+  transition__Server (all-traces): analysis incomplete (1 steps)
+  transition__Client_ta (all-traces): analysis incomplete (1 steps)
+  Correspondence (all-traces): analysis incomplete (1 steps)
+  Reachable (exists-trace): verified (25 steps)
+
+==============================================================================
+*/
