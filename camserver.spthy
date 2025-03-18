@@ -84,7 +84,7 @@ rule Client__merged_____6__0_7_____6__0_10__64[role="Client"] : [State__Client(<
 
 rule Client__merged_____7_____7__0_3__59[role="Client"] : [State__Client(<'rab_____7', %v__>, return__var__46, 'rab__', l__0__46, <t__0__46, t__1__46, t__2__46>), !Eq__(n__0__47, n__0__48), !ACP__('rab__Client', n__0__47, 'rab__close_rpc'), Chid__Client(l__0__46, n__0__47)]--[Transition__Client('rab__59', %v__)]->[State__Client(<'rab_____7__0_3', %v__>, 'rab__', n__0__47, <l__0__46, l__0__46>, <t__0__46, t__1__46, t__2__46>), Exit(n__0__47)] 
 
-rule Client__merged_____7__0_3_____10__56[role="Client"] : [State__Client(<'rab_____7__0_3', %v__>, return__var__50, m__0__50, <l__0__50, l__1__50>, <t__0__50, t__1__50, t__2__50>)]--[Transition__Client('rab__56', %v__), ClientClose()]->[State__Client(<'rab_____10', %v__>, 'rab__', 'rab__', 'rab__', <t__0__50, t__1__50, t__2__50>)] 
+rule Client__merged_____7__0_3_____10__56[role="Client"] : [State__Client(<'rab_____7__0_3', %v__>, return__var__50, m__0__50, <l__0__50, l__1__50>, <t__0__50, t__1__50, t__2__50>)]--[Transition__Client('rab__56', %v__), ClientClose(%v__)]->[State__Client(<'rab_____10', %v__>, 'rab__', 'rab__', 'rab__', <t__0__50, t__1__50, t__2__50>)] 
 
 rule Client__repeat_____6__0_10_____6__42[role="Client"] : [State__Client(<'rab_____6__0_10', %v__>, return__var__42, 'rab__', l__0__42, <t__0__42, t__1__42, t__2__42>)]--[Transition__Client('rab__42', %v__), Loop__Back('rab__Client__13')]->[State__Client(<'rab_____6', %v__ %+ %1>, return__var__42, 'rab__', l__0__42, <t__0__42, t__1__42, t__2__42>)] 
 
@@ -164,7 +164,7 @@ lemma transition__Client_ta[reuse,use_induction]:
        Transition__Client_ta(x, %i) @ #k ==> #j = #k"
 
 lemma Correspondence : all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j"
-lemma Reachable : exists-trace "Ex x #i #j #k  . ClientClose() @ #j & ClientTAClose() @ #k & ImgRecvValid(x) @ #i"
+lemma Reachable : exists-trace "Ex x #i #j #k  . ClientClose(%1 %+ %1) @ #j & ClientTAClose() @ #k & ImgRecvValid(x) @ #i"
 end
 
 
