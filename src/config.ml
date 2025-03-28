@@ -19,7 +19,7 @@ let trace = ref false
 
 let verbose = ref false
 
-let dev = ref false
+let dev = ref true
 
 let optimize = ref false
 

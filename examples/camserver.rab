@@ -78,16 +78,6 @@ attack tampar_channel on recv (c) {
 
 allow attack server_t [tampar_channel] 
 
-(*
-attack tampar_ch on recv (c) {
-case [c::store(j), ::In(w)] ->
-put [c::store(w)]
-end
-}
-
-allow attack udp_t [tampar_ch] 
-*)
-
 passive attack eaves_mem (v) {
   put [::Out(v)]
 }
@@ -108,11 +98,6 @@ const fresh init_data
 channel udp : udp_t
 
 channel rpc : rpc_t
-
-filesys client_fs = 
-[ 
-  {path: "/secret/pub", data: pk(priv_k), type: readonly_t}
-]
 
 filesys server_fs = 
 [ 
@@ -143,7 +128,6 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
       _ := eaves_mem(image);
 
       var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
-      (* var sig = sign(image, dec(enc(priv_k, sym_k), sym_k)) in *)
       
       _ := eaves_mem(sig);
       
@@ -230,7 +214,7 @@ process server(ch_net : udp_t) : server_t
 
 (***********)
 system 
-  client(udp, rpc) with client_fs
+  client(udp, rpc)
   ||	server(udp) with server_fs 
   ||	client_ta(rpc) with client_ta_fs
 requires  [

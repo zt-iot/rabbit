@@ -30,10 +30,10 @@ let options = Arg.align [
     ("-l",
      Arg.String (fun str -> add_file true str),
      "<file> Load <file> into the initial environment");
-
+(* 
     ("--dev",
      Arg.Set Config.dev,
-     "use the development version of tamarin");
+     "use the development version of tamarin"); *)
 
     ("--post-process",
      Arg.Set Config.optimize,

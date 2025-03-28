@@ -19,7 +19,7 @@ You can follow [these instructions](https://www.ocaml.org/docs/up-and-running) f
     opam install sedlex
     opam install xml-light
 
-To run output Tarmain files `.spthy`, of course Tamarin is required. Rabbit implementation aligns with Tamarin version 1.8 and with the development version 1.9. Follow this [instruction](https://tamarin-prover.com/manual/master/book/002_installation.html) to install Tamarin.
+To run output Tarmain files `.spthy`, of course Tamarin is required. Rabbit implementation aligns with Tamarin version 1.10. Follow this [instruction](https://tamarin-prover.com/manual/master/book/002_installation.html) to install Tamarin.
 
 ## Compilation
 
@@ -35,7 +35,6 @@ that outputs a Tamarin file `output/camserver.spthy` that models `examples/camse
 
 Consider passing the following optional arguments:
 
--  `--dev` : The output Tamarin file aligns with the development version of Tamarin. 
 -  `--post-process` : The output Tamarin file gets optimized. Consecutive transitions get merged, under some conditions.
 -  `--tag-transition` : Some _reuse_-lemmas are added. They state each transition happnes at most once, up to loop counters. They must hold assuming the correctness of the implementation and are expected to reduce the search space of the main lemmas.
 
