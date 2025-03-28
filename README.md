@@ -1,5 +1,7 @@
 # Rabbit
 
+** This branch is a little outdated. Please see the injective-facts branch that is currently being developped.**
+
 An implementation of a to-Tamarin translator for the Rabbit programming language for verified IoT systems.
 
 ## Prerequisites
