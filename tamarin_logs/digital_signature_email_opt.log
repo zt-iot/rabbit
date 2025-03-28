@@ -1,0 +1,1103 @@
+theory rabbit begin
+
+// Function signature and definition of the equational theory E
+
+builtins: natural-numbers
+functions: fst/1, pair/2, pk/1, sign/2, snd/1, true/0, verify/3
+equations:
+    fst(<loc__1, loc__0>) = loc__1,
+    fst(<x.1, x.2>) = x.1,
+    snd(<loc__1, loc__0>) = loc__0,
+    snd(<x.1, x.2>) = x.2,
+    verify(sign(loc__1, loc__0), loc__1, pk(loc__0)) = true
+
+
+
+
+
+
+
+rule (modulo E) Const__priv_key_alice:
+   [ Fr( priv_key_alice ) ]
+  --[
+  Init__( 'rab__Const__priv_key_alice' ),
+  Init__( <'rab__Const__priv_key_alice', priv_key_alice> )
+  ]->
+   [ !Const__( 'rab__priv_key_alice', priv_key_alice ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__udp__recv:
+   [ ] --> [ !ACP__( 'rab__Bob', 'rab__udp', 'rab__recv' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__udp__send:
+   [ ] --> [ !ACP__( 'rab__Bob', 'rab__udp', 'rab__send' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob____tampar_channel:
+   [ ] --> [ !Attack__( 'rab__Bob', 'rab__tampar_channel' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__udp__recv:
+   [ ] --> [ !ACP__( 'rab__Alice', 'rab__udp', 'rab__recv' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__udp__send:
+   [ ] --> [ !ACP__( 'rab__Alice', 'rab__udp', 'rab__send' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice____tampar_channel:
+   [ ] --> [ !Attack__( 'rab__Alice', 'rab__tampar_channel' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) InitAlice:
+   [ ]
+  --[ Init__( 'rab__Alice' ) ]->
+   [ State__Alice( <'rab_____0', %1>, 'rab__', 'rab__', 'rab__', 'rab__' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__merged_____0_____5__0_1__37:
+   [
+   State__Alice( <'rab_____0', %v__>, return__var__0, 'rab__', 'rab__',
+                 'rab__'
+   ),
+   !Const__( 'rab__priv_key_alice', priv_key_alice__0 ),
+   !Const__( 'rab__priv_key_alice', priv_key_alice__10 ), Fr( n__0__3 )
+   ]
+  --[ Transition__Alice( 'rab__37', %v__ ) ]->
+   [
+   State__Alice( <'rab_____5__0_1', %v__>, 'rab__', 'rab__',
+                 <sign(n__0__3, priv_key_alice__10), sign(n__0__3, priv_key_alice__10), 
+                  n__0__3>,
+                 priv_key_alice__0
+   ),
+   Out( n__0__3 ), Out( sign(n__0__3, priv_key_alice__10) )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__merged_____5__0_1_____7__25:
+   [
+   State__Alice( <'rab_____5__0_1', %v__>, return__var__13, 'rab__',
+                 <l__0__13, l__1__13, l__2__13>, t__0__13
+   )
+   ]
+  --[ Transition__Alice( 'rab__25', %v__ ), MsgSend( l__2__13 ) ]->
+   [
+   State__Alice( <'rab_____7', %v__>, 'rab__', 'rab__',
+                 <l__1__13, l__2__13>, t__0__13
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__merged_____7_____7__0_1__24:
+   [
+   State__Alice( <'rab_____7', %v__>, return__var__15, 'rab__',
+                 <l__0__15, l__1__15>, t__0__15
+   ),
+   !ACP__( 'rab__Alice', 'rab__udp', 'rab__send' )
+   ]
+  --[ Transition__Alice( 'rab__24', %v__ ) ]->
+   [
+   State__Alice( <'rab_____7__0_1', %v__>, 'rab__', 'rab__',
+                 <<l__1__15, l__0__15>, 'rab__udp', l__0__15, l__1__15>, t__0__15
+   ),
+   Store( 'rab__udp', <l__1__15, l__0__15> )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__merged_____7__0_1_____11__23:
+   [
+   State__Alice( <'rab_____7__0_1', %v__>, return__var__17, 'rab__',
+                 <l__0__17, l__1__17, l__2__17, l__3__17>, t__0__17
+   )
+   ]
+  --[ Transition__Alice( 'rab__23', %v__ ), AliceClose( ) ]->
+   [
+   State__Alice( <'rab_____11', %v__>, 'rab__', 'rab__', 'rab__', t__0__17 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) InitBob:
+   [ ]
+  --[ Init__( 'rab__Bob' ) ]->
+   [ State__Bob( <'rab_____0', %1>, 'rab__', 'rab__', 'rab__', 'rab__' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__merged_____0_____2__1_0__39:
+   [
+   State__Bob( <'rab_____0', %v__>, return__var__0, 'rab__', 'rab__',
+               'rab__'
+   ),
+   !Const__( 'rab__priv_key_alice', priv_key_alice__0 ),
+   !Attack__( 'rab__Bob', 'rab__tampar_channel' )
+   ]
+  --[ Transition__Bob( 'rab__39', %v__ ) ]->
+   [
+   State__Bob( <'rab_____2__1_0', %v__>, 'rab__', 'rab__',
+               <'rab__udp', 'rab__'>, pk(priv_key_alice__0)
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__merged_____0_____2__0_0__38:
+   [
+   State__Bob( <'rab_____0', %v__>, return__var__0, 'rab__', 'rab__',
+               'rab__'
+   ),
+   !Const__( 'rab__priv_key_alice', priv_key_alice__0 )
+   ]
+  --[ Transition__Bob( 'rab__38', %v__ ) ]->
+   [
+   State__Bob( <'rab_____2__0_0', %v__>, 'rab__', 'rab__',
+               <'rab__udp', 'rab__'>, pk(priv_key_alice__0)
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__merged_____2__0_0_____3__35:
+   [
+   State__Bob( <'rab_____2__0_0', %v__>, return__var__3, 'rab__',
+               <l__0__3, l__1__3>, t__0__3
+   ),
+   Store( l__0__3, n__0__3 ), !ACP__( 'rab__Bob', l__0__3, 'rab__recv' )
+   ]
+  --[ Transition__Bob( 'rab__35', %v__ ) ]->
+   [ State__Bob( <'rab_____3', %v__>, 'rab__', 'rab__', n__0__3, t__0__3 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__merged_____2__1_0_____3__32:
+   [
+   State__Bob( <'rab_____2__1_0', %v__>, return__var__8, 'rab__',
+               <l__0__8, l__1__8>, t__0__8
+   ),
+   Store( l__0__8, n__0__8 ), In( n__1__8 ),
+   !ACP__( 'rab__Bob', l__0__8, 'rab__recv' )
+   ]
+  --[ Transition__Bob( 'rab__32', %v__ ) ]->
+   [ State__Bob( <'rab_____3', %v__>, 'rab__', 'rab__', n__1__8, t__0__8 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__merged_____3_____4__1_1__29:
+   [
+   State__Bob( <'rab_____3', %v__>, return__var__12, 'rab__', l__0__12,
+               t__0__12
+   ),
+   !NEq__( verify(snd(l__0__12), fst(l__0__12), t__0__12), true )
+   ]
+  --[ Transition__Bob( 'rab__29', %v__ ), IntegrityFail( fst(l__0__12) )
+  ]->
+   [
+   State__Bob( <'rab_____4__1_1', %v__>, 'rab__', 'rab__',
+               <verify(snd(l__0__12), fst(l__0__12), t__0__12), l__0__12>, t__0__12
+   )
+   ]
+
+  /*
+  rule (modulo AC) Bob__merged_____3_____4__1_1__29:
+     [
+     State__Bob( <'rab_____3', %v__>, return__var__12, 'rab__', l__0__12,
+                 t__0__12
+     ),
+     !NEq__( z, true )
+     ]
+    --[ Transition__Bob( 'rab__29', %v__ ), IntegrityFail( z.1 ) ]->
+     [
+     State__Bob( <'rab_____4__1_1', %v__>, 'rab__', 'rab__', <z, l__0__12>,
+                 t__0__12
+     )
+     ]
+    variants (modulo AC)
+    1. l__0__12
+             = l__0__12.14
+       t__0__12
+             = t__0__12.16
+       z     = verify(snd(l__0__12.14), fst(l__0__12.14), t__0__12.16)
+       z.1   = fst(l__0__12.14)
+    
+    2. l__0__12
+             = <z.16, sign(z.16, x.21)>
+       t__0__12
+             = pk(x.21)
+       z     = true
+       z.1   = z.16
+    
+    3. l__0__12
+             = <z.44, x.70>
+       t__0__12
+             = t__0__12.37
+       z     = verify(x.70, z.44, t__0__12.37)
+       z.1   = z.44
+  */
+
+rule (modulo E) Bob__merged_____3_____4__0_1__28:
+   [
+   State__Bob( <'rab_____3', %v__>, return__var__12, 'rab__', l__0__12,
+               t__0__12
+   ),
+   !Eq__( verify(snd(l__0__12), fst(l__0__12), t__0__12), true )
+   ]
+  --[ Transition__Bob( 'rab__28', %v__ ), IntegritySuccess( fst(l__0__12) )
+  ]->
+   [
+   State__Bob( <'rab_____4__0_1', %v__>, 'rab__', 'rab__',
+               <verify(snd(l__0__12), fst(l__0__12), t__0__12), l__0__12>, t__0__12
+   )
+   ]
+
+  /*
+  rule (modulo AC) Bob__merged_____3_____4__0_1__28:
+     [
+     State__Bob( <'rab_____3', %v__>, return__var__12, 'rab__', l__0__12,
+                 t__0__12
+     ),
+     !Eq__( z, true )
+     ]
+    --[ Transition__Bob( 'rab__28', %v__ ), IntegritySuccess( z.1 ) ]->
+     [
+     State__Bob( <'rab_____4__0_1', %v__>, 'rab__', 'rab__', <z, l__0__12>,
+                 t__0__12
+     )
+     ]
+    variants (modulo AC)
+    1. l__0__12
+             = l__0__12.14
+       t__0__12
+             = t__0__12.16
+       z     = verify(snd(l__0__12.14), fst(l__0__12.14), t__0__12.16)
+       z.1   = fst(l__0__12.14)
+    
+    2. l__0__12
+             = <z.16, sign(z.16, x.21)>
+       t__0__12
+             = pk(x.21)
+       z     = true
+       z.1   = z.16
+    
+    3. l__0__12
+             = <z.44, x.70>
+       t__0__12
+             = t__0__12.37
+       z     = verify(x.70, z.44, t__0__12.37)
+       z.1   = z.44
+  */
+
+rule (modulo E) Bob__merged_____4__0_1_____8__25:
+   [
+   State__Bob( <'rab_____4__0_1', %v__>, return__var__15, 'rab__',
+               <l__0__15, l__1__15>, t__0__15
+   )
+   ]
+  --[ Transition__Bob( 'rab__25', %v__ ), BobClose( ) ]->
+   [ State__Bob( <'rab_____8', %v__>, 'rab__', 'rab__', 'rab__', t__0__15 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__merged_____4__1_1_____8__24:
+   [
+   State__Bob( <'rab_____4__1_1', %v__>, return__var__18, 'rab__',
+               <l__0__18, l__1__18>, t__0__18
+   )
+   ]
+  --[ Transition__Bob( 'rab__24', %v__ ), BobClose( ) ]->
+   [ State__Bob( <'rab_____8', %v__>, 'rab__', 'rab__', 'rab__', t__0__18 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+restriction Init__:
+  "∀ x #i #j. ((Init__( x ) @ #i) ∧ (Init__( x ) @ #j)) ⇒ (#i = #j)"
+  // safety formula
+
+rule (modulo E) Equality_gen:
+   [ ] --> [ !Eq__( x, x ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) NEquality_gen:
+   [ ] --[ NEq___( x, y ) ]-> [ !NEq__( x, y ) ]
+
+  /* has exactly the trivial AC variant */
+
+restriction NEquality_rule:
+  "∀ x #i. (NEq___( x, x ) @ #i) ⇒ (⊥)"
+  // safety formula
+
+lemma AlwaysStarts__ [reuse, use_induction]:
+  all-traces
+  "∀ x #i.
+    (Loop__Back( x ) @ #i) ⇒ (∃ #j. (Loop__Start( x ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x #i.
+  (Loop__Back( x ) @ #i) ∧ ∀ #j. (Loop__Start( x ) @ #j) ⇒ ¬(#j < #i)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( (last(#i))  ∥
+         (∃ #j. (Loop__Start( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i)) )
+    case case_1
+    by solve( Loop__Back( x ) @ #i )
+  next
+    case case_2
+    by contradiction /* from formulas */
+  qed
+qed
+
+lemma AlwaysStartsWhenEnds__ [reuse, use_induction]:
+  all-traces
+  "∀ x #i.
+    (Loop__Finish( x ) @ #i) ⇒ (∃ #j. (Loop__Start( x ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x #i.
+  (Loop__Finish( x ) @ #i) ∧ ∀ #j. (Loop__Start( x ) @ #j) ⇒ ¬(#j < #i)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( (last(#i))  ∥
+         (∃ #j. (Loop__Start( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i)) )
+    case case_1
+    by solve( Loop__Finish( x ) @ #i )
+  next
+    case case_2
+    by contradiction /* from formulas */
+  qed
+qed
+
+lemma transition__Alice [reuse, use_induction]:
+  all-traces
+  "∀ x %i #j #k.
+    ((Transition__Alice( x, %i ) @ #j) ∧ (Transition__Alice( x, %i ) @ #k)) ⇒
+    (#j = #k)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x %i #j #k.
+  (Transition__Alice( x, %i ) @ #j) ∧ (Transition__Alice( x, %i ) @ #k)
+ ∧
+  ¬(#j = #k)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( (#j < #k)  ∥ (#k < #j) )
+    case case_1
+    solve( Transition__Alice( x, %i ) @ #j )
+      case Alice__merged_____0_____5__0_1__37
+      solve( State__Alice( <'rab_____0', %i>, return__var__0, 'rab__', 'rab__',
+                           'rab__'
+             ) ▶₀ #j )
+        case InitAlice
+        solve( !Const__( 'rab__priv_key_alice', priv_key_alice__0 ) ▶₁ #j )
+          case Const__priv_key_alice
+          solve( !Const__( 'rab__priv_key_alice', priv_key_alice__10 ) ▶₂ #j )
+            case Const__priv_key_alice
+            solve( Transition__Alice( 'rab__37', %1 ) @ #k )
+              case Alice__merged_____0_____5__0_1__37
+              solve( State__Alice( <'rab_____0', %1>, return__var__0, 'rab__', 'rab__',
+                                   'rab__'
+                     ) ▶₀ #k )
+                case InitAlice
+                by contradiction /* cyclic */
+              qed
+            qed
+          qed
+        qed
+      qed
+    next
+      case Alice__merged_____5__0_1_____7__25
+      solve( State__Alice( <'rab_____5__0_1', %i>, return__var__13, 'rab__',
+                           <l__0__13, l__1__13, l__2__13>, t__0__13
+             ) ▶₀ #j )
+        case Alice__merged_____0_____5__0_1__37
+        solve( Transition__Alice( 'rab__25', %1 ) @ #k )
+          case Alice__merged_____5__0_1_____7__25
+          solve( State__Alice( <'rab_____5__0_1', %1>, return__var__13, 'rab__',
+                               <l__0__13, l__1__13, l__2__13>, t__0__13
+                 ) ▶₀ #k )
+            case Alice__merged_____0_____5__0_1__37
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__merged_____7__0_1_____11__23
+      solve( State__Alice( <'rab_____7__0_1', %i>, return__var__17, 'rab__',
+                           <l__0__17, l__1__17, l__2__17, l__3__17>, t__0__17
+             ) ▶₀ #j )
+        case Alice__merged_____7_____7__0_1__24
+        solve( Transition__Alice( 'rab__23', %1 ) @ #k )
+          case Alice__merged_____7__0_1_____11__23
+          solve( State__Alice( <'rab_____7__0_1', %1>, return__var__17, 'rab__',
+                               <l__0__17, l__1__17, l__2__17, l__3__17>, t__0__17
+                 ) ▶₀ #k )
+            case Alice__merged_____7_____7__0_1__24
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__merged_____7_____7__0_1__24
+      solve( State__Alice( <'rab_____7', %i>, return__var__15, 'rab__',
+                           <l__0__15, l__1__15>, t__0__15
+             ) ▶₀ #j )
+        case Alice__merged_____5__0_1_____7__25
+        solve( !ACP__( 'rab__Alice', 'rab__udp', 'rab__send' ) ▶₁ #j )
+          case Alice__udp__send
+          solve( Transition__Alice( 'rab__24', %1 ) @ #k )
+            case Alice__merged_____7_____7__0_1__24
+            solve( State__Alice( <'rab_____7', %1>, return__var__15, 'rab__',
+                                 <l__0__15, l__1__15>, t__0__15
+                   ) ▶₀ #k )
+              case Alice__merged_____5__0_1_____7__25
+              by contradiction /* cyclic */
+            qed
+          qed
+        qed
+      qed
+    qed
+  next
+    case case_2
+    solve( Transition__Alice( x, %i ) @ #j )
+      case Alice__merged_____0_____5__0_1__37
+      solve( State__Alice( <'rab_____0', %i>, return__var__0, 'rab__', 'rab__',
+                           'rab__'
+             ) ▶₀ #j )
+        case InitAlice
+        solve( !Const__( 'rab__priv_key_alice', priv_key_alice__0 ) ▶₁ #j )
+          case Const__priv_key_alice
+          solve( !Const__( 'rab__priv_key_alice', priv_key_alice__10 ) ▶₂ #j )
+            case Const__priv_key_alice
+            solve( Transition__Alice( 'rab__37', %1 ) @ #k )
+              case Alice__merged_____0_____5__0_1__37
+              solve( State__Alice( <'rab_____0', %1>, return__var__0, 'rab__', 'rab__',
+                                   'rab__'
+                     ) ▶₀ #k )
+                case InitAlice
+                by contradiction /* cyclic */
+              qed
+            qed
+          qed
+        qed
+      qed
+    next
+      case Alice__merged_____5__0_1_____7__25
+      solve( State__Alice( <'rab_____5__0_1', %i>, return__var__13, 'rab__',
+                           <l__0__13, l__1__13, l__2__13>, t__0__13
+             ) ▶₀ #j )
+        case Alice__merged_____0_____5__0_1__37
+        solve( Transition__Alice( 'rab__25', %1 ) @ #k )
+          case Alice__merged_____5__0_1_____7__25
+          solve( State__Alice( <'rab_____5__0_1', %1>, return__var__13, 'rab__',
+                               <l__0__13, l__1__13, l__2__13>, t__0__13
+                 ) ▶₀ #k )
+            case Alice__merged_____0_____5__0_1__37
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__merged_____7__0_1_____11__23
+      solve( State__Alice( <'rab_____7__0_1', %i>, return__var__17, 'rab__',
+                           <l__0__17, l__1__17, l__2__17, l__3__17>, t__0__17
+             ) ▶₀ #j )
+        case Alice__merged_____7_____7__0_1__24
+        solve( Transition__Alice( 'rab__23', %1 ) @ #k )
+          case Alice__merged_____7__0_1_____11__23
+          solve( State__Alice( <'rab_____7__0_1', %1>, return__var__17, 'rab__',
+                               <l__0__17, l__1__17, l__2__17, l__3__17>, t__0__17
+                 ) ▶₀ #k )
+            case Alice__merged_____7_____7__0_1__24
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__merged_____7_____7__0_1__24
+      solve( State__Alice( <'rab_____7', %i>, return__var__15, 'rab__',
+                           <l__0__15, l__1__15>, t__0__15
+             ) ▶₀ #j )
+        case Alice__merged_____5__0_1_____7__25
+        solve( !ACP__( 'rab__Alice', 'rab__udp', 'rab__send' ) ▶₁ #j )
+          case Alice__udp__send
+          solve( Transition__Alice( 'rab__24', %1 ) @ #k )
+            case Alice__merged_____7_____7__0_1__24
+            solve( State__Alice( <'rab_____7', %1>, return__var__15, 'rab__',
+                                 <l__0__15, l__1__15>, t__0__15
+                   ) ▶₀ #k )
+              case Alice__merged_____5__0_1_____7__25
+              by contradiction /* cyclic */
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma transition__Bob [reuse, use_induction]:
+  all-traces
+  "∀ x %i #j #k.
+    ((Transition__Bob( x, %i ) @ #j) ∧ (Transition__Bob( x, %i ) @ #k)) ⇒
+    (#j = #k)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x %i #j #k.
+  (Transition__Bob( x, %i ) @ #j) ∧ (Transition__Bob( x, %i ) @ #k)
+ ∧
+  ¬(#j = #k)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( (#j < #k)  ∥ (#k < #j) )
+    case case_1
+    solve( Transition__Bob( x, %i ) @ #j )
+      case Bob__merged_____0_____2__0_0__38
+      solve( State__Bob( <'rab_____0', %i>, return__var__0, 'rab__', 'rab__',
+                         'rab__'
+             ) ▶₀ #j )
+        case InitBob
+        solve( !Const__( 'rab__priv_key_alice', priv_key_alice__0 ) ▶₁ #j )
+          case Const__priv_key_alice
+          solve( Transition__Bob( 'rab__38', %1 ) @ #k )
+            case Bob__merged_____0_____2__0_0__38
+            solve( State__Bob( <'rab_____0', %1>, return__var__0, 'rab__', 'rab__',
+                               'rab__'
+                   ) ▶₀ #k )
+              case InitBob
+              by contradiction /* cyclic */
+            qed
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____0_____2__1_0__39
+      solve( State__Bob( <'rab_____0', %i>, return__var__0, 'rab__', 'rab__',
+                         'rab__'
+             ) ▶₀ #j )
+        case InitBob
+        solve( !Const__( 'rab__priv_key_alice', priv_key_alice__0 ) ▶₁ #j )
+          case Const__priv_key_alice
+          solve( !Attack__( 'rab__Bob', 'rab__tampar_channel' ) ▶₂ #j )
+            case Bob____tampar_channel
+            solve( Transition__Bob( 'rab__39', %1 ) @ #k )
+              case Bob__merged_____0_____2__1_0__39
+              solve( State__Bob( <'rab_____0', %1>, return__var__0, 'rab__', 'rab__',
+                                 'rab__'
+                     ) ▶₀ #k )
+                case InitBob
+                by contradiction /* cyclic */
+              qed
+            qed
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____2__0_0_____3__35
+      solve( State__Bob( <'rab_____2__0_0', %i>, return__var__3, 'rab__',
+                         <l__0__3, l__1__3>, t__0__3
+             ) ▶₀ #j )
+        case Bob__merged_____0_____2__0_0__38
+        solve( Store( 'rab__udp', n__0__3 ) ▶₁ #j )
+          case Alice__merged_____7_____7__0_1__24
+          solve( !ACP__( 'rab__Bob', 'rab__udp', 'rab__recv' ) ▶₂ #j )
+            case Bob__udp__recv
+            solve( Transition__Bob( 'rab__35', %1 ) @ #k )
+              case Bob__merged_____2__0_0_____3__35
+              solve( State__Bob( <'rab_____2__0_0', %1>, return__var__3, 'rab__',
+                                 <l__0__3, l__1__3>, t__0__3
+                     ) ▶₀ #k )
+                case Bob__merged_____0_____2__0_0__38
+                by contradiction /* cyclic */
+              qed
+            qed
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____2__1_0_____3__32
+      solve( State__Bob( <'rab_____2__1_0', %i>, return__var__8, 'rab__',
+                         <l__0__8, l__1__8>, t__0__8
+             ) ▶₀ #j )
+        case Bob__merged_____0_____2__1_0__39
+        solve( Store( 'rab__udp', n__0__8 ) ▶₁ #j )
+          case Alice__merged_____7_____7__0_1__24
+          solve( !ACP__( 'rab__Bob', 'rab__udp', 'rab__recv' ) ▶₃ #j )
+            case Bob__udp__recv
+            solve( Transition__Bob( 'rab__32', %1 ) @ #k )
+              case Bob__merged_____2__1_0_____3__32
+              solve( State__Bob( <'rab_____2__1_0', %1>, return__var__8, 'rab__',
+                                 <l__0__8, l__1__8>, t__0__8
+                     ) ▶₀ #k )
+                case Bob__merged_____0_____2__1_0__39
+                by contradiction /* cyclic */
+              qed
+            qed
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____3_____4__0_1__28
+      solve( State__Bob( <'rab_____3', %i>, return__var__12, 'rab__', l__0__12,
+                         t__0__12
+             ) ▶₀ #j )
+        case Bob__merged_____2__0_0_____3__35
+        solve( !Eq__( true, true ) ▶₁ #j )
+          case Equality_gen
+          solve( Transition__Bob( 'rab__28', %1 ) @ #k )
+            case Bob__merged_____3_____4__0_1__28
+            solve( State__Bob( <'rab_____3', %1>, return__var__12, 'rab__', l__0__12,
+                               t__0__12
+                   ) ▶₀ #k )
+              case Bob__merged_____2__0_0_____3__35
+              by contradiction /* cyclic */
+            qed
+          qed
+        qed
+      next
+        case Bob__merged_____2__1_0_____3__32
+        solve( !Eq__( z, true ) ▶₁ #j )
+          case Equality_gen
+          solve( Transition__Bob( 'rab__28', %1 ) @ #k )
+            case Bob__merged_____3_____4__0_1__28
+            solve( State__Bob( <'rab_____3', %1>, return__var__12, 'rab__', l__0__12,
+                               t__0__12
+                   ) ▶₀ #k )
+              case Bob__merged_____2__1_0_____3__32
+              by contradiction /* cyclic */
+            qed
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____3_____4__1_1__29
+      solve( State__Bob( <'rab_____3', %i>, return__var__12, 'rab__', l__0__12,
+                         t__0__12
+             ) ▶₀ #j )
+        case Bob__merged_____2__0_0_____3__35
+        solve( !NEq__( true, true ) ▶₁ #j )
+          case NEquality_gen
+          by contradiction /* from formulas */
+        qed
+      next
+        case Bob__merged_____2__1_0_____3__32
+        solve( !NEq__( z, true ) ▶₁ #j )
+          case NEquality_gen
+          solve( Transition__Bob( 'rab__29', %1 ) @ #k )
+            case Bob__merged_____3_____4__1_1__29
+            solve( State__Bob( <'rab_____3', %1>, return__var__12, 'rab__',
+                               l__0__12.1, t__0__12
+                   ) ▶₀ #k )
+              case Bob__merged_____2__1_0_____3__32
+              by contradiction /* cyclic */
+            qed
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____4__0_1_____8__25
+      solve( State__Bob( <'rab_____4__0_1', %i>, return__var__15, 'rab__',
+                         <l__0__15, l__1__15>, t__0__15
+             ) ▶₀ #j )
+        case Bob__merged_____3_____4__0_1__28_case_1
+        solve( Transition__Bob( 'rab__25', %1 ) @ #k )
+          case Bob__merged_____4__0_1_____8__25
+          solve( State__Bob( <'rab_____4__0_1', %1>, return__var__15, 'rab__',
+                             <l__0__15, l__1__15>, t__0__15
+                 ) ▶₀ #k )
+            case Bob__merged_____3_____4__0_1__28
+            by contradiction /* cyclic */
+          qed
+        qed
+      next
+        case Bob__merged_____3_____4__0_1__28_case_2
+        solve( Transition__Bob( 'rab__25', %1 ) @ #k )
+          case Bob__merged_____4__0_1_____8__25
+          solve( State__Bob( <'rab_____4__0_1', %1>, return__var__15, 'rab__',
+                             <l__0__15, l__1__15>, t__0__15
+                 ) ▶₀ #k )
+            case Bob__merged_____3_____4__0_1__28
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____4__1_1_____8__24
+      solve( State__Bob( <'rab_____4__1_1', %i>, return__var__18, 'rab__',
+                         <l__0__18, l__1__18>, t__0__18
+             ) ▶₀ #j )
+        case Bob__merged_____3_____4__1_1__29
+        solve( Transition__Bob( 'rab__24', %1 ) @ #k )
+          case Bob__merged_____4__1_1_____8__24
+          solve( State__Bob( <'rab_____4__1_1', %1>, return__var__18, 'rab__',
+                             <l__0__18.1, l__1__18.1>, t__0__18
+                 ) ▶₀ #k )
+            case Bob__merged_____3_____4__1_1__29
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    qed
+  next
+    case case_2
+    solve( Transition__Bob( x, %i ) @ #j )
+      case Bob__merged_____0_____2__0_0__38
+      solve( State__Bob( <'rab_____0', %i>, return__var__0, 'rab__', 'rab__',
+                         'rab__'
+             ) ▶₀ #j )
+        case InitBob
+        solve( !Const__( 'rab__priv_key_alice', priv_key_alice__0 ) ▶₁ #j )
+          case Const__priv_key_alice
+          solve( Transition__Bob( 'rab__38', %1 ) @ #k )
+            case Bob__merged_____0_____2__0_0__38
+            solve( State__Bob( <'rab_____0', %1>, return__var__0, 'rab__', 'rab__',
+                               'rab__'
+                   ) ▶₀ #k )
+              case InitBob
+              by contradiction /* cyclic */
+            qed
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____0_____2__1_0__39
+      solve( State__Bob( <'rab_____0', %i>, return__var__0, 'rab__', 'rab__',
+                         'rab__'
+             ) ▶₀ #j )
+        case InitBob
+        solve( !Const__( 'rab__priv_key_alice', priv_key_alice__0 ) ▶₁ #j )
+          case Const__priv_key_alice
+          solve( !Attack__( 'rab__Bob', 'rab__tampar_channel' ) ▶₂ #j )
+            case Bob____tampar_channel
+            solve( Transition__Bob( 'rab__39', %1 ) @ #k )
+              case Bob__merged_____0_____2__1_0__39
+              solve( State__Bob( <'rab_____0', %1>, return__var__0, 'rab__', 'rab__',
+                                 'rab__'
+                     ) ▶₀ #k )
+                case InitBob
+                by contradiction /* cyclic */
+              qed
+            qed
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____2__0_0_____3__35
+      solve( State__Bob( <'rab_____2__0_0', %i>, return__var__3, 'rab__',
+                         <l__0__3, l__1__3>, t__0__3
+             ) ▶₀ #j )
+        case Bob__merged_____0_____2__0_0__38
+        solve( Store( 'rab__udp', n__0__3 ) ▶₁ #j )
+          case Alice__merged_____7_____7__0_1__24
+          solve( !ACP__( 'rab__Bob', 'rab__udp', 'rab__recv' ) ▶₂ #j )
+            case Bob__udp__recv
+            solve( Transition__Bob( 'rab__35', %1 ) @ #k )
+              case Bob__merged_____2__0_0_____3__35
+              solve( State__Bob( <'rab_____2__0_0', %1>, return__var__3, 'rab__',
+                                 <l__0__3, l__1__3>, t__0__3
+                     ) ▶₀ #k )
+                case Bob__merged_____0_____2__0_0__38
+                by contradiction /* cyclic */
+              qed
+            qed
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____2__1_0_____3__32
+      solve( State__Bob( <'rab_____2__1_0', %i>, return__var__8, 'rab__',
+                         <l__0__8, l__1__8>, t__0__8
+             ) ▶₀ #j )
+        case Bob__merged_____0_____2__1_0__39
+        solve( Store( 'rab__udp', n__0__8 ) ▶₁ #j )
+          case Alice__merged_____7_____7__0_1__24
+          solve( !ACP__( 'rab__Bob', 'rab__udp', 'rab__recv' ) ▶₃ #j )
+            case Bob__udp__recv
+            solve( Transition__Bob( 'rab__32', %1 ) @ #k )
+              case Bob__merged_____2__1_0_____3__32
+              solve( State__Bob( <'rab_____2__1_0', %1>, return__var__8, 'rab__',
+                                 <l__0__8, l__1__8>, t__0__8
+                     ) ▶₀ #k )
+                case Bob__merged_____0_____2__1_0__39
+                by contradiction /* cyclic */
+              qed
+            qed
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____3_____4__0_1__28
+      solve( State__Bob( <'rab_____3', %i>, return__var__12, 'rab__', l__0__12,
+                         t__0__12
+             ) ▶₀ #j )
+        case Bob__merged_____2__0_0_____3__35
+        solve( !Eq__( true, true ) ▶₁ #j )
+          case Equality_gen
+          solve( Transition__Bob( 'rab__28', %1 ) @ #k )
+            case Bob__merged_____3_____4__0_1__28
+            solve( State__Bob( <'rab_____3', %1>, return__var__12, 'rab__', l__0__12,
+                               t__0__12
+                   ) ▶₀ #k )
+              case Bob__merged_____2__0_0_____3__35
+              by contradiction /* cyclic */
+            qed
+          qed
+        qed
+      next
+        case Bob__merged_____2__1_0_____3__32
+        solve( !Eq__( z, true ) ▶₁ #j )
+          case Equality_gen
+          solve( Transition__Bob( 'rab__28', %1 ) @ #k )
+            case Bob__merged_____3_____4__0_1__28
+            solve( State__Bob( <'rab_____3', %1>, return__var__12, 'rab__', l__0__12,
+                               t__0__12
+                   ) ▶₀ #k )
+              case Bob__merged_____2__1_0_____3__32
+              by contradiction /* cyclic */
+            qed
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____3_____4__1_1__29
+      solve( State__Bob( <'rab_____3', %i>, return__var__12, 'rab__', l__0__12,
+                         t__0__12
+             ) ▶₀ #j )
+        case Bob__merged_____2__0_0_____3__35
+        solve( !NEq__( true, true ) ▶₁ #j )
+          case NEquality_gen
+          by contradiction /* from formulas */
+        qed
+      next
+        case Bob__merged_____2__1_0_____3__32
+        solve( !NEq__( z, true ) ▶₁ #j )
+          case NEquality_gen
+          solve( Transition__Bob( 'rab__29', %1 ) @ #k )
+            case Bob__merged_____3_____4__1_1__29
+            solve( State__Bob( <'rab_____3', %1>, return__var__12, 'rab__',
+                               l__0__12.1, t__0__12
+                   ) ▶₀ #k )
+              case Bob__merged_____2__1_0_____3__32
+              by contradiction /* cyclic */
+            qed
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____4__0_1_____8__25
+      solve( State__Bob( <'rab_____4__0_1', %i>, return__var__15, 'rab__',
+                         <l__0__15, l__1__15>, t__0__15
+             ) ▶₀ #j )
+        case Bob__merged_____3_____4__0_1__28_case_1
+        solve( Transition__Bob( 'rab__25', %1 ) @ #k )
+          case Bob__merged_____4__0_1_____8__25
+          solve( State__Bob( <'rab_____4__0_1', %1>, return__var__15, 'rab__',
+                             <l__0__15, l__1__15>, t__0__15
+                 ) ▶₀ #k )
+            case Bob__merged_____3_____4__0_1__28
+            by contradiction /* cyclic */
+          qed
+        qed
+      next
+        case Bob__merged_____3_____4__0_1__28_case_2
+        solve( Transition__Bob( 'rab__25', %1 ) @ #k )
+          case Bob__merged_____4__0_1_____8__25
+          solve( State__Bob( <'rab_____4__0_1', %1>, return__var__15, 'rab__',
+                             <l__0__15, l__1__15>, t__0__15
+                 ) ▶₀ #k )
+            case Bob__merged_____3_____4__0_1__28
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____4__1_1_____8__24
+      solve( State__Bob( <'rab_____4__1_1', %i>, return__var__18, 'rab__',
+                         <l__0__18, l__1__18>, t__0__18
+             ) ▶₀ #j )
+        case Bob__merged_____3_____4__1_1__29
+        solve( Transition__Bob( 'rab__24', %1 ) @ #k )
+          case Bob__merged_____4__1_1_____8__24
+          solve( State__Bob( <'rab_____4__1_1', %1>, return__var__18, 'rab__',
+                             <l__0__18.1, l__1__18.1>, t__0__18
+                 ) ▶₀ #k )
+            case Bob__merged_____3_____4__1_1__29
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma Correspondence:
+  all-traces
+  "∀ msg #j.
+    (IntegritySuccess( msg ) @ #j) ⇒
+    (∃ #i. (MsgSend( msg ) @ #i) ∧ (#i < #j))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ msg #j.
+  (IntegritySuccess( msg ) @ #j)
+ ∧
+  ∀ #i. (MsgSend( msg ) @ #i) ⇒ ¬(#i < #j)"
+*/
+simplify
+solve( State__Bob( <'rab_____3', %v__>, return__var__12, 'rab__',
+                   l__0__12, t__0__12
+       ) ▶₀ #j )
+  case Bob__merged_____2__0_0_____3__35
+  by contradiction /* from formulas */
+next
+  case Bob__merged_____2__1_0_____3__32
+  solve( !Eq__( z, true ) ▶₁ #j )
+    case Equality_gen
+    solve( !KU( sign(msg, ~n) ) @ #vk.2 )
+      case Alice__merged_____0_____5__0_1__37
+      by contradiction /* from formulas */
+    next
+      case c_sign
+      by solve( !KU( ~n ) @ #vk.3 )
+    qed
+  qed
+qed
+
+lemma Reachable:
+  exists-trace "∃ #i #j. (AliceClose( ) @ #i) ∧ (BobClose( ) @ #j)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ #i #j. (AliceClose( ) @ #i) ∧ (BobClose( ) @ #j)"
+*/
+simplify
+solve( State__Alice( <'rab_____7__0_1', %v__>, return__var__17, 'rab__',
+                     <l__0__17, l__1__17, l__2__17, l__3__17>, t__0__17
+       ) ▶₀ #i )
+  case Alice__merged_____7_____7__0_1__24
+  solve( BobClose( ) @ #j )
+    case Bob__merged_____4__0_1_____8__25
+    solve( State__Bob( <'rab_____4__0_1', %v__>, return__var__15, 'rab__',
+                       <l__0__15, l__1__15>, t__0__15
+           ) ▶₀ #j )
+      case Bob__merged_____3_____4__0_1__28_case_1
+      SOLVED // trace found
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Unbound variables
+=================
+
+  rule `Equality_gen' has unbound variables: 
+    x
+  
+  rule `NEquality_gen' has unbound variables: 
+    x, y
+
+Inexistant lemma actions
+========================
+
+  lemma `AlwaysStarts__' references action 
+    fact "Loop__Back" (arity 1, Linear) 
+  but no rule has such an action.
+  
+  lemma `AlwaysStarts__' references action 
+    fact "Loop__Start" (arity 1, Linear) 
+  but no rule has such an action.
+  
+  lemma `AlwaysStartsWhenEnds__' references action 
+    fact "Loop__Finish" (arity 1, Linear) 
+  but no rule has such an action.
+  
+  lemma `AlwaysStartsWhenEnds__' references action 
+    fact "Loop__Start" (arity 1, Linear) 
+  but no rule has such an action.
+
+Message Derivation Checks
+=========================
+
+  The variables of the following rule(s) are not derivable from their premises, you may be performing unintended pattern matching.
+
+Rule Equality_gen: 
+Failed to derive Variable(s): x
+
+Rule NEquality_gen: 
+Failed to derive Variable(s): x, y
+*/
+
+/*
+Generated from:
+Tamarin version 1.10.0
+Maude version 3.3
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2025-03-21 08:25:51.148210386 UTC
+*/
+
+end
+
+==============================================================================
+summary of summaries:
+
+analyzed: tamarin_models/digital_signature_e-mail_opt.spthy
+
+  processing time: 2.74s
+  
+  WARNING: 7 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  AlwaysStarts__ (all-traces): verified (6 steps)
+  AlwaysStartsWhenEnds__ (all-traces): verified (6 steps)
+  transition__Alice (all-traces): verified (44 steps)
+  transition__Bob (all-traces): verified (106 steps)
+  Correspondence (all-traces): verified (7 steps)
+  Reachable (exists-trace): verified (5 steps)
+
+==============================================================================
