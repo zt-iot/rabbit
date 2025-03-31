@@ -94,6 +94,7 @@ const fresh init_data
 
 const fresh param_priv_k<>
 const aaa = param_priv_k<sym_k>
+const pubkey<k> = pk(k)
 
 (***********)
 (** installed channels and filesystems *)
@@ -193,7 +194,7 @@ process server(ch_net<> : udp_t) : server_t
   main 
   {
     repeat 
-    | [ch_net<addr>::Store(p)] →
+    | [ch_net<addr> :: store(p) ] →
       var res = verify(fst(p), snd(p), pubkey<addr>) in 
       case 
       | [res = true] →

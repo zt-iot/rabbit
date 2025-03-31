@@ -126,8 +126,8 @@ let rec process_expr2 new_meta_vars ctx lctx {Location.data=c; Location.loc=loc}
    | Input.Tuple el -> Syntax.Tuple (List.map (fun a -> process_expr2 new_meta_vars ctx lctx a) el)
    
    | Input.Param (pid, p) -> 
-      if Context.ctx_check_param_const ctx pid then Syntax.ParamConst (pid, process_expr ctx lctx p) 
-      else if Context.lctx_check_param_chan lctx pid then Syntax.ParamChan (pid, process_expr ctx lctx p) 
+      if Context.ctx_check_param_const ctx pid then Syntax.ParamConst (pid, process_expr2 new_meta_vars ctx lctx p) 
+      else if Context.lctx_check_param_chan lctx pid then Syntax.ParamChan (pid, process_expr2 new_meta_vars ctx lctx p) 
       else error ~loc (UnknownIdentifier pid) 
 
   in
@@ -148,13 +148,13 @@ let process_fact_closed new_meta_vars ctx lctx f =
       (* check validty of local scope l *)
          (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), 
                   Location.locate ~loc:f.Location.loc 
-                  (Syntax.ChannelFact(process_expr2 new_meta_vars ctx lctx (Location.locate ~loc (Input.Var l)),
+                  (Syntax.ChannelFact(process_expr2 new_meta_vars ctx lctx l,
                         id, List.map (process_expr2 new_meta_vars ctx lctx) el)))
    | Input.PathFact (l, id, el) ->
       (* check validty of local scope l *)
          (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), 
                   Location.locate ~loc:f.Location.loc 
-                  (Syntax.PathFact(process_expr2 new_meta_vars ctx lctx (Location.locate ~loc (Input.Var l)),
+                  (Syntax.PathFact(process_expr2 new_meta_vars ctx lctx l,
                         id, List.map (process_expr2 new_meta_vars ctx lctx) el)))
    | Input.ResFact(i, el) ->
          (ctx, Location.locate ~loc:f.Location.loc 
@@ -638,7 +638,10 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
       
 
    | Input.DeclSys (procs, lemmas) ->
-      let processed_procs, processed_param_procs = List.fold_left (fun (pl, parampl) p -> let pl', parampl' = process_proc loc ctx def pol p in (pl'@pl, parampl'::parampl)) ([], [ [] ]) procs in
+      let processed_procs, processed_param_procs = 
+         List.fold_left (fun (pl, parampl) p -> let pl', parampl' = process_proc loc ctx def pol p in
+         
+         (pl'@pl, match parampl' with [] -> parampl | _ -> parampl'::parampl)) ([], [  ]) procs in
       (* for now, have plain text for lemmas *)
       let processed_lemmas = List.map (fun l -> 
          let tmp = 
@@ -661,20 +664,23 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
             Location.locate ~loc:l.Location.loc tmp
          ) lemmas in   
       (* Set up PID  *)
+
+
       let processed_procs, used_names = List.fold_left (fun (pl, un) p -> 
             {p with Context.proc_pid = 
                List.length (List.filter (fun n -> n = p.Context.proc_name) un)
-            }::processed_procs, p.Context.proc_name::un) ([], []) processed_procs in 
+            }::pl, p.Context.proc_name::un) ([], []) processed_procs in 
+
 
       let processed_param_procs, used_names = 
          List.fold_left (fun (pll, un) pl -> 
             let pll', un = List.fold_left (fun (pl, un) p -> 
                {p with Context.proc_pid = 
                   List.length (List.filter (fun n -> n = p.Context.proc_name) un)
-               }::processed_procs, p.Context.proc_name::un) ([], []) pl in 
+               }::pl, p.Context.proc_name::un) ([], []) pl in 
                pll'::pll, un
                ) ([], used_names) processed_param_procs in 
-      
+
 
       (ctx, pol, def, {
                         Context.sys_ctx = ctx;
