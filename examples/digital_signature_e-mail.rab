@@ -1,3 +1,5 @@
+(* This is digital_signature.rab but in the new Rabbit syntax *)
+
 (* security primitives *)
 function pk:1
 function sign:2

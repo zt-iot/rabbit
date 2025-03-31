@@ -1,23 +1,5 @@
 
 
-
-
-process p(i2c : U, k : tee, C : U, H : U, w : U) {
-  (new root : k_root)
-  (* I don't think these things are part of the syntax definition of the language? Arbitrary execution of processes TEE, DEV *)
-  let TEE_s = sign(TEE(i2c, k, C, H)], root) in (* sign code of TEE with signing key root *)
-  send(w, TEE_s) | DEV(i2c, k, C, H, w, root) (* execute DEV and the sending of TEE_s in parallel *)
-}
-
-process DEV(i2c : U, k : tee, C : U, H : U, w : U, root : k_root) {
-  recv(w, TEE_s : U).
-  (new mon : mon)
-
-  (* REE and TEE are executed in parallel. `mon` is the communication channel between them *)
-  exec(REE, mon) | case TEE_s of verify(TEE : p_tee, vk(root)) ->
-                      exec(TEE, (mon, TA)) | SE(i2c, k, C, H) (* Additionally, run the SE in parallel to the TEE *)
-}
-
 process REE() {
   pack(mon : mon -> recv(mon, y : ree))
 }
@@ -28,6 +10,7 @@ process TA() {
       let y : ree = h(x) in
       send(c', y)
     }
+  ) 
 }
 
 process SE(i2c : U, k : tee, C : U, H : U) {
@@ -43,7 +26,6 @@ process SE(i2c : U, k : tee, C : U, H : U) {
     let ns' : tee = hash(ns) in
     send(i2c, sym_enc(ns', ks))
   }
-
 }
 
 process TEE(i2c : U, k : tee, C : U, H : U) {
@@ -72,3 +54,19 @@ process TEE(i2c : U, k : tee, C : U, H : U) {
   )
 }
 
+process DEV(i2c : U, k : tee, C : U, H : U, w : U, root : k_root) {
+  recv(w, TEE_s : U).
+  (new mon : mon)
+
+  (* REE and TEE are executed in parallel. `mon` is the communication channel between them *)
+  exec(REE, mon) | case TEE_s of verify(TEE : p_tee, vk(root)) ->
+                      exec(TEE, (mon, TA)) | SE(i2c, k, C, H) (* Additionally, run the SE in parallel to the TEE *)
+}
+
+
+process p(i2c : U, k : tee, C : U, H : U, w : U) {
+  (new root : k_root)
+  (* I don't think these things are part of the syntax definition of the language? Arbitrary execution of processes TEE, DEV *)
+  let TEE_s = sign(TEE(i2c, k, C, H)], root) in (* sign code of TEE with signing key root *)
+  send(w, TEE_s) | DEV(i2c, k, C, H, w, root) (* execute DEV and the sending of TEE_s in parallel *)
+}
