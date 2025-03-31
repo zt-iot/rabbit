@@ -20,9 +20,8 @@ and fact' =
   | Fact of Name.ident * expr list
   | GlobalFact of Name.ident * expr list
   | ChannelFact of expr * Name.ident * expr list
-  | PathFact of expr * Name.ident * expr list
   | ProcessFact of expr * Name.ident * expr list
-  | ResFact of int * expr list (* 0: eq 1: neq *)
+  | ResFact of int * expr list (* 0: eq 1: neq 3 : FILE*)
   (* | InjFact of  *)
 
 type cmd = cmd' Location.located

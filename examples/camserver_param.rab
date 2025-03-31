@@ -25,9 +25,9 @@ syscall get_picture () {
 function h:1
 
 syscall fopen (p) {
-  case [p.File(x)] ->
+  case [p.x] ->
     new y = Fd(x) in 
-    put [p.File(x)]; y
+    put [p.x]; y
   end
 }
 
@@ -88,27 +88,18 @@ allow client_t [eaves_mem]
 
 (***********)
 (** global constants *)
-const fresh priv_k
-const fresh sym_k
-const fresh init_data
-
-const fresh param_priv_k<>
-const aaa = param_priv_k<sym_k>
-const pubkey<k> = pk(k)
+const fresh sym_k<>
+const fresh priv_k<>
+const pubkey<k> = pk(priv_k<k>)
 
 (***********)
 (** installed channels and filesystems *)
 channel rpc<> : rpc_t
 channel udp<> : udp_t
 
-filesys server_fs = 
+filesys client_ta_fs<k> = 
 [ 
-  {path: "/secret/pub", data: pk(priv_k), type: readonly_t}
-]
-
-filesys client_ta_fs = 
-[ 
-  {path: "/secret/priv", data: enc(priv_k, sym_k), type: readonly_t}
+  {path: "/secret/priv", data: enc(priv_k<k>, sym_k<k>), type: readonly_t}
 ]
 
 (***********)
@@ -193,6 +184,7 @@ process server(ch_net<> : udp_t) : server_t
 
   main 
   {
+    var f = fopen (pubkey_path) in 
     repeat 
     | [ch_net<addr> :: store(p) ] →
       var res = verify(fst(p), snd(p), pubkey<addr>) in 

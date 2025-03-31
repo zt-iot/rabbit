@@ -63,8 +63,9 @@ let rec process_expr ?(param="") ctx lctx {Location.data=c; Location.loc=loc} =
       else if Context.lctx_check_path lctx id then Syntax.Path id
       else if Context.lctx_check_process lctx id then Syntax.Process id
       else if id = param then Syntax.Param id 
-      else begin
-         match find_index (fun v -> v = id) lctx.Context.lctx_top_var with
+      else 
+         begin
+            match find_index (fun v -> v = id) lctx.Context.lctx_top_var with
          | Some i -> Syntax.TopVariable (id, i)
          | None -> 
             match find_index (fun v -> v = id) lctx.Context.lctx_loc_var with
@@ -80,12 +81,13 @@ let rec process_expr ?(param="") ctx lctx {Location.data=c; Location.loc=loc} =
    | Input.Float f -> Syntax.Float f
    | Input.Apply(o, el) ->
       if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o) else
-      if Context.ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr ctx lctx a) el)) else
+      if Context.ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr ~param:param ctx lctx a) el)) else
       error ~loc (UnknownIdentifier o)
-   | Input.Tuple el -> Syntax.Tuple (List.map (fun a -> process_expr ctx lctx a) el)
+   | Input.Tuple el -> Syntax.Tuple (List.map (fun a -> process_expr ~param:param ctx lctx a) el)
    | Input.Param (pid, p) -> 
-      if Context.ctx_check_param_const ctx pid then Syntax.ParamConst (pid, process_expr ctx lctx p) 
-      else if Context.lctx_check_param_chan lctx pid then Syntax.ParamChan (pid, process_expr ctx lctx p) 
+      if Context.ctx_check_param_const ctx pid then 
+         Syntax.ParamConst (pid, process_expr ~param:param ctx lctx p) 
+      else if Context.lctx_check_param_chan lctx pid then Syntax.ParamChan (pid, process_expr ~param:param ctx lctx p) 
       else error ~loc (UnknownIdentifier pid) 
   in
   let c = process_expr' ctx lctx c in
@@ -150,12 +152,12 @@ let process_fact_closed new_meta_vars ctx lctx f =
                   Location.locate ~loc:f.Location.loc 
                   (Syntax.ChannelFact(process_expr2 new_meta_vars ctx lctx l,
                         id, List.map (process_expr2 new_meta_vars ctx lctx) el)))
-   | Input.PathFact (l, id, el) ->
+   (* | Input.PathFact (l, "File", e) ->
       (* check validty of local scope l *)
          (Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el), 
                   Location.locate ~loc:f.Location.loc 
                   (Syntax.PathFact(process_expr2 new_meta_vars ctx lctx l,
-                        id, List.map (process_expr2 new_meta_vars ctx lctx) el)))
+                        id, List.map (process_expr2 new_meta_vars ctx lctx) el))) *)
    | Input.ResFact(i, el) ->
          (ctx, Location.locate ~loc:f.Location.loc 
                   (Syntax.ResFact(i, List.map (process_expr2 new_meta_vars ctx lctx) el)))
@@ -576,7 +578,9 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 
          let e' = 
             match e with 
-            | Some (p, e) -> Some (p, process_expr ctx (Context.lctx_add_new_var ~loc:(e.Location.loc) Context.lctx_init p) e) | _ -> None in 
+            | Some (p, e) -> 
+               Some (p, process_expr ~param:p ctx Context.lctx_init e) 
+            | _ -> None in 
          (Context.ctx_add_param_const ctx id, pol, Context.def_add_param_const def (id, e'), sys, fst ps)
    
    

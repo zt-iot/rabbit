@@ -151,7 +151,10 @@ type local_context = {
 
                      lctx_meta_var : (Name.ident) list ; 
 
-                     lctx_func : (Name.ident * int) list }
+                     lctx_func : (Name.ident * int) list ;
+                     
+                     lctx_param : Name.ident option ;
+                     }
 
 type local_definition ={ldef_var : (Name.ident * Syntax.expr) list ; ldef_func : (Name.ident * (Name.ident list) * Syntax.cmd) list }
 
@@ -358,7 +361,8 @@ let lctx_check_process lctx c =
 
 
 let lctx_check_var lctx v =
-   List.exists (fun s -> s = v) (lctx.lctx_loc_var @ lctx.lctx_top_var)
+   List.exists (fun s -> s = v) (lctx.lctx_loc_var @ lctx.lctx_top_var @ (match lctx.lctx_param with Some s -> [s] | None -> []))
+   (* List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_var false  *)
 
    (* List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_loc_var false  *)
 
@@ -406,6 +410,11 @@ let lctx_add_new_process ~loc lctx c =
 let lctx_add_new_var ~loc lctx v = 
    if lctx_check_id lctx v  then error ~loc (AlreadyDefined v) else 
    {lctx with lctx_loc_var=v::lctx.lctx_loc_var}
+
+let lctx_add_new_param ~loc lctx v = 
+   if lctx_check_id lctx v then error ~loc (AlreadyDefined v) else 
+   {lctx with lctx_param=Some v}
+
 
 let lctx_add_new_loc_var ~loc lctx v = 
    if lctx_check_id lctx v  then error ~loc (AlreadyDefined v) else 
@@ -481,7 +490,8 @@ let pol_init = {pol_access = [] ; pol_access_all=[]; pol_attack = []}
    sys_pol = [];
    sys_proc =[] }
  *)
-let lctx_init = {lctx_chan = []; lctx_path = []; lctx_process = []; lctx_loc_var = []; lctx_meta_var = []; lctx_top_var = []; lctx_func = [] ; lctx_param_chan = []}
+let lctx_init = {lctx_chan = []; lctx_path = []; lctx_process = []; lctx_loc_var = []; lctx_meta_var = []; lctx_top_var = []; lctx_func = [] ; lctx_param_chan = []; lctx_param = None}
+(* let lctx_init = {lctx_var=[]; lctx_meta=[]} *)
 let ldef_init = {ldef_var=[]; ldef_func=[]}
 
 

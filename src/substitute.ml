@@ -38,7 +38,7 @@ let rec expr_chan_sub e f t  =
       t
     end else e 
   | Syntax.ParamChan (fid, e) -> Location.locate ~loc:loc (Syntax.ParamChan (fid, expr_chan_sub e f t) )
-  | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamChan (fid, expr_chan_sub e f t) )
+  | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamConst (fid, expr_chan_sub e f t) )
   | _ -> e
 
 let fact_chan_sub f fr t  =
@@ -47,7 +47,7 @@ let fact_chan_sub f fr t  =
    match f.Location.data with
    | Syntax.Fact (v, el) -> Syntax.Fact (v, (List.map (fun e -> expr_chan_sub e fr t ) el))
    | Syntax.GlobalFact (v, el) -> Syntax.GlobalFact (v, (List.map (fun e -> expr_chan_sub e fr t ) el))
-   | Syntax.PathFact (l, id, el) -> Syntax.PathFact (expr_chan_sub l fr t , id, (List.map (fun e -> expr_chan_sub e fr t ) el))
+   (* | Syntax.PathFact (l, id, el) -> Syntax.PathFact (expr_chan_sub l fr t , id, (List.map (fun e -> expr_chan_sub e fr t ) el)) *)
    | Syntax.ChannelFact (l, id, el) ->
       Syntax.ChannelFact (expr_chan_sub l fr t , id, (List.map (fun e -> expr_chan_sub e fr t ) el))
    | Syntax.ResFact (v, el) -> Syntax.ResFact (v, (List.map (fun e -> expr_chan_sub e fr t ) el))
@@ -110,7 +110,7 @@ let rec cmd_chan_sub c f t  =
       Location.locate ~loc:loc (Syntax.ParamChan (t, expr_param_chan_sub e f t) )
     else
       Location.locate ~loc:loc (Syntax.ParamChan (fid, expr_param_chan_sub e f t) )
-   | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamChan (fid, expr_param_chan_sub e f t) )
+   | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamConst (fid, expr_param_chan_sub e f t) )
    | _ -> e
  
  let fact_param_chan_sub f fr t  =
@@ -119,7 +119,7 @@ let rec cmd_chan_sub c f t  =
     match f.Location.data with
     | Syntax.Fact (v, el) -> Syntax.Fact (v, (List.map (fun e -> expr_param_chan_sub e fr t ) el))
     | Syntax.GlobalFact (v, el) -> Syntax.GlobalFact (v, (List.map (fun e -> expr_param_chan_sub e fr t ) el))
-    | Syntax.PathFact (l, id, el) -> Syntax.PathFact (expr_param_chan_sub l fr t , id, (List.map (fun e -> expr_param_chan_sub e fr t ) el))
+    (* | Syntax.PathFact (l, id, el) -> Syntax.PathFact (expr_param_chan_sub l fr t , id, (List.map (fun e -> expr_param_chan_sub e fr t ) el)) *)
     | Syntax.ChannelFact (l, id, el) ->
        Syntax.ChannelFact (expr_param_chan_sub l fr t , id, (List.map (fun e -> expr_param_chan_sub e fr t ) el))
     | Syntax.ResFact (v, el) -> Syntax.ResFact (v, (List.map (fun e -> expr_param_chan_sub e fr t ) el))
