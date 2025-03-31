@@ -1,0 +1,202 @@
+(* security primitives *)
+function pk:1
+function enc:2
+function dec:2
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+equation dec(enc(x, y), y) = x
+
+
+
+(** Load some primitive system calls: *)
+load "udp_rpc.rab"
+
+(* System calls to interact with filesystems *)
+function h:1
+
+syscall fopen (path p) return h(p) 
+  : [] -> [p.open()]  
+
+syscall fread (y) return x {y = h(p)}
+  (* p.File(x) indicites that x is stored in the file represented by p *)
+  : [p.File(x), p.open()] -> [p.File(x), p.open()]
+
+syscall fclose (y) {y = h(p)}
+  : [p.open()] -> []
+
+
+
+
+(***********)
+(** Declare types with their respective classes *)
+type readonly_t   : filesys
+
+type client_t 	  : process
+
+type udp_t 	  : channel
+
+
+
+(***********)
+(** Access control *)
+allow client_t udp_t [send, recv]
+
+
+
+
+(***********)
+(** ATTACKER MODEL *)
+
+(*****)
+(** ACTIVE ATTACKS) **)
+(*****)
+
+(* Attacker changes contents of a channel to something they know *)
+attack tamper_ch (channel c) : [c::store(v), In(w)] -> [c::store(w)]
+
+(* Attacker changes contents of a file to something they know *)
+attack tamper_file (path p) : [p.File(x), In(w)] -> [p.File(w)]
+
+(*****)
+(** PASSIVE ATTACKS) **)
+(*****)
+passive attack tamper_mem_passive(y) : [::In(v)] -{y := v; }-> [] 
+passive attack eaves_mem (v) : [] -> [::Out(v)]
+
+allow attack udp_t [tamper_ch]
+allow client_t [eaves_mem]
+
+
+
+
+(***********)
+(** Global constants *)
+
+const fresh nonce_alice
+const fresh nonce_bob
+const fresh priv_key_alice
+const fresh priv_key_bob
+
+
+
+
+
+(***********)
+(** Installed channels and filesystems *)
+
+channel udp : udp_t
+
+filesys alice_fs = 
+[ 
+  {path: "/keys/pub", data: pk(priv_key_bob), type: readonly_t},
+  {path: "/keys/priv", data: priv_key_alice, type: readonly_t}
+]
+
+filesys bob_fs = 
+[
+  {path: "/keys/pub", data: pk(priv_key_alice), type: readonly_t},
+  {path: "/keys/priv", data: priv_key_bob, type: readonly_t}
+]
+
+
+
+
+(** Process template for client1 *)
+process alice(ch_net : udp_t) : client_t
+{
+    let nonce_msg1 = nonce_alice;
+
+    (* Some string that identifies Alice, the 'identity' of Alice *)
+    let identity_alice = "Alice";
+
+    let pub_key_bob_path = "/keys/pub";
+    let priv_key_alice_path = "/keys/priv";
+
+  	main 
+  	{
+      skip @ DummyEvent1();
+      skip @ DummyEvent2();
+
+      (* Open file to retrieve private key of Alice *)
+      let priv_key_alice_fd = fopen(priv_key_alice_path);
+      let priv_key_alice = fread(priv_key_alice_fd);
+
+      (* Open file to retrieve public key of Bob *)
+      let pub_key_bob_fd = fopen(pub_key_bob_path);
+      let pub_key_bob = fread(pub_key_bob_fd);
+
+      let ciphertext1 = enc((nonce_msg1, identity_alice), pub_key_bob);
+
+      (* Send message1 to Bob *)
+
+			let _ = send(ch_net, ciphertext1) @ MsgSend(ciphertext1);
+
+      (* Receive ciphertext2 from Bob *)
+      let ciphertext2 = recv(ch_net);
+
+      let msg2 = dec(ciphertext2, priv_key_alice);
+
+      (* Get only the part of the message which is the nonce of Bob *)
+      let nonce_bob = snd(msg2);
+
+      (* Send back encrypted version of nonce_bob *)
+      let ciphertext3 = enc(nonce_bob, pub_key_bob);
+
+      let _ = send(ch_net, ciphertext3);
+
+      fclose(priv_key_alice_fd);
+      fclose(pub_key_bob_fd);
+
+  	}
+}
+
+(** Process template for client2 *)
+process bob(ch_net : udp_t) : client_t
+{
+
+  let nonce_msg2 = nonce_bob;
+  let pub_key_alice_path = "/keys/pub";
+  let priv_key_bob_path = "/keys/priv";
+
+  main
+  {
+    skip @ DummyEvent();
+
+    let pub_key_alice_fd = fopen(pub_key_alice_path);
+    let pub_key_alice = fread(pub_key_alice_fd);
+
+    let priv_key_bob_fd = fopen(priv_key_bob_path);
+    let priv_key_bob = fread(priv_key_bob_fd);
+    
+    let ciphertext1 = recv(ch_net);
+
+    (* Decrypt message from Alice and get the first component of it, aka the nonce from Alice *)
+    let msg1 = dec(ciphertext1, priv_key_bob);
+    let nonce_alice = fst(msg1);
+
+    (* Send back an encrypted version of nonce_alice and nonce_bob *)
+
+    let ciphertext2 = enc((nonce_alice, nonce_bob), pub_key_alice);
+
+
+    let _ = send(ch_net, ciphertext2);
+
+    fclose(pub_key_alice_fd);
+    fclose(priv_key_bob_fd);
+
+  }
+}
+
+
+(** System instantation *)
+system
+    alice(udp) with alice_fs
+||  bob(udp) with bob_fs  
+requires [
+	lemma Reachability : reachable DummyEvent1() ;
+  lemma Correspondence : corresponds DummyEvent2() ~> DummyEvent1()
+  ]
+
+
