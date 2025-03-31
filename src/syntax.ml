@@ -22,6 +22,10 @@ and expr' =
   | Process of string (* only needed for syscall defintiions *)
   (* | Run of string * expr list (* only needed for syscall defintiions *) *)
   (* | FrVariable of string *)
+  | ParamChan of string * expr 
+  | ParamConst of string * expr
+
+  | Param of string
 
 type fact = fact' Location.located
 and fact' = 

@@ -54,7 +54,7 @@ type rpc_t 	  : channel
 (***********)
 (** access control *)
 allow client_t udp_t [send]
-allow server_t udp_t [recv]
+allow server_t udp_t [.]
 
 allow client_t rpc_t [connect_rpc, invoke_rpc, close_rpc]
 allow client_ta_t rpc_t [accept_rpc]
@@ -92,12 +92,13 @@ const fresh priv_k
 const fresh sym_k
 const fresh init_data
 
+const fresh param_priv_k<>
+const aaa = param_priv_k<sym_k>
 
 (***********)
 (** installed channels and filesystems *)
-channel udp : udp_t
-
-channel rpc : rpc_t
+channel rpc<> : rpc_t
+channel udp<> : udp_t
 
 filesys server_fs = 
 [ 
@@ -113,7 +114,6 @@ filesys client_ta_fs =
 (** process templates *)
 process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t 
 {  
-  var dev_path = "/dev/camera"
   var privkey_path = "/secret/priv"
   var invoke_func = "sign_image"
 
@@ -186,18 +186,15 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
   }
 }
 
-process server(ch_net : udp_t) : server_t 
+process server(ch_net<> : udp_t) : server_t 
 {
   var pubkey_path = "/secret/pub"
 
   main 
   {
-    var pubkey_fd = fopen(pubkey_path) in 
-    var pubkey = fread(pubkey_fd) in 
     repeat 
-    | [] →
-      var p = recv(ch_net) in
-      var res = verify(fst(p), snd(p), pubkey) in 
+    | [ch_net<addr>::Store(p)] →
+      var res = verify(fst(p), snd(p), pubkey<addr>) in 
       case 
       | [res = true] →
         event [::ImgRecvValid(snd(p))]
@@ -214,9 +211,7 @@ process server(ch_net : udp_t) : server_t
 
 (***********)
 system 
-  client(udp, rpc)
-  ||	server(udp) with server_fs 
-  ||	client_ta(rpc) with client_ta_fs
+!n . (client(udp<n>, rpc<n>) | client_ta(rpc<n>) with client_ta_fs) | server(udp<>) with server_fs 
 requires  [
   lemma Reachable :
   	exists-trace "Ex x #i #j #k  . ClientClose() @ #j & ClientTAClose() @ #k & ImgRecvValid(x) @ #i" ;

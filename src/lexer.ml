@@ -49,7 +49,7 @@ let name =
   [%sedlex.regexp? (('_' | alphabetic),
                  Star ('_' | alphabetic
                       | 185 | 178 | 179 | 8304 .. 8351 (* sub-/super-scripts *)
-                      | '0'..'9' | '\'')) | math]
+                      | '0'..'9')) | math]
 
 let digit = [%sedlex.regexp? '0'..'9']
 let numeral = [%sedlex.regexp? Opt '-', Plus digit]
@@ -120,7 +120,11 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | ']'                      -> f (); RBRACKET
   | '{'                      -> f (); LBRACE
   | '}'                      -> f (); RBRACE
-  | "<>" | 8800              -> f (); NEQ
+  | "!=" | 8800              -> f (); NEQ
+  | "!"                      -> f (); EXCL
+  | "<>"                     -> f (); LTGT
+  | "<"                      -> f (); LT
+  | ">"                      -> f (); GT
   | "||"                     -> f (); BBAR
   | '|'                      -> f (); BAR
   | "=>" | 8658 | 10233      -> f (); DARROW

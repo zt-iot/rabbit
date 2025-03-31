@@ -22,8 +22,8 @@
 (* constant tokens for rabbit *)
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
 %token CHANNEL PROCESS PATH DATA FILESYS 
-%token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR
-%token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY
+%token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LTGT
+%token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL
 
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
 
@@ -85,8 +85,21 @@ plain_decl:
 
   | sys { $1 }
 
+  | CHANNEL id=NAME LT GT COLON n=NAME { DeclParamChan(id, n) }
+  | CHANNEL id=NAME LTGT COLON n=NAME { DeclParamChan(id, n) }
+
+
+  | CONST t=NAME LT p=NAME GT EQ e=expr { DeclParamInit(t, Some (p, e)) }
+
+  | CONST FRESH t=NAME LT GT { DeclParamInit(t,None) }
+  | CONST FRESH t=NAME LTGT { DeclParamInit(t,None) }
+
+
+
 colon_name_pair :
-  | a=NAME COLON b=NAME { (a, b) }
+  | a=NAME COLON b=NAME { (false, a, b) }
+  | a=NAME LT GT COLON b=NAME { (true, a, b) }
+  | a=NAME LTGT COLON b=NAME { (true, a, b) }
 
 external_syscall:
   |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN 
@@ -112,16 +125,32 @@ typed_arg:
   | PROCESS var=NAME { (TyProcess, var) }
   | PATH var=NAME { (TyPath, var) }
 
+proc:
+  | p=uproc { UnboundedProc p }
+  | p=bproc { BoundedProc p}
+
 sys:
-  | SYSTEM p=separated_nonempty_list(BBAR, proc) REQUIRES 
+  | SYSTEM p=separated_nonempty_list(BAR, proc) REQUIRES 
     LBRACKET a=separated_nonempty_list(SEMICOLON, lemma)  RBRACKET { DeclSys(p, a) }
 
-proc: mark_location(plain_proc) { $1 }
-plain_proc:
-  | id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH f=NAME 
+uproc: mark_location(plain_uproc) { $1 }
+plain_uproc:
+  | id=NAME LPAREN parems=separated_list(COMMA, chan_arg) RPAREN WITH f=NAME 
     { Proc (id, parems, Some f) }
-  | id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN 
+  | id=NAME LPAREN parems=separated_list(COMMA, chan_arg) RPAREN 
     { Proc (id, parems, None) }
+
+// bproc: mark_location(plain_bproc) { $1 }
+bproc:
+  | EXCL v=NAME DOT p=uproc { (v, [p]) }
+  | EXCL v=NAME DOT LPAREN p=separated_list(BAR, uproc) RPAREN { (v, p) }
+
+
+chan_arg:
+  | id=NAME { ChanArgPlain id }
+  | id=NAME LT GT { ChanArgParam id }
+  | id=NAME LTGT { ChanArgParam id }
+  | id=NAME LT e=expr GT { ChanArgParamInst (id, e) }
 
 lemma: mark_location(plain_lemma) { $1 }
 plain_lemma:
@@ -181,6 +210,7 @@ plain_expr:
     { let (op, loc) = oploc in
       Apply (op, [e2; e3])
     }
+  | f=NAME LT e=expr GT { Param (f, e) }
   | LPAREN es=separated_list(COMMA, expr) RPAREN { Tuple es } 
   | s=QUOTED_STRING { String s }
 

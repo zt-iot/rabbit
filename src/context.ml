@@ -32,7 +32,7 @@ let print_error err ppf =
 (* process tempates spec and definition *)
 type ctx_process_template = {
    ctx_proctmpl_id   :  Name.ident ; 
-   ctx_proctmpl_ch   :  (Name.ident * Name.ident) list ; 
+   ctx_proctmpl_ch   :  (bool * Name.ident * Name.ident) list ; (* true means that the channel is prametric *)
    ctx_proctmpl_ty   :  Name.ident ;
    ctx_proctmpl_var  :  Name.ident list ;
    ctx_proctmpl_func :  (Name.ident * int) list  
@@ -70,8 +70,14 @@ type context = {
                      (* const name *)
    ctx_fsys       :  (Name.ident * Name.ident * Name.ident) list ; (*fsys name, fsys path, type *)
                      (* installed file syatem name, path, and its type *)
+
    ctx_ch         :  (Name.ident * Name.ident) list ;
                      (* installed channel name, method, and its type *)
+   ctx_param_ch   :  (Name.ident * Name.ident) list ;
+                     (* installed channel name, method, and its type *)
+   ctx_param_const  :  (Name.ident) list ; 
+                     (* ext_const name *)
+
    ctx_proctmpl   :  ctx_process_template list;
    ctx_event      :  (Name.ident * int) list ;
                      (* event predicate name, its arity *)
@@ -93,6 +99,11 @@ type definition = {
 
    def_const   :  (Name.ident * Syntax.expr option) list ;
                   (* const name, and its value *) 
+
+   def_param_const   :  (Name.ident * (Name.ident * Syntax.expr) option) list ;
+                  (* const name, and its value *) 
+
+
    def_fsys    :  (Name.ident * Name.ident * Syntax.expr) list ;
                   (* file system name, path, and stored value *) 
    def_proctmpl:  def_process_template list (* main fun *)
@@ -109,8 +120,6 @@ type process = {
    proc_pid       :  int ; 
    proc_name      :  string ; 
    proc_type      :  string; 
-   proc_attack    :  Name.ident list ; 
-   proc_channel   :  (Name.ident * Name.ident list * Name.ident list) list;
    proc_filesys   :  Name.ident option;
    proc_file      :  (Name.ident * Syntax.expr * Name.ident list * Name.ident list) list ;
    proc_variable  :  (Name.ident * Syntax.expr) list ; 
@@ -123,11 +132,14 @@ type system = {
    sys_def : definition ;
    sys_pol : access_policy ;
    sys_proc : process list ;
+   sys_param_proc : (process list) list ;
    sys_lemma : Syntax.lemma list ;
 }
 
 type local_context = {
                      lctx_chan : Name.ident list ; 
+
+                     lctx_param_chan : Name.ident list ; 
 
                      lctx_path : Name.ident list ;
 
@@ -159,12 +171,22 @@ let ctx_check_ext_const ctx o =
    List.exists (fun s -> s = o) ctx.ctx_ext_const
 let ctx_check_ty ctx o = 
    List.exists (fun (s, _) -> s = o) ctx.ctx_ty
-let ctx_check_const ctx o = 
+
+   let ctx_check_const ctx o = 
    List.exists (fun s -> s = o) ctx.ctx_const
+
+let ctx_check_param_const ctx o = 
+   List.exists (fun s -> s = o) ctx.ctx_param_const
+
+
 let ctx_check_fsys ctx o = 
    List.exists (fun (s, _, _) -> s = o) ctx.ctx_fsys
 let ctx_check_ch ctx o = 
    List.exists (fun (s, _) -> s = o) ctx.ctx_ch
+
+let ctx_check_param_ch ctx o =
+   List.exists (fun (s, _) -> s = o) ctx.ctx_param_ch
+
 let ctx_check_proctmpl ctx o = 
    List.exists (fun x -> x.ctx_proctmpl_id = o) ctx.ctx_proctmpl
 let ctx_check_event ctx eid = 
@@ -221,8 +243,10 @@ let ctx_add_ext_func ctx (f, k) = {ctx with ctx_ext_func=(f, k)::ctx.ctx_ext_fun
 let ctx_add_ext_const ctx c = {ctx with ctx_ext_const=c::ctx.ctx_ext_const}
 let ctx_add_ty ctx (id, c) = {ctx with ctx_ty=(id, c)::ctx.ctx_ty}
 let ctx_add_const ctx id = {ctx with ctx_const=id::ctx.ctx_const}
+let ctx_add_param_const ctx id = {ctx with ctx_param_const=id::ctx.ctx_param_const}
 let ctx_add_fsys ctx (a, p, ty) = {ctx with ctx_fsys=(a, p, ty)::ctx.ctx_fsys}
 let ctx_add_ch ctx (c, t) = {ctx with ctx_ch=(c, t)::ctx.ctx_ch}
+let ctx_add_param_ch ctx (c, t) = {ctx with ctx_param_ch=(c, t)::ctx.ctx_param_ch}
 let ctx_add_proctmpl ctx p = {ctx with ctx_proctmpl=p::ctx.ctx_proctmpl}
 let ctx_add_event ctx (eid, k) = 
    {ctx with ctx_event=(eid,k)::ctx.ctx_event}      
@@ -250,7 +274,9 @@ let check_fresh ctx s =
       ctx_check_ext_attack ctx s || 
       ctx_check_event ctx s ||
       ctx_check_fact ctx s || 
-      ctx_check_inj_fact ctx s 
+      ctx_check_inj_fact ctx s ||
+      ctx_check_param_ch ctx s ||
+      ctx_check_param_const ctx s
       then false else true 
 
 let check_used ctx s = if (check_fresh ctx s) then false else true
@@ -281,6 +307,7 @@ let ctx_add_or_check_inj_fact ~loc ctx (id, k) =
 (** def related functions *)
 let def_add_ext_eq def x = {def with def_ext_eq=x::def.def_ext_eq}
 let def_add_const def x = {def with def_const=x::def.def_const}
+let def_add_param_const def x = {def with def_param_const=x::def.def_param_const}
 let def_add_fsys def x = {def with def_fsys=x::def.def_fsys}
 let def_add_proctmpl def pid ldef m = 
    {def with def_proctmpl=(mk_def_proctmpl (pid, ldef.ldef_var, ldef.ldef_func, m))::def.def_proctmpl}
@@ -320,6 +347,9 @@ let ldef_add_new_func ldef f =
 let lctx_check_chan lctx c = 
    List.exists (fun i -> i = c) lctx.lctx_chan
 
+let lctx_check_param_chan lctx c =
+   List.exists (fun i -> i = c) lctx.lctx_param_chan
+
 let lctx_check_path lctx c = 
    List.exists (fun i -> i = c) lctx.lctx_path
 
@@ -348,6 +378,7 @@ let lctx_check_id lctx id =
    lctx_check_var lctx id || 
    lctx_check_meta lctx id || 
    lctx_check_chan lctx id || 
+   lctx_check_param_chan lctx id || 
    lctx_check_func lctx id || 
    lctx_check_path lctx id || 
    lctx_check_process lctx id 
@@ -357,6 +388,11 @@ let lctx_add_new_chan ~loc lctx c =
       error ~loc (AlreadyDefined c)
    else {lctx with lctx_chan=c::lctx.lctx_chan}
 
+let lctx_add_new_param_chan ~loc lctx c = 
+   if lctx_check_id lctx c then 
+      error ~loc (AlreadyDefined c)
+   else {lctx with lctx_param_chan=c::lctx.lctx_param_chan}
+   
 let lctx_add_new_path ~loc lctx c = 
    if lctx_check_id lctx c  then 
       error ~loc (AlreadyDefined c)
@@ -431,9 +467,12 @@ let ctx_init =
    ctx_proctmpl = [] ;
    ctx_event = []; 
    ctx_fact = [];
-   ctx_inj_fact = []}
+   ctx_inj_fact = [];
+   ctx_param_ch = [];
+   ctx_param_const = [];
+   }
 
-let def_init = {def_ext_eq = [] ; def_const = [] ; def_ext_syscall = [] ; def_ext_attack = [] ; def_fsys=[] ; def_proctmpl = []}
+let def_init = {def_ext_eq = [] ; def_const = [] ; def_ext_syscall = [] ; def_ext_attack = [] ; def_fsys=[] ; def_proctmpl = [];  def_param_const = []}
 
 let pol_init = {pol_access = [] ; pol_access_all=[]; pol_attack = []}
 (* let sys_init = {   
@@ -442,7 +481,7 @@ let pol_init = {pol_access = [] ; pol_access_all=[]; pol_attack = []}
    sys_pol = [];
    sys_proc =[] }
  *)
-let lctx_init = {lctx_chan = []; lctx_path = []; lctx_process = []; lctx_loc_var = []; lctx_meta_var = []; lctx_top_var = []; lctx_func = []}
+let lctx_init = {lctx_chan = []; lctx_path = []; lctx_process = []; lctx_loc_var = []; lctx_meta_var = []; lctx_top_var = []; lctx_func = [] ; lctx_param_chan = []}
 let ldef_init = {ldef_var=[]; ldef_func=[]}
 
 

@@ -93,6 +93,8 @@ type expr =
   | AddOne of expr
   | Unit 
 
+let expr_pair a b = List [a ; b]
+
 let get_return_var () =
   Var ("return" ^ !separator ^ "var") 
   
@@ -563,33 +565,49 @@ let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=loc} =
     | Syntax.Channel (c, l) -> if ch then Var c else String c
     | Syntax.Process v -> Var v
     | Syntax.Path v -> Var v
+
+    | Syntax.ParamChan (cid, e) -> expr_pair (String cid) (translate_expr ~ch:ch e)
+    | Syntax.ParamConst (cid, e) -> error ~loc (UnintendedError ("translating constant " ^ cid))
   in translate_expr' e
 
-let rec translate_expr2 ?(ch=false) {Location.data=e; Location.loc=loc} = 
+  (* ConstantFact (String s, Var s) *)
+let rec translate_expr2 ?(ch=false) ?(num=0) {Location.data=e; Location.loc=loc} = 
   let translate_expr2' = function
-    | Syntax.ExtConst s -> Apply (s, []), []
-    | Syntax.Const s -> Var s, [s]
-    | Syntax.TopVariable (v, i) -> TopVar i, []
-    | Syntax.LocVariable (v, i) -> LocVar i, []
-    | Syntax.MetaVariable (v, i) -> MetaVar i, []
-    | Syntax.MetaNewVariable (v, i) -> MetaNewVar i, []
+    | Syntax.ExtConst s -> Apply (s, []), [], num
+    | Syntax.Const s -> Var s, [ConstantFact (String s, Var s)], num
+    | Syntax.TopVariable (v, i) -> TopVar i, [], num
+    | Syntax.LocVariable (v, i) -> LocVar i, [], num
+    | Syntax.MetaVariable (v, i) -> MetaVar i, [], num
+    | Syntax.MetaNewVariable (v, i) -> MetaNewVar i, [], num
     | Syntax.Boolean b -> error ~loc (UnintendedError "translating boolean")
-    | Syntax.String s -> String s, []
-    | Syntax.Integer z -> Integer z, []
+    | Syntax.String s -> String s, [], num
+    | Syntax.Integer z -> Integer z, [], num
     | Syntax.Float f -> error ~loc (UnintendedError "translating float")
     | Syntax.Apply (o, el) -> 
-       let (el, sl) = List.fold_left (fun (el, sl) e -> 
-			  let e, s = translate_expr2 ~ch:ch e in 
-			  (el @ [e], sl @ s)) ([], []) el in 
-       Apply (o, el), sl
+       let (el, sl, n) = List.fold_left (fun (el, sl, n) e -> 
+			  let e, s, n = translate_expr2 ~ch:ch ~num:n e in 
+			  (el @ [e], sl @ s, n)) ([], [], num) el in 
+       Apply (o, el), sl, n
     | Syntax.Tuple el -> 
-       let (el, sl) = List.fold_left (fun (el, sl) e -> 
-			  let e, s = translate_expr2 ~ch:ch e in 
-			  (el @ [e], sl @ s)) ([], []) el in 
-       List el, sl
-    | Syntax.Channel (c, l) -> if ch then Var c, [] else String c, []
-    | Syntax.Process v -> Var v, []
-    | Syntax.Path v -> Var v, []
+       let (el, sl, n) = List.fold_left (fun (el, sl, n) e -> 
+			  let e, s, n = translate_expr2 ~ch:ch ~num:n e in 
+			  (el @ [e], sl @ s, n)) ([], [], num) el in 
+       List el, sl, n
+    | Syntax.Channel (c, l) -> if ch then Var c, [], num else String c, [], num
+    | Syntax.Process v -> Var v, [], num
+    | Syntax.Path v -> Var v, [], num
+
+    | Syntax.ParamChan (cid, e) -> 
+      let e', l, n = (translate_expr2 ~ch:ch ~num:num e) in 
+      (* let var_name = (cid ^ !separator ^ string_of_int num) in *)
+      expr_pair (String cid) e', l, n
+
+    | Syntax.ParamConst (cid, e) -> 
+      let e', l, n = (translate_expr2 ~ch:ch ~num:(num+1) e) in 
+      let var_name = (cid ^ !separator ^ string_of_int num) in
+      Var var_name, (ConstantFact (expr_pair (String cid) e', Var var_name))::l, n
+
+
   in translate_expr2' e
 
 
@@ -607,68 +625,51 @@ let rec var_list_replace lctx s e =
   | [] -> [] 
 
 
-let translate_fact namespace f = 
+let translate_fact ?(num=0) namespace f = 
   match f.Location.data with
   | Syntax.Fact(id, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-                                  (el @ [e], gv @ g)) ([],[]) el in    
-    let gv = List.map (fun s -> mk_constant_fact s) gv in 
-    Fact (id, namespace, el), gv, []
+    let el, gv, n = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+                                  (el @ [e], gv @ g, n)) ([],[], num) el in    
+    Fact (id, namespace, el), gv, [], n
 
   | Syntax.GlobalFact(id, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-                                  (el @ [e], gv @ g)) ([],[]) el in    
-    let gv = List.map (fun s -> mk_constant_fact s) gv in 
-
-    GlobalFact (id, el), gv, []
+    let el, gv, n = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+                                  (el @ [e], gv @ g, n)) ([],[], num) el in    
+    GlobalFact (id, el), gv, [], n
 
   | Syntax.ChannelFact(ch, id, el) ->
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-                                  (el @ [e], gv @ g)) ([],[]) (el) in    
-    let e, g = translate_expr2 ch in
-
-    let gv = List.map (fun s -> mk_constant_fact s) (gv @ g) in 
-    
-    (* let acp = ("ACP"^ !separator ^"chan", String eng.namespace, String ch, config_persist) in  *)
-    
-    ChannelFact (id, e, el), gv, [e]
+    let el, gv, n = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+                                  (el @ [e], gv @ g, n)) ([],[], num) el in    
+    let e, g, n = translate_expr2 ~num:n ch in
+        
+    ChannelFact (id, e, el), gv@g, [e], n
 
   | Syntax.PathFact (path, id, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-                                  (el @ [e], gv @ g)) ([],[]) (el) in    
-    let e, g = translate_expr2 path in
-
-    let gv = List.map (fun s -> mk_constant_fact s) (gv @ g) in 
+    let el, gv, n = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+                                  (el @ [e], gv @ g, n)) ([],[], num) el in    
+    let e, g, n = translate_expr2 ~num:n path in
     
-    (* let acp = ("ACP"^ !separator "path", String eng.namespace, String ch, config_persist) in  *)
-
-    PathFact (id, namespace, e, el), gv, [e]
+    PathFact (id, namespace, e, el), gv@g, [e], n
 
   | Syntax.ResFact (0, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-                                  (el @ [e], gv @ g)) ([],[]) (el) in    
-    let gv = List.map (fun s -> mk_constant_fact s) gv in 
-    
-    (* let acp = ("ACP"^ !separator "path", String eng.namespace, String ch, config_persist) in  *)
+    let el, gv, n = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+                                  (el @ [e], gv @ g, n)) ([],[], num) el in    
 
-    ResFact (0, el), gv, []
+    ResFact (0, el), gv, [], n
 
   | Syntax.ResFact (1, el) -> 
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-                                  (el @ [e], gv @ g)) ([],[]) (el) in    
-    let gv = List.map (fun s -> mk_constant_fact s) gv in 
-    
-    (* let acp = ("ACP"^ !separator "path", String eng.namespace, String ch, config_persist) in  *)
+    let el, gv, n = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+                                  (el @ [e], gv @ g, n)) ([],[], num) el in    
 
-    ResFact (1, el), gv, []
+    ResFact (1, el), gv, [], n
 
   | _ -> 
     error ~loc:Location.Nowhere (UnintendedError "process fact")
 
-let translate_facts namespace fl =
-  List.fold_left (fun (fl, gv, acps) f -> 
-              let (f, gv', acps') = translate_fact namespace f in 
-              (fl @ [f], gv@gv', acps@acps')) ([],[],[]) fl
+let translate_facts ?(num=0) namespace fl =
+  List.fold_left (fun (fl, gv, acps, n) f -> 
+              let (f, gv', acps', n) = translate_fact ~num:n namespace f in 
+              (fl @ [f], gv@gv', acps@acps', n)) ([],[],[], num) fl
 
 let rec expr_shift_meta shift e = 
   let e' = 
@@ -727,8 +728,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
   
   match c with
   | Syntax.Return e ->
-    let e, gv = translate_expr2 e in  
-    let gv = List.map (fun s -> mk_constant_fact s) gv in 
+    let e, gv, _ = translate_expr2 e in  
     let (st_f : state) = next_state st scope in 
     let mo = add_state mo st_f in 
     let mo = add_transition mo {
@@ -770,7 +770,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     (mo, st)
 
   | Syntax.Put fl -> 
-    let fl, gv, acps = translate_facts mo.model_name fl in
+    let fl, gv, acps, _ = translate_facts mo.model_name fl in
     let acps = List.map (fun target -> AccessFact(mo.model_name, target, syscall)) acps in
     let st_f = next_state st scope in
     let mo = add_state mo st_f in
@@ -791,8 +791,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
 
   | Syntax.Let (v, e, c) -> 
     
-    let e, gv = translate_expr2 e in  
-    let gv = List.map (fun s -> mk_constant_fact s) gv in 
+    let e, gv, _ = translate_expr2 e in  
     
     let st_f = next_state ~shift:(0,1,0) st scope  in 
     let mo = add_state mo st_f in
@@ -831,8 +830,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
 
   | Syntax.Assign ((v, di), e) -> 
 
-    let e, gv = translate_expr2 e in  
-    let gv = List.map (fun s -> mk_constant_fact s) gv in 
+    let e, gv, _ = translate_expr2 e in  
     let st_f = next_state st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
@@ -851,10 +849,9 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     (mo, st_f)
 
   | Syntax.FCall (ov, f, el) ->
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-                                  (el @ [e], gv @ g)) ([],[]) el in  
+    let el, gv, _ = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+                                  (el @ [e], gv @ g, n)) ([],[], 0) el in  
     let el = List.rev el in  
-    let gv = List.map (fun s -> mk_constant_fact s) gv in 
     
     let (f, args, cmd) = List.find (fun (f', args, cmd) -> f = f') funs in 
 
@@ -897,10 +894,9 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     (mo, st_f)      
 
   | Syntax.SCall (ov, o, el) ->
-    let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-                                  (el @ [e], gv @ g)) ([],[]) el in    
+    let el, gv, _ = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+                                  (el @ [e], gv @ g, n)) ([],[], 0) el in  
     let el = List.rev el in 
-    let gv = List.map (fun s -> mk_constant_fact s) gv in 
     
     let (f, args, cmd) = List.find (fun (f', args, cmd) -> o = f') syscalls in 
 
@@ -1074,7 +1070,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     (add_state mo st_f, st_f)
 
  | Syntax.Event (fl) ->
-    let fl, gv, acps = translate_facts mo.model_name fl in 
+    let fl, gv, acps, _ = translate_facts mo.model_name fl in 
     let st_f = next_state st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
@@ -1096,9 +1092,8 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
   | Del of expr * Name.ident *)
 
 | Syntax.New (v, fid, el, c) ->
-  let el, gv = List.fold_left (fun (el, gv) e -> let e, g = translate_expr2 e in
-    (el @ [e], gv @ g)) ([],[]) el in    
-  let gv = List.map (fun s -> mk_constant_fact s) gv in 
+  let el, gv, _ = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+    (el @ [e], gv @ g, n)) ([],[], 0) el in    
 
   (* | InjectiveFact of 
     string * (* fact name *)
@@ -1142,8 +1137,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
 
 
   | Syntax.Get (vl, id, fid, c) ->
-    let e, g = translate_expr2 id in
-    let g = List.map (fun s -> mk_constant_fact s) g in 
+    let e, g, _ = translate_expr2 id in
 
   (* | InjectiveFact of 
     string * (* fact name *)
@@ -1185,8 +1179,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
   (mo, st_f)
 
   | Syntax.Del (id, fid) ->    
-    let e, g = translate_expr2 id in
-    let g = List.map (fun s -> mk_constant_fact s) g in 
+    let e, g, _ = translate_expr2 id in
     let st_f = next_state st scope  in 
     let mo = add_state mo st_f in
     let mo = add_transition mo {
@@ -1208,7 +1201,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
 and translate_guarded_cmd mo st funs syscalls attacks vars scope syscall (vl, fl, c) = 
   let (meta_num, loc_num, top_num) = vars in 
 
-  let fl, gv, acps = translate_facts mo.model_name fl in
+  let fl, gv, acps, _ = translate_facts mo.model_name fl in
   let acps = List.map (fun target -> AccessFact(mo.model_name,target,syscall)) acps in
   let st_f = next_state ~shift:(List.length vl, 0, 0) st scope in
   let mo = add_state mo st_f in
@@ -1235,8 +1228,6 @@ and translate_guarded_cmd mo st funs syscalls attacks vars scope syscall (vl, fl
 let translate_process {
         Context.proc_pid=k;
         Context.proc_name=s;
-        Context.proc_attack=attks;
-        Context.proc_channel=chs;
         Context.proc_file=fls;
         Context.proc_type=pty_unused;
         Context.proc_filesys=fsys;
@@ -1252,8 +1243,7 @@ let translate_process {
   (* initialize file system *)
   let mo = List.fold_left (fun mo (path, e, _, _) ->
       (* let path = (mk_dir eng fsys path) in *)
-      let e, gv = translate_expr2 e in  
-      let gv = List.map (fun s -> mk_constant_fact s) gv in 
+      let e, gv, _ = translate_expr2 e in  
       let name = mk_fact_name  namespace^ replace_string '/' !separator path in 
       add_rule mo (name, "",
             gv,
@@ -1273,8 +1263,7 @@ let translate_process {
 		   (fun (mo, st) (x, e) -> 
           let st_f = next_state ~shift:(0,0,1) st None in 
           let mo = add_state mo st_f in
-          let e, gv = translate_expr2 e in  
-          let gv = List.map (fun s -> mk_constant_fact s) gv in 
+          let e, gv, _ = translate_expr2 e in  
           let mo = add_transition mo {
             transition_id = List.length mo.model_transitions;
             transition_namespace = mo.model_name;
@@ -1360,10 +1349,32 @@ let translate_sys {
           tamarin_add_rule t 
           ("Const"^sep^v, "", [ResFact(2, [Var v])], [InitFact [String ("Const"^sep^v)]; InitFact [List [String ("Const"^sep^v); Var v]]], [mk_constant_fact v])
 	      | Some e -> (* when v is defined *) 
-          let e, gv = translate_expr2 e in  
-          let gv = List.map (fun s -> mk_constant_fact s) gv in 
-      		tamarin_add_rule t ("Const"^sep^v, "", gv, [], [ConstantFact(Var v, e)])) t (List.rev def.Context.def_const) in
+          let e, gv, _ = translate_expr2 e in  
+      		tamarin_add_rule t ("Const"^sep^v, "", gv, [], [ConstantFact(String v, e)])) t (List.rev def.Context.def_const) in
 
+  let t = tamarin_add_comment t "Parametric global Constants:" in
+
+  let t = List.fold_left (fun t (v, e) -> 
+    match e with
+    | None -> (* when v is fresh *) 
+      tamarin_add_rule t 
+      ("Const"^sep^v, "", 
+        [ResFact(2, [Var v])], 
+        [InitFact [expr_pair (String v) (Var ("rab" ^ !separator))]], 
+        [ConstantFact (expr_pair (String v) (Var ("rab" ^ !separator)), Var v)])
+    | Some (p, e) -> (* when v is defined *) 
+      let e, gv, _ = translate_expr2 e in  
+      tamarin_add_rule t ("Const"^sep^v, "", gv, 
+        [InitFact [expr_pair (String v) (Var p)]], 
+        [ConstantFact (expr_pair (String v) (Var p), e)])) 
+      t (List.rev def.Context.def_param_const) in
+    
+(* 
+      | Syntax.ParamConst (cid, e) -> 
+        let e', l, n = (translate_expr2 ~ch:ch ~num:(num+1) e) in 
+        let var_name = (cid ^ !separator ^ string_of_int num) in
+        Var var_name, (ConstantFact (expr_pair (String cid) e', Var var_name))::l, n
+   *)
   (* initialize files *)
   (* def_fsys    :  (Name.ident * Name.ident * Syntax.expr) list ; *)
 (*   let t = add_comment t "Initial file system:" in
@@ -1384,6 +1395,8 @@ let translate_sys {
   (* pol_access : (Name.ident * Name.ident list * Name.ident) list ; *)
   let t, il = List.fold_left (fun (t, il) p ->
 		  let procname = String.capitalize_ascii (p.Context.proc_name ^ (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid)) in 
+
+
 
 		  let t, il = 
         List.fold_left (fun (t, il) (c, ty) -> 
@@ -1408,6 +1421,34 @@ let translate_sys {
                   [], 
                   [], 
                   [AccessFact(procname, String c, "")]), name::il) (t, il) ctx.Context.ctx_ch in 
+
+
+		  let t, il = 
+        List.fold_left (fun (t, il) (c, ty) -> 
+          match List.find_all (fun (a, b, sys) -> a = p.Context.proc_type && List.exists (fun b -> b = ty) b) pol.Context.pol_access with
+          | [] -> (t, il) 
+          | scall -> 
+            List.fold_left (fun (t, il) (_, _, sys) ->
+				      let name = procname ^ sep ^ c ^ sep ^ sys in 
+					      tamarin_add_rule t 
+                  (name, "",
+                    [], 
+                    [], 
+                    [AccessFact(procname, expr_pair (String c) (Var !fresh_ident), sys)]), name::il) (t, il) scall) (t, il) ctx.Context.ctx_param_ch in 
+
+      let t, il = List.fold_left (fun (t, il) (c, ty) -> 
+                match List.find_all (fun (a, b) -> a = p.Context.proc_type && List.exists (fun b -> b = ty) b) pol.Context.pol_access_all with
+                | [] -> (t, il) 
+                | _ -> 
+                 let name = procname ^ sep ^ c ^ sep in 
+                 tamarin_add_rule t 
+                  (name, "",
+                  [], 
+                  [], 
+                  [AccessFact(procname, expr_pair (String c) (Var !fresh_ident), "")]), name::il) (t, il) ctx.Context.ctx_param_ch in 
+
+
+
 
       let t = List.fold_left (fun (t : tamarin) (pty, att) -> 
         if p.Context.proc_type = pty 
