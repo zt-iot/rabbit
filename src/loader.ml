@@ -62,6 +62,7 @@ let rec process_expr ?(param="") ctx lctx {Location.data=c; Location.loc=loc} =
       else if Context.lctx_check_chan lctx id then Syntax.Channel (id, "")
       else if Context.lctx_check_path lctx id then Syntax.Path id
       else if Context.lctx_check_process lctx id then Syntax.Process id
+      else if Context.lctx_check_param lctx id then Syntax.Param id
       else if id = param then Syntax.Param id 
       else 
          begin
@@ -102,6 +103,7 @@ let rec process_expr2 new_meta_vars ctx lctx {Location.data=c; Location.loc=loc}
       else if Context.lctx_check_chan lctx id then Syntax.Channel (id, "")
       else if Context.lctx_check_path lctx id then Syntax.Path id
       else if Context.lctx_check_process lctx id then Syntax.Process id
+      else if Context.lctx_check_param lctx id then Syntax.Param id
       else 
       begin
          match find_index (fun v -> v = id) lctx.Context.lctx_top_var with
@@ -356,33 +358,39 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
 let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([],[]))
 
 let process_pproc ?(param="") loc ctx def pol (proc : Input.pproc) = 
-   match proc.Location.data with 
-   | Input.Proc(pid, chans, fsys) -> 
+   let (pid, files, vl, fl, m, cargs, chans, ptype) = 
+   begin match proc.Location.data with 
+   | Input.ParamProc(pid, param', chans) -> 
       if not (Context.ctx_check_proctmpl ctx pid) then error ~loc (UnknownIdentifier pid) else
-      (match fsys with | Some fsys -> if not (Context.ctx_check_fsys ctx fsys) then error ~loc (UnknownIdentifier fsys) else () | _ -> ()); 
-      let (_, cargs, ptype, _, _) = Context.to_pair_ctx_proctmpl (Context.ctx_get_proctmpl ctx pid) in
+      let (_, param'', cargs, ptype, _, _) = Context.to_pair_ctx_proctmpl (Context.ctx_get_proctmpl ctx pid) in
+      (match param'' with 
+      | Some _ -> () | None -> error ~loc (UnknownIdentifier ""));
       let cargs = List.rev cargs in 
-      let (_, vl, fl, m) = Context.to_pair_def_proctmpl (Context.def_get_proctmpl def pid) in
-      let fpaths =
-      match fsys with
-      | Some fsys -> 
-         let fpaths = List.fold_left (fun fpaths (fsys', path, ftype) -> if fsys = fsys' then (path, ftype) :: fpaths else fpaths) [] ctx.Context.ctx_fsys in 
-         let fpaths = List.map (fun (path, ftype) -> 
-                           let (_ , _ , v) = List.find (fun (fsys', path', val') -> fsys' = fsys && path = path') def.Context.def_fsys in 
-                           (path, v, ftype)) fpaths in 
-         let fpaths = List.map (fun (path, v, ftype) -> 
-                           let accs = List.fold_left (fun accs (s, t, a) -> 
-                                          if s = ptype && List.exists (fun s -> s = ftype) t then a :: accs else accs) [] pol.Context.pol_access in
-                           let attks = List.fold_left (fun attks (t, a) -> 
-                                          if t = ftype then a :: attks else attks) [] pol.Context.pol_attack in
-                           (path,v,accs, attks)) fpaths in fpaths
-      | None -> []
-      in
+      let (_, files, vl, fl, m) = Context.to_pair_def_proctmpl (Context.def_get_proctmpl def pid) in
+      let realparam = process_expr ~param:param ctx Context.lctx_init param' in      
+      let files = List.map (fun (p, ty, e) -> (Substitute.expr_param p realparam, ty, Substitute.expr_param e realparam)) files in 
+      let vl = List.map (fun (v, e) -> (v, Substitute.expr_param e realparam)) vl in 
+      let fl = List.map (fun (fn, args, c) -> (fn, args, Substitute.cmd_param c realparam)) fl in 
+      let m = Substitute.cmd_param m realparam in
+      
+      (pid, files, vl, fl, m, cargs, chans, ptype)
+
+   | Input.Proc(pid, chans) -> 
+      if not (Context.ctx_check_proctmpl ctx pid) then error ~loc (UnknownIdentifier pid) else
+      let (_, param', cargs, ptype, _, _) = Context.to_pair_ctx_proctmpl (Context.ctx_get_proctmpl ctx pid) in
+      (match param' with 
+      | Some _ -> error ~loc (UnknownIdentifier "") | None -> ());
+      let cargs = List.rev cargs in 
+      let (_, files, vl, fl, m) = Context.to_pair_def_proctmpl (Context.def_get_proctmpl def pid) in
+   
+      (pid, files, vl, fl, m, cargs, chans, ptype)
+      end in 
+
       (* substitute channels *)
       if (List.length cargs) !=  (List.length chans) then error ~loc (ArgNumMismatch (pid, (List.length chans), (List.length cargs)))
       else
-         let (vl, fl, m) = List.fold_left2 
-            (fun (vl, fl, m) (is_param, ch_f, ty_f) ch_t -> 
+         let (files, vl, fl, m) = List.fold_left2 
+            (fun (files, vl, fl, m) (is_param, ch_f, ty_f) ch_t -> 
                begin match ch_t with
                | Input.ChanArgPlain ch_t ->
                   (if is_param then error ~loc (WrongChannelType   ("", "")) else ());
@@ -391,7 +399,9 @@ let process_pproc ?(param="") loc ctx def pol (proc : Input.pproc) =
                   (if chan_ty = ty_f then () else error ~loc (WrongChannelType (ch_f^":"^ty_f, ch_t^":"^chan_ty)));  
                      (* replace channel variables and check access policies! *)
                   let new_chan = (Location.locate ~loc:Location.Nowhere (Syntax.Channel (ch_t, ""))) in 
-                     (List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e ch_f new_chan)) vl,
+                     (
+                     List.map (fun (p, ty, e) -> (Substitute.expr_chan_sub p ch_f new_chan, ty, Substitute.expr_chan_sub e ch_f new_chan)) files,   
+                     List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e ch_f new_chan)) vl,
                      List.map (fun (fn, args, c) -> (fn, args, Substitute.cmd_chan_sub c ch_f new_chan)) fl,
                      Substitute.cmd_chan_sub m ch_f new_chan)
                
@@ -402,9 +412,11 @@ let process_pproc ?(param="") loc ctx def pol (proc : Input.pproc) =
                   let (_, chan_ty) = List.find (fun (s, _) -> s = ch_t) ctx.Context.ctx_param_ch in
                   (if chan_ty = ty_f then () else error ~loc (WrongChannelType (ch_f^":"^ty_f, ch_t^":"^chan_ty)));  
                      (* replace channel variables and check access policies! *)
-                  (List.map (fun (v, e) -> (v, Substitute.expr_param_chan_sub e ch_f ch_t)) vl,
-                  List.map (fun (fn, args, c) -> (fn, args, Substitute.cmd_param_chan_sub c ch_f ch_t)) fl,
-                  Substitute.cmd_param_chan_sub m ch_f ch_t)
+                  (
+                     List.map (fun (p, ty, e) -> (Substitute.expr_param_chan_sub p ch_f ch_t, ty, Substitute.expr_param_chan_sub e ch_f ch_t)) files,
+                     List.map (fun (v, e) -> (v, Substitute.expr_param_chan_sub e ch_f ch_t)) vl,
+                     List.map (fun (fn, args, c) -> (fn, args, Substitute.cmd_param_chan_sub c ch_f ch_t)) fl,
+                     Substitute.cmd_param_chan_sub m ch_f ch_t)
                
                | Input.ChanArgParamInst (cid, e) ->
                   (if is_param then error ~loc (WrongChannelType   ("", "")) else ());
@@ -413,16 +425,17 @@ let process_pproc ?(param="") loc ctx def pol (proc : Input.pproc) =
                   (if chan_ty = ty_f then () else error ~loc (WrongChannelType (ch_f^":"^ty_f, cid^":"^chan_ty)));  
                   (* replace channel variables and check access policies! *)
                   let new_chan = (Location.locate ~loc:Location.Nowhere (Syntax.ParamChan (cid, process_expr ~param:param ctx Context.lctx_init e))) in 
-                  (List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e ch_f new_chan)) vl,
-                  List.map (fun (fn, args, c) -> (fn, args, Substitute.cmd_chan_sub c ch_f new_chan)) fl,
-                  Substitute.cmd_chan_sub m ch_f new_chan)
+                  (
+                     List.map (fun (p, ty, e) -> (Substitute.expr_chan_sub p ch_f new_chan, ty, Substitute.expr_chan_sub e ch_f new_chan)) files,
+                     List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e ch_f new_chan)) vl,
+                     List.map (fun (fn, args, c) -> (fn, args, Substitute.cmd_chan_sub c ch_f new_chan)) fl,
+                     Substitute.cmd_chan_sub m ch_f new_chan)
 
-               end) (vl, fl, m) cargs chans in 
+               end) (files, vl, fl, m) cargs chans in 
                {Context.proc_pid=0; 
                Context.proc_type =ptype; 
-               Context.proc_filesys= fsys; 
+               Context.proc_filesys= files; 
                Context.proc_name=pid; 
-               Context.proc_file=fpaths; 
                Context.proc_variable=vl; 
                Context.proc_function=fl; 
                Context.proc_main=m}
@@ -603,8 +616,8 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
   | Input.DeclChan (id, c) ->
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 
       (Context.ctx_add_ch ctx (id, c), pol, def, sys, fst ps)
-
-  | Input.DeclProc (pid, cargs, ty, cl, fs, m) ->
+   
+  | Input.DeclParamProc (pid, p, cargs, ty, fls, cl, fs, m) ->
       begin match Context.ctx_get_ty ~loc ctx ty 
       with | Input.CProc -> () | _ -> error ~loc (WrongInputType) end;
       (if Context.check_used ctx pid then error ~loc (AlreadyDefined pid) else ());
@@ -619,7 +632,15 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
             end 
          else
             error ~loc (UnknownIdentifier cty)
-         ) Context.lctx_init cargs in
+         ) (Context.lctx_add_new_param ~loc Context.lctx_init p) cargs in
+      (* load files *)
+
+      let files = List.map (fun (path, ty, data) ->
+         match Context.ctx_get_ty ~loc ctx ty with
+         | Input.CFsys ->
+            (process_expr ctx lctx path, ty, process_expr ctx lctx data)
+         | _ -> error ~loc (WrongInputType)
+         ) fls in 
 
       (* load top-level variables *)
       let (lctx, ldef) = List.fold_left (fun (lctx', ldef') (vid, e) -> 
@@ -636,8 +657,52 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
       (* load main function *)
       let (ctx, _, m') = process_cmd ctx lctx m in 
 
-      (Context.ctx_add_proctmpl ctx (Context.mk_ctx_proctmpl (pid, List.rev cargs, ty, lctx.Context.lctx_top_var, lctx.Context.lctx_func)), pol, 
-         Context.def_add_proctmpl def pid ldef m', sys, fst ps)
+      (Context.ctx_add_proctmpl ctx (Context.mk_ctx_proctmpl (pid, Some p, List.rev cargs, ty, lctx.Context.lctx_top_var, lctx.Context.lctx_func)), pol, 
+         Context.def_add_proctmpl def pid files ldef m', sys, fst ps)
+
+
+   | Input.DeclProc (pid, cargs, ty,  fls,  cl, fs, m) ->
+      begin match Context.ctx_get_ty ~loc ctx ty 
+      with | Input.CProc -> () | _ -> error ~loc (WrongInputType) end;
+      (if Context.check_used ctx pid then error ~loc (AlreadyDefined pid) else ());
+      (* load channel parameters *)
+      let lctx = List.fold_left (fun lctx' (b, cid, cty) -> 
+      if Context.ctx_check_ty_ch ctx cty 
+         then 
+            begin if b then 
+               Context.lctx_add_new_param_chan ~loc lctx' cid
+            else 
+               Context.lctx_add_new_chan ~loc lctx' cid
+            end 
+         else
+            error ~loc (UnknownIdentifier cty)
+         ) Context.lctx_init cargs in
+      (* load files *)
+      
+      let files = List.map (fun (path, ty, data) ->
+         match Context.ctx_get_ty ~loc ctx ty with
+         | Input.CFsys ->
+            (process_expr ctx lctx path, ty, process_expr ctx lctx data)
+         | _ -> error ~loc (WrongInputType)
+         ) fls in 
+
+      (* load top-level variables *)
+      let (lctx, ldef) = List.fold_left (fun (lctx', ldef') (vid, e) -> 
+         (Context.lctx_add_new_top_var ~loc lctx' vid, Context.ldef_add_new_var ldef' (vid, process_expr ctx lctx' e))) (lctx, Context.ldef_init) cl in
+
+      (* load functions *)
+      let (ctx, lctx, ldef) = List.fold_left (fun (ctx'', lctx'', ldef'') (fid, args, cs) -> 
+         if Context.lctx_check_func lctx'' fid then error ~loc (AlreadyDefined fid) else 
+         let lctx = List.fold_left (fun lctx' vid -> Context.lctx_add_new_var ~loc lctx' vid) lctx'' args in
+         let (ctx', lctx', cs')  = process_cmd ctx'' lctx cs in 
+         (ctx', Context.lctx_add_new_func ~loc lctx'' (fid, List.length args), 
+               Context.ldef_add_new_func ldef'' (fid, args, cs'))) (ctx, lctx, ldef) fs in
+
+      (* load main function *)
+      let (ctx, _, m') = process_cmd ctx lctx m in 
+
+      (Context.ctx_add_proctmpl ctx (Context.mk_ctx_proctmpl (pid, None, List.rev cargs, ty, lctx.Context.lctx_top_var, lctx.Context.lctx_func)), pol, 
+         Context.def_add_proctmpl def pid files ldef m', sys, fst ps)
 
       
 

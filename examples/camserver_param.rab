@@ -97,14 +97,9 @@ const pubkey<k> = pk(priv_k<k>)
 channel rpc<> : rpc_t
 channel udp<> : udp_t
 
-filesys client_ta_fs<k> = 
-[ 
-  {path: "/secret/priv", data: enc(priv_k<k>, sym_k<k>), type: readonly_t}
-]
-
 (***********)
 (** process templates *)
-process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t 
+process client<k>(ch_net : udp_t, ch_rpc : rpc_t) : client_t 
 {  
   var privkey_path = "/secret/priv"
   var invoke_func = "sign_image"
@@ -137,9 +132,11 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
   }
 }
 
-process client_ta(ch_rpc : rpc_t) : client_ta_t 
-{
-  var fek = sym_k
+process client_ta<k>(ch_rpc : rpc_t) : client_ta_t 
+{ 
+  file "/secret/priv" : readonly_t = enc(priv_k<k>, sym_k<k>)
+
+  var fek = sym_k<k>
 
   function sign_image(image, privkey_path) 
   {
@@ -204,8 +201,10 @@ process server(ch_net<> : udp_t) : server_t
 
 (***********)
 system 
-!n . (client(udp<n>, rpc<n>) | client_ta(rpc<n>) with client_ta_fs) | server(udp<>) with server_fs 
-requires  [
+  !n . (client<n>(udp<n>, rpc<n>) | client_ta<n>(rpc<n>)) 
+  |    server(udp<>)
+requires  
+[
   lemma Reachable :
   	exists-trace "Ex x #i #j #k  . ClientClose() @ #j & ClientTAClose() @ #k & ImgRecvValid(x) @ #i" ;
   lemma Correspondence :

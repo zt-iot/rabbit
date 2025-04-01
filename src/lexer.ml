@@ -9,6 +9,7 @@ let reserved = [
   ("passive", PASSIVE) ;
   ("attack", ATTACK) ;
   ("filesys", FILESYS) ;
+  ("file", FILE) ;
   ("channel", CHANNEL) ; 
   ("path", PATH) ; 
   ("process", PROCESS) ;

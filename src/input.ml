@@ -50,7 +50,8 @@ type chan_arg =
 
 type pproc = pproc' Location.located
 and pproc' =
-  | Proc of Name.ident * (chan_arg list) * Name.ident option
+  | Proc of Name.ident * (chan_arg list)
+  | ParamProc of Name.ident * expr * (chan_arg list)
 
 type proc = 
 | UnboundedProc of pproc 
@@ -81,6 +82,11 @@ and decl' =
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
   | DeclChan of Name.ident * Name.ident
   | DeclProc of Name.ident * (bool * Name.ident * Name.ident) list * Name.ident * 
+                ((expr * Name.ident * expr) list) * 
+                ((Name.ident * expr) list) * 
+                (Name.ident * (Name.ident list) * cmd) list * cmd
+  | DeclParamProc of Name.ident * Name.ident * (bool * Name.ident * Name.ident) list * Name.ident * 
+                ((expr * Name.ident * expr) list) * 
                 ((Name.ident * expr) list) * 
                 (Name.ident * (Name.ident list) * cmd) list * cmd
   | DeclSys of proc list * lemma list 

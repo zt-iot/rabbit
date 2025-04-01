@@ -143,7 +143,7 @@ type fact =
     string (* namespace *)
     * int (* transition id of the initial transition of the loop *)
     * int (* 0: loop in 2 : loop back 3 : loop out *)
-  | TransitionFact of string * int * expr
+  | TransitionFact of string * int * expr * expr
   | InjectiveFact of 
     string * (* fact name *)
     string * (* namespace *)
@@ -169,7 +169,7 @@ let print_fact' (f : fact) : fact' =
   | InitFact el -> ("Init"^ !separator, el, config_linear)
   | LoopFact (nsp, tid, b) -> ("Loop" ^ ! separator ^ 
     (if b =0 then "Start" else if b = 1 then "Back" else "Finish"), [String (nsp ^ !separator ^ string_of_int tid)], config_linear)
-  | TransitionFact (nsp, ind, e) -> ("Transition"^ !separator ^ nsp, [String (string_of_int ind); e], config_linear)
+  | TransitionFact (nsp, ind, e, p) -> ("Transition"^ !separator ^ nsp, [String (string_of_int ind); e; p], config_linear)
   | InjectiveFact (fid, nsp, id, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp, [FVar id ; el], config_linear)
   | FreshFact (e) -> ("Fr", [FVar e], config_linear)
   | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact")
@@ -426,7 +426,7 @@ let transition_to_transition_rule (tr : transition) : rule =
       !separator ^ string_of_int tr.transition_id in 
   let pre = tr.transition_pre in
   let post = tr.transition_post in
-  let label = TransitionFact(tr.transition_namespace, tr.transition_id, Int ("v"^ !separator)) :: tr.transition_label in
+  let label = TransitionFact(tr.transition_namespace, tr.transition_id, Int ("v"^ !separator), Param) :: tr.transition_label in
   let initial_state_fact = mk_state_transition tr.transition_from (fst tr.transition_state_transition) (tr.transition_id = 0) false in 
   let final_state_fact = mk_state_transition tr.transition_to (snd tr.transition_state_transition) (tr.transition_id = 0) tr.transition_is_loop_back in 
   Rule (f, tr.transition_namespace, initial_state_fact :: List.map print_fact' pre, List.map print_fact'  label, final_state_fact ::List.map print_fact' post)
@@ -527,8 +527,8 @@ let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev print_transiti
 
     (mult_list_with_concat (List.map (fun mo -> 
       "lemma transition"^ ! separator ^ mo.model_name ^ "[reuse,use_induction]:\n
-      \"All x %i #j #k . Transition"^ ! separator ^ mo.model_name ^ "(x, %i) @#j &
-       Transition"^ ! separator ^ mo.model_name ^ "(x, %i) @ #k ==> #j = #k\"\n"   
+      \"All x p %i #j #k . Transition"^ ! separator ^ mo.model_name ^ "(x, %i, p) @#j &
+       Transition"^ ! separator ^ mo.model_name ^ "(x, %i, p) @ #k ==> #j = #k\"\n"   
       ) (List.rev mo_lst)) "\n")^
     
     (* print lemmas *)
@@ -1234,9 +1234,8 @@ and translate_guarded_cmd mo st funs syscalls attacks vars scope syscall (vl, fl
 let translate_process {
         Context.proc_pid=k;
         Context.proc_name=s;
-        Context.proc_file=fls;
         Context.proc_type=pty_unused;
-        Context.proc_filesys=fsys;
+        Context.proc_filesys=fls;
         Context.proc_variable=vars;
         Context.proc_function=fns;
         Context.proc_main=m
@@ -1247,12 +1246,14 @@ let translate_process {
   let mo, st = initial_model namespace pty_unused in 
 
   (* initialize file system *)
-  let (mo, st) = List.fold_left (fun (mo, st) (path, e, _, _) ->
+  let (mo, st) = List.fold_left (fun (mo, st) (path, ty, e) ->
       (* let path = (mk_dir eng fsys path) in *)
       let st_f = next_state ~shift:(0,0,0) st None in 
       let mo = add_state mo st_f in  
       let e, gv, _ = translate_expr2 e in  
-      let name = mk_fact_name  namespace^ replace_string '/' !separator path in 
+      let path, gv', _ = translate_expr2 path in  
+      
+      (* let name = mk_fact_name  namespace^ replace_string '/' !separator path in  *)
       let mo = add_transition mo {
         transition_id = List.length mo.model_transitions;
         transition_namespace = mo.model_name;
@@ -1260,7 +1261,7 @@ let translate_process {
         transition_from = st;
         transition_to = st_f;
         transition_pre = gv;
-        transition_post = [FileFact(namespace, String path, e)];
+        transition_post = [FileFact(namespace, path, e)];
         transition_state_transition = mk_state_transition_from_action (ActionReturn Unit) st.state_vars;
         transition_label = [];
         transition_is_loop_back = false   
@@ -1443,23 +1444,12 @@ let translate_sys {
           [], 
           [AttackFact(procname, String att)]) 
         else t) t pol.Context.pol_attack in
- 
-      let t, il = List.fold_left (fun (t, il) (dir, path, ty) -> 
-          if (match p.Context.proc_filesys with Some a -> a | None -> "") <> dir then (t, il) else
-            match List.find_all (fun (a, b, sys) -> a = p.Context.proc_type && List.exists (fun b -> b = ty) b) pol.Context.pol_access with
-            | [] -> (t, il)
-            | scall ->        
-         List.fold_left (fun (t, il) (_, _, sys) ->
-       let name = procname ^ sep ^ dir ^ sep ^replace_string '/' sep path ^ sep ^ sys in 
-       tamarin_add_rule t 
-         (name, "",
-          [], 
-          [], 
-          [AccessFact(p.Context.proc_type, String path, sys)])
-             , name::il) (t, il) scall
-              ) (t, il) ctx.Context.ctx_fsys in 
-
 		  (t, il)) (t, il) (proc @ (List.flatten param_proc)) in
+
+let t = List.fold_left (fun t (ty, target_ty_list, scall) -> 
+  List.fold_left (fun t target_ty -> 
+      tamarin_add_rule t (ty ^ sep ^ target_ty ^ sep ^  scall,"",[],[],[AccessFact(ty, String target_ty, scall)])) t target_ty_list    
+  ) t pol.Context.pol_access in
 
   (* let t = add_comment t "Processes:" in *)
   let mos = List.fold_left (fun mos p ->  (translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack)::mos) [] (List.rev proc) in

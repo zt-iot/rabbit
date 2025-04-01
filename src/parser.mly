@@ -21,7 +21,7 @@
 
 (* constant tokens for rabbit *)
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
-%token CHANNEL PROCESS PATH DATA FILESYS 
+%token CHANNEL PROCESS PATH DATA FILESYS FILE
 %token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LTGT
 %token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL
 
@@ -66,12 +66,16 @@ plain_decl:
   | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t, Some a)} 
   | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)} 
 
-  | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
+  // | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
 
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
 
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME 
-    LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
+    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, fl, l, f, m) }
+
+  | PROCESS id=NAME LT p=NAME GT LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME 
+    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclParamProc(id, p, parems, ty,fl, l, f, m) }
+
 
   | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
 
@@ -125,20 +129,21 @@ typed_arg:
   | PROCESS var=NAME { (TyProcess, var) }
   | PATH var=NAME { (TyPath, var) }
 
-proc:
-  | p=uproc { UnboundedProc p }
-  | p=bproc { BoundedProc p}
 
 sys:
   | SYSTEM p=separated_nonempty_list(BAR, proc) REQUIRES 
     LBRACKET a=separated_nonempty_list(SEMICOLON, lemma)  RBRACKET { DeclSys(p, a) }
 
+proc:
+  | p=uproc { UnboundedProc p }
+  | p=bproc { BoundedProc p}
+
 uproc: mark_location(plain_uproc) { $1 }
 plain_uproc:
-  | id=NAME LPAREN parems=separated_list(COMMA, chan_arg) RPAREN WITH f=NAME 
-    { Proc (id, parems, Some f) }
   | id=NAME LPAREN parems=separated_list(COMMA, chan_arg) RPAREN 
-    { Proc (id, parems, None) }
+    { Proc (id, parems) }
+  | id=NAME LT p=expr GT LPAREN parems=separated_list(COMMA, chan_arg) RPAREN 
+    { ParamProc (id, p, parems) }
 
 // bproc: mark_location(plain_bproc) { $1 }
 bproc:
@@ -163,6 +168,13 @@ plain_prop:
   
   | EXTRACE QUOTED_STRING {PlainString ("exists-trace \""^$2^"\"") }
   | ALLTRACE QUOTED_STRING {PlainString ("all-traces \""^$2^"\"") }
+
+file_stmts:
+  | { [] }
+  | l=file_stmt ls=file_stmts { l :: ls }
+
+file_stmt:
+  | FILE id=expr COLON ty=NAME EQ e=expr { (id, ty, e) }
 
 let_stmts:
   | { [] }

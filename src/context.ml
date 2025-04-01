@@ -32,10 +32,11 @@ let print_error err ppf =
 (* process tempates spec and definition *)
 type ctx_process_template = {
    ctx_proctmpl_id   :  Name.ident ; 
+   ctx_proctmpl_param : Name.ident option ;
    ctx_proctmpl_ch   :  (bool * Name.ident * Name.ident) list ; (* true means that the channel is prametric *)
    ctx_proctmpl_ty   :  Name.ident ;
    ctx_proctmpl_var  :  Name.ident list ;
-   ctx_proctmpl_func :  (Name.ident * int) list  
+   ctx_proctmpl_func :  (Name.ident * int) list ;
 }
 (* declared process template name, its channel arguments, type, member variables, and
 member functions and their arities *)
@@ -43,15 +44,16 @@ member functions and their arities *)
 
 type def_process_template = {
    def_proctmpl_id   :  Name.ident ; 
+   def_proctmpl_files : (Syntax.expr * Name.ident * Syntax.expr) list;
    def_proctmpl_var  :  (Name.ident * Syntax.expr) list ; 
    def_proctmpl_func :  (Name.ident * Name.ident list * Syntax.cmd) list ; 
    def_proctmpl_main :  Syntax.cmd   
 }
 
-let mk_ctx_proctmpl (a, b, c, d, e) = {ctx_proctmpl_id=a; ctx_proctmpl_ch=b; ctx_proctmpl_ty=c; ctx_proctmpl_var=d; ctx_proctmpl_func=e}
-let mk_def_proctmpl (a, b, c, d) = {def_proctmpl_id=a; def_proctmpl_var=b; def_proctmpl_func=c; def_proctmpl_main=d}
-let to_pair_ctx_proctmpl x = (x.ctx_proctmpl_id, x.ctx_proctmpl_ch, x.ctx_proctmpl_ty, x.ctx_proctmpl_var, x.ctx_proctmpl_func)
-let to_pair_def_proctmpl x = (x.def_proctmpl_id, x.def_proctmpl_var, x.def_proctmpl_func, x.def_proctmpl_main)
+let mk_ctx_proctmpl (a, f, b, c, d, e) = {ctx_proctmpl_id=a; ctx_proctmpl_param=f; ctx_proctmpl_ch=b; ctx_proctmpl_ty=c; ctx_proctmpl_var=d; ctx_proctmpl_func=e}
+let mk_def_proctmpl (a, b, c, d, e) = {def_proctmpl_id=a; def_proctmpl_files=b; def_proctmpl_var=c; def_proctmpl_func=d; def_proctmpl_main=e}
+let to_pair_ctx_proctmpl x = (x.ctx_proctmpl_id, x.ctx_proctmpl_param, x.ctx_proctmpl_ch, x.ctx_proctmpl_ty, x.ctx_proctmpl_var, x.ctx_proctmpl_func)
+let to_pair_def_proctmpl x = (x.def_proctmpl_id, x.def_proctmpl_files, x.def_proctmpl_var, x.def_proctmpl_func, x.def_proctmpl_main)
 
 
 (* ctx : context refers to the external specification of the system *)
@@ -120,8 +122,7 @@ type process = {
    proc_pid       :  int ; 
    proc_name      :  string ; 
    proc_type      :  string; 
-   proc_filesys   :  Name.ident option;
-   proc_file      :  (Name.ident * Syntax.expr * Name.ident list * Name.ident list) list ;
+   proc_filesys   :  (Syntax.expr * Name.ident *Syntax.expr) list ;
    proc_variable  :  (Name.ident * Syntax.expr) list ; 
    proc_function  :  (Name.ident * Name.ident list * Syntax.cmd) list ;
    proc_main      :  Syntax.cmd 
@@ -312,8 +313,8 @@ let def_add_ext_eq def x = {def with def_ext_eq=x::def.def_ext_eq}
 let def_add_const def x = {def with def_const=x::def.def_const}
 let def_add_param_const def x = {def with def_param_const=x::def.def_param_const}
 let def_add_fsys def x = {def with def_fsys=x::def.def_fsys}
-let def_add_proctmpl def pid ldef m = 
-   {def with def_proctmpl=(mk_def_proctmpl (pid, ldef.ldef_var, ldef.ldef_func, m))::def.def_proctmpl}
+let def_add_proctmpl def pid files ldef m = 
+   {def with def_proctmpl=(mk_def_proctmpl (pid, files, ldef.ldef_var, ldef.ldef_func, m))::def.def_proctmpl}
 
 let def_add_ext_syscall def x = 
       {def with def_ext_syscall=x::def.def_ext_syscall}
@@ -346,6 +347,11 @@ let ldef_add_new_var ldef (v, e) =
 
 let ldef_add_new_func ldef f = 
    {ldef with ldef_func=f::ldef.ldef_func}
+
+let lctx_check_param lctx p = 
+   match lctx.lctx_param with
+   | Some s -> s = p
+   | _ -> false
 
 let lctx_check_chan lctx c = 
    List.exists (fun i -> i = c) lctx.lctx_chan
