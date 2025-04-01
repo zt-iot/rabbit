@@ -67,6 +67,6 @@ process DEV(i2c : U, k : tee, C : U, H : U, w : U, root : k_root) {
 process p(i2c : U, k : tee, C : U, H : U, w : U) {
   (new root : k_root)
   (* I don't think these things are part of the syntax definition of the language? Arbitrary execution of processes TEE, DEV *)
-  let TEE_s = sign(TEE(i2c, k, C, H)], root) in (* sign code of TEE with signing key root *)
+  let TEE_s = sign(TEE(i2c, k, C, H), root) in (* sign code of TEE with signing key root *)
   send(w, TEE_s) | DEV(i2c, k, C, H, w, root) (* execute DEV and the sending of TEE_s in parallel *)
 }

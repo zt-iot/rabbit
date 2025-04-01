@@ -50,17 +50,18 @@ allow client_t udp_t [send, recv]
 (** ATTACKER MODEL *)
 
 (*****)
-(** ACTIVE ATTACKS) **)
+(** ACTIVE ATTACKS **)
 (*****)
 
 (* Attacker changes contents of a channel to something they know *)
+
 attack tamper_ch (channel c) : [c::store(v), In(w)] -> [c::store(w)]
 
 (* Attacker changes contents of a file to something they know *)
 attack tamper_file (path p) : [p.File(x), In(w)] -> [p.File(w)]
 
 (*****)
-(** PASSIVE ATTACKS) **)
+(** PASSIVE ATTACKS **)
 (*****)
 passive attack tamper_mem_passive(y) : [::In(v)] -{y := v; }-> [] 
 passive attack eaves_mem (v) : [] -> [::Out(v)]
