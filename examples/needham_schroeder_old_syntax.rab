@@ -131,12 +131,10 @@ process alice(ch_net : udp_t) : client_t
       let ciphertext1 = enc((nonce_msg1, identity_alice), pub_key_bob);
 
       (* Send message1 to Bob *)
-
 			let _ = send(ch_net, ciphertext1) @ MsgSend(ciphertext1);
 
-      (* Receive ciphertext2 from Bob *)
+      (* Receive ciphertext2 from Bob and decrypt*)
       let ciphertext2 = recv(ch_net);
-
       let msg2 = dec(ciphertext2, priv_key_alice);
 
       (* Get only the part of the message which is the nonce of Bob *)
