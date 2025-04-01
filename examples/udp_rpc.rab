@@ -1,12 +1,11 @@
 (** asynchronous channels *)
 syscall send(c, v) {
-  put [c::store(v)]
+  put [c::store(v), c::signal()]
 }
 
 syscall recv(c) {
   case 
   | [c::store(v)] →   v 
-(*  | [c::store(v), ::In(w)] →   w *)
   end
 }
 

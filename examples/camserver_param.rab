@@ -55,6 +55,7 @@ type rpc_t 	  : channel
 (** access control *)
 allow client_t udp_t [send]
 allow server_t udp_t [.]
+allow server_t udp_t [recv]
 
 allow client_t rpc_t [connect_rpc, invoke_rpc, close_rpc]
 allow client_ta_t rpc_t [accept_rpc]
@@ -177,13 +178,12 @@ process client_ta<k>(ch_rpc : rpc_t) : client_ta_t
 
 process server(ch_net<> : udp_t) : server_t 
 {
-  var pubkey_path = "/secret/pub"
 
   main 
   {
-    var f = fopen (pubkey_path) in 
     repeat 
-    | [ch_net<addr> :: store(p) ] →
+    | [ch_net<addr> :: signal() ] →
+      var p = recv(ch_net<addr>) in
       var res = verify(fst(p), snd(p), pubkey<addr>) in 
       case 
       | [res = true] →

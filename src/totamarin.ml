@@ -163,12 +163,12 @@ let print_fact' (f : fact) : fact' =
   | ResFact (0, el) -> ("Eq"^ !separator , el, config_persist)
   | ResFact (1, el) -> ("NEq"^ !separator , el, config_persist)
   | ResFact (2, el) -> ("Fr", el, config_linear)
-  | AccessFact (nsp, target, syscall) -> ("ACP"^ !separator, [String nsp; target; String syscall], config_persist )
+  | AccessFact (nsp, target, syscall) -> ("ACP"^ !separator, [List [String nsp; Param]; target; String syscall], config_persist )
   | AttackFact (attack, target) ->  ("Attack"^ !separator, [String attack; target], config_persist )
   | FileFact (nsp, path, e) -> ("File"^ !separator ^ nsp, [Param;path; e], config_linear)
   | InitFact el -> ("Init"^ !separator, el, config_linear)
   | LoopFact (nsp, tid, b) -> ("Loop" ^ ! separator ^ 
-    (if b =0 then "Start" else if b = 1 then "Back" else "Finish"), [String (nsp ^ !separator ^ string_of_int tid)], config_linear)
+    (if b =0 then "Start" else if b = 1 then "Back" else "Finish"), [String (nsp ^ !separator ^ string_of_int tid); Param], config_linear)
   | TransitionFact (nsp, ind, e, p) -> ("Transition"^ !separator ^ nsp, [String (string_of_int ind); e; p], config_linear)
   | InjectiveFact (fid, nsp, id, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp, [FVar id ; el], config_linear)
   | FreshFact (e) -> ("Fr", [FVar e], config_linear)
@@ -314,8 +314,7 @@ let mk_state_transition ?(param="") st (ret, meta, loc, top) is_initial is_loop 
     if param = "" then Param else String param;
     if is_loop then 
       AddOne (Int ("v"^ !separator)) else 
-    if is_initial then 
-      One else
+    if is_initial then One else
         Int ("v"^ !separator)]; ret; List meta; List loc; List top], config_linear) 
 
 
@@ -427,8 +426,8 @@ let transition_to_transition_rule (tr : transition) : rule =
   let pre = tr.transition_pre in
   let post = tr.transition_post in
   let label = TransitionFact(tr.transition_namespace, tr.transition_id, Int ("v"^ !separator), Param) :: tr.transition_label in
-  let initial_state_fact = mk_state_transition tr.transition_from (fst tr.transition_state_transition) (tr.transition_id = 0) false in 
-  let final_state_fact = mk_state_transition tr.transition_to (snd tr.transition_state_transition) (tr.transition_id = 0) tr.transition_is_loop_back in 
+  let initial_state_fact = mk_state_transition tr.transition_from (fst tr.transition_state_transition) false false in 
+  let final_state_fact = mk_state_transition tr.transition_to (snd tr.transition_state_transition) false tr.transition_is_loop_back in 
   Rule (f, tr.transition_namespace, initial_state_fact :: List.map print_fact' pre, List.map print_fact'  label, final_state_fact ::List.map print_fact' post)
   
   
@@ -520,10 +519,10 @@ let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev print_transiti
 
 
     "lemma AlwaysStarts"^ ! separator ^ "[reuse,use_induction]:\n
-    \"All x #i. Loop"^ ! separator ^"Back(x) @i ==> Ex #j. Loop"^ ! separator ^"Start(x) @j & j < i\"\n"^
+    \"All x p #i. Loop"^ ! separator ^"Back(x, p) @i ==> Ex #j. Loop"^ ! separator ^"Start(x, p) @j & j < i\"\n"^
     
     "lemma AlwaysStartsWhenEnds"^ ! separator ^ "[reuse,use_induction]:\n
-    \"All x #i. Loop"^ ! separator ^"Finish(x) @i ==> Ex #j. Loop"^ ! separator ^"Start(x) @j & j < i\"\n"^
+    \"All x p #i. Loop"^ ! separator ^"Finish(x, p) @i ==> Ex #j. Loop"^ ! separator ^"Start(x, p) @j & j < i\"\n"^
 
     (mult_list_with_concat (List.map (fun mo -> 
       "lemma transition"^ ! separator ^ mo.model_name ^ "[reuse,use_induction]:\n
@@ -728,7 +727,7 @@ let rec pop_hd n lst =
   given a model, the current state that is promised to be already in the model,
   this function returns an extended model 
 *)
-let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {Location.data=c; Location.loc=loc} = 
+let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall pol {Location.data=c; Location.loc=loc} = 
   let return_var = get_return_var () in
   let (meta_num, loc_num, top_num) = vars in 
   
@@ -771,8 +770,8 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     (mo, st_f)
 
   | Syntax.Sequence (c1, c2) -> 
-    let (mo, st) = translate_cmd mo st funs syscalls attacks vars scope syscall c1 in
-    let (mo, st) = translate_cmd mo st funs syscalls attacks vars None syscall c2 in
+    let (mo, st) = translate_cmd mo st funs syscalls attacks vars scope syscall pol  c1 in
+    let (mo, st) = translate_cmd mo st funs syscalls attacks vars None syscall pol  c2 in
     (mo, st)
 
   | Syntax.Put fl -> 
@@ -815,7 +814,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
 
     } in
   
-    let (mo, st) = translate_cmd mo st_f funs syscalls attacks (meta_num, loc_num+1, top_num) None syscall c in
+    let (mo, st) = translate_cmd mo st_f funs syscalls attacks (meta_num, loc_num+1, top_num) None syscall pol c in
 
     let st_f = next_state ~shift:(0,-1,0) st scope in 
     let mo = add_state mo st_f in
@@ -877,7 +876,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
 
     } in
 
-    let (mo, st) = translate_cmd mo st_f funs syscalls attacks (meta_num, loc_num + (List.length el), top_num) None syscall cmd in
+    let (mo, st) = translate_cmd mo st_f funs syscalls attacks (meta_num, loc_num + (List.length el), top_num) None syscall pol cmd in
 
     let st_f = next_state ~shift:(0,- (List.length el),0) st scope in
     let mo = add_state mo st_f in
@@ -923,7 +922,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
 
     } in
 
-    let (mo, st_m) = translate_cmd mo st_i funs syscalls attacks (meta_num, loc_num + (List.length el), top_num) None o cmd in
+    let (mo, st_m) = translate_cmd mo st_i funs syscalls attacks (meta_num, loc_num + (List.length el), top_num) None o pol cmd in
 
     let st_f = next_state st None in
     let mo = add_state mo st_f in
@@ -945,7 +944,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     } in
 
     (* if this system call is attacked *)
-    begin match List.find_all (fun (a, t, _,cmd) -> t = o) attacks with
+    begin match List.find_all (fun (a, t, _,cmd) -> t = o && List.exists (fun (s1,s2) -> s1 = mo.model_type && s2 = a) pol.Context.pol_attack) attacks with
     | [] ->  (mo, st_f)
     | lst -> 
       let scope_lst = List.map (fun i -> Some [i+1]) (List.init (List.length lst) (fun i -> i)) in 
@@ -958,13 +957,13 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
           transition_name = "attack_intro";
           transition_from = st;
           transition_to = st_i2;
-          transition_pre = AttackFact (mo.model_name, String a) :: gv;
+          transition_pre =  gv;
           transition_post = [];
           transition_state_transition = mk_state_transition_from_action (ActionIntro el) st.state_vars; 
           transition_label = [];
           transition_is_loop_back = false 
         } in
-        let (mo, st_m) = translate_cmd mo st_i2 funs syscalls attacks (meta_num, loc_num + (List.length el), top_num) None o c in
+        let (mo, st_m) = translate_cmd mo st_i2 funs syscalls attacks (meta_num, loc_num + (List.length el), top_num) None o pol c in
         add_transition mo {
           transition_id = List.length mo.model_transitions;
           transition_namespace = mo.model_name;
@@ -996,7 +995,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     let st_f = next_state st None in
 
     let mo = List.fold_left2 (fun mo scope (vl, fl, c) -> 
-      let (mo, st) = translate_guarded_cmd mo st funs syscalls attacks vars scope syscall (vl, fl, c) in
+      let (mo, st) = translate_guarded_cmd mo st funs syscalls attacks vars scope syscall pol (vl, fl, c) in
       add_transition mo {
         transition_id = List.length mo.model_transitions;
         transition_namespace = mo.model_name;
@@ -1040,7 +1039,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     let st_f = next_state st None in
 
     let mo = List.fold_left2 (fun mo scope (vl, fl, c) -> 
-      let (mo, st_f) = translate_guarded_cmd mo st funs syscalls attacks vars scope syscall (vl, fl, c) in
+      let (mo, st_f) = translate_guarded_cmd mo st funs syscalls attacks vars scope syscall pol (vl, fl, c) in
       add_transition mo {
         transition_id = List.length mo.model_transitions;
         transition_namespace = mo.model_name;
@@ -1057,7 +1056,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
       }) mo scope_lst1 cs1 in
 
     let mo = List.fold_left2 (fun mo scope (vl, fl, c) -> 
-      let (mo, st) = translate_guarded_cmd mo st funs syscalls attacks vars scope syscall (vl, fl, c) in
+      let (mo, st) = translate_guarded_cmd mo st funs syscalls attacks vars scope syscall pol (vl, fl, c) in
       add_transition mo {
         transition_id = List.length mo.model_transitions;
         transition_namespace = mo.model_name;
@@ -1122,7 +1121,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     transition_is_loop_back = false 
   } in
 
-  let (mo, st) = translate_cmd mo st_f funs syscalls attacks (meta_num+1, loc_num, top_num) None syscall c in
+  let (mo, st) = translate_cmd mo st_f funs syscalls attacks (meta_num+1, loc_num, top_num) None syscall pol  c in
 
   let st_f = next_state ~shift:(-1,0,0) st scope in 
   let mo = add_state mo st_f in
@@ -1166,7 +1165,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
     transition_is_loop_back = false 
   } in
 
-  let (mo, st) = translate_cmd mo st_f funs syscalls attacks (meta_num + (List.length vl), loc_num, top_num) None syscall c in
+  let (mo, st) = translate_cmd mo st_f funs syscalls attacks (meta_num + (List.length vl), loc_num, top_num) None syscall pol c in
 
   let st_f = next_state ~shift:(-(List.length vl),0,0) st scope in 
   let mo = add_state mo st_f in
@@ -1204,7 +1203,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall {
   
 
 
-and translate_guarded_cmd mo st funs syscalls attacks vars scope syscall (vl, fl, c) = 
+and translate_guarded_cmd mo st funs syscalls attacks vars scope syscall pol (vl, fl, c) = 
   let (meta_num, loc_num, top_num) = vars in 
 
   let fl, gv, acps, _ = translate_facts mo.model_name fl in
@@ -1225,7 +1224,7 @@ and translate_guarded_cmd mo st funs syscalls attacks vars scope syscall (vl, fl
     transition_is_loop_back = false 
 
   } in
-  let (mo, st_f) = translate_cmd mo st_f funs syscalls attacks (meta_num + List.length vl, loc_num, top_num) None syscall c in
+  let (mo, st_f) = translate_cmd mo st_f funs syscalls attacks (meta_num + List.length vl, loc_num, top_num) None syscall pol c in
   (mo, st_f)
 
 
@@ -1239,7 +1238,7 @@ let translate_process {
         Context.proc_variable=vars;
         Context.proc_function=fns;
         Context.proc_main=m
-      } syscalls attacks =
+      } syscalls attacks pol =
   let namespace = String.capitalize_ascii (s ^ (if k = 0 then "" else string_of_int k)) in (* this must be unique *)
   (* let t = add_comment t ("- Process name: " ^ namespace) in  *)
 
@@ -1261,7 +1260,10 @@ let translate_process {
         transition_from = st;
         transition_to = st_f;
         transition_pre = gv;
-        transition_post = [FileFact(namespace, path, e)];
+        transition_post = [FileFact(namespace, path, e)] 
+        @ List.map (fun (_, _, scall) -> AccessFact(pty_unused, path, scall)) (List.filter (fun (pty, tyl, _) -> pty = pty_unused && List.exists (fun s -> s = ty) tyl) pol.Context.pol_access)
+        @ if List.exists (fun (pty, tyl) -> pty = pty_unused && List.exists (fun s -> s = ty) tyl) pol.Context.pol_access_all then [AccessFact(pty_unused, path, "")] else []
+        ;
         transition_state_transition = mk_state_transition_from_action (ActionReturn Unit) st.state_vars;
         transition_label = [];
         transition_is_loop_back = false   
@@ -1299,7 +1301,7 @@ let translate_process {
 
 
   (* translate the main function *)
-  let (mo, st) = translate_cmd mo st fns syscalls attacks (0, 0, List.length vars) None "" m in
+  let (mo, st) = translate_cmd mo st fns syscalls attacks (0, 0, List.length vars) None "" pol  m in
   
   mo
   (* List.fold_left (fun t r -> add_rule t 
@@ -1433,7 +1435,7 @@ let translate_sys {
 
 
   (* pol_access : (Name.ident * Name.ident list * Name.ident) list ; *)
-  let t, il = List.fold_left (fun (t, il) p ->
+  (* let t, il = List.fold_left (fun (t, il) p ->
 		  let procname = String.capitalize_ascii (p.Context.proc_name ^ (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid)) in 
       let t = List.fold_left (fun (t : tamarin) (pty, att) -> 
         if p.Context.proc_type = pty 
@@ -1449,10 +1451,13 @@ let translate_sys {
 let t = List.fold_left (fun t (ty, target_ty_list, scall) -> 
   List.fold_left (fun t target_ty -> 
       tamarin_add_rule t (ty ^ sep ^ target_ty ^ sep ^  scall,"",[],[],[AccessFact(ty, String target_ty, scall)])) t target_ty_list    
-  ) t pol.Context.pol_access in
+  ) t pol.Context.pol_access in *)
+
+
+
 
   (* let t = add_comment t "Processes:" in *)
-  let mos = List.fold_left (fun mos p ->  (translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack)::mos) [] (List.rev proc) in
+  let mos = List.fold_left (fun mos p ->  (translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack pol)::mos) [] (List.rev proc) in
   let t = tamarin_add_rule' t 
     ("Init"^ !separator ^"system", "system", [], [print_fact' (InitFact ([String "system"]))], 
     List.map (fun m -> 
@@ -1475,7 +1480,7 @@ let t = List.fold_left (fun t (ty, target_ty_list, scall) ->
 *)
   let t, _ = List.fold_left (fun (t, n) pl ->
     
-    let mos = List.fold_left (fun mos p ->  (translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack)::mos) [] (List.rev pl) in
+    let mos = List.fold_left (fun mos p ->  (translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack pol)::mos) [] (List.rev pl) in
     let t = tamarin_add_rule' t 
       ("Init"^ !separator ^"system"^string_of_int n, "system"^string_of_int n, 
       [("Fr", [Param], config_linear)], 
