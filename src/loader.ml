@@ -389,8 +389,8 @@ let process_pproc ?(param="") loc ctx def pol (proc : Input.pproc) =
       (* substitute channels *)
       if (List.length cargs) !=  (List.length chans) then error ~loc (ArgNumMismatch (pid, (List.length chans), (List.length cargs)))
       else
-         let (files, vl, fl, m) = List.fold_left2 
-            (fun (files, vl, fl, m) (is_param, ch_f, ty_f) ch_t -> 
+         let (files, vl, fl, m, installed_channels) = List.fold_left2 
+            (fun (files, vl, fl, m, installed_channels) (is_param, ch_f, ty_f) ch_t -> 
                begin match ch_t with
                | Input.ChanArgPlain ch_t ->
                   (if is_param then error ~loc (WrongChannelType   ("", "")) else ());
@@ -403,7 +403,9 @@ let process_pproc ?(param="") loc ctx def pol (proc : Input.pproc) =
                      List.map (fun (p, ty, e) -> (Substitute.expr_chan_sub p ch_f new_chan, ty, Substitute.expr_chan_sub e ch_f new_chan)) files,   
                      List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e ch_f new_chan)) vl,
                      List.map (fun (fn, args, c) -> (fn, args, Substitute.cmd_chan_sub c ch_f new_chan)) fl,
-                     Substitute.cmd_chan_sub m ch_f new_chan)
+                     Substitute.cmd_chan_sub m ch_f new_chan,
+                     (Syntax.ChanArgPlain (ch_t, ty_f))::installed_channels
+                     )
                
                | Input.ChanArgParam ch_t ->
                   (if not is_param then error ~loc (WrongChannelType   ("", "")) else ());
@@ -416,7 +418,9 @@ let process_pproc ?(param="") loc ctx def pol (proc : Input.pproc) =
                      List.map (fun (p, ty, e) -> (Substitute.expr_param_chan_sub p ch_f ch_t, ty, Substitute.expr_param_chan_sub e ch_f ch_t)) files,
                      List.map (fun (v, e) -> (v, Substitute.expr_param_chan_sub e ch_f ch_t)) vl,
                      List.map (fun (fn, args, c) -> (fn, args, Substitute.cmd_param_chan_sub c ch_f ch_t)) fl,
-                     Substitute.cmd_param_chan_sub m ch_f ch_t)
+                     Substitute.cmd_param_chan_sub m ch_f ch_t,
+                     (Syntax.ChanArgParam (ch_t, ty_f))::installed_channels
+                     )
                
                | Input.ChanArgParamInst (cid, e) ->
                   (if is_param then error ~loc (WrongChannelType   ("", "")) else ());
@@ -424,21 +428,25 @@ let process_pproc ?(param="") loc ctx def pol (proc : Input.pproc) =
                   let (_, chan_ty) = List.find (fun (s, _) -> s = cid) ctx.Context.ctx_param_ch in
                   (if chan_ty = ty_f then () else error ~loc (WrongChannelType (ch_f^":"^ty_f, cid^":"^chan_ty)));  
                   (* replace channel variables and check access policies! *)
-                  let new_chan = (Location.locate ~loc:Location.Nowhere (Syntax.ParamChan (cid, process_expr ~param:param ctx Context.lctx_init e))) in 
+                  let e = process_expr ~param:param ctx Context.lctx_init e in 
+                  let new_chan = (Location.locate ~loc:Location.Nowhere (Syntax.ParamChan (cid, e))) in 
                   (
                      List.map (fun (p, ty, e) -> (Substitute.expr_chan_sub p ch_f new_chan, ty, Substitute.expr_chan_sub e ch_f new_chan)) files,
                      List.map (fun (v, e) -> (v, Substitute.expr_chan_sub e ch_f new_chan)) vl,
                      List.map (fun (fn, args, c) -> (fn, args, Substitute.cmd_chan_sub c ch_f new_chan)) fl,
-                     Substitute.cmd_chan_sub m ch_f new_chan)
+                     Substitute.cmd_chan_sub m ch_f new_chan,
+                     (Syntax.ChanArgParamInst (cid, e, ty_f))::installed_channels
+                  )
 
-               end) (files, vl, fl, m) cargs chans in 
+               end) (files, vl, fl, m, []) cargs chans in 
                {Context.proc_pid=0; 
                Context.proc_type =ptype; 
                Context.proc_filesys= files; 
                Context.proc_name=pid; 
                Context.proc_variable=vl; 
                Context.proc_function=fl; 
-               Context.proc_main=m}
+               Context.proc_main=m;
+               Context.proc_channels=installed_channels}
 
          (* (pid, fpaths, vl, fl, m, ptype, fsys) *)
 

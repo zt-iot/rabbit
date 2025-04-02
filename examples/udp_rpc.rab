@@ -1,6 +1,6 @@
 (** asynchronous channels *)
 syscall send(c, v) {
-  put [c::store(v), c::signal()]
+  put [c::store(v)]
 }
 
 syscall recv(c) {

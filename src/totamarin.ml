@@ -135,7 +135,7 @@ type fact =
     * expr 
     * expr list
   | ResFact of int * expr list
-  | AccessFact of string * expr * string 
+  | AccessFact of string * expr * expr * string 
   | AttackFact of string * expr 
   | FileFact of string  * expr * expr
   | InitFact of expr list 
@@ -143,13 +143,14 @@ type fact =
     string (* namespace *)
     * int (* transition id of the initial transition of the loop *)
     * int (* 0: loop in 2 : loop back 3 : loop out *)
-  | TransitionFact of string * int * expr * expr
+  | TransitionFact of string * string * expr * expr
   | InjectiveFact of 
     string * (* fact name *)
     string * (* namespace *)
     expr * (* identity *)
     expr (* arguments *)
   | FreshFact of expr
+  | AccessGenFact of string (* namespace *) * expr (* param *)
   
 type fact' = string * expr list * rule_config
 
@@ -163,15 +164,16 @@ let print_fact' (f : fact) : fact' =
   | ResFact (0, el) -> ("Eq"^ !separator , el, config_persist)
   | ResFact (1, el) -> ("NEq"^ !separator , el, config_persist)
   | ResFact (2, el) -> ("Fr", el, config_linear)
-  | AccessFact (nsp, target, syscall) -> ("ACP"^ !separator, [List [String nsp; Param]; target; String syscall], config_persist )
+  | AccessFact (nsp, param, target, syscall) -> ("ACP"^ !separator, [List [String nsp; param]; target; String syscall], config_persist )
   | AttackFact (attack, target) ->  ("Attack"^ !separator, [String attack; target], config_persist )
   | FileFact (nsp, path, e) -> ("File"^ !separator ^ nsp, [Param;path; e], config_linear)
   | InitFact el -> ("Init"^ !separator, el, config_linear)
   | LoopFact (nsp, tid, b) -> ("Loop" ^ ! separator ^ 
     (if b =0 then "Start" else if b = 1 then "Back" else "Finish"), [String (nsp ^ !separator ^ string_of_int tid); Param], config_linear)
-  | TransitionFact (nsp, ind, e, p) -> ("Transition"^ !separator ^ nsp, [String (string_of_int ind); e; p], config_linear)
-  | InjectiveFact (fid, nsp, id, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp, [FVar id ; el], config_linear)
+  | TransitionFact (nsp, ind, e, p) -> ("Transition"^ !separator ^ nsp, [String ( ind); e; p], config_linear)
+  | InjectiveFact (fid, nsp, id, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp, [Param; FVar id ; el], config_linear)
   | FreshFact (e) -> ("Fr", [FVar e], config_linear)
+  | AccessGenFact (nsp, param) -> ("ACP"^ !separator ^ "GEN"^ !separator, [String nsp; param], config_persist)
   | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact")
 
 let mk_constant_fact s = ConstantFact (String s, Var s)
@@ -425,7 +427,10 @@ let transition_to_transition_rule (tr : transition) : rule =
       !separator ^ string_of_int tr.transition_id in 
   let pre = tr.transition_pre in
   let post = tr.transition_post in
-  let label = TransitionFact(tr.transition_namespace, tr.transition_id, Int ("v"^ !separator), Param) :: tr.transition_label in
+  let label = TransitionFact(tr.transition_namespace, 
+  index_to_string (tr.transition_from.state_index)
+  (* tr.transition_id *)
+  , Int ("v"^ !separator), Param) :: tr.transition_label in
   let initial_state_fact = mk_state_transition tr.transition_from (fst tr.transition_state_transition) false false in 
   let final_state_fact = mk_state_transition tr.transition_to (snd tr.transition_state_transition) false tr.transition_is_loop_back in 
   Rule (f, tr.transition_namespace, initial_state_fact :: List.map print_fact' pre, List.map print_fact'  label, final_state_fact ::List.map print_fact' post)
@@ -776,7 +781,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall p
 
   | Syntax.Put fl -> 
     let fl, gv, acps, _ = translate_facts mo.model_name fl in
-    let acps = List.map (fun target -> AccessFact(mo.model_type, target, syscall)) acps in
+    let acps = List.map (fun target -> AccessFact(mo.model_name, Param, target, syscall)) acps in
     let st_f = next_state st scope in
     let mo = add_state mo st_f in
     let mo = add_transition mo {
@@ -1207,7 +1212,7 @@ and translate_guarded_cmd mo st funs syscalls attacks vars scope syscall pol (vl
   let (meta_num, loc_num, top_num) = vars in 
 
   let fl, gv, acps, _ = translate_facts mo.model_name fl in
-  let acps = List.map (fun target -> AccessFact(mo.model_type,target,syscall)) acps in
+  let acps = List.map (fun target -> AccessFact(mo.model_name, Param, target,syscall)) acps in
   let st_f = next_state ~shift:(List.length vl, 0, 0) st scope in
   let mo = add_state mo st_f in
   (* let eng_f = engine_index_inc eng scope in *)
@@ -1237,12 +1242,20 @@ let translate_process {
         Context.proc_filesys=fls;
         Context.proc_variable=vars;
         Context.proc_function=fns;
-        Context.proc_main=m
+        Context.proc_main=m;
+        Context.proc_channels=channels;
+        
       } syscalls attacks pol =
   let namespace = String.capitalize_ascii (s ^ (if k = 0 then "" else string_of_int k)) in (* this must be unique *)
   (* let t = add_comment t ("- Process name: " ^ namespace) in  *)
 
   let mo, st = initial_model namespace pty_unused in 
+
+  (* installed channels: *)
+  (* let (mo, st) = List.fold_left (fun (mo, st) c ->
+
+  ) (mo, st) channels in *)
+
 
   (* initialize file system *)
   let (mo, st) = List.fold_left (fun (mo, st) (path, ty, e) ->
@@ -1261,8 +1274,8 @@ let translate_process {
         transition_to = st_f;
         transition_pre = gv;
         transition_post = [FileFact(namespace, path, e)] 
-        @ List.map (fun (_, _, scall) -> AccessFact(pty_unused, path, scall)) (List.filter (fun (pty, tyl, _) -> pty = pty_unused && List.exists (fun s -> s = ty) tyl) pol.Context.pol_access)
-        @ if List.exists (fun (pty, tyl) -> pty = pty_unused && List.exists (fun s -> s = ty) tyl) pol.Context.pol_access_all then [AccessFact(pty_unused, path, "")] else []
+        @ List.map (fun (_, _, scall) -> AccessFact(mo.model_name, Param, path, scall)) (List.filter (fun (pty, tyl, _) -> pty = pty_unused && List.exists (fun s -> s = ty) tyl) pol.Context.pol_access)
+        @ if List.exists (fun (pty, tyl) -> pty = pty_unused && List.exists (fun s -> s = ty) tyl) pol.Context.pol_access_all then [AccessFact(mo.model_name,Param,  path, "")] else []
         ;
         transition_state_transition = mk_state_transition_from_action (ActionReturn Unit) st.state_vars;
         transition_label = [];
@@ -1392,7 +1405,7 @@ let translate_sys {
   pol_access_all : (Name.ident * Name.ident list) list; 
   pol_attack : (Name.ident * Name.ident) list  *)
 
-  let t = List.fold_left (fun t (ty, tyl, scall) ->
+  (* let t = List.fold_left (fun t (ty, tyl, scall) ->
     let scalls = [scall] in (*to be prepared for latter*)
 
     let t = List.fold_left (fun t target_ty -> 
@@ -1411,11 +1424,11 @@ let translate_sys {
     
       t) t tyl in 
       t  
-    ) t pol.Context.pol_access in
+    ) t pol.Context.pol_access in *)
 
 
     (* for granting full access *)
-    let t = List.fold_left (fun t (ty, tyl) ->  
+    (* let t = List.fold_left (fun t (ty, tyl) ->  
       let t = List.fold_left (fun t target_ty -> 
         (* get channels whose type is target_ty *)
         let chs = List.filter (fun (_, b) -> b = target_ty) ctx.Context.ctx_ch in
@@ -1430,7 +1443,7 @@ let translate_sys {
       
         t) t tyl in 
         t  
-      ) t pol.Context.pol_access_all in
+      ) t pol.Context.pol_access_all in *)
   
 
 
@@ -1458,39 +1471,116 @@ let t = List.fold_left (fun t (ty, target_ty_list, scall) ->
 
   (* let t = add_comment t "Processes:" in *)
   let mos = List.fold_left (fun mos p ->  (translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack pol)::mos) [] (List.rev proc) in
+  let facts_gv_list = List.fold_left (fun (facts_gv_list) p -> 
+    let namespace = String.capitalize_ascii (p.Context.proc_name ^ (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid)) in 
+    let new_pol = pol.Context.pol_access @ (List.map (fun (a, b) -> (a, b, "")) pol.Context.pol_access_all) in
+    let facts_gv_list' = List.fold_left (fun (facts_gv_list) c -> 
+      (* List.fold_left  *)
+      begin
+      match c with
+      | Syntax.ChanArgPlain (cname, cty) -> 
+        false, List.map (fun (_, _, scall) ->
+          print_fact' (AccessFact(namespace, String !fresh_string, String cname, scall))) 
+          (List.filter (fun (pty, tyl, scall ) -> pty = p.Context.proc_type && List.exists (fun v -> v = cty) tyl) new_pol), []
+      | Syntax.ChanArgParam (cname, cty) -> 
+        true, List.map (fun (_, _, scall) ->
+          print_fact' (AccessFact(namespace, String !fresh_string,List [String cname; Var !fresh_ident], scall))) 
+          (List.filter (fun (pty, tyl, scall ) -> pty = p.Context.proc_type && List.exists (fun v -> v = cty) tyl) new_pol), []
+      | Syntax.ChanArgParamInst (cname, e, cty) -> 
+        let e, gv', _ = translate_expr2 e in 
+        false, List.map (fun (_, _, scall) ->
+          print_fact' (AccessFact(namespace, String !fresh_string,List [String cname; e], scall))) 
+          (List.filter (fun (pty, tyl, scall ) -> pty = p.Context.proc_type && List.exists (fun v -> v = cty) tyl) new_pol), gv'
+        end :: facts_gv_list 
+      ) [] (p.Context.proc_channels) in 
+    facts_gv_list@facts_gv_list'
+    ) ([]) (List.rev proc) in 
+  
+  
   let t = tamarin_add_rule' t 
     ("Init"^ !separator ^"system", "system", [], [print_fact' (InitFact ([String "system"]))], 
-    List.map (fun m -> 
+    (* initializing tokens..  *)
+    (List.map (fun m -> 
       let st = m.model_init_state in
       (if !Config.tag_transition 
       then mk_state_transition ~param:!fresh_string st (Unit, [], [], []) true false 
-      else mk_state ~param:!fresh_string st (Unit, [], [], []))) mos) in 
+      else mk_state ~param:!fresh_string st (Unit, [], [], []))) mos) @
+      [print_fact' (AccessGenFact ("system"^ !separator, String !fresh_string)) ]
+      ) in 
+
+  let t, _ = List.fold_left (fun (t, n) (b, facts, gv) ->  
+    List.fold_left (fun (t, n) (fact : fact') -> 
+      tamarin_add_rule' t 
+        ("Init"^ !separator ^"system"^ !separator^"ACP" ^ !separator^ string_of_int n, "system", 
+        (List.map print_fact' gv)@
+        [print_fact' (AccessGenFact ("system"^ !separator, String !fresh_string))], 
+        [print_fact'
+          (if b then (InitFact ([List [String ("system" ^ !separator^ "ACP" ^ !separator ^ string_of_int n) ; Var !fresh_ident]]))
+          else (InitFact [(String ("system" ^ !separator ^ "ACP" ^ !separator ^ string_of_int n))]))
+          ],
+        [fact]), n+1) (t, n) facts) (t,0) facts_gv_list in       
+
+
+    
 
   let t = List.fold_left (fun t m -> add_model t m) t mos in
 
-
-(* 
-  model_init_rules = [
-    Rule ("Init"^name, 
-    name, 
-    [print_fact' (AttackFact (name, MetaNewVar 0))], 
-    [], 
-    [mk_state st (Unit, [MetaNewVar 0], [], [])])]; 
-    model_init_state = st; model_transition_id_max =0}, st
-*)
   let t, _ = List.fold_left (fun (t, n) pl ->
     
     let mos = List.fold_left (fun mos p ->  (translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack pol)::mos) [] (List.rev pl) in
+    let facts_gv_list = List.fold_left (fun facts_gv_list p -> 
+      let namespace = String.capitalize_ascii (p.Context.proc_name ^ (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid)) in 
+      (* print_string namespace; *)
+      let new_pol = pol.Context.pol_access @ (List.map (fun (a, b) -> (a, b, "")) pol.Context.pol_access_all) in
+      let facts_gv_list' = List.fold_left (fun facts_gv_list c -> 
+        begin match c with
+        | Syntax.ChanArgPlain (cname, cty) -> 
+  
+          false, List.map (fun (_, _, scall) ->
+            print_fact' (AccessFact(namespace, Param, String cname, scall))) 
+            (List.filter (fun (pty, tyl, scall ) -> pty = p.Context.proc_type && List.exists (fun v -> v = cty) tyl) new_pol), []
+        | Syntax.ChanArgParam (cname, cty) -> 
+  
+          true, List.map (fun (_, _, scall) ->
+            print_fact' (AccessFact(namespace, Param, List [String cname; Var !fresh_ident], scall))) 
+            (List.filter (fun (pty, tyl, scall ) -> pty = p.Context.proc_type && List.exists (fun v -> v = cty) tyl) new_pol), []
+        | Syntax.ChanArgParamInst (cname, e, cty) -> 
+  
+          let e, gv', _ = translate_expr2 e in 
+          false, List.map (fun (_, _, scall) ->
+            print_fact' (AccessFact(namespace, Param, List [String cname; e], scall))) 
+
+            (List.filter (fun (pty, tyl, scall ) -> pty = p.Context.proc_type && List.exists (fun v -> v = cty) tyl) new_pol), gv'
+          
+        end :: facts_gv_list
+        ) ([]) (p.Context.proc_channels) in 
+      (facts_gv_list@facts_gv_list')
+      ) ([]) (List.rev pl) in 
+    
+    
     let t = tamarin_add_rule' t 
       ("Init"^ !separator ^"system"^string_of_int n, "system"^string_of_int n, 
       [("Fr", [Param], config_linear)], 
       [print_fact' (InitFact ([List [String ("system"^string_of_int n); Param]]))], 
-      List.map (fun m -> 
+      [print_fact' (AccessGenFact ("system"^string_of_int n^ !separator, Param)) ] @ List.map (fun m -> 
         let st = m.model_init_state in
         (if !Config.tag_transition 
         then mk_state_transition st (Unit, [], [], []) true false 
         else mk_state st (Unit, [], [], []))) mos) in 
-  
+    
+    let t, _ = List.fold_left (fun (t, m) (b, facts, gv) ->  
+      List.fold_left (fun (t, m) (fact : fact') -> 
+        tamarin_add_rule' t 
+          ("Init"^ !separator ^"system"^string_of_int n^ !separator^"ACP" ^ !separator^ string_of_int m, "system"^string_of_int n, 
+          (List.map print_fact' gv)@
+          [print_fact' (AccessGenFact ("system"^string_of_int n^ !separator, Param))], 
+          [print_fact'
+            (if b then (InitFact ([List [String ("system"^string_of_int n ^ !separator^ "ACP" ^ !separator ^ string_of_int m) ; Param ; Var !fresh_ident]]))
+            else (InitFact [List [(String ("system"^string_of_int n ^ !separator ^ "ACP" ^ !separator ^ string_of_int m)) ; Param  ]]))
+            ],
+          [fact]), m+1) (t, m) facts) (t,0) facts_gv_list in       
+      
+
     let t = List.fold_left (fun t m -> add_model t m) t mos in
     (t, n+1)
   ) (t, 1) (List.rev param_proc) in 

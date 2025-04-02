@@ -125,7 +125,8 @@ type process = {
    proc_filesys   :  (Syntax.expr * Name.ident *Syntax.expr) list ;
    proc_variable  :  (Name.ident * Syntax.expr) list ; 
    proc_function  :  (Name.ident * Name.ident list * Syntax.cmd) list ;
-   proc_main      :  Syntax.cmd 
+   proc_main      :  Syntax.cmd ;
+   proc_channels  :  Syntax.chan_arg list;
 }
 
 type system = {

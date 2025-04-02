@@ -182,8 +182,9 @@ process server(ch_net<> : udp_t) : server_t
   main 
   {
     repeat 
-    | [ch_net<addr> :: signal() ] →
-      var p = recv(ch_net<addr>) in
+    | [ch_net<addr> :: store(d) ] →
+      var p = d in 
+      case [::In(k)] -> p := k | [] -> skip end;
       var res = verify(fst(p), snd(p), pubkey<addr>) in 
       case 
       | [res = true] →
