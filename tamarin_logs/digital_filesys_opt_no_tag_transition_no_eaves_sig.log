@@ -1,0 +1,2553 @@
+theory rabbit begin
+
+// Function signature and definition of the equational theory E
+
+builtins: natural-numbers
+functions: fst/1, pair/2, pk/1, sign/2, snd/1, true/0, verify/3
+equations:
+    fst(<loc__1, loc__0>) = loc__1,
+    fst(<x.1, x.2>) = x.1,
+    snd(<loc__1, loc__0>) = loc__0,
+    snd(<x.1, x.2>) = x.2,
+    verify(sign(loc__1, loc__0), loc__1, pk(loc__0)) = true
+
+
+
+
+
+/* looping facts with injective instances: Fd__Alice/2, Fd__Bob/2 */
+
+
+
+rule (modulo E) Const__priv_key_alice:
+   [ Fr( priv_key_alice ) ]
+  --[
+  Init__( 'rab__Const__priv_key_alice' ),
+  Init__( <'rab__Const__priv_key_alice', priv_key_alice> )
+  ]->
+   [ !Const__( 'rab__priv_key_alice', priv_key_alice ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__udp__recv:
+   [ ] --> [ !ACP__( 'rab__Bob', 'rab__udp', 'rab__recv' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__udp__send:
+   [ ] --> [ !ACP__( 'rab__Bob', 'rab__udp', 'rab__send' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob____tamper_channel:
+   [ ] --> [ !Attack__( 'rab__Bob', 'rab__tamper_channel' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__udp__recv:
+   [ ] --> [ !ACP__( 'rab__Alice', 'rab__udp', 'rab__recv' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__udp__send:
+   [ ] --> [ !ACP__( 'rab__Alice', 'rab__udp', 'rab__send' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice____tamper_channel:
+   [ ] --> [ !Attack__( 'rab__Alice', 'rab__tamper_channel' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__keys__priv:
+   [ !Const__( 'rab__priv_key_alice', priv_key_alice ) ]
+  --[ Init__( <'rab__Alice', 'rab____keys__priv'> ) ]->
+   [ File__Alice( 'rab____keys__priv', priv_key_alice ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) InitAlice:
+   [ ]
+  --[ Init__( 'rab__Alice' ) ]->
+   [ State__Alice( <'rab_____0', %1>, 'rab__', 'rab__', 'rab__', 'rab__' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__let_out_____14_____15__33:
+   [
+   State__Alice( <'rab_____14', %v__>, return__var, 'rab__', loc__0, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__33', %v__ ) ]->
+   [
+   State__Alice( <'rab_____15', %v__>, return__var, 'rab__', 'rab__', top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__let_out_____13_____14__32:
+   [
+   State__Alice( <'rab_____13', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__32', %v__ ) ]->
+   [
+   State__Alice( <'rab_____14', %v__>, return__var, 'rab__', loc__1, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__let_out_____12_____13__31:
+   [
+   State__Alice( <'rab_____12', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__31', %v__ ) ]->
+   [
+   State__Alice( <'rab_____13', %v__>, return__var, 'rab__',
+                 <loc__1, loc__2>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__let_out_____11_____12__30:
+   [
+   State__Alice( <'rab_____11', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__30', %v__ ) ]->
+   [
+   State__Alice( <'rab_____12', %v__>, return__var, 'rab__',
+                 <loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__scall_out_____10__0_1_____11__29:
+   [
+   State__Alice( <'rab_____10__0_1', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__29', %v__ ) ]->
+   [
+   State__Alice( <'rab_____11', %v__>, return__var, 'rab__',
+                 <loc__2, loc__3, loc__4, loc__5>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__put_____10__0_0_____10__0_1__28:
+   [
+   State__Alice( <'rab_____10__0_0', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+   ),
+   !ACP__( 'rab__Alice', loc__1, 'rab__send' )
+   ]
+  --[ Transition__Alice( 'rab__28', %v__ ) ]->
+   [
+   State__Alice( <'rab_____10__0_1', %v__>, 'rab__', 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+   ),
+   Store( loc__1, loc__0 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__scall_intro_____10_____10__0_0__27:
+   [
+   State__Alice( <'rab_____10', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__27', %v__ ) ]->
+   [
+   State__Alice( <'rab_____10__0_0', %v__>, 'rab__', 'rab__',
+                 <<loc__3, loc__0>, 'rab__udp', loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__scall_out_____9__0_1_____10__26:
+   [
+   State__Alice( <'rab_____9__0_1', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__26', %v__ ) ]->
+   [
+   State__Alice( <'rab_____10', %v__>, return__var, 'rab__',
+                 <loc__1, loc__2, loc__3, loc__4>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__del_____9__0_0_____9__0_1__25:
+   [
+   State__Alice( <'rab_____9__0_0', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+   ),
+   Fd__Alice( loc__0, new__0 )
+   ]
+  --[ Transition__Alice( 'rab__25', %v__ ) ]->
+   [
+   State__Alice( <'rab_____9__0_1', %v__>, 'rab__', 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__scall_intro_____9_____9__0_0__24:
+   [
+   State__Alice( <'rab_____9', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__24', %v__ ) ]->
+   [
+   State__Alice( <'rab_____9__0_0', %v__>, 'rab__', 'rab__',
+                 <loc__2, loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__let_intro_____8_____9__23:
+   [
+   State__Alice( <'rab_____8', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__23', %v__ ) ]->
+   [
+   State__Alice( <'rab_____9', %v__>, 'rab__', 'rab__',
+                 <sign(loc__2, loc__0), loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__scall_out_____7__0_3_____8__22:
+   [
+   State__Alice( <'rab_____7__0_3', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__22', %v__ ) ]->
+   [
+   State__Alice( <'rab_____8', %v__>, 'rab__', 'rab__',
+                 <return__var, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__get_out_____7__0_2_____7__0_3__21:
+   [
+   State__Alice( <'rab_____7__0_2', %v__>, return__var, meta__0,
+                 <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__21', %v__ ) ]->
+   [
+   State__Alice( <'rab_____7__0_3', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__return_____7__0_1_____7__0_2__20:
+   [
+   State__Alice( <'rab_____7__0_1', %v__>, return__var, meta__0,
+                 <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__20', %v__ ) ]->
+   [
+   State__Alice( <'rab_____7__0_2', %v__>, meta__0, meta__0,
+                 <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__get_intro_____7__0_0_____7__0_1__19:
+   [
+   State__Alice( <'rab_____7__0_0', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3>, top__0
+   ),
+   Fd__Alice( loc__0, new__0 )
+   ]
+  --[ Transition__Alice( 'rab__19', %v__ ) ]->
+   [
+   State__Alice( <'rab_____7__0_1', %v__>, 'rab__', new__0,
+                 <loc__0, loc__1, loc__2, loc__3>, top__0
+   ),
+   Fd__Alice( loc__0, new__0 )
+   ]
+
+  // loop breaker: [1]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__scall_intro_____7_____7__0_0__18:
+   [
+   State__Alice( <'rab_____7', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__18', %v__ ) ]->
+   [
+   State__Alice( <'rab_____7__0_0', %v__>, 'rab__', 'rab__',
+                 <loc__1, loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__let_intro_____6_____7__17:
+   [
+   State__Alice( <'rab_____6', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__17', %v__ ) ]->
+   [
+   State__Alice( <'rab_____7', %v__>, 'rab__', 'rab__',
+                 <'rab__', loc__0, loc__1>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__scall_out_____5__0_1_____6__16:
+   [
+   State__Alice( <'rab_____5__0_1', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__16', %v__ ) ]->
+   [
+   State__Alice( <'rab_____6', %v__>, 'rab__', 'rab__',
+                 <return__var, loc__2>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__case_out_____5__0_0__0_4_____5__0_1__15:
+   [
+   State__Alice( <'rab_____5__0_0__0_4', %v__>, return__var, meta__0,
+                 <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__15', %v__ ) ]->
+   [
+   State__Alice( <'rab_____5__0_1', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__new_out_____5__0_0__0_3_____5__0_0__0_4__14:
+   [
+   State__Alice( <'rab_____5__0_0__0_3', %v__>, return__var,
+                 <meta__0, meta__1>, <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__14', %v__ ) ]->
+   [
+   State__Alice( <'rab_____5__0_0__0_4', %v__>, return__var, meta__1,
+                 <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__return_____5__0_0__0_2_____5__0_0__0_3__13:
+   [
+   State__Alice( <'rab_____5__0_0__0_2', %v__>, return__var,
+                 <meta__0, meta__1>, <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__13', %v__ ) ]->
+   [
+   State__Alice( <'rab_____5__0_0__0_3', %v__>, meta__0, <meta__0, meta__1>,
+                 <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__put_____5__0_0__0_1_____5__0_0__0_2__12:
+   [
+   State__Alice( <'rab_____5__0_0__0_1', %v__>, return__var,
+                 <meta__0, meta__1>, <loc__0, loc__1, loc__2>, top__0
+   ),
+   !ACP__( 'rab__Alice', loc__0, 'rab__fopen' )
+   ]
+  --[ Transition__Alice( 'rab__12', %v__ ) ]->
+   [
+   State__Alice( <'rab_____5__0_0__0_2', %v__>, 'rab__', <meta__0, meta__1>,
+                 <loc__0, loc__1, loc__2>, top__0
+   ),
+   File__Alice( loc__0, meta__1 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__new_intro_____5__0_0__0_0_____5__0_0__0_1__11:
+   [
+   State__Alice( <'rab_____5__0_0__0_0', %v__>, return__var, meta__0,
+                 <loc__0, loc__1, loc__2>, top__0
+   ),
+   Fr( new__0 )
+   ]
+  --[ Transition__Alice( 'rab__11', %v__ ) ]->
+   [
+   State__Alice( <'rab_____5__0_0__0_1', %v__>, 'rab__', <new__0, meta__0>,
+                 <loc__0, loc__1, loc__2>, top__0
+   ),
+   Fd__Alice( new__0, meta__0 )
+   ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__guarded_____5__0_0_____5__0_0__0_0__10:
+   [
+   State__Alice( <'rab_____5__0_0', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2>, top__0
+   ),
+   File__Alice( loc__0, new__0 ),
+   !ACP__( 'rab__Alice', loc__0, 'rab__fopen' )
+   ]
+  --[ Transition__Alice( 'rab__10', %v__ ) ]->
+   [
+   State__Alice( <'rab_____5__0_0__0_0', %v__>, 'rab__', new__0,
+                 <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__scall_intro_____5_____5__0_0__9:
+   [
+   State__Alice( <'rab_____5', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1>, top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__9', %v__ ) ]->
+   [
+   State__Alice( <'rab_____5__0_0', %v__>, 'rab__', 'rab__',
+                 <top__0, loc__0, loc__1>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__let_intro_____4_____5__8:
+   [
+   State__Alice( <'rab_____4', %v__>, return__var, 'rab__', loc__0, top__0 )
+   ]
+  --[ Transition__Alice( 'rab__8', %v__ ) ]->
+   [
+   State__Alice( <'rab_____5', %v__>, 'rab__', 'rab__', <'rab__', loc__0>,
+                 top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__scall_out_____3__0_3_____4__7:
+   [
+   State__Alice( <'rab_____3__0_3', %v__>, return__var, 'rab__', loc__0,
+                 top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__7', %v__ ) ]->
+   [
+   State__Alice( <'rab_____4', %v__>, 'rab__', 'rab__', return__var, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__new_out_____3__0_2_____3__0_3__6:
+   [
+   State__Alice( <'rab_____3__0_2', %v__>, return__var, meta__0, loc__0,
+                 top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__6', %v__ ) ]->
+   [
+   State__Alice( <'rab_____3__0_3', %v__>, return__var, 'rab__', loc__0,
+                 top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__return_____3__0_1_____3__0_2__5:
+   [
+   State__Alice( <'rab_____3__0_1', %v__>, return__var, meta__0, loc__0,
+                 top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__5', %v__ ) ]->
+   [
+   State__Alice( <'rab_____3__0_2', %v__>, meta__0, meta__0, loc__0, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__new_intro_____3__0_0_____3__0_1__4:
+   [
+   State__Alice( <'rab_____3__0_0', %v__>, return__var, 'rab__', loc__0,
+                 top__0
+   ),
+   Fr( new__0 )
+   ]
+  --[ Transition__Alice( 'rab__4', %v__ ) ]->
+   [
+   State__Alice( <'rab_____3__0_1', %v__>, 'rab__', new__0, loc__0, top__0 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__scall_intro_____3_____3__0_0__3:
+   [
+   State__Alice( <'rab_____3', %v__>, return__var, 'rab__', loc__0, top__0 )
+   ]
+  --[ Transition__Alice( 'rab__3', %v__ ) ]->
+   [
+   State__Alice( <'rab_____3__0_0', %v__>, 'rab__', 'rab__', loc__0, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__let_intro_____2_____3__2:
+   [
+   State__Alice( <'rab_____2', %v__>, return__var, 'rab__', 'rab__', top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__2', %v__ ) ]->
+   [ State__Alice( <'rab_____3', %v__>, 'rab__', 'rab__', 'rab__', top__0 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__event_____1_____2__1:
+   [
+   State__Alice( <'rab_____1', %v__>, return__var, 'rab__', 'rab__', top__0
+   )
+   ]
+  --[ Transition__Alice( 'rab__1', %v__ ), AliceClose( ) ]->
+   [ State__Alice( <'rab_____2', %v__>, 'rab__', 'rab__', 'rab__', top__0 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__init_mem_____0_____1__0:
+   [
+   State__Alice( <'rab_____0', %1>, return__var, 'rab__', 'rab__', 'rab__' )
+   ]
+  --[ Transition__Alice( 'rab__0', %v__ ) ]->
+   [
+   State__Alice( <'rab_____1', %1>, 'rab__', 'rab__', 'rab__',
+                 'rab____keys__priv'
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__keys__pub_alice:
+   [ !Const__( 'rab__priv_key_alice', priv_key_alice ) ]
+  --[ Init__( <'rab__Bob', 'rab____keys__pub_alice'> ) ]->
+   [ File__Bob( 'rab____keys__pub_alice', pk(priv_key_alice) ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) InitBob:
+   [ ]
+  --[ Init__( 'rab__Bob' ) ]->
+   [ State__Bob( <'rab_____0', %1>, 'rab__', 'rab__', 'rab__', 'rab__' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__let_out_____16_____17__38:
+   [
+   State__Bob( <'rab_____16', %v__>, return__var, 'rab__', loc__0, top__0 )
+   ]
+  --[ Transition__Bob( 'rab__38', %v__ ) ]->
+   [
+   State__Bob( <'rab_____17', %v__>, return__var, 'rab__', 'rab__', top__0 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__let_out_____15_____16__37:
+   [
+   State__Bob( <'rab_____15', %v__>, return__var, 'rab__', <loc__0, loc__1>,
+               top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__37', %v__ ) ]->
+   [
+   State__Bob( <'rab_____16', %v__>, return__var, 'rab__', loc__1, top__0 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__let_out_____14_____15__36:
+   [
+   State__Bob( <'rab_____14', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__36', %v__ ) ]->
+   [
+   State__Bob( <'rab_____15', %v__>, return__var, 'rab__', <loc__1, loc__2>,
+               top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__let_out_____13_____14__35:
+   [
+   State__Bob( <'rab_____13', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__35', %v__ ) ]->
+   [
+   State__Bob( <'rab_____14', %v__>, return__var, 'rab__',
+               <loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__let_out_____12_____13__34:
+   [
+   State__Bob( <'rab_____12', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__34', %v__ ) ]->
+   [
+   State__Bob( <'rab_____13', %v__>, return__var, 'rab__',
+               <loc__1, loc__2, loc__3, loc__4>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__let_out_____11_____12__33:
+   [
+   State__Bob( <'rab_____11', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__33', %v__ ) ]->
+   [
+   State__Bob( <'rab_____12', %v__>, return__var, 'rab__',
+               <loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__scall_out_____10__0_1_____11__32:
+   [
+   State__Bob( <'rab_____10__0_1', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5, loc__6>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__32', %v__ ) ]->
+   [
+   State__Bob( <'rab_____11', %v__>, return__var, 'rab__',
+               <loc__1, loc__2, loc__3, loc__4, loc__5, loc__6>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__del_____10__0_0_____10__0_1__31:
+   [
+   State__Bob( <'rab_____10__0_0', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5, loc__6>, top__0
+   ),
+   Fd__Bob( loc__0, new__0 )
+   ]
+  --[ Transition__Bob( 'rab__31', %v__ ) ]->
+   [
+   State__Bob( <'rab_____10__0_1', %v__>, 'rab__', 'rab__',
+               <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5, loc__6>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__scall_intro_____10_____10__0_0__30:
+   [
+   State__Bob( <'rab_____10', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__30', %v__ ) ]->
+   [
+   State__Bob( <'rab_____10__0_0', %v__>, 'rab__', 'rab__',
+               <loc__5, loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__let_intro_____9_____10__29:
+   [
+   State__Bob( <'rab_____9', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__29', %v__ ) ]->
+   [
+   State__Bob( <'rab_____10', %v__>, 'rab__', 'rab__',
+               <verify(loc__0, loc__1, loc__3), loc__0, loc__1, loc__2, loc__3, loc__4>,
+               top__0
+   )
+   ]
+
+  /*
+  rule (modulo AC) Bob__let_intro_____9_____10__29:
+     [
+     State__Bob( <'rab_____9', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+     )
+     ]
+    --[ Transition__Bob( 'rab__29', %v__ ) ]->
+     [
+     State__Bob( <'rab_____10', %v__>, 'rab__', 'rab__',
+                 <z, loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+     )
+     ]
+    variants (modulo AC)
+    1. loc__0
+             = loc__0.17
+       loc__1
+             = loc__1.18
+       loc__3
+             = loc__3.20
+       z     = verify(loc__0.17, loc__1.18, loc__3.20)
+    
+    2. loc__0
+             = sign(loc__1.51, x.99)
+       loc__1
+             = loc__1.51
+       loc__3
+             = pk(x.99)
+       z     = true
+  */
+
+rule (modulo E) Bob__let_intro_____8_____9__28:
+   [
+   State__Bob( <'rab_____8', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__28', %v__ ) ]->
+   [
+   State__Bob( <'rab_____9', %v__>, 'rab__', 'rab__',
+               <snd(loc__1), loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /*
+  rule (modulo AC) Bob__let_intro_____8_____9__28:
+     [
+     State__Bob( <'rab_____8', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2, loc__3>, top__0
+     )
+     ]
+    --[ Transition__Bob( 'rab__28', %v__ ) ]->
+     [
+     State__Bob( <'rab_____9', %v__>, 'rab__', 'rab__',
+                 <z, loc__0, loc__1, loc__2, loc__3>, top__0
+     )
+     ]
+    variants (modulo AC)
+    1. loc__1
+             = loc__1.13
+       z     = snd(loc__1.13)
+    
+    2. loc__1
+             = <x.26, z.19>
+       z     = z.19
+  */
+
+rule (modulo E) Bob__let_intro_____7_____8__27:
+   [
+   State__Bob( <'rab_____7', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__27', %v__ ) ]->
+   [
+   State__Bob( <'rab_____8', %v__>, 'rab__', 'rab__',
+               <fst(loc__0), loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+
+  /*
+  rule (modulo AC) Bob__let_intro_____7_____8__27:
+     [
+     State__Bob( <'rab_____7', %v__>, return__var, 'rab__',
+                 <loc__0, loc__1, loc__2>, top__0
+     )
+     ]
+    --[ Transition__Bob( 'rab__27', %v__ ) ]->
+     [
+     State__Bob( <'rab_____8', %v__>, 'rab__', 'rab__',
+                 <z, loc__0, loc__1, loc__2>, top__0
+     )
+     ]
+    variants (modulo AC)
+    1. loc__0
+             = loc__0.12
+       z     = fst(loc__0.12)
+    
+    2. loc__0
+             = <z.19, x.27>
+       z     = z.19
+  */
+
+rule (modulo E) Bob__attack_out_____6__1_1_____7__26:
+   [
+   State__Bob( <'rab_____6__1_1', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__26', %v__ ) ]->
+   [
+   State__Bob( <'rab_____7', %v__>, 'rab__', 'rab__',
+               <return__var, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__case_out_____6__1_0__0_1_____6__1_1__25:
+   [
+   State__Bob( <'rab_____6__1_0__0_1', %v__>, return__var,
+               <meta__0, meta__1>, <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__25', %v__ ) ]->
+   [
+   State__Bob( <'rab_____6__1_1', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__return_____6__1_0__0_0_____6__1_0__0_1__24:
+   [
+   State__Bob( <'rab_____6__1_0__0_0', %v__>, return__var,
+               <meta__0, meta__1>, <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__24', %v__ ) ]->
+   [
+   State__Bob( <'rab_____6__1_0__0_1', %v__>, meta__1, <meta__0, meta__1>,
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__guarded_____6__1_0_____6__1_0__0_0__23:
+   [
+   State__Bob( <'rab_____6__1_0', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   ),
+   Store( loc__0, new__0 ), In( new__1 ),
+   !ACP__( 'rab__Bob', loc__0, 'rab__recv' )
+   ]
+  --[ Transition__Bob( 'rab__23', %v__ ) ]->
+   [
+   State__Bob( <'rab_____6__1_0__0_0', %v__>, 'rab__', <new__0, new__1>,
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__attack_intro_____6_____6__1_0__22:
+   [
+   State__Bob( <'rab_____6', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2>, top__0
+   ),
+   !Attack__( 'rab__Bob', 'rab__tamper_channel' )
+   ]
+  --[ Transition__Bob( 'rab__22', %v__ ) ]->
+   [
+   State__Bob( <'rab_____6__1_0', %v__>, 'rab__', 'rab__',
+               <'rab__udp', loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__scall_out_____6__0_1_____7__21:
+   [
+   State__Bob( <'rab_____6__0_1', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__21', %v__ ) ]->
+   [
+   State__Bob( <'rab_____7', %v__>, 'rab__', 'rab__',
+               <return__var, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__case_out_____6__0_0__0_1_____6__0_1__20:
+   [
+   State__Bob( <'rab_____6__0_0__0_1', %v__>, return__var, meta__0,
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__20', %v__ ) ]->
+   [
+   State__Bob( <'rab_____6__0_1', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__return_____6__0_0__0_0_____6__0_0__0_1__19:
+   [
+   State__Bob( <'rab_____6__0_0__0_0', %v__>, return__var, meta__0,
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__19', %v__ ) ]->
+   [
+   State__Bob( <'rab_____6__0_0__0_1', %v__>, meta__0, meta__0,
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__guarded_____6__0_0_____6__0_0__0_0__18:
+   [
+   State__Bob( <'rab_____6__0_0', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   ),
+   Store( loc__0, new__0 ), !ACP__( 'rab__Bob', loc__0, 'rab__recv' )
+   ]
+  --[ Transition__Bob( 'rab__18', %v__ ) ]->
+   [
+   State__Bob( <'rab_____6__0_0__0_0', %v__>, 'rab__', new__0,
+               <loc__0, loc__1, loc__2, loc__3>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__scall_intro_____6_____6__0_0__17:
+   [
+   State__Bob( <'rab_____6', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__17', %v__ ) ]->
+   [
+   State__Bob( <'rab_____6__0_0', %v__>, 'rab__', 'rab__',
+               <'rab__udp', loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__let_intro_____5_____6__16:
+   [
+   State__Bob( <'rab_____5', %v__>, return__var, 'rab__', <loc__0, loc__1>,
+               top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__16', %v__ ) ]->
+   [
+   State__Bob( <'rab_____6', %v__>, 'rab__', 'rab__',
+               <'rab__', loc__0, loc__1>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__scall_out_____4__0_3_____5__15:
+   [
+   State__Bob( <'rab_____4__0_3', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__15', %v__ ) ]->
+   [
+   State__Bob( <'rab_____5', %v__>, 'rab__', 'rab__', <return__var, loc__2>,
+               top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__get_out_____4__0_2_____4__0_3__14:
+   [
+   State__Bob( <'rab_____4__0_2', %v__>, return__var, meta__0,
+               <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__14', %v__ ) ]->
+   [
+   State__Bob( <'rab_____4__0_3', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__return_____4__0_1_____4__0_2__13:
+   [
+   State__Bob( <'rab_____4__0_1', %v__>, return__var, meta__0,
+               <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__13', %v__ ) ]->
+   [
+   State__Bob( <'rab_____4__0_2', %v__>, meta__0, meta__0,
+               <loc__0, loc__1, loc__2>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__get_intro_____4__0_0_____4__0_1__12:
+   [
+   State__Bob( <'rab_____4__0_0', %v__>, return__var, 'rab__',
+               <loc__0, loc__1, loc__2>, top__0
+   ),
+   Fd__Bob( loc__0, new__0 )
+   ]
+  --[ Transition__Bob( 'rab__12', %v__ ) ]->
+   [
+   State__Bob( <'rab_____4__0_1', %v__>, 'rab__', new__0,
+               <loc__0, loc__1, loc__2>, top__0
+   ),
+   Fd__Bob( loc__0, new__0 )
+   ]
+
+  // loop breaker: [1]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__scall_intro_____4_____4__0_0__11:
+   [
+   State__Bob( <'rab_____4', %v__>, return__var, 'rab__', <loc__0, loc__1>,
+               top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__11', %v__ ) ]->
+   [
+   State__Bob( <'rab_____4__0_0', %v__>, 'rab__', 'rab__',
+               <loc__1, loc__0, loc__1>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__let_intro_____3_____4__10:
+   [ State__Bob( <'rab_____3', %v__>, return__var, 'rab__', loc__0, top__0 )
+   ]
+  --[ Transition__Bob( 'rab__10', %v__ ) ]->
+   [
+   State__Bob( <'rab_____4', %v__>, 'rab__', 'rab__', <'rab__', loc__0>,
+               top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__scall_out_____2__0_1_____3__9:
+   [
+   State__Bob( <'rab_____2__0_1', %v__>, return__var, 'rab__',
+               <loc__0, loc__1>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__9', %v__ ) ]->
+   [
+   State__Bob( <'rab_____3', %v__>, 'rab__', 'rab__', return__var, top__0 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__case_out_____2__0_0__0_4_____2__0_1__8:
+   [
+   State__Bob( <'rab_____2__0_0__0_4', %v__>, return__var, meta__0,
+               <loc__0, loc__1>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__8', %v__ ) ]->
+   [
+   State__Bob( <'rab_____2__0_1', %v__>, return__var, 'rab__',
+               <loc__0, loc__1>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__new_out_____2__0_0__0_3_____2__0_0__0_4__7:
+   [
+   State__Bob( <'rab_____2__0_0__0_3', %v__>, return__var,
+               <meta__0, meta__1>, <loc__0, loc__1>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__7', %v__ ) ]->
+   [
+   State__Bob( <'rab_____2__0_0__0_4', %v__>, return__var, meta__1,
+               <loc__0, loc__1>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__return_____2__0_0__0_2_____2__0_0__0_3__6:
+   [
+   State__Bob( <'rab_____2__0_0__0_2', %v__>, return__var,
+               <meta__0, meta__1>, <loc__0, loc__1>, top__0
+   )
+   ]
+  --[ Transition__Bob( 'rab__6', %v__ ) ]->
+   [
+   State__Bob( <'rab_____2__0_0__0_3', %v__>, meta__0, <meta__0, meta__1>,
+               <loc__0, loc__1>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__put_____2__0_0__0_1_____2__0_0__0_2__5:
+   [
+   State__Bob( <'rab_____2__0_0__0_1', %v__>, return__var,
+               <meta__0, meta__1>, <loc__0, loc__1>, top__0
+   ),
+   !ACP__( 'rab__Bob', loc__0, 'rab__fopen' )
+   ]
+  --[ Transition__Bob( 'rab__5', %v__ ) ]->
+   [
+   State__Bob( <'rab_____2__0_0__0_2', %v__>, 'rab__', <meta__0, meta__1>,
+               <loc__0, loc__1>, top__0
+   ),
+   File__Bob( loc__0, meta__1 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__new_intro_____2__0_0__0_0_____2__0_0__0_1__4:
+   [
+   State__Bob( <'rab_____2__0_0__0_0', %v__>, return__var, meta__0,
+               <loc__0, loc__1>, top__0
+   ),
+   Fr( new__0 )
+   ]
+  --[ Transition__Bob( 'rab__4', %v__ ) ]->
+   [
+   State__Bob( <'rab_____2__0_0__0_1', %v__>, 'rab__', <new__0, meta__0>,
+               <loc__0, loc__1>, top__0
+   ),
+   Fd__Bob( new__0, meta__0 )
+   ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__guarded_____2__0_0_____2__0_0__0_0__3:
+   [
+   State__Bob( <'rab_____2__0_0', %v__>, return__var, 'rab__',
+               <loc__0, loc__1>, top__0
+   ),
+   File__Bob( loc__0, new__0 ), !ACP__( 'rab__Bob', loc__0, 'rab__fopen' )
+   ]
+  --[ Transition__Bob( 'rab__3', %v__ ) ]->
+   [
+   State__Bob( <'rab_____2__0_0__0_0', %v__>, 'rab__', new__0,
+               <loc__0, loc__1>, top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__scall_intro_____2_____2__0_0__2:
+   [ State__Bob( <'rab_____2', %v__>, return__var, 'rab__', loc__0, top__0 )
+   ]
+  --[ Transition__Bob( 'rab__2', %v__ ) ]->
+   [
+   State__Bob( <'rab_____2__0_0', %v__>, 'rab__', 'rab__', <top__0, loc__0>,
+               top__0
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__let_intro_____1_____2__1:
+   [
+   State__Bob( <'rab_____1', %v__>, return__var, 'rab__', 'rab__', top__0 )
+   ]
+  --[ Transition__Bob( 'rab__1', %v__ ) ]->
+   [ State__Bob( <'rab_____2', %v__>, 'rab__', 'rab__', 'rab__', top__0 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__init_mem_____0_____1__0:
+   [ State__Bob( <'rab_____0', %1>, return__var, 'rab__', 'rab__', 'rab__' )
+   ]
+  --[ Transition__Bob( 'rab__0', %v__ ) ]->
+   [
+   State__Bob( <'rab_____1', %1>, 'rab__', 'rab__', 'rab__',
+               'rab____keys__pub_alice'
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+restriction Init__:
+  "∀ x #i #j. ((Init__( x ) @ #i) ∧ (Init__( x ) @ #j)) ⇒ (#i = #j)"
+  // safety formula
+
+rule (modulo E) Equality_gen:
+   [ ] --> [ !Eq__( x, x ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) NEquality_gen:
+   [ ] --[ NEq___( x, y ) ]-> [ !NEq__( x, y ) ]
+
+  /* has exactly the trivial AC variant */
+
+restriction NEquality_rule:
+  "∀ x #i. (NEq___( x, x ) @ #i) ⇒ (⊥)"
+  // safety formula
+
+lemma AlwaysStarts__ [reuse, use_induction]:
+  all-traces
+  "∀ x #i.
+    (Loop__Back( x ) @ #i) ⇒ (∃ #j. (Loop__Start( x ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x #i.
+  (Loop__Back( x ) @ #i) ∧ ∀ #j. (Loop__Start( x ) @ #j) ⇒ ¬(#j < #i)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( (last(#i))  ∥
+         (∃ #j. (Loop__Start( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i)) )
+    case case_1
+    by solve( Loop__Back( x ) @ #i )
+  next
+    case case_2
+    by contradiction /* from formulas */
+  qed
+qed
+
+lemma AlwaysStartsWhenEnds__ [reuse, use_induction]:
+  all-traces
+  "∀ x #i.
+    (Loop__Finish( x ) @ #i) ⇒ (∃ #j. (Loop__Start( x ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x #i.
+  (Loop__Finish( x ) @ #i) ∧ ∀ #j. (Loop__Start( x ) @ #j) ⇒ ¬(#j < #i)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( (last(#i))  ∥
+         (∃ #j. (Loop__Start( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i)) )
+    case case_1
+    by solve( Loop__Finish( x ) @ #i )
+  next
+    case case_2
+    by contradiction /* from formulas */
+  qed
+qed
+
+lemma transition__Alice [reuse, use_induction]:
+  all-traces
+  "∀ x %i #j #k.
+    ((Transition__Alice( x, %i ) @ #j) ∧ (Transition__Alice( x, %i ) @ #k)) ⇒
+    (#j = #k)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x %i #j #k.
+  (Transition__Alice( x, %i ) @ #j) ∧ (Transition__Alice( x, %i ) @ #k)
+ ∧
+  ¬(#j = #k)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( (#j < #k)  ∥ (#k < #j) )
+    case case_1
+    solve( Transition__Alice( x, %i ) @ #j )
+      case Alice__case_out_____5__0_0__0_4_____5__0_1__15
+      by solve( State__Alice( <'rab_____5__0_0__0_4', %i>, return__var,
+                              meta__0, <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__del_____9__0_0_____9__0_1__25
+      by solve( State__Alice( <'rab_____9__0_0', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__event_____1_____2__1
+      solve( State__Alice( <'rab_____1', %i>, return__var, 'rab__', 'rab__',
+                           top__0
+             ) ▶₀ #j )
+        case Alice__init_mem_____0_____1__0
+        solve( Transition__Alice( 'rab__1', %1 ) @ #k )
+          case Alice__event_____1_____2__1
+          solve( State__Alice( <'rab_____1', %1>, return__var, 'rab__', 'rab__',
+                               top__0
+                 ) ▶₀ #k )
+            case Alice__init_mem_____0_____1__0
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__get_intro_____7__0_0_____7__0_1__19
+      by solve( State__Alice( <'rab_____7__0_0', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__get_out_____7__0_2_____7__0_3__21
+      by solve( State__Alice( <'rab_____7__0_2', %i>, return__var, meta__0,
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__guarded_____5__0_0_____5__0_0__0_0__10
+      solve( State__Alice( <'rab_____5__0_0', %i>, return__var, 'rab__',
+                           <loc__0, loc__1, loc__2>, top__0
+             ) ▶₀ #j )
+        case Alice__scall_intro_____5_____5__0_0__9
+        solve( File__Alice( 'rab____keys__priv', new__0 ) ▶₁ #j )
+          case Alice__keys__priv
+          by solve( !ACP__( 'rab__Alice', 'rab____keys__priv', 'rab__fopen'
+                    ) ▶₂ #j )
+        qed
+      qed
+    next
+      case Alice__init_mem_____0_____1__0
+      solve( State__Alice( <'rab_____0', %1>, return__var, 'rab__', 'rab__',
+                           'rab__'
+             ) ▶₀ #j )
+        case InitAlice
+        solve( Transition__Alice( 'rab__0', %i ) @ #k )
+          case Alice__init_mem_____0_____1__0
+          solve( State__Alice( <'rab_____0', %1>, return__var, 'rab__', 'rab__',
+                               'rab__'
+                 ) ▶₀ #k )
+            case InitAlice
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__let_intro_____2_____3__2
+      solve( State__Alice( <'rab_____2', %i>, return__var, 'rab__', 'rab__',
+                           top__0
+             ) ▶₀ #j )
+        case Alice__event_____1_____2__1
+        solve( Transition__Alice( 'rab__2', %1 ) @ #k )
+          case Alice__let_intro_____2_____3__2
+          solve( State__Alice( <'rab_____2', %1>, return__var, 'rab__', 'rab__',
+                               top__0
+                 ) ▶₀ #k )
+            case Alice__event_____1_____2__1
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__let_intro_____4_____5__8
+      solve( State__Alice( <'rab_____4', %i>, return__var, 'rab__', loc__0,
+                           top__0
+             ) ▶₀ #j )
+        case Alice__scall_out_____3__0_3_____4__7
+        solve( Transition__Alice( 'rab__8', %1 ) @ #k )
+          case Alice__let_intro_____4_____5__8
+          solve( State__Alice( <'rab_____4', %1>, return__var, 'rab__', loc__0,
+                               top__0
+                 ) ▶₀ #k )
+            case Alice__scall_out_____3__0_3_____4__7
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__let_intro_____6_____7__17
+      by solve( State__Alice( <'rab_____6', %i>, return__var, 'rab__',
+                              <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__let_intro_____8_____9__23
+      by solve( State__Alice( <'rab_____8', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__let_out_____11_____12__30
+      by solve( State__Alice( <'rab_____11', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__let_out_____12_____13__31
+      by solve( State__Alice( <'rab_____12', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__let_out_____13_____14__32
+      by solve( State__Alice( <'rab_____13', %i>, return__var, 'rab__',
+                              <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__let_out_____14_____15__33
+      by solve( State__Alice( <'rab_____14', %i>, return__var, 'rab__', loc__0,
+                              top__0
+                ) ▶₀ #j )
+    next
+      case Alice__new_intro_____3__0_0_____3__0_1__4
+      solve( State__Alice( <'rab_____3__0_0', %i>, return__var, 'rab__',
+                           loc__0, top__0
+             ) ▶₀ #j )
+        case Alice__scall_intro_____3_____3__0_0__3
+        solve( Transition__Alice( 'rab__4', %1 ) @ #k )
+          case Alice__new_intro_____3__0_0_____3__0_1__4
+          solve( State__Alice( <'rab_____3__0_0', %1>, return__var, 'rab__',
+                               loc__0, top__0
+                 ) ▶₀ #k )
+            case Alice__scall_intro_____3_____3__0_0__3
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__new_intro_____5__0_0__0_0_____5__0_0__0_1__11
+      solve( Transition__Alice( 'rab__11', %i ) @ #k )
+        case Alice__new_intro_____5__0_0__0_0_____5__0_0__0_1__11
+        by solve( State__Alice( <'rab_____5__0_0__0_0', %i>, return__var,
+                                meta__0, <loc__0, loc__1, loc__2>, top__0
+                  ) ▶₀ #j )
+      qed
+    next
+      case Alice__new_out_____3__0_2_____3__0_3__6
+      solve( State__Alice( <'rab_____3__0_2', %i>, return__var, meta__0,
+                           loc__0, top__0
+             ) ▶₀ #j )
+        case Alice__return_____3__0_1_____3__0_2__5
+        solve( Transition__Alice( 'rab__6', %1 ) @ #k )
+          case Alice__new_out_____3__0_2_____3__0_3__6
+          solve( State__Alice( <'rab_____3__0_2', %1>, return__var, meta__0,
+                               loc__0, top__0
+                 ) ▶₀ #k )
+            case Alice__return_____3__0_1_____3__0_2__5
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__new_out_____5__0_0__0_3_____5__0_0__0_4__14
+      by solve( State__Alice( <'rab_____5__0_0__0_3', %i>, return__var,
+                              <meta__0, meta__1>, <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__put_____10__0_0_____10__0_1__28
+      by solve( State__Alice( <'rab_____10__0_0', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__put_____5__0_0__0_1_____5__0_0__0_2__12
+      solve( State__Alice( <'rab_____5__0_0__0_1', %i>, return__var,
+                           <meta__0, meta__1>, <loc__0, loc__1, loc__2>, top__0
+             ) ▶₀ #j )
+        case Alice__new_intro_____5__0_0__0_0_____5__0_0__0_1__11
+        by solve( !ACP__( 'rab__Alice', loc__0, 'rab__fopen' ) ▶₁ #j )
+      qed
+    next
+      case Alice__return_____3__0_1_____3__0_2__5
+      solve( State__Alice( <'rab_____3__0_1', %i>, return__var, meta__0,
+                           loc__0, top__0
+             ) ▶₀ #j )
+        case Alice__new_intro_____3__0_0_____3__0_1__4
+        solve( Transition__Alice( 'rab__5', %1 ) @ #k )
+          case Alice__return_____3__0_1_____3__0_2__5
+          solve( State__Alice( <'rab_____3__0_1', %1>, return__var, meta__0,
+                               loc__0, top__0
+                 ) ▶₀ #k )
+            case Alice__new_intro_____3__0_0_____3__0_1__4
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__return_____5__0_0__0_2_____5__0_0__0_3__13
+      by solve( State__Alice( <'rab_____5__0_0__0_2', %i>, return__var,
+                              <meta__0, meta__1>, <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__return_____7__0_1_____7__0_2__20
+      by solve( State__Alice( <'rab_____7__0_1', %i>, return__var, meta__0,
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_intro_____10_____10__0_0__27
+      by solve( State__Alice( <'rab_____10', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_intro_____3_____3__0_0__3
+      solve( State__Alice( <'rab_____3', %i>, return__var, 'rab__', loc__0,
+                           top__0
+             ) ▶₀ #j )
+        case Alice__let_intro_____2_____3__2
+        solve( Transition__Alice( 'rab__3', %1 ) @ #k )
+          case Alice__scall_intro_____3_____3__0_0__3
+          solve( State__Alice( <'rab_____3', %1>, return__var, 'rab__', loc__0,
+                               top__0
+                 ) ▶₀ #k )
+            case Alice__let_intro_____2_____3__2
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__scall_intro_____5_____5__0_0__9
+      solve( State__Alice( <'rab_____5', %i>, return__var, 'rab__',
+                           <loc__0, loc__1>, top__0
+             ) ▶₀ #j )
+        case Alice__let_intro_____4_____5__8
+        solve( Transition__Alice( 'rab__9', %1 ) @ #k )
+          case Alice__scall_intro_____5_____5__0_0__9
+          solve( State__Alice( <'rab_____5', %1>, return__var, 'rab__',
+                               <loc__0, loc__1>, top__0
+                 ) ▶₀ #k )
+            case Alice__let_intro_____4_____5__8
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__scall_intro_____7_____7__0_0__18
+      by solve( State__Alice( <'rab_____7', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_intro_____9_____9__0_0__24
+      by solve( State__Alice( <'rab_____9', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_out_____10__0_1_____11__29
+      by solve( State__Alice( <'rab_____10__0_1', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_out_____3__0_3_____4__7
+      solve( State__Alice( <'rab_____3__0_3', %i>, return__var, 'rab__',
+                           loc__0, top__0
+             ) ▶₀ #j )
+        case Alice__new_out_____3__0_2_____3__0_3__6
+        solve( Transition__Alice( 'rab__7', %1 ) @ #k )
+          case Alice__scall_out_____3__0_3_____4__7
+          solve( State__Alice( <'rab_____3__0_3', %1>, return__var, 'rab__',
+                               loc__0, top__0
+                 ) ▶₀ #k )
+            case Alice__new_out_____3__0_2_____3__0_3__6
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__scall_out_____5__0_1_____6__16
+      by solve( State__Alice( <'rab_____5__0_1', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_out_____7__0_3_____8__22
+      by solve( State__Alice( <'rab_____7__0_3', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_out_____9__0_1_____10__26
+      by solve( State__Alice( <'rab_____9__0_1', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+                ) ▶₀ #j )
+    qed
+  next
+    case case_2
+    solve( Transition__Alice( x, %i ) @ #j )
+      case Alice__case_out_____5__0_0__0_4_____5__0_1__15
+      by solve( State__Alice( <'rab_____5__0_0__0_4', %i>, return__var,
+                              meta__0, <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__del_____9__0_0_____9__0_1__25
+      by solve( State__Alice( <'rab_____9__0_0', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__event_____1_____2__1
+      solve( State__Alice( <'rab_____1', %i>, return__var, 'rab__', 'rab__',
+                           top__0
+             ) ▶₀ #j )
+        case Alice__init_mem_____0_____1__0
+        solve( Transition__Alice( 'rab__1', %1 ) @ #k )
+          case Alice__event_____1_____2__1
+          solve( State__Alice( <'rab_____1', %1>, return__var, 'rab__', 'rab__',
+                               top__0
+                 ) ▶₀ #k )
+            case Alice__init_mem_____0_____1__0
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__get_intro_____7__0_0_____7__0_1__19
+      by solve( State__Alice( <'rab_____7__0_0', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__get_out_____7__0_2_____7__0_3__21
+      by solve( State__Alice( <'rab_____7__0_2', %i>, return__var, meta__0,
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__guarded_____5__0_0_____5__0_0__0_0__10
+      solve( State__Alice( <'rab_____5__0_0', %i>, return__var, 'rab__',
+                           <loc__0, loc__1, loc__2>, top__0
+             ) ▶₀ #j )
+        case Alice__scall_intro_____5_____5__0_0__9
+        solve( File__Alice( 'rab____keys__priv', new__0 ) ▶₁ #j )
+          case Alice__keys__priv
+          by solve( !ACP__( 'rab__Alice', 'rab____keys__priv', 'rab__fopen'
+                    ) ▶₂ #j )
+        qed
+      qed
+    next
+      case Alice__init_mem_____0_____1__0
+      solve( State__Alice( <'rab_____0', %1>, return__var, 'rab__', 'rab__',
+                           'rab__'
+             ) ▶₀ #j )
+        case InitAlice
+        solve( Transition__Alice( 'rab__0', %i ) @ #k )
+          case Alice__init_mem_____0_____1__0
+          solve( State__Alice( <'rab_____0', %1>, return__var, 'rab__', 'rab__',
+                               'rab__'
+                 ) ▶₀ #k )
+            case InitAlice
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__let_intro_____2_____3__2
+      solve( State__Alice( <'rab_____2', %i>, return__var, 'rab__', 'rab__',
+                           top__0
+             ) ▶₀ #j )
+        case Alice__event_____1_____2__1
+        solve( Transition__Alice( 'rab__2', %1 ) @ #k )
+          case Alice__let_intro_____2_____3__2
+          solve( State__Alice( <'rab_____2', %1>, return__var, 'rab__', 'rab__',
+                               top__0
+                 ) ▶₀ #k )
+            case Alice__event_____1_____2__1
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__let_intro_____4_____5__8
+      solve( State__Alice( <'rab_____4', %i>, return__var, 'rab__', loc__0,
+                           top__0
+             ) ▶₀ #j )
+        case Alice__scall_out_____3__0_3_____4__7
+        solve( Transition__Alice( 'rab__8', %1 ) @ #k )
+          case Alice__let_intro_____4_____5__8
+          solve( State__Alice( <'rab_____4', %1>, return__var, 'rab__', loc__0,
+                               top__0
+                 ) ▶₀ #k )
+            case Alice__scall_out_____3__0_3_____4__7
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__let_intro_____6_____7__17
+      by solve( State__Alice( <'rab_____6', %i>, return__var, 'rab__',
+                              <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__let_intro_____8_____9__23
+      by solve( State__Alice( <'rab_____8', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__let_out_____11_____12__30
+      by solve( State__Alice( <'rab_____11', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__let_out_____12_____13__31
+      by solve( State__Alice( <'rab_____12', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__let_out_____13_____14__32
+      by solve( State__Alice( <'rab_____13', %i>, return__var, 'rab__',
+                              <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__let_out_____14_____15__33
+      by solve( State__Alice( <'rab_____14', %i>, return__var, 'rab__', loc__0,
+                              top__0
+                ) ▶₀ #j )
+    next
+      case Alice__new_intro_____3__0_0_____3__0_1__4
+      solve( State__Alice( <'rab_____3__0_0', %i>, return__var, 'rab__',
+                           loc__0, top__0
+             ) ▶₀ #j )
+        case Alice__scall_intro_____3_____3__0_0__3
+        solve( Transition__Alice( 'rab__4', %1 ) @ #k )
+          case Alice__new_intro_____3__0_0_____3__0_1__4
+          solve( State__Alice( <'rab_____3__0_0', %1>, return__var, 'rab__',
+                               loc__0, top__0
+                 ) ▶₀ #k )
+            case Alice__scall_intro_____3_____3__0_0__3
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__new_intro_____5__0_0__0_0_____5__0_0__0_1__11
+      solve( Transition__Alice( 'rab__11', %i ) @ #k )
+        case Alice__new_intro_____5__0_0__0_0_____5__0_0__0_1__11
+        by solve( State__Alice( <'rab_____5__0_0__0_0', %i>, return__var,
+                                meta__0, <loc__0, loc__1, loc__2>, top__0
+                  ) ▶₀ #j )
+      qed
+    next
+      case Alice__new_out_____3__0_2_____3__0_3__6
+      solve( State__Alice( <'rab_____3__0_2', %i>, return__var, meta__0,
+                           loc__0, top__0
+             ) ▶₀ #j )
+        case Alice__return_____3__0_1_____3__0_2__5
+        solve( Transition__Alice( 'rab__6', %1 ) @ #k )
+          case Alice__new_out_____3__0_2_____3__0_3__6
+          solve( State__Alice( <'rab_____3__0_2', %1>, return__var, meta__0,
+                               loc__0, top__0
+                 ) ▶₀ #k )
+            case Alice__return_____3__0_1_____3__0_2__5
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__new_out_____5__0_0__0_3_____5__0_0__0_4__14
+      by solve( State__Alice( <'rab_____5__0_0__0_3', %i>, return__var,
+                              <meta__0, meta__1>, <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__put_____10__0_0_____10__0_1__28
+      by solve( State__Alice( <'rab_____10__0_0', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__put_____5__0_0__0_1_____5__0_0__0_2__12
+      solve( State__Alice( <'rab_____5__0_0__0_1', %i>, return__var,
+                           <meta__0, meta__1>, <loc__0, loc__1, loc__2>, top__0
+             ) ▶₀ #j )
+        case Alice__new_intro_____5__0_0__0_0_____5__0_0__0_1__11
+        by solve( !ACP__( 'rab__Alice', loc__0, 'rab__fopen' ) ▶₁ #j )
+      qed
+    next
+      case Alice__return_____3__0_1_____3__0_2__5
+      solve( State__Alice( <'rab_____3__0_1', %i>, return__var, meta__0,
+                           loc__0, top__0
+             ) ▶₀ #j )
+        case Alice__new_intro_____3__0_0_____3__0_1__4
+        solve( Transition__Alice( 'rab__5', %1 ) @ #k )
+          case Alice__return_____3__0_1_____3__0_2__5
+          solve( State__Alice( <'rab_____3__0_1', %1>, return__var, meta__0,
+                               loc__0, top__0
+                 ) ▶₀ #k )
+            case Alice__new_intro_____3__0_0_____3__0_1__4
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__return_____5__0_0__0_2_____5__0_0__0_3__13
+      by solve( State__Alice( <'rab_____5__0_0__0_2', %i>, return__var,
+                              <meta__0, meta__1>, <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__return_____7__0_1_____7__0_2__20
+      by solve( State__Alice( <'rab_____7__0_1', %i>, return__var, meta__0,
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_intro_____10_____10__0_0__27
+      by solve( State__Alice( <'rab_____10', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_intro_____3_____3__0_0__3
+      solve( State__Alice( <'rab_____3', %i>, return__var, 'rab__', loc__0,
+                           top__0
+             ) ▶₀ #j )
+        case Alice__let_intro_____2_____3__2
+        solve( Transition__Alice( 'rab__3', %1 ) @ #k )
+          case Alice__scall_intro_____3_____3__0_0__3
+          solve( State__Alice( <'rab_____3', %1>, return__var, 'rab__', loc__0,
+                               top__0
+                 ) ▶₀ #k )
+            case Alice__let_intro_____2_____3__2
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__scall_intro_____5_____5__0_0__9
+      solve( State__Alice( <'rab_____5', %i>, return__var, 'rab__',
+                           <loc__0, loc__1>, top__0
+             ) ▶₀ #j )
+        case Alice__let_intro_____4_____5__8
+        solve( Transition__Alice( 'rab__9', %1 ) @ #k )
+          case Alice__scall_intro_____5_____5__0_0__9
+          solve( State__Alice( <'rab_____5', %1>, return__var, 'rab__',
+                               <loc__0, loc__1>, top__0
+                 ) ▶₀ #k )
+            case Alice__let_intro_____4_____5__8
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__scall_intro_____7_____7__0_0__18
+      by solve( State__Alice( <'rab_____7', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_intro_____9_____9__0_0__24
+      by solve( State__Alice( <'rab_____9', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_out_____10__0_1_____11__29
+      by solve( State__Alice( <'rab_____10__0_1', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_out_____3__0_3_____4__7
+      solve( State__Alice( <'rab_____3__0_3', %i>, return__var, 'rab__',
+                           loc__0, top__0
+             ) ▶₀ #j )
+        case Alice__new_out_____3__0_2_____3__0_3__6
+        solve( Transition__Alice( 'rab__7', %1 ) @ #k )
+          case Alice__scall_out_____3__0_3_____4__7
+          solve( State__Alice( <'rab_____3__0_3', %1>, return__var, 'rab__',
+                               loc__0, top__0
+                 ) ▶₀ #k )
+            case Alice__new_out_____3__0_2_____3__0_3__6
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Alice__scall_out_____5__0_1_____6__16
+      by solve( State__Alice( <'rab_____5__0_1', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_out_____7__0_3_____8__22
+      by solve( State__Alice( <'rab_____7__0_3', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Alice__scall_out_____9__0_1_____10__26
+      by solve( State__Alice( <'rab_____9__0_1', %i>, return__var, 'rab__',
+                              <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+                ) ▶₀ #j )
+    qed
+  qed
+qed
+
+lemma transition__Bob [reuse, use_induction]:
+  all-traces
+  "∀ x %i #j #k.
+    ((Transition__Bob( x, %i ) @ #j) ∧ (Transition__Bob( x, %i ) @ #k)) ⇒
+    (#j = #k)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x %i #j #k.
+  (Transition__Bob( x, %i ) @ #j) ∧ (Transition__Bob( x, %i ) @ #k)
+ ∧
+  ¬(#j = #k)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( (#j < #k)  ∥ (#k < #j) )
+    case case_1
+    solve( Transition__Bob( x, %i ) @ #j )
+      case Bob__attack_intro_____6_____6__1_0__22
+      by solve( State__Bob( <'rab_____6', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__attack_out_____6__1_1_____7__26
+      by solve( State__Bob( <'rab_____6__1_1', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__case_out_____2__0_0__0_4_____2__0_1__8
+      by solve( State__Bob( <'rab_____2__0_0__0_4', %i>, return__var, meta__0,
+                            <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__case_out_____6__0_0__0_1_____6__0_1__20
+      by solve( State__Bob( <'rab_____6__0_0__0_1', %i>, return__var, meta__0,
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__case_out_____6__1_0__0_1_____6__1_1__25
+      by solve( State__Bob( <'rab_____6__1_0__0_1', %i>, return__var,
+                            <meta__0, meta__1>, <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__del_____10__0_0_____10__0_1__31
+      by solve( State__Bob( <'rab_____10__0_0', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5, loc__6>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__get_intro_____4__0_0_____4__0_1__12
+      by solve( State__Bob( <'rab_____4__0_0', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__get_out_____4__0_2_____4__0_3__14
+      by solve( State__Bob( <'rab_____4__0_2', %i>, return__var, meta__0,
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__guarded_____2__0_0_____2__0_0__0_0__3
+      solve( State__Bob( <'rab_____2__0_0', %i>, return__var, 'rab__',
+                         <loc__0, loc__1>, top__0
+             ) ▶₀ #j )
+        case Bob__scall_intro_____2_____2__0_0__2
+        solve( File__Bob( 'rab____keys__pub_alice', new__0 ) ▶₁ #j )
+          case Bob__keys__pub_alice
+          by solve( !ACP__( 'rab__Bob', 'rab____keys__pub_alice', 'rab__fopen'
+                    ) ▶₂ #j )
+        qed
+      qed
+    next
+      case Bob__guarded_____6__0_0_____6__0_0__0_0__18
+      by solve( State__Bob( <'rab_____6__0_0', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__guarded_____6__1_0_____6__1_0__0_0__23
+      by solve( State__Bob( <'rab_____6__1_0', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__init_mem_____0_____1__0
+      solve( State__Bob( <'rab_____0', %1>, return__var, 'rab__', 'rab__',
+                         'rab__'
+             ) ▶₀ #j )
+        case InitBob
+        solve( Transition__Bob( 'rab__0', %i ) @ #k )
+          case Bob__init_mem_____0_____1__0
+          solve( State__Bob( <'rab_____0', %1>, return__var, 'rab__', 'rab__',
+                             'rab__'
+                 ) ▶₀ #k )
+            case InitBob
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Bob__let_intro_____1_____2__1
+      solve( State__Bob( <'rab_____1', %i>, return__var, 'rab__', 'rab__',
+                         top__0
+             ) ▶₀ #j )
+        case Bob__init_mem_____0_____1__0
+        solve( Transition__Bob( 'rab__1', %1 ) @ #k )
+          case Bob__let_intro_____1_____2__1
+          solve( State__Bob( <'rab_____1', %1>, return__var, 'rab__', 'rab__',
+                             top__0
+                 ) ▶₀ #k )
+            case Bob__init_mem_____0_____1__0
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Bob__let_intro_____3_____4__10
+      by solve( State__Bob( <'rab_____3', %i>, return__var, 'rab__', loc__0,
+                            top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_intro_____5_____6__16
+      by solve( State__Bob( <'rab_____5', %i>, return__var, 'rab__',
+                            <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_intro_____7_____8__27
+      by solve( State__Bob( <'rab_____7', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_intro_____8_____9__28
+      by solve( State__Bob( <'rab_____8', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_intro_____9_____10__29
+      by solve( State__Bob( <'rab_____9', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_out_____11_____12__33
+      by solve( State__Bob( <'rab_____11', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_out_____12_____13__34
+      by solve( State__Bob( <'rab_____12', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_out_____13_____14__35
+      by solve( State__Bob( <'rab_____13', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_out_____14_____15__36
+      by solve( State__Bob( <'rab_____14', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_out_____15_____16__37
+      by solve( State__Bob( <'rab_____15', %i>, return__var, 'rab__',
+                            <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_out_____16_____17__38
+      by solve( State__Bob( <'rab_____16', %i>, return__var, 'rab__', loc__0,
+                            top__0
+                ) ▶₀ #j )
+    next
+      case Bob__new_intro_____2__0_0__0_0_____2__0_0__0_1__4
+      solve( Transition__Bob( 'rab__4', %i ) @ #k )
+        case Bob__new_intro_____2__0_0__0_0_____2__0_0__0_1__4
+        by solve( State__Bob( <'rab_____2__0_0__0_0', %i>, return__var, meta__0,
+                              <loc__0, loc__1>, top__0
+                  ) ▶₀ #j )
+      qed
+    next
+      case Bob__new_out_____2__0_0__0_3_____2__0_0__0_4__7
+      by solve( State__Bob( <'rab_____2__0_0__0_3', %i>, return__var,
+                            <meta__0, meta__1>, <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__put_____2__0_0__0_1_____2__0_0__0_2__5
+      solve( State__Bob( <'rab_____2__0_0__0_1', %i>, return__var,
+                         <meta__0, meta__1>, <loc__0, loc__1>, top__0
+             ) ▶₀ #j )
+        case Bob__new_intro_____2__0_0__0_0_____2__0_0__0_1__4
+        by solve( !ACP__( 'rab__Bob', loc__0, 'rab__fopen' ) ▶₁ #j )
+      qed
+    next
+      case Bob__return_____2__0_0__0_2_____2__0_0__0_3__6
+      by solve( State__Bob( <'rab_____2__0_0__0_2', %i>, return__var,
+                            <meta__0, meta__1>, <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__return_____4__0_1_____4__0_2__13
+      by solve( State__Bob( <'rab_____4__0_1', %i>, return__var, meta__0,
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__return_____6__0_0__0_0_____6__0_0__0_1__19
+      by solve( State__Bob( <'rab_____6__0_0__0_0', %i>, return__var, meta__0,
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__return_____6__1_0__0_0_____6__1_0__0_1__24
+      by solve( State__Bob( <'rab_____6__1_0__0_0', %i>, return__var,
+                            <meta__0, meta__1>, <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_intro_____10_____10__0_0__30
+      by solve( State__Bob( <'rab_____10', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_intro_____2_____2__0_0__2
+      solve( State__Bob( <'rab_____2', %i>, return__var, 'rab__', loc__0,
+                         top__0
+             ) ▶₀ #j )
+        case Bob__let_intro_____1_____2__1
+        solve( Transition__Bob( 'rab__2', %1 ) @ #k )
+          case Bob__scall_intro_____2_____2__0_0__2
+          solve( State__Bob( <'rab_____2', %1>, return__var, 'rab__', loc__0,
+                             top__0
+                 ) ▶₀ #k )
+            case Bob__let_intro_____1_____2__1
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Bob__scall_intro_____4_____4__0_0__11
+      by solve( State__Bob( <'rab_____4', %i>, return__var, 'rab__',
+                            <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_intro_____6_____6__0_0__17
+      by solve( State__Bob( <'rab_____6', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_out_____10__0_1_____11__32
+      by solve( State__Bob( <'rab_____10__0_1', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5, loc__6>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_out_____2__0_1_____3__9
+      by solve( State__Bob( <'rab_____2__0_1', %i>, return__var, 'rab__',
+                            <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_out_____4__0_3_____5__15
+      by solve( State__Bob( <'rab_____4__0_3', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_out_____6__0_1_____7__21
+      by solve( State__Bob( <'rab_____6__0_1', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    qed
+  next
+    case case_2
+    solve( Transition__Bob( x, %i ) @ #j )
+      case Bob__attack_intro_____6_____6__1_0__22
+      by solve( State__Bob( <'rab_____6', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__attack_out_____6__1_1_____7__26
+      by solve( State__Bob( <'rab_____6__1_1', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__case_out_____2__0_0__0_4_____2__0_1__8
+      by solve( State__Bob( <'rab_____2__0_0__0_4', %i>, return__var, meta__0,
+                            <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__case_out_____6__0_0__0_1_____6__0_1__20
+      by solve( State__Bob( <'rab_____6__0_0__0_1', %i>, return__var, meta__0,
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__case_out_____6__1_0__0_1_____6__1_1__25
+      by solve( State__Bob( <'rab_____6__1_0__0_1', %i>, return__var,
+                            <meta__0, meta__1>, <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__del_____10__0_0_____10__0_1__31
+      by solve( State__Bob( <'rab_____10__0_0', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5, loc__6>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__get_intro_____4__0_0_____4__0_1__12
+      by solve( State__Bob( <'rab_____4__0_0', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__get_out_____4__0_2_____4__0_3__14
+      by solve( State__Bob( <'rab_____4__0_2', %i>, return__var, meta__0,
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__guarded_____2__0_0_____2__0_0__0_0__3
+      solve( State__Bob( <'rab_____2__0_0', %i>, return__var, 'rab__',
+                         <loc__0, loc__1>, top__0
+             ) ▶₀ #j )
+        case Bob__scall_intro_____2_____2__0_0__2
+        solve( File__Bob( 'rab____keys__pub_alice', new__0 ) ▶₁ #j )
+          case Bob__keys__pub_alice
+          by solve( !ACP__( 'rab__Bob', 'rab____keys__pub_alice', 'rab__fopen'
+                    ) ▶₂ #j )
+        qed
+      qed
+    next
+      case Bob__guarded_____6__0_0_____6__0_0__0_0__18
+      by solve( State__Bob( <'rab_____6__0_0', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__guarded_____6__1_0_____6__1_0__0_0__23
+      by solve( State__Bob( <'rab_____6__1_0', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__init_mem_____0_____1__0
+      solve( State__Bob( <'rab_____0', %1>, return__var, 'rab__', 'rab__',
+                         'rab__'
+             ) ▶₀ #j )
+        case InitBob
+        solve( Transition__Bob( 'rab__0', %i ) @ #k )
+          case Bob__init_mem_____0_____1__0
+          solve( State__Bob( <'rab_____0', %1>, return__var, 'rab__', 'rab__',
+                             'rab__'
+                 ) ▶₀ #k )
+            case InitBob
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Bob__let_intro_____1_____2__1
+      solve( State__Bob( <'rab_____1', %i>, return__var, 'rab__', 'rab__',
+                         top__0
+             ) ▶₀ #j )
+        case Bob__init_mem_____0_____1__0
+        solve( Transition__Bob( 'rab__1', %1 ) @ #k )
+          case Bob__let_intro_____1_____2__1
+          solve( State__Bob( <'rab_____1', %1>, return__var, 'rab__', 'rab__',
+                             top__0
+                 ) ▶₀ #k )
+            case Bob__init_mem_____0_____1__0
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Bob__let_intro_____3_____4__10
+      by solve( State__Bob( <'rab_____3', %i>, return__var, 'rab__', loc__0,
+                            top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_intro_____5_____6__16
+      by solve( State__Bob( <'rab_____5', %i>, return__var, 'rab__',
+                            <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_intro_____7_____8__27
+      by solve( State__Bob( <'rab_____7', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_intro_____8_____9__28
+      by solve( State__Bob( <'rab_____8', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_intro_____9_____10__29
+      by solve( State__Bob( <'rab_____9', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_out_____11_____12__33
+      by solve( State__Bob( <'rab_____11', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_out_____12_____13__34
+      by solve( State__Bob( <'rab_____12', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3, loc__4>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_out_____13_____14__35
+      by solve( State__Bob( <'rab_____13', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_out_____14_____15__36
+      by solve( State__Bob( <'rab_____14', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_out_____15_____16__37
+      by solve( State__Bob( <'rab_____15', %i>, return__var, 'rab__',
+                            <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__let_out_____16_____17__38
+      by solve( State__Bob( <'rab_____16', %i>, return__var, 'rab__', loc__0,
+                            top__0
+                ) ▶₀ #j )
+    next
+      case Bob__new_intro_____2__0_0__0_0_____2__0_0__0_1__4
+      solve( Transition__Bob( 'rab__4', %i ) @ #k )
+        case Bob__new_intro_____2__0_0__0_0_____2__0_0__0_1__4
+        by solve( State__Bob( <'rab_____2__0_0__0_0', %i>, return__var, meta__0,
+                              <loc__0, loc__1>, top__0
+                  ) ▶₀ #j )
+      qed
+    next
+      case Bob__new_out_____2__0_0__0_3_____2__0_0__0_4__7
+      by solve( State__Bob( <'rab_____2__0_0__0_3', %i>, return__var,
+                            <meta__0, meta__1>, <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__put_____2__0_0__0_1_____2__0_0__0_2__5
+      solve( State__Bob( <'rab_____2__0_0__0_1', %i>, return__var,
+                         <meta__0, meta__1>, <loc__0, loc__1>, top__0
+             ) ▶₀ #j )
+        case Bob__new_intro_____2__0_0__0_0_____2__0_0__0_1__4
+        by solve( !ACP__( 'rab__Bob', loc__0, 'rab__fopen' ) ▶₁ #j )
+      qed
+    next
+      case Bob__return_____2__0_0__0_2_____2__0_0__0_3__6
+      by solve( State__Bob( <'rab_____2__0_0__0_2', %i>, return__var,
+                            <meta__0, meta__1>, <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__return_____4__0_1_____4__0_2__13
+      by solve( State__Bob( <'rab_____4__0_1', %i>, return__var, meta__0,
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__return_____6__0_0__0_0_____6__0_0__0_1__19
+      by solve( State__Bob( <'rab_____6__0_0__0_0', %i>, return__var, meta__0,
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__return_____6__1_0__0_0_____6__1_0__0_1__24
+      by solve( State__Bob( <'rab_____6__1_0__0_0', %i>, return__var,
+                            <meta__0, meta__1>, <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_intro_____10_____10__0_0__30
+      by solve( State__Bob( <'rab_____10', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_intro_____2_____2__0_0__2
+      solve( State__Bob( <'rab_____2', %i>, return__var, 'rab__', loc__0,
+                         top__0
+             ) ▶₀ #j )
+        case Bob__let_intro_____1_____2__1
+        solve( Transition__Bob( 'rab__2', %1 ) @ #k )
+          case Bob__scall_intro_____2_____2__0_0__2
+          solve( State__Bob( <'rab_____2', %1>, return__var, 'rab__', loc__0,
+                             top__0
+                 ) ▶₀ #k )
+            case Bob__let_intro_____1_____2__1
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Bob__scall_intro_____4_____4__0_0__11
+      by solve( State__Bob( <'rab_____4', %i>, return__var, 'rab__',
+                            <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_intro_____6_____6__0_0__17
+      by solve( State__Bob( <'rab_____6', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_out_____10__0_1_____11__32
+      by solve( State__Bob( <'rab_____10__0_1', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3, loc__4, loc__5, loc__6>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_out_____2__0_1_____3__9
+      by solve( State__Bob( <'rab_____2__0_1', %i>, return__var, 'rab__',
+                            <loc__0, loc__1>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_out_____4__0_3_____5__15
+      by solve( State__Bob( <'rab_____4__0_3', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2>, top__0
+                ) ▶₀ #j )
+    next
+      case Bob__scall_out_____6__0_1_____7__21
+      by solve( State__Bob( <'rab_____6__0_1', %i>, return__var, 'rab__',
+                            <loc__0, loc__1, loc__2, loc__3>, top__0
+                ) ▶₀ #j )
+    qed
+  qed
+qed
+
+lemma Correspondence:
+  all-traces
+  "∀ msg #j.
+    (IntegritySuccess( msg ) @ #j) ⇒
+    (∃ #i. (MsgSend( msg ) @ #i) ∧ (#i < #j))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ msg #j.
+  (IntegritySuccess( msg ) @ #j)
+ ∧
+  ∀ #i. (MsgSend( msg ) @ #i) ⇒ ¬(#i < #j)"
+*/
+simplify
+by solve( IntegritySuccess( msg ) @ #j )
+
+lemma Reachable:
+  exists-trace "∃ #i. AliceClose( ) @ #i"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ #i. (AliceClose( ) @ #i)"
+*/
+simplify
+solve( State__Alice( <'rab_____1', %v__>, return__var, 'rab__', 'rab__',
+                     top__0
+       ) ▶₀ #i )
+  case Alice__init_mem_____0_____1__0
+  SOLVED // trace found
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Unbound variables
+=================
+
+  rule `Alice__init_mem_____0_____1__0' has unbound variables: 
+    %v__
+  
+  rule `Bob__init_mem_____0_____1__0' has unbound variables: 
+    %v__
+  
+  rule `Equality_gen' has unbound variables: 
+    x
+  
+  rule `NEquality_gen' has unbound variables: 
+    x, y
+
+Inexistant lemma actions
+========================
+
+  lemma `AlwaysStarts__' references action 
+    fact "Loop__Back" (arity 1, Linear) 
+  but no rule has such an action.
+  
+  lemma `AlwaysStarts__' references action 
+    fact "Loop__Start" (arity 1, Linear) 
+  but no rule has such an action.
+  
+  lemma `AlwaysStartsWhenEnds__' references action 
+    fact "Loop__Finish" (arity 1, Linear) 
+  but no rule has such an action.
+  
+  lemma `AlwaysStartsWhenEnds__' references action 
+    fact "Loop__Start" (arity 1, Linear) 
+  but no rule has such an action.
+  
+  lemma `Correspondence' references action 
+    fact "IntegritySuccess" (arity 1, Linear) 
+  but no rule has such an action.
+  
+  lemma `Correspondence' references action 
+    fact "MsgSend" (arity 1, Linear) 
+  but no rule has such an action.
+
+Derivation Checks
+=================
+
+  Derivation checks timed out.
+  Use --derivcheck-timeout=INT to configure timeout.
+  Set to 0 to deactivate for no timeout.
+*/
+
+/*
+Generated from:
+Tamarin version 1.10.0
+Maude version 3.3
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2025-03-31 06:48:53.898500571 UTC
+*/
+
+end
+
+==============================================================================
+summary of summaries:
+
+analyzed: tamarin_models/digital_sig_filesys_opt_no_tag_transition_no_eaves_sig.spthy
+
+  processing time: 51.09s
+  
+  WARNING: 11 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  AlwaysStarts__ (all-traces): verified (6 steps)
+  AlwaysStartsWhenEnds__ (all-traces): verified (6 steps)
+  transition__Alice (all-traces): verified (142 steps)
+  transition__Bob (all-traces): verified (110 steps)
+  Correspondence (all-traces): verified (2 steps)
+  Reachable (exists-trace): verified (3 steps)
+
+==============================================================================

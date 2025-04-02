@@ -1,3 +1,8 @@
+--------------------------------------------------------------------
+OUTPUT OF _build/default/src/rabbit.exe examples/digital_sig_filesys_inj_facts.rab --post-process --tag-transition -o tamarin_models/digital_sig_filesys_opt_no_eaves_sig.spthy && tamarin-prover tamarin_models/digital_sig_filesys_opt_no_eaves_sig.spthy --prove > tamarin_logs/digital_sig_filesys_opt_no_eaves_sig_1-4-25.log
+--------------------------------------------------------------------
+
+
 theory rabbit begin
 
 // Function signature and definition of the equational theory E
@@ -532,7 +537,7 @@ summary of summaries:
 
 analyzed: tamarin_models/digital_sig_filesys_opt_no_eaves_sig.spthy
 
-  processing time: 2.39s
+  processing time: 2.44s
   
   WARNING: 9 wellformedness check failed!
            The analysis results might be wrong!

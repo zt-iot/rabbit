@@ -1,3 +1,9 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+OUTPUT OF _build/default/src/rabbit.exe examples/digital_sig_filesys_inj_facts.rab --post-process --tag-transition -o tamarin_models/digital_sig_filesys_opt_no_eaves_sig.spthy && tamarin-prover tamarin_models/digital_sig_filesys_opt_no_eaves_sig.spthy --prove > tamarin_logs/digital_sig_filesys_opt_no_eaves_sig.log 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
 theory rabbit begin
 
 // Function signature and definition of the equational theory E
@@ -522,7 +528,7 @@ Generated from:
 Tamarin version 1.10.0
 Maude version 3.3
 Git revision: UNKNOWN, branch: UNKNOWN
-Compiled at: 2025-03-31 06:48:53.898500571 UTC
+Compiled at: 2025-03-30 20:19:50.453495971 UTC
 */
 
 end
@@ -532,7 +538,7 @@ summary of summaries:
 
 analyzed: tamarin_models/digital_sig_filesys_opt_no_eaves_sig.spthy
 
-  processing time: 2.39s
+  processing time: 2.45s
   
   WARNING: 9 wellformedness check failed!
            The analysis results might be wrong!

@@ -127,7 +127,7 @@ process alice(ch_net : udp_t) : client_t
       var msg = message() in
 
       (* Allow passive eavesdropping attack to happen after sig has been created *)
-      (* _ := eaves_mem(msg);*)
+      _ := eaves_mem(msg);
 
       var priv_key_fd = fopen(priv_key_path) in
       var priv_key = fread(priv_key_fd) in
