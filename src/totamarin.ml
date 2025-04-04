@@ -549,7 +549,7 @@ let print_lemma lemma =
     (mult_list_with_concat (List.map print_expr varb) " ") ^
     (mult_list_with_concat (fst (List.fold_left (fun (times, n) _ -> (" #label__time" ^ !separator ^ string_of_int n) :: times, n+1) ([],0) gvb)) " ") ^ 
     
-    "#time" ^ !separator ^ "2 . " ^
+    " #time" ^ !separator ^ "2 . " ^
     (mult_list_with_concat (fst (List.fold_left (fun (s, n) g -> ((print_fact (print_fact' g)) ^"@#label__time"^ !separator ^ string_of_int n)::s , n+1) ([],0) gvb)) " & ") ^
     (if List.length gvb = 0 then "" else " & ") ^
     (print_fact (print_fact' b)) ^"@#time" ^ !separator ^ "2 & #time" ^ !separator ^"2 < #time" ^ !separator ^"1 \""
