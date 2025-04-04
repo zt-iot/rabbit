@@ -76,6 +76,6 @@ and fpath' =
 type lemma = lemma' Location.located
 and lemma' = 
   | PlainLemma of Name.ident * Name.ident  
-  | ReachabilityLemma of Name.ident * Name.ident list * fact list
+  | ReachabilityLemma of Name.ident * Name.ident list * Name.ident list * Name.ident list * fact list
   | CorrespondenceLemma of Name.ident * Name.ident list * fact * fact 
 

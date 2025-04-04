@@ -96,6 +96,26 @@ type expr =
   | Unit 
   | Param 
 
+let rec expr_collect_vars e =
+  match e with
+  | FVar e -> [FVar e ]
+  | Var s -> [Var s]
+  | MetaVar i -> [MetaVar i]
+  | LocVar i -> [LocVar i]
+  | TopVar i -> [TopVar i]
+  | MetaNewVar i -> [MetaNewVar i]
+  | Apply(s, el) -> List.fold_left (fun vl e -> (expr_collect_vars e) @ vl) [] el 
+  | String _ -> []
+  | Integer _ -> []
+  | List el -> List.fold_left (fun vl e -> (expr_collect_vars e) @ vl) [] el
+  | One -> []
+  | Int _ -> []
+  | AddOne e -> expr_collect_vars e
+  | Unit -> []
+  | Param -> [Param]
+
+
+
 let expr_pair a b = List [a ; b]
 
 let get_return_var () =
@@ -152,6 +172,17 @@ type fact =
   | FreshFact of expr
   | AccessGenFact of string (* namespace *) * expr (* param *)
   
+let global_fact_collect_vars f =
+  match f with
+  | GlobalFact (s, el) -> 
+    List.fold_left (fun vl v -> 
+      if List.exists (fun w -> w = v) vl then vl else v::vl
+      ) []
+        (List.fold_left (fun vl e -> (expr_collect_vars e) @ vl) [] el)
+  | ConstantFact (e1, e2) -> expr_collect_vars e1 @expr_collect_vars e2
+
+  | _ -> error ~loc:Location.Nowhere (UnintendedError "process fact")
+
 type fact' = string * expr list * rule_config
 
 let print_fact' (f : fact) : fact' = 
@@ -352,8 +383,8 @@ let add_transition m t = {m with model_transitions = t :: m.model_transitions; m
  (* tamarin lemma *)
  type lemma = 
   | PlainLemma of string * string
-  | ReachabilityLemma of string * string list * (string * expr list) list
-  | CorrespondenceLemma of string * string list * (string * expr list) * (string * expr list)
+  | ReachabilityLemma of string * string list * string list * string list * fact list * fact list
+  | CorrespondenceLemma of string * string list * (fact list) * fact * fact
 
 (* tamarin as a pair of a sigature and a finite list of models *)
 (* model and its initialization rules *)
@@ -472,16 +503,43 @@ let print_model_transition_rule m is_dev =
 let print_lemma lemma = 
   match lemma with
   | PlainLemma (l, p) -> "\nlemma "^l^" : "^p 
-  | ReachabilityLemma (l, vars, facts) -> "\nlemma "^l^ " : exists-trace \"Ex "^
-    (mult_list_with_concat vars " ") ^" " ^
-    (mult_list_with_concat (List.map (fun (f, _) -> "#"^f^ !separator ) facts) " ") ^ " . " ^
-    (mult_list_with_concat (List.map (fun (f, el) -> print_fact_plain (f, el) ^ " @ " ^f^ !separator ) facts) " & ") ^ " \""
+  | ReachabilityLemma (l, cs, ps, vars,gv, facts) ->
+    let var1 = List.flatten (List.map global_fact_collect_vars facts) in
+    let var2 = List.flatten (List.map global_fact_collect_vars gv) in
+    let var = List.fold_left (fun var v -> 
+      (* print_string (print_expr v);
+      print_string "  "; *)
+      if List.exists (fun w -> w = v) var then var else v::var) [] (var1@var2) in 
+    
+    "\nlemma "^l^ " : exists-trace \"Ex "^
 
-  | CorrespondenceLemma (l, vars, (f1, el1), (f2, el2)) -> "\nlemma "^l^ " : all-traces \"All "^
-    (mult_list_with_concat vars " ") ^" " ^ "#"^f1^ !separator  ^" . " ^
-    print_fact_plain (f1, el1) ^ " @ " ^ f1^ !separator  ^" ==> "^
-    "Ex " ^ "#"^f2^ !separator  ^ " . " ^ print_fact_plain (f2, el2) ^ " @ " ^ f2^ !separator  ^" & "^
-    f2^ !separator  ^" < "^ f1^ !separator  ^ " \""
+    (mult_list_with_concat (List.map print_expr var) " ") ^
+    (mult_list_with_concat (fst (List.fold_left (fun (times, n) _ -> (" #time" ^ !separator ^ string_of_int n) :: times, n+1) ([],0) facts)) " ") ^ 
+    (mult_list_with_concat (fst (List.fold_left (fun (times, n) _ -> (" #label_time" ^ !separator ^ string_of_int n) :: times, n+1) ([],0) gv)) " ") ^ 
+    " . " ^
+    (mult_list_with_concat (fst (List.fold_left (fun (s, n) g -> ((print_fact (print_fact' g)) ^"@#label_time"^ !separator ^ string_of_int n)::s , n+1) ([],0) gv)) " & ") ^
+    (if List.length gv = 0 then "" else " & ") ^
+    (mult_list_with_concat (fst (List.fold_left (fun (s, n) g -> ((print_fact (print_fact' g)) ^"@#time"^ !separator ^ string_of_int n)::s , n+1) ([],0) facts)) " & ") ^
+   " \""
+
+
+
+  | CorrespondenceLemma (l, vl, gv, a, b) -> 
+    let var1 = List.flatten (List.map global_fact_collect_vars [a; b]) in
+    let var2 = List.flatten (List.map global_fact_collect_vars gv) in
+    let var = List.fold_left (fun var v -> 
+      if List.exists (fun w -> w = v) var then var else v::var) [] (var1@var2) in 
+    
+    
+    
+    
+    "\nlemma "^l^ " : all-traces \"All "^
+
+    (mult_list_with_concat (List.map print_expr var) " ") ^
+    (mult_list_with_concat (fst (List.fold_left (fun (times, n) _ -> (" #label_time" ^ !separator ^ string_of_int n) :: times, n+1) ([],0) gv)) " ") ^ 
+    " #time" ^ !separator ^ "1 . " ^
+    (print_fact (print_fact' a)) ^"@#time" ^ !separator ^ "1 ==> Ex #time" ^ !separator ^ "2 . " ^
+    (print_fact (print_fact' b)) ^"@#time" ^ !separator ^ "2 & #time" ^ !separator ^"2 < #time" ^ !separator ^"1 \""
 
 
 (* signature * model list * rule list * lemma list *)
@@ -1375,7 +1433,7 @@ let translate_sys {
           ("Const"^sep^v, "", [ResFact(2, [Var v])], [InitFact [String ("Const"^sep^v)]; InitFact [List [String ("Const"^sep^v); Var v]]], [mk_constant_fact v])
 	      | Some e -> (* when v is defined *) 
           let e, gv, _ = translate_expr2 e in  
-      		tamarin_add_rule t ("Const"^sep^v, "", gv, [], [ConstantFact(String v, e)])) t (List.rev def.Context.def_const) in
+      		tamarin_add_rule t ("Const"^sep^v, "", gv, [ConstantFact(String v, e)], [ConstantFact(String v, e)])) t (List.rev def.Context.def_const) in
 
   let t = tamarin_add_comment t "Parametric global Constants:" in
 
@@ -1385,12 +1443,12 @@ let translate_sys {
       tamarin_add_rule t 
       ("Const"^sep^v, "", 
         [ResFact(2, [Var v])], 
-        [InitFact [expr_pair (String v) Param]], 
+        [InitFact [expr_pair (String v) Param]; ConstantFact (expr_pair (String v) Param, Var v)], 
         [ConstantFact (expr_pair (String v) Param, Var v)])
     | Some (p, e) -> (* when v is defined *) 
       let e, gv, _ = translate_expr2 e in  
       tamarin_add_rule t ("Const"^sep^v, "", gv, 
-        [InitFact [expr_pair (String v) Param]], 
+        [InitFact [expr_pair (String v) Param]; ConstantFact (expr_pair (String v) Param, e)], 
         [ConstantFact (expr_pair (String v) Param, e)])) 
       t (List.rev def.Context.def_param_const) in
     
@@ -1398,76 +1456,6 @@ let translate_sys {
   let il =[] in 
   let t = tamarin_add_comment t "Access control:" in
   (* access control *)
-
-
-
-  (* pol_access : (Name.ident * Name.ident list * Name.ident) list ;
-  pol_access_all : (Name.ident * Name.ident list) list; 
-  pol_attack : (Name.ident * Name.ident) list  *)
-
-  (* let t = List.fold_left (fun t (ty, tyl, scall) ->
-    let scalls = [scall] in (*to be prepared for latter*)
-
-    let t = List.fold_left (fun t target_ty -> 
-      (* get channels whose type is target_ty *)
-      let chs = List.filter (fun (_, b) -> b = target_ty) ctx.Context.ctx_ch in
-      let chs = List.map (fun (a, b) -> a) chs in 
-      let t = List.fold_left (fun t ch ->
-        List.fold_left (fun t scall ->
-          tamarin_add_rule t (ty ^ sep ^ ch ^ sep ^scall,"",[],[],[AccessFact(ty, String ch, scall)])) t scalls) t chs in
-
-      let pchs = List.filter (fun (_, b) -> b = target_ty) ctx.Context.ctx_param_ch in
-      let pchs = List.map (fun (a, b) -> a) pchs in 
-      let t = List.fold_left (fun t ch ->
-        List.fold_left (fun t scall ->
-          tamarin_add_rule t (ty ^ sep ^ ch ^ sep ^scall,"",[],[],[AccessFact(ty, List [String ch; Var !fresh_ident], scall)])) t scalls) t pchs in
-    
-      t) t tyl in 
-      t  
-    ) t pol.Context.pol_access in *)
-
-
-    (* for granting full access *)
-    (* let t = List.fold_left (fun t (ty, tyl) ->  
-      let t = List.fold_left (fun t target_ty -> 
-        (* get channels whose type is target_ty *)
-        let chs = List.filter (fun (_, b) -> b = target_ty) ctx.Context.ctx_ch in
-        let chs = List.map (fun (a, b) -> a) chs in 
-        let t = List.fold_left (fun t ch ->
-            tamarin_add_rule t (ty ^ sep ^ ch ^ sep,"",[],[],[AccessFact(ty, String ch,  "")])) t chs in
-  
-        let pchs = List.filter (fun (_, b) -> b = target_ty) ctx.Context.ctx_param_ch in
-        let pchs = List.map (fun (a, b) -> a) pchs in 
-        let t = List.fold_left (fun t ch ->
-            tamarin_add_rule t (ty ^ sep ^ ch ^ sep ^  "","",[],[],[AccessFact(ty, List [String ch; Var !fresh_ident],  "")]))t pchs in
-      
-        t) t tyl in 
-        t  
-      ) t pol.Context.pol_access_all in *)
-  
-
-
-  (* pol_access : (Name.ident * Name.ident list * Name.ident) list ; *)
-  (* let t, il = List.fold_left (fun (t, il) p ->
-		  let procname = String.capitalize_ascii (p.Context.proc_name ^ (if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid)) in 
-      let t = List.fold_left (fun (t : tamarin) (pty, att) -> 
-        if p.Context.proc_type = pty 
-        then
-          let name = procname ^ sep ^ sep ^ att in 
-          tamarin_add_rule t (name, "",
-          [], 
-          [], 
-          [AttackFact(procname, String att)]) 
-        else t) t pol.Context.pol_attack in
-		  (t, il)) (t, il) (proc @ (List.flatten param_proc)) in
-
-let t = List.fold_left (fun t (ty, target_ty_list, scall) -> 
-  List.fold_left (fun t target_ty -> 
-      tamarin_add_rule t (ty ^ sep ^ target_ty ^ sep ^  scall,"",[],[],[AccessFact(ty, String target_ty, scall)])) t target_ty_list    
-  ) t pol.Context.pol_access in *)
-
-
-
 
   (* let t = add_comment t "Processes:" in *)
   let mos = List.fold_left (fun mos p ->  (translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack pol)::mos) [] (List.rev proc) in
@@ -1591,19 +1579,24 @@ let t = List.fold_left (fun t (ty, target_ty_list, scall) ->
     let l =
       match l.Location.data with
       | Syntax.PlainLemma (l, p) -> PlainLemma (l, p)
-  (*     | Syntax.ReachabilityLemma (l, vars, evs) -> 
-        ReachabilityLemma (l, vars, 
-          List.map (fun ev -> 
-            match ev.Location.data with
-            | Syntax.Event (id, el) -> (mk_fact_name id), List.map (translate_expr ~ch:false) el
-          ) evs)
-      | Syntax.CorrespondenceLemma (l, vars, e1, e2) -> 
+      | Syntax.ReachabilityLemma (l, cs, ps, vs, fs) -> 
+        let fs, gv, _, _ = translate_facts "" fs in 
+        ReachabilityLemma (l, cs, ps, vs, gv, fs)     
+      | Syntax.CorrespondenceLemma (l, vl,a, b) -> 
+        let [a;b], gv, _, _ = translate_facts "" [a;b] in 
+        CorrespondenceLemma (l, vl, gv, a, b)
+
+          (* | ReachabilityLemma of string * string list * string list * string list * (string * expr list) list *)
+          (* | CorrespondenceLemma of string * string list * (string * expr list) * (string * expr list) *)
+
+
+      (* | Syntax.CorrespondenceLemma (l, vars, e1, e2) -> 
         CorrespondenceLemma (l, vars, 
             (match e1.Location.data with
             | Syntax.Event (id, el) -> (mk_fact_name id, List.map (translate_expr ~ch:false) el)),
             (match e2.Location.data with
             | Syntax.Event (id, el) -> (mk_fact_name id, List.map (translate_expr ~ch:false) el)))
-  *)    
+      *)    
 
       | _ -> error ~loc:Location.Nowhere (UnintendedError "")
     in tamarin_add_lemma t l) t lem in

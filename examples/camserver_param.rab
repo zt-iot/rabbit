@@ -116,9 +116,7 @@ process client<k>(ch_net : udp_t, ch_rpc : rpc_t) : client_t
       _ := eaves_mem(image);
 
       var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
-      
-      _ := eaves_mem(sig);
-      
+            
       event [::ImgSend(image)];
       
       _ := send(ch_net, (sig, image))
@@ -147,7 +145,7 @@ process client_ta<k>(ch_rpc : rpc_t) : client_ta_t
 
     var privkey0 = dec(privkey, fek) in 
 
-    var sig = sign(image, privkey0) in
+    var sig = sign(image, priv_k<k>) in
 
     _ := fclose(privkey_fd);
 
@@ -207,8 +205,9 @@ system
 requires  
 [
   lemma Reachable :
-  	exists-trace "Ex x #i #j #k  . ClientClose() @ #j & ClientTAClose() @ #k & ImgRecvValid(x) @ #i" ;
+    reachable ::ClientClose(), ::ClientTAClose(), ::ImgRecvValid(x) ;
+
   lemma Correspondence :
-  	all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
+    corresponds ::ImgRecvValid(x) ~> ::ImgSend (x)
 ]
 

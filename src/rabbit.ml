@@ -73,6 +73,7 @@ let _main =
           let (ctx, pol, def, sys, (a', b')) = Loader.load fn ctx pol def sys in 
           (ctx, pol, def, sys, (a'@a, b'@b))) 
         Loader.process_init  !files in
+        print_string "Loading complete..\n";
         List.fold_left (fun _ s -> 
         let (si, mo_lst, rule_lst, lem_lst)  = (Totamarin.translate_sys s x) in 
         let t = 
