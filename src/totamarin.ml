@@ -384,7 +384,7 @@ let add_transition m t = {m with model_transitions = t :: m.model_transitions; m
  type lemma = 
   | PlainLemma of string * string
   | ReachabilityLemma of string * string list * string list * string list * fact list * fact list
-  | CorrespondenceLemma of string * string list * (fact list) * fact * fact
+  | CorrespondenceLemma of string * string list * (fact list * fact) * (fact list * fact)
 
 (* tamarin as a pair of a sigature and a finite list of models *)
 (* model and its initialization rules *)
@@ -524,21 +524,34 @@ let print_lemma lemma =
 
 
 
-  | CorrespondenceLemma (l, vl, gv, a, b) -> 
-    let var1 = List.flatten (List.map global_fact_collect_vars [a; b]) in
-    let var2 = List.flatten (List.map global_fact_collect_vars gv) in
-    let var = List.fold_left (fun var v -> 
+  | CorrespondenceLemma (l, vl, (gva, a), (gvb, b)) -> 
+    let var1 = List.flatten (List.map global_fact_collect_vars [a]) in
+    let var2 = List.flatten (List.map global_fact_collect_vars gva) in
+    let vara = List.fold_left (fun var v -> 
       if List.exists (fun w -> w = v) var then var else v::var) [] (var1@var2) in 
-    
+
+    let var1 = List.flatten (List.map global_fact_collect_vars [b]) in
+    let var2 = List.flatten (List.map global_fact_collect_vars gvb) in
+    let varb = List.fold_left (fun var v -> 
+      if List.exists (fun w -> w = v) (var@vara) then var else v::var) [] (var1@var2) in 
+      
     
     
     
     "\nlemma "^l^ " : all-traces \"All "^
 
-    (mult_list_with_concat (List.map print_expr var) " ") ^
-    (mult_list_with_concat (fst (List.fold_left (fun (times, n) _ -> (" #label_time" ^ !separator ^ string_of_int n) :: times, n+1) ([],0) gv)) " ") ^ 
+    (mult_list_with_concat (List.map print_expr vara) " ") ^
+    (mult_list_with_concat (fst (List.fold_left (fun (times, n) _ -> (" #label_time" ^ !separator ^ string_of_int n) :: times, n+1) ([],0) gva)) " ") ^ 
     " #time" ^ !separator ^ "1 . " ^
-    (print_fact (print_fact' a)) ^"@#time" ^ !separator ^ "1 ==> Ex #time" ^ !separator ^ "2 . " ^
+    (mult_list_with_concat (fst (List.fold_left (fun (s, n) g -> ((print_fact (print_fact' g)) ^"@#label_time"^ !separator ^ string_of_int n)::s , n+1) ([],0) gva)) " & ") ^
+    (if List.length gva = 0 then "" else " & ") ^
+    (print_fact (print_fact' a)) ^"@#time" ^ !separator ^ "1 ==> Ex "^
+    (mult_list_with_concat (List.map print_expr varb) " ") ^
+    (mult_list_with_concat (fst (List.fold_left (fun (times, n) _ -> (" #label__time" ^ !separator ^ string_of_int n) :: times, n+1) ([],0) gvb)) " ") ^ 
+    
+    "#time" ^ !separator ^ "2 . " ^
+    (mult_list_with_concat (fst (List.fold_left (fun (s, n) g -> ((print_fact (print_fact' g)) ^"@#label__time"^ !separator ^ string_of_int n)::s , n+1) ([],0) gvb)) " & ") ^
+    (if List.length gvb = 0 then "" else " & ") ^
     (print_fact (print_fact' b)) ^"@#time" ^ !separator ^ "2 & #time" ^ !separator ^"2 < #time" ^ !separator ^"1 \""
 
 
@@ -1583,8 +1596,9 @@ let translate_sys {
         let fs, gv, _, _ = translate_facts "" fs in 
         ReachabilityLemma (l, cs, ps, vs, gv, fs)     
       | Syntax.CorrespondenceLemma (l, vl,a, b) -> 
-        let [a;b], gv, _, _ = translate_facts "" [a;b] in 
-        CorrespondenceLemma (l, vl, gv, a, b)
+        let [a], gva, _, _ = translate_facts "" [a] in 
+        let [b], gvb, _, _ = translate_facts "" [b] in 
+        CorrespondenceLemma (l, vl, (gva, a), (gvb, b))
 
           (* | ReachabilityLemma of string * string list * string list * string list * (string * expr list) list *)
           (* | CorrespondenceLemma of string * string list * (string * expr list) * (string * expr list) *)
