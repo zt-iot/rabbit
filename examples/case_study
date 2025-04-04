@@ -1,5 +1,21 @@
 
 
+(* predefined types *)
+
+type mon : C^ree[r : ree | w : ree]
+
+type ta_up : C^{tee}[r : tee * tee | w : tee * tee]
+type ta_down := C^tee[r : ree | w : ree
+
+type p_ta : P^tee[ta_up * ta_down]
+type ks : K_{Sym}^{te}[tee]
+type p_tee : P^
+
+
+]
+
+p_ta = P^tee[ta_up * ta_down]
+
 process REE() {
   pack(mon : mon -> recv(mon, y : ree))
 }
