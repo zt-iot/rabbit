@@ -107,6 +107,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
      let r = String.sub s 1 (l - 2) in 
      Ulexbuf.record_string r lexbuf;
      QUOTED_STRING (r)
+  (* diode-lang: I feel like this is to be able to lex special characters, because all these strings contain special characters... *)
   | "~>" | 8605              -> f (); LEADSTO
   | '_'                      -> f (); UNDERSCORE
   | '.'                      -> f (); DOT

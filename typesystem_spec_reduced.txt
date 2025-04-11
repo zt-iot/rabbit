@@ -1,0 +1,108 @@
+------------------------------------------------------------------
+FINAL GOAL OF THE TYPE SYSTEM
+------------------------------------------------------------------
+* Let `p` be a closed process, meaning that p is a process with no free variables. `p` is the process representing our entire system
+* Let `tenv` be a type environment such that `tenv` maps all variables and names to `U=(Public, Untrusted)`
+* An opponent `o` is a process where all type annotations that appear are `U`
+
+We want to show that:
+------------------------------------------------------------------
+`well_typed(p, tenv)` -> `p` preserves secrecy and integrity
+------------------------------------------------------------------
+
+
+------------------------------------------------------------------
+------------------------------------------------------------------
+------------------------------------------------------------------
+------------------------------------------------------------------
+------------------------------------------------------------------
+
+----SUBTYPING----
+Subtyping: the exact same as in figure 3
+Let `is_sub(t, t')` be an OCaml function that returns true if t is a subtype of t'
+
+
+----WELL-FORMED types----
+Well-formed types: the exact same as in figure 4
+Let `well_formed(t) be an OCaml function that returns true if Rabbit type t is well-formed`
+
+
+----TYPING RULES FOR TERMS----
+
+Let `tenv` be a typing environment. It is a `Map` datastructure from `ID` to `t`, where `ID` is any Rabbit identifier and `t` is a Rabbit type
+Let `typeof` be a function that takes a Rabbit term r and typing environment `tenv` and returns the Rabbit type for that raw term `r` under `tenv`
+
+(TRVar)
+mem x tenv = true
+---------------------------------
+typeof(x, tenv) = find x tenv
+
+
+(TRName)
+mem n tenv = true
+---------------------------------
+typeof(n, tenv) = find n tenv
+
+
+(TRSub) (* Not sure how this would work... *)
+typeof(r, tenv) = t 
+is_sub(t, t')
+---------------------------------
+typeof(r, tenv) = t'
+
+
+(TRPair)
+typeof(u, tenv) = t1
+typeof(v, tenv) = t2
+---------------------------------
+typeof((u, v)) = (t1, t2)
+
+(TRApp)
+typeof(id, tenv) = func[t_1, ..., t_n, ret]
+typeof(r_i, tenv) = t_i (* for all i from i to n *)
+---------------------------------
+typeof(id(r_1, ..., r_n)) = ret  
+
+
+(TRPack)
+well_typed(p, added((x, t), tenv))
+l = *any security level which we like*
+---------------------------------
+typeof(pack(x, t, p)) = process[t, l]
+
+
+
+----WELL-TYPEDNESS OF PROCESSES----
+
+Let `tenv` be a typing environment. It is a `Map` datastructure from `ID` to `t`, where `ID` is any Rabbit identifier and `t` is a Rabbit type
+Let `is_well_typed(p, tenv)` be an OCaml function that returns true if Rabbit process `p` is well-typed under typing environment `tenv`, according to rules of Figure 6
+
+(TPNil)
+---------------------------------
+well_typed(nil, tenv) = true
+
+(TPPar)
+well_typed(p, tenv) = true
+well_typed(q, tenv) = true
+---------------------------------
+well_typed(p | q, tenv) = true
+
+(TPNew)
+well_typed(p, added((n, t), tenv))
+---------------------------------
+well_typed(new n : t in p, tenv)
+
+
+(TPVar)
+typeof(r, tenv) = t
+well_typed(p, added((r, t), tenv))
+---------------------------------
+well_typed(var x : t = r in p, tenv)
+
+(TPCase)
+typeof()
+---------------------------------
+well_typed(case ([A11, ..., A1n] -> p_1, ..., [A_n1, ..., A_nn] -> p_n), tenv)
+
+
+

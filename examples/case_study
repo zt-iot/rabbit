@@ -2,17 +2,17 @@
 
 (* predefined types *)
 
-type mon : C^ree[r : ree | w : ree]
+type mon : channel[l: ree, r : ree, w : ree]
 
-type ta_up : C^{tee}[r : tee * tee | w : tee * tee]
-type ta_down := C^tee[r : ree | w : ree
+type ta_up : C^[l : tee, r : (tee, tee), w : (tee, tee)]
+type ta_down := C[l : tee, r : ree, w : ree]
 
-type p_ta : P^tee[ta_up * ta_down]
-type ks : K_{Sym}^{te}[tee]
-type p_tee : P^
+type ks : key[l : tee, t : tee, k : Sym]
+type k_root : key[l : root, t : p_tee, (ta_up, ta_down)]
+type p_ta : P[l : tee, t : (ta_up, ta_down)]
+type p_tee : P[l : (Public, I(root)), t : (mon, p_ta)]
 
 
-]
 
 p_ta = P^tee[ta_up * ta_down]
 

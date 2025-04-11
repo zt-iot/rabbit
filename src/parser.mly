@@ -70,6 +70,9 @@ plain_decl:
 
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
 
+  (* process params are seperated list of `colon_name_pair` *)
+  (* Why parse the parameter name and parameter type _both_ as a name though? *)
+  (* *)
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME 
     LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
 
