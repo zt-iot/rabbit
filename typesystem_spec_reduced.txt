@@ -24,14 +24,14 @@ Let `is_sub(t, t')` be an OCaml function that returns true if t is a subtype of 
 
 ----WELL-FORMED types----
 Well-formed types: the exact same as in figure 4
-Let `well_formed(t) be an OCaml function that returns true if Rabbit type t is well-formed`
+Let `well_formed(t)` be an OCaml function that returns true if Rabbit type t is well-formed
 
-
-----TYPING RULES FOR TERMS----
-
+--DEFINITIONS `tenv` AND `typeof`----
 Let `tenv` be a typing environment. It is a `Map` datastructure from `ID` to `t`, where `ID` is any Rabbit identifier and `t` is a Rabbit type
 Let `typeof` be a function that takes a Rabbit term r and typing environment `tenv` and returns the Rabbit type for that raw term `r` under `tenv`
 
+
+----TYPING RULES FOR RAW TERMS----
 (TRVar)
 mem x tenv = true
 ---------------------------------
@@ -58,7 +58,7 @@ typeof(v, tenv) = t2
 typeof((u, v)) = (t1, t2)
 
 (TRApp)
-typeof(id, tenv) = func[t_1, ..., t_n, ret]
+typeof(id, tenv) = func[l, t_1, ..., t_n, ret]
 typeof(r_i, tenv) = t_i (* for all i from i to n *)
 ---------------------------------
 typeof(id(r_1, ..., r_n)) = ret  
@@ -68,14 +68,27 @@ typeof(id(r_1, ..., r_n)) = ret
 well_typed(p, added((x, t), tenv))
 l = *any security level which we like*
 ---------------------------------
-typeof(pack(x, t, p)) = process[t, l]
+typeof(pack(x, t, p)) = process[l, t]
 
 
+(TTAnnot)
+(* Let's not bother with this rule for now, I don't think it's necessary *)
+
+
+
+----WELL-TYPEDNESS OF FUNCTIONS----
+typeof(p, tenv \cup {id_1 : t_1, ..., id_n : t_n}) = ret_ty
+-------------------------------------------------------------------------------------------------------
+typeof(`function` id(id_1 : t_1, ..., id_n : t_n): ret_ty { p }, tenv) = func[l, t_1, ..., t_n, ret_ty]
+
+
+----WELL-TYPEDNESS OF TAMARIN FACTS----
+Let `well_typed(A, tenv) be an OCaml function that returns true if TAMARIN Fact term `A` is well-typed under typing environment `tenv`.
+
+----DEFINITION OF `well-typed` FUNCTION----
+Let `well_typed(p, tenv)` be an OCaml function that returns true if Rabbit process `p` is well-typed under typing environment `tenv`, according to rules of Figure 6
 
 ----WELL-TYPEDNESS OF PROCESSES----
-
-Let `tenv` be a typing environment. It is a `Map` datastructure from `ID` to `t`, where `ID` is any Rabbit identifier and `t` is a Rabbit type
-Let `is_well_typed(p, tenv)` be an OCaml function that returns true if Rabbit process `p` is well-typed under typing environment `tenv`, according to rules of Figure 6
 
 (TPNil)
 ---------------------------------
@@ -87,22 +100,47 @@ well_typed(q, tenv) = true
 ---------------------------------
 well_typed(p | q, tenv) = true
 
+(TPRepl)
+well_typed(p, tenv) = true
+---------------------------------
+well_typed(!p, tenv) = true
+
+
+(TPCase)  (* TPIfThenElse is replaced by TPCase *)
+well_typed(Aij, tenv) (* for all valid combinations of i, j)
+well_typed(p_i, tenv) = t_i (* for all i from 1 to n *)
+---------------------------------
+well_typed(case ([A11, ..., A1(m_1)] -> p_1, ..., [A_n1, ..., A_n(m_n)] -> p_n), tenv) (* m_i = how many facts there are in row i *)
+
+
 (TPNew)
 well_typed(p, added((n, t), tenv))
 ---------------------------------
 well_typed(new n : t in p, tenv)
 
 
-(TPVar)
+(* TPIn, TPOut, TPSplit, TPSDec, TPADec are all replaced by well-typedness of function application *)
+
+(TPApp)
+typeof(r_i) = t_i
+??????????????????
+---------------------------------
+well_typed(id(r_1, ..., r_n))
+
+
+
+(TPVar) (* New rule not in original type system *)
 typeof(r, tenv) = t
 well_typed(p, added((r, t), tenv))
 ---------------------------------
 well_typed(var x : t = r in p, tenv)
 
-(TPCase)
-typeof()
+
+(TPExec)
+typeof(u, tenv) = process[l, t]
+typeof(v, tenv) = t
 ---------------------------------
-well_typed(case ([A11, ..., A1n] -> p_1, ..., [A_n1, ..., A_nn] -> p_n), tenv)
+well_typed(exec(u, v), tenv)
 
 
 
