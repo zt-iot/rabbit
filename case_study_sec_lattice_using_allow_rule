@@ -1,0 +1,26 @@
+
+----------------------------------------------------------------------------
+We want to tell to Rabbit that the following security lattice must hold:
+----------------------------------------------------------------------------
+- Public < S(tee)
+- I(tee) < Untrusted
+- Public < S(se)
+- I(se) < Untrusted
+- I(se) < I(tee)
+- I(tee) < I(ree)
+----------------------------------------------------------------------------
+
+process TEE(i2c : U, ..., H : U) = pack((mon : mon, ta : p_ta) -> {
+    ...
+  })
+
+process SE(...) = ...
+
+process REE = pack(...)
+
+process TA = pack(...)
+
+process DEV(...) = ...
+
+process p(...) = ...
+
