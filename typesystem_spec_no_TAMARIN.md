@@ -156,10 +156,24 @@ _____________________________________________
 **(TPCase)**  
 
 (* TPIfThenElse is replaced by TPCase *)
-* `well_typed_fact(Aij, tenv) (* for all valid combinations of i, j)`
-* `well_typed(p_i, tenv) = t_i (* for all i from 1 to n *)`
+
+* `well_typed_fact(Aij, tenv)` (* for all valid combinations of i, j *)
+* `well_typed(p_i, tenv) = t_i` (* for all i from 1 to n *)
 _____________________________________________
 `well_typed(case ([A11, ..., A1(m_1)] -> p_1, ..., [A_n1, ..., A_n(m_n)] -> p_n), tenv)` (* m_i = how many facts there are in row i *)
+
+**(TPRepeat)**
+
+* `well_typed_fact(Aij, tenv)` (* for all valid combinations of i, j *)
+* `well_typed_fact(Aij', tenv)` (* for all valid combinations of i, j *)
+* `well_typed(p_i, tenv)` (* for all i from 1 to n *)
+* `well_typed(p_i', tenv)` (* for all i from 1 to n *)
+_____________________________________________ 
+```
+well_typed(
+    repeat ([A11, ..., A1(m_1)] -> p_1, ..., [A_n1, ..., A_n(m_n)] -> p_n) 
+    until ([A11`, ..., A1(m_1)`] -> p_1`, ..., [A_n1`, ..., A_n(m_n)`] -> p_n`), tenv)
+```
 
 
 **(TPNew)**
@@ -170,15 +184,11 @@ _____________________________________________
 
 
 
-**(TPApp)**
+**(TPApp note)**
 
 (* TPIn, TPOut, TPSplit, TPSDec, TPADec are all replaced by well-typedness of function application *)
 
-* `typeof(r_i) = t_i`
-* `??????????????????`
-_____________________________________________
-`well_typed(id(r_1, ..., r_n))`
-
+(* However, because we already have a rule **(TRApp)**, there is no need to declare this rule. We do need to make sure that each function implementation of TPIn, TPOut, TPSplit, TPSDec, TPADec, TPChk satisfies the typing constraints specified in the paper type system. *)
 
 
 **(TPVar)** 
@@ -232,5 +242,59 @@ _____________________________________________
 **(TChkSeq)**
 
 (* THIS RULE MIGHT CAUSE NAME RESOLUTION PROBLEMS IF NOT IMPLEMENTED CORRECTLY *)
+
+* `typeof_p(p, tenv) = t`
+* `typeof_p(q, tenv) = t'`
 _____________________________________________ 
-`typeof_p(p ; q,)`
+`typeof_p(p ; q, tenv) = t')`
+
+
+**(TChkPar)**
+
+(* Parallel processes have to return the same type *)
+
+* `typeof_p(p, tenv) = t`
+* `typeof_p(q, tenv) = t`
+_____________________________________________ 
+`typeof_p(p | q, tenv) = t` 
+
+**(TChkRepl)**
+
+* `typeof_p(p, tenv) = t`
+_____________________________________________ 
+`typeof_p(!p, tenv) = t` 
+
+**(TChkExec)**
+
+* `typeof(v, tenv) = t`
+_____________________________________________ 
+`typeof_p(exec(u, v), tenv) = typeof_p(u, tenv \union {(v : t)})`
+
+**(TchkNew)**
+
+_____________________________________________ 
+`typeof_p(new n : t in p, tenv) = typeof(p, tenv \union {(n : t)})`
+
+
+**(TchkCase)**
+
+* `well_typed_fact(Aij, tenv) (* for all valid combinations of i, j)`
+* `typeof(p_i) = t (* for all i from i to n *)`
+_____________________________________________ 
+`typeof(case ([A11, ..., A1(m_1)] -> p_1, ..., [A_n1, ..., A_n(m_n)] -> p_n), tenv) = t`
+
+
+**(TchkRepeat)**
+
+
+* `well_typed_fact(Aij, tenv)` (* for all valid combinations of i, j *)
+* `well_typed_fact(Aij', tenv)` (* for all valid combinations of i, j *)
+* `well_typed(p_i, tenv)` (* for all i from 1 to n *)
+* `typeof(p_i', tenv) = t` (* for all i from 1 to n *)
+_____________________________________________ 
+```
+typeof(
+    repeat ([A11, ..., A1(m_1)] -> p_1, ..., [A_n1, ..., A_n(m_n)] -> p_n) 
+    until ([A11`, ..., A1(m_1)`] -> p_1`, ..., [A_n1`, ..., A_n(m_n)`] -> p_n`), tenv)
+    = t
+```

@@ -52,7 +52,7 @@ ProcessTerm p, q, o ::=
 | (p | q)                                                                                       (parallel composition)
 | !p                                                                                            (replication)
 | exec(u, v)                                                                                    (execute mobile process u with value v)
-| new x in p                                                                                    (name restriction when I is not given)
+| new n : t in p                                                                                    (name restriction when I is not given)
 | case ([A*] -> p)+ end                                                                         (case statement. If any fact A_i holds, it consumes the fact A_i (removes it from the fact environment) and p is run)
                                                                                                 (if multiple facts are true, one is chosen nondeterministically)
 | repeat ([A*] -> p)+ until ([A'] -> p)+                                                        (if either lists of facts A* are true, consume them and do corresponding action p)
