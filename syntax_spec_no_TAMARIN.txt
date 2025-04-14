@@ -74,9 +74,11 @@ IntegLevel ::= `untrusted` | id`.i`                                             
 
 SecLatticeRule ::= <SecrLevel> `<` <SecrLevel> | <IntegLevel> `<` <IntegLevel>
 
-GlobalConst = `const fresh` id | `const` id = r                                  (fresh nonce declaration or binding an expression r to an id globally)
+GlobalConst = `const fresh` id | `const` id = r                                       (fresh nonce declaration or binding an expression r to an id globally)
 Fun fun ::= `function` id((id' : t)*): t' { p }                                       (function declaration inside of a process. Backticks represent the fact that keyword "function" should be written literally
-                                                                                   Furthermore, enforce that a return type t' is given.)
+                                                                                      (Furthermore, enforce that a return type t' is given.)
+
+
 MemoryDecl ::= `var` id : t = r \n                                               (memory declaration. top-level variable "id" is available throughout the process and is initialized with raw term "r")
 ProcDecl ::= `process` id((id' : t)*) <MemoryDecl>* fun* `main()` { p }           (process declaration. id is process identifier, filesys is filesys declaration, p is process term)
 
