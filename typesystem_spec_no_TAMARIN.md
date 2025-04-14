@@ -64,7 +64,7 @@ _____________________________________________
 
 **(TRSub)**
 
-(Not sure how this would work...)
+(Not sure how this would work as the following equations are contradictory...)
 
 * `typeof(r, tenv) = t`
 * `is_sub(t, t')`
@@ -114,7 +114,7 @@ IMPLEMENTATION OF `typeof_f`
 * There is a function `id(id_1 : t_1, ..., id_n : t_n): ret_ty { p }`
 * `typeof_p(p, tenv \cup {id_1 : t_1, ..., id_n : t_n}) = ret_ty`                     (* THIS ASSUMES THAT PROCESSSES p RETURN A TYPE, WHICH IS CERTAINLY NOT TRIVIAL *)
 __________________________________________________________________________________________
-typeof_f(id, tenv) = func[l, t_1, ..., t_n, ret_ty]
+`typeof_f(id, tenv) = func[l, t_1, ..., t_n, ret_ty]`
 
 
 
@@ -137,65 +137,66 @@ IMPLEMENTATION OF `well_typed`
 **(TPNil)**
 
 _____________________________________________
-well_typed(nil, tenv) = true                  (* nil denotes any process that has terminated *)
+`well_typed(nil, tenv) = true`                  (* nil denotes any process that has terminated *)
 
 **(TPPar)**
 
-well_typed(p, tenv) = true
-well_typed(q, tenv) = true
+* `well_typed(p, tenv) = true`
+* `well_typed(q, tenv) = true`
 _____________________________________________
-well_typed(p | q, tenv) = true
+`well_typed(p | q, tenv) = true`
 
 **(TPRepl)**
 
-well_typed(p, tenv) = true
+* `well_typed(p, tenv) = true`
 _____________________________________________
-well_typed(!p, tenv) = true
+`well_typed(!p, tenv) = true`
 
 
 **(TPCase)**  
 
 (* TPIfThenElse is replaced by TPCase *)
-well_typed_fact(Aij, tenv) (* for all valid combinations of i, j)
-well_typed(p_i, tenv) = t_i (* for all i from 1 to n *)
+* `well_typed_fact(Aij, tenv) (* for all valid combinations of i, j)`
+* `well_typed(p_i, tenv) = t_i (* for all i from 1 to n *)`
 _____________________________________________
-well_typed(case ([A11, ..., A1(m_1)] -> p_1, ..., [A_n1, ..., A_n(m_n)] -> p_n), tenv) (* m_i = how many facts there are in row i *)
+`well_typed(case ([A11, ..., A1(m_1)] -> p_1, ..., [A_n1, ..., A_n(m_n)] -> p_n), tenv)` (* m_i = how many facts there are in row i *)
 
 
 **(TPNew)**
 
-well_typed(p, added((n, t), tenv))
+* `well_typed(p, added((n, t), tenv))`
 _____________________________________________
-well_typed(new n : t in p, tenv)
+`well_typed(new n : t in p, tenv)`
 
 
-(* TPIn, TPOut, TPSplit, TPSDec, TPADec are all replaced by well-typedness of function application *)
 
 **(TPApp)**
 
-typeof(r_i) = t_i
-??????????????????
+(* TPIn, TPOut, TPSplit, TPSDec, TPADec are all replaced by well-typedness of function application *)
+
+* `typeof(r_i) = t_i`
+* `??????????????????`
 _____________________________________________
-well_typed(id(r_1, ..., r_n))
+`well_typed(id(r_1, ..., r_n))`
 
 
 
 **(TPVar)** 
 
 (* New rule not in original type system *)
-typeof(r, tenv) = t
-well_typed(p, added((r, t), tenv))
+* `typeof(r, tenv) = t`
+* `well_typed(p, added((r, t), tenv))`
 _____________________________________________
-well_typed(var x : t = r in p, tenv)
+`well_typed(var x : t = r in p, tenv)`
 
 
 **(TPExec)**
 
 
-typeof(u, tenv) = process[l, t]
-typeof(v, tenv) = t
+* `typeof(u, tenv) = process[l, t]`
+* `typeof(v, tenv) = t`
 _____________________________________________
-well_typed(exec(u, v), tenv)
+`well_typed(exec(u, v), tenv)`
 
 
 
@@ -211,25 +212,25 @@ IMPLEMENTATION OF `typeof_p`
 
 **(TChkR)**
 
-typeof(r, tenv) = t
+* `typeof(r, tenv) = t`
 _____________________________________________
-typeof_p(r, tenv) = t
+`typeof_p(r, tenv) = t`
 
 
 **(TChkVar)**
 
 _____________________________________________
-typeof_p(var x : t = r in p, tenv) = typeof_p(p, tenv \union {(x : t)})
+`typeof_p(var x : t = r in p, tenv) = typeof_p(p, tenv \union {(x : t)})`
 
 
 **(TChkAssign)**
 
 _____________________________________________
-typeof_p(x := r, tenv) = unit
+`typeof_p(x := r, tenv) = unit`
 
 
 **(TChkSeq)**
 
 (* THIS RULE MIGHT CAUSE NAME RESOLUTION PROBLEMS IF NOT IMPLEMENTED CORRECTLY *)
 _____________________________________________ 
-typeof_p(p ; q,)
+`typeof_p(p ; q,)`
