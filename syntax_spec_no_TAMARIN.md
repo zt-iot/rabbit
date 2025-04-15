@@ -26,7 +26,7 @@ Type t :: =
   | channel[l, t, t']                                                                           (channel with security level l, read and write types t, t' respectively)
   | key[l, alpha, t]                                                                            (key used on data of type t with security level l and key kind alpha. Only parties with correct secrecy level and integrity level can access the key)
   | process[l, t]                                                                               (process with input parameter of type t and security level l)
-  | func[l, t*, t]                                                                              (function with 0 or more input types t and one return type t (t=Unit if f only does side effects), and security level l of the funcion code)
+  | func[l, t*, t]                                                                              (function with 0 or more input types t and one return type t (t=unit if f only does side effects), and security level l of the funcion code)
         
 RawTerm r ::=          
 x                                                                                               (variable, a binder for any raw term r)
@@ -76,7 +76,7 @@ Fun fun ::= `function` id((id' : t)*): t' { p }                                 
 
 
 MemoryDecl ::= `var` id : t = r \n                                                              (memory declaration. top-level variable "id" is available throughout the process and is initialized with raw term "r")
-ProcDecl ::= `process` id((id' : t)*) <MemoryDecl>* fun* `main()` { p }                         (process declaration. id is process identifier, filesys is filesys declaration, p is process term)
+ProcDecl ::= `process` id((id' : t)*) <MemoryDecl>* fun* `main()` { p }                         (process declaration. id is process identifier, p is process term)
 
 RootProcDecl ::= `process root`((id : t)*) <MemoryDecl> fun* `main()` { p }                     (There should be a single root process declaration)
                                                                                                 (The other processes are then "mentioned" by the root process. We can think of these "mentions" as simple macro definitions)

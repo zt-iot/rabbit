@@ -12,6 +12,10 @@ CONTENTS
 10. IMPLEMENTATION OF `well_typed`
 11. DEFINITION OF `typeof_p`
 12. IMPLEMENTATION OF `typeof_p`
+13. DEFINITION OF `typecheck_prog`
+14. IMPLEMENTATION OF `typecheck_prog`  
+15. SYNTAX NOT COVERED
+
 
 
 
@@ -298,3 +302,32 @@ typeof(
     until ([A11`, ..., A1(m_1)`] -> p_1`, ..., [A_n1`, ..., A_n(m_n)`] -> p_n`), tenv)
     = t
 ```
+
+DEFINITION OF `typecheck_prog`
+------------------------------------------------------------------
+
+Let `typecheck_prog` be a function that takes an entire Rabbit program as defined by syntax and 
+
+* Typechecks System call declarations and adds type of these identifiers to `tenv`
+* Adds typing rules of all TypeDecl to `tenv`
+* Typechecks all raw terms present in the global constants section and adds them to `tenv`.
+* TypeChecks all ProcDecl and RootProcDecl
+  * TypeChecking the RootProcDecl reduces to checking whether the RootProcDecl is well-typed or not.
+
+
+
+IMPLEMENTATION OF `typecheck_prog`
+------------------------------------------------------------------
+
+
+SYNTAX NOT COVERED
+------------------------------------------------------------------
+
+* Type declarations `type id : t`
+  * Simply add to `tenv` when type checking starts
+* Memory declarations for each process
+  * Do this tomorrow
+* Security lattice
+  * This needs to be taken into account when constructing functions implementing `enc, dec, send, recv, sign, hash` etc.
+* Syscalls
+  * Their typing works the same as functions and function application
