@@ -323,10 +323,6 @@ IMPLEMENTATION OF `typecheck_prog`
 SYNTAX NOT COVERED
 ------------------------------------------------------------------
 
-* Type declarations `type id : t`
-  * Simply add to `tenv` when type checking starts
-* Memory declarations for each process
-  * Do this tomorrow
 * Security lattice
   * This needs to be taken into account when constructing functions implementing `enc, dec, send, recv, sign, hash` etc.
 * Syscalls
