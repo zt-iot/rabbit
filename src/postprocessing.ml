@@ -250,7 +250,8 @@ let rec optimize_at (m : model) (st : state) =
             if 
               List.length tr2.transition_pre  > 0
             (* List.exists (fun a -> is_nonlocal_fact a) tr2.transition_pre  *)
-            || List.exists (fun a -> is_nonlocal_fact a) tr2.transition_post then
+            (* || List.exists (fun a -> is_nonlocal_fact a) tr2.transition_post  *)
+            then
               None
             else Some (Inl l)
           end

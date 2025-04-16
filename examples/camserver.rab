@@ -24,10 +24,11 @@ syscall get_picture () {
 (* filesys *)
 function h:1
 
+
 syscall fopen (p) {
-  case [p.File(x)] ->
+  case [p.x] ->
     new y = Fd(x) in 
-    put [p.File(x)]; y
+    put [p.x]; y
   end
 }
 
@@ -39,6 +40,7 @@ syscall fread (y){
 syscall fclose (y) {
   delete y.Fd
 }
+
 
 (***********)
 (** declare types with their classes *)
@@ -99,16 +101,6 @@ channel udp : udp_t
 
 channel rpc : rpc_t
 
-filesys server_fs = 
-[ 
-  {path: "/secret/pub", data: pk(priv_k), type: readonly_t}
-]
-
-filesys client_ta_fs = 
-[ 
-  {path: "/secret/priv", data: enc(priv_k, sym_k), type: readonly_t}
-]
-
 (***********)
 (** process templates *)
 process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t 
@@ -147,6 +139,7 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
 
 process client_ta(ch_rpc : rpc_t) : client_ta_t 
 {
+  file "/secret/priv" : readonly_t = enc(priv_k, sym_k)
   var fek = sym_k
 
   function sign_image(image, privkey_path) 
@@ -188,7 +181,10 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
 
 process server(ch_net : udp_t) : server_t 
 {
+  file "/secret/pub" : readonly_t = pk(priv_k)
   var pubkey_path = "/secret/pub"
+
+
 
   main 
   {
@@ -215,12 +211,13 @@ process server(ch_net : udp_t) : server_t
 (***********)
 system 
   client(udp, rpc)
-  ||	server(udp) with server_fs 
-  ||	client_ta(rpc) with client_ta_fs
-requires  [
+  |	server(udp) 
+  |	client_ta(rpc) 
+requires  
+[
   lemma Reachable :
-  	exists-trace "Ex x #i #j #k  . ClientClose() @ #j & ClientTAClose() @ #k & ImgRecvValid(x) @ #i" ;
-  lemma Correspondence :
-  	all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
-]
+    reachable ::ClientClose(), ::ClientTAClose(), ::ImgRecvValid(x) ;
 
+  lemma Correspondence :
+    corresponds ::ImgRecvValid(x) ~> ::ImgSend (x)
+]
