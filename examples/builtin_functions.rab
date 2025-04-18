@@ -39,7 +39,7 @@ syscall {T : Type} sign_old(m : T, k : key[(_, iota), Sig, T]) : (S(T), iota) {
 }
 
 (* TODO complete the function signature *)
-syscall {T : Type} sign(m : T, k : key[((sigma, iota), Sig, )])
+syscall {T : Type, sigma : SecLevel, iota : IntegLevel} sign(m : T, k : key[(sigma, iota), Sig, T])
 
 
 syscall {T', T : Type} hash(m : T') : T {
@@ -60,7 +60,7 @@ syscall {L T : Type} vk(k : key[L, Sig, T]) : key[(Public, _), Chk, T] {
 }
 
 (* It would make sense to return bool *)
-syscall {T' T : Type} verify(m : T', k : key[L, Chk, T]) : bool {
+syscall {T'' T' T : Type} verify(sig : T'', m : T', k : key[L, Chk, T]) : bool {
     (* We need to take care of the following condition here: *)
     (* 1. If I(L) = Untrusted then S(t'), i.e. secrecy level of received m, must be Public *)
 }

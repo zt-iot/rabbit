@@ -29,7 +29,7 @@ SecLevel ::= (<SecrLevel>, <IntegLevel>)                                        
         
 Type :: =             
   <SecLevel>                                                                                             (security level)
-  | <Type> * <Type>                                                                                      (product)
+  | (<Type>, <Type>)                                                                                      (product)
   | channel[<SecLevel>, <Type>, <Type>]                                                                           (channel with security level l, read and write types t, t' respectively)
   | key[<SecLevel>, <KeyKind>, <Type>]                                                                            (key used on data of type t with security level l and key kind <KeyKind>. Only parties with correct secrecy level and integrity level can access the key)
   | process[<SecLevel>, <Type>]                                                                               (process with input parameter of type t and security level l)
@@ -51,7 +51,8 @@ RawTerm ::=
 Type-annotatedTerm ::=  <RawTerm> : <Type>                                                      (raw term r which has type t)
         
 Fact ::=          
-<RawTerm> = <RawTerm>                                                                                          (equality checking between terms)
+| <RawTerm> = <RawTerm>                                                                                          (equality checking between terms)
+| <RawTerm> <> <RawTerm>                                                                        (Inequality checking)
         
 ProcessTerm ::=            
 0                                                                                               (nil process)
