@@ -34,9 +34,12 @@ syscall {T' T : Type} dec_asym(c : T', k : key[L, Dec, T]) : T {
 }
 
 (* S(T) retrieves the secrecy level of type T *)
-syscall {T : Type} sign(m : T, k : key[(_, iota), Sig, T]) : (S(T), iota) {
+syscall {T : Type} sign_old(m : T, k : key[(_, iota), Sig, T]) : (S(T), iota) {
 
 }
+
+(* TODO complete the function signature *)
+syscall {T : Type} sign(m : T, k : key[((sigma, iota), Sig, )])
 
 
 syscall {T', T : Type} hash(m : T') : T {
@@ -44,7 +47,6 @@ syscall {T', T : Type} hash(m : T') : T {
     (* 1. If m is Public then hash(m) should be Untrusted *)
     (* 2.The integrity level of hash(m) must be higher, i.e. less trusted, than m *)
     (* 3. The return type cannot be a channel or process *)
-
 }
 
 (* Integrity level of returned key is arbitrary *)

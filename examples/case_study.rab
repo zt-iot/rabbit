@@ -1,50 +1,62 @@
 
 
+load "builtin_functions.rab"
+
+
 (* predefined types *)
 
 type mon : channel[l: ree, r : ree, w : ree]
 
-type ta_up : C^[l : tee, r : (tee, tee), w : (tee, tee)]
-type ta_down := C[l : tee, r : ree, w : ree]
+type ta_up : channel[tee, (tee, tee), (tee, tee)]
+type ta_down := C[tee, ree, ree]
 
-type ks : key[l : tee, t : tee, k : Sym]
+type ks : key[tee, Sym, tee]
 type k_root : key[l : root, t : p_tee, (ta_up, ta_down)]
-type p_ta : P[l : tee, t : (ta_up, ta_down)]
-type p_tee : P[l : (Public, I(root)), t : (mon, p_ta)]
+type p_ta : process[tee, (ta_up, ta_down)]
+type p_tee : process[(Public, root.I), (mon, p_ta)]
 
 
 
-p_ta = P^tee[ta_up * ta_down]
+p_ta = process[tee, (ta_up, ta_down)]
 
-process REE() {
-  pack(mon : mon -> recv(mon, y : ree))
+process REE() : unit {
+  pack(mon : mon -> var y : ree := recv(mon) in 0)
 }
 
-process TA() {
-  pack((c : ta_up, c' : ta_down) -> {
-      recv(c, x : tee*tee).
-      let y : ree = h(x) in
-      send(c', y)
+process TA() : p_ta {
+  pack(chnls : (ta_up, ta_down) -> {
+      var c : ta_up = fst(chnls) in
+      var c' : ta_down = snd(chnls) in 
+      var x : (tee, tee) = recv(c);
+      var y : ree = h(x) in
+      _ := send(c', y)
     }
   ) 
 }
 
-process SE(i2c : U, k : tee, C : U, H : U) {
-  (new ns : se)
-  recv(i2c, m : U).
-  (new m' : U)
-  let ks : ks = h(k, m, m') in
-  let cr' : U = h(ks, C, m, m') in
-  send(i2c, (m', cr')).
-  recv(i2c, cr : U).
-  let cr' : U = h(ks, H, m, m') in
-  if cr = cr' {
-    let ns' : tee = hash(ns) in
-    send(i2c, sym_enc(ns', ks))
+process SE(i2c : U, k : tee, C : U, H : U) : unit {
+  new ns : se in
+
+  var m : U = recv(i2c) in
+  new m' : U in 
+  var ks : ks = hash(k, m, m') in
+  var cr' : U = hash(ks, C, m, m') in
+  _ := send(i2c, (m', cr'));
+  var cr : U = recv(i2c) in
+  var cr' : U = hash(ks, H, m, m') in
+
+
+  case 
+  | [cr = cr'] -> {
+    var ns' : tee = hash(ns) in
+    _ := send(i2c, enc_sym(ns', ks))
+  }
+  | [cr <> cr'] -> {
+    0
   }
 }
 
-process TEE(i2c : U, k : tee, C : U, H : U) {
+process TEE(i2c : U, k : tee, C : U, H : U) : p_tee {
   pack((mon : mon, ta : p_ta) -> {
       (* dot separator is not necessary after `new` statement according to syntax definition *)
       (new nt : tee)(new m : U)
@@ -58,7 +70,7 @@ process TEE(i2c : U, k : tee, C : U, H : U) {
         recv(i2c, msg : U).
         case msg of 
           (* I suppose running these parallel processes, while c and c' have not been declared in 2nd process, is allowed... *)
-          sym_enc(ns' : tee, ks) -> { 
+          enc_sym(ns' : tee, ks) -> { 
             (* Not sure if this is how the example should be read... *)
             (new c : ta_up)(new c' : ta_down) | exec(ta, (c, c')).
             send(c, (nt, ns')).
@@ -71,8 +83,8 @@ process TEE(i2c : U, k : tee, C : U, H : U) {
 }
 
 process DEV(i2c : U, k : tee, C : U, H : U, w : U, root : k_root) {
-  recv(w, TEE_s : U).
-  (new mon : mon)
+  var TEE_s : U = recv(w) in
+  (new mon : mon) in
 
   (* REE and TEE are executed in parallel. `mon` is the communication channel between them *)
   exec(REE, mon) | case TEE_s of verify(TEE : p_tee, vk(root)) ->
@@ -84,5 +96,5 @@ process p(i2c : U, k : tee, C : U, H : U, w : U) {
   (new root : k_root)
   (* I don't think these things are part of the syntax definition of the language? Arbitrary execution of processes TEE, DEV *)
   let TEE_s = sign(TEE(i2c, k, C, H), root) in (* sign code of TEE with signing key root *)
-  send(w, TEE_s) | DEV(i2c, k, C, H, w, root) (* execute DEV and the sending of TEE_s in parallel *)
+  send(w, (TEE, TEE_s)) | DEV(i2c, k, C, H, w, root) (* execute DEV and the sending of TEE_s in parallel *)
 }
