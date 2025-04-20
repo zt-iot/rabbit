@@ -41,7 +41,7 @@ Name ::= <Ident>
 
 RawTerm ::=          
 <Variable>                                                                                               (variable, a binder for any raw term r)
-| <Name>>                                                                                             (name n. A name n can have any type and be used as such)
+| <Name>                                                                                             (name n. A name n can have any type and be used as such)
 | (<RawTerm>, <RawTerm>)                                                                                        (pair)
 | <Ident>(<RawTerm>*)                                                                                        (function application or syscall application)
                                                                                                 (pk, vk, encryption, decryption, signing, hashing can all be implemented with functions)

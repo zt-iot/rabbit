@@ -14,7 +14,7 @@ syscall {L T : Type} enc_sym(m : T, k : key[L, Sym, T]) : (Public, Untrusted) {
     
 }
 
-(* this type specification enforces that key.type and type of m are equal *)
+(* this type specification enforces that inner type of the key and type of m are equal *)
 (* Return type is equal to what is expected in the type system *)
 syscall {L T : Type} enc_asym(m : T, k : key[L, Enc, T]) : (Public, Untrusted) { 
     
@@ -30,7 +30,6 @@ syscall {T' T : Type} dec_asym(c : T', k : key[L, Dec, T]) : T {
     (* We have to take care of the following implication here *)
     (* I(T') = Untrusted => well_typed(p, tenv, x : U)  *)
     (* p is the continuation after decryption *)
-
 }
 
 (* S(T) retrieves the secrecy level of type T *)
@@ -38,7 +37,7 @@ syscall {T : Type} sign_old(m : T, k : key[(_, iota), Sig, T]) : (S(T), iota) {
 
 }
 
-(* TODO complete the function signature *)
+
 syscall {T : Type, sigma : SecLevel, iota : IntegLevel} sign(m : T, k : key[(sigma, iota), Sig, T])
 
 

@@ -11,7 +11,7 @@ type ta_up : channel[tee, (tee, tee), (tee, tee)]
 type ta_down := C[tee, ree, ree]
 
 type ks : key[tee, Sym, tee]f
-type k_root : key[root, p_tee, (ta_up, ta_down)]
+type k_root : key[p, p_tee, (ta_up, ta_down)]
 type p_ta : process[tee, (ta_up, ta_down)]
 type p_tee : process[(Public, root.I), (mon, p_ta)]
 
@@ -85,21 +85,27 @@ process TEE(i2c : U, k : tee, C : U, H : U) : p_tee {
 }
 
 process DEV(i2c : U, k : tee, C : U, H : U, w : U, root : k_root) {
-  var TEE_s : U = recv(w) in
+  var pair1 : (U, U) = recv(w) in 
+  var TEE : U = fst(pair1) in 
+  var TEE_sig : U = snd(pair1) in
   new mon : mon in
 
-  (* REE and TEE are executed in parallel. `mon` is the communication channel between them *)
+  var res : U = verify(TEE_sig, TEE, vk(root)) in
 
-  exec(REE, mon) | case TEE_s of verify(TEE : p_tee, vk(root)) ->
-                      exec(TEE, (mon, TA)) | SE(i2c, k, C, H) (* Additionally, run the SE in parallel to the TEE *)
+  case 
+  | [res = true] -> {
+    (* REE and TEE are executed in parallel. `mon` is the communication channel between them *)
+    exec(TEE, (mon, TA)) | SE(i2c, k, C, H)
+  }
+  | [res <> true] -> {
+    0
+  }
 
-  verify(TEE, vk(root))
 }
 
 
 process p(i2c : U, k : tee, C : U, H : U, w : U) {
   (new root : k_root)
-  (* I don't think these things are part of the syntax definition of the language? Arbitrary execution of processes TEE, DEV *)
-  let TEE_sig = sign(TEE(i2c, k, C, H), root) in
+  let TEE_sig : (Public, p.I) = sign(TEE(i2c, k, C, H), root) in
   send(w, (TEE, TEE_sig)) | DEV(i2c, k, C, H, w, root) (* execute DEV and the sending of TEE with its signature in parallel *)
 }
