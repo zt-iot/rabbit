@@ -73,7 +73,7 @@ _____________________________________________
 * `typeof(r, tenv) = t`
 * `is_sub(t, t')`
 _____________________________________________
-`typeof(r, tenv) = t'`
+We can replace `r : t` in `tenv` by `r : t'` if we want
 
 
 **(TRPair)**
@@ -101,7 +101,7 @@ _____________________________________________
 
 **(TTAnnot)**
 
-(* Let's not bother with this rule for now, I don't think it's necessary *)
+This rule seems unnecessary as we disregard the difference between raw terms and type-annotated terms in Rabbit code
 
 
 
@@ -119,6 +119,8 @@ IMPLEMENTATION OF `typeof_f`
 * `typeof_p(p, tenv \cup {id_1 : t_1, ..., id_n : t_n}) = ret_ty`                     (* THIS ASSUMES THAT PROCESSSES p RETURN A TYPE, WHICH IS CERTAINLY NOT TRIVIAL *)
 __________________________________________________________________________________________
 `typeof_f(id, tenv) = func[l, t_1, ..., t_n, ret_ty]`
+
+
 
 
 

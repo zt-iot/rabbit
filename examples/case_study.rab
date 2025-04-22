@@ -1,16 +1,86 @@
+(*
+EQUATIONAL THEORY FUNCTIONS LIST
 
-(* Load buil-in Rabbit functions *)
-load "builtin_functions.rab"
+✓ pk
+✓ vk
+✓ fst
+✓ snd
+✓ enc_sym
+✓ dec_sym
+✓ enc_asym
+✓ dec_asym
+✓ hash
+✓ sign
+✓ verify
+*)
+
+(* send and recv are syscalls instead *)
+
+(* 
+FUNCTIONS WHICH HAVE ADDITIONAL TYPECHECKING REQUIREMENTS
+
+- dec_asym
+- verify
+- hash
+*)
+
+
+function {sigma : SecrecyLvl, iota : IntegrityLvl, T : Type} pk(k : key[(sigma, iota), Dec, T]) : key[(public, iota), Enc, T]
+function {iota : IntegrityLvl, T : Type} vk(k : key[((sigma, iota), Sig, T)]) : key[(public, iota), Chk, T]
+
+function {A B : Type} fst(pair : (A, B)) : A
+function {A B : Type} snd(pair : (A, B)) : B
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+
+(* integrity level of return type is arbitrary *)
+function {T : Type, sigma : SecrecyLvl, iota : IntegrityLvl} enc_sym(m : T, k : key[(sigma, iota), Sym, T]) : (public, untrusted)
+function {T' T : Type, sigma : SecrecyLvl, iota : IntegrityLvl} dec_sym(c : T', k : key[(sigma, iota), Sym, T]) : T
+equation dec_sym(enc_sym(x, y), y) = x
+
+function {T : Type, sigma : SecrecyLvl, iota : IntegrityLvl} enc_asym(m : T, k : key[(sigma, iota), Enc, T]) : (public, untrusted)
+function {T' T : Type, sigma : SecrecyLvl, iota : IntegrityLvl} dec_asym(c : T', k : key[(sigma, iota), Dec, T]) : T
+equation dec_asym(enc_asym(x, pk(y)), y) = x
+
+
+function {T : Type, sigma : SecrecyLvl, iota : IntegrityLvl} sign(m : T, k : key[(sigma, iota), Sig, T]) : (S(T), iota)
+(*  (NOTE: U is syntactic sugar for (public, untrusted)) *)
+function {T'' T' T : Type, sigma : SecrecyLvl, iota : IntegrityLvl} verify(sig : T'', m : T', k : key[(sigma, iota), Chk, T]) : U
+function true : U
+equation verify (sign(d, k), d, pk(k)) = true
+
+
+
+(* hash is a family of functions parameterized by the given return type `RETTY` *)
+(* NOTE: hash(t)(arg1, arg2, ..., argn) is syntactic sugar for hash(t)(, ..., (arg1, arg2), ..., argn) *)
+(* E.G. hash(t)(arg1, arg2, arg3, arg4) = hash(((arg1, arg2), arg3), arg4) *)
+function {T : Type} hash(RETTY : Type)(r : T) : RETTY 
+
+
+
+
+(** send and recv as syscalls with type annotations *)
+syscall {sigma : SecrecyLvl, iota : IntegrityLvl, T T' : Type} send(c : channel[(sigma, iota), T, T'], v : T') : unit {
+  put [c::store(v)]
+}
+
+syscall {sigma : SecrecyLvl, iota : IntegrityLvl, T T' : Type} recv(c : channel[(sigma, iota), T, T']) : T {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+
 
 
 (* predefined types *)
 
-type mon : channel[l: ree, r : ree, w : ree]
+type mon : channel[ree, ree, ree]
 
 type ta_up : channel[tee, (tee, tee), (tee, tee)]
-type ta_down := C[tee, ree, ree]
+type ta_down := channel[tee, ree, ree]
 
-type ks : key[tee, Sym, tee]f
+type ks : key[tee, Sym, tee]
 type k_root : key[p, p_tee, (ta_up, ta_down)]
 type p_ta : process[tee, (ta_up, ta_down)]
 type p_tee : process[(public, root.I), (mon, p_ta)]
@@ -44,16 +114,16 @@ process SE(i2c : U, k : tee, C : U, H : U) : unit {
 
   var m : U = recv(i2c) in
   new m' : U in 
-  var ks : ks = hash(k, m, m') in
-  var cr' : U = hash(ks, C, m, m') in
+  var ks : ks = hash(ks)(k, m, m') in
+  var cr' : U = hash(U)(ks, C, m, m') in
   _ := send(i2c, (m', cr'));
   var cr : U = recv(i2c) in
-  var cr' : U = hash(ks, H, m, m') in
+  var cr' : U = hash(U)(ks, H, m, m') in
 
 
   case 
   | [cr = cr'] -> {
-    var ns' : tee = hash(ns) in
+    var ns' : tee = hash(tee)(ns) in
     _ := send(i2c, enc_sym(ns', ks))
   }
   | [cr <> cr'] -> {
@@ -71,11 +141,11 @@ process TEE(i2c : U, k : tee, C : U, H : U) : p_tee {
       var pair : (U, U) = recv(i2c) in
       var m' : U = fst(pair) in 
       var cr' U = snd(pair) in 
-      var ks : ks = hash(k, m, m') in
-      var cr : U = hash(ks, C, m, m') in
+      var ks : ks = hash(ks)(k, m, m') in
+      var cr : U = hash(U)(ks, C, m, m') in
       case 
       | [cr = cr'] -> {
-        var cr : U = hash(ks, H, m, m') in
+        var cr : U = hash(U)(ks, H, m, m') in
         _ := send(i2c, cr);
         var msg : U = recv(i2c) in 
         var ns' = dec_sym(msg, ks) in 
