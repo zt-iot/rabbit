@@ -1,3 +1,10 @@
+type U : (public, untrusted)
+
+
+
+function verify(sig : (public, _), m : (public, ...), k : ...) : (public, untrusted)
+
+
 syscall {L T T' : Type} send(c : channel[L, T, T'], v : T') : unit {
 
 }
@@ -10,13 +17,13 @@ syscall recv(c : channel[L, T, T']) : T {
 
 (* this type specification enforces that key.type and type of m are equal *)
 (* Return type is equal to what is expected in the type system *)
-syscall {L T : Type} enc_sym(m : T, k : key[L, Sym, T]) : (Public, Untrusted) { 
+syscall {L T : Type} enc_sym(m : T, k : key[L, Sym, T]) : (public, untrusted) { 
     
 }
 
 (* this type specification enforces that inner type of the key and type of m are equal *)
 (* Return type is equal to what is expected in the type system *)
-syscall {L T : Type} enc_asym(m : T, k : key[L, Enc, T]) : (Public, Untrusted) { 
+syscall {L T : Type} enc_asym(m : T, k : key[L, Enc, T]) : (public, untrusted) { 
     
 }
 
@@ -28,7 +35,7 @@ syscall {T' T : Type} dec_sym(c : T', k : key[L, Sym, T]) : T {
 
 syscall {T' T : Type} dec_asym(c : T', k : key[L, Dec, T]) : T {
     (* We have to take care of the following implication here *)
-    (* I(T') = Untrusted => well_typed(p, tenv, x : U)  *)
+    (* I(T') = untrusted => well_typed(p, tenv, x : U)  *)
     (* p is the continuation after decryption *)
 }
 
@@ -43,25 +50,25 @@ syscall {T : Type, sigma : SecLevel, iota : IntegLevel} sign(m : T, k : key[(sig
 
 syscall {T', T : Type} hash(m : T') : T {
     (* We need to take care of the following requirements here: *)
-    (* 1. If m is Public then hash(m) should be Untrusted *)
+    (* 1. If m is public then hash(m) should be untrusted *)
     (* 2.The integrity level of hash(m) must be higher, i.e. less trusted, than m *)
     (* 3. The return type cannot be a channel or process *)
 }
 
 (* Integrity level of returned key is arbitrary *)
-syscall {T : Type} pk(k : key[(sigma, iota), Dec, T]) : key[(Public, _), Enc, T] {
+syscall {T : Type} pk(k : key[(sigma, iota), Dec, T]) : key[(public, _), Enc, T] {
 
 }
 
 (* Integrity level of returned key is arbitrary *)
-syscall {L T : Type} vk(k : key[L, Sig, T]) : key[(Public, _), Chk, T] {
+syscall {L T : Type} vk(k : key[L, Sig, T]) : key[(public, _), Chk, T] {
 
 }
 
 (* It would make sense to return bool *)
 syscall {T'' T' T : Type} verify(sig : T'', m : T', k : key[L, Chk, T]) : bool {
     (* We need to take care of the following condition here: *)
-    (* 1. If I(L) = Untrusted then S(t'), i.e. secrecy level of received m, must be Public *)
+    (* 1. If I(L) = untrusted then S(t'), i.e. secrecy level of received m, must be public *)
 }
 
 

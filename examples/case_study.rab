@@ -13,7 +13,15 @@ type ta_down := C[tee, ree, ree]
 type ks : key[tee, Sym, tee]f
 type k_root : key[p, p_tee, (ta_up, ta_down)]
 type p_ta : process[tee, (ta_up, ta_down)]
-type p_tee : process[(Public, root.I), (mon, p_ta)]
+type p_tee : process[(public, root.I), (mon, p_ta)]
+
+public < TEE.S
+public < SE.S
+
+TEE.I < untrusted
+SE.I < TEE.I
+TEE.I < REE.I
+SE.I < untrusted
 
 
 process REE() : unit {
@@ -28,7 +36,7 @@ process TA() : p_ta {
       var y : ree = h(x) in
       _ := send(c', y)
     }
-  ) 
+  )
 }
 
 process SE(i2c : U, k : tee, C : U, H : U) : unit {
@@ -106,6 +114,6 @@ process DEV(i2c : U, k : tee, C : U, H : U, w : U, root : k_root) {
 
 process p(i2c : U, k : tee, C : U, H : U, w : U) {
   (new root : k_root)
-  let TEE_sig : (Public, p.I) = sign(TEE(i2c, k, C, H), root) in
+  let TEE_sig : (public, p.I) = sign(TEE(i2c, k, C, H), root) in
   send(w, (TEE, TEE_sig)) | DEV(i2c, k, C, H, w, root) (* execute DEV and the sending of TEE with its signature in parallel *)
 }
