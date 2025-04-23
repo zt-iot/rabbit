@@ -37,7 +37,7 @@ Type :: =
 
 
 
-MetaType ::= Type | SecurecyLvl | IntegrityLvl | SecurityLvl
+MetaType ::= Type | SecreclyLvl | IntegrityLvl | SecurityLvl
 
 
 Variable ::= <Ident>
@@ -86,7 +86,7 @@ TypeDecl ::= type <Ident> : <Type>                                              
 
 SecLatticeRule ::= <SecrecyLvl> < <SecrecyLvl> | <IntegrityLvl> < <IntegrityLvl>
 
-GlobalConst = const fresh <Ident> | const <Ident> = <RawTerm>                                                 (fresh nonce declaration or binding an expression r to an id globally)
+GlobalConst = const fresh <Ident> : <Type> | const <Ident> : <Type> = <RawTerm>                                                 (fresh nonce declaration or binding an expression r to an id globally)
 Fun ::= function <Ident>((<Ident> : <Type>)*): <Type> { <ProcessTerm> }                                             (function declaration inside of a process. Backticks represent the fact that keyword "function" should be written literally)
                                                                                                 (Furthermore, enforce that a return type t' is given.)
 
@@ -104,7 +104,7 @@ RootProcDecl ::= process root((<Ident> : <Type>)*) <MemoryDecl>* <Fun>* main() {
 EqFuncDecl ::= function {(<Ident> : <MetaType>)*} <Ident>[()]?((<Ident> : <Type>)*) : <Type>                                                       (Functions which do not perform side effects <Ident> is in the second pair of brackets "()" to make it more readable what the function does)
                                                                                                     (Due to a technicality for hash, we require the `[()]?`)
 EquationDecl ::= equation <RawTerm> = <RawTerm>
-EquationalTheory ::= (EqFuncDecl | EquationDecl)*
+EquationalTheory ::= (<EqFuncDecl> | <EquationDecl>)*
 
 RabbitLibraryProgram ::= <EquationalTheory> <LoadDecl>* <SyscallDecl>* <TypeDecl>* <GlobalConst>* <ProcDecl>* <RootProcDecl>
 RabbitMainProgram ::= <EquationalTheory> <LoadDecl>* <SyscallDecl>* <TypeDecl>* <SecLatticeRule>* <GlobalConst>* <ProcDecl>* (* security lattice is all defined in main Rabbit program file *)
