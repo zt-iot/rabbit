@@ -76,6 +76,8 @@ let contains s1 s2 =
   with Not_found -> false
 
 
+type mindex =  ((int list) * int) list
+
 (* we do not do well-formedness check (at the moment..) *)
 type functions = (string * int) list 
 
@@ -161,7 +163,7 @@ type fact =
   | InitFact of expr list 
   | LoopFact of 
     string (* namespace *)
-    * int (* transition id of the initial transition of the loop *)
+    * mindex (* the index when the loop is entered  *)
     * int (* 0: loop in 2 : loop back 3 : loop out *)
   | TransitionFact of string * string * expr * expr
   | InjectiveFact of 
@@ -200,8 +202,10 @@ let print_fact' (f : fact) : fact' =
   | FileFact (nsp, path, e) -> ("File"^ !separator ^ nsp, [Param;path; e], config_linear)
   | InitFact el -> ("Init"^ !separator, el, config_linear)
   | LoopFact (nsp, tid, b) -> ("Loop" ^ ! separator ^ 
-    (if b =0 then "Start" else if b = 1 then "Back" else "Finish"), [String (nsp ^ !separator ^ string_of_int tid); Param], config_linear)
-  | TransitionFact (nsp, ind, e, p) -> ("Transition"^ !separator ^ nsp, [String ( ind); e; p], config_linear)
+    (if b =0 then "Start" else if b = 1 then "Back" else "Finish"), 
+    [List [String nsp; Param]; String (index_to_string tid)], 
+    config_linear)
+  | TransitionFact (nsp, ind, e, p) -> ("Transition"^ !separator, [List [String nsp; p]; String ind; e], config_linear)
   | InjectiveFact (fid, nsp, id, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp, [Param; FVar id ; el], config_linear)
   | FreshFact (e) -> ("Fr", [FVar e], config_linear)
   | AccessGenFact (nsp, param) -> ("ACP"^ !separator ^ "GEN"^ !separator, [String nsp; param], config_persist)
@@ -575,36 +579,34 @@ let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev print_transiti
 	
     (* default restrictions *)
     "\nrestriction Init"^ !separator ^" : \" All x #i #j . Init"^ !separator ^"(x) @ #i & Init"^ !separator ^"(x) @ #j ==> #i = #j \"\n" ^
-(* 
-    "restriction Equality: \" All x y #i. Eq(x,y) @ #i ==> x = y\"\n"  ^
 
-    "restriction Inequality: \"All x #i. Neq(x,x) @ #i ==> F\"\n"  ^
- *)
     "rule Equality_gen: [] --> [!Eq"^ !separator ^"(x,x)]\n" ^
 
     "rule NEquality_gen: [] --[NEq_"^ !separator ^"(x,y)]-> [!NEq"^ !separator ^"(x,y)]\n" ^
 
     "restriction NEquality_rule: \"All x #i. NEq_"^ !separator ^"(x,x) @ #i ==> F\"\n" ^
 
-    
-    (* "lemma AlwaysStarts_"^ ! separator ^ "[sources]:\n
-    \"All x #i. Loop"^ ! separator ^"Back(x) @i ==> Ex #j. Loop"^ ! separator ^"Start(x) @j & j < i\"\n"^
-    
-    "lemma AlwaysStartsWhenEnds_"^ ! separator ^ "[sources]:\n
-    \"All x #i. Loop"^ ! separator ^"Finish(x) @i ==> Ex #j. Loop"^ ! separator ^"Start(x) @j & j < i\"\n"^ *)
+    (if !Config.tag_transition then
+      begin 
+      "lemma AlwaysStarts"^ ! separator ^ "[reuse,use_induction]:\n
+      \"All x p #i. Loop"^ ! separator ^"Back(x, p) @i ==> Ex #j. Loop"^ ! separator ^"Start(x, p) @j & j < i\"\n"^
+      
+      "lemma AlwaysStartsWhenEnds"^ ! separator ^ "[reuse,use_induction]:\n
+      \"All x p #i. Loop"^ ! separator ^"Finish(x, p) @i ==> Ex #j. Loop"^ ! separator ^"Start(x, p) @j & j < i\"\n"^
+
+      "lemma TransitionOnce"^ ! separator ^ "[reuse,use_induction]:\n
+      \"All x p %i #j #k . Transition"^ ! separator ^ "(x, p, %i) @#j &
+        Transition"^ ! separator  ^"(x, p, %i) @ #k ==> #j = #k\"\n"   
 
 
-    "lemma AlwaysStarts"^ ! separator ^ "[reuse,use_induction]:\n
-    \"All x p #i. Loop"^ ! separator ^"Back(x, p) @i ==> Ex #j. Loop"^ ! separator ^"Start(x, p) @j & j < i\"\n"^
-    
-    "lemma AlwaysStartsWhenEnds"^ ! separator ^ "[reuse,use_induction]:\n
-    \"All x p #i. Loop"^ ! separator ^"Finish(x, p) @i ==> Ex #j. Loop"^ ! separator ^"Start(x, p) @j & j < i\"\n"^
+      (* (mult_list_with_concat (List.map (fun mo -> 
+        "lemma transition"^ ! separator ^ mo.model_name ^ "[reuse,use_induction]:\n
+        \"All x p %i #j #k . Transition"^ ! separator ^ mo.model_name ^ "(x, %i, p) @#j &
+        Transition"^ ! separator ^ mo.model_name ^ "(x, %i, p) @ #k ==> #j = #k\"\n"   
+        ) (List.rev mo_lst)) "\n") *)
 
-    (mult_list_with_concat (List.map (fun mo -> 
-      "lemma transition"^ ! separator ^ mo.model_name ^ "[reuse,use_induction]:\n
-      \"All x p %i #j #k . Transition"^ ! separator ^ mo.model_name ^ "(x, %i, p) @#j &
-       Transition"^ ! separator ^ mo.model_name ^ "(x, %i, p) @ #k ==> #j = #k\"\n"   
-      ) (List.rev mo_lst)) "\n")^
+      end
+    else "") ^
     
     (* print lemmas *)
     List.fold_left (fun l lem -> l ^ print_lemma lem) "" lem_lst ^"\nend\n"
@@ -1088,7 +1090,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall p
     (add_state mo st_f, st_f)
 
  | Syntax.While (cs1, cs2) ->
-
+    let mindex = st.state_index in 
     let st_i = next_state st scope in
     let tid = List.length mo.model_transitions in 
     let mo = add_transition mo {
@@ -1101,7 +1103,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall p
       transition_post = [];
       transition_state_transition = mk_state_transition_from_action (ActionReturn Unit) st.state_vars; 
       transition_label = [
-        (LoopFact (mo.model_name, tid, 0))
+        (LoopFact (mo.model_name, mindex, 0))
       ];
       transition_is_loop_back = false   
     } in
@@ -1126,7 +1128,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall p
         transition_post = [];
         transition_state_transition = mk_state_transition_from_action (ActionPopMeta (List.length vl)) st_f.state_vars; 
         transition_label = [
-          (LoopFact (mo.model_name, tid, 1))
+          (LoopFact (mo.model_name, mindex, 1))
         ];
         transition_is_loop_back = true   
       }) mo scope_lst1 cs1 in
@@ -1143,7 +1145,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall p
         transition_post = [];
         transition_state_transition = mk_state_transition_from_action (ActionPopMeta (List.length vl)) st.state_vars; 
         transition_label = [          
-          (LoopFact (mo.model_name, tid, 2))
+          (LoopFact (mo.model_name, mindex, 2))
         ];
         transition_is_loop_back = false   
       }) mo scope_lst2 cs2 in
