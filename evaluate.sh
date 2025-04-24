@@ -10,7 +10,14 @@ DEFAULT_TIMEOUT_MINUTES=60
 TIMEOUT_MINUTES=$DEFAULT_TIMEOUT_MINUTES
 
 # List of all .rab files to evaluate when using "all"
-ALL_RABS=("examples/default.rab" "examples/parameterized.rab")
+EXAMPLE_DIR="examples"
+OUTPUT_DIR="output"
+LOG_DIR="log"
+EXAMPLE_FILES=("default.rab" "parameterized.rab")
+ALL_RABS=()
+for f in "${EXAMPLE_FILES[@]}"; do
+    ALL_RABS+=("${EXAMPLE_DIR}/${f}")
+done
 
 # Path to Rabbit executable after build
 RABBIT="./_build/default/src/rabbit.exe"
@@ -99,14 +106,14 @@ function run_measure() {
     local suffix=""
     if [[ "$compress" == "true" ]]; then
         rabbit_cmd+=("--post-process")
-        suffix="${suffix}_compressed"
+        suffix="${suffix}.compressed"
     fi
 
     if [[ "$sublemmas" == "true" ]]; then
         rabbit_cmd+=("--tag-transition")
-        suffix="${suffix}_tagged"
+        suffix="${suffix}.sublemmas"
     fi
-    local spthy_file="${base}${suffix}.spthy"
+    local spthy_file="${OUTPUT_DIR}/${base}${suffix}.spthy"
     rabbit_cmd+=("-o" "$spthy_file")
 
     # Run Rabbit
@@ -117,7 +124,7 @@ function run_measure() {
 
 
     # echo "[*] Running tamarin-prover on ${spthy_file} proving Reachable (timeout: ${timeout_minutes}m)..."
-    local LOG_FILE1="${spthy_file}.tamarin.reachable.log"
+    local LOG_FILE1="{$LOG_DIR}/${spthy_file}.Reachable.log"
     info "Verifying Reachable Lemma for (timeout: ${timeout_minutes}m)"
     info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Reachable" &> "$LOG_FILE1"" 
     if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Reachable" &> "$LOG_FILE1"; then
@@ -131,7 +138,7 @@ function run_measure() {
 # 
 # 
 
-    local LOG_FILE2="${spthy_file}.tamarin.correspondence.log"
+    local LOG_FILE2="{$LOG_DIR}/${spthy_file}.Correspondence.log"
     info "Verifying Correspondence Lemma for (timeout: ${timeout_minutes}m)"
     info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Correspondence" &> "$LOG_FILE2""
     if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Correspondence" &> "$LOG_FILE2"; then
@@ -147,7 +154,7 @@ function run_measure() {
 # 
 
     if [[ "$sublemmas" == "true" ]]; then
-        local LOG_FILE3="${spthy_file}.tamarin.sublemmas.log"
+        local LOG_FILE3="{$LOG_DIR}/${spthy_file}.SubLemmas.log"
 
         info "Verifying Sub-Lemmas for (timeout: ${timeout_minutes}m)"
         info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=--prove=AlwaysStarts__" "--prove=--prove=AlwaysStartsWhenEnds__" "--prove=--prove=TransitionOnce__" &> "$LOG_FILE3""
@@ -210,13 +217,13 @@ function compare_mode() {
 
     timeout_seconds=$((timeout_minutes * 60))
     local spthy_file="examples/default_sapicp.spthy"
-    local pv_file1="examples/default_sapicp.reachable.pv"
-    local pv_file2="examples/default_sapicp.correspondence.pv"
+    local pv_file1="output/examples/default_sapicp.Reachable.pv"
+    local pv_file2="output/examples/default_sapicp.Correspondence.pv"
     
-    local tamarin_log1="examples/default_sapicp.tamarin.reachable.log"
-    local tamarin_log2="examples/default_sapicp.tamarin.correspondence.log"
-    local proverif_log1="examples/default_sapicp.reachable.proverif.log"
-    local proverif_log2="examples/default_sapicp.corresopndence.proverif.log"
+    local tamarin_log1="log/examples/default_sapicp.spthy.Reachable.log"
+    local tamarin_log2="log/examples/default_sapicp.spthy.Correspondence.log"
+    local proverif_log1="log/examples/default_sapicp.spthy.Reachable.pv.log"
+    local proverif_log2="log/examples/default_sapicp.spthy.Correspondence.pv.log"
 
     echo "=== Running SAPIC+ with Tamarin backend ==="
 
