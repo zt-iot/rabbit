@@ -1,0 +1,78 @@
+[2025-04-24 00:04] [*] Checking required dependencies...
+[2025-04-24 00:04] [✓] All required dependencies are available.
+=== Measuring examples/default.rab with compress:false sub-lemmas:false timeout:60m ===
+[2025-04-24 00:04] [*] Running: ./_build/default/src/rabbit.exe examples/default.rab -o examples/default.spthy
+[2025-04-24 00:04] [*] Verifying Reachable Lemma for (timeout: 60m)
+[2025-04-24 00:04] [*] Running: timeout 3600 tamarin-prover examples/default.spthy --prove=Reachable &> examples/default.spthy.tamarin.reachable.log
+[2025-04-24 01:04] [✗] Tamarin did not finish within timeout. Process was killed.
+[2025-04-24 01:04] [*] Double check the Tamarin output in examples/default.spthy.tamarin.reachable.log
+[2025-04-24 01:04] [*] Verifying Correspondence Lemma for (timeout: 60m)
+[2025-04-24 01:04] [*] Running: timeout 3600 tamarin-prover examples/default.spthy --prove=Correspondence &> examples/default.spthy.tamarin.correspondence.log
+[2025-04-24 02:04] [✗] Tamarin did not finish within timeout. Process was killed.
+[2025-04-24 02:04] [*] Double check the Tamarin output in examples/default.spthy.tamarin.correspondence.log
+
+=== Measuring examples/default.rab with compress:true sub-lemmas:false timeout:60m ===
+[2025-04-24 02:04] [*] Running: ./_build/default/src/rabbit.exe examples/default.rab --post-process -o examples/default_compressed.spthy
+[2025-04-24 02:04] [*] Verifying Reachable Lemma for (timeout: 60m)
+[2025-04-24 02:04] [*] Running: timeout 3600 tamarin-prover examples/default_compressed.spthy --prove=Reachable &> examples/default_compressed.spthy.tamarin.reachable.log
+[2025-04-24 02:11] [✓] Tamarin terminated within timeout.
+[2025-04-24 02:11] [*] Double check the Tamarin output in examples/default_compressed.spthy.tamarin.reachable.log
+[2025-04-24 02:11] [*] Verifying Correspondence Lemma for (timeout: 60m)
+[2025-04-24 02:11] [*] Running: timeout 3600 tamarin-prover examples/default_compressed.spthy --prove=Correspondence &> examples/default_compressed.spthy.tamarin.correspondence.log
+[2025-04-24 03:11] [✗] Tamarin did not finish within timeout. Process was killed.
+[2025-04-24 03:11] [*] Double check the Tamarin output in examples/default_compressed.spthy.tamarin.correspondence.log
+
+=== Measuring examples/default.rab with compress:true sub-lemmas:true timeout:60m ===
+[2025-04-24 03:11] [*] Running: ./_build/default/src/rabbit.exe examples/default.rab --post-process --tag-transition -o examples/default_compressed_tagged.spthy
+[2025-04-24 03:11] [*] Verifying Reachable Lemma for (timeout: 60m)
+[2025-04-24 03:11] [*] Running: timeout 3600 tamarin-prover examples/default_compressed_tagged.spthy --prove=Reachable &> examples/default_compressed_tagged.spthy.tamarin.reachable.log
+[2025-04-24 03:15] [✓] Tamarin terminated within timeout.
+[2025-04-24 03:15] [*] Double check the Tamarin output in examples/default_compressed_tagged.spthy.tamarin.reachable.log
+[2025-04-24 03:15] [*] Verifying Correspondence Lemma for (timeout: 60m)
+[2025-04-24 03:15] [*] Running: timeout 3600 tamarin-prover examples/default_compressed_tagged.spthy --prove=Correspondence &> examples/default_compressed_tagged.spthy.tamarin.correspondence.log
+[2025-04-24 03:26] [✓] Tamarin terminated within timeout.
+[2025-04-24 03:26] [*] Double check the Tamarin output in examples/default_compressed_tagged.spthy.tamarin.correspondence.log
+[2025-04-24 03:26] [*] Verifying Sub-Lemmas for (timeout: 60m)
+[2025-04-24 03:26] [*] Running: timeout 3600 tamarin-prover examples/default_compressed_tagged.spthy --prove=--prove=AlwaysStarts__ --prove=--prove=AlwaysStartsWhenEnds__ --prove=--prove=TransitionOnce__ &> examples/default_compressed_tagged.spthy.tamarin.sublemmas.log
+[2025-04-24 03:49] [✓] Tamarin terminated within timeout.
+[2025-04-24 03:49] [*] Double check the Tamarin output in examples/default_compressed_tagged.spthy.tamarin.sublemmas.log
+
+=== Measuring examples/parameterized.rab with compress:false sub-lemmas:false timeout:60m ===
+[2025-04-24 03:49] [*] Running: ./_build/default/src/rabbit.exe examples/parameterized.rab -o examples/parameterized.spthy
+[2025-04-24 03:49] [*] Verifying Reachable Lemma for (timeout: 60m)
+[2025-04-24 03:49] [*] Running: timeout 3600 tamarin-prover examples/parameterized.spthy --prove=Reachable &> examples/parameterized.spthy.tamarin.reachable.log
+[2025-04-24 04:49] [✗] Tamarin did not finish within timeout. Process was killed.
+[2025-04-24 04:49] [*] Double check the Tamarin output in examples/parameterized.spthy.tamarin.reachable.log
+[2025-04-24 04:49] [*] Verifying Correspondence Lemma for (timeout: 60m)
+[2025-04-24 04:49] [*] Running: timeout 3600 tamarin-prover examples/parameterized.spthy --prove=Correspondence &> examples/parameterized.spthy.tamarin.correspondence.log
+[2025-04-24 05:49] [✗] Tamarin did not finish within timeout. Process was killed.
+[2025-04-24 05:49] [*] Double check the Tamarin output in examples/parameterized.spthy.tamarin.correspondence.log
+
+=== Measuring examples/parameterized.rab with compress:true sub-lemmas:false timeout:60m ===
+[2025-04-24 05:49] [*] Running: ./_build/default/src/rabbit.exe examples/parameterized.rab --post-process -o examples/parameterized_compressed.spthy
+[2025-04-24 05:49] [*] Verifying Reachable Lemma for (timeout: 60m)
+[2025-04-24 05:49] [*] Running: timeout 3600 tamarin-prover examples/parameterized_compressed.spthy --prove=Reachable &> examples/parameterized_compressed.spthy.tamarin.reachable.log
+./evaluate.sh: line 86: 27438 Killed: 9               $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Reachable" >&"$LOG_FILE1"
+[2025-04-24 06:30] [✗] Tamarin did not finish within timeout. Process was killed.
+[2025-04-24 06:30] [*] Double check the Tamarin output in examples/parameterized_compressed.spthy.tamarin.reachable.log
+[2025-04-24 06:30] [*] Verifying Correspondence Lemma for (timeout: 60m)
+[2025-04-24 06:30] [*] Running: timeout 3600 tamarin-prover examples/parameterized_compressed.spthy --prove=Correspondence &> examples/parameterized_compressed.spthy.tamarin.correspondence.log
+./evaluate.sh: line 86: 27939 Killed: 9               $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Correspondence" >&"$LOG_FILE2"
+[2025-04-24 07:04] [✗] Tamarin did not finish within timeout. Process was killed.
+[2025-04-24 07:04] [*] Double check the Tamarin output in examples/parameterized_compressed.spthy.tamarin.correspondence.log
+
+=== Measuring examples/parameterized.rab with compress:true sub-lemmas:true timeout:60m ===
+[2025-04-24 07:04] [*] Running: ./_build/default/src/rabbit.exe examples/parameterized.rab --post-process --tag-transition -o examples/parameterized_compressed_tagged.spthy
+[2025-04-24 07:04] [*] Verifying Reachable Lemma for (timeout: 60m)
+[2025-04-24 07:04] [*] Running: timeout 3600 tamarin-prover examples/parameterized_compressed_tagged.spthy --prove=Reachable &> examples/parameterized_compressed_tagged.spthy.tamarin.reachable.log
+[2025-04-24 07:05] [✓] Tamarin terminated within timeout.
+[2025-04-24 07:05] [*] Double check the Tamarin output in examples/parameterized_compressed_tagged.spthy.tamarin.reachable.log
+[2025-04-24 07:05] [*] Verifying Correspondence Lemma for (timeout: 60m)
+[2025-04-24 07:05] [*] Running: timeout 3600 tamarin-prover examples/parameterized_compressed_tagged.spthy --prove=Correspondence &> examples/parameterized_compressed_tagged.spthy.tamarin.correspondence.log
+[2025-04-24 07:49] [✓] Tamarin terminated within timeout.
+[2025-04-24 07:49] [*] Double check the Tamarin output in examples/parameterized_compressed_tagged.spthy.tamarin.correspondence.log
+[2025-04-24 07:49] [*] Verifying Sub-Lemmas for (timeout: 60m)
+[2025-04-24 07:49] [*] Running: timeout 3600 tamarin-prover examples/parameterized_compressed_tagged.spthy --prove=--prove=AlwaysStarts__ --prove=--prove=AlwaysStartsWhenEnds__ --prove=--prove=TransitionOnce__ &> examples/parameterized_compressed_tagged.spthy.tamarin.sublemmas.log
+[2025-04-24 08:17] [✓] Tamarin terminated within timeout.
+[2025-04-24 08:17] [*] Double check the Tamarin output in examples/parameterized_compressed_tagged.spthy.tamarin.sublemmas.log
+
