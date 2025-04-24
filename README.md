@@ -106,15 +106,25 @@ This will run **14 + 4 verifications** and may take up to **18 hours** in total.
 
 We assume a Linux environment with **Homebrew** and **OPAM** installed. See https://brew.sh and https://www.ocaml.org/docs/up-and-running for installation guides. This artifact was tested with OCaml compiler version 5.3.0.
 
+(This can be done by, once installed OPAM:
+
+```bash
+opam switch create 5.3.0 ocaml-base-compiler.5.3.0
+opam switch set 5.3.0
+eval $(opam env)
+
+```
+For more details, see https://ocaml.org/docs/install-a-specific-ocaml-compiler-version)
+
 The following OCaml packages are required:
 - [Dune](https://dune.build) build system (tested with version 3.16.0)
 - [Menhir](http://gallium.inria.fr/~fpottier/menhir/) parser generator (tested with version 20220210)
-- OCaml libraries: `menhirLib` (tested with version 20220210), `sedlex` (tested with version 3.1)
+- OCaml libraries: `menhirLib` (tested with version 20220210), `sedlex` (tested with version 3.1), and ocamlfind
 
 Install them using:
 
 ```bash
-opam install dune menhir sedlex
+opam install ocamlfind dune menhir sedlex
 ```
 
 Rabbit has been tested with Tamarin version 1.10. To install it:

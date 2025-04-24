@@ -13,19 +13,20 @@ TIMEOUT_MINUTES=$DEFAULT_TIMEOUT_MINUTES
 EXAMPLE_DIR="examples"
 OUTPUT_DIR="output"
 LOG_DIR="log"
-EXAMPLE_FILES=("default.rab" "parameterized.rab")
-ALL_RABS=()
-for f in "${EXAMPLE_FILES[@]}"; do
-    ALL_RABS+=("${EXAMPLE_DIR}/${f}")
-done
+ALL_RABS=("default.rab" "parameterized.rab")
+# ALL_RABS=()
+# for f in "${EXAMPLE_FILES[@]}"; do
+#     ALL_RABS+=("${EXAMPLE_DIR}/${f}")
+# done
 
 # Path to Rabbit executable after build
 RABBIT="./_build/default/src/rabbit.exe"
 
-GREEN='\033[0;32m'
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
-
 # === Functions ===
 
 function timestamp() {
@@ -43,18 +44,88 @@ function info() {
     echo -e "[$(timestamp)] [*] $*"
 }
 
-# === Dependency check ===
-function check_dependencies() {
+function warn() {
+    echo -e "${YELLOW}[$(timestamp)] [!] $*${NC}"
+}
+
+
+check_dependencies() {
     info "Checking required dependencies..."
 
     local missing=()
+    local warning=()
 
-    # Common commands
-    command -v dune &> /dev/null        || missing+=("dune")
-    command -v tamarin-prover &> /dev/null || missing+=("tamarin-prover")
-    command -v proverif &> /dev/null    || missing+=("proverif")
+    # Required versions
+    REQUIRED_OCAML="5.3.0"
+    REQUIRED_DUNE="3.16.0"
+    REQUIRED_MENHIR="20220210"
+    REQUIRED_TAMARIN="1.10"
+    REQUIRED_PROVERIF="2.05"
 
-    # Timeout (accepts GNU or coreutils)
+    info "  - Checking for Homebrew..."
+    command -v brew >/dev/null || missing+=("Homebrew (install from https://brew.sh)")
+
+    info "  - Checking for OPAM..."
+    command -v opam >/dev/null || missing+=("OPAM (install from https://www.ocaml.org/docs/up-and-running)")
+
+    info "  - Checking for OCaml compiler..."
+    if command -v ocamlc >/dev/null; then
+        v=$(ocamlc -version)
+        [[ "$v" != "$REQUIRED_OCAML" ]] && warning+=("OCaml version is $v (expected: $REQUIRED_OCAML)")
+    else
+        missing+=("OCaml compiler (install via: opam switch create $REQUIRED_OCAML)")
+    fi
+
+    info "  - Checking for dune..."
+    if command -v dune >/dev/null; then
+        v=$(dune --version)
+        [[ "$v" != "$REQUIRED_DUNE" ]] && warning+=("dune version is $v (expected: $REQUIRED_DUNE)")
+    else
+        missing+=("dune (install via: opam install dune.$REQUIRED_DUNE)")
+    fi
+
+    info "  - Checking for menhir..."
+    if command -v menhir >/dev/null; then
+        v=$(menhir --version 2>/dev/null | grep -Eo '[0-9]{8}')
+        [[ "$v" != "$REQUIRED_MENHIR" ]] && warning+=("menhir version is $v (expected: $REQUIRED_MENHIR)")
+    else
+        missing+=("menhir (install via: opam install menhir.$REQUIRED_MENHIR)")
+    fi
+
+    info "  - Checking for sedlex..."
+    ocamlfind query sedlex >/dev/null 2>&1 || missing+=("sedlex (install via: opam install sedlex)")
+
+    info "  - Checking for ocamlfind..."
+    command -v ocamlfind >/dev/null || missing+=("ocamlfind (install via: opam install ocamlfind)")
+
+    info "  - Checking for tamarin-prover..."
+    if command -v tamarin-prover >/dev/null; then
+        v=$(tamarin-prover --version 2>/dev/null | grep -Eo '^tamarin-prover [0-9]+\.[0-9]+' | awk '{print $2}')
+        if [[ -z "$v" ]]; then
+            warning+=("Could not determine tamarin-prover version (expected: $REQUIRED_TAMARIN)")
+        elif [[ "$v" != "$REQUIRED_TAMARIN" ]]; then
+            warning+=("tamarin-prover version is $v (expected: $REQUIRED_TAMARIN)")
+        fi
+    else
+        missing+=("tamarin-prover (install via: brew install tamarin-prover/tap/tamarin-prover)")
+    fi
+
+info "  - Checking for proverif..."
+if command -v proverif >/dev/null; then
+    # Capture version output safely
+    raw=$(proverif --help 2>&1)
+    v=$(echo "$raw" | grep -Eo '[0-9]+\.[0-9]+[a-z0-9]*' | head -1)
+
+    if [[ -z "$v" ]]; then
+        warning+=("Could not determine proverif version (expected: $REQUIRED_PROVERIF)")
+    elif [[ "$v" != "$REQUIRED_PROVERIF" ]]; then
+        warning+=("proverif version is $v (expected: $REQUIRED_PROVERIF)")
+    fi
+else
+    missing+=("proverif (install via: opam install proverif.$REQUIRED_PROVERIF)")
+fi
+    info "  - Checking for timeout..."
+
     if command -v timeout &> /dev/null; then
         TIMEOUT_CMD="timeout"
     elif command -v gtimeout &> /dev/null; then
@@ -63,15 +134,30 @@ function check_dependencies() {
         missing+=("timeout (or gtimeout on macOS; try brew install coreutils)")
     fi
 
-    if [[ ${#missing[@]} -gt 0 ]]; then
+
+
+    success "Dependency check completed."
+
+    if [ ${#missing[@]} -eq 0 ]; then
+        success "All required tools are installed."
+    else
         fail "Missing dependencies:"
-        for m in "${missing[@]}"; do
-            echo "    - $m"
+        for dep in "${missing[@]}"; do
+            echo "    - $dep"
         done
-        exit 1
     fi
 
-    success "All required dependencies are available."
+    if [ ${#warning[@]} -gt 0 ]; then
+        warn "Version warnings (may still work fine though):"
+        for w in "${warning[@]}"; do
+            echo "    - $w"
+        done
+    fi
+
+    if [ ${#missing[@]} -ne 0 ]; then
+        fail "Please install the missing dependencies and rerun."
+        exit 1
+    fi
 }
 
 
@@ -98,11 +184,15 @@ function run_measure() {
     local timeout_seconds=$((timeout_minutes * 60))
     local base=${file%.rab}
 
+
+    mkdir -p "log"
+    mkdir -p "output"
+
     # echo ""
     echo "=== Measuring $file with compress:$compress sub-lemmas:$sublemmas timeout:${timeout_minutes}m ==="
     # echo "[*] Running Rabbit with --compress=$compress --sub-lemmas=$sublemmas..."
 
-    rabbit_cmd=("$RABBIT" "$file")
+    rabbit_cmd=("$RABBIT" "${EXAMPLE_DIR}/${file}")
     local suffix=""
     if [[ "$compress" == "true" ]]; then
         rabbit_cmd+=("--post-process")
@@ -114,6 +204,7 @@ function run_measure() {
         suffix="${suffix}.sublemmas"
     fi
     local spthy_file="${OUTPUT_DIR}/${base}${suffix}.spthy"
+    local spthy_file_name="${base}${suffix}.spthy"
     rabbit_cmd+=("-o" "$spthy_file")
 
     # Run Rabbit
@@ -124,7 +215,7 @@ function run_measure() {
 
 
     # echo "[*] Running tamarin-prover on ${spthy_file} proving Reachable (timeout: ${timeout_minutes}m)..."
-    local LOG_FILE1="{$LOG_DIR}/${spthy_file}.Reachable.log"
+    local LOG_FILE1="${LOG_DIR}/${spthy_file_name}.Reachable.log"
     info "Verifying Reachable Lemma for (timeout: ${timeout_minutes}m)"
     info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Reachable" &> "$LOG_FILE1"" 
     if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Reachable" &> "$LOG_FILE1"; then
@@ -138,7 +229,7 @@ function run_measure() {
 # 
 # 
 
-    local LOG_FILE2="{$LOG_DIR}/${spthy_file}.Correspondence.log"
+    local LOG_FILE2="${LOG_DIR}/${spthy_file_name}.Correspondence.log"
     info "Verifying Correspondence Lemma for (timeout: ${timeout_minutes}m)"
     info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Correspondence" &> "$LOG_FILE2""
     if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Correspondence" &> "$LOG_FILE2"; then
@@ -154,7 +245,7 @@ function run_measure() {
 # 
 
     if [[ "$sublemmas" == "true" ]]; then
-        local LOG_FILE3="{$LOG_DIR}/${spthy_file}.SubLemmas.log"
+        local LOG_FILE3="${LOG_DIR}/${spthy_file_name}.SubLemmas.log"
 
         info "Verifying Sub-Lemmas for (timeout: ${timeout_minutes}m)"
         info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=--prove=AlwaysStarts__" "--prove=--prove=AlwaysStartsWhenEnds__" "--prove=--prove=TransitionOnce__" &> "$LOG_FILE3""
@@ -217,13 +308,13 @@ function compare_mode() {
 
     timeout_seconds=$((timeout_minutes * 60))
     local spthy_file="examples/default_sapicp.spthy"
-    local pv_file1="output/examples/default_sapicp.Reachable.pv"
-    local pv_file2="output/examples/default_sapicp.Correspondence.pv"
+    local pv_file1="output/default_sapicp.Reachable.pv"
+    local pv_file2="output/default_sapicp.Correspondence.pv"
     
-    local tamarin_log1="log/examples/default_sapicp.spthy.Reachable.log"
-    local tamarin_log2="log/examples/default_sapicp.spthy.Correspondence.log"
-    local proverif_log1="log/examples/default_sapicp.spthy.Reachable.pv.log"
-    local proverif_log2="log/examples/default_sapicp.spthy.Correspondence.pv.log"
+    local tamarin_log1="log/default_sapicp.spthy.Reachable.log"
+    local tamarin_log2="log/default_sapicp.spthy.Correspondence.log"
+    local proverif_log1="log/default_sapicp.spthy.Reachable.pv.log"
+    local proverif_log2="log/default_sapicp.spthy.Correspondence.pv.log"
 
     echo "=== Running SAPIC+ with Tamarin backend ==="
 
