@@ -17,15 +17,12 @@ process server() :  abc
   	{
         c := "d";
         new kj in 
-        new jjj = AA(a,b,c) in 
 
         var k = "haha" in
         case 
         [A(x), B(y), C(z), D(j)] ->
             a := x; 
-            let x', y', z' = jjj.AA in 
-            a := x';
-            case [B(k), A(a), C(x)] -> c := k end; delete jjj.AA;
+            case [B(k), A(a), C(x)] -> c := k end;
             put [D("aaa")];
             case [D(ko)] -> skip end;
             b := z
