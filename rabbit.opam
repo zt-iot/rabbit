@@ -15,9 +15,9 @@ depends: [
   "ocaml" {>= "5.0.0"}
   "dune" {>= "3.16"}
   "ocamlfind"
-  "menhir" {= "20220210"}
+  "menhir" {>= "20220210"}
   "menhirLib"
-  "sedlex" {= "3.1"}
+  "sedlex" {>= "3.1"}
   "proverif" {= "2.05"}
 ]
 
