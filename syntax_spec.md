@@ -32,12 +32,13 @@ Type :: =
   | (<Type>, <Type>)                                                                                      (product)
   | channel[<SecurityLvl>, <Type>, <Type>]                                                                           (channel with security level l, read and write types t, t' respectively)
   | key[<SecurityLvl>, <KeyKind>, <Type>]                                                                            (key used on data of type t with security level l and key kind <KeyKind>. Only parties with correct secrecy level and integrity level can access the key)
-  | process[<SecurityLvl>, <Type>]                                                                               (process with input parameter of type t and security level l)
-  | func[<SecurityLvl>, <Type>*, <Type>]                                                                              (function with 0 or more input types t and one return type t, t=unit if f only does side effects, and security level l of the funcion code)
+  | process[<SecurityLvl>, <Type>?]                                                                               (process with input parameter of type t and security level l)
+  | function[<SecurityLvl>, <Type>*, <Type>]                                                                              (function with 0 or more input types t and one return type t, t=unit if f only does side effects, and security level l of the funcion code)
+  | string                                                                                                    (a plain quoted string)
 
 
 
-MetaType ::= Type | SecreclyLvl | IntegrityLvl | SecurityLvl
+MetaType ::= Type | SecrecyLvl | IntegrityLvl | SecurityLvl                                        (No delimiters "<>", so these symbols should be literally in the syntax)
 
 
 Variable ::= <Ident>
@@ -91,10 +92,10 @@ Fun ::= function <Ident>((<Ident> : <Type>)*): <Type> { <ProcessTerm> }         
                                                                                                 (Furthermore, enforce that a return type t' is given.)
 
 
-MemoryDecl ::= var <Ident> : <Type> = <RawTerm> \n                                                              (memory declaration. top-level variable "id" is available throughout the process and is initialized with raw term "r")
-ProcDecl ::= process <Ident>((<Ident> : <Type>)*) <MemoryDecl>* <Fun>* main() { <ProcessTerm> }                         (process declaration. id is process identifier)
+MemoryStmt ::= var <Ident> : <Type> = <RawTerm> \n                                                              (memory declaration. top-level variable "id" is available throughout the process and is initialized with raw term "r")
+ProcDecl ::= process <Ident>((<Ident> : <Type>)*) : <Type> { <MemoryStmt>* <Fun>* main() { <ProcessTerm> } }                         (process declaration. id is process identifier)
 
-RootProcDecl ::= process root((<Ident> : <Type>)*) <MemoryDecl>* <Fun>* main() { <ProcessTerm> }                     (There should be a single root process declaration)
+RootProcDecl ::= process root((<Ident> : <Type>)*) : <Type> { <MemoryStmt>* <Fun>* main() { <ProcessTerm> } }                     (There should be a single root process declaration)
                                                                                                 (The other processes are then "mentioned" by the root process. We can think of these "mentions" as simple macro definitions)
 
 

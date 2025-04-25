@@ -1,6 +1,8 @@
 type operator = string
-type type_class = CProc | CFsys | CChan
+type type_class = KindProc | KindFSys | KindChan
 type arg_type = TyValue | TyChannel | TyProcess | TyPath
+
+type typ = Typ (* TODO fill in all possible alternatives of <Type> *)
 
 type expr = expr' Location.located
 and expr' =
@@ -60,7 +62,7 @@ and decl' =
   | DeclExtEq of expr * expr
   | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * cmd
   | DeclExtAttack of Name.ident * Name.ident * (arg_type * Name.ident) list * cmd
-  | DeclType of Name.ident * type_class
+  | DeclTypeKind of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   | DeclAttack of Name.ident list * Name.ident list
   | DeclInit of Name.ident * expr option

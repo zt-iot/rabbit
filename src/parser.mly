@@ -19,13 +19,27 @@
 %token BBAR
 %token UNDERSCORE
 
+(* Key kind tokens *)
+%token SYM ENC DEC SIG CHK
+
+(* Meta-types used for implicit arguments *)
+%token METATYPE SECRECYLVL, INTEGRITYLVL, SECURITYLVL
+
+(* Tokens for pre-defined secrecy level 'public' and pre-defined integrity level 'untrusted' *)
+%token PUBLIC UNTRUSTED
+
+(* Tokens that retrieve secrecy and integrity level of a given type *)
+%token S I
+
 (* constant tokens for rabbit *)
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
-%token CHANNEL PROCESS PATH DATA FILESYS 
+%token CHANNEL KEY PROCESS PATH DATA FILESYS 
 %token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR
 %token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY
 
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
+
+
 
 (* End of input token *)
 %token EOF
@@ -56,11 +70,13 @@ decls:
 
 decl: mark_location(plain_decl) { $1 }
 plain_decl:
-  | FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
+  (* Equational theory function with type annotation*)
+  | FUNC LBRACE separated_list(COMMA, meta_typed_arg) RBRACE id=NAME LPAREN some_list=separated_list(COMMA, typed_arg) RPAREN COLON typ ar=NUMERAL { DeclExtFun(id, List.length some_list) }
   | CONSTANT id=NAME  { DeclExtFun(id, 0) }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
   
-  | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
+  | TYPE id=NAME COLON c=type_kind { DeclTypeKind(id,c) }
+  | TYPE id=NAME COLON t=typ { DeclTypeKind(id, t) (* TODO *) }
   
   | ALLOW ATTACK t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAttack(t,a)}  
   | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t, Some a)} 
@@ -71,10 +87,9 @@ plain_decl:
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
 
   (* process params are seperated list of `colon_name_pair` *)
-  (* Why parse the parameter name and parameter type _both_ as a name though? *)
   (* *)
-  | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME 
-    LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
+  | PROCESS id=NAME LBRACKET proc_kind=NAME RBRACKET LPAREN params=separated_list(COMMA, colon_name_pair) RPAREN 
+    LBRACE mem=mem_stmts f=fun_decls main=main_stmt RBRACE { DeclProc(id, params, proc_kind, mem, f, main) }
 
   | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
 
@@ -110,11 +125,9 @@ plain_fact:
   | e1=expr NEQ e2=expr { ResFact(1, [e1; e2]) }
 
 typed_arg:
-  | var=NAME { (TyValue, var) }
-  | CHANNEL var=NAME { (TyChannel, var) }
-  | PROCESS var=NAME { (TyProcess, var) }
-  | PATH var=NAME { (TyPath, var) }
-
+  | var=NAME { (TyValue, var) } (* I don't know when this rule is necessary? *)
+                                (* Also don't know when TyPath, TyChannel etc. are necessary *)
+  | var=NAME COLON t=typ { (TyValue, var) (* TODO *) }
 sys:
   | SYSTEM p=separated_nonempty_list(BBAR, proc) REQUIRES 
     LBRACKET a=separated_nonempty_list(SEMICOLON, lemma)  RBRACKET { DeclSys(p, a) }
@@ -138,12 +151,12 @@ plain_prop:
   | EXTRACE QUOTED_STRING {PlainString ("exists-trace \""^$2^"\"") }
   | ALLTRACE QUOTED_STRING {PlainString ("all-traces \""^$2^"\"") }
 
-let_stmts:
+mem_stmts:
   | { [] }
-  | l=let_stmt ls=let_stmts { l :: ls }
+  | l=mem_stmt ls=mem_stmts { l :: ls }
 
-let_stmt:
-  | VAR id=NAME EQ e=expr { (id, e) }
+mem_stmt:
+  | VAR id=NAME COLON typ EQ e=expr { (id, e) }
 
 fun_decls:
   | { [] }
@@ -151,7 +164,7 @@ fun_decls:
 
 fun_decl:
   | FUNC id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN 
-    LBRACE c=cmd RBRACE { (id, parems, c) }
+   LBRACE c=cmd RBRACE { (id, parems, c) }
 
 main_stmt:
   | MAIN LBRACE c=cmd RBRACE { c }
@@ -163,10 +176,49 @@ fpath:
 (* mark_location(plain_fpath) { $1 }
 plain_fpath: *)
 
-type_c:
-  | FILESYS { CFsys }
-  | PROCESS { CProc }
-  | CHANNEL { CChan }
+secrecy_lvl:
+  | PUBLIC { () }
+  | NAME DOT S { () }
+  | S LPAREN typ RPAREN { () }
+
+integrity_lvl:
+  | UNTRUSTED { () }
+  | NAME DOT I { () }
+  | I LPAREN typ RPAREN { () }
+
+
+security_lvl:
+  | LPAREN secrecy_lvl COMMA integrity_lvl RPAREN { () }
+
+keykind:
+  | SYM { () }
+  | ENC { () }
+  | DEC { () }
+  | SIG { () }
+  | CHK { () }
+
+typ:
+  | security_lvl { KindChan (* TODO *) }
+  | LPAREN typ COMMA typ RPAREN { KindChan (* TODO *) }
+  | CHANNEL LBRACKET security_lvl COMMA typ COMMA typ RBRACKET { KindChan }
+  | KEY LBRACKET security_lvl RBRACKET { KindChan (* TODO *) }
+  | PROCESS LBRACKET security_lvl COMMA typ RBRACKET { KindProc }
+  | FUNC LBRACKET security_lvl COMMA separated_list(COMMA, typ) typ RBRACKET { KindChan (* TODO *) }
+
+
+metatype:
+  | METATYPE { () }
+  | SECRECYLVL { () }
+  | INTEGRITYLVL { () }
+  | SECURITYLVL { () }
+
+meta_typed_arg:
+  | polymorphic_typ=NAME COLON metatype { () }
+
+type_kind:
+  | FILESYS { KindFSys }
+  | PROCESS { KindProc }
+  | CHANNEL { KindChan }
 
 expr : mark_location(plain_expr) { $1 }
 plain_expr:
@@ -207,7 +259,7 @@ plain_cmd:
   | SKIP { Skip }
   | c1=cmd SEMICOLON c2=cmd { Sequence(c1, c2) }
   | PUT LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { Put (postcond) }
-  | VAR id=NAME EQ e=expr IN c=cmd { Let (id, e, c) }
+  | VAR id=NAME COLON typ EQ e=expr IN c=cmd { Let (id, e, c) }
   | id=uname COLONEQ e=expr { Assign (id, e) }
   | CASE 
     BAR? guarded_cmds=separated_nonempty_list(BAR, guarded_cmd) END { Case(guarded_cmds) }

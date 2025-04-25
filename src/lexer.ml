@@ -5,6 +5,10 @@ let reserved = [
   ("system", SYSTEM) ;
   ("lemma", LEMMA) ; 
   ("type", TYPE) ;
+  ("Type", METATYPE) ;
+  ("SecrecyLvl", SECRECYLVL) ;
+  ("IntegrityLvl", INTEGRITYLVL) ;
+  ("SecurityLvl", SECURITYLVL) ;
   ("allow", ALLOW) ;
   ("passive", PASSIVE) ;
   ("attack", ATTACK) ;
@@ -42,7 +46,14 @@ let reserved = [
   ("delete", DEL) ;
   ("get", GET) ;
   ("by", BY) ;
-  ("on", ON)
+  ("on", ON) ;
+  ("Sym", SYM) ;
+  ("Enc", ENC) ;
+  ("Dec", DEC) ;
+  ("Sig", SIG) ;
+  ("Chk", CHK) ;
+  ("S", S) ;
+  ("I", I)
   ]
 
 let name =

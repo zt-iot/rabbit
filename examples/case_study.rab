@@ -95,95 +95,107 @@ SE.I < untrusted
 
 
 process REE() : unit {
-  pack(mon : mon -> var y : ree := recv(mon) in 0)
+  main {
+    pack(mon : mon -> var y : ree := recv(mon) in 0)
+  }
 }
 
 process TA() : p_ta {
-  pack(chnls : (ta_up, ta_down) -> {
+  main {
+    pack(chnls : (ta_up, ta_down) -> {
       var c : ta_up = fst(chnls) in
       var c' : ta_down = snd(chnls) in 
       var x : (tee, tee) = recv(c);
       var y : ree = h(x) in
       _ := send(c', y)
-    }
-  )
+      }
+    )  
+  }
+  
 }
 
 process SE(i2c : U, k : tee, C : U, H : U) : unit {
-  new ns : se in
+  main {
+    new ns : se in
 
-  var m : U = recv(i2c) in
-  new m' : U in 
-  var ks : ks = hash(ks)(k, m, m') in
-  var cr' : U = hash(U)(ks, C, m, m') in
-  _ := send(i2c, (m', cr'));
-  var cr : U = recv(i2c) in
-  var cr' : U = hash(U)(ks, H, m, m') in
+    var m : U = recv(i2c) in
+    new m' : U in 
+    var ks : ks = hash(ks)(k, m, m') in
+    var cr' : U = hash(U)(ks, C, m, m') in
+    _ := send(i2c, (m', cr'));
+    var cr : U = recv(i2c) in
+    var cr' : U = hash(U)(ks, H, m, m') in
 
-
-  case 
-  | [cr = cr'] -> {
-    var ns' : tee = hash(tee)(ns) in
-    _ := send(i2c, enc_sym(ns', ks))
-  }
-  | [cr <> cr'] -> {
-    0
+    case 
+    | [cr = cr'] -> {
+      var ns' : tee = hash(tee)(ns) in
+      _ := send(i2c, enc_sym(ns', ks))
+    }
+    | [cr <> cr'] -> {
+      0
+    }
   }
 }
 
 process TEE(i2c : U, k : tee, C : U, H : U) : p_tee {
-  pack(param : (mon, p_ta) -> {
-      var mon : mon = fst(param) in 
-      var ta : p_ta = snd(param) in
-      new nt : tee in 
-      new m : U in
-      _ := send(i2c, m);
-      var pair : (U, U) = recv(i2c) in
-      var m' : U = fst(pair) in 
-      var cr' U = snd(pair) in 
-      var ks : ks = hash(ks)(k, m, m') in
-      var cr : U = hash(U)(ks, C, m, m') in
-      case 
-      | [cr = cr'] -> {
-        var cr : U = hash(U)(ks, H, m, m') in
-        _ := send(i2c, cr);
-        var msg : U = recv(i2c) in 
-        var ns' = dec_sym(msg, ks) in 
-        (new c : ta_up in 
-        new c' : ta_down in 0) | exec(ta, (c, c'))
-        _ := send(c, (nt, ns'));
-        var y : ree = recv(c') in 
-        _ := send(mon, y');
+  main {
+    pack(param : (mon, p_ta) -> {
+        var mon : mon = fst(param) in 
+        var ta : p_ta = snd(param) in
+        new nt : tee in 
+        new m : U in
+        _ := send(i2c, m);
+        var pair : (U, U) = recv(i2c) in
+        var m' : U = fst(pair) in 
+        var cr' U = snd(pair) in 
+        var ks : ks = hash(ks)(k, m, m') in
+        var cr : U = hash(U)(ks, C, m, m') in
+        case 
+        | [cr = cr'] -> {
+          var cr : U = hash(U)(ks, H, m, m') in
+          _ := send(i2c, cr);
+          var msg : U = recv(i2c) in 
+          var ns' = dec_sym(msg, ks) in 
+          (new c : ta_up in 
+          new c' : ta_down in 0) | exec(ta, (c, c'))
+          _ := send(c, (nt, ns'));
+          var y : ree = recv(c') in 
+          _ := send(mon, y');
+        }
+        | [cr <> cr'] -> {
+          0
+        }
       }
-      | [cr <> cr'] -> {
-        0
-      }
-    }
-  )
+    )
+  }
 }
 
 process DEV(i2c : U, k : tee, C : U, H : U, w : U, root : k_root) {
-  var pair1 : (U, U) = recv(w) in 
-  var TEE : U = fst(pair1) in 
-  var TEE_sig : U = snd(pair1) in
-  new mon : mon in
+  main {
+    var pair1 : (U, U) = recv(w) in 
+    var TEE : U = fst(pair1) in 
+    var TEE_sig : U = snd(pair1) in
+    new mon : mon in
 
-  var res : U = verify(TEE_sig, TEE, vk(root)) in
+    var res : U = verify(TEE_sig, TEE, vk(root)) in
 
-  case 
-  | [res = true] -> {
-    (* REE and TEE are executed in parallel. `mon` is the communication channel between them *)
-    exec(TEE, (mon, TA)) | SE(i2c, k, C, H)
+    case 
+    | [res = true] -> {
+      (* REE and TEE are executed in parallel. `mon` is the communication channel between them *)
+      exec(TEE, (mon, TA)) | SE(i2c, k, C, H)
+    }
+    | [res <> true] -> {
+      0
+    }
   }
-  | [res <> true] -> {
-    0
-  }
-
 }
 
 
 process p(i2c : U, k : tee, C : U, H : U, w : U) {
-  (new root : k_root)
-  let TEE_sig : (public, p.I) = sign(TEE(i2c, k, C, H), root) in
-  send(w, (TEE, TEE_sig)) | DEV(i2c, k, C, H, w, root) (* execute DEV and the sending of TEE with its signature in parallel *)
+  main {
+    (new root : k_root)
+    let TEE_sig : (public, p.I) = sign(TEE(i2c, k, C, H), root) in
+    send(w, (TEE, TEE_sig)) | DEV(i2c, k, C, H, w, root) (* execute DEV and the sending of TEE with its signature in parallel *)
+  }
+  
 }
