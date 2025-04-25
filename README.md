@@ -1,12 +1,51 @@
 # Rabbit — Artifact Submission
 
-Rabbit is a modeling language for verified networked systems, featuring an imperative-style syntax for describing systems and an intuitive assertion language for specifying security properties. This implementation translates Rabbit programs and assertions into Tamarin, a model-checking software for automatic verification.
+Rabbit is a modeling language for verified networked systems, featuring an imperative-style syntax for describing systems and an intuitive assertion language for specifying security properties. This implementation translates Rabbit programs and assertions into Tamarin, a model-checking tool for automatic verification.
 
 This repository contains the source code of Rabbit, along with the examples used in the manuscript, enabling full reproducibility of the results.
 
-We have prepared a Bash script, `evaluate.sh`, which checks for required dependencies, reports any that are missing (with installation instructions), builds Rabbit, and evaluates the example systems.
+We provide a Bash script, `evaluate.sh`, which checks for required external dependencies and evaluates the example systems while measuring execution time.
 
-If the script fails for any reason, we also provide manual instructions below.
+If you are installing Rabbit from source rather than using the Docker image, please begin with the Installation section below, and then run the script.
+
+If the script fails for any reason, manual instructions are provided below.
+
+## Installation
+
+We assume that OPAM is installed and the OCaml compiler version is 5.0.0 (or higher). The tested version is 5.0.0.
+
+Rabbit is implemented in OCaml and can be built easily using its `rabbit.opam` file. From the repository root, run:
+
+```bash
+opam pin add . -n
+opam install . --deps-only
+opam install .
+```
+
+It installs most dependencies available in OPAM and your system's package manager, builds Rabbit, and places the executable in `~/.opam/[switch]/bin`, which is typically included in your shell environment.
+
+To evaluate Rabbit programs and run experiments, additional dependencies are required.
+
+For macOS, run:
+
+```bash
+brew install coreutils graphviz
+```
+
+to install:
+
+- `coreutils` provides the `timeout` command.
+- `graphviz` is required by ProVerif.
+
+For Linux, `timeout` is usually available by default and`graphviz` should be installed automatically via OPAM's external dependency configuration. If not, install it manually.
+
+Since Tamarin is not available via OPAM, it must be installed manually. Using homebrew would be the easiest:
+
+```bash
+brew install tamarin-prover/tap/tamarin-prover
+```
+
+We have checked that it installs well for macos with apple silicon but observed that it failed on the ubuntu ARM64 installed virtual machine. In the case, consider installing from source. See:  [https://tamarin-prover.com/manual/master/book/002\_installation.html](https://tamarin-prover.com/manual/master/book/002_installation.html)
 
 ## Evaluation Script
 
@@ -16,173 +55,116 @@ To run the script, first make it executable:
 chmod +x evaluate.sh
 ```
 
-To build Rabbit, run:
+Running
 
-```bash
-./evaluate.sh build
+```
+./evaluate.sh init
 ```
 
-This checks all dependencies and reports any missing ones, including installation instructions. If successful, the Rabbit executable will be placed at `./_build/default/src/rabbit.exe`. 
+checks whether Rabbit and all required tools are available, listing any that are missing.
 
-To evaluate the manuscript's examples, run:
+To evaluate the manuscript's examples:
 
 ```bash
 ./evaluate.sh measure all --timeout=n
 ```
 
-where `n` is a positive integer indicating the timeout in minutes for each verification. The default is `n=60`.
+Where `n` is a positive integer (default: `n=60`) specifying the timeout in minutes for each verification.
 
 ### What the Script Does
 
 The example Rabbit files are:
+
 1. `examples/default.rab` — the default system
 2. `examples/parameterized.rab` — the parameterized system
 
-Each is evaluated with the Rabbit executable in three configurations:
+Each is evaluated in three configurations:
+
 1. No optimization
 2. With graph compression only
 3. With compression and introducing sub-lemmas
 
-The following Tamarin files are generated:
-- `output/default.rab.spthy`, `output/parameterized.rab.spthy`
-- `output/default.rab.compressed.spthy`, `output/parameterized.rab.compressed.spthy`
-- `output/default.rab.compressed.sublemmas.spthy`, `output/parameterized.rab.compressed.sublemmas.spthy`
+The script then generates the following Tamarin files by running `rabbit`:
 
-Each file includes reachability `Reachable` and correspondence `Correspondence` lemmas. The `.sublemmas.spthy` files additionally include _reuse sub-lemmas_.
+- `output/default.rab.spthy`
+- `output/parameterized.rab.spthy`
+- `output/default.rab.compressed.spthy`
+- `output/parameterized.rab.compressed.spthy`
+- `output/default.rab.compressed.sublemmas.spthy`
+- `output/parameterized.rab.compressed.sublemmas.spthy`
 
-Tamarin is run on each assertion within the specified timeout. If `n=60`, the process may take up to 14 hours for the 14 assertions in the worst case.
+Each file includes `Reachable` and `Correspondence` lemmas. Sub-lemma files also include reuse sub-lemmas.
 
-Logs of the script are printed to stdout with timestamps, while detailed logs from the Tamarin prover are saved as:
+The script then runs Tamarin prover on each lemma with the given timeout. If `n=60`, the full run may take up to \*\*14 hours\*\* in the worst case.
 
-```
-log/[spthyfile].[assertion].log
-```
+The script, while running the verifications, prints to stdout with timestamps for high-level progress tracking. Detailed logs for each verification are saved under the `log/` directory, with filenames indicating the corresponding `.spthy` file and lemma.
 
 ### Comparison with SAPIC+ and ProVerif
 
-The SAPIC+ implementation of the default system is in:
+The SAPIC+ version of the default system is in:
 
 ```
 examples/default_sapicp.spthy
 ```
 
-To evaluate it using Tamarin and ProVerif, run:
+To evaluate it with Tamarin and ProVerif:
 
 ```bash
 ./evaluate.sh compare --timeout=n
 ```
 
 This will:
-- Verify each reachability and correspondence assertions using the Tamarin prover
-- Translate the file into ProVerif syntax:
 
-```
+- Run Tamarin on each lemma
+- Translate it into ProVerif:
+
+```bash
 output/default_sapicp.spthy.[assertion].pv
 ```
 
 - Run ProVerif on the translated files
 
-Each verification uses the same timeout `n`, so the entire comparison process may take up to 4 hours when `n=60`.
+Each assertion runs with timeout `n`, so the full comparison may take up to 4 hours for `n=60`.
 
-Tamarin and ProVerif's log files will be generated at:
+Detailed logs are saved at:
+
 - `log/default_sapicp.spthy.[assertion].log`
 - `log/default_sapicp.spthy.[assertion].pv.log`
-Abstract logs will be printed to stdout with timestamps.
 
 ### Summary
 
-To reproduce the evaluation results from the manuscript, assuming all the dependencies are installed, run:
+To fully reproduce the results:
 
 ```bash
 chmod +x evaluate.sh
-./evaluate.sh build
+./evaluate.sh init
 ./evaluate.sh measure all --timeout=60
 ./evaluate.sh compare --timeout=60
 ```
 
-This will run **14 + 4 verifications** and may take up to **18 hours** in total.
+This will run **14 + 4 verifications** and may take up to **18 hours**.
 
-## Dependencies
+## Running Rabbit and Tamarin Manually
 
-We assume a Linux environment with **Homebrew** and **OPAM** installed. See https://brew.sh and https://www.ocaml.org/docs/up-and-running for installation guides. This artifact was tested with OCaml compiler version 5.3.0.
-
-(This can be done by, once installed OPAM:
+To generate a Tamarin file from a Rabbit source:
 
 ```bash
-opam switch create 5.3.0 ocaml-base-compiler.5.3.0
-opam switch set 5.3.0
-eval $(opam env)
-
+rabbit examples/default.rab -o output/default.rab.spthy
 ```
-For more details, see https://ocaml.org/docs/install-a-specific-ocaml-compiler-version)
-
-The following OCaml packages are required:
-- [Dune](https://dune.build) build system (tested with version 3.16.0)
-- [Menhir](http://gallium.inria.fr/~fpottier/menhir/) parser generator (tested with version 20220210)
-- OCaml libraries: `menhirLib` (tested with version 20220210), `sedlex` (tested with version 3.1), and ocamlfind
-
-Install them using:
-
-```bash
-opam install ocamlfind dune menhir sedlex
-```
-
-Rabbit has been tested with Tamarin version 1.10. To install it:
-
-```bash
-brew install tamarin-prover/tap/tamarin-prover
-```
-
-For more details, see: https://tamarin-prover.com/manual/master/book/002_installation.html
-
-To install ProVerif:
-
-```bash
-opam update
-opam depext conf-graphviz
-opam depext proverif
-opam install proverif
-```
-
-Our code is tested with ProVerif version 2.05.
-
-See the official instructions: https://bblanche.gitlabpages.inria.fr/proverif/README
-
-The script also requires `timeout`. On Linux, it should be available by default. On macOS, install it via:
-
-```bash
-brew install coreutils
-```
-
-## Running Rabbit and Tamarin
-
-To compile Rabbit, run:
-
-```bash
-dune build
-```
-
-This compiles the project and places the executable at `_build/default/src/rabbit.exe`. To run it:
-
-```bash
-./_build/default/src/rabbit.exe examples/default.rab -o output/default.rab.spthy
-```
-
-This generates a Tamarin file from the Rabbit source.
 
 Optional flags:
-- `--post-process` — Enables **Graph Compression**, merging consecutive transitions.
-- `--tag-transition` — Enables **Sub-lemma Introduction**, adding reuse lemmas.
 
-Tamarin must be run separately. For example:
+- `--post-process`: enables graph compression
+- `--tag-transition`: introduces sub-lemmas
+
+To run Tamarin manually:
 
 ```bash
 tamarin-prover output/default.rab.spthy --prove=LemmaName
 ```
 
-Lemma names may be slightly altered during translation. Check the end of the `.spthy` file for the exact lemma names:
+To find lemma names, check the end of the generated `.spthy` file. For example:
 
-For our prepared examples, they are:
 ```tamarin
 // Sub-lemmas (with --tag-transition)
 lemma AlwaysStarts__[reuse,use_induction]: ...
@@ -196,22 +178,18 @@ lemma Correspondence : ...
 
 ## Running Tamarin and ProVerif on SAPIC+
 
-SAPIC+ files have the `.spthy` extension and are compatible with `tamarin-prover`:
+SAPIC+ files use `.spthy` and can be run directly with Tamarin:
 
 ```bash
 tamarin-prover examples/default_sapicp.spthy --prove=Reachable
 ```
 
-To convert to ProVerif format:
+To convert to ProVerif:
 
 ```bash
 tamarin-prover examples/default_sapicp.spthy --prove=Reachable -m=proverif > output/default_sapicp.spthy.Reachable.pv
-```
-
-Then run:
-
-```bash
 proverif output/default_sapicp.spthy.Reachable.pv
 ```
 
-This attempts to prove all lemmas in the file. In this case, only `Reachable` is present.
+This attempts to prove all lemmas. In this example, only `Reachable` is present.
+

@@ -20,7 +20,7 @@ ALL_RABS=("default.rab" "parameterized.rab")
 # done
 
 # Path to Rabbit executable after build
-RABBIT="./_build/default/src/rabbit.exe"
+RABBIT="rabbit"
 
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -49,93 +49,42 @@ function warn() {
 }
 
 
-check_dependencies() {
-    info "Checking required dependencies..."
+function init() {
+    info "Checking required runtime dependencies..."
 
     local missing=()
     local warning=()
 
-    # Required versions
-    REQUIRED_OCAML="5.3.0"
-    REQUIRED_DUNE="3.16.0"
-    REQUIRED_MENHIR="20220210"
-    REQUIRED_TAMARIN="1.10"
-    REQUIRED_PROVERIF="2.05"
+    REQUIRED_RABBIT="rabbit"
+    REQUIRED_TIMEOUT_CMDS=("timeout" "gtimeout")
+    REQUIRED_PROVERIF="proverif"
+    REQUIRED_TAMARIN="tamarin-prover"
 
-    info "  - Checking for Homebrew..."
-    command -v brew >/dev/null || missing+=("Homebrew (install from https://brew.sh)")
+    # Check for rabbit
+    info "  - Checking for rabbit executable..."
+    command -v "$REQUIRED_RABBIT" >/dev/null || missing+=("rabbit (install via: opam install .)")
 
-    info "  - Checking for OPAM..."
-    command -v opam >/dev/null || missing+=("OPAM (install from https://www.ocaml.org/docs/up-and-running)")
-
-    info "  - Checking for OCaml compiler..."
-    if command -v ocamlc >/dev/null; then
-        v=$(ocamlc -version)
-        [[ "$v" != "$REQUIRED_OCAML" ]] && warning+=("OCaml version is $v (expected: $REQUIRED_OCAML)")
-    else
-        missing+=("OCaml compiler (install via: opam switch create $REQUIRED_OCAML)")
-    fi
-
-    info "  - Checking for dune..."
-    if command -v dune >/dev/null; then
-        v=$(dune --version)
-        [[ "$v" != "$REQUIRED_DUNE" ]] && warning+=("dune version is $v (expected: $REQUIRED_DUNE)")
-    else
-        missing+=("dune (install via: opam install dune.$REQUIRED_DUNE)")
-    fi
-
-    info "  - Checking for menhir..."
-    if command -v menhir >/dev/null; then
-        v=$(menhir --version 2>/dev/null | grep -Eo '[0-9]{8}')
-        [[ "$v" != "$REQUIRED_MENHIR" ]] && warning+=("menhir version is $v (expected: $REQUIRED_MENHIR)")
-    else
-        missing+=("menhir (install via: opam install menhir.$REQUIRED_MENHIR)")
-    fi
-
-    info "  - Checking for sedlex..."
-    ocamlfind query sedlex >/dev/null 2>&1 || missing+=("sedlex (install via: opam install sedlex)")
-
-    info "  - Checking for ocamlfind..."
-    command -v ocamlfind >/dev/null || missing+=("ocamlfind (install via: opam install ocamlfind)")
-
-    info "  - Checking for tamarin-prover..."
-    if command -v tamarin-prover >/dev/null; then
-        v=$(tamarin-prover --version 2>/dev/null | grep -Eo '^tamarin-prover [0-9]+\.[0-9]+' | awk '{print $2}')
-        if [[ -z "$v" ]]; then
-            warning+=("Could not determine tamarin-prover version (expected: $REQUIRED_TAMARIN)")
-        elif [[ "$v" != "$REQUIRED_TAMARIN" ]]; then
-            warning+=("tamarin-prover version is $v (expected: $REQUIRED_TAMARIN)")
+    # Check for timeout or gtimeout
+    info "  - Checking for timeout command..."
+    found_timeout=false
+    for cmd in "${REQUIRED_TIMEOUT_CMDS[@]}"; do
+        if command -v "$cmd" >/dev/null; then
+            TIMEOUT_CMD="$cmd"
+            found_timeout=true
+            break
         fi
-    else
-        missing+=("tamarin-prover (install via: brew install tamarin-prover/tap/tamarin-prover)")
-    fi
+    done
+    $found_timeout || missing+=("timeout (or gtimeout on macOS; try brew install coreutils)")
 
-info "  - Checking for proverif..."
-if command -v proverif >/dev/null; then
-    # Capture version output safely
-    raw=$(proverif --help 2>&1)
-    v=$(echo "$raw" | grep -Eo '[0-9]+\.[0-9]+[a-z0-9]*' | head -1)
+    # Check for tamarin-prover
+    info "  - Checking for tamarin-prover..."
+    command -v "$REQUIRED_TAMARIN" >/dev/null || missing+=("tamarin-prover (install via: brew install tamarin-prover/tap/tamarin-prover or build from source)")
 
-    if [[ -z "$v" ]]; then
-        warning+=("Could not determine proverif version (expected: $REQUIRED_PROVERIF)")
-    elif [[ "$v" != "$REQUIRED_PROVERIF" ]]; then
-        warning+=("proverif version is $v (expected: $REQUIRED_PROVERIF)")
-    fi
-else
-    missing+=("proverif (install via: opam install proverif.$REQUIRED_PROVERIF)")
-fi
-    info "  - Checking for timeout..."
+    # Check for proverif
+    info "  - Checking for proverif..."
+    command -v "$REQUIRED_PROVERIF" >/dev/null || missing+=("proverif (install via: opam install proverif)")
 
-    if command -v timeout &> /dev/null; then
-        TIMEOUT_CMD="timeout"
-    elif command -v gtimeout &> /dev/null; then
-        TIMEOUT_CMD="gtimeout"
-    else
-        missing+=("timeout (or gtimeout on macOS; try brew install coreutils)")
-    fi
-
-
-
+    # Final summary
     success "Dependency check completed."
 
     if [ ${#missing[@]} -eq 0 ]; then
@@ -145,33 +94,7 @@ fi
         for dep in "${missing[@]}"; do
             echo "    - $dep"
         done
-    fi
-
-    if [ ${#warning[@]} -gt 0 ]; then
-        warn "Version warnings (may still work fine though):"
-        for w in "${warning[@]}"; do
-            echo "    - $w"
-        done
-    fi
-
-    if [ ${#missing[@]} -ne 0 ]; then
         fail "Please install the missing dependencies and rerun."
-        exit 1
-    fi
-}
-
-
-function build() {
-    if ! command -v dune &> /dev/null; then
-        fail "'dune' is not installed. Please install OCaml and dune first."
-        exit 1
-    fi
-
-    info "Building Rabbit executable..."
-    if dune build ./src/rabbit.exe; then
-        success "Build complete."
-    else
-        fail "Build failed. Please check that all dependencies are installed."
         exit 1
     fi
 }
@@ -371,10 +294,10 @@ function compare_mode() {
 
 
 # === Main entrypoint ===
-check_dependencies
+init
 case $1 in
-    build)
-        build
+    init)
+        
         ;;
     measure)
         shift
@@ -386,8 +309,8 @@ case $1 in
         ;;
     *)
         echo "Usage:"
-        echo "  $0 build"
-        echo "  $0 measure <file.rab> [--compress=bool] [--sub-lemmas=bool] [--timeout=minutes]"
+        echo "  $0 init"
+        # echo "  $0 measure <file.rab> [--compress=bool] [--sub-lemmas=bool] [--timeout=minutes]"
         echo "  $0 measure all [--timeout=minutes]"
         echo "  $0 compare [--timeout=minutes]"
         exit 1
