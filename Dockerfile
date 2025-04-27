@@ -79,9 +79,9 @@ COPY --from=builder /home/opam/.opam/5.3/bin/proverif /usr/local/bin/proverif
 COPY evaluate.sh /usr/local/bin/evaluate.sh
 
 # Make evaluate.sh executable
-RUN chmod +x /usr/local/bin/evaluate.sh
+#RUN chmod +x /usr/local/bin/evaluate.sh
+#CMD ["/usr/local/bin/evaluate.sh"]
 
 
 WORKDIR /home/opam
 
-CMD ["/usr/local/bin/evaluate.sh"]
