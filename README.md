@@ -50,9 +50,12 @@ docker run --rm -v $(pwd):/mnt rabbit-artifact:amd64 \
     rabbit /mnt/examples/default.rab -o /mnt/testout.spthy
 ```
 
-This reads `examples/default.rab` and writes `testout.spthy` into your local folder.
+This reads `./examples/default.rab` and writes `./testout.spthy` into your local folder. 
 
-## Installation
+See the section Running Rabbit and Tamarin Manually to learn more about using Rabbit + Tamarin. To repdocue our evaluation, it is now okay to skip to Evaluation Script section.
+
+
+## Installation without Docker 
 
 This section is relevant if you decide to install the software without using the Docker images.
 
@@ -119,8 +122,10 @@ Its default value is `none`.
 
 The evaluater saves log files in `log/` and it can grow quite huge. Consider running in a separate terminal our trimmer:
 ```bash
-./evaluate.sh trim 
+./evaluate.sh trim --size=n --interval=t
 ```
+which watches all files with the `.log` extension in the `log/` directory and trims each log file to `n` megabytes (default: 10) every `t` seconds (default: 60).
+
 
 ### What the Script Does
 
