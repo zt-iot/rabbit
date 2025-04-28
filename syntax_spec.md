@@ -22,23 +22,24 @@ SecrecyLvl ::= public | <Ident>.S | S(<Type>)                                   
                                                                                                         ("id" should be a valid identifier referring to a process)
                                                                                                         S(<Type>) retrieves the secrecy level of a given type
 IntegrityLvl ::= untrusted | <Ident>.I | I(<Type>)                                                                     (Integrity level declaration)
-                                                                                                        ("id" should be a valid identifier referring to a process)
+                                                                                                        (<Ident> must be a valid identifier referring to a process)
 
 SecurityLvl ::= (<SecrecyLvl>, <IntegrityLvl>)                                                                 (security level)
         
 Type :: =             
   <SecurityLvl>                                                                                             (security level)
                                                                                                           (NOTE: U is syntactic sugar for (public, untrusted))
+  | '<Ident>                                                                                              (Polymorphic type)
+  | S'<Ident>                                                                                             (Polymorphic SecrecyLvl)
+  | I'<Ident>                                                                                             (Polymorphic IntegrityLvl)
+  | SI'<Ident>                                                                                            (Polymorphic SecurityLvl)
   | (<Type>, <Type>)                                                                                      (product)
   | channel[<SecurityLvl>, <Type>, <Type>]                                                                           (channel with security level l, read and write types t, t' respectively)
   | key[<SecurityLvl>, <KeyKind>, <Type>]                                                                            (key used on data of type t with security level l and key kind <KeyKind>. Only parties with correct secrecy level and integrity level can access the key)
   | process[<SecurityLvl>, <Type>?]                                                                               (process with input parameter of type t and security level l)
   | function[<SecurityLvl>, <Type>*, <Type>]                                                                              (function with 0 or more input types t and one return type t, t=unit if f only does side effects, and security level l of the funcion code)
   | string                                                                                                    (a plain quoted string)
-
-
-
-MetaType ::= Type | SecrecyLvl | IntegrityLvl | SecurityLvl                                        (No delimiters "<>", so these symbols should be literally in the syntax)
+  
 
 
 Variable ::= <Ident>
@@ -102,7 +103,7 @@ RootProcDecl ::= process root((<Ident> : <Type>)*) : <Type> { <MemoryStmt>* <Fun
 
 
 
-EqFuncDecl ::= function {(<Ident> : <MetaType>)*} <Ident>[()]?((<Ident> : <Type>)*) : <Type>                                                       (Functions which do not perform side effects <Ident> is in the second pair of brackets "()" to make it more readable what the function does)
+EqFuncDecl ::= function <Ident>((<Ident> : <Type>)*) : <Type>                                                       (Functions which do not perform side effects <Ident> is in the second pair of brackets "()" to make it more readable what the function does)
                                                                                                     (Due to a technicality for hash, we require the `[()]?`)
 EquationDecl ::= equation <RawTerm> = <RawTerm>
 EquationalTheory ::= (<EqFuncDecl> | <EquationDecl>)*

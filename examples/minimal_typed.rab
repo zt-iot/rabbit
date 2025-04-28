@@ -1,12 +1,12 @@
-(* Minimal working rabbit code for testing purpose *)
-function {A : Type, B : Type} fst(pair : (A, B)) : A 
-function {A : Type, B : Type} snd(pair : (A, B)) : B
+(* Minimal working typed rabbit code for testing purpose *)
+function fst (pair : ('A, 'B) ) : 'A 
+function snd (pair : ('A, 'B) ) : 'B
 equation fst ((x, y)) = x
 equation snd ((x, y)) = y
 
-type abc : process[(server.S, server.I)] (* process does not have a parameter type, only a security level *)
+type abc : process[(server.S, server.I)]
 
-process server[abc]()
+process server() : abc
 {  
 	var a : string = "a"
 	var b : string = "b"

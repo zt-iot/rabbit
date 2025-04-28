@@ -5,10 +5,6 @@ let reserved = [
   ("system", SYSTEM) ;
   ("lemma", LEMMA) ; 
   ("type", TYPE) ;
-  ("Type", METATYPE) ;
-  ("SecrecyLvl", SECRECYLVL) ;
-  ("IntegrityLvl", INTEGRITYLVL) ;
-  ("SecurityLvl", SECURITYLVL) ;
   ("allow", ALLOW) ;
   ("passive", PASSIVE) ;
   ("attack", ATTACK) ;
@@ -143,6 +139,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | "::"                     -> f (); DCOLON
   | ':'                      -> f (); COLON
   | ';'                      -> f (); SEMICOLON
+  | '\''                     -> f (); APOSTROPHE 
   (* We record the location of operators here because menhir cannot handle %infix and
      mark_location simultaneously, it seems. *)
   | prefixop                 -> f (); PREFIXOP (Ulexbuf.lexeme lexbuf, loc_of lexbuf)
@@ -231,7 +228,7 @@ let read_file parse fn =
   (* Any errors when opening or closing a file are fatal. *)
     Sys_error msg -> raise (Ulexbuf.error ~loc:Location.Nowhere (Ulexbuf.SysError msg))
  *)
-let read_toplevel parse () =
+(* let read_toplevel parse () =
   let all_white str =
     let n = String.length str in
     let rec fold k =
@@ -260,8 +257,8 @@ let read_toplevel parse () =
 
   let str = read_more "# " "" in
   let lex = Ulexbuf.from_string (str ^ "\n") in
-  run token parse lex
+  run token parse lex *)
 
-let read_string parse s =
+(* let read_string parse s =
   let lex = Ulexbuf.from_string s in
-  run token parse lex
+  run token parse lex *)

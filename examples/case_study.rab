@@ -28,8 +28,8 @@ FUNCTIONS WHICH HAVE ADDITIONAL TYPECHECKING REQUIREMENTS
 function {sigma : SecrecyLvl, iota : IntegrityLvl, T : Type} pk(k : key[(sigma, iota), Dec, T]) : key[(public, iota), Enc, T]
 function {iota : IntegrityLvl, T : Type} vk(k : key[((sigma, iota), Sig, T)]) : key[(public, iota), Chk, T]
 
-function {A B : Type} fst(pair : (A, B)) : A
-function {A B : Type} snd(pair : (A, B)) : B
+function fst(pair : ('A, 'B)) : 'A
+function snd(pair : ('A, 'B)) : 'B
 equation fst ((x, y)) = x
 equation snd ((x, y)) = y
 

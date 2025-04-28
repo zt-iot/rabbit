@@ -18,12 +18,10 @@
 %token COMMA SEMICOLON COLON
 %token BBAR
 %token UNDERSCORE
+%token APOSTROPHE
 
 (* Key kind tokens *)
 %token SYM ENC DEC SIG CHK
-
-(* Meta-types used for implicit arguments *)
-%token METATYPE SECRECYLVL, INTEGRITYLVL, SECURITYLVL
 
 (* Tokens for pre-defined secrecy level 'public' and pre-defined integrity level 'untrusted' *)
 %token PUBLIC UNTRUSTED
@@ -70,13 +68,13 @@ decls:
 
 decl: mark_location(plain_decl) { $1 }
 plain_decl:
-  (* Equational theory function with type annotation*)
-  | FUNC LBRACE separated_list(COMMA, meta_typed_arg) RBRACE id=NAME LPAREN some_list=separated_list(COMMA, typed_arg) RPAREN COLON typ ar=NUMERAL { DeclExtFun(id, List.length some_list) }
+  | FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
+  | FUNC id=NAME LPAREN params=separated_list(COMMA, name_colon_type) RPAREN COLON retty=typ { DeclExtFun(id, (List.length params) )}
   | CONSTANT id=NAME  { DeclExtFun(id, 0) }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
   
   | TYPE id=NAME COLON c=type_kind { DeclTypeKind(id,c) }
-  | TYPE id=NAME COLON t=typ { DeclTypeKind(id, t) (* TODO *) }
+  | TYPE id=NAME COLON t=typ { DeclType(id, t) }
   
   | ALLOW ATTACK t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAttack(t,a)}  
   | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t, Some a)} 
@@ -86,10 +84,8 @@ plain_decl:
 
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
 
-  (* process params are seperated list of `colon_name_pair` *)
-  (* *)
-  | PROCESS id=NAME LBRACKET proc_kind=NAME RBRACKET LPAREN params=separated_list(COMMA, colon_name_pair) RPAREN 
-    LBRACE mem=mem_stmts f=fun_decls main=main_stmt RBRACE { DeclProc(id, params, proc_kind, mem, f, main) }
+  | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME 
+    LBRACE l=mem_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
 
   | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
 
@@ -102,6 +98,9 @@ plain_decl:
   | external_syscall { $1 }
 
   | sys { $1 }
+
+name_colon_type : 
+  | a=NAME COLON b=typ { (a, b) }
 
 colon_name_pair :
   | a=NAME COLON b=NAME { (a, b) }
@@ -125,9 +124,11 @@ plain_fact:
   | e1=expr NEQ e2=expr { ResFact(1, [e1; e2]) }
 
 typed_arg:
-  | var=NAME { (TyValue, var) } (* I don't know when this rule is necessary? *)
-                                (* Also don't know when TyPath, TyChannel etc. are necessary *)
-  | var=NAME COLON t=typ { (TyValue, var) (* TODO *) }
+  | var=NAME { (TyValue, var) }
+  | CHANNEL var=NAME { (TyChannel, var) }
+  | PROCESS var=NAME { (TyProcess, var) }
+  | PATH var=NAME { (TyPath, var) }
+
 sys:
   | SYSTEM p=separated_nonempty_list(BBAR, proc) REQUIRES 
     LBRACKET a=separated_nonempty_list(SEMICOLON, lemma)  RBRACKET { DeclSys(p, a) }
@@ -177,43 +178,34 @@ fpath:
 plain_fpath: *)
 
 secrecy_lvl:
-  | PUBLIC { () }
-  | NAME DOT S { () }
-  | S LPAREN typ RPAREN { () }
+  | PUBLIC { Public }
+  | n=NAME DOT S { S_proc (n) }
 
 integrity_lvl:
-  | UNTRUSTED { () }
-  | NAME DOT I { () }
-  | I LPAREN typ RPAREN { () }
-
+  | UNTRUSTED { Untrusted }
+  | n=NAME DOT I { I_proc (n) }
 
 security_lvl:
-  | LPAREN secrecy_lvl COMMA integrity_lvl RPAREN { () }
+  | LPAREN a=secrecy_lvl COMMA b=integrity_lvl RPAREN { (a, b) }
 
 keykind:
-  | SYM { () }
-  | ENC { () }
-  | DEC { () }
-  | SIG { () }
-  | CHK { () }
+  | SYM { Sym }
+  | ENC { Enc }
+  | DEC { Dec }
+  | SIG { Sig }
+  | CHK { Chk }
 
 typ:
-  | security_lvl { KindChan (* TODO *) }
-  | LPAREN typ COMMA typ RPAREN { KindChan (* TODO *) }
-  | CHANNEL LBRACKET security_lvl COMMA typ COMMA typ RBRACKET { KindChan }
-  | KEY LBRACKET security_lvl RBRACKET { KindChan (* TODO *) }
-  | PROCESS LBRACKET security_lvl COMMA typ RBRACKET { KindProc }
-  | FUNC LBRACKET security_lvl COMMA separated_list(COMMA, typ) typ RBRACKET { KindChan (* TODO *) }
-
-
-metatype:
-  | METATYPE { () }
-  | SECRECYLVL { () }
-  | INTEGRITYLVL { () }
-  | SECURITYLVL { () }
-
-meta_typed_arg:
-  | polymorphic_typ=NAME COLON metatype { () }
+  | l=security_lvl { SecurityLvl l }
+  | LPAREN a=typ COMMA b=typ RPAREN { Pair (a, b) }
+  | CHANNEL LBRACKET l=security_lvl COMMA r=typ COMMA w=typ RBRACKET { Channel (l, r, w) }
+  | KEY LBRACKET l=security_lvl COMMA knd=keykind COMMA t=typ RBRACKET { Key (l, knd, t) }
+  | PROCESS LBRACKET l=security_lvl RBRACKET { Process (l, None) }
+  (* | PROCESS LBRACKET l=security_lvl COMMA param=typ RBRACKET { Process (l, Some param) } *)
+  | APOSTROPHE n=NAME { PolymorphicTyp (n) }
+  | S APOSTROPHE n=NAME { PolymorphicSecrecyLvl (n) }
+  | I APOSTROPHE n=NAME { PolymorphicIntegrityLvl (n) }
+  | S I APOSTROPHE n=NAME { PolymorphicSecurityLvl (n) }
 
 type_kind:
   | FILESYS { KindFSys }
