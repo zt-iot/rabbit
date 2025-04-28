@@ -83,7 +83,7 @@ to install:
 
 For Linux, `timeout` is usually available by default, and `graphviz` should be installed automatically via OPAM's external dependency configuration. If not, install it manually.
 
-Since Tamarin is not available via OPAM, it must be installed manually. Using Homebrew would be the easiest:
+Since Tamarin is not available via OPAM, it must be installed separately. Using Homebrew would be the easiest:
 
 ```bash
 brew install tamarin-prover/tap/tamarin-prover
@@ -116,6 +116,11 @@ To evaluate the manuscript's examples:
 where `n` is a positive integer (default: `n=60`) specifying the timeout in minutes for each verification,  
 and `x` can be either `none` (for native installation), `amd64` (for the Docker image for AMD64), or `arm64` (for the Docker image for ARM64).  
 Its default value is `none`.
+
+The evaluater saves log files in `log/` and it can grow quite huge. Consider running in a separate terminal our trimmer:
+```bash
+./evaluate.sh trim 
+```
 
 ### What the Script Does
 
