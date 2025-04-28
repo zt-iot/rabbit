@@ -20,6 +20,17 @@ RUN sudo apt update && sudo apt install -y \
   curl \
   git
 
+# Copy Rabbit source into image
+COPY . /home/opam/rabbit
+RUN sudo chown -R opam:opam /home/opam/rabbit
+WORKDIR /home/opam/rabbit
+
+# Build and install Rabbit
+RUN opam update  && \
+    opam install . --deps-only -y && \
+    opam install . -y
+
+
 # Install Haskell Stack
 RUN curl -sSL https://get.haskellstack.org/ | sh && \
     echo 'export PATH="/home/opam/.local/bin:$PATH"' >> /home/opam/.bashrc
@@ -28,15 +39,6 @@ RUN curl -sSL https://get.haskellstack.org/ | sh && \
 RUN git clone https://github.com/tamarin-prover/tamarin-prover.git /home/opam/tamarin-prover
 WORKDIR /home/opam/tamarin-prover
 RUN git checkout master && make default
-
-# Copy Rabbit source into image
-COPY . /home/opam/rabbit
-RUN sudo chown -R opam:opam /home/opam/rabbit
-WORKDIR /home/opam/rabbit
-
-# Build and install Rabbit
-RUN opam install . --deps-only -y && \
-    opam install . -y
 
 
 # Make sure evaluate.sh is executable
@@ -76,7 +78,7 @@ COPY --from=builder /home/opam/.opam/5.3/bin/proverif /usr/local/bin/proverif
 
 
 
-COPY evaluate.sh /usr/local/bin/evaluate.sh
+#COPY evaluate.sh /usr/local/bin/evaluate.sh
 
 # Make evaluate.sh executable
 #RUN chmod +x /usr/local/bin/evaluate.sh

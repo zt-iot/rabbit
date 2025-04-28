@@ -9,11 +9,15 @@ trap "fail 'Interrupted. Exiting.'; kill 0; exit 1" SIGINT
 DEFAULT_TIMEOUT_MINUTES=60
 TIMEOUT_MINUTES=$DEFAULT_TIMEOUT_MINUTES
 
+TRIM_INTERVAL_SECONDS=60  # how often to trim
+TRIM_SIZE_MB=10           # keep last 10 MB
+
 # List of all .rab files to evaluate when using "all"
 EXAMPLE_DIR="examples"
 OUTPUT_DIR="output"
 LOG_DIR="log"
 ALL_RABS=("default.rab" "parameterized.rab")
+DOCKER_MODE="none"
 # ALL_RABS=()
 # for f in "${EXAMPLE_FILES[@]}"; do
 #     ALL_RABS+=("${EXAMPLE_DIR}/${f}")
@@ -117,13 +121,16 @@ function run_measure() {
 
     rabbit_cmd=("$RABBIT" "${EXAMPLE_DIR}/${file}")
     local suffix=""
+    local option=""
     if [[ "$compress" == "true" ]]; then
         rabbit_cmd+=("--post-process")
+        option="${option} --post-process"
         suffix="${suffix}.compressed"
     fi
 
     if [[ "$sublemmas" == "true" ]]; then
         rabbit_cmd+=("--tag-transition")
+        option="${option} --tag-transition"
         suffix="${suffix}.sublemmas"
     fi
     local spthy_file="${OUTPUT_DIR}/${base}${suffix}.spthy"
@@ -131,37 +138,69 @@ function run_measure() {
     rabbit_cmd+=("-o" "$spthy_file")
 
     # Run Rabbit
-    info "Running: ${rabbit_cmd[@]}"
-    "${rabbit_cmd[@]}" > /dev/null 2>/dev/null
     # echo ""
 
+
+    if [[ "$DOCKER_MODE" == "none" ]]; then
+        info "Running: ${rabbit_cmd[@]}"
+        "${rabbit_cmd[@]}" > /dev/null 2>/dev/null
+    else
+        info "Running: docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            rabbit /mnt/${EXAMPLE_DIR}/${file} ${option} -o /mnt/$spthy_file > /dev/null 2>/dev/null"
+        docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            rabbit /mnt/${EXAMPLE_DIR}/${file} ${option} -o /mnt/$spthy_file > /dev/null 2>/dev/null
+    fi
 
 
     # echo "[*] Running tamarin-prover on ${spthy_file} proving Reachable (timeout: ${timeout_minutes}m)..."
     local LOG_FILE1="${LOG_DIR}/${spthy_file_name}.Reachable.log"
     info "Verifying Reachable Lemma for (timeout: ${timeout_minutes}m)"
-    info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Reachable" &> "$LOG_FILE1"" 
-    if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Reachable" &> "$LOG_FILE1"; then
-        success "Tamarin terminated within timeout."
+    
+    if [[ "$DOCKER_MODE" == "none" ]]; then
+        info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Reachable" &> "$LOG_FILE1"" 
+        if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Reachable" "--quiet" &> "$LOG_FILE1"; then
+            success "Tamarin terminated within timeout."
+        else
+            fail "Tamarin did not finish within timeout. Process was killed."   
+        fi
+
     else
-        fail "Tamarin did not finish within timeout. Process was killed."
+        info "Running: docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            timeout "$timeout_seconds" tamarin-prover /mnt/"$spthy_file" --prove=Reachable &> "$LOG_FILE1""
+        if docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            timeout "$timeout_seconds" tamarin-prover /mnt/"$spthy_file" --prove=Reachable --quiet &> "$LOG_FILE1"; then 
+            success "Tamarin terminated within timeout."
+        else
+            fail "Tamarin did not finish within timeout. Process was killed."
+        fi
     fi
     info "Double check the Tamarin output in $LOG_FILE1"
-    # echo ""
 
 # 
 # 
 
     local LOG_FILE2="${LOG_DIR}/${spthy_file_name}.Correspondence.log"
     info "Verifying Correspondence Lemma for (timeout: ${timeout_minutes}m)"
-    info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Correspondence" &> "$LOG_FILE2""
-    if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Correspondence" &> "$LOG_FILE2"; then
-        success "Tamarin terminated within timeout."
+    
+    if [[ "$DOCKER_MODE" == "none" ]]; then
+        info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Correspondence" &> "$LOG_FILE2"" 
+        if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=Correspondence" "--quiet" &> "$LOG_FILE2"; then
+            success "Tamarin terminated within timeout."
+        else
+            fail "Tamarin did not finish within timeout. Process was killed."   
+        fi
+
     else
-        fail "Tamarin did not finish within timeout. Process was killed."
+        info "Running: docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            timeout "$timeout_seconds" tamarin-prover /mnt/"$spthy_file" --prove=Correspondence &> "$LOG_FILE2""
+        if docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            timeout "$timeout_seconds" tamarin-prover /mnt/"$spthy_file" --prove=Correspondence --quiet &> "$LOG_FILE2"; then 
+            success "Tamarin terminated within timeout."
+        else
+            fail "Tamarin did not finish within timeout. Process was killed."
+        fi
     fi
     info "Double check the Tamarin output in $LOG_FILE2"
-    # echo ""
 
 
 # 
@@ -171,11 +210,24 @@ function run_measure() {
         local LOG_FILE3="${LOG_DIR}/${spthy_file_name}.SubLemmas.log"
 
         info "Verifying Sub-Lemmas for (timeout: ${timeout_minutes}m)"
-        info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=--prove=AlwaysStarts__" "--prove=--prove=AlwaysStartsWhenEnds__" "--prove=--prove=TransitionOnce__" &> "$LOG_FILE3""
-        if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=AlwaysStarts__" "--prove=AlwaysStartsWhenEnds__" "--prove=TransitionOnce__" &> "$LOG_FILE3"; then
-            success "Tamarin terminated within timeout."
+        
+        if [[ "$DOCKER_MODE" == "none" ]]; then
+            info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=AlwaysStarts__" "--prove=AlwaysStartsWhenEnds__" "--prove=TransitionOnce__" &> "$LOG_FILE3"" 
+            if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "--prove=AlwaysStarts__" "--prove=AlwaysStartsWhenEnds__" "--prove=TransitionOnce__" "--quiet" &> "$LOG_FILE3"; then
+                success "Tamarin terminated within timeout."
+            else
+                fail "Tamarin did not finish within timeout. Process was killed."   
+            fi
+
         else
-            fail "Tamarin did not finish within timeout. Process was killed."
+            info "Running: docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+                timeout "$timeout_seconds" tamarin-prover /mnt/"$spthy_file" --prove=AlwaysStarts__ --prove=AlwaysStartsWhenEnds__ --prove=TransitionOnce__ &> "$LOG_FILE3""
+            if docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+                timeout "$timeout_seconds" tamarin-prover /mnt/"$spthy_file" --prove=AlwaysStarts__ --prove=AlwaysStartsWhenEnds__ --prove=TransitionOnce__ --quiet &> "$LOG_FILE3"; then 
+                success "Tamarin terminated within timeout."
+            else
+                fail "Tamarin did not finish within timeout. Process was killed."
+            fi
         fi
         info "Double check the Tamarin output in $LOG_FILE3"
     fi
@@ -193,10 +245,13 @@ function measure_mode() {
         for arg in "$@"; do
             case $arg in
                 --timeout=*) TIMEOUT_MINUTES="${arg#*=}" ;;
+                --docker=*) DOCKER_MODE="${arg#*=}" ;;    
                 *) fail "Unknown option: $arg" && exit 1 ;;
             esac
         done
-
+        if [[ "$DOCKER_MODE" == "none" ]]; then
+            init
+        fi
         for f in "${ALL_RABS[@]}"; do
             run_measure "$f" "false" "false" "$TIMEOUT_MINUTES"
             run_measure "$f" "true" "false" "$TIMEOUT_MINUTES"
@@ -210,9 +265,13 @@ function measure_mode() {
                 --compress=*) compress="${arg#*=}" ;;
                 --sub-lemmas=*) sublemmas="${arg#*=}" ;;
                 --timeout=*) TIMEOUT_MINUTES="${arg#*=}" ;;
+                --docker=*) DOCKER_MODE="${arg#*=}" ;;
                 *) fail "Unknown option: $arg" && exit 1 ;;
             esac
         done
+        if [[ "$DOCKER_MODE" == "none" ]]; then
+            init
+        fi
         run_measure "$file" "$compress" "$sublemmas" "$TIMEOUT_MINUTES"
     fi
 }
@@ -225,10 +284,13 @@ function compare_mode() {
     for arg in "$@"; do
         case $arg in
             --timeout=*) timeout_minutes="${arg#*=}" ;;
+            --docker=*) DOCKER_MODE="${arg#*=}" ;;
             *) fail "Unknown option in compare mode: $arg" && exit 1 ;;
         esac
     done
-
+    if [[ "$DOCKER_MODE" == "none" ]]; then
+            init
+    fi
     timeout_seconds=$((timeout_minutes * 60))
     local spthy_file="examples/default_sapicp.spthy"
     local pv_file1="output/default_sapicp.Reachable.pv"
@@ -245,22 +307,48 @@ function compare_mode() {
     # echo "[*] Tamarin output will be saved to: $tamarin_log1"
     
     info "Verifying Reachable Lemma for (timeout: ${timeout_minutes}m)"
-    info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "$spthy_file" "--prove=Reachable" &> "$tamarin_log1""
-    if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "$spthy_file" "--prove=Reachable" &> "$tamarin_log1"; then
-        success "Tamarin terminated within timeout."
+    
+    if [[ "$DOCKER_MODE" == "none" ]]; then
+        info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "$spthy_file" "--prove=Reachable" &> "$tamarin_log1""    
+        if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "$spthy_file" "--prove=Reachable" "--quiet" &> "$tamarin_log1"; then
+            success "Tamarin terminated within timeout."
+        else
+            fail "Tamarin did not finish within timeout. Process was killed."
+        fi
     else
-        fail "Tamarin did not finish within timeout. Process was killed."
+        info "Running: docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            timeout "$timeout_seconds" tamarin-prover /mnt/"$spthy_file" "--prove=Reachable" &> "$tamarin_log1""
+        if docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            timeout "$timeout_seconds" tamarin-prover /mnt/"$spthy_file" "--prove=Reachable" "--quiet" &> "$tamarin_log1"; then
+            success "Tamarin terminated within timeout."
+        else
+            fail "Tamarin did not finish within timeout. Process was killed."
+        fi
     fi
     info "Double check the Tamarin output in $tamarin_log1"
-    # echo ""
+
 # 
 # 
+
     info "Verifying Correspondence Lemma for (timeout: ${timeout_minutes}m)"
-    info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "$spthy_file" "--prove=Correspondence" &> "$tamarin_log2""
-    if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "$spthy_file" "--prove=Correspondence" &> "$tamarin_log2"; then
-        success "Tamarin terminated within timeout."
+
+
+    if [[ "$DOCKER_MODE" == "none" ]]; then
+        info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "$spthy_file" "--prove=Correspondence" &> "$tamarin_log2""
+        if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "$spthy_file" "--prove=Correspondence" "--quiet" &> "$tamarin_log2"; then
+            success "Tamarin terminated within timeout."
+        else
+            fail "Tamarin did not finish within timeout. Process was killed."
+        fi
     else
-        fail "Tamarin did not finish within timeout. Process was killed."
+        info "docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            timeout "$timeout_seconds" tamarin-prover /mnt/"$spthy_file" "--prove=Correspondence" &> "$tamarin_log2""
+        if docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            timeout "$timeout_seconds" tamarin-prover /mnt/"$spthy_file" "--prove=Correspondence" "--quiet" &> "$tamarin_log2"; then
+            success "Tamarin terminated within timeout."
+        else
+            fail "Tamarin did not finish within timeout. Process was killed."
+        fi
     fi
     info "Double check the Tamarin output in $tamarin_log2"
     echo ""
@@ -268,33 +356,93 @@ function compare_mode() {
     echo "=== Running ProVerif ==="
 
     info "Translating $spthy_file to ProVerif files: $pv_file1 and $pv_file2 "
-    tamarin-prover "$spthy_file" "--lemma=Reachable" "-m=proverif" > "$pv_file1" 2>/dev/null
-    tamarin-prover "$spthy_file" "--lemma=Correspondence" "-m=proverif" > "$pv_file2" 2>/dev/null
+    if [[ "$DOCKER_MODE" == "none" ]]; then
+        tamarin-prover "$spthy_file" "--lemma=Reachable" "-m=proverif" > "$pv_file1" 2>/dev/null
+        tamarin-prover "$spthy_file" "--lemma=Correspondence" "-m=proverif" > "$pv_file2" 2>/dev/null
+    else
+        docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            tamarin-prover /mnt/"$spthy_file" "--lemma=Reachable" "-m=proverif" > "$pv_file1" 2>/dev/null
+        docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            tamarin-prover /mnt/"$spthy_file" "--lemma=Correspondence" "-m=proverif" > "$pv_file2" 2>/dev/null
+    fi
 
     info "Verifying Reachable Lemma for (timeout: ${timeout_minutes}m)"
-    info "Running: $TIMEOUT_CMD "$timeout_seconds" proverif "$pv_file1" &> "$proverif_log1""
-    if $TIMEOUT_CMD "$timeout_seconds" proverif "$pv_file1" &> "$proverif_log1"; then
-        success "ProVerif terminated within timeout."
+    if [[ "$DOCKER_MODE" == "none" ]]; then
+
+        info "Running: $TIMEOUT_CMD "$timeout_seconds" proverif "$pv_file1" &> "$proverif_log1""
+        if $TIMEOUT_CMD "$timeout_seconds" proverif "$pv_file1" &> "$proverif_log1"; then
+            success "ProVerif terminated within timeout."
+        else
+            fail "ProVerif did not finish timeout. Process was killed."
+        fi
     else
-        fail "ProVerif did not finish timeout. Process was killed."
+        info "Running: docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            timeout "$timeout_seconds" proverif "$pv_file1" &> "$proverif_log1""
+        if docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            timeout "$timeout_seconds" proverif /mnt/"$pv_file1" &> "$proverif_log1"; then
+            success "ProVerif terminated within timeout."
+        else
+            fail "ProVerif did not finish timeout. Process was killed."
+        fi
     fi
     info "Double check the ProVerif output in $proverif_log1"
 
     # echo ""
     echo "Verifying Correspondence Lemma for (timeout: ${timeout_minutes}m)"
-    echo "Running: $TIMEOUT_CMD "$timeout_seconds" proverif "$pv_file2" &> "$proverif_log2""
-    if $TIMEOUT_CMD "$timeout_seconds" proverif "$pv_file2" &> "$proverif_log2"; then
-        success "ProVerif terminated within timeout."
+    if [[ "$DOCKER_MODE" == "none" ]]; then
+        echo "Running: $TIMEOUT_CMD "$timeout_seconds" proverif "$pv_file2" &> "$proverif_log2""
+        if $TIMEOUT_CMD "$timeout_seconds" proverif "$pv_file2" &> "$proverif_log2"; then
+            success "ProVerif terminated within timeout."
+        else
+            fail "ProVerif did not finish timeout. Process was killed."
+        fi
     else
-        fail "ProVerif did not finish timeout. Process was killed."
+        echo "Running: $TIMEOUT_CMD "$timeout_seconds" proverif "$pv_file2" &> "$proverif_log2""
+        if docker run --rm -v $(pwd):/mnt rabbit-artifact:$DOCKER_MODE \
+            timeout "$timeout_seconds" proverif /mnt/"$pv_file2" &> "$proverif_log2"; then
+            success "ProVerif terminated within timeout."
+        else
+            fail "ProVerif did not finish timeout. Process was killed."
+        fi
     fi
     info "Double check the ProVerif output in $proverif_log2"
     echo ""
 }
 
 
+function trim_mode() {
+    local interval=$TRIM_INTERVAL_SECONDS
+    local size_mb=$TRIM_SIZE_MB
+
+    # Parse arguments
+    for arg in "$@"; do
+        case $arg in
+            --size=*) size_mb="${arg#*=}" ;;
+            --interval=*) interval="${arg#*=}" ;;
+            *) echo "Unknown option for trim: $arg" && exit 1 ;;
+        esac
+    done
+
+    local size_bytes=$((size_mb * 1024 * 1024))
+
+    echo "Watching 'log/' and trimming all files to last ${size_mb}MB every ${interval} seconds..."
+
+    while true; do
+        sleep "$interval"
+        for file in log/*; do
+            if [ -f "$file" ]; then
+                local size=$(stat -c %s "$file" 2>/dev/null || stat -f %z "$file")
+                if [ "$size" -gt "$size_bytes" ]; then
+                    echo "Trimming $file (current size: $size bytes)..."
+                    tail -c "$size_bytes" "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+                fi
+            fi
+        done
+    done
+}
+
+
 # === Main entrypoint ===
-init
 case $1 in
     init)
         
@@ -307,12 +455,17 @@ case $1 in
         shift
         compare_mode "$@"
         ;;
+    trim)
+        shift
+        trim_mode "$@"
+        ;;
     *)
         echo "Usage:"
         echo "  $0 init"
         # echo "  $0 measure <file.rab> [--compress=bool] [--sub-lemmas=bool] [--timeout=minutes]"
-        echo "  $0 measure all [--timeout=minutes]"
-        echo "  $0 compare [--timeout=minutes]"
+        echo "  $0 measure all [--timeout=minutes] [--docker=none|amd64|arm64]"
+        echo "  $0 compare [--timeout=minutes] [--docker=none|amd64|arm64]"
+        echo "  $0 trim [--size=Megabytes] [--interval=seconds]"
         exit 1
         ;;
 esac
