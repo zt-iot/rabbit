@@ -1,0 +1,58 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+functions: snd/1, fst/1
+equations: snd(<loc_1, loc_0>)=loc_0, fst(<loc_1, loc_0>)=loc_1
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Global Constants:
+
+
+
+// Access control:
+
+
+// Model:  Server
+
+
+rule InitServer[role="Server"] : []--[Init_('rab_Server')]->[State_Server(<'rab___0', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Server_merged___0___6_0_3_35[role="Server"] : [State_Server(<'rab___0', %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), Fr(n_0_4), A_Server(n_0_6), B_Server(n_1_6), C_Server(n_2_6), D_Server(n_3_6), B_Server('rab_haha'), A_Server(n_0_6), C_Server(n_0_6)]--[Transition_Server('rab_35', %v_)]->[State_Server(<'rab___6_0_3', %v_>, 'rab_', <n_0_6, n_1_6, n_2_6, n_3_6, n_0_4>, 'rab_haha', <'rab_haha', 'rab_b', n_0_6>), D_Server('rab_aaa')] 
+
+rule Server_merged___6_0_3___9_24[role="Server"] : [State_Server(<'rab___6_0_3', %v_>, return_var_12, <m_0_12, m_1_12, m_2_12, m_3_12, m_4_12>, l_0_12, <t_0_12, t_1_12, t_2_12>), D_Server(n_0_12)]--[Transition_Server('rab_24', %v_)]->[State_Server(<'rab___9', %v_>, 'rab_', 'rab_', 'rab_', <t_0_12, m_2_12, t_2_12>)] 
+
+restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+rule Equality_gen: [] --> [!Eq_(x,x)]
+rule NEquality_gen: [] --[NEq__(x,y)]-> [!NEq_(x,y)]
+restriction NEquality_rule: "All x #i. NEq__(x,x) @ #i ==> F"
+lemma AlwaysStarts_[reuse,use_induction]:
+
+    "All x #i. Loop_Back(x) @i ==> Ex #j. Loop_Start(x) @j & j < i"
+lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
+
+    "All x #i. Loop_Finish(x) @i ==> Ex #j. Loop_Start(x) @j & j < i"
+lemma transition_Server[reuse,use_induction]:
+
+      "All x %i #j #k . Transition_Server(x, %i) @#j &
+       Transition_Server(x, %i) @ #k ==> #j = #k"
+
+lemma Correspondence : all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j"
+lemma Reachable : exists-trace "Ex x #i #j  . ClientClose() @ #j & ImgRecvValid(x) @ #i"
+lemma Reachable5 : exists-trace "Ex x #j  . Took(x) @ #j"
+lemma Reachable4 : exists-trace "Ex #j  . BBB() @ #j"
+lemma Reachable3 : exists-trace "Ex #j  . AAA() @ #j"
+lemma Reachable2 : exists-trace "Ex #j  . B() @ #j"
+lemma Reachable1 : exists-trace "Ex #j  . A() @ #j"
+end
+
