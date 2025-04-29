@@ -33,6 +33,7 @@ type typ =
   | PolymorphicSecrecyLvl of Name.ident
   | PolymorphicIntegrityLvl of Name.ident
   | PolymorphicSecurityLvl of Name.ident
+  | TyString
 
 
 

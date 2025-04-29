@@ -10,8 +10,15 @@ let reserved = [
   ("attack", ATTACK) ;
   ("filesys", FILESYS) ;
   ("channel", CHANNEL) ; 
+  ("key", KEY) ;
   ("path", PATH) ; 
   ("process", PROCESS) ;
+  ("string", STRING) ;
+  ("Sym", SYM) ;
+  ("Enc", ENC) ;
+  ("Dec", DEC) ;
+  ("Sig", SIG) ;
+  ("Chk", CHK) ;
   ("with", WITH) ;
   ("function", FUNC) ;
   ("main", MAIN) ;
@@ -43,11 +50,6 @@ let reserved = [
   ("get", GET) ;
   ("by", BY) ;
   ("on", ON) ;
-  ("Sym", SYM) ;
-  ("Enc", ENC) ;
-  ("Dec", DEC) ;
-  ("Sig", SIG) ;
-  ("Chk", CHK) ;
   ("S", S) ;
   ("I", I)
   ]

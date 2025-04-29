@@ -417,9 +417,15 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
 
    | Input.DeclTypeKind (id, c) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, c), pol, def, sys, fst ps)
-   | Input.DeclType (id, t) ->
-      (* TODO Just select KindProc for now as I don't care how it gets interpreted, change this later *)
-      if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, KindProc), pol, def, sys, fst ps)
+   | Input.DeclType (id, t) -> 
+      let type_kind = match t with 
+
+      | Input.Channel(a, b, c) -> Input.KindChan
+      | Input.Process(a, b) -> Input.KindProc
+      | _ -> Input.KindFSys
+      in 
+      (* TODO First just translate this to the corresponding `type_class` but figure out how to translate this later on *)
+      if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, type_kind), pol, def, sys, fst ps)
    
    | Input.DeclAccess(s, t, Some al) -> 
 

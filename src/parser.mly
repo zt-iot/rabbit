@@ -31,7 +31,7 @@
 
 (* constant tokens for rabbit *)
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
-%token CHANNEL KEY PROCESS PATH DATA FILESYS 
+%token CHANNEL KEY PROCESS PATH DATA FILESYS STRING
 %token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR
 %token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY
 
@@ -73,6 +73,9 @@ plain_decl:
   | CONSTANT id=NAME  { DeclExtFun(id, 0) }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
   
+  (* In the <TypeDecl>* part of the Rabbit program, we can either declare: *)
+  (* 1) A name for a type_kind *)
+  (* 2) A name for a typ *)
   | TYPE id=NAME COLON c=type_kind { DeclTypeKind(id,c) }
   | TYPE id=NAME COLON t=typ { DeclType(id, t) }
   
@@ -157,6 +160,7 @@ mem_stmts:
   | l=mem_stmt ls=mem_stmts { l :: ls }
 
 mem_stmt:
+  | VAR id=NAME EQ e=expr { (id, e) }
   | VAR id=NAME COLON typ EQ e=expr { (id, e) }
 
 fun_decls:
@@ -206,6 +210,7 @@ typ:
   | S APOSTROPHE n=NAME { PolymorphicSecrecyLvl (n) }
   | I APOSTROPHE n=NAME { PolymorphicIntegrityLvl (n) }
   | S I APOSTROPHE n=NAME { PolymorphicSecurityLvl (n) }
+  | STRING { TyString }
 
 type_kind:
   | FILESYS { KindFSys }
@@ -251,6 +256,7 @@ plain_cmd:
   | SKIP { Skip }
   | c1=cmd SEMICOLON c2=cmd { Sequence(c1, c2) }
   | PUT LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { Put (postcond) }
+  | VAR id=NAME EQ e=expr IN c=cmd { Let (id, e, c) }
   | VAR id=NAME COLON typ EQ e=expr IN c=cmd { Let (id, e, c) }
   | id=uname COLONEQ e=expr { Assign (id, e) }
   | CASE 
@@ -259,10 +265,10 @@ plain_cmd:
     UNTIL BAR? c2=separated_nonempty_list(BAR, guarded_cmd) 
     END                                                             { While(c1, c2) }
   | EVENT LBRACKET a=separated_list(COMMA, fact) RBRACKET           { Event(a) }
-  
   | LET ids=separated_list(COMMA, NAME) EQ e=expr DOT fid=NAME IN c=cmd { Get (ids, e, fid, c) }
   | NEW id=NAME EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd { New (id, fid, args, c) }
   | NEW id=NAME IN c=cmd { New (id, "", [], c) }
+  | NEW id=NAME COLON typ IN c=cmd { New (id, "", [], c) }
   | DEL e=expr DOT fid=NAME { Del (e, fid) }
 
   | e=expr { Return e }
