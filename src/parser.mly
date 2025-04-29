@@ -68,8 +68,8 @@ decls:
 
 decl: mark_location(plain_decl) { $1 }
 plain_decl:
-  | FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
-  | FUNC id=NAME LPAREN params=separated_list(COMMA, name_colon_type) RPAREN COLON retty=typ { DeclExtFun(id, (List.length params) )}
+  | FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) } (* UNTYPED *)
+  | FUNC id=NAME LPAREN params=separated_list(COMMA, name_colon_type) RPAREN COLON retty=typ { DeclExtFun(id, (List.length params) )} (* TYPED *)
   | CONSTANT id=NAME  { DeclExtFun(id, 0) }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
   
