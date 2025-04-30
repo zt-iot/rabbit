@@ -79,13 +79,14 @@ plain_decl:
   | TYPE id=NAME COLON c=type_kind { DeclTypeKind(id,c) }
   | TYPE id=NAME COLON t=typ { DeclType(id, t) }
   
+  (* The "ALLOW" syntax is parsed for typechecking but ignored otherwise *)
   | ALLOW ATTACK t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAttack(t,a)}  
   | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t, Some a)} 
   | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)} 
 
   | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
 
-  | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
+  | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) } (* Declares `id` as a specific channel kind such as udp_t, rpc_t etc. *)
 
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME 
     LBRACE l=mem_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }

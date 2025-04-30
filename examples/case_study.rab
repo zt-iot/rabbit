@@ -1,18 +1,3 @@
-(*
-EQUATIONAL THEORY FUNCTIONS LIST
-
-✓ pk
-✓ vk
-✓ fst
-✓ snd
-✓ enc_sym
-✓ dec_sym
-✓ enc_asym
-✓ dec_asym
-✓ hash
-✓ sign
-✓ verify
-*)
 
 (* send and recv are syscalls instead *)
 

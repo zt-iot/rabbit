@@ -12,6 +12,7 @@ REMOVED SYNTAX FROM RABBIT
 * allow attack (...)
 __________________________________________________________________
 
+Anything between `<!--` and `-->` should not be considered part of the language currently
 ```
 Ident ::= ID                                                                                            (An [a-zA-z_\-]* string)
 
@@ -51,7 +52,7 @@ RawTerm ::=
 | (<RawTerm>, <RawTerm>)                                                                                        (pair)
 | <Ident>(<RawTerm>*)                                                                                        (function application or syscall application)
                                                                                                 (pk, vk, encryption, decryption, signing, hashing can all be implemented with functions)
-| pack(<Ident> : <Type>, <ProcessTerm>)                                                         (x is variable, t is type, p is process term)
+<!-- | pack(<Ident> : <Type>, <ProcessTerm>)                                                         (x is variable, t is type, p is process term) -->
                                                                                                 (not sure if this can be implemented with a function/syscall. The type t really needs to be explicitly given here)
         
 Type-annotatedTerm ::=  <RawTerm> : <Type>                                                      (raw term r which has type t)
@@ -64,14 +65,16 @@ Fact ::=
 ProcessTerm ::=            
 0                                                                                               (nil process)
 | <RawTerm>                                                                                             return raw term r
-| var <Variable> : <Type> = <RawTerm> in <ProcessTerm>                                                                            (local variable declaration)
-                                                                                                (r ::= f(r_1, ..., r_n) | s(r_1, ..., r_n)) //function or syscall calling is included in raw term
+| var <Variable> : <Type> = <RawTerm> in <ProcessTerm>                                          (typed local variable declaration)
+| var <Variable> = <RawTerm> in <ProcessTerm>                                                   (untyped local variable declaration)
+                                                                                              
 | <Variable> := <RawTerm>                                                                                        (mutation)
 | <ProcessTerm> ; <ProcessTerm>                                                                                         (sequential composition)
-| (<ProcessTerm> | <ProcessTerm>)                                                                                       (parallel composition)
-| !<ProcessTerm>                                                                                            (replication)
-| exec(<RawTerm>, <RawTerm>)                                                                                    (execute mobile process u with value v)
-| new <Name> : <Type> in <ProcessTerm>                                                                          (name restriction when I is not given)
+<!-- | (<ProcessTerm> | <ProcessTerm>)                                                                                       (parallel composition) -->
+<!-- | !<ProcessTerm>                                                                                            (replication) -->
+<!-- | exec(<RawTerm>, <RawTerm>)                                                                                    (execute mobile process u with value v) -->
+| new <Name> : <Type> in <ProcessTerm>                                                                          (typed name restriction when structure Q is not given)
+| new <Name> in <ProcessTerm>                                                                          (untyped name restriction when structure Q is not given)
 | put [<Fact>]                                                                                                  (puts <Fact> in the fact environment)
 | case (| [<Fact>*] -> <ProcessTerm>)+ end                                                                     (case statement. If any set of facts A_i are all true holds, it consumes the facts A_i, i.e. removes them from the fact environment, and p is run)
                                                                                                 (if multiple facts are true, one is chosen nondeterministically)
@@ -82,7 +85,7 @@ ProcessTerm ::=
 
 LoadDecl ::= load "<Ident>"\n                                                                    (import Rabbit code from other file)
 
-SyscallDecl ::= syscall <Ident>((<Ident> : <Type>)*) { <ProcessTerm> }                                                  (syscall declaration. Functions which might perform side effects)
+SyscallDecl ::= syscall <Ident>((<Ident> : <Type>)*) { <ProcessTerm> }                           (typed syscall declaration. Functions which might perform side effects)
 
 TypeDecl ::= type <Ident> : <Type>                                                                     (type declaration)
 
