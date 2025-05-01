@@ -4,9 +4,18 @@ function snd (pair : ('A, 'B) ) : 'B
 equation fst ((x, y)) = x
 equation snd ((x, y)) = y
 
-type abc : process[(server.S, server.I)]
+enum KeyKind = Sym | Enc | Dec | Sig | Chk
 
-process server() : abc
+
+simpletype string
+simpletype key[KeyKind]
+
+
+type server_proc : process
+
+type server_key_ty : key[Sym, string]
+
+process server() : server_proc
 {  
 	var a : string = "a"
 	var b : string = "b"
@@ -15,7 +24,7 @@ process server() : abc
 	main 
   	{
         c := "d";
-        new kj : key[(server.S, server.I), Sym, string] in 
+        new kj : server_key_ty in 
 
         var k : string = "haha" in
         case 

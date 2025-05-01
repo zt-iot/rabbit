@@ -1,0 +1,239 @@
+
+
+(* security primitives *)
+function pk:1
+function enc:2
+function sign:2
+function dec:2
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+function true:0
+function verify:3
+equation dec(enc(x, y), y) = x
+equation verify (sign(d, k), d, pk(k)) = true
+
+(* load syscalls on channels *)
+load "udp_rpc.rab"
+
+simpletype string 
+simpletype image 
+simpletype key
+
+
+
+```
+string x = "abc"; (* in this case, interpret the security level as (Public, Untrusted) *)
+str_ty x = "abc"; (* where str_ty is a security level *)
+```
+
+(* picture *)
+syscall get_picture () {
+  new v in 
+  v
+}
+
+(* filesys *)
+function h:1
+
+syscall fopen (p) {
+  case [p.File(x)] ->
+    new y = Fd(x) in 
+    put [p.File(x)]; y
+  end
+}
+
+syscall fread (y){
+  let x = y.Fd in
+  x
+}
+
+syscall fclose (y) {
+  delete y.Fd
+}
+
+(***********)
+(** declare types with their classes *)
+type readonly_t   : filesys
+
+type server_t 	  : process (* server_t is a security level *)
+type client_t 	  : process (* client_t is a security level *)
+type client_ta_t  : process (* client_ta_t is a security level *)
+
+type udp_t 	  : channel
+type rpc_t 	  : channel
+
+(***********)
+(** access control *)
+allow client_t udp_t [send]
+allow server_t udp_t [recv]
+
+allow client_t rpc_t [connect_rpc, invoke_rpc, close_rpc]
+allow client_ta_t rpc_t [accept_rpc]
+allow client_ta_t rpc_t [.]
+allow client_t rpc_t [.]
+
+allow client_t [get_picture]
+
+allow client_ta_t readonly_t  [fopen, fread, fclose] 
+allow server_t readonly_t     [fopen, fread, fclose]  
+
+
+(***********)
+(** attacker model *)
+
+attack tampar_channel on recv (c) {
+  case [c::store(j), ::In(w)] ->
+    w
+  end
+}
+
+allow attack server_t [tampar_channel] 
+
+passive attack eaves_mem (v) {
+  put [::Out(v)]
+}
+
+
+allow client_t [eaves_mem]
+
+
+(***********)
+(** global constants *)
+const fresh priv_k
+const fresh sym_k
+const fresh init_data
+
+
+(***********)
+(** installed channels and filesystems *)
+channel udp : udp_t
+
+channel rpc : rpc_t
+
+filesys server_fs = 
+[ 
+  {path: "/secret/pub", data: pk(priv_k), type: readonly_t}
+]
+
+filesys client_ta_fs = 
+[ 
+  {path: "/secret/priv", data: enc(priv_k, sym_k), type: readonly_t}
+]
+
+(***********)
+(** process templates *)
+process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t 
+{  
+  var dev_path = "/dev/camera"
+  var privkey_path = "/secret/priv"
+  var invoke_func = "sign_image"
+
+  main 
+  {
+
+    var conn = connect_rpc(ch_rpc) in 
+    repeat 
+    | [] ->
+      var image = get_picture() in 
+      
+      _ := eaves_mem(image);
+
+      var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
+      
+      _ := eaves_mem(sig);
+      
+      event [::ImgSend(image)];
+      
+      _ := send(ch_net, (sig, image))
+
+    until 
+    | [] -> skip
+    end;
+
+    _ := close_rpc(conn) ;
+
+    event [::ClientClose ()]
+  }
+}
+
+process client_ta(ch_rpc : rpc_t) : client_ta_t 
+{
+  var fek = sym_k
+
+  function sign_image(image, privkey_path) 
+  {
+    var privkey_fd = fopen(privkey_path) in
+
+    var privkey = fread(privkey_fd) in
+
+    var privkey0 = dec(privkey, fek) in 
+
+    var sig = sign(image, privkey0) in
+
+    _ := fclose(privkey_fd);
+
+    sig 
+  }
+
+  main 
+  {
+    _ := accept_rpc(ch_rpc);
+    
+    repeat
+    | [ch_rpc::invoke(fname, image, priv_path)] →
+      case
+      | [fname = "sign_image"] →
+        var signed = sign_image(image, priv_path) in
+        put[ch_rpc:: Returned(signed)]		
+
+      | [fname <> "sign_image"] →
+        event [InValidName(fname)]
+      end 
+    until
+    | [ch_rpc::exit()] → skip 
+    end;
+
+    event [::ClientTAClose ()]
+  }
+}
+
+process server(ch_net : udp_t) : server_t 
+{
+  var pubkey_path = "/secret/pub"
+
+  main 
+  {
+    var pubkey_fd = fopen(pubkey_path) in 
+    var pubkey = fread(pubkey_fd) in 
+    repeat 
+    | [] →
+      var p = recv(ch_net) in
+      var res = verify(fst(p), snd(p), pubkey) in 
+      case 
+      | [res =  true] →
+        event [::ImgRecvValid(snd(p))]
+
+      | [res <> true] →  
+        event [::ImgRecvInvalid(snd(p))]
+      end
+    until
+    | [::False()] →  skip 
+    end 	    
+  }
+}
+
+
+(***********)
+system 
+  client(udp, rpc)
+  ||	server(udp) with server_fs 
+  ||	client_ta(rpc) with client_ta_fs
+requires  [
+  lemma Reachable :
+  	exists-trace "Ex x #i #j #k  . ClientClose() @ #j & ClientTAClose() @ #k & ImgRecvValid(x) @ #i" ;
+  lemma Correspondence :
+  	all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
+]
+

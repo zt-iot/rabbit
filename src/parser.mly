@@ -87,6 +87,8 @@ plain_decl:
   | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
 
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) } (* Declares `id` as a specific channel kind such as udp_t, rpc_t etc. *)
+  (* Examples: channel udp : udp_t 
+              channel rpc : rpc_t*)
 
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME 
     LBRACE l=mem_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
