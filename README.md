@@ -4,15 +4,55 @@ Rabbit is a modeling language for verified networked systems, featuring an imper
 
 This repository contains the source code of Rabbit, along with the examples used in the manuscript, enabling full reproducibility of the results.
 
-We provide a Bash script, `evaluate.sh`, which checks for required external dependencies and evaluates the example systems while measuring execution time. The evaluator script store outputs from the tamarin prover in `log/` whose size actually can grow quite huge, to few gigabytes. (We provide a real-time trimmer as well.)
+We provide a Bash script, `evaluate.sh`, which checks for required external dependencies and evaluates the example systems while measuring execution time. The evaluator script stores outputs from the tamarin prover in `log/` whose size actually can grow quite huge, to few gigabytes. (We provide a real-time trimmer as well.)
 
-To run our evaluation, Rabbit, the Tamarin prover, and ProVerif need to be installed. See the Installation section.
+To run our evaluation, Rabbit, the Tamarin prover, and ProVerif, and `timeout` (for measurement) need to be installed. See the Installation section.
 
 If the script fails for any reason, manual instructions for running Rabbit and verification are provided below.
 
 For reference, the evaluation results of the script are provided at the end of this document.
 
 ## Installation
+
+Our evaluation script uses the `timeout` command to measure execution time. It is available by default on most Linux distributions. On macOS, it can be installed via:
+```bash
+brew install coreutils
+```
+
+### Installing Rabbit 
+
+#### Running Docker 
+We provide docker images for rabbit for both amd64 and arm64 platforms. 
+To run an image, Docker must be installed on your machine.
+It can be downloaded from https://docs.docker.com/get-docker/.
+
+After installation, check by running:
+
+```bash
+docker run hello-world
+```
+In the following, we describe usage for AMD64. If your machine runs ARM64 architecture, replace amd64 with arm64 accordingly.
+
+To load an image, at the directory of this README file, run:
+
+```bash
+docker load -i rabbit-artifact-amd64.tar
+```
+
+The Docker image provides executables for rabbit. (Still timeout, tamarin-prover, and proverif must be installed separately.)
+
+To run Rabbit with docker, mount the repository folder (where this README is located) into the container and run for exmaple:
+```bash
+docker run --rm -v $(pwd):/mnt rabbit-artifact:amd64 \
+    rabbit /mnt/examples/default.rab -o /mnt/testout.spthy
+```	
+This reads `examples/default.rab.` and writes `testout.spthy` into your local folder.
+
+See section **Running Rabbit and Tamarin Manually** for more details on running Rabbit to translate `.rab` files. 
+
+#### Installing via OPAM
+
+If you are using our docker image, this step can be skipped.
 
 We assume that OPAM is installed and the OCaml compiler version is 5.0.0 (or higher). The tested version is 5.0.0.
 
@@ -26,28 +66,25 @@ opam install .
 
 This installs most dependencies available in OPAM and your system's package manager, builds Rabbit, and places the executable in `~/.opam/[switch]/bin`, which is typically included in your shell environment.
 
-To evaluate Rabbit programs and run experiments, additional dependencies are required.
-
-For macOS, run:
-
-```bash
-brew install coreutils graphviz
-```
-
-to install:
-
-- `coreutils` provides the `timeout` command.
-- `graphviz` is required by ProVerif.
-
-For Linux, `timeout` is usually available by default, and `graphviz` should be installed automatically via OPAM's external dependency configuration. If not, install it manually.
-
-Since Tamarin is not available via OPAM, it must be installed separately. Using Homebrew would be the easiest:
+### Tamarin
+To run our evaluation script, `tamarin-prover` must be available with version 1.10.
+To install, using Homebrew would be the easiest:
 
 ```bash
 brew install tamarin-prover/tap/tamarin-prover
 ```
 
-We have checked that it installs well for macOS with Apple Silicon, but observed that it failed on an Ubuntu ARM64 virtual machine. In that case, consider installing from source. See: [https://tamarin-prover.com/manual/master/book/002_installation.html](https://tamarin-prover.com/manual/master/book/002_installation.html)
+More details can be found in: [https://tamarin-prover.com/manual/master/book/002_installation.html](https://tamarin-prover.com/manual/master/book/002_installation.html)
+
+### ProVerif
+To run our evaluation script, `proverif` needs to be available with version 2.05.
+Installing ProVerif is easiest via OPAM:
+```bash
+opam install proverif
+opam depext proverif
+```
+For more details, see: https://bblanche.gitlabpages.inria.fr/proverif/README
+
 
 ## Evaluation Script
 
@@ -60,10 +97,12 @@ chmod +x evaluate.sh
 Running:
 
 ```bash
-./evaluate.sh init
+./evaluate.sh init --docker=x
 ```
 
-checks whether Rabbit and all required tools are available, listing any that are missing. If a Docker image is used, this `init` step can be skipped.
+checks whether Rabbit and all required tools are available, listing any that are missing. Optional argument `x` can be either `none`, `amd64`, or `arm64`.
+If `--docker=amd64` is provided, init will check if AMD64 docker image is loaded and record it in an environment file. The default value `none` means that 
+locally installed Rabbit will be used.
 
 To evaluate the manuscript's examples:
 
@@ -148,12 +187,12 @@ To fully reproduce the results:
 
 ```bash
 chmod +x evaluate.sh
-./evaluate.sh init
+./evaluate.sh init --docker=x
 ./evaluate.sh measure all --timeout=60
 ./evaluate.sh compare --timeout=60
 ```
 
-This will run **14 + 4 verifications** and may take up to **18 hours**.
+for `x` being either `none`, `amd64` or `arm64`, this will run **14 + 4 verifications** and may take up to **18 hours**.
 
 ## Running Rabbit and Tamarin Manually
 
