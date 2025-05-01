@@ -18,12 +18,12 @@ depends: [
   "menhir" {>= "20220210"}
   "menhirLib"
   "sedlex" {>= "3.1"}
-  "proverif" {= "2.05"}
+#  "proverif" {= "2.05"}
 ]
 
 depexts: [
-  ["coreutils"] {os = "macos"}     # for 'timeout'
-  ["graphviz"] {os = "linux" | os = "macos"}  # required by proverif
+#  ["coreutils"] {os = "macos"}     # for 'timeout'
+#  ["graphviz"] {os = "linux" | os = "macos"}  # required by proverif
 ]
 
 synopsis: "Rabbit: A modeling and verification framework for networked systems"
@@ -35,20 +35,5 @@ and verifying their security properties using the Tamarin and ProVerif backends.
 post-messages: [
   "NOTE:"
   ""
-  "• System tools like 'timeout' (from coreutils) and 'graphviz' may already be installed if you ran:"
-  "      opam install . --deps-only"
-  "  If not, install them manually.
-  "      E.g., in macOS: brew install coreutils graphviz"
-  ""
-  "• IMPORTANT: This project requires 'tamarin-prover' (v1.10), which is NOT available via OPAM."
-  "  The easiest way to install it is via Homebrew, both on macOS and Linux:"
-  "      brew install tamarin-prover/tap/tamarin-prover"
-  ""
-  "  However, we encountered installation failures on Linux with ARM64. "
-  "  In such cases, you can build Tamarin from source."
-  ""
-  "  Detailed installation instructions can be found here: "
-  "  https://tamarin-prover.com/manual/master/book/002_installation.html"
-  ""
-  "The project will not work without 'tamarin-prover' available in your PATH."
+  "To run evaluate.sh, follow README.md."
 ]

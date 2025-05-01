@@ -54,16 +54,23 @@ function warn() {
 }
 
 function check_env () {
+    info "Checking configuration"
     if [[ ! -f "$CONFIG_FILE" ]]; then
         fail "$CONFIG_FILE not found; try ./evaluate.sh init --docker=[none|amd64|arm64]"
         exit 1
     fi
     source "$CONFIG_FILE"
 
+# Check TIMEOUT_CMD is defined and non-empty
+if [[ -z "${TIMEOUT_CMD:-}" ]]; then
+ fail "timeout command not configured correctly; try ./evaluate.sh init --docker=[none|amd64|arm64]"
+  exit 1
+fi
+
     # Check DOCKER_MODE
     case "$DOCKER_MODE" in
       arm64|amd64|none)
-        info "Using --docker=$DOCKER_MODE; to reset, try ./evaluate.sh init --docker=[none|amd64|arm64]"
+        success "Using --docker=$DOCKER_MODE; to reset, try ./evaluate.sh init --docker=[none|amd64|arm64]"
         ;;
       *)
         fail "rabbit executable not configured correctly; try ./evaluate.sh init --docker=[none|amd64|arm64]"
@@ -71,11 +78,8 @@ function check_env () {
         ;;
     esac
 
-# Check TIMEOUT_CMD is defined and non-empty
-if [[ -z "${TIMEOUT_CMD:-}" ]]; then
- fail "timeout command not configured correctly; try ./evaluate.sh init --docker=[none|amd64|arm64]"
-  exit 1
-fi
+
+
 }
 
 function init() {
@@ -184,10 +188,10 @@ function run_measure() {
     
     case "$DOCKER_MODE" in
     arm64)
-      rabbit_cmd=("docker run --rm -v $(pwd):/mnt rabbit-artifact:ard64" "/mnt/${EXAMPLE_DIR}/${file}")      
+      rabbit_cmd=("docker" "run" "--rm" "-v" "$(pwd):/mnt" "rabbit-artifact:arm64" "$RABBIT" "/mnt/${EXAMPLE_DIR}/${file}")      
       ;;
     amd64)
-      rabbit_cmd=("docker run --rm -v $(pwd):/mnt rabbit-artifact:amd64" "/mnt/${EXAMPLE_DIR}/${file}")      
+      rabbit_cmd=("docker" "run" "--rm" "-v" "$(pwd):/mnt" "rabbit-artifact:amd64" "$RABBIT" "/mnt/${EXAMPLE_DIR}/${file}")      
       ;;
     none|*)
       rabbit_cmd=("$RABBIT" "${EXAMPLE_DIR}/${file}")
