@@ -6,11 +6,11 @@ This repository contains the source code of Rabbit, along with the examples used
 
 We provide a Bash script, `evaluate.sh`, which checks for required external dependencies and evaluates the example systems while measuring execution time. The evaluator script stores outputs from the tamarin prover in `log/` whose size actually can grow quite huge, to few gigabytes. (We provide a real-time trimmer as well.)
 
-To run our evaluation, Rabbit, the Tamarin prover, and ProVerif, and `timeout` (for measurement) need to be installed. See the Installation section.
+To run our evaluation, Rabbit, the Tamarin prover, and ProVerif, and `timeout` (for measurement) need to be installed. See the **Installation** section.
 
-If the script fails for any reason, manual instructions for running Rabbit and verification are provided below.
+If the script fails for any reason, manual instructions for running Rabbit and verification are provided below in the **Evaluation Script** section.
 
-For reference, the evaluation results of the script are provided at the end of this document.
+For reference, the evaluation results of the script are provided at the end of this document in the **Evaluation Results** section.
 
 ## Installation
 
@@ -183,7 +183,7 @@ Detailed logs are saved at:
 
 ### Summary
 
-To fully reproduce the results:
+To fully reproduce the results, after installing Rabbit or loading Rabbit docker image, installing Tamarin, and installing ProVerif, run:
 
 ```bash
 chmod +x evaluate.sh
