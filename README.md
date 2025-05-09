@@ -1,50 +1,65 @@
 # Rabbit
+Rabbit is a modeling language for verified networked systems, featuring an imperative-style syntax for describing systems and an intuitive assertion language for specifying security properties. This implementation translates Rabbit programs and assertions into Tamarin, a model-checking tool for automatic verification.
 
-Rabbit is a modeling language for verified networked systems.
-It features an imperative-style syntax for describing networked systems and an intuitive assertion language for specifying security properties.
-This implementation translates Rabbit programs and assertions into Tamarin, a model-checking tool for automatic verification.
+## Installing Rabbit via OPAM
 
-## Prerequisites
+We assume that OPAM is installed and the OCaml compiler version is 5.0.0 (or higher). The tested version is 5.0.0.
+You can follow [these instructions](https://www.ocaml.org/docs/up-and-running) for installing OCaml and the OCaml package manager OPAM.
 
-This OCaml implementation of Rabbit was checked to compile with the OCaml compiler version 5.3.0. 
-The following libraries are required:
-* the [Dune](https://dune.build) build system
-* the [Menhir](http://gallium.inria.fr/~fpottier/menhir/) OCaml parser generator
-* the Ocaml libraries `menhirLib`, `sedlex` and `xml-light`
+Rabbit is implemented in OCaml and can be built easily using its `rabbit.opam` file. From the repository root, run:
 
-You can follow [these instructions](https://www.ocaml.org/docs/up-and-running) for installing OCaml and the OCaml package manager OPAM. Then, the required libraries can be installed with
+```bash
+opam pin add . -n
+opam install . --deps-only
+opam install .
+```
 
-    opam install dune
-    opam install menhir
-    opam install sedlex
-    opam install xml-light
+This installs most dependencies available in OPAM and your system's package manager, builds Rabbit, and places the executable in `~/.opam/[switch]/bin`, which is typically included in your shell environment.
 
-To run output Tarmain files `.spthy`, of course Tamarin is required. Rabbit implementation aligns with Tamarin version 1.10. Follow this [instruction](https://tamarin-prover.com/manual/master/book/002_installation.html) to install Tamarin.
+## Tamarin
+To run the Rabbit produced tamain files, of course, `tamarin-prover` needs to be installed.
+To install, using Homebrew would be the easiest:
 
-## Compilation
+```bash
+brew install tamarin-prover/tap/tamarin-prover
+```
 
-To compile Rabbit, run the following command in this project directory:
+More details can be found in: [https://tamarin-prover.com/manual/master/book/002_installation.html](https://tamarin-prover.com/manual/master/book/002_installation.html)
 
-    dune build
+## Running Rabbit and Tamarin
 
-Dune compiles the program and hides the executable in `_build/default/src/rabbit.exe`, so try running it with
+To generate a Tamarin file from a Rabbit source:
 
-    _build/default/src/rabbit.exe examples/camserver.rab -o _output/camserver.spthy
+```bash
+rabbit examples/camserver.rab -o camserver.rab.spthy
+```
 
-that outputs a Tamarin file `output/camserver.spthy` that models `examples/camserver.rab`. 
+Optional flags:
 
-Consider passing the following optional arguments:
+- `--post-process`: enables graph compression, reducing the size of the produced tamarin code significantly 
+- `--tag-transition`: introduces sub-lemmas, that will reduce the verification time of main assertions. (The sublemmas are correct up to the correctness of our implementaiton hence do not need to be proved.)
 
--  `--post-process` : The output Tamarin file gets optimized. Consecutive transitions get merged, under some conditions.
--  `--tag-transition` : Some _reuse_-lemmas are added. They state each transition happnes at most once, up to loop counters. They must hold assuming the correctness of the implementation and are expected to reduce the search space of the main lemmas.
+To run Tamarin manually:
 
+```bash
+tamarin-prover camserver.rab.spthy --prove=LemmaName
+```
 
-Running Tamarin is expected to be done separately. An advice is, when a rabbit file becomes a little complicated, verification time of Tamairn tends to vary a lot by the applied [_heuristics_](https://tamarin-prover.com/manual/master/book/011_advanced-features.html). It seems `I` is a good option; E.g. try
+LemmaName is the name of the security assertion listed in the rabbit file. 
+A small caution is that the name may change during the tamarin translation. Hence, it is advised to carefully check the end of the generated `.spthy` file 
+to know the correct name. For example:
 
-    tamarin-prover _output/camserver.spthy --prove=Correspondence --heuristic=I
+```tamarin
+// Sub-lemmas (with --tag-transition)
+lemma AlwaysStarts__[reuse,use_induction]: ...
+lemma AlwaysStartsWhenEnds__[reuse,use_induction]: ...
+lemma TransitionOnce__[reuse,use_induction]: ...
 
-However, there is also an danger that choosing a heuristic actually increases the run-time.
+// Main assertions
+lemma Secret_ : ...
+```
+`_` may have been added to the user-written `Secret`.
 
-## Tutorial
+## Documentation
 
-**Outdated** Find a tutorial on how to program in Rabbit [here](https://hackmd.io/@VcOgfdUPTgqt1HEQTKaaqw/BkOXorVzkl).
+**WIP** https://typst.app/project/rpEh0EsfMZuGaVAWyrgS2J
