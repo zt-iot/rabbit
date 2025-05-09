@@ -6,11 +6,17 @@ This repository contains the source code of Rabbit, along with the examples used
 
 We provide a Bash script, `evaluate.sh`, which checks for required external dependencies and evaluates the example systems while measuring execution time. The evaluator script stores outputs from the tamarin prover in `log/` whose size actually can grow quite huge, to few gigabytes. (We provide a real-time trimmer as well.)
 
-To run our evaluation, Rabbit, the Tamarin prover, and ProVerif, and `timeout` (for measurement) need to be installed. See the **Installation** section.
+To run our evaluation, Rabbit, the Tamarin prover, and ProVerif, and `timeout` (for measurement) need to be installed. 
+Amongst the requirements, Rabbit is provided as Docker images as well.
+See the **Installation** section. 
 
 If the script fails for any reason, manual instructions for running Rabbit and verification are provided below in the **Evaluation Script** section.
 
-For reference, the evaluation results of the script are provided at the end of this document in the **Evaluation Results** section.
+For reference, the evaluation results of the script are provided at the end of this document in the **Evaluation Results** section. 
+The tested systems are
+* 16-inch MacBook Pro (2021) with an Apple M1 Pro chip and 16GB of memory 
+* Intel(R) Core(TM) i9-14900K (24-core CPU, 6GHz) and 64GB of memory
+Details can be found in the section.
 
 ## Installation
 
@@ -23,6 +29,18 @@ brew install coreutils
 
 #### Running Docker 
 We provide docker images for rabbit for both amd64 and arm64 platforms. 
+Their downloadable links and (shasum -a 256) checksums are:
+
+
+##### amd64
+* Link: https://drive.google.com/file/d/1dwi-4buGhiNZPdqJhxWg94_-6a9_5nhz/view?usp=sharing
+* (shasum -a 256) checksum: dd5dc622892ab5a8ee0f60a55cf2d22877f9b2eb878cd7e0bbe771cf352813da  rabbit-artifact-amd64.tar
+
+##### arm64
+* Link: https://drive.google.com/file/d/1kvXT4YatT2qMG9zz0P4hjCVIaiwAI2tC/view?usp=sharing
+* (shasum -a 256) checksum: 13194a8ab92cf7c82b30c4b29618bb458a9e53022c2f64d6045a1ae8bac88b5f  rabbit-artifact-arm64.tar
+
+
 To run an image, Docker must be installed on your machine.
 It can be downloaded from https://docs.docker.com/get-docker/.
 
