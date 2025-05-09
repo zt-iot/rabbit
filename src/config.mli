@@ -7,3 +7,5 @@ val columns : int ref
 val trace : bool ref
 val verbose : bool ref
 val dev : bool ref
+val optimize : bool ref
+val tag_transition : bool ref

@@ -9,9 +9,9 @@ let reserved = [
   ("passive", PASSIVE) ;
   ("attack", ATTACK) ;
   ("filesys", FILESYS) ;
+  ("file", FILE) ;
   ("channel", CHANNEL) ; 
   ("path", PATH) ; 
-  ("for", FOR) ; 
   ("process", PROCESS) ;
   ("with", WITH) ;
   ("function", FUNC) ;
@@ -20,10 +20,6 @@ let reserved = [
   ("data", DATA) ; 
   ("skip", SKIP) ;
   ("let", LET) ;
-  ("if", IF) ;
-  ("in", IN) ;
-  ("else", ELSE) ;
-  ("range", RANGE) ; 
   ("requires", REQUIRES) ; 
   ("constant", CONSTANT) ; 
   ("equation", EQUATION) ; 
@@ -32,14 +28,29 @@ let reserved = [
   ("fresh", FRESH) ;
   ("const", CONST) ;
   ("reachable", REACHABLE) ;
-  ("corresponds", CORRESPONDS) 
+  ("corresponds", CORRESPONDS) ;
+  ("put", PUT) ; 
+  ("case", CASE) ; 
+  ("end", END) ; 
+  ("repeat", REPEAT);
+  ("until", UNTIL);
+  ("in", IN);
+  ("then", THEN) ;
+  ("event", EVENT) ;
+  ("on", ON) ; 
+  ("var", VAR) ;
+  ("new", NEW) ;
+  ("delete", DEL) ;
+  ("get", GET) ;
+  ("by", BY) ;
+  ("on", ON)
   ]
 
 let name =
   [%sedlex.regexp? (('_' | alphabetic),
                  Star ('_' | alphabetic
                       | 185 | 178 | 179 | 8304 .. 8351 (* sub-/super-scripts *)
-                      | '0'..'9' | '\'')) | math]
+                      | '0'..'9')) | math]
 
 let digit = [%sedlex.regexp? '0'..'9']
 let numeral = [%sedlex.regexp? Opt '-', Plus digit]
@@ -97,30 +108,32 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
      let r = String.sub s 1 (l - 2) in 
      Ulexbuf.record_string r lexbuf;
      QUOTED_STRING (r)
-  | "~>"                     -> f (); LEADSTO
+  | "~>" | 8605              -> f (); LEADSTO
   | '_'                      -> f (); UNDERSCORE
   | '.'                      -> f (); DOT
-  | '!'                      -> f (); BANG
-  | '&'                      -> f (); AMP
   | '%'                      -> f (); PERCENT
-  | "exists-trace"                      -> f (); EXTRACE
-  | "all-traces"                      -> f (); ALLTRACE
+  | "exists-trace"           -> f (); EXTRACE
+  | "all-traces"             -> f (); ALLTRACE
   | '@'                      -> f (); AT
   | '('                      -> f (); LPAREN
   | ')'                      -> f (); RPAREN
   | '['                      -> f (); LBRACKET
   | ']'                      -> f (); RBRACKET
-  | "-{"                     -> f (); LOPEN
-  | "}->"                    -> f (); RCLOSE
   | '{'                      -> f (); LBRACE
   | '}'                      -> f (); RBRACE
+  | "!=" | 8800              -> f (); NEQ
+  | "!"                      -> f (); EXCL
+  | "<>"                     -> f (); LTGT
+  | "<"                      -> f (); LT
+  | ">"                      -> f (); GT
   | "||"                     -> f (); BBAR
+  | '|'                      -> f (); BAR
   | "=>" | 8658 | 10233      -> f (); DARROW
-  | "->" | 8594 | 10230      -> f (); ARROW
+  | "->" | 8594 | 10230      -> f (); ARROW 
   | ":="                     -> f (); COLONEQ
   | "="                      -> f (); EQ
   | ','                      -> f (); COMMA
-  | "::"                      -> f (); DCOLON
+  | "::"                     -> f (); DCOLON
   | ':'                      -> f (); COLON
   | ';'                      -> f (); SEMICOLON
   (* We record the location of operators here because menhir cannot handle %infix and

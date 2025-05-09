@@ -13,27 +13,26 @@
 %token <string> QUOTED_STRING
 
 (* Parentheses & punctuations *)
-%token LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE LOPEN RCLOSE 
-%token COLONEQ EQ
+%token LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE 
+%token COLONEQ EQ NEQ
 %token COMMA SEMICOLON COLON
-%token BBAR BANG
-%token DARROW ARROW UNDERSCORE
+%token BBAR
+%token UNDERSCORE
 
 (* constant tokens for rabbit *)
-%token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE 
-%token CHANNEL PROCESS PATH DATA FILESYS 
-%token WITH FUNC MAIN RETURN SKIP LET IF ELSE FOR IN RANGE 
-%token SYSTEM LEMMA AT DOT DCOLON
+%token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
+%token CHANNEL PROCESS PATH DATA FILESYS FILE
+%token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LTGT
+%token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL
 
-%token REQUIRES EXTRACE ALLTRACE AMP PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
+%token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
 
 (* End of input token *)
 %token EOF
 
 (* Precedence and fixity of infix operators *)
-%right     BBAR
-%right     DARROW
-%left      BANG
+%nonassoc IN
+%right    SEMICOLON
 
 %left     INFIXOP0
 %right    INFIXOP1
@@ -57,20 +56,26 @@ decls:
 
 decl: mark_location(plain_decl) { $1 }
 plain_decl:
-  | external_functions { $1 }
+  | FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
+  | CONSTANT id=NAME  { DeclExtFun(id, 0) }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
+  
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
   
   | ALLOW ATTACK t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAttack(t,a)}  
-  | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t,a)} 
+  | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t, Some a)} 
+  | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)} 
 
-  
-  | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
+  // | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
 
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
 
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME 
-    LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
+    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, fl, l, f, m) }
+
+  | PROCESS id=NAME LT p=NAME GT LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME 
+    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclParamProc(id, p, parems, ty,fl, l, f, m) }
+
 
   | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
 
@@ -78,80 +83,79 @@ plain_decl:
 
   | CONST FRESH t=NAME { DeclInit(t,None) }
 
+  | ATTACK f=NAME ON t=NAME LPAREN arg=separated_list(COMMA, typed_arg) RPAREN LBRACE c=cmd RBRACE { DeclExtAttack (f, t, arg, c) }
+
   | external_syscall { $1 }
-  | external_attack { $1 }
 
   | sys { $1 }
 
-colon_name_pair :
-  | a=NAME COLON b=NAME { (a, b) }
+  | CHANNEL id=NAME LT GT COLON n=NAME { DeclParamChan(id, n) }
+  | CHANNEL id=NAME LTGT COLON n=NAME { DeclParamChan(id, n) }
 
-external_functions:
-  |  FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
-  |  CONSTANT id=NAME  { DeclExtFun(id, 0) }
+
+  | CONST t=NAME LT p=NAME GT EQ e=expr { DeclParamInit(t, Some (p, e)) }
+
+  | CONST FRESH t=NAME LT GT { DeclParamInit(t,None) }
+  | CONST FRESH t=NAME LTGT { DeclParamInit(t,None) }
+
+
+
+colon_name_pair :
+  | a=NAME COLON b=NAME { (false, a, b) }
+  | a=NAME LT GT COLON b=NAME { (true, a, b) }
+  | a=NAME LTGT COLON b=NAME { (true, a, b) }
 
 external_syscall:
-  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr
-      COLON r=complex_rule { DeclExtSyscall(f, parems, [], r, Some ret) }
-  
-  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN COLON 
-    r=complex_rule { DeclExtSyscall(f, parems, [], r, None) }
-
-  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN RETURN ret=expr
-      LBRACE s=separated_list(COMMA, substs) RBRACE COLON 
-      r=complex_rule { DeclExtSyscall(f, parems, s, r, Some ret) }
-
-  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN LBRACE s=separated_list(COMMA, substs) RBRACE COLON r=complex_rule { DeclExtSyscall(f, parems, [], r, None) }
+  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN 
+      LBRACE c=cmd RBRACE { DeclExtSyscall(f, parems, c) }
 
 syscall_tk:
   | SYSCALL {()}
   | PASSIVE ATTACK {()}
 
-substs:
-  | var=NAME EQ e=expr { (var, e) }
-
-complex_rule: 
-  | mark_location(plain_complex_rule) { $1 }
-  | LBRACE complex_rule RBRACE { $2 }
-
-plain_complex_rule:
-  | rule { CRule $1 }
-  | LBRACKET precond=separated_list(COMMA, fact) RBRACKET 
-    LOPEN s=stmts RCLOSE LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { CRuleStmt (precond, s, postcond) }
-  | a=complex_rule BBAR b=complex_rule { CRulePar (a, b) }
-  | BANG complex_rule { CRuleRep $2 }
-  | a=complex_rule DARROW b=complex_rule { CRuleSeq (a, b) }
-
-external_attack:
-  |  ATTACK f=NAME LPAREN parem=typed_arg RPAREN COLON r=rule { DeclExtAttack(f, parem, r) }
-
 fact : mark_location(plain_fact) { $1 }
 plain_fact:
-  | scope=NAME DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact(scope, id, es) }
-  | scope=NAME DOT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { PathFact(scope, id, es) }
-  | scope=NAME PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
+  | scope=expr DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact(scope, id, es) }
+  | scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
   | DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact(id, es) }
   | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact(id, es) }
+  | e1=expr EQ e2=expr { ResFact(0, [e1; e2]) }
+  | e1=expr NEQ e2=expr { ResFact(1, [e1; e2]) }
+  | scope=expr DOT e=expr { ResFact(3, [scope; e]) }
 
 typed_arg:
   | var=NAME { (TyValue, var) }
   | CHANNEL var=NAME { (TyChannel, var) }
   | PROCESS var=NAME { (TyProcess, var) }
   | PATH var=NAME { (TyPath, var) }
-  
-rule:
-  | LBRACKET precond=separated_list(COMMA, fact) RBRACKET ARROW LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { (precond, postcond) }
+
 
 sys:
-  | SYSTEM p=separated_nonempty_list(BBAR, proc) REQUIRES 
+  | SYSTEM p=separated_nonempty_list(BAR, proc) REQUIRES 
     LBRACKET a=separated_nonempty_list(SEMICOLON, lemma)  RBRACKET { DeclSys(p, a) }
 
-proc: mark_location(plain_proc) { $1 }
-plain_proc:
-  | id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH f=NAME 
-    { Proc (id, parems, Some f) }
-  | id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN 
-    { Proc (id, parems, None) }
+proc:
+  | p=uproc { UnboundedProc p }
+  | p=bproc { BoundedProc p}
+
+uproc: mark_location(plain_uproc) { $1 }
+plain_uproc:
+  | id=NAME LPAREN parems=separated_list(COMMA, chan_arg) RPAREN 
+    { Proc (id, parems) }
+  | id=NAME LT p=expr GT LPAREN parems=separated_list(COMMA, chan_arg) RPAREN 
+    { ParamProc (id, p, parems) }
+
+// bproc: mark_location(plain_bproc) { $1 }
+bproc:
+  | EXCL v=NAME DOT p=uproc { (v, [p]) }
+  | EXCL v=NAME DOT LPAREN p=separated_list(BAR, uproc) RPAREN { (v, p) }
+
+
+chan_arg:
+  | id=NAME { ChanArgPlain id }
+  | id=NAME LT GT { ChanArgParam id }
+  | id=NAME LTGT { ChanArgParam id }
+  | id=NAME LT e=expr GT { ChanArgParamInst (id, e) }
 
 lemma: mark_location(plain_lemma) { $1 }
 plain_lemma:
@@ -159,18 +163,25 @@ plain_lemma:
 
 prop: mark_location(plain_prop) { $1 }
 plain_prop:
-  | REACHABLE a=separated_nonempty_list(COMMA, event) {Reachability (a)}
-  | CORRESPONDS a=event LEADSTO b=event {Correspondence (a, b)}
+  | REACHABLE a=separated_nonempty_list(COMMA, fact) {Reachability (a)}
+  | CORRESPONDS a=fact LEADSTO b=fact {Correspondence (a, b)}
   
   | EXTRACE QUOTED_STRING {PlainString ("exists-trace \""^$2^"\"") }
   | ALLTRACE QUOTED_STRING {PlainString ("all-traces \""^$2^"\"") }
+
+file_stmts:
+  | { [] }
+  | l=file_stmt ls=file_stmts { l :: ls }
+
+file_stmt:
+  | FILE id=expr COLON ty=NAME EQ e=expr { (id, ty, e) }
 
 let_stmts:
   | { [] }
   | l=let_stmt ls=let_stmts { l :: ls }
 
 let_stmt:
-  | LET id=NAME EQ e=expr SEMICOLON { (id, e) }
+  | VAR id=NAME EQ e=expr { (id, e) }
 
 fun_decls:
   | { [] }
@@ -178,10 +189,10 @@ fun_decls:
 
 fun_decl:
   | FUNC id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN 
-    LBRACE c=stmts RETURN r=NAME SEMICOLON RBRACE { (id, parems, c, r) }
+    LBRACE c=cmd RBRACE { (id, parems, c) }
 
 main_stmt:
-  | MAIN LBRACE c=stmts RBRACE { c }
+  | MAIN LBRACE c=cmd RBRACE { c }
 
 fpath:
   | LBRACE PATH COLON fp=QUOTED_STRING COMMA DATA COLON e=expr COMMA TYPE COLON t=NAME RBRACE
@@ -211,6 +222,7 @@ plain_expr:
     { let (op, loc) = oploc in
       Apply (op, [e2; e3])
     }
+  | f=NAME LT e=expr GT { Param (f, e) }
   | LPAREN es=separated_list(COMMA, expr) RPAREN { Tuple es } 
   | s=QUOTED_STRING { String s }
 
@@ -224,34 +236,36 @@ plain_expr:
 %inline prefix:
   | op=PREFIXOP { op }
 
-op : mark_location(plain_op) { $1 }
-plain_op:
+guarded_cmd:
+  | LBRACKET precond=separated_list(COMMA, fact) RBRACKET ARROW c=cmd { (precond, c) }
+
+cmd: 
+  | LBRACE c=cmd RBRACE { c }
+  | mark_location(plain_cmd) { $1 } 
+plain_cmd:
   | SKIP { Skip }
-  | LET UNDERSCORE EQ e=expr { LetUnderscore (e) } 
-  | LET id=NAME EQ e=expr { Let (id, e, true) }
-  | id=NAME COLONEQ e=expr { Let (id, e, false) }
-  | e=expr {LetUnderscore (e) }
+  | c1=cmd SEMICOLON c2=cmd { Sequence(c1, c2) }
+  | PUT LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { Put (postcond) }
+  | VAR id=NAME EQ e=expr IN c=cmd { Let (id, e, c) }
+  | id=uname COLONEQ e=expr { Assign (id, e) }
+  | CASE 
+    BAR? guarded_cmds=separated_nonempty_list(BAR, guarded_cmd) END { Case(guarded_cmds) }
+  | REPEAT BAR? c1=separated_nonempty_list(BAR, guarded_cmd) 
+    UNTIL BAR? c2=separated_nonempty_list(BAR, guarded_cmd) 
+    END                                                             { While(c1, c2) }
+  | EVENT LBRACKET a=separated_list(COMMA, fact) RBRACKET           { Event(a) }
+  
+  | LET ids=separated_list(COMMA, NAME) EQ e=expr DOT fid=NAME IN c=cmd { Get (ids, e, fid, c) }
+  | NEW id=NAME EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd { New (id, fid, args, c) }
+  | NEW id=NAME IN c=cmd { New (id, "", [], c) }
+  | DEL e=expr DOT fid=NAME { Del (e, fid) }
 
-block_op: mark_location(plain_block_op) { $1 }
-plain_block_op:
-  | IF LPAREN e1=expr EQ e2=expr RPAREN LBRACE c1=stmts RBRACE 
-    ELSE LBRACE c2=stmts RBRACE { If(e1, e2, c1, c2) }
-  | FOR i=NAME IN RANGE LPAREN n=NUMERAL COMMA m=NUMERAL RPAREN 
-    LBRACE c=stmts RBRACE { For(i,n,m,c) }
+  | e=expr { Return e }
 
-event : mark_location(plain_event) { $1 }
-plain_event:
-  | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Event(id, es) }
 
-stmts: 
-  | { [] }
-  | s=stmt sl=stmts { s :: sl }
-
-stmt: mark_location(plain_stmt) { $1 }
-plain_stmt:
-  | o=op SEMICOLON { OpStmt o }
-  | o=block_op { OpStmt o }
-  | o=op AT es=separated_list(COMMA, event) SEMICOLON { EventStmt (o, es) }
+uname: 
+  | UNDERSCORE { None }
+  | s=NAME { Some s }
 
 mark_location(X):
   x=X

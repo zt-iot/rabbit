@@ -1,12 +1,12 @@
 # Rabbit
 
-**This branch is a little outdated. Please see the `family` branch that is currently being developped.**
-
-An implementation of a to-Tamarin translator for the Rabbit programming language for verified IoT systems.
+Rabbit is a modeling language for verified networked systems.
+It features an imperative-style syntax for describing networked systems and an intuitive assertion language for specifying security properties.
+This implementation translates Rabbit programs and assertions into Tamarin, a model-checking tool for automatic verification.
 
 ## Prerequisites
 
-The OCaml implementation of Rabbit was checked to compile with the OCaml compiler version 4.10.2. 
+This OCaml implementation of Rabbit was checked to compile with the OCaml compiler version 5.3.0. 
 The following libraries are required:
 * the [Dune](https://dune.build) build system
 * the [Menhir](http://gallium.inria.fr/~fpottier/menhir/) OCaml parser generator
@@ -19,7 +19,7 @@ You can follow [these instructions](https://www.ocaml.org/docs/up-and-running) f
     opam install sedlex
     opam install xml-light
 
-To run output Tarmain files `.spthy`, of course Tamarin is required. Rabbit implementation aligns with Tamarin version 1.8 and with the  development version 1.9. Follow this [instruction](https://tamarin-prover.com/manual/master/book/002_installation.html) to install Tamarin.
+To run output Tarmain files `.spthy`, of course Tamarin is required. Rabbit implementation aligns with Tamarin version 1.10. Follow this [instruction](https://tamarin-prover.com/manual/master/book/002_installation.html) to install Tamarin.
 
 ## Compilation
 
@@ -31,13 +31,20 @@ Dune compiles the program and hides the executable in `_build/default/src/rabbit
 
     _build/default/src/rabbit.exe examples/camserver.rab -o _output/camserver.spthy
 
-that outputs a Tamarin file `output/camserver.spthy` that models `examples/camserver.rab`. Having `--dev` option, the output Tamarin file aligns with the development version of Tamarin. 
+that outputs a Tamarin file `output/camserver.spthy` that models `examples/camserver.rab`. 
+
+Consider passing the following optional arguments:
+
+-  `--post-process` : The output Tamarin file gets optimized. Consecutive transitions get merged, under some conditions.
+-  `--tag-transition` : Some _reuse_-lemmas are added. They state each transition happnes at most once, up to loop counters. They must hold assuming the correctness of the implementation and are expected to reduce the search space of the main lemmas.
+
 
 Running Tamarin is expected to be done separately. An advice is, when a rabbit file becomes a little complicated, verification time of Tamairn tends to vary a lot by the applied [_heuristics_](https://tamarin-prover.com/manual/master/book/011_advanced-features.html). It seems `I` is a good option; E.g. try
 
     tamarin-prover _output/camserver.spthy --prove=Correspondence --heuristic=I
 
+However, there is also an danger that choosing a heuristic actually increases the run-time.
 
 ## Tutorial
 
-Find a tutorial on how to program in Rabbit [here](https://hackmd.io/@VcOgfdUPTgqt1HEQTKaaqw/BkOXorVzkl).
+**Outdated** Find a tutorial on how to program in Rabbit [here](https://hackmd.io/@VcOgfdUPTgqt1HEQTKaaqw/BkOXorVzkl).

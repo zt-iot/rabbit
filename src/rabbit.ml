@@ -30,10 +30,18 @@ let options = Arg.align [
     ("-l",
      Arg.String (fun str -> add_file true str),
      "<file> Load <file> into the initial environment");
-
+(* 
     ("--dev",
      Arg.Set Config.dev,
-     "use the development version of tamarin");
+     "use the development version of tamarin"); *)
+
+    ("--post-process",
+     Arg.Set Config.optimize,
+     "post-process to optimize the produced tamarin model");
+
+     ("--tag-transition",
+     Arg.Set Config.tag_transition,
+     "post-process to optimize the produced tamarin model");
 
     ("-o",
      Arg.String (fun str -> add_ofile true str),
@@ -65,9 +73,14 @@ let _main =
           let (ctx, pol, def, sys, (a', b')) = Loader.load fn ctx pol def sys in 
           (ctx, pol, def, sys, (a'@a, b'@b))) 
         Loader.process_init  !files in
+        print_string "Loading complete..\n";
         List.fold_left (fun _ s -> 
-        let t, prt = (Totamarin.translate_sys s x) in 
-        let tamarin = (Totamarin.print_tamarin prt t !Config.dev) in 
+        let (si, mo_lst, rule_lst, lem_lst)  = (Totamarin.translate_sys s x) in 
+        let t = 
+          if !Config.optimize then (si, List.map Postprocessing.optimize mo_lst, rule_lst, lem_lst) 
+          else (si, mo_lst, rule_lst, lem_lst)
+        in
+        let tamarin = (Totamarin.print_tamarin t !Config.dev !Config.tag_transition) in
         if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Error" "%s" "output file not specified"
         else let oc = open_out (fst !ofile) in
         Printf.fprintf oc "%s\n" tamarin;
@@ -89,3 +102,6 @@ let _main =
     Print.message ~loc "Substitute error" "%t" (Substitute.print_error err)
   | Totamarin.Error {Location.data=err; Location.loc} ->
     Print.message ~loc "Translate error" "%t" (Totamarin.print_error err)
+  | Postprocessing.Error err ->
+    Print.message ~loc:Location.Nowhere "Translate error" "%t" (Postprocessing.print_error err)
+      

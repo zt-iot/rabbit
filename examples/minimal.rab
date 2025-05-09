@@ -1,0 +1,59 @@
+(* Minimal working rabbit code for testing purpose *)
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+
+
+type  abc  : process
+
+process server() :  abc
+{  
+	var a = "a"
+	var b = "b"
+	var c = "c"
+
+	main 
+  	{
+        c := "d";
+        new kj in 
+        new jjj = AA(a,b,c) in 
+
+        var k = "haha" in
+        case 
+        [A(x), B(y), C(z), D(j)] ->
+            a := x; 
+            let x', y', z' = jjj.AA in 
+            a := x';
+            case [B(k), A(a), C(x)] -> c := k end; delete jjj.AA;
+            put [D("aaa")];
+            case [D(ko)] -> skip end;
+            b := z
+        end
+        
+  	}
+}
+
+
+
+(***********)
+system 
+	server()
+requires  [
+  lemma Reachable1 :
+    exists-trace "Ex #j  . A() @ #j" ;
+  lemma Reachable2 :
+    exists-trace "Ex #j  . B() @ #j" ;
+  lemma Reachable3 :
+    exists-trace "Ex #j  . AAA() @ #j" ;
+  lemma Reachable4 :
+    exists-trace "Ex #j  . BBB() @ #j" ;
+  lemma Reachable5 :
+    exists-trace "Ex x #j  . Took(x) @ #j" ;
+  lemma Reachable :
+    exists-trace "Ex x #i #j  . ClientClose() @ #j & ImgRecvValid(x) @ #i" ;
+
+  lemma Correspondence :
+    all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
+  ]
+

@@ -7,7 +7,10 @@ type expr = expr' Location.located
 and expr' =
   | Const of Name.ident
   | ExtConst of Name.ident
-  | Variable of indexed_var
+  | TopVariable of string * int
+  | LocVariable of string * int
+  | MetaVariable of string * int
+  | MetaNewVariable of string * int
   | Boolean of bool
   | String of string
   | Integer of int
@@ -19,40 +22,48 @@ and expr' =
   | Process of string (* only needed for syscall defintiions *)
   (* | Run of string * expr list (* only needed for syscall defintiions *) *)
   (* | FrVariable of string *)
+  | ParamChan of string * expr 
+  | ParamConst of string * expr
 
-type atomic_stmt = atomic_stmt' Location.located
-and atomic_stmt' = 
-  | Skip
-  | Let of indexed_var * expr
-  | Call of indexed_var * Name.ident * expr list
-  | Syscall of indexed_var * Name.ident * (expr * Input.arg_type) list 
-  | If of expr * expr * stmt list * stmt list
-  | For of indexed_var * int * int * stmt list
-
-and event = event' Location.located
-and event' = 
-  | Event of Name.ident * (expr list)
-
-and stmt = stmt' Location.located
-and stmt' = 
-  | OpStmt of atomic_stmt
-  | EventStmt of atomic_stmt * event list
+  | Param of string
 
 type fact = fact' Location.located
 and fact' = 
   | Fact of Name.ident * expr list
   | GlobalFact of Name.ident * expr list
-  | ChannelFact of Name.ident * Name.ident * expr list
-  | PathFact of Name.ident * Name.ident * expr list
+  | ChannelFact of expr * Name.ident * expr list
   | ProcessFact of Name.ident * Name.ident * expr list
+  | ResFact of int * expr list
 
-type complex_rule = complex_rule' Location.located
-and complex_rule' = 
-  | CRule of (fact list * fact list) 
-  | CRuleStmt of (fact list * stmt list * fact list) 
-  | CRulePar of complex_rule * complex_rule
-  | CRuleRep of complex_rule 
-  | CRuleSeq of complex_rule * complex_rule 
+
+
+(* meta vars, local vars, top-level variables *)
+(* type local_typing_context = Name.ident list * Name.ident list * Name.ident list *)
+
+type cmd = cmd' Location.located
+and cmd' = 
+  | Skip
+  | Sequence of cmd * cmd
+  | Put of fact list
+  | Let of Name.ident * expr * cmd
+  | Assign of (Name.ident * (int * bool)) * expr (* (k, true) : k'th in top-level (k, false): k'th in local *)
+  | FCall of (Name.ident * (int * bool)) option * Name.ident * expr list
+  | SCall of (Name.ident * (int * bool)) option * Name.ident * expr list
+  | Case of (string list * fact list * cmd) list
+  | While of (string list * fact list * cmd) list * (string list * fact list * cmd) list
+  | Event of fact list
+  | Return of expr
+
+  | New of Name.ident * Name.ident * expr list * cmd 
+  | Get of Name.ident list * expr * Name.ident * cmd
+  | Del of expr * Name.ident
+
+(* last one is type` *)
+type chan_arg =
+  | ChanArgPlain of string * string 
+  | ChanArgParam of string * string 
+  | ChanArgParamInst of string * expr * string
+
 
 type proc = proc' Location.located
 and proc' =
@@ -65,30 +76,6 @@ and fpath' =
 type lemma = lemma' Location.located
 and lemma' = 
   | PlainLemma of Name.ident * Name.ident  
-  | ReachabilityLemma of Name.ident * Name.ident list * event list
-  | CorrespondenceLemma of Name.ident * Name.ident list * event * event 
+  | ReachabilityLemma of Name.ident * Name.ident list * Name.ident list * Name.ident list * fact list
+  | CorrespondenceLemma of Name.ident * Name.ident list * fact * fact 
 
-(* type prop = prop' Location.located
-and prop' =
-  | True
-
-type lemma = lemma' Location.located
-and lemma' =
-  | Lemma of Name.ident * prop 
-
-type sys = sys' Location.located
-and sys' = 
-  | Sys of proc list * lemma list
-
-let string_of_type_class c = 
-   match c with 
-   | Input.CProc -> "Proc"
-   | Input.CFsys -> "Fsys" 
-   | Input.CChan -> "Chan"
-
-let string_of_attack_class a = 
-   match a with
-   | Input.CEaves -> "Eaves" 
-   | Input.CTamper -> "Tamper"
-   | Input.CDrop  -> "Drop"
- *)
