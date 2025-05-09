@@ -116,7 +116,9 @@ process client<k>(ch_net : udp_t, ch_rpc : rpc_t) : client_t
       _ := eaves_mem(image);
 
       var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
-            
+
+      _ := eaves_mem(sig);
+
       event [::ImgSend(image)];
       
       _ := send(ch_net, (sig, image))
