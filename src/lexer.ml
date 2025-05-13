@@ -10,8 +10,15 @@ let reserved = [
   ("attack", ATTACK) ;
   ("filesys", FILESYS) ;
   ("channel", CHANNEL) ; 
+  ("key", KEY) ;
   ("path", PATH) ; 
   ("process", PROCESS) ;
+  ("string", STRING) ;
+  ("Sym", SYM) ;
+  ("Enc", ENC) ;
+  ("Dec", DEC) ;
+  ("Sig", SIG) ;
+  ("Chk", CHK) ;
   ("with", WITH) ;
   ("function", FUNC) ;
   ("main", MAIN) ;
@@ -42,7 +49,9 @@ let reserved = [
   ("delete", DEL) ;
   ("get", GET) ;
   ("by", BY) ;
-  ("on", ON)
+  ("on", ON) ;
+  ("S", S) ;
+  ("I", I)
   ]
 
 let name =
@@ -107,6 +116,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
      let r = String.sub s 1 (l - 2) in 
      Ulexbuf.record_string r lexbuf;
      QUOTED_STRING (r)
+  (* diode-lang: I feel like this is to be able to lex special characters, because all these strings contain special characters... *)
   | "~>" | 8605              -> f (); LEADSTO
   | '_'                      -> f (); UNDERSCORE
   | '.'                      -> f (); DOT
@@ -131,6 +141,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | "::"                     -> f (); DCOLON
   | ':'                      -> f (); COLON
   | ';'                      -> f (); SEMICOLON
+  | '\''                     -> f (); APOSTROPHE 
   (* We record the location of operators here because menhir cannot handle %infix and
      mark_location simultaneously, it seems. *)
   | prefixop                 -> f (); PREFIXOP (Ulexbuf.lexeme lexbuf, loc_of lexbuf)
@@ -219,7 +230,7 @@ let read_file parse fn =
   (* Any errors when opening or closing a file are fatal. *)
     Sys_error msg -> raise (Ulexbuf.error ~loc:Location.Nowhere (Ulexbuf.SysError msg))
  *)
-let read_toplevel parse () =
+(* let read_toplevel parse () =
   let all_white str =
     let n = String.length str in
     let rec fold k =
@@ -248,8 +259,8 @@ let read_toplevel parse () =
 
   let str = read_more "# " "" in
   let lex = Ulexbuf.from_string (str ^ "\n") in
-  run token parse lex
+  run token parse lex *)
 
-let read_string parse s =
+(* let read_string parse s =
   let lex = Ulexbuf.from_string s in
-  run token parse lex
+  run token parse lex *)

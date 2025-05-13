@@ -1,0 +1,35 @@
+%YAML 1.2
+---
+name: rabbit
+file_extensions: [rab]
+scope: source.rab
+
+contexts:
+  main:
+    - match: ^\s*(equation|function|process|system|const fresh|const|fresh|syscall|main|type|process|channel|file|allow|attack|passive attack|on|var|requires|lemma|reachable|corresponds)\b
+      scope: keyword.declaration.rabbit
+    - match: '{'
+      push: command
+    - match: \b[[:alpha:]_][[:alnum:]_]*\s*(?=\()
+      push: function-call
+
+  command:
+    - match: \b(case|repeat|var|let|in|put|event|end)\b
+      scope: keyword.control.rabbit
+    - match: '"'
+      push: string
+    - match: \b[[:alpha:]_][[:alnum:]_]*\s*(?=\()
+      push: function-call
+    - match: '}'
+      pop: 1
+
+  string:
+    - meta_scope: string.quoted.double.rabbit
+    - match: '"'
+      pop: 1
+
+  function-call:
+    - match: \b[[:alpha:]_][[:alnum:]_]*\b
+      scope: variable.function.rabbit
+    - match: \(
+      pop: 1

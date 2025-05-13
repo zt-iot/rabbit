@@ -1,0 +1,186 @@
+
+(* send and recv are syscalls instead *)
+
+(* 
+FUNCTIONS WHICH HAVE ADDITIONAL TYPECHECKING REQUIREMENTS
+
+- dec_asym
+- verify
+- hash
+*)
+
+
+function {sigma : SecrecyLvl, iota : IntegrityLvl, T : Type} pk(k : key[(sigma, iota), Dec, T]) : key[(public, iota), Enc, T]
+function {iota : IntegrityLvl, T : Type} vk(k : key[((sigma, iota), Sig, T)]) : key[(public, iota), Chk, T]
+
+function fst(pair : ('A, 'B)) : 'A
+function snd(pair : ('A, 'B)) : 'B
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+
+(* integrity level of return type is arbitrary *)
+function {T : Type, sigma : SecrecyLvl, iota : IntegrityLvl} enc_sym(m : T, k : key[(sigma, iota), Sym, T]) : (public, untrusted)
+function {T' T : Type, sigma : SecrecyLvl, iota : IntegrityLvl} dec_sym(c : T', k : key[(sigma, iota), Sym, T]) : T
+equation dec_sym(enc_sym(x, y), y) = x
+
+function {T : Type, sigma : SecrecyLvl, iota : IntegrityLvl} enc_asym(m : T, k : key[(sigma, iota), Enc, T]) : (public, untrusted)
+function {T' T : Type, sigma : SecrecyLvl, iota : IntegrityLvl} dec_asym(c : T', k : key[(sigma, iota), Dec, T]) : T
+equation dec_asym(enc_asym(x, pk(y)), y) = x
+
+
+function {T : Type, sigma : SecrecyLvl, iota : IntegrityLvl} sign(m : T, k : key[(sigma, iota), Sig, T]) : (S(T), iota)
+(*  (NOTE: U is syntactic sugar for (public, untrusted)) *)
+function {T'' T' T : Type, sigma : SecrecyLvl, iota : IntegrityLvl} verify(sig : T'', m : T', k : key[(sigma, iota), Chk, T]) : U
+function true : U
+equation verify (sign(d, k), d, pk(k)) = true
+
+
+
+(* hash is a family of functions parameterized by the given return type `RETTY` *)
+(* NOTE: hash(t)(arg1, arg2, ..., argn) is syntactic sugar for hash(t)(, ..., (arg1, arg2), ..., argn) *)
+(* E.G. hash(t)(arg1, arg2, arg3, arg4) = hash(((arg1, arg2), arg3), arg4) *)
+function {T : Type} hash(RETTY : Type)(r : T) : RETTY 
+
+
+
+
+(** send and recv as syscalls with type annotations *)
+syscall {sigma : SecrecyLvl, iota : IntegrityLvl, T T' : Type} send(c : channel[(sigma, iota), T, T'], v : T') : unit {
+  put [c::store(v)]
+}
+
+syscall {sigma : SecrecyLvl, iota : IntegrityLvl, T T' : Type} recv(c : channel[(sigma, iota), T, T']) : T {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+
+
+
+(* predefined types *)
+
+type mon : channel[ree, ree, ree]
+
+type ta_up : channel[tee, (tee, tee), (tee, tee)]
+type ta_down := channel[tee, ree, ree]
+
+type ks : key[tee, Sym, tee]
+type k_root : key[p, p_tee, (ta_up, ta_down)]
+type p_ta : process[tee, (ta_up, ta_down)]
+type p_tee : process[(public, root.I), (mon, p_ta)]
+
+public < TEE.S
+public < SE.S
+
+TEE.I < untrusted
+SE.I < TEE.I
+TEE.I < REE.I
+SE.I < untrusted
+
+
+process REE() : unit {
+  main {
+    pack(mon : mon -> var y : ree := recv(mon) in 0)
+  }
+}
+
+process TA() : p_ta {
+  main {
+    pack(chnls : (ta_up, ta_down) -> {
+      var c : ta_up = fst(chnls) in
+      var c' : ta_down = snd(chnls) in 
+      var x : (tee, tee) = recv(c);
+      var y : ree = h(x) in
+      _ := send(c', y)
+      }
+    )  
+  }
+  
+}
+
+process SE(i2c : U, k : tee, C : U, H : U) : unit {
+  main {
+    new ns : se in
+
+    var m : U = recv(i2c) in
+    new m' : U in 
+    var ks : ks = hash(ks)(k, m, m') in
+    var cr' : U = hash(U)(ks, C, m, m') in
+    _ := send(i2c, (m', cr'));
+    var cr : U = recv(i2c) in
+    var cr' : U = hash(U)(ks, H, m, m') in
+
+    case 
+    | [cr = cr'] -> {
+      var ns' : tee = hash(tee)(ns) in
+      _ := send(i2c, enc_sym(ns', ks))
+    }
+    | [cr <> cr'] -> {
+      0
+    }
+  }
+}
+
+process TEE(i2c : U, k : tee, C : U, H : U) : p_tee {
+  main {
+    pack(param : (mon, p_ta) -> {
+        var mon : mon = fst(param) in 
+        var ta : p_ta = snd(param) in
+        new nt : tee in 
+        new m : U in
+        _ := send(i2c, m);
+        var pair : (U, U) = recv(i2c) in
+        var m' : U = fst(pair) in 
+        var cr' U = snd(pair) in 
+        var ks : ks = hash(ks)(k, m, m') in
+        var cr : U = hash(U)(ks, C, m, m') in
+        case 
+        | [cr = cr'] -> {
+          var cr : U = hash(U)(ks, H, m, m') in
+          _ := send(i2c, cr);
+          var msg : U = recv(i2c) in 
+          var ns' = dec_sym(msg, ks) in 
+          (new c : ta_up in 
+          new c' : ta_down in 0) | exec(ta, (c, c'))
+          _ := send(c, (nt, ns'));
+          var y : ree = recv(c') in 
+          _ := send(mon, y');
+        }
+        | [cr <> cr'] -> {
+          0
+        }
+      }
+    )
+  }
+}
+
+process DEV(i2c : U, k : tee, C : U, H : U, w : U, root : k_root) {
+  main {
+    var pair1 : (U, U) = recv(w) in 
+    var TEE : U = fst(pair1) in 
+    var TEE_sig : U = snd(pair1) in
+    new mon : mon in
+
+    var res : U = verify(TEE_sig, TEE, vk(root)) in
+
+    case 
+    | [res = true] -> {
+      (* REE and TEE are executed in parallel. `mon` is the communication channel between them *)
+      exec(TEE, (mon, TA)) | SE(i2c, k, C, H)
+    }
+    | [res <> true] -> {
+      0
+    }
+  }
+}
+
+
+process p(i2c : U, k : tee, C : U, H : U, w : U) {
+  main {
+    (new root : k_root)
+    let TEE_sig : (public, p.I) = sign(TEE(i2c, k, C, H), root) in
+    send(w, (TEE, TEE_sig)) | DEV(i2c, k, C, H, w, root) (* execute DEV and the sending of TEE with its signature in parallel *)
+  }
+  
+}

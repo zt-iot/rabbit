@@ -415,8 +415,17 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
          pol, 
          Context.def_add_ext_attack def (f,t, typed_args, c), sys, fst ps)
 
-   | Input.DeclType (id, c) -> 
+   | Input.DeclTypeKind (id, c) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, c), pol, def, sys, fst ps)
+   | Input.DeclType (id, t) -> 
+      let type_kind = match t with 
+
+      | Input.Channel(a, b, c) -> Input.KindChan
+      | Input.Process(a, b) -> Input.KindProc
+      | _ -> Input.KindFSys
+      in 
+      (* TODO First just translate this to the corresponding `type_class` but figure out how to translate this later on *)
+      if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, type_kind), pol, def, sys, fst ps)
    
    | Input.DeclAccess(s, t, Some al) -> 
 
@@ -425,13 +434,13 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
       let f pol' a =
          begin
          match tys, tyt with
-         | Input.CProc, [Input.CChan] -> 
+         | Input.KindProc, [Input.KindChan] -> 
             if Context.ctx_check_ext_syscall ctx a then Context.pol_add_access pol' (s, t, a)
             else error ~loc (UnknownIdentifier a)
-         | Input.CProc, [Input.CFsys] -> 
+         | Input.KindProc, [Input.KindFSys] -> 
             if Context.ctx_check_ext_syscall ctx a then Context.pol_add_access pol' (s, t, a)
             else error ~loc (UnknownIdentifier a)
-         | Input.CProc, [] -> 
+         | Input.KindProc, [] -> 
             if Context.ctx_check_ext_syscall ctx a then Context.pol_add_access pol' (s, t, a)
             else error ~loc (UnknownIdentifier a)            
          | _, _ -> error ~loc (WrongInputType)
@@ -444,10 +453,10 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
       let tyt = List.map (Context.ctx_get_ty ~loc ctx) t in 
       let pol = 
          begin match tys, tyt with
-         | Input.CProc, [Input.CChan] -> 
+         | Input.KindProc, [Input.KindChan] -> 
             Context.pol_add_access_all pol (s, t)
             
-         | Input.CProc, [Input.CFsys] -> 
+         | Input.KindProc, [Input.KindFSys] -> 
             Context.pol_add_access_all pol (s, t)
             
          | _, _ -> error ~loc (WrongInputType)
@@ -459,9 +468,9 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
          if Context.ctx_check_ty ctx t then
          if Context.ctx_check_ext_attack ctx a then
          (* match Context.ctx_get_ty ~loc ctx t, Context.ctx_get_ext_attack_arity ~loc ctx a with
-         | Input.CProc, Input.TyProcess 
-         | Input.CChan, Input.TyChannel 
-         | Input.CFsys, Input.TyPath -> *)
+         | Input.KindProc, Input.TyProcess 
+         | Input.KindChan, Input.TyChannel 
+         | Input.KindFSys, Input.TyPath -> *)
             (t, a)
          (* | _, _ -> error ~loc (WrongInputType) *)
          else error ~loc (UnknownIdentifier a)
@@ -479,7 +488,7 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 
       let fl' = List.map (fun (a, e, b) -> 
          match Context.ctx_get_ty ~loc ctx b with
-         | Input.CFsys ->
+         | Input.KindFSys ->
             (a, process_expr ctx Context.lctx_init e, b )
          | _ -> error ~loc (WrongInputType)
          ) fl in 
@@ -493,7 +502,7 @@ let rec process_decl ctx pol def sys ps {Location.data=c; Location.loc=loc} =
 
   | Input.DeclProc (pid, cargs, ty, cl, fs, m) ->
       begin match Context.ctx_get_ty ~loc ctx ty 
-      with | Input.CProc -> () | _ -> error ~loc (WrongInputType) end;
+      with | Input.KindProc -> () | _ -> error ~loc (WrongInputType) end;
       (if Context.check_used ctx pid then error ~loc (AlreadyDefined pid) else ());
       (* load channel parameters *)
       let lctx = List.fold_left (fun lctx' (cid, cty) -> 

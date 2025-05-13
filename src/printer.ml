@@ -1,8 +1,8 @@
 let print_type_class c = 
    match c with 
-   | Input.CProc -> "Proc"
-   | Input.CFsys -> "Fsys" 
-   | Input.CChan -> "Chan"
+   | Input.KindProc -> "Proc"
+   | Input.KindFSys -> "Fsys" 
+   | Input.KindChan -> "Chan"
 (* 
 let print_attack_class a = 
    match a with
