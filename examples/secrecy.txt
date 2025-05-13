@@ -1,0 +1,59 @@
+(***********)
+(** SIMPLE SECRECY EXAMPLE FROM TYPE SYSTEM PAPER *)
+(***********)
+
+
+(***********)
+(** declare simple types using `data` keyword *)
+data keykind      (* we can think of keykind as a set with 5 elements: keykind := {Sym, Enc, Dec, Sig, Chk} *)
+data key[keykind] (* declare a simple type which takes an element of another type as a parameter *)
+
+
+(***********)
+(** declare types with their classes *)
+(* everything on the RHS of `:` must be a simple type *)
+type client_t : process (* client_t induces a security level, process is a simple type *)
+type key_client : key[Dec]
+
+
+(***********)
+(** access control necessary for TAMARIN translation *)
+allow client_t channel [send] (* client_t is allowed to send on (Public, Untrusted) channels *)
+
+(* access control necessary to define security lattice of the type system *)
+allow client_t key_client
+
+(* implicitly, every process type `proc_ty` is allowed to access resources of type (Public, Untrusted) *)
+
+
+(***********)
+(** installed channels and filesystems *)
+(* the RHS of the colon denotes the _concrete type incl. security level_ that each declared construct receives *)
+
+channel c : channel[key[Dec]]
+
+
+c : channel[key[Dec]] (* a channel with security level (Public, Untrusted) whose contents are of type key[Dec] *)
+
+
+
+(* 'a is inferred when arguments are given *)
+syscall send(c : channel['a], v : 'a) : unit {
+  put [c::store(v)]
+}
+
+
+process A(ch1 : channel['a]) : client_t {
+    main {
+        new n : key_client in
+        _ := send(ch1, n) (* this statement should fail to type-check *)
+                          (* it models leaking something to the adversary *)
+    }
+}
+
+system 
+  A(c)
+requires [
+  (* no properties are checked with TAMARIN for now *)
+  (* this system does not have any goal, we just want to show a simple secrecy violation with type system *)
+]

@@ -1,0 +1,85 @@
+(***********)
+(** SIMPLE INTEGRITY EXAMPLE FROM TYPE SYSTEM PAPER *)
+(***********)
+
+(***********)
+(** declare simple types using `data` keyword *)
+data keykind      (* we can think of keykind as a set with 5 elements: keykind := {Sym, Enc, Dec, Sig, Chk} *)
+data key[keykind] (* declare a simple type which takes an element of another type as a parameter *)
+
+
+(***********)
+(** declare types with their classes *)
+(* everything on the RHS of `:` must be a simple type *)
+type client_t : process (* client_t induces a security level, process is a simple type *)
+
+
+
+type key_client : key[Dec]
+type sec_chnl : channel (* a type of secure channel *)
+
+
+(***********)
+(** access control necessary for TAMARIN translation *)
+(* this section partially declares the security lattice as well (which processes are allowed to access which resources as well) *)
+allow client_t channel [recv] (* client_t is allowed to recv on (Public, Untrusted) channels *)
+allow client_t sec_chnl [send recv] (* client_t processes are allowed to both send and receive on "sec_chnl" type of channels *)
+
+(***********)
+(** access control necessary for defining security lattice *)
+
+allow client_t key_client
+
+
+
+(***********)
+(** installed channels and filesystems *)
+(* the RHS of the colon denotes the concrete type incl. security level that each declared construct receives *)
+c : channel[key_client, key[Dec]] (* read type key_client, write type key[Dec] *)
+                                  (* the channel has security level (Public, Untrusted) *)
+s : sec_chnl[key_client, key_client]
+
+
+(* 'a and 'b are inferred when arguments are given *)
+syscall send(c : channel['a, 'b], v : 'b) : unit {
+  put [c::store(v)]
+}
+
+
+(* the following notation for send could also work but it's pretty cursed... *)
+(* interpret 'c as any kind of channel, which will become clear once it is given to the `send` function *)
+
+(* 
+syscall send(c : 'c['a, 'b], v : 'b) : unit {
+
+} 
+*)
+
+(* 'a and 'b are inferred when arguments are given *)
+syscall recv(c : channel['a, 'b]) : 'a {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+
+process A(ch_c : channel['a, 'b], ch_sec : sec_chnl['c, 'd]) : client_t {
+    main {
+        var x : key_client = recv(ch_c) in
+        _ := send(ch_sec, x)
+    }
+}
+
+process B(ch_sec : sec_chnl) : client_t {
+    main {
+        var y : key_client = recv(ch_sec) in 0
+    }
+}
+
+
+system 
+  A(c, s)
+  || B(s)
+requires [
+  (* no properties are checked with TAMARIN for now *)
+]

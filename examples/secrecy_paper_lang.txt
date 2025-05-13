@@ -1,0 +1,17 @@
+(* A.S is secrecy level of A *)
+(* A.I is integrity level of A *)
+
+(* Let us declare c as being of type U=(Public, Untrusted). Remember that we can coerce U to C^U[r : U, w : U] because U <: C^U[r : U, w : U]. *)
+
+(* security lattice definition *)
+
+Public < A.S
+A.I < Untrusted
+
+(* because there is only a single process A in this system, we are already done *)
+
+(* Let A be the root process of the system *)
+A(c : U) = { 
+    (\nu n : (A.S, A.I)) . send(c, n) . p (* this expression is ill-typed because c has write type U and we cannot coerce (A.S, A.I) to U *)
+}
+

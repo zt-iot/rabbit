@@ -1,0 +1,24 @@
+
+(* In this example, we again declare c : U, to model that c is an Untrusted channel *)
+(* Remember that we can coerce U to C^U[r : U, w : U] *)
+
+(* macro-level definition *)
+
+comm = C^(B.S, B.I)[r : (B.S, B.I) | w : (B.S, B.I)] (* what matters is that the write type is B.I and the read type is B.I *)
+
+(* security lattice definition *)
+Public < B.S
+B.I < Untrusted
+
+(* We do not have to do anything with A.S or A.I *)
+
+
+(* process definitions *)
+(* Note that channel^U[r : U | w : U] <: U *)
+A(c : channel^U[r : U | w : U], s : comm) = var x : U = recv(c) in send(s, x) . p 
+(* send(s, x) is ill-typed because x : U and write type of s is (B.S, B.I)*)
+(* we would have to satisfy (B.S, B.I) <: U, which is false *)
+(* this models a situation where Untrusted data coming from an opponent ends up being interpreted as Trusted data *)
+
+B(s : comm) = var y : (B.S, B.I) = recv(s)
+
