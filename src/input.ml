@@ -1,43 +1,6 @@
 type operator = string
-
-(* SecrecyLvl ::= public | <Ident>.S *)
-type secrecy_lvl = 
-  | Public 
-  | S_proc of Name.ident
-
-(* IntegrityLvl ::= untrusted | <Ident>.I *)
-type integrity_lvl = 
-  | Untrusted 
-  | I_proc of Name.ident
-
-type type_class = KindProc | KindFSys | KindChan
+type type_class = CProc | CFsys | CChan
 type arg_type = TyValue | TyChannel | TyProcess | TyPath
-
-type security_lvl = secrecy_lvl * integrity_lvl
-
-type keykind = 
-  | Sym
-  | Enc
-  | Dec
-  | Sig 
-  | Chk
-
-type typ = 
-  | SecurityLvl of security_lvl
-  | Pair of typ * typ
-  | Channel of security_lvl * typ * typ
-  | Key of security_lvl * keykind * typ
-  | Process of security_lvl * typ option
-  | Function of security_lvl * typ list * typ
-  | PolymorphicTyp of Name.ident
-  | PolymorphicSecrecyLvl of Name.ident
-  | PolymorphicIntegrityLvl of Name.ident
-  | PolymorphicSecurityLvl of Name.ident
-  | TyString
-
-
-
-
 
 type expr = expr' Location.located
 and expr' =
@@ -97,8 +60,7 @@ and decl' =
   | DeclExtEq of expr * expr
   | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * cmd
   | DeclExtAttack of Name.ident * Name.ident * (arg_type * Name.ident) list * cmd
-  | DeclTypeKind of Name.ident * type_class
-  | DeclType of Name.ident * typ
+  | DeclType of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   | DeclAttack of Name.ident list * Name.ident list
   | DeclInit of Name.ident * expr option

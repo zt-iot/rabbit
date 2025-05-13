@@ -1,0 +1,88 @@
+
+
+(* predefined types *)
+
+type mon : C^ree[r : ree | w : ree]
+
+type ta_up : C^{tee}[r : tee * tee | w : tee * tee]
+type ta_down := C^tee[r : ree | w : ree
+
+type p_ta : P^tee[ta_up * ta_down]
+type ks : K_{Sym}^{te}[tee]
+type p_tee : P^
+
+
+]
+
+p_ta = P^tee[ta_up * ta_down]
+
+process REE() {
+  pack(mon : mon -> recv(mon, y : ree))
+}
+
+process TA() {
+  pack((c : ta_up, c' : ta_down) -> {
+      recv(c, x : tee*tee).
+      let y : ree = h(x) in
+      send(c', y)
+    }
+  ) 
+}
+
+process SE(i2c : U, k : tee, C : U, H : U) {
+  (new ns : se)
+  recv(i2c, m : U).
+  (new m' : U)
+  let ks : ks = h(k, m, m') in
+  let cr' : U = h(ks, C, m, m') in
+  send(i2c, (m', cr')).
+  recv(i2c, cr : U).
+  let cr' : U = h(ks, H, m, m') in
+  if cr = cr' {
+    let ns' : tee = hash(ns) in
+    send(i2c, sym_enc(ns', ks))
+  }
+}
+
+process TEE(i2c : U, k : tee, C : U, H : U) {
+  pack((mon : mon, ta : p_ta) -> {
+      (* dot separator is not necessary after `new` statement according to syntax definition *)
+      (new nt : tee)(new m : U)
+      send(i2c, m).
+      recv(i2c, m' : U, cr' : U)
+      let ks : ks = h(k, m, m').
+      let cr : U = h(ks, C, m, m').
+      if cr' = cr {
+        let cr : U = h(ks, H, m, m') in
+        send(i2c, cr).
+        recv(i2c, msg : U).
+        case msg of 
+          (* I suppose running these parallel processes, while c and c' have not been declared in 2nd process, is allowed... *)
+          sym_enc(ns' : tee, ks) -> { 
+            (* Not sure if this is how the example should be read... *)
+            (new c : ta_up)(new c' : ta_down) | exec(ta, (c, c')).
+            send(c, (nt, ns')).
+            recv(c', y : ree).
+            send(mon, y)
+          }
+      }
+    }
+  )
+}
+
+process DEV(i2c : U, k : tee, C : U, H : U, w : U, root : k_root) {
+  recv(w, TEE_s : U).
+  (new mon : mon)
+
+  (* REE and TEE are executed in parallel. `mon` is the communication channel between them *)
+  exec(REE, mon) | case TEE_s of verify(TEE : p_tee, vk(root)) ->
+                      exec(TEE, (mon, TA)) | SE(i2c, k, C, H) (* Additionally, run the SE in parallel to the TEE *)
+}
+
+
+process p(i2c : U, k : tee, C : U, H : U, w : U) {
+  (new root : k_root)
+  (* I don't think these things are part of the syntax definition of the language? Arbitrary execution of processes TEE, DEV *)
+  let TEE_s = sign(TEE(i2c, k, C, H), root) in (* sign code of TEE with signing key root *)
+  send(w, TEE_s) | DEV(i2c, k, C, H, w, root) (* execute DEV and the sending of TEE_s in parallel *)
+}

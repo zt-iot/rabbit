@@ -211,7 +211,7 @@ let ctx_check_ty_ch ctx ty =
    List.exists (fun (s, t) -> 
       if s = ty then
       match t with
-      | Input.KindChan -> true 
+      | Input.CChan -> true 
       | _ -> false
       else false) ctx.ctx_ty
 
