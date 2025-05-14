@@ -5,13 +5,15 @@ data signature
 data image
 data filedescr
 
+data list['a] (* if we want to declare a type with a polymorphic type parameter, we do it like this *)
+              (* these "'a, 'b" etc. can be inferred whenever they are used *)
+
 data keykind      (* we can think of keykind as a set with 5 elements: keykind := {Sym, Enc, Dec, Sig, Chk} *)
 data key[keykind] (* declare a simple type which takes an element of another type as a parameter *)
 
 data hash   (* assign this type to the result of a hash computation *)
 
-data list['a] (* if we want to declare a type with a polymorphic type parameter, we do it like this *)
-              (* these "'a, 'b" etc. can be inferred whenever they are used *)
+
 
 
 (***********)
@@ -23,26 +25,22 @@ type client_t 	  : process
 type client_ta_t  : process
 
 type udp_t 	  : channel[image * signature] (* image and signature are exposed to attacker on udp_t channel *)
-type rpc_t 	  : channel[client_img] (* the attacker can do nothing to client_img *)
+type rpc_t 	  : channel[client_img] (* the attacker cannot tamper or eavesdrop on the rpc_t channel *)
 
-
-type client_str : string
 type conn_client : connection
 type client_img : image
 
-
-type symkey_client_ta : key[Sym]
-type client_ta_sig : signature
+type symkey_client_ta : key[Sym] (* We have not specified the type of data which the key performs on *)
 type sigkey_client_ta : key[Sig]
+type client_ta_sig : signature
+
 
 
 type ver_key_server : key[Chk]
 
 
 
-
 type deckey_client : key[BadBadBad]   (* giving a declaration like this means we declare BadBadBad as a member of keykind *)
-
 
 
 
@@ -52,11 +50,11 @@ function vk : key[Sig] -> key[Chk]
 function enc : 'a -> key[Sym] -> cipher['a]
 function sign : 'a -> key[Sig] -> signature
 function dec : cipher['a] -> key[Sym] -> 'a
-function fst : ('a, 'b) -> 'a
-function snd : ('a, 'b) -> 'b
+function fst : 'a * 'b -> 'a
+function snd : 'a * 'b -> 'b
 equation fst ((x, y)) = x
 equation snd ((x, y)) = y
-function true : bool
+function true : bool                                        (* A 0-argument function, aka a constant, which is of type bool *)
 function verify : signature -> 'a -> key[Enc] -> bool
 equation dec(enc(x, y), y) = x
 equation verify (sign(d, k), d, vk(k)) = true
@@ -65,7 +63,7 @@ equation verify (sign(d, k), d, vk(k)) = true
 
 
 (* load syscalls on channels *)
-load "udp_rpc.rab"
+load "udp_rpc_typed_opt_1.rab"
 
 (* picture *)
 syscall get_picture () : client_img {
@@ -81,7 +79,7 @@ syscall fopen (p : string) : filedescr['a] {
   (* p.File(x) indicates that x is stored in p. This is a Rabbit reserved fact *)
   (* It gets created when the filesys declarations get interpreted *)
   case [p.File(x)] ->
-    new y = Fd(x) in 
+    new y = Fd(x) in (* TODO don't know how to type y in this case *)
     put [p.File(x)]; y
   end
 }
@@ -114,17 +112,21 @@ allow client_t [get_picture]
 allow client_ta_t readonly_t  [fopen, fread, fclose] 
 allow server_t readonly_t     [fopen, fread, fclose]  
 
-(** access control necessary for TYPE SYSTEM *)
 
-allow client_t client_str
-allow client_t conn_client
-allow client_t client_img 
 
-allow client_ta_t symkey_client_ta (* terms of symkey_client_ta must stay secret from other parties and the attacker *)
-allow client_ta_t client_ta_sig 
-allow client_ta_t sigkey_client_ta (* terms of sigkey_client_ta must stay secret from other parties and the attacker *)
+(** access control necessary for defining security lattice of TYPE SYSTEM *)
+allow client_t client_img [get_picture, invoke_rpc, send]
+allow client_t client_ta_sig [send, recv] (* client is allowed to receive a client_ta_sig type from `recv` and is allowed to pass it to `send` *)
+allow client_t conn_client [connect_rpc, invoke_rpc, close_rpc] (* client is allowed to get a conn_client from `connect_rpc` and to give it to `invoke_rpc`, `close_rpc` *)
 
-allow server_t ver_key_server 
+allow client_ta_t symkey_client_ta [.] (* client_ta is allowed to directly access symkey_client_ta *)
+allow client_ta_t sigkey_client_ta [.] (* client_ta is allowed to directly interact with a term of `sigkey_client_ta` through equational theory functions *)
+
+allow client_ta_t client_img [.] (* client_ta is allowed to directly interact with client_img type *)
+allow client_ta_t client_ta_sig [send] (* client_ta is allowed to send client_ta_sig type *)
+
+
+allow server_t ver_key_server [.]
 
 
 (***********)
@@ -138,6 +140,7 @@ attack tampar_channel on recv (c) {
 
 allow attack server_t [tampar_channel] 
 
+(* we do not type v as we can choose explicitly to leak any value v to the attacker *)
 passive attack eaves_mem (v) {
   put [::Out(v)]
 }
@@ -171,8 +174,8 @@ filesys client_ta_fs =
 (** process templates *)
 process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t 
 {  
-  var privkey_path : client_str = "/secret/priv"
-  var invoke_func : client_str = "sign_image"
+  var privkey_path : string = "/secret/priv"
+  var invoke_func : string = "sign_image"
 
   main 
   {
@@ -206,7 +209,7 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
 {
   var fek : symkey_client_ta = sym_k
 
-  function sign_image(image : client_img, privkey_path : client_str) : client_ta_sig 
+  function sign_image(image : client_img, privkey_path : string) : client_ta_sig 
   {
     var privkey_fd : filedescr[cipher[sigkey_client_ta]] = fopen(privkey_path) in
 
@@ -253,7 +256,7 @@ process server(ch_net : udp_t) : server_t
     var pubkey : ver_key_server = fread(pubkey_fd) in 
     repeat 
     | [] →
-      var p : (client_ta_sig, client_img) = recv(ch_net) in
+      var sig_img_pair : client_ta_sig * client_img = recv(ch_net) in
       var res : bool = verify(fst(p), snd(p), pubkey) in 
       case 
       | [res =  true] →

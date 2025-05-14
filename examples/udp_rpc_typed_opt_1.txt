@@ -1,9 +1,9 @@
 (** asynchronous channels *)
-syscall send(c : channel, v : a') : unit {
+syscall send(c : channel['a], v : 'a) : unit {
   put [c::store(v)]
 }
 
-syscall recv(c : channel) : a' {
+syscall recv(c : channel['a]) : 'a {
   case 
   | [c::store(v)] →   v 
   end
@@ -20,19 +20,19 @@ syscall connect_rpc (c : channel['a]) : conn_client {
   end
 } 
 
-syscall invoke_rpc (cid : conn_client, f : a' -> b' -> c', arg1 : 'a, arg2 : 'b) : 'c {
+syscall invoke_rpc (cid : conn_client, f : 'a -> 'b -> 'c, arg1 : 'a, arg2 : 'b) : 'c {
   let c : rpc_t = cid.chid in 
   put [c::invoke(f, arg1, arg2)]; 
   case [c:: Returned(v)] → v end
 }
 
-syscall close_rpc (cid){
+syscall close_rpc (cid : conn_client){
   let c = cid.chid in
   delete cid.chid;
   put[c::exit()]
 }
 
-syscall accept_rpc (c){
+syscall accept_rpc (c : channel['a]) : unit {
   case [c::req()] → put [c::ack()] end
 }
 
