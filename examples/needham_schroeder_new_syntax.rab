@@ -17,13 +17,13 @@ load "udp_rpc.rab"
 
 
 syscall fopen (p) {
-  case [p.x] ->
+  case [p.File(x)] ->
     new y = Fd(x) in 
-    put [p.x]; y
+    put [p.File(x)]; y
   end
 }
 
-syscall fread (y){
+syscall fread (y) {
   let x = y.Fd in
   x
 }
@@ -44,11 +44,8 @@ type udp_t 	  : channel
 
 (***********)
 (** access control *)
-allow client_t udp_t [send recv]
-
-allow client_ta_t readonly_t  [fopen, fread, fclose] 
-
-
+allow client_t udp_t [send, recv]
+allow client_t readonly_t  [fopen, fread, fclose]
 
 
 
@@ -61,11 +58,10 @@ attack tampar_channel on recv (c) {
   end
 }
 
-(* TODO not sure if this is a valid attack on fopen *)
 attack tamper_file on fopen (p) {
-  case [p.x, ::In(w)] -> 
+  case [p.File(x), ::In(w)] -> 
     new y = Fd(w) in 
-    put [p.w]; y
+    put [p.File(w)]; y
   end
 }
 
@@ -89,12 +85,12 @@ const fresh priv_key_bob
 channel udp : udp_t
 
 process alice(ch_net : udp_t) : client_t {
-
-    (* attacker is allowed to tamper this value, 
-    modelling the situation that attacker is able to convince Alice to initiate a session with them *)
+    
     file "/secret/pub_bob" : readonly_t = pk(priv_key_bob)
 
     main {
+        (* on fopen, attacker can supply filedescriptor with different content than expected,
+        modelling the situation that attacker is able to convince Alice to initiate a session with them *)
         var pub_key_bob_fd = fopen("/secret/pub_bob") in
         var pub_key_bob = fread(pub_key_bob_fd) in 
         var c_txt1 = enc((nonce_a, "Alice"), pub_key_bob) in 
@@ -130,6 +126,7 @@ system
     alice(udp)
 ||  bob(udp)
 requires [
-    (* nothing for now *)
+    (* Secrecy of the nonce *)
+    all-traces "not DummyEvent()"
 ]
 
