@@ -24,7 +24,7 @@ To install, using Homebrew would be the easiest:
 brew install tamarin-prover/tap/tamarin-prover
 ```
 
-More details can be found in: [https://tamarin-prover.com/manual/master/book/002_installation.html](https://tamarin-prover.com/manual/master/book/002_installation.html)
+More details and other installation options can be found in: [https://tamarin-prover.com/manual/master/book/002_installation.html](https://tamarin-prover.com/manual/master/book/002_installation.html)
 
 ## Running Rabbit and Tamarin
 
