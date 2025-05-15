@@ -21,10 +21,10 @@ allow client_t udp_t [recv]
 (***********)
 (** access control necessary for defining security lattice of TYPE SYSTEM *)
 (***********)
-allow server_t pub_sig [send]
-allow server_t secret_server_sig [send, recv]
+allow server_t pub_sig [read, provide]
+allow server_t secret_server_sig [read, provide]
 
-allow client_t pub_sig [recv]
+allow client_t pub_sig [read]
 
 
 process server(ch_net : udp_t) : server_t {

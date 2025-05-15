@@ -34,9 +34,12 @@ type symkey_client_ta : key[Sym] (* We have not specified the type of data which
 type sigkey_client_ta : key[Sig]
 type client_ta_sig : signature
 
-
-
 type ver_key_server : key[Chk]
+
+
+
+
+
 
 
 
@@ -124,6 +127,8 @@ allow client_ta_t sigkey_client_ta [.] (* client_ta is allowed to directly inter
 
 allow client_ta_t client_img [.] (* client_ta is allowed to directly interact with client_img type *)
 allow client_ta_t client_ta_sig [send] (* client_ta is allowed to send client_ta_sig type *)
+(* note that client_ta_t does not use functions `connect_rpc`, `invoke_rpc`, `close_rpc`, thus it is not necessary to give client_ta_t access to conn_client *)
+(* allow client_ta_t conn_client [.] *)
 
 
 allow server_t ver_key_server [.]
