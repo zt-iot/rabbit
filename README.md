@@ -26,6 +26,13 @@ brew install tamarin-prover/tap/tamarin-prover
 
 More details and other installation options can be found in: [https://tamarin-prover.com/manual/master/book/002_installation.html](https://tamarin-prover.com/manual/master/book/002_installation.html)
 
+### Notes for Ubuntu users 
+
+You have to install `tamarin-prover` and `maude` manually.  (There may be a package for Maude but you should use the latest version.)
+
+* Maude 3.5 can be downloaded from [https://github.com/maude-lang/Maude/releases/tag/Maude3.5](https://github.com/maude-lang/Maude/releases/tag/Maude3.5).  Extract files form a zip and `maude` is the executable.   The other files should be placed in the same directory as `maude`.
+* Tamarin-prover can be downloaded from [https://github.com/tamarin-prover/tamarin-prover/releases](https://github.com/tamarin-prover/tamarin-prover/releases).  `tamarin-prover` is the executable.
+
 ## Running Rabbit and Tamarin
 
 To generate a Tamarin file from a Rabbit source:
