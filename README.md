@@ -31,7 +31,7 @@ More details can be found in: [https://tamarin-prover.com/manual/master/book/002
 To generate a Tamarin file from a Rabbit source:
 
 ```bash
-rabbit examples/camserver.rab -o camserver.rab.spthy
+rabbit examples/camserver.rab -o camserver.rab.spthy --post-process --tag-transition
 ```
 
 Optional flags:
