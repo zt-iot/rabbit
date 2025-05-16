@@ -22,13 +22,16 @@ and expr' =
   | Process of string (* only needed for syscall defintiions *)
   (* | Run of string * expr list (* only needed for syscall defintiions *) *)
   (* | FrVariable of string *)
+  | ParamChan of string * expr 
+  | ParamConst of string * expr
+
+  | Param of string
 
 type fact = fact' Location.located
 and fact' = 
   | Fact of Name.ident * expr list
   | GlobalFact of Name.ident * expr list
   | ChannelFact of expr * Name.ident * expr list
-  | PathFact of expr * Name.ident * expr list
   | ProcessFact of Name.ident * Name.ident * expr list
   | ResFact of int * expr list
 
@@ -55,6 +58,11 @@ and cmd' =
   | Get of Name.ident list * expr * Name.ident * cmd
   | Del of expr * Name.ident
 
+(* last one is type` *)
+type chan_arg =
+  | ChanArgPlain of string * string 
+  | ChanArgParam of string * string 
+  | ChanArgParamInst of string * expr * string
 
 
 type proc = proc' Location.located
@@ -68,6 +76,6 @@ and fpath' =
 type lemma = lemma' Location.located
 and lemma' = 
   | PlainLemma of Name.ident * Name.ident  
-  | ReachabilityLemma of Name.ident * Name.ident list * fact list
+  | ReachabilityLemma of Name.ident * Name.ident list * Name.ident list * Name.ident list * fact list
   | CorrespondenceLemma of Name.ident * Name.ident list * fact * fact 
 

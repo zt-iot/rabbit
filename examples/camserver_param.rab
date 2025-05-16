@@ -24,7 +24,6 @@ syscall get_picture () {
 (* filesys *)
 function h:1
 
-
 syscall fopen (p) {
   case [p.x] ->
     new y = Fd(x) in 
@@ -41,7 +40,6 @@ syscall fclose (y) {
   delete y.Fd
 }
 
-
 (***********)
 (** declare types with their classes *)
 type readonly_t   : filesys
@@ -56,6 +54,7 @@ type rpc_t 	  : channel
 (***********)
 (** access control *)
 allow client_t udp_t [send]
+allow server_t udp_t [.]
 allow server_t udp_t [recv]
 
 allow client_t rpc_t [connect_rpc, invoke_rpc, close_rpc]
@@ -90,22 +89,19 @@ allow client_t [eaves_mem]
 
 (***********)
 (** global constants *)
-const fresh priv_k
-const fresh sym_k
-const fresh init_data
-
+const fresh sym_k<>
+const fresh priv_k<>
+const pubkey<k> = pk(priv_k<k>)
 
 (***********)
 (** installed channels and filesystems *)
-channel udp : udp_t
-
-channel rpc : rpc_t
+channel rpc<> : rpc_t
+channel udp<> : udp_t
 
 (***********)
 (** process templates *)
-process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t 
+process client<k>(ch_net : udp_t, ch_rpc : rpc_t) : client_t 
 {  
-  var dev_path = "/dev/camera"
   var privkey_path = "/secret/priv"
   var invoke_func = "sign_image"
 
@@ -120,9 +116,9 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
       _ := eaves_mem(image);
 
       var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
-      
+
       _ := eaves_mem(sig);
-      
+
       event [::ImgSend(image)];
       
       _ := send(ch_net, (sig, image))
@@ -137,10 +133,11 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
   }
 }
 
-process client_ta(ch_rpc : rpc_t) : client_ta_t 
-{
-  file "/secret/priv" : readonly_t = enc(priv_k, sym_k)
-  var fek = sym_k
+process client_ta<k>(ch_rpc : rpc_t) : client_ta_t 
+{ 
+  file "/secret/priv" : readonly_t = enc(priv_k<k>, sym_k<k>)
+
+  var fek = sym_k<k>
 
   function sign_image(image, privkey_path) 
   {
@@ -150,7 +147,7 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
 
     var privkey0 = dec(privkey, fek) in 
 
-    var sig = sign(image, privkey0) in
+    var sig = sign(image, priv_k<k>) in
 
     _ := fclose(privkey_fd);
 
@@ -179,21 +176,16 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
   }
 }
 
-process server(ch_net : udp_t) : server_t 
+process server(ch_net<> : udp_t) : server_t 
 {
-  file "/secret/pub" : readonly_t = pk(priv_k)
-  var pubkey_path = "/secret/pub"
-
-
 
   main 
   {
-    var pubkey_fd = fopen(pubkey_path) in 
-    var pubkey = fread(pubkey_fd) in 
     repeat 
-    | [] →
-      var p = recv(ch_net) in
-      var res = verify(fst(p), snd(p), pubkey) in 
+    | [ch_net<addr> :: store(d) ] →
+      var p = d in 
+      case [::In(k)] -> p := k | [] -> skip end;
+      var res = verify(fst(p), snd(p), pubkey<addr>) in 
       case 
       | [res = true] →
         event [::ImgRecvValid(snd(p))]
@@ -210,9 +202,8 @@ process server(ch_net : udp_t) : server_t
 
 (***********)
 system 
-  client(udp, rpc)
-  |	server(udp) 
-  |	client_ta(rpc) 
+  !n . (client<n>(udp<n>, rpc<n>) | client_ta<n>(rpc<n>)) 
+  |    server(udp<>)
 requires  
 [
   lemma Reachable :
@@ -221,3 +212,4 @@ requires
   lemma Correspondence :
     corresponds ::ImgRecvValid(x) ~> ::ImgSend (x)
 ]
+

@@ -21,9 +21,9 @@
 
 (* constant tokens for rabbit *)
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
-%token CHANNEL PROCESS PATH DATA FILESYS 
-%token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR
-%token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY
+%token CHANNEL PROCESS PATH DATA FILESYS FILE
+%token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LTGT
+%token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL
 
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
 
@@ -66,12 +66,16 @@ plain_decl:
   | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t, Some a)} 
   | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)} 
 
-  | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
+  // | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
 
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
 
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME 
-    LBRACE l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, l, f, m) }
+    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, fl, l, f, m) }
+
+  | PROCESS id=NAME LT p=NAME GT LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME 
+    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclParamProc(id, p, parems, ty,fl, l, f, m) }
+
 
   | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
 
@@ -85,8 +89,21 @@ plain_decl:
 
   | sys { $1 }
 
+  | CHANNEL id=NAME LT GT COLON n=NAME { DeclParamChan(id, n) }
+  | CHANNEL id=NAME LTGT COLON n=NAME { DeclParamChan(id, n) }
+
+
+  | CONST t=NAME LT p=NAME GT EQ e=expr { DeclParamInit(t, Some (p, e)) }
+
+  | CONST FRESH t=NAME LT GT { DeclParamInit(t,None) }
+  | CONST FRESH t=NAME LTGT { DeclParamInit(t,None) }
+
+
+
 colon_name_pair :
-  | a=NAME COLON b=NAME { (a, b) }
+  | a=NAME COLON b=NAME { (false, a, b) }
+  | a=NAME LT GT COLON b=NAME { (true, a, b) }
+  | a=NAME LTGT COLON b=NAME { (true, a, b) }
 
 external_syscall:
   |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN 
@@ -98,13 +115,13 @@ syscall_tk:
 
 fact : mark_location(plain_fact) { $1 }
 plain_fact:
-  | scope=NAME DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact(scope, id, es) }
-  | scope=NAME DOT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { PathFact(scope, id, es) }
-  | scope=NAME PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
+  | scope=expr DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact(scope, id, es) }
+  | scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
   | DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact(id, es) }
   | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact(id, es) }
   | e1=expr EQ e2=expr { ResFact(0, [e1; e2]) }
   | e1=expr NEQ e2=expr { ResFact(1, [e1; e2]) }
+  | scope=expr DOT e=expr { ResFact(3, [scope; e]) }
 
 typed_arg:
   | var=NAME { (TyValue, var) }
@@ -112,16 +129,33 @@ typed_arg:
   | PROCESS var=NAME { (TyProcess, var) }
   | PATH var=NAME { (TyPath, var) }
 
+
 sys:
-  | SYSTEM p=separated_nonempty_list(BBAR, proc) REQUIRES 
+  | SYSTEM p=separated_nonempty_list(BAR, proc) REQUIRES 
     LBRACKET a=separated_nonempty_list(SEMICOLON, lemma)  RBRACKET { DeclSys(p, a) }
 
-proc: mark_location(plain_proc) { $1 }
-plain_proc:
-  | id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN WITH f=NAME 
-    { Proc (id, parems, Some f) }
-  | id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN 
-    { Proc (id, parems, None) }
+proc:
+  | p=uproc { UnboundedProc p }
+  | p=bproc { BoundedProc p}
+
+uproc: mark_location(plain_uproc) { $1 }
+plain_uproc:
+  | id=NAME LPAREN parems=separated_list(COMMA, chan_arg) RPAREN 
+    { Proc (id, parems) }
+  | id=NAME LT p=expr GT LPAREN parems=separated_list(COMMA, chan_arg) RPAREN 
+    { ParamProc (id, p, parems) }
+
+// bproc: mark_location(plain_bproc) { $1 }
+bproc:
+  | EXCL v=NAME DOT p=uproc { (v, [p]) }
+  | EXCL v=NAME DOT LPAREN p=separated_list(BAR, uproc) RPAREN { (v, p) }
+
+
+chan_arg:
+  | id=NAME { ChanArgPlain id }
+  | id=NAME LT GT { ChanArgParam id }
+  | id=NAME LTGT { ChanArgParam id }
+  | id=NAME LT e=expr GT { ChanArgParamInst (id, e) }
 
 lemma: mark_location(plain_lemma) { $1 }
 plain_lemma:
@@ -134,6 +168,13 @@ plain_prop:
   
   | EXTRACE QUOTED_STRING {PlainString ("exists-trace \""^$2^"\"") }
   | ALLTRACE QUOTED_STRING {PlainString ("all-traces \""^$2^"\"") }
+
+file_stmts:
+  | { [] }
+  | l=file_stmt ls=file_stmts { l :: ls }
+
+file_stmt:
+  | FILE id=expr COLON ty=NAME EQ e=expr { (id, ty, e) }
 
 let_stmts:
   | { [] }
@@ -181,6 +222,7 @@ plain_expr:
     { let (op, loc) = oploc in
       Apply (op, [e2; e3])
     }
+  | f=NAME LT e=expr GT { Param (f, e) }
   | LPAREN es=separated_list(COMMA, expr) RPAREN { Tuple es } 
   | s=QUOTED_STRING { String s }
 

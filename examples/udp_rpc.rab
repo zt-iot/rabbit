@@ -6,7 +6,6 @@ syscall send(c, v) {
 syscall recv(c) {
   case 
   | [c::store(v)] →   v 
-(*  | [c::store(v), ::In(w)] →   w *)
   end
 }
 

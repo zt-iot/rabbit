@@ -13,14 +13,15 @@ and expr' =
   | Apply of operator * expr list
   | Tuple of expr list
 
+  | Param of Name.ident * expr
+
 type fact = fact' Location.located
 and fact' = 
   | Fact of Name.ident * expr list
   | GlobalFact of Name.ident * expr list
-  | ChannelFact of Name.ident * Name.ident * expr list
-  | PathFact of Name.ident * Name.ident * expr list
-  | ProcessFact of Name.ident * Name.ident * expr list
-  | ResFact of int * expr list (* 0: eq 1: neq *)
+  | ChannelFact of expr * Name.ident * expr list
+  | ProcessFact of expr * Name.ident * expr list
+  | ResFact of int * expr list (* 0: eq 1: neq 3 : FILE*)
   (* | InjFact of  *)
 
 type cmd = cmd' Location.located
@@ -40,9 +41,22 @@ and cmd' =
   | Get of Name.ident list * expr * Name.ident * cmd
   | Del of expr * Name.ident
 
-type proc = proc' Location.located
-and proc' =
-  | Proc of Name.ident * (Name.ident list) * Name.ident option
+type chan_arg =
+  | ChanArgPlain of Name.ident
+  | ChanArgParam of Name.ident
+  | ChanArgParamInst of Name.ident * expr
+
+
+
+type pproc = pproc' Location.located
+and pproc' =
+  | Proc of Name.ident * (chan_arg list)
+  | ParamProc of Name.ident * expr * (chan_arg list)
+
+type proc = 
+| UnboundedProc of pproc 
+| BoundedProc of (Name.ident * pproc list)
+
 
 type prop = prop' Location.located
 and prop' =
@@ -53,6 +67,7 @@ and prop' =
 type lemma = lemma' Location.located
 and lemma' =
   | Lemma of Name.ident * prop 
+
 
 type decl = decl' Location.located
 and decl' =
@@ -66,9 +81,16 @@ and decl' =
   | DeclInit of Name.ident * expr option
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
   | DeclChan of Name.ident * Name.ident
-  | DeclProc of Name.ident * (Name.ident * Name.ident) list * Name.ident * 
+  | DeclProc of Name.ident * (bool * Name.ident * Name.ident) list * Name.ident * 
+                ((expr * Name.ident * expr) list) * 
+                ((Name.ident * expr) list) * 
+                (Name.ident * (Name.ident list) * cmd) list * cmd
+  | DeclParamProc of Name.ident * Name.ident * (bool * Name.ident * Name.ident) list * Name.ident * 
+                ((expr * Name.ident * expr) list) * 
                 ((Name.ident * expr) list) * 
                 (Name.ident * (Name.ident list) * cmd) list * cmd
   | DeclSys of proc list * lemma list 
   | DeclLoad of string
 
+  | DeclParamInit of Name.ident * (Name.ident * expr) option
+  | DeclParamChan of Name.ident * Name.ident
