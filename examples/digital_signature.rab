@@ -115,7 +115,7 @@ process bob(ch_net : udp_t) : client_t
     case 
     | [res = true] ->
         event [::IntegritySuccess(fst(msg_with_sig))]
-    | [res <> true] ->
+    | [res != true] ->
         event [::IntegrityFail(fst(msg_with_sig))]
     end;
     event [::BobClose ()]
@@ -124,7 +124,7 @@ process bob(ch_net : udp_t) : client_t
 
 
 system
-   alice(udp) || bob(udp)
+   alice(udp) | bob(udp)
 requires  [
     lemma Reachable : 
       exists-trace "Ex #i #j . AliceClose () @ #i & BobClose() @ #j";

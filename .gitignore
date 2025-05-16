@@ -9,3 +9,4 @@ _output/
 _*/
 */.*
 \#*#
+node_modules/
