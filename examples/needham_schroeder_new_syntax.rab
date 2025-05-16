@@ -12,14 +12,15 @@ function verify:3
 equation dec(enc(x, y), y) = x
 equation verify (sign(d, k), d, pk(k)) = true
 
-(* load syscalls on channels (send/recv) *)
+
+(* load some primitive syscalls, incl. send and recv *)
 load "udp_rpc.rab"
 
 
 syscall fopen (p) {
-  case [p.File(x)] ->
+  case [p.x] ->
     new y = Fd(x) in 
-    put [p.File(x)]; y
+    put [p.x]; y
   end
 }
 
@@ -32,13 +33,14 @@ syscall fclose (y) {
   delete y.Fd
 }
 
+
 (***********)
 (** declare types with their classes *)
+type readonly_t   : filesys
+
 type client_t 	  : process
 
 type udp_t 	  : channel
-
-
 
 
 
@@ -59,9 +61,9 @@ attack tampar_channel on recv (c) {
 }
 
 attack tamper_file on fopen (p) {
-  case [p.File(x), ::In(w)] -> 
+  case [p.x, ::In(w)] -> 
     new y = Fd(w) in 
-    put [p.File(w)]; y
+    put [p.w]; y
   end
 }
 
@@ -71,6 +73,10 @@ passive attack eaves_mem (v) {
 }
 
 allow client_t [eaves_mem]
+
+
+
+
 
 (***********)
 (** global constants *)
@@ -82,51 +88,62 @@ const fresh priv_key_bob
 
 (***********)
 (** installed channels and filesystems *)
-channel udp : udp_t
 
-process alice(ch_net : udp_t) : client_t {
-    
+channel udp : udp_t (* Only a single UDP channel for now *)
+
+
+(***********)
+(** process templates *)
+
+process alice(ch_net : udp_t) : client_t
+{
     file "/secret/pub_bob" : readonly_t = pk(priv_key_bob)
 
-    main {
-        (* on fopen, attacker can supply filedescriptor with different content than expected,
-        modelling the situation that attacker is able to convince Alice to initiate a session with them *)
-        var pub_key_bob_fd = fopen("/secret/pub_bob") in
-        var pub_key_bob = fread(pub_key_bob_fd) in 
-        var c_txt1 = enc((nonce_a, "Alice"), pub_key_bob) in 
-        _ := send(ch_net, c_txt1);
+  	main 
+  	{
+      var pub_key_bob_fd = fopen("/secret/pub_bob") in    
+      var pub_key_bob = fread(pub_key_bob_fd) in 
+      var c_txt1 = enc((nonce_a, "Alice"), pub_key_bob) in 
+      _ := send(ch_net, c_txt1);
 
-        var c_txt2 = recv(ch_net) in 
-        (* shadowing *)
-        var nonce_b = snd(dec(c_txt2, priv_key_alice)) in 
-        var c_txt3 = enc(nonce_b, pub_key_bob) in 
-        _ := send(ch_net, c_txt3);
+      var c_txt2 = recv(ch_net) in
 
-        fclose(pub_key_bob_fd);
+      var nonce_b = snd(dec(c_txt2, priv_key_alice)) in 
+      var c_txt3 = enc(nonce_b, pub_key_bob) in 
+      _ := send(ch_net, c_txt3);
 
-    }
+      _ := fclose(pub_key_bob_fd) ;
+      
+      
+      event [::AliceClose ()] (* Leaving this out causes a syntax error for some reason... I really don't think that's expected... *)
+  	}
 }
 
+process bob(ch_net : udp_t) : client_t
+{
+  (* Use public key of Alice to verify message *)
+  var pub_key_alice = pk(priv_key_alice)
 
-process bob(ch_net : udp_t) : client_t {
-    main {
-        var c_txt1 = recv(ch_net) in 
+  main 
+  {
+    
+    var c_txt1 = recv(ch_net) in 
 
-        (* shadowing *)
-        var nonce_a = fst(dec(c_txt1, priv_key_bob)) in 
-        var c_txt2 = enc((nonce_a, nonce_b), pk(priv_key_alice)) in 
-        _ := send(ch_net, c_txt2);
+    (* shadowing *)
+    var nonce_a = fst(dec(c_txt1, priv_key_bob)) in 
+    var c_txt2 = enc((nonce_a, nonce_b), pk(priv_key_alice)) in 
+    _ := send(ch_net, c_txt2) ;
 
-
-    }
+    event [::BobClose ()] (* Leaving this out causes a syntax error for some reason... I really don't think that's expected... *)
+  }
 }
 
 
 system 
     alice(udp)
-||  bob(udp)
+|   bob(udp)
 requires [
     (* Secrecy of the nonce *)
-    all-traces "not DummyEvent()"
+    lemma Correspondence :
+      all-traces "not DummyEvent()"
 ]
-
