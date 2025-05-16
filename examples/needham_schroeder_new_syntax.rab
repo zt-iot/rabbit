@@ -105,17 +105,24 @@ process alice(ch_net : udp_t) : client_t
       var pub_key_bob = fread(pub_key_bob_fd) in 
       var c_txt1 = enc((nonce_a, "Alice"), pub_key_bob) in 
       _ := send(ch_net, c_txt1);
+      event [::AliceSendNonceA(nonce_a)];
 
       var c_txt2 = recv(ch_net) in
+      var p_txt2 = dec(c_txt2, priv_key_alice) in
 
-      var nonce_b = snd(dec(c_txt2, priv_key_alice)) in 
-      var c_txt3 = enc(nonce_b, pub_key_bob) in 
-      _ := send(ch_net, c_txt3);
+      var echo_nonce_a = fst(p_txt2) in 
+      var nonce_b = snd(p_txt2) in 
 
-      _ := fclose(pub_key_bob_fd) ;
+      (* In principle, Alice should only send the final message if nonce_a == echo_nonce_a *)
+      case 
+      | [::AliceSendNonceA(echo_nonce_a)] →
+        var c_txt3 = enc(nonce_b, pub_key_bob) in 
+        _ := send(ch_net, c_txt3);
+        event [::SecretNonceAlice(echo_nonce_a)]
+      end;
       
-      
-      event [::AliceClose ()] (* Leaving this out causes a syntax error for some reason... I really don't think that's expected... *)
+      _ := fclose(pub_key_bob_fd);
+      event [::AliceClose()]
   	}
 }
 
@@ -126,15 +133,28 @@ process bob(ch_net : udp_t) : client_t
 
   main 
   {
-    
+    event [::BobOpen ()];
+
     var c_txt1 = recv(ch_net) in 
 
     (* shadowing *)
     var nonce_a = fst(dec(c_txt1, priv_key_bob)) in 
-    var c_txt2 = enc((nonce_a, nonce_b), pk(priv_key_alice)) in 
-    _ := send(ch_net, c_txt2) ;
+    event [::BobRecv(nonce_a)];
 
-    event [::BobClose ()] (* Leaving this out causes a syntax error for some reason... I really don't think that's expected... *)
+    var c_txt2 = enc((nonce_a, nonce_b), pk(priv_key_alice)) in 
+    _ := send(ch_net, c_txt2); 
+    event [::BobSendNonceB(nonce_b)]; 
+
+    var c_txt3 = recv(ch_net) in 
+    var echo_nonce_b = dec(c_txt3, priv_key_bob) in 
+
+    (* output SecretNonceBob event if the nonce that Bob receives equals the one he sent *)
+    case 
+    | [::BobSendNonceB(echo_nonce_b)] →
+      event [::SecretNonceBob(echo_nonce_b)]
+    end;
+
+    event [::BobClose()]
   }
 }
 
@@ -144,6 +164,13 @@ system
 |   bob(udp)
 requires [
     (* Secrecy of the nonce *)
-    lemma Correspondence :
-      all-traces "not DummyEvent()"
+    lemma Correspondence1 :
+      all-traces "All #j  . BobClose() @ #j ==> BobClose() @ #j" ;
+    lemma Reachable : 
+      reachable ::BobOpen() ;
+    lemma Correspondence3 : 
+      exists-trace "Ex #i . BobOpen() @ #i " (* ;
+    
+    lemma NonceSecrecy : 
+      all-traces "All na nb . SecretNonceAlice(na) & SecretNonceBob(nb) ==> (not K(na)) & (not K(nb))" *)
 ]
