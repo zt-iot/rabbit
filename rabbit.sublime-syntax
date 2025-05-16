@@ -1,0 +1,71 @@
+%YAML 1.2
+---
+name: Rabbit
+file_extensions:
+  - rab
+scope: source.rabbit
+contexts:
+  main:
+    - match: '\(\*\*'
+      scope: comment.block.documentation.rabbit
+      push: documentation-comment
+
+    - match: '\(\*'
+      scope: comment.block.rabbit
+      push: comment
+    
+    - match: '::'
+      scope: keyword.operator.scope.rabbit
+
+    - match: '::[a-zA-Z_][a-zA-Z0-9_]*'
+      scope: entity.name.label.rabbit
+
+    - match: '\b(function|equation|syscall|process|const|channel|file|main|case|end|put|delete|new|var|let|in|until|repeat|skip|event|type|allow|system|requires|lemma|passive|attack|on|fresh)\b'
+      scope: keyword.control.rabbit
+
+    - match: '\b(reachable|corresponds|not|exists|forall|inj)\b'
+      scope: keyword.other.rabbit
+
+    - match: '::[a-zA-Z_][a-zA-Z0-9_]*'
+      scope: entity.name.label.rabbit
+
+    - match: '"[^"\\]*(?:\\.[^"\\]*)*"'
+      scope: string.quoted.double.rabbit
+
+    - match: '\b[0-9]+\b'
+      scope: constant.numeric.rabbit
+
+    - match: '\b(true|false)\b'
+      scope: constant.language.boolean.rabbit
+
+    - match: '\b[a-zA-Z_][a-zA-Z0-9_]*\b'
+      scope: variable.other.rabbit
+
+    - match: '->'
+      scope: keyword.operator.arrow.rabbit
+
+    - match: '\|'
+      scope: keyword.operator.choice.rabbit
+
+    - match: '='
+      scope: keyword.operator.assignment.rabbit
+
+    - match: ':'
+      scope: punctuation.separator.colon.rabbit
+
+    - match: '\.'
+      scope: punctuation.accessor.rabbit
+
+  documentation-comment:
+    - meta_scope: comment.block.documentation.rabbit
+    - match: '\*\)'
+      pop: true
+    - match: '.'
+      scope: comment.block.documentation.rabbit
+
+  comment:
+    - meta_scope: comment.block.rabbit
+    - match: '\*\)'
+      pop: true
+    - match: '.'
+      scope: comment.block.rabbit
