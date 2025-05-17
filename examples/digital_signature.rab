@@ -47,13 +47,13 @@ allow client_t [message]
 (* declare active attacks *)
 
 (* tamper message *)
-attack tampar_channel on recv (c) {
+attack tamper_channel on recv (c) {
   case [c::store(j), ::In(w)] ->
     w
   end
 }
 
-allow attack client_t [tampar_channel] 
+allow attack client_t [tamper_channel] 
 
 passive attack eaves_mem (v) {
   put [::Out(v)]
