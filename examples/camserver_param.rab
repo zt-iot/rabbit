@@ -71,13 +71,13 @@ allow server_t readonly_t     [fopen, fread, fclose]
 (***********)
 (** attacker model *)
 
-attack tampar_channel on recv (c) {
+attack tamper_channel on recv (c) {
   case [c::store(j), ::In(w)] ->
     w
   end
 }
 
-allow attack server_t [tampar_channel] 
+allow attack server_t [tamper_channel] 
 
 passive attack eaves_mem (v) {
   put [::Out(v)]
