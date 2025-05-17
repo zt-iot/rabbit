@@ -75,8 +75,9 @@ attack tamper_file on fopen (p) {
 (** attacker model *)
 allow client_t [eaves_mem]
 
-allow attack client_t [tamper_file]
 allow attack client_t [tamper_channel]
+allow attack client_t [tamper_file]
+
 
 (***********)
 (** global constants *)
@@ -175,6 +176,9 @@ requires [
       reachable ::BobOpen() ;
     lemma Correspondence3 : 
       exists-trace "Ex #i . BobOpen() @ #i " ;
+
+    lemma SecrecyIsEstablished : 
+      exists-trace "Ex na #i nb #j . SecretNonceAlice(na) @ i & SecretNonceBob(nb) @ j" ; 
     
     lemma NonceSecrecyA : 
       all-traces "All na #i . SecretNonceAlice(na) @ i ==> not(Ex #l . K(na) @ l)" ;
