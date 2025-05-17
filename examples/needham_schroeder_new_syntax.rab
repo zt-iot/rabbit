@@ -51,10 +51,14 @@ allow client_t readonly_t  [fopen, fread, fclose]
 
 
 
-(***********)
-(** attacker model *)
 
-attack tampar_channel on recv (c) {
+(** declare passive and active attacks *)
+
+passive attack eaves_mem (v) {
+  put [::Out(v)]
+}
+
+attack tamper_channel on recv (c) {
   case [c::store(j), ::In(w)] ->
     w
   end
@@ -67,16 +71,12 @@ attack tamper_file on fopen (p) {
   end
 }
 
-
-passive attack eaves_mem (v) {
-  put [::Out(v)]
-}
-
+(***********)
+(** attacker model *)
 allow client_t [eaves_mem]
 
-
-
-
+allow attack client_t [tamper_file]
+allow attack client_t [tamper_channel]
 
 (***********)
 (** global constants *)
@@ -89,7 +89,7 @@ const fresh priv_key_bob
 (***********)
 (** installed channels and filesystems *)
 
-channel udp : udp_t (* Only a single UDP channel for now *)
+channel udp : udp_t (* Only a single UDP channel *)
 
 
 (***********)
@@ -104,6 +104,8 @@ process alice(ch_net : udp_t) : client_t
       var pub_key_bob_fd = fopen("/secret/pub_bob") in    
       var pub_key_bob = fread(pub_key_bob_fd) in 
       var c_txt1 = enc((nonce_a, "Alice"), pub_key_bob) in 
+
+      _ := eaves_mem(c_txt1);
       _ := send(ch_net, c_txt1);
       event [::AliceSendNonceA(nonce_a)];
 
@@ -117,8 +119,10 @@ process alice(ch_net : udp_t) : client_t
       case 
       | [::AliceSendNonceA(echo_nonce_a)] →
         var c_txt3 = enc(nonce_b, pub_key_bob) in 
+
+        _ := eaves_mem(c_txt3);
         _ := send(ch_net, c_txt3);
-        event [::SecretNonceAlice(echo_nonce_a)]
+        event [::SecretNonceAlice(echo_nonce_a)] (* declares that `echo_nonce_a` has been established as a shared secret *)
       end;
       
       _ := fclose(pub_key_bob_fd);
@@ -142,6 +146,8 @@ process bob(ch_net : udp_t) : client_t
     event [::BobRecv(nonce_a)];
 
     var c_txt2 = enc((nonce_a, nonce_b), pk(priv_key_alice)) in 
+
+    _ := eaves_mem(c_txt2);
     _ := send(ch_net, c_txt2); 
     event [::BobSendNonceB(nonce_b)]; 
 
@@ -151,7 +157,7 @@ process bob(ch_net : udp_t) : client_t
     (* output SecretNonceBob event if the nonce that Bob receives equals the one he sent *)
     case 
     | [::BobSendNonceB(echo_nonce_b)] →
-      event [::SecretNonceBob(echo_nonce_b)]
+      event [::SecretNonceBob(echo_nonce_b)] (* declares that `echo_nonce_b` has been established as a shared secret *)
     end;
 
     event [::BobClose()]
@@ -163,14 +169,18 @@ system
     alice(udp)
 |   bob(udp)
 requires [
-    (* Secrecy of the nonce *)
     lemma Correspondence1 :
       all-traces "All #j  . BobClose() @ #j ==> BobClose() @ #j" ;
     lemma Reachable : 
       reachable ::BobOpen() ;
     lemma Correspondence3 : 
-      exists-trace "Ex #i . BobOpen() @ #i " (* ;
+      exists-trace "Ex #i . BobOpen() @ #i " ;
     
-    lemma NonceSecrecy : 
-      all-traces "All na nb . SecretNonceAlice(na) & SecretNonceBob(nb) ==> (not K(na)) & (not K(nb))" *)
+    lemma NonceSecrecyA : 
+      all-traces "All na #i . SecretNonceAlice(na) @ i ==> not(Ex #l . K(na) @ l)" ;
+
+    lemma NonceSecrecyB : 
+      all-traces "All nb #j . SecretNonceBob(nb) @ #j ==> not(Ex #m . K(nb) @ #m)"
+
+
 ]
