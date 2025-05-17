@@ -183,8 +183,16 @@ requires [
     lemma NonceSecrecyA : 
       all-traces "All na #i . SecretNonceAlice(na) @ i ==> not(Ex #l . K(na) @ l)" ;
 
+    (* it cannot be that na is established as a secret and attacker knows it *)
+    lemma NonceSecrecyA_Alternative : 
+      all-traces "not(Ex na #i #j . SecretNonceAlice(na) @ i & K(na) @ j)" ;
+
     lemma NonceSecrecyB : 
-      all-traces "All nb #j . SecretNonceBob(nb) @ #j ==> not(Ex #m . K(nb) @ #m)"
+      all-traces "All nb #j . SecretNonceBob(nb) @ #j ==> not(Ex #m . K(nb) @ #m)" ;
+
+    (* it cannot be that nb is established as a secret and attacker knows it *)
+    lemma NonceSecrecyB_Alternative : 
+      all-traces "not(Ex nb #i #j . SecretNonceBob(nb) @ i & K(nb) @ j)"
 
 
 ]
