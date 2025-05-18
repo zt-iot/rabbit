@@ -170,28 +170,36 @@ system
     alice(udp)
 |   bob(udp)
 requires [
-    lemma Correspondence1 :
+    lemma tautology :
       all-traces "All #j  . BobClose() @ #j ==> BobClose() @ #j" ;
-    lemma Reachable : 
+    lemma ReachableBobOpen : 
       reachable ::BobOpen() ;
-    lemma Correspondence3 : 
+    lemma BobOpenTimestampExists : 
       exists-trace "Ex #i . BobOpen() @ #i " ;
 
-    lemma SecrecyIsEstablished : 
-      exists-trace "Ex na #i nb #j . SecretNonceAlice(na) @ i & SecretNonceBob(nb) @ j" ; 
+    lemma NonceAIsSent : 
+      reachable ::AliceSendNonceA(nonce_a) ;
+    lemma NonceAIsSent_Alt : 
+      exists-trace "Ex na #i . AliceSendNonceA(na) @ i" ;
+    
+    lemma SecrecyIsEstablishedA : 
+      exists-trace "Ex na #i  . SecretNonceAlice(na) @ i" ; 
+
+    lemma SecrecyIsEstablishedB : 
+      exists-trace "Ex nb #j . SecretNonceBob(nb) @ j" ;
     
     lemma NonceSecrecyA : 
       all-traces "All na #i . SecretNonceAlice(na) @ i ==> not(Ex #l . K(na) @ l)" ;
 
-    (* it cannot be that na is established as a secret and attacker knows it *)
-    lemma NonceSecrecyA_Alternative : 
-      all-traces "not(Ex na #i #j . SecretNonceAlice(na) @ i & K(na) @ j)" ;
-
     lemma NonceSecrecyB : 
       all-traces "All nb #j . SecretNonceBob(nb) @ #j ==> not(Ex #m . K(nb) @ #m)" ;
 
+    (* it cannot be that na is established as a secret and attacker knows it *)
+    lemma NonceSecrecyA_Alt : 
+      all-traces "not(Ex na #i #j . SecretNonceAlice(na) @ i & K(na) @ j)" ;
+
     (* it cannot be that nb is established as a secret and attacker knows it *)
-    lemma NonceSecrecyB_Alternative : 
+    lemma NonceSecrecyB_Alt : 
       all-traces "not(Ex nb #i #j . SecretNonceBob(nb) @ i & K(nb) @ j)"
 
 
