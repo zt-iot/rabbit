@@ -1445,7 +1445,10 @@ let translate_sys {
 	      match e with
 	      | None -> (* when v is fresh *) 
           tamarin_add_rule t 
-          ("Const"^sep^v, "", [ResFact(2, [Var v])], [InitFact [String ("Const"^sep^v)]; InitFact [List [String ("Const"^sep^v); Var v]]], [mk_constant_fact v])
+          ("Const"^sep^v, "", [ResFact(2, [Var v])], 
+            [InitFact [String ("Const"^sep^v)]; 
+            InitFact [List [String ("Const"^sep^v); Var v]]; mk_constant_fact v], 
+            [mk_constant_fact v])
 	      | Some e -> (* when v is defined *) 
           let e, gv, _ = translate_expr2 e in  
       		tamarin_add_rule t ("Const"^sep^v, "", gv, [ConstantFact(String v, e)], [ConstantFact(String v, e)])) t (List.rev def.Context.def_const) in
