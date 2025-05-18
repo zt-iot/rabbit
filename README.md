@@ -49,9 +49,9 @@ Optional flags:
 To run Tamarin manually:
 
 ```bash
-tamarin-prover camserver.rab.spthy --prove=LemmaName
+tamarin-prover camserver.rab.spthy --prove=
 ```
-
+proves all assertions. To prove a specific lemma, replace the last argument to `--prove=LemmaName`.
 LemmaName is the name of the security assertion listed in the rabbit file. 
 A small caution is that the name may change during the tamarin translation. Hence, it is advised to carefully check the end of the generated `.spthy` file 
 to know the correct name. For example:
