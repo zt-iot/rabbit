@@ -39,10 +39,6 @@ type ver_key_server : key[Chk]
 
 
 
-
-
-
-
 type deckey_client : key[BadBadBad]   (* giving a declaration like this means we declare BadBadBad as a member of keykind *)
 
 
@@ -137,13 +133,13 @@ allow server_t ver_key_server [.]
 (***********)
 (** attacker model *)
 
-attack tampar_channel on recv (c) {
+attack tamper_channel on recv (c) {
   case [c::store(j), ::In(w)] ->
     w
   end
 }
 
-allow attack server_t [tampar_channel] 
+allow attack server_t [tamper_channel] 
 
 (* we do not type v as we can choose explicitly to leak any value v to the attacker *)
 passive attack eaves_mem (v) {
