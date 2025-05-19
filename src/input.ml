@@ -69,6 +69,15 @@ and lemma' =
   | Lemma of Name.ident * prop 
 
 
+
+type simpletyp = 
+  | SimpleTyp of Name.ident * subsimpletyp list
+
+and subsimpletyp = 
+  | PolyType of Name.ident
+  | SubSimpleTyp of simpletyp
+  
+
 type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int
@@ -94,3 +103,4 @@ and decl' =
 
   | DeclParamInit of Name.ident * (Name.ident * expr) option
   | DeclParamChan of Name.ident * Name.ident
+  | DeclSimpleTyp of simpletyp

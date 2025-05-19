@@ -15,7 +15,7 @@
 (* Parentheses & punctuations *)
 %token LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE 
 %token COLONEQ EQ NEQ
-%token COMMA SEMICOLON COLON
+%token COMMA SEMICOLON COLON APOSTROPHE
 %token BBAR
 %token UNDERSCORE
 
@@ -55,7 +55,8 @@ decls:
   | d=decl ds=decls       { d :: ds }
 
 decl: mark_location(plain_decl) { $1 }
-plain_decl:
+plain_decl: 
+  | DATA st=simple_typ { let (t, type_params) = st in DeclSimpleTyp((SimpleTyp(t, type_params))) }
   | FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
   | CONSTANT id=NAME  { DeclExtFun(id, 0) }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
@@ -200,6 +201,28 @@ fpath:
 
 (* mark_location(plain_fpath) { $1 }
 plain_fpath: *)
+
+
+
+
+
+(* A sub_simple_typ is either a polymorphic type or another simple type *)
+sub_simple_typ:
+  | APOSTROPHE t=NAME { PolyType(t) }
+  | t=NAME { SubSimpleTyp(SimpleTyp(t, [])) }
+  | t=NAME LBRACKET type_params=separated_nonempty_list(COMMA, sub_simple_typ) RBRACKET { SubSimpleTyp(SimpleTyp(t, type_params)) }
+
+
+(* a simple_typ is an identifier with an optional list of already declared sub_simple types *)
+simple_typ:
+  | t=NAME { (t, []) }
+  | t=NAME LBRACKET type_params=separated_nonempty_list(COMMA, sub_simple_typ) RBRACKET { (t, type_params) }
+
+
+
+
+poly_ty:
+  | APOSTROPHE t=NAME { (* TODO *) }
 
 type_c:
   | FILESYS { CFsys }

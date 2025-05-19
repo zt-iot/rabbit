@@ -13,6 +13,8 @@ data key[keykind] (* declare a simple type which takes an element of another typ
 
 data hash   (* assign this type to the result of a hash computation *)
 
+data cipher['a]   (* ciphertext which is of type 'a when decrypted *)
+
 
 
 
