@@ -1,7 +1,7 @@
 open Totamarin
 
 type postprocessing_error =
-  | UnintendedError' of string
+  (* | UnintendedError' of string XXX unused *)
   | ConflictingCondition'
 
 
@@ -13,8 +13,8 @@ let error' err = Stdlib.raise (Error err)
 (** Print error description. *)
 let print_error err ppf =
   match err with
-  | UnintendedError' s -> Format.fprintf ppf "unintended behavior. contact the developer %s" s
-  | _ ->   Format.fprintf ppf ""
+  (* | UnintendedError' s -> Format.fprintf ppf "unintended behavior. contact the developer %s" s *)
+  | ConflictingCondition' ->   Format.fprintf ppf "ConflictingCondition'"
 
 
 (* optimize models.contents
@@ -38,7 +38,8 @@ let rec state_eq_ind (i : ((int list) * int) list) j =
   | [], [] -> true
   | _, _ -> false
 
-let state_eq st1 st2 =
+(* xxx unused *)
+let _state_eq st1 st2 =
   state_eq_ind st1.state_index st2.state_index
 
 let forward_transitions_from (m : model) (st : state) : transition list =
@@ -116,7 +117,8 @@ match e1 with
 | MetaVar _i | LocVar _i | TopVar _i -> error ~loc:Location.Nowhere (UnintendedError "variables should have been unified")
 | _ -> e1
 
-let fact_subst_var f s e =
+(* xxx unused *)
+let _fact_subst_var f s e =
   fact_rec_on_expr f (fun e' -> expr_subst_var e' s e)
 
 let rec expr_subst_vars e1 substs =
@@ -221,7 +223,6 @@ let reduce_conditions post pre' =
   | Error err ->
     begin match err with
     | ConflictingCondition' -> None
-    | _ -> error' err
     end
   end
 
