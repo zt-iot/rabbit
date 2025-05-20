@@ -8,9 +8,9 @@ type desugar_error =
   | ForbiddenFresh
   | UnintendedError
   | WrongInputType
-exception Error of desugar_error Location.located
-val error : loc:Location.t -> desugar_error -> 'a
-val print_error : desugar_error -> Format.formatter -> unit
+
+include Sig.ERROR with type error := desugar_error
+
 type ctx_process_template = {
   ctx_proctmpl_id : Name.ident;
   ctx_proctmpl_param : Name.ident option;
