@@ -51,8 +51,8 @@ let replace_string s t str =
 
 type to_tamarin_error =
   | UnintendedError of string
-  | NotSupportedYet
-  | MustbeVar of string
+  (* | NotSupportedYet *)
+  (* | MustbeVar of string *)
 
 exception Error of to_tamarin_error Location.located
 
@@ -63,11 +63,10 @@ let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 let print_error err ppf =
   match err with
   | UnintendedError s -> Format.fprintf ppf "Unintended Error: contact the developer. [Hint: %s]" s
-  | NotSupportedYet -> Format.fprintf ppf "This feature is not supported yet."
-  | MustbeVar v -> Format.fprintf ppf "Argument %s must be a variable." v
+(* | NotSupportedYet -> Format.fprintf ppf "This feature is not supported yet." *)
+  (* | MustbeVar v -> Format.fprintf ppf "Argument %s must be a variable." v *)
 
-let mk_fact_name s =
-  String.capitalize_ascii s
+let _mk_fact_name s = String.capitalize_ascii s
 
 let contains s1 s2 =
   let re = Str.regexp_string s2
@@ -132,11 +131,11 @@ type rule_config = {is_persist : bool ; priority : int}
 
 let config_linear = {is_persist=false; priority = 2}
 let config_persist = {is_persist=true; priority = 2}
-let config_linear_delayed = {is_persist=false; priority = 0}
-let config_persist_delayed = {is_persist=true; priority = 0}
-let config_linear_prior = {is_persist=false; priority = 3}
-let config_linear_less = {is_persist=false; priority = 1}
-let config_persist_less = {is_persist=true; priority = 1}
+let _config_linear_delayed = {is_persist=false; priority = 0}
+let _config_persist_delayed = {is_persist=true; priority = 0}
+let _config_linear_prior = {is_persist=false; priority = 3}
+let _config_linear_less = {is_persist=false; priority = 1}
+let _config_persist_less = {is_persist=true; priority = 1}
 
 (* type fact = string * expr list * rule_config  *)
 (* true is persistent fact *)
@@ -328,13 +327,13 @@ type model = {
   model_type : string;
 }
 
-let add_rule (mo : model) (a, b, c, d, e) =
+let _add_rule (mo : model) (a, b, c, d, e) =
   {mo with model_init_rules = (Rule (a, b, List.map print_fact' c, List.map print_fact' d, List.map print_fact' e)) :: mo.model_init_rules}
 
 let _add_comment (mo : model) r =
   {mo with model_init_rules = (Comment r) :: mo.model_init_rules}
 
-let add_comment t s = ((Comment s) :: ((t)))
+let _add_comment t s = ((Comment s) :: ((t)))
 
 let add_state m s = {m with model_states = s :: m.model_states}
 
@@ -368,7 +367,7 @@ let initial_state name =
   state_vars = (1, 0, 0)
 }
 
-let initial_attacker_model name ty =
+let _initial_attacker_model name ty =
   let st = initial_state name in
   {model_name = name; model_states = [st]; model_transitions = []; model_type = ty;
   model_init_rules = [
@@ -430,7 +429,7 @@ let print_signature (fns, eqns) =
     (if List.length eqns = 0 then "" else "equations: ")^(mult_list_with_concat (List.map (fun (e1, e2) -> (print_expr e1)^"="^(print_expr e2)) eqns) ", ") ^"\n" in
   (print_functions fns) ^ (print_equations eqns)
 
-let print_fact_plain (f, el) =
+let _print_fact_plain (f, el) =
   f^"(" ^ (mult_list_with_concat (List.map (print_expr) el) ", ") ^ ")"
 
 let print_fact (f, el, b) =
@@ -698,8 +697,7 @@ let rec translate_expr2 ?(ch=false) ?(num=0) {Location.data=e; Location.loc=loc}
 (* let make_rule_name eng scope =
   eng.namespace^engine_state_aux eng ^ (match scope with Some scope -> (mult_list_with_concat (List.map string_of_int scope) "_") | None -> "") *)
 
-let lctx_to_var_list lctx =
-  (List.map (fun s -> Var s) lctx)
+let _lctx_to_var_list lctx = List.map (fun s -> Var s) lctx
 
 let rec var_list_replace lctx s e =
   match lctx with
@@ -707,6 +705,8 @@ let rec var_list_replace lctx s e =
   | _ :: _l -> error ~loc:Location.Nowhere (UnintendedError "lctx is not list")
   | [] -> []
 
+(* xxx not used *)
+let _ = var_list_replace
 
 let translate_fact ?(num=0) namespace f =
   match f.Location.data with
@@ -765,7 +765,7 @@ let rec expr_shift_meta shift e =
   | _ -> e.Location.data
   in Location.locate ~loc:e.Location.loc e'
 
-let fact_shift_meta shift f =
+let _fact_shift_meta shift f =
   match f.Location.data with
   | Syntax.Fact(id, el) ->
     Syntax.Fact(id, (List.map (expr_shift_meta shift) el))
@@ -793,6 +793,9 @@ let rec tamarin_expr_shift_meta shift e =
   | List el -> List (List.map (tamarin_expr_shift_meta shift) el)
   | _ -> e
 
+(* xxx not used *)
+let _ = tamarin_expr_shift_meta
+
 let rec pop_hd n lst =
   if n > 0 then
   match lst with
@@ -800,6 +803,8 @@ let rec pop_hd n lst =
   | [] -> error ~loc:Location.Nowhere (UnintendedError "pop empty list")
   else if n = 0 then lst else error ~loc:Location.Nowhere (UnintendedError "pop negative elements")
 
+(* xxx not used *)
+let _ = pop_hd
 
 (*
   given a model, the current state that is promised to be already in the model,
