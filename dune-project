@@ -1,5 +1,13 @@
 (lang dune 3.15)
-(name Rabbit)
+(using menhir 2.1)
 (version 0.1)
 (generate_opam_files true)
-(using menhir 2.1)
+
+(package 
+  (name rabbit)
+  (synopsis "Rabbit: A modeling and verification framework for networked systems")
+  (description "Rabbit is a domain-specific language and toolchain for modeling networked systems and verifying their security properties using the Tamarin and ProVerif backends.")
+  (maintainers "sewon@sewonpark.com")
+  (authors "Sewon Park")
+  (license "MIT")
+  (homepage "https://github.com/zt-iot/rabbit"))
