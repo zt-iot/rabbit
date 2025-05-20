@@ -1,9 +1,9 @@
 (* XXX not used for now *)
 val print_type_class : Input.type_class -> string
 val pprint_iv : (string * int * int * int) Sig.printer
-val pprint_expr : Syntax.expr -> 'a -> 'b (* xxx *)
+val pprint_expr : Syntax.expr Sig.printer
 val pprint_event : Syntax.cmd Sig.printer
-val pprint_stmt : 'a Location.located Sig.printer (* xxx *)
+val pprint_stmt : Syntax.cmd Sig.printer
 val pprint_atomic_stmt : Syntax.cmd Sig.printer
 val pprint_stmts : 'a Location.located list Sig.printer (* xxx *)
 val pprint_context : Context.context Sig.printer
