@@ -118,12 +118,13 @@ process alice(ch_net : udp_t) : client_t
 
       (* In principle, Alice should only send the final message if nonce_a == echo_nonce_a *)
       case 
-      | [::AliceSendNonceA(echo_nonce_a)] →
-        var c_txt3 = enc(nonce_b, pub_key_bob) in 
+      | [::AliceSendNonceA(nonce_a)] →
+        event [::SecretNonceAlice(nonce_a)]; (* declares that `nonce_a` has been established as a shared secret *)
 
+        var c_txt3 = enc(nonce_b, pub_key_bob) in 
         _ := eaves_mem(c_txt3);
-        _ := send(ch_net, c_txt3);
-        event [::SecretNonceAlice(echo_nonce_a)] (* declares that `echo_nonce_a` has been established as a shared secret *)
+        _ := send(ch_net, c_txt3)
+        
       end;
       
       _ := fclose(pub_key_bob_fd);
@@ -182,10 +183,14 @@ requires [
     lemma NonceAIsSent_Alt : 
       exists-trace "Ex na #i . AliceSendNonceA(na) @ i" ;
     
-    lemma SecrecyIsEstablishedA : 
+    lemma SecrecyCanBeEstablishedA : 
+      reachable ::SecretNonceAlice(nonce_a) ;
+    lemma SecrecyCanBeEstablishedA_tmrn : 
       exists-trace "Ex na #i  . SecretNonceAlice(na) @ i" ; 
 
-    lemma SecrecyIsEstablishedB : 
+    lemma SecrecyCanBeEstablishedA : 
+      reachable ::SecretNonceBob(nonce_b) ;
+    lemma SecrecyCanBeEstablishedB_tmrn : 
       exists-trace "Ex nb #j . SecretNonceBob(nb) @ j" ;
     
     lemma NonceSecrecyA : 

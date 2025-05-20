@@ -1,3 +1,6 @@
+open Printf
+
+
 (** Conversion from concrete syntax to abstract syntax.
     Here we also load all required files, which may not be
     optimal but is systematic. *)
@@ -877,6 +880,22 @@ in process_decl' ctx pol def sys ps c
 
 and load fn ctx pol def sys =
    let decls, parser_state = Lexer.read_file Parser.file fn in 
+
+
+   let cwd = Sys.getcwd() in
+   (* SOME PARSER TEST *)
+   let _ = Printf.printf "Current working dir: %s\n" cwd in
+   
+
+   let fn2 = "examples/camserver_simple_type_decls.txt" in
+   let decls2, parser_state2 = Lexer.read_file Parser.file fn2 in
+   let size2 = List.length decls2 in 
+   let _ = Printf.printf "List size: %d\n" size2 in
+
+   (* let%expect_test "double of 2 is 4" =
+   print_int (double 2);
+   [%expect {| 4 |}] *)
+
    let (ctx, pol, def, sys, parser_state) = List.fold_left 
    (fun (ctx, pol, def, sys, parser_state) decl -> process_decl ctx pol def sys (parser_state, fn) decl)  
    (ctx, pol, def, sys, parser_state) decls in (ctx, pol, def, sys, parser_state)

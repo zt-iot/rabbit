@@ -104,3 +104,4 @@ and decl' =
   | DeclParamInit of Name.ident * (Name.ident * expr) option
   | DeclParamChan of Name.ident * Name.ident
   | DeclSimpleTyp of simpletyp
+[@@deriving show]
