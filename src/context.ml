@@ -177,7 +177,7 @@ let ctx_check_ext_const ctx o =
 let ctx_check_ty ctx o =
    List.exists (fun (s, _) -> s = o) ctx.ctx_ty
 
-   let ctx_check_const ctx o =
+let ctx_check_const ctx o =
    List.exists (fun s -> s = o) ctx.ctx_const
 
 let ctx_check_param_const ctx o =
@@ -237,9 +237,9 @@ let ctx_get_ty ~loc ctx s =
 let ctx_check_ty_ch ctx ty =
    List.exists (fun (s, t) ->
       if s = ty then
-      match t with
-      | Input.CChan -> true
-      | _ -> false
+        match t with
+        | Input.CChan -> true
+        | _ -> false
       else false) ctx.ctx_ty
 
 
@@ -497,6 +497,8 @@ let pol_init = {pol_access = [] ; pol_access_all=[]; pol_attack = []}
    sys_pol = [];
    sys_proc =[] }
  *)
+
 let lctx_init = {lctx_chan = []; lctx_path = []; lctx_process = []; lctx_loc_var = []; lctx_meta_var = []; lctx_top_var = []; lctx_func = [] ; lctx_param_chan = []; lctx_param = None}
+
 (* let lctx_init = {lctx_var=[]; lctx_meta=[]} *)
 let ldef_init = {ldef_var=[]; ldef_func=[]}
