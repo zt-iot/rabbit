@@ -42,14 +42,7 @@ type desugar_error =
   | UnstagedParamConst of string
   (** Internal error for unstaged parameter constants *)
 
-(** Exception type for desugaring errors *)
-exception Error of desugar_error Location.located
-
-(** Raise a desugaring error with location information *)
-val error : loc:Location.t -> desugar_error -> 'exn
-
-(** Print a desugaring error to a formatter *)
-val print_error : desugar_error -> Format.formatter -> unit
+include Sig.ERROR with type error := desugar_error
 
 (** Initial state for loading and desugaring *)
 val process_init : Context.context * Context.access_policy *

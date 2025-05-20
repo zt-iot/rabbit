@@ -3,11 +3,7 @@ type substitute_error =
   | PremissionError of string
   | UnintendedError of string
 
-exception Error of substitute_error Location.located
-
-val error : loc:Location.t -> substitute_error -> 'error
-
-val print_error : substitute_error -> Format.formatter -> unit
+include Sig.ERROR with type error := substitute_error
 
 val expr_chan_sub :
   Syntax.expr ->

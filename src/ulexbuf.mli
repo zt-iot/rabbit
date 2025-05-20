@@ -5,7 +5,7 @@ type t = private {
   mutable pos_end : Lexing.position ;
   mutable line_limit : int option ;
   mutable end_of_input : bool ;
-  
+
   mutable used_ident : string list;
   mutable used_string : string list;
 }
@@ -17,11 +17,7 @@ type error =
   | BadNumeral of string
   | UnclosedComment
 
-val print_error : error -> Format.formatter -> unit
-
-exception Error of error Location.located
-
-val error : loc:Location.t -> error -> 'a
+include Sig.ERROR with type error := error
 
 (** Update the start and end positions from the stream. *)
 val update_pos : t -> unit

@@ -1,7 +1,7 @@
 (executable
   (name "rabbit")
   (public_name "rabbit")
-  (flags -w +a -warn-error +a-4-70)
+  (flags -w +a-4-70 -warn-error +a-4-70)
   (libraries sedlex menhirLib str)
   (preprocess (pps sedlex.ppx)))
 
