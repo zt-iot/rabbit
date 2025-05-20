@@ -13,7 +13,7 @@ exception Error of postprocessing_error
 (** Print a human-readable description of a post-processing error
     @param err The error to print
     @param ppf The formatter to print to *)
-val print_error : postprocessing_error -> Format.formatter -> unit
+val print_error : postprocessing_error Sig.printer
 
 (** Optimize a Rabbit model by:
     - Unifying variables where possible
