@@ -66,6 +66,7 @@ type access_policy = {
      Name.ident)
       list;
 }
+type local_definition ={ldef_var : (Name.ident * Syntax.expr) list ; ldef_func : (Name.ident * (Name.ident list) * Syntax.cmd) list }
 val ctx_check_ext_func : context -> Name.ident -> bool
 val ctx_check_ext_func_and_arity :
   context -> Name.ident * int -> bool
