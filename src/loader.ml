@@ -280,7 +280,8 @@ let collect_meta_global_facts ctx lctx fl =
       let (ctx, lctx, f), c, p, l = collect_meta_global_fact cs ps ls ctx lctx f in
       ((ctx, lctx, fl @ [f]), cs @ c, ps @ p, ls @ l)) ((ctx, lctx, []), [],[],[]) fl
 
-let process_global_facts ctx lctx fl =
+(* XXX unused *)
+let _process_global_facts ctx lctx fl =
    let _, cs, ps, vl = collect_meta_global_facts ctx lctx fl in
    (* let lctx = {lctx with Context.lctx_meta_var = vl@lctx.Context.lctx_meta_var} in  *)
    let (ctx, fl) = process_global_facts_closed cs ps vl ctx lctx fl in
