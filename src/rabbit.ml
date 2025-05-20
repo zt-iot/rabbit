@@ -30,7 +30,7 @@ let options = Arg.align [
     ("-l",
      Arg.String (fun str -> add_file true str),
      "<file> Load <file> into the initial environment");
-(* 
+(*
     ("--dev",
      Arg.Set Config.dev,
      "use the development version of tamarin"); *)
@@ -67,17 +67,17 @@ let _main =
     (* Run and load all the specified files. *)
     (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
   try
-      let (ctx, pol, def, sys, x) = 
-      List.fold_left 
-        (fun (ctx, pol, def, sys, (a, b)) (fn, quiet) -> 
-          let (ctx, pol, def, sys, (a', b')) = Loader.load fn ctx pol def sys in 
-          (ctx, pol, def, sys, (a'@a, b'@b))) 
+      let (_ctx, _pol, _def, sys, x) =
+      List.fold_left
+        (fun (ctx, pol, def, sys, (a, b)) (fn, _quiet) ->
+          let (ctx, pol, def, sys, (a', b')) = Loader.load fn ctx pol def sys in
+          (ctx, pol, def, sys, (a'@a, b'@b)))
         Loader.process_init  !files in
         print_string "Loading complete..\n";
-        List.fold_left (fun _ s -> 
-        let (si, mo_lst, rule_lst, lem_lst)  = (Totamarin.translate_sys s x) in 
-        let t = 
-          if !Config.optimize then (si, List.map Postprocessing.optimize mo_lst, rule_lst, lem_lst) 
+        List.fold_left (fun _ s ->
+        let (si, mo_lst, rule_lst, lem_lst)  = (Totamarin.translate_sys s x) in
+        let t =
+          if !Config.optimize then (si, List.map Postprocessing.optimize mo_lst, rule_lst, lem_lst)
           else (si, mo_lst, rule_lst, lem_lst)
         in
         let tamarin = (Totamarin.print_tamarin t !Config.dev !Config.tag_transition) in
@@ -104,4 +104,3 @@ let _main =
     Print.message ~loc "Translate error" "%t" (Totamarin.print_error err)
   | Postprocessing.Error err ->
     Print.message ~loc:Location.Nowhere "Translate error" "%t" (Postprocessing.print_error err)
-      
