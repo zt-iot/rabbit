@@ -40,32 +40,119 @@ val mk_ctx_proctmpl :
 val mk_def_proctmpl :
   Name.ident *
   (Syntax.expr * Name.ident * Syntax.expr)
+    list * (Name.ident * Syntax.expr) list *
+  (Name.ident * Name.ident list * Syntax.cmd)
+    list * Syntax.cmd -> def_process_template
+val to_pair_ctx_proctmpl :
+  ctx_process_template ->
+  Name.ident * Name.ident option *
+  (bool * Name.ident * Name.ident) list *
+  Name.ident * Name.ident list *
+  (Name.ident * int) list
+val to_pair_def_proctmpl :
+  def_process_template ->
+  Name.ident *
+  (Syntax.expr * Name.ident * Syntax.expr)
+    list * (Name.ident * Syntax.expr) list *
+  (Name.ident * Name.ident list * Syntax.cmd)
+    list * Syntax.cmd
 type context = {
   ctx_ext_const : Name.ident list;
   ctx_ext_func : (Name.ident * int) list;
   ctx_ext_syscall :
     (Name.ident * Input.arg_type list) list;
+  ctx_ext_attack :
+    (Name.ident * Name.ident *
+     Input.arg_type list)
+      list;
+  ctx_ty : (Name.ident * Input.type_class) list;
+  ctx_const : Name.ident list;
+  ctx_fsys :
+    (Name.ident * Name.ident * Name.ident)
+      list;
   ctx_ch : (Name.ident * Name.ident) list;
   ctx_param_ch : (Name.ident * Name.ident) list;
   ctx_param_const : Name.ident list;
+  ctx_proctmpl : ctx_process_template list;
   ctx_event : (Name.ident * int) list;
   ctx_fact : (Name.ident * int * bool) list;
+  ctx_inj_fact : (Name.ident * int) list;
 }
 type definition = {
   def_ext_eq :
     (Name.ident list * Syntax.expr *
      Syntax.expr)
       list;
+  def_ext_syscall :
+    (Name.ident *
+     (Input.arg_type * Name.ident) list *
+     Syntax.cmd)
+      list;
+  def_ext_attack :
+    (Name.ident * Name.ident *
+     (Input.arg_type * Name.ident) list *
+     Syntax.cmd)
+      list;
+  def_const : (Name.ident * Syntax.expr option) list;
+  def_param_const :
+    (Name.ident *
+     (Name.ident * Syntax.expr) option)
+      list;
   def_fsys :
     (Name.ident * Name.ident * Syntax.expr)
       list;
+  def_proctmpl : def_process_template list;
 }
 type access_policy = {
   pol_access :
     (Name.ident * Name.ident list *
      Name.ident)
       list;
+  pol_access_all : (Name.ident * Name.ident list) list;
+  pol_attack : (Name.ident * Name.ident) list;
 }
+type process = {
+  proc_pid : int;
+  proc_name : string;
+  proc_type : string;
+  proc_filesys :
+    (Syntax.expr * Name.ident * Syntax.expr)
+      list;
+  proc_variable : (Name.ident * Syntax.expr) list;
+  proc_function :
+    (Name.ident * Name.ident list *
+     Syntax.cmd)
+      list;
+  proc_main : Syntax.cmd;
+  proc_channels : Syntax.chan_arg list;
+}
+type system = {
+  sys_ctx : context;
+  sys_def : definition;
+  sys_pol : access_policy;
+  sys_proc : process list;
+  sys_param_proc : process list list;
+  sys_lemma : Syntax.lemma list;
+}
+type local_context = {
+  lctx_chan : Name.ident list;
+  lctx_param_chan : Name.ident list;
+  lctx_path : Name.ident list;
+  lctx_process : Name.ident list;
+  lctx_loc_var : Name.ident list;
+  lctx_top_var : Name.ident list;
+  lctx_meta_var : Name.ident list;
+  lctx_func : (Name.ident * int) list;
+  lctx_param : Name.ident option;
+}
+type local_definition = {
+  ldef_var : (Name.ident * Syntax.expr) list;
+  ldef_func :
+    (Name.ident * Name.ident list *
+     Syntax.cmd)
+      list;
+}
+val find_index : ('a -> bool) -> 'a list -> int option
 val ctx_check_ext_func : context -> Name.ident -> bool
 val ctx_check_ext_func_and_arity :
   context -> Name.ident * int -> bool
@@ -76,10 +163,12 @@ val ctx_check_param_const : context -> Name.ident -> bool
 val ctx_check_fsys : context -> Name.ident -> bool
 val ctx_check_ch : context -> Name.ident -> bool
 val ctx_check_param_ch : context -> Name.ident -> bool
+val ctx_check_proctmpl : context -> Name.ident -> bool
 val ctx_check_event : context -> Name.ident -> bool
 val ctx_check_fact : context -> Name.ident -> bool
 val ctx_check_ext_syscall : context -> Name.ident -> bool
 val ctx_check_ext_attack : context -> Name.ident -> bool
+val ctx_check_inj_fact : context -> Name.ident -> bool
 val ctx_get_event_arity :
   loc:Location.t -> context -> Name.ident -> int
 val ctx_get_ext_syscall_arity :
@@ -88,6 +177,10 @@ val ctx_get_ext_syscall_arity :
 val ctx_get_ext_attack_arity :
   loc:Location.t ->
   context -> Name.ident -> Input.arg_type list
+val ctx_get_inj_fact_arity :
+  loc:Location.t -> context -> Name.ident -> int
+val ctx_get_proctmpl :
+  context -> Name.ident -> ctx_process_template
 val ctx_get_ty :
   loc:Location.t ->
   context -> Name.ident -> Input.type_class
