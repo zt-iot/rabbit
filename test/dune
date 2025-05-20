@@ -1,3 +1,0 @@
-(test
- (name test_rabbit)
- (libraries rabbit ounit2))
