@@ -4,6 +4,7 @@
 
 (** Type representing errors that can occur during post-processing *)
 type postprocessing_error =
+  | UnintendedError of string
   | ConflictingCondition' (** Error when there are conflicting conditions in the model *)
 
 (** Exception raised when a post-processing error occurs *)
