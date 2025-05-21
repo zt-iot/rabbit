@@ -188,7 +188,7 @@ requires [
     lemma SecrecyCanBeEstablishedA_tmrn : 
       exists-trace "Ex na #i  . SecretNonceAlice(na) @ i" ; 
 
-    lemma SecrecyCanBeEstablishedA : 
+    lemma SecrecyCanBeEstablishedB : 
       reachable ::SecretNonceBob(nonce_b) ;
     lemma SecrecyCanBeEstablishedB_tmrn : 
       exists-trace "Ex nb #j . SecretNonceBob(nb) @ j" ;
