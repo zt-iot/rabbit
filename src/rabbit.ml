@@ -75,10 +75,10 @@ let _main =
         Loader.process_init  !files in
         print_string "Loading complete..\n";
         List.fold_left (fun _ s ->
-        let (si, mo_lst, rule_lst, lem_lst)  = (Totamarin.translate_sys s x) in
+        let t = Totamarin.translate_sys s x in
         let t =
-          if !Config.optimize then (si, List.map Postprocessing.optimize mo_lst, rule_lst, lem_lst)
-          else (si, mo_lst, rule_lst, lem_lst)
+          if !Config.optimize then Tamarin.{ t with models= List.map Postprocessing.optimize t.models }
+          else t
         in
         let tamarin = (Tamarin.print_tamarin t !Config.dev !Config.tag_transition) in
         if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Error" "%s" "output file not specified"

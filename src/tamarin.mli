@@ -26,6 +26,8 @@ type expr =
   | Unit
   | Param
 
+val print_expr : expr -> string
+
 type equations = (expr * expr) list
 type signature = functions * equations
 
@@ -101,7 +103,7 @@ val mk_state_transition_from_action
      * (expr * expr list * expr list * expr list)
 
 val state_index_to_string_aux : state -> string
-val print_expr : expr -> string
+
 val mk_state : ?param:string -> state -> expr * expr list * expr list * expr list -> fact'
 
 type rule =
@@ -118,8 +120,6 @@ type model =
   ; model_type : string
   }
 
-val add_state : model -> state -> model
-
 val mk_state_transition
   :  ?param:string
   -> state
@@ -129,8 +129,12 @@ val mk_state_transition
   -> fact'
 
 val initial_model : string -> string -> model * state
+
 val initial_state : string -> state
+
 val add_transition : model -> transition -> model
+
+val add_state : model -> state -> model
 
 type lemma =
   | PlainLemma of string * string
@@ -138,43 +142,37 @@ type lemma =
       string * string list * string list * string list * fact list * fact list
   | CorrespondenceLemma of string * string list * (fact list * fact) * (fact list * fact)
 
-type tamarin = signature * model list * rule list * lemma list
+type tamarin = {
+  signature : signature;
+  models : model list;
+  rules : rule list;
+  lemmas : lemma list
+}
+
+val empty_tamarin : tamarin
 
 val add_fun : tamarin -> string * int -> tamarin
 
-val add_const
-  :  tamarin
-  -> string
-  -> ((string * int) list * equations) * model list * rule list * lemma list
+val add_const : tamarin -> string -> tamarin
 
-val add_eqn
-  :  tamarin
-  -> expr * expr
-  -> (functions * (expr * expr) list) * model list * rule list * lemma list
+val add_eqn : tamarin -> expr * expr -> tamarin
 
-val add_model : tamarin -> model -> signature * model list * rule list * lemma list
+val add_model : tamarin -> model -> tamarin
 
 val tamarin_add_rule
   :  tamarin
   -> string * string * fact list * fact list * fact list
-  -> signature * model list * rule list * lemma list
+  -> tamarin
 
 val tamarin_add_rule'
   :  tamarin
   -> string * string * fact' list * fact' list * fact' list
-  -> signature * model list * rule list * lemma list
+  -> tamarin
 
-val tamarin_add_comment
-  :  tamarin
-  -> string
-  -> signature * model list * rule list * lemma list
+val tamarin_add_comment : tamarin -> string -> tamarin
 
-val tamarin_add_lemma
-  :  tamarin
-  -> lemma
-  -> signature * model list * rule list * lemma list
-
-val empty_tamarin : tamarin
+val tamarin_add_lemma : tamarin -> lemma -> tamarin
 
 val print_transition : transition -> bool -> string
+
 val print_tamarin : tamarin -> bool -> bool -> string
