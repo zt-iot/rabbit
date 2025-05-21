@@ -48,12 +48,6 @@ type def_process_template = {
    def_proctmpl_main :  Syntax.cmd
 }
 
-let mk_ctx_proctmpl (a, f, b, c, d, e) = {ctx_proctmpl_id=a; ctx_proctmpl_param=f; ctx_proctmpl_ch=b; ctx_proctmpl_ty=c; ctx_proctmpl_var=d; ctx_proctmpl_func=e}
-let mk_def_proctmpl (a, b, c, d, e) = {def_proctmpl_id=a; def_proctmpl_files=b; def_proctmpl_var=c; def_proctmpl_func=d; def_proctmpl_main=e}
-let to_pair_ctx_proctmpl x = (x.ctx_proctmpl_id, x.ctx_proctmpl_param, x.ctx_proctmpl_ch, x.ctx_proctmpl_ty, x.ctx_proctmpl_var, x.ctx_proctmpl_func)
-let to_pair_def_proctmpl x = (x.def_proctmpl_id, x.def_proctmpl_files, x.def_proctmpl_var, x.def_proctmpl_func, x.def_proctmpl_main)
-
-
 (* ctx : context refers to the external specification of the system *)
 type context = {
    ctx_ext_const  :  (Name.ident) list ;
@@ -313,7 +307,11 @@ let def_add_const def x = {def with def_const=x::def.def_const}
 let def_add_param_const def x = {def with def_param_const=x::def.def_param_const}
 let def_add_fsys def x = {def with def_fsys=x::def.def_fsys}
 let def_add_proctmpl def pid files ldef m =
-   {def with def_proctmpl=(mk_def_proctmpl (pid, files, ldef.ldef_var, ldef.ldef_func, m))::def.def_proctmpl}
+  {def with def_proctmpl= { def_proctmpl_id = pid;
+                            def_proctmpl_files= files;
+                            def_proctmpl_var= ldef.ldef_var;
+                            def_proctmpl_func= ldef.ldef_func;
+                            def_proctmpl_main= m } :: def.def_proctmpl}
 
 let def_add_ext_syscall def x =
       {def with def_ext_syscall=x::def.def_ext_syscall}
