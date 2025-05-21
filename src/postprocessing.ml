@@ -1,9 +1,7 @@
-open Totamarin
+open Tamarin
 
 type postprocessing_error =
-  | UnintendedError of string
   | ConflictingCondition'
-
 
 exception Error of postprocessing_error
 
@@ -13,7 +11,6 @@ let error' err = Stdlib.raise (Error err)
 (** Print error description. *)
 let print_error err ppf =
   match err with
-  | UnintendedError s -> Format.fprintf ppf "unintended behavior. contact the developer %s" s
   | ConflictingCondition' ->   Format.fprintf ppf "ConflictingCondition'"
 
 
@@ -88,7 +85,7 @@ let fact_rec_on_expr f (p : expr -> expr) =
   | FreshFact e ->  FreshFact (p e)
   | LoopFact _
   | AttackFact _  -> f
-  | _ -> error' (UnintendedError "process fact isnt there")
+  | _ -> assert false
 
 let fact_unify_vars f =
   fact_rec_on_expr f expr_unify_vars
@@ -100,7 +97,7 @@ let rec expr_expand_var e ind =
   | List el -> List (List.map (fun e -> expr_expand_var e ind) el)
   | AddOne e -> AddOne (expr_expand_var e ind)
   | FVar e -> FVar (expr_expand_var e ind)
-  | MetaVar _i | LocVar _i | TopVar _i -> error' (UnintendedError "variables should have been unified")
+  | MetaVar _i | LocVar _i | TopVar _i -> assert false
   | _ -> e
 
 let fact_expand_var f ind =
@@ -114,7 +111,7 @@ match e1 with
 | List el -> List (List.map (fun e -> expr_subst_var e s e2) el)
 | AddOne e -> AddOne (expr_subst_var e s e2)
 | FVar e -> FVar (expr_subst_var e s e2)
-| MetaVar _i | LocVar _i | TopVar _i -> error' (UnintendedError "variables should have been unified")
+| MetaVar _i | LocVar _i | TopVar _i -> assert false
 | _ -> e1
 
 (* xxx unused *)
@@ -197,8 +194,8 @@ let reduce_conditions post pre' =
         | [] -> f :: pre
         | [InjectiveFact (_, _, e, arg)] ->
           print_endline "Testing";
-          print_endline ("- " ^ Totamarin.print_expr e);
-          print_endline ("- " ^ Totamarin.print_expr e');
+          print_endline ("- " ^ Tamarin.print_expr e);
+          print_endline ("- " ^ Tamarin.print_expr e');
 
           if e = e'
             then (print_endline ("- judged equal"); (ResFact (0, [arg; arg']))::pre )
@@ -220,13 +217,8 @@ let reduce_conditions post pre' =
         | _ -> true end) post in
       Some (post, pre)
   with
-  | Error err ->
-    begin match err with
-    | ConflictingCondition' -> None
-    | UnintendedError _ -> error' err
-    end
+  | Error ConflictingCondition' -> None
   end
-
 
 (* p *)
 let rec optimize_at (m : model) (st : state) =
@@ -284,7 +276,7 @@ let rec optimize_at (m : model) (st : state) =
           let substs = List.map2 (fun f t ->
             match f with
             | Var s -> (s, t)
-            | _ -> error' (UnintendedError "from is not a variable")
+            | _ -> assert false
             ) (ret2 :: meta2 @ loc2 @ top2) (ret1 :: meta1 @ loc1 @ top1) in
             let (ret, meta, loc, top) = (snd tr2.transition_state_transition) in
             let pre2 = List.map (fun f -> fact_subst_vars f substs) tr2.transition_pre in

@@ -17,7 +17,6 @@ type desugar_error =
   | NegativeArity of int
   | OtherError of string
   | ForbiddenFresh
-  | UnintendedError
   | WrongInputType
   | NoBindingVariable
   | WrongChannelType of string * string
@@ -44,7 +43,6 @@ let print_error err ppf =
   | ArgNumMismatch (x, i, j) -> Format.fprintf ppf "%s arguments provided while %s requires %s" (string_of_int i) x (string_of_int j)
   | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
   | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
-  | UnintendedError -> Format.fprintf ppf "unintended behavior. contact the developer"
   | WrongInputType -> Format.fprintf ppf "wrong input type"
   | NoBindingVariable -> Format.fprintf ppf "no binding variable"
   | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given"  x y

@@ -80,7 +80,7 @@ let _main =
           if !Config.optimize then (si, List.map Postprocessing.optimize mo_lst, rule_lst, lem_lst)
           else (si, mo_lst, rule_lst, lem_lst)
         in
-        let tamarin = (Totamarin.print_tamarin t !Config.dev !Config.tag_transition) in
+        let tamarin = (Tamarin.print_tamarin t !Config.dev !Config.tag_transition) in
         if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Error" "%s" "output file not specified"
         else let oc = open_out (fst !ofile) in
         Printf.fprintf oc "%s\n" tamarin;
@@ -100,7 +100,5 @@ let _main =
     Print.message ~loc "ToXml error" "%t" (Toxml.print_error err) *)
   | Substitute.Error {Location.data=err; Location.loc} ->
     Print.message ~loc "Substitute error" "%t" (Substitute.print_error err)
-  | Totamarin.Error {Location.data=err; Location.loc} ->
-    Print.message ~loc "Translate error" "%t" (Totamarin.print_error err)
   | Postprocessing.Error err ->
     Print.message ~loc:Location.Nowhere "Translate error" "%t" (Postprocessing.print_error err)

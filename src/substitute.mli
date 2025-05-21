@@ -1,7 +1,6 @@
 type substitute_error =
   | AccessError of string
   | PremissionError of string
-  | UnintendedError of string
 
 include Sig.ERROR with type error := substitute_error
 

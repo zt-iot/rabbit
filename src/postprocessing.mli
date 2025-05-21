@@ -4,7 +4,6 @@
 
 (** Type representing errors that can occur during post-processing *)
 type postprocessing_error =
-  | UnintendedError of string
   | ConflictingCondition' (** Error when there are conflicting conditions in the model *)
 
 (** Exception raised when a post-processing error occurs *)
@@ -22,4 +21,4 @@ val print_error : postprocessing_error Sig.printer
     - Ensuring well-formedness of the model
     @param model The input Totamarin model to optimize
     @return The optimized Totamarin model *)
-val optimize : Totamarin.model -> Totamarin.model
+val optimize : Tamarin.model -> Tamarin.model

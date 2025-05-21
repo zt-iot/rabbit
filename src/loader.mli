@@ -29,8 +29,6 @@ type desugar_error =
   (** Generic error with a custom message *)
   | ForbiddenFresh
   (** Raised when using the reserved 'fresh' identifier *)
-  | UnintendedError
-  (** Internal error indicating unexpected behavior *)
   | WrongInputType
   (** Raised when input type doesn't match expected type *)
   | NoBindingVariable

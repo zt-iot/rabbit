@@ -6,7 +6,6 @@ type desugar_error =
   | ArgNumMismatch of string * int * int
   | NegativeArity of int
   | ForbiddenFresh
-  | UnintendedError
   | WrongInputType
 
 include Sig.ERROR with type error := desugar_error
