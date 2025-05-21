@@ -1,42 +1,42 @@
-type substitute_error =
+type error = ..
+(* XXX unused
   | AccessError of string
   | PremissionError of string
+*)
 
-exception Error of substitute_error Location.located
+exception Error of error Location.located
 
 (** [error ~loc err] raises the given runtime error. *)
 let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 
 (** Print error description. *)
-let print_error err ppf =
+let print_error err _ppf =
   match err with
+  | _ -> assert false
+(*
   | AccessError a -> Format.fprintf ppf "Channel access %s not granted" (a)
   | PremissionError a -> Format.fprintf ppf "Channel access %s not granted" (a)
+*)
 
 let rec expr_chan_sub e f t  =
   let loc = e.Location.loc in
   match e.Location.data with
-  | Syntax.Const _  -> e
-  | Syntax.ExtConst _s  -> e
-  | Syntax.LocVariable (_v, _i)  -> e
-  | Syntax.MetaVariable (_v, _i)  -> e
-  | Syntax.MetaNewVariable (_v, _i)  -> e
-  | Syntax.TopVariable (_v, _i)  -> e
-  | Syntax.Boolean _b  -> e
-  | Syntax.String _s  -> e
-  | Syntax.Integer _k  -> e
-  | Syntax.Float _s -> e
+  | Syntax.Channel (s, _o) when s = f -> t
+  | Syntax.Channel _ -> e
   | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_chan_sub e f t ) el))
   | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_chan_sub e f t ) el))
-  | Syntax.Channel (s, _o) ->
-    if s = f then
-    begin
-      (* if List.exists (fun y -> o = y)  then () else error ~loc (AccessError o) ; *)
-      (* Location.locate ~loc:loc (Syntax.Channel (t, o))  *)
-      t
-    end else e
   | Syntax.ParamChan (fid, e) -> Location.locate ~loc:loc (Syntax.ParamChan (fid, expr_chan_sub e f t) )
   | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamConst (fid, expr_chan_sub e f t) )
+  | Syntax.Const _  -> e
+  | Syntax.ExtConst _  -> e
+  | Syntax.LocVariable _  -> e
+  | Syntax.MetaVariable _ -> e
+  | Syntax.MetaNewVariable _ -> e
+  | Syntax.TopVariable _ -> e
+  | Syntax.Boolean _ -> e
+  | Syntax.String _ -> e
+  | Syntax.Integer _ -> e
+  | Syntax.Float _ -> e
   | _ -> e
 
 let fact_chan_sub f fr t  =
@@ -49,8 +49,7 @@ let fact_chan_sub f fr t  =
    | Syntax.ChannelFact (l, id, el) ->
       Syntax.ChannelFact (expr_chan_sub l fr t , id, (List.map (fun e -> expr_chan_sub e fr t ) el))
    | Syntax.ResFact (v, el) -> Syntax.ResFact (v, (List.map (fun e -> expr_chan_sub e fr t ) el))
-
-  | _ -> assert false
+   | _ -> assert false
  in Location.locate ~loc:loc f
 
 
@@ -83,32 +82,26 @@ let rec cmd_chan_sub c f t  =
   in
   Location.locate ~loc:loc c
 
-
-
-
-  (*
-   *)
-   let rec expr_param_chan_sub e f t  =
+let rec expr_param_chan_sub e f t =
    let loc = e.Location.loc in
    match e.Location.data with
-   | Syntax.Const _  -> e
-   | Syntax.ExtConst _s  -> e
-   | Syntax.LocVariable (_v, _i)  -> e
-   | Syntax.MetaVariable (_v, _i)  -> e
-   | Syntax.MetaNewVariable (_v, _i)  -> e
-   | Syntax.TopVariable (_v, _i)  -> e
-   | Syntax.Boolean _b  -> e
-   | Syntax.String _s  -> e
-   | Syntax.Integer _k  -> e
-   | Syntax.Float _s -> e
+   | Syntax.ParamChan (fid, e) when fid = f ->
+       Location.locate ~loc:loc (Syntax.ParamChan (t, expr_param_chan_sub e f t) )
+   | Syntax.ParamChan (fid, e) ->
+       Location.locate ~loc:loc (Syntax.ParamChan (fid, expr_param_chan_sub e f t) )
    | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_param_chan_sub e f t ) el))
    | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_param_chan_sub e f t ) el))
-   | Syntax.ParamChan (fid, e) ->
-    if fid = f then
-      Location.locate ~loc:loc (Syntax.ParamChan (t, expr_param_chan_sub e f t) )
-    else
-      Location.locate ~loc:loc (Syntax.ParamChan (fid, expr_param_chan_sub e f t) )
    | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamConst (fid, expr_param_chan_sub e f t) )
+   | Syntax.Const _ -> e
+   | Syntax.ExtConst _ -> e
+   | Syntax.LocVariable _ -> e
+   | Syntax.MetaVariable _ -> e
+   | Syntax.MetaNewVariable _ -> e
+   | Syntax.TopVariable _ -> e
+   | Syntax.Boolean _ -> e
+   | Syntax.String _ -> e
+   | Syntax.Integer _ -> e
+   | Syntax.Float _s -> e
    | _ -> e
 
  let fact_param_chan_sub f fr t  =
@@ -159,11 +152,11 @@ let rec cmd_chan_sub c f t  =
 let rec expr_param e t =
   let loc = e.Location.loc in
   match e.Location.data with
+  | Syntax.Param _ -> t
   | Syntax.ParamChan (fid, e) -> Location.locate ~loc:loc (Syntax.ParamChan (fid, expr_param e t) )
   | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamConst (fid, expr_param e t) )
   | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_param e t) el))
   | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_param e t) el))
-  | Syntax.Param _ -> t
   | _ -> e
 
 let fact_param f t  =

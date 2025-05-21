@@ -1,14 +1,4 @@
-type desugar_error =
-  | UnknownIdentifier of string
-  | UnknownFunction of string
-  | AlreadyDefined of string
-  | ForbiddenIdentifier of string
-  | ArgNumMismatch of string * int * int
-  | NegativeArity of int
-  | ForbiddenFresh
-  | WrongInputType
-
-include Sig.ERROR with type error := desugar_error
+include Sig.ERROR
 
 type ctx_process_template =
   { ctx_proctmpl_id : Name.ident
@@ -26,40 +16,6 @@ type def_process_template =
   ; def_proctmpl_func : (Name.ident * Name.ident list * Syntax.cmd) list
   ; def_proctmpl_main : Syntax.cmd
   }
-
-val mk_ctx_proctmpl
-  :  Name.ident
-     * Name.ident option
-     * (bool * Name.ident * Name.ident) list
-     * Name.ident
-     * Name.ident list
-     * (Name.ident * int) list
-  -> ctx_process_template
-
-val mk_def_proctmpl
-  :  Name.ident
-     * (Syntax.expr * Name.ident * Syntax.expr) list
-     * (Name.ident * Syntax.expr) list
-     * (Name.ident * Name.ident list * Syntax.cmd) list
-     * Syntax.cmd
-  -> def_process_template
-
-val to_pair_ctx_proctmpl
-  :  ctx_process_template
-  -> Name.ident
-     * Name.ident option
-     * (bool * Name.ident * Name.ident) list
-     * Name.ident
-     * Name.ident list
-     * (Name.ident * int) list
-
-val to_pair_def_proctmpl
-  :  def_process_template
-  -> Name.ident
-     * (Syntax.expr * Name.ident * Syntax.expr) list
-     * (Name.ident * Syntax.expr) list
-     * (Name.ident * Name.ident list * Syntax.cmd) list
-     * Syntax.cmd
 
 type context =
   { ctx_ext_const : Name.ident list
@@ -132,7 +88,6 @@ type local_definition =
   ; ldef_func : (Name.ident * Name.ident list * Syntax.cmd) list
   }
 
-val find_index : ('a -> bool) -> 'a list -> int option
 val ctx_check_ext_func : context -> Name.ident -> bool
 val ctx_check_ext_func_and_arity : context -> Name.ident * int -> bool
 val ctx_check_ext_const : context -> Name.ident -> bool

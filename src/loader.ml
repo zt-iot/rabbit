@@ -3,27 +3,29 @@
     optimal but is systematic. *)
 
 (** Conversion errors *)
-type desugar_error =
+type error =
   | UnknownVariable of string
   | UnknownIdentifier of string
-  | UnknownIdentifier_ch of string
-  | UnknownIdentifier_path of string
-  | UnknownIdentifier_process of string
   | UnknownIdentifier2 of string
-  | UnknownFunction of string
   | AlreadyDefined of string
   | ForbiddenIdentifier of string
   | ArgNumMismatch of string * int * int
   | NegativeArity of int
-  | OtherError of string
-  | ForbiddenFresh
   | WrongInputType
   | NoBindingVariable
   | WrongChannelType of string * string
   | UnstagedConst of string
+(* XXX unused
+  | UnknownIdentifier_ch of string
+  | UnknownIdentifier_path of string
+  | UnknownIdentifier_process of string
+  | UnknownFunction of string
+  | ForbiddenFresh
+  | OtherError of string
   | UnstagedParamConst of string
+*)
 
-exception Error of desugar_error Location.located
+exception Error of error Location.located
 
 (** [error ~loc err] raises the given runtime error. *)
 let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
@@ -33,23 +35,24 @@ let print_error err ppf =
   match err with
   | UnknownVariable x -> Format.fprintf ppf "unknown variable %s" x
   | UnknownIdentifier x -> Format.fprintf ppf "unknown identifier %s" x
-  | UnknownIdentifier_ch x -> Format.fprintf ppf "unknown identifier channel %s" x
-  | UnknownIdentifier_path x -> Format.fprintf ppf "unknown identifier path %s" x
-  | UnknownIdentifier_process x -> Format.fprintf ppf "unknown identifier process %s" x
   | UnknownIdentifier2 x -> Format.fprintf ppf "unknown identifier2 %s" x
-  | UnknownFunction x -> Format.fprintf ppf "unknown function %s" x
   | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
   | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
   | ArgNumMismatch (x, i, j) -> Format.fprintf ppf "%s arguments provided while %s requires %s" (string_of_int i) x (string_of_int j)
   | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
-  | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
   | WrongInputType -> Format.fprintf ppf "wrong input type"
   | NoBindingVariable -> Format.fprintf ppf "no binding variable"
   | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given"  x y
-  | OtherError x -> Format.fprintf ppf "Uncategorized error: %s" x
   | UnstagedConst x -> Format.fprintf ppf "This is unintended error. Contact the developper. Hint: %s" x
+(*
+  | UnknownIdentifier_ch x -> Format.fprintf ppf "unknown identifier channel %s" x
+  | UnknownIdentifier_path x -> Format.fprintf ppf "unknown identifier path %s" x
+  | UnknownIdentifier_process x -> Format.fprintf ppf "unknown identifier process %s" x
+  | UnknownFunction x -> Format.fprintf ppf "unknown function %s" x
+  | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
+  | OtherError x -> Format.fprintf ppf "Uncategorized error: %s" x
   | UnstagedParamConst x -> Format.fprintf ppf "This is unintended error. Contact the developper. Hint: %s" x
-
+*)
 
 let find_index f lst =
   let rec aux i = function
@@ -267,9 +270,11 @@ let rec collect_meta_global_fact used_const used_param_const new_meta_vars ctx l
          let (r, consts, pconsts, l) = collect_meta_global_fact (v::used_const) used_param_const new_meta_vars ctx lctx f in
          (r, consts @ [v], pconsts, l)
 
+(*
       | UnstagedParamConst v ->
          let (r, consts, pconsts, l) = collect_meta_global_fact used_const (v::used_param_const) new_meta_vars ctx lctx f in
          (r, consts, pconsts @ [v], l)
+*)
       | _ -> error ~loc:locc err
    end
 
@@ -453,11 +458,11 @@ let process_pproc ?(param="") loc ctx def _pol (proc : Input.pproc) =
    begin match proc.Location.data with
    | Input.ParamProc(pid, param', chans) ->
       if not (Context.ctx_check_proctmpl ctx pid) then error ~loc (UnknownIdentifier pid) else
-      let (_, param'', cargs, ptype, _, _) = Context.to_pair_ctx_proctmpl (Context.ctx_get_proctmpl ctx pid) in
+      let Context.{ ctx_proctmpl_param= param''; ctx_proctmpl_ch= cargs; ctx_proctmpl_ty= ptype; _ } = Context.ctx_get_proctmpl ctx pid in
       (match param'' with
       | Some _ -> () | None -> error ~loc (UnknownIdentifier ""));
       let cargs = List.rev cargs in
-      let (_, files, vl, fl, m) = Context.to_pair_def_proctmpl (Context.def_get_proctmpl def pid) in
+      let Context.{ def_proctmpl_files= files; def_proctmpl_var= vl; def_proctmpl_func= fl; def_proctmpl_main= m; _ } = Context.def_get_proctmpl def pid in
       let realparam = process_expr ~param:param ctx Context.lctx_init param' in
       let files = List.map (fun (p, ty, e) -> (Substitute.expr_param p realparam, ty, Substitute.expr_param e realparam)) files in
       let vl = List.map (fun (v, e) -> (v, Substitute.expr_param e realparam)) vl in
@@ -468,11 +473,11 @@ let process_pproc ?(param="") loc ctx def _pol (proc : Input.pproc) =
 
    | Input.Proc(pid, chans) ->
       if not (Context.ctx_check_proctmpl ctx pid) then error ~loc (UnknownIdentifier pid) else
-      let (_, param', cargs, ptype, _, _) = Context.to_pair_ctx_proctmpl (Context.ctx_get_proctmpl ctx pid) in
+      let Context.{ ctx_proctmpl_param= param'; ctx_proctmpl_ch= cargs; ctx_proctmpl_ty= ptype; _ } = Context.ctx_get_proctmpl ctx pid in
       (match param' with
       | Some _ -> error ~loc (UnknownIdentifier "") | None -> ());
       let cargs = List.rev cargs in
-      let (_, files, vl, fl, m) = Context.to_pair_def_proctmpl (Context.def_get_proctmpl def pid) in
+      let Context.{ def_proctmpl_files= files; def_proctmpl_var= vl; def_proctmpl_func= fl; def_proctmpl_main= m; _ } = Context.def_get_proctmpl def pid in
 
       (pid, files, vl, fl, m, cargs, chans, ptype)
       end in
@@ -756,8 +761,9 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
       (* load main function *)
       let (ctx, _, m') = process_cmd ctx lctx m in
 
-      (Context.ctx_add_proctmpl ctx (Context.mk_ctx_proctmpl (pid, Some p, List.rev cargs, ty, lctx.Context.lctx_top_var, lctx.Context.lctx_func)), pol,
-         Context.def_add_proctmpl def pid files ldef m', sys, fst ps)
+      (Context.ctx_add_proctmpl ctx Context.{ ctx_proctmpl_id= pid; ctx_proctmpl_param= Some p; ctx_proctmpl_ch= List.rev cargs; ctx_proctmpl_ty= ty; ctx_proctmpl_var= lctx.Context.lctx_top_var; ctx_proctmpl_func= lctx.Context.lctx_func },
+       pol,
+       Context.def_add_proctmpl def pid files ldef m', sys, fst ps)
 
 
    | Input.DeclProc (pid, cargs, ty,  fls,  cl, fs, m) ->
@@ -800,10 +806,9 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
       (* load main function *)
       let (ctx, _, m') = process_cmd ctx lctx m in
 
-      (Context.ctx_add_proctmpl ctx (Context.mk_ctx_proctmpl (pid, None, List.rev cargs, ty, lctx.Context.lctx_top_var, lctx.Context.lctx_func)), pol,
-         Context.def_add_proctmpl def pid files ldef m', sys, fst ps)
-
-
+      (Context.ctx_add_proctmpl ctx Context.{ ctx_proctmpl_id= pid; ctx_proctmpl_param= None; ctx_proctmpl_ch= List.rev cargs; ctx_proctmpl_ty= ty; ctx_proctmpl_var= lctx.Context.lctx_top_var; ctx_proctmpl_func= lctx.Context.lctx_func },
+       pol,
+       Context.def_add_proctmpl def pid files ldef m', sys, fst ps)
 
    | Input.DeclSys (procs, lemmas) ->
       let processed_procs, processed_param_procs =

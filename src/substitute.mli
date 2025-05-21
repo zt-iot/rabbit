@@ -1,18 +1,19 @@
-type substitute_error =
-  | AccessError of string
-  | PremissionError of string
+include Sig.ERROR
 
-include Sig.ERROR with type error := substitute_error
-
+(** Substitute channels inside expr *)
 val expr_chan_sub : Syntax.expr -> string -> Syntax.expr -> Syntax.expr
-val fact_chan_sub : Syntax.fact -> string -> Syntax.expr -> Syntax.fact
-val facts_chan_sub : Syntax.fact list -> string -> Syntax.expr -> Syntax.fact list
+
+(** Substitute channels inside cmd *)
 val cmd_chan_sub : Syntax.cmd -> string -> Syntax.expr -> Syntax.cmd
+
+(** Substitute param_chan in side expr *)
 val expr_param_chan_sub : Syntax.expr -> string -> string -> Syntax.expr
-val fact_param_chan_sub : Syntax.fact -> string -> string -> Syntax.fact
-val facts_param_chan_sub : Syntax.fact list -> string -> string -> Syntax.fact list
+
+(** Substitute param_chan in side cmd *)
 val cmd_param_chan_sub : Syntax.cmd -> string -> string -> Syntax.cmd
+
+(** Replace parameter in an expression by the expression [expr_param expr_with_param expr] *)
 val expr_param : Syntax.expr -> Syntax.expr -> Syntax.expr
-val fact_param : Syntax.fact -> Syntax.expr -> Syntax.fact
-val facts_param : Syntax.fact list -> Syntax.expr -> Syntax.fact list
+
+(** Replace parameter in cmd by the expression *)
 val cmd_param : Syntax.cmd -> Syntax.expr -> Syntax.cmd
