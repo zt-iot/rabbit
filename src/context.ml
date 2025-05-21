@@ -1,13 +1,15 @@
 (** Conversion errors *)
 type desugar_error =
   | UnknownIdentifier of string
-  | UnknownFunction of string
   | AlreadyDefined of string
-  | ForbiddenIdentifier of string
   | ArgNumMismatch of string * int * int
+  | WrongInputType
+(* XXX unused
+  | UnknownFunction of string
+  | ForbiddenIdentifier of string
   | NegativeArity of int
   | ForbiddenFresh
-  | WrongInputType
+*)
 
 exception Error of desugar_error Location.located
 
@@ -18,13 +20,15 @@ let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 let print_error err ppf =
   match err with
   | UnknownIdentifier x -> Format.fprintf ppf "unknown identifier %s" x
-  | UnknownFunction x -> Format.fprintf ppf "unknown function %s" x
   | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
-  | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
   | ArgNumMismatch (x, i, j) -> Format.fprintf ppf "%s arguments provided while %s requires %s" (string_of_int i) x (string_of_int j)
   | WrongInputType -> Format.fprintf ppf "wrong input type"
+(*
+  | UnknownFunction x -> Format.fprintf ppf "unknown function %s" x
+  | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
   | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
   | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
+*)
 
 
 (* process tempates spec and definition *)
@@ -151,12 +155,6 @@ type local_context = {
                      }
 
 type local_definition ={ldef_var : (Name.ident * Syntax.expr) list ; ldef_func : (Name.ident * (Name.ident list) * Syntax.cmd) list }
-
-(** finding the frame number and the de brujin index of the given bariable *)
-let find_index f l =
-   let j = snd (List.fold_right (fun a (i, j) -> let j = if f a && j < 0 then i else j in (i+1, j)) l (0,-1) ) in
-   if j < 0 then None else Some (List.length l - 1 - j)
-
 
 (** ctx related functions *)
 (* membership checks *)
