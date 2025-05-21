@@ -159,19 +159,19 @@ val add_eqn : tamarin -> expr * expr -> tamarin
 
 val add_model : tamarin -> model -> tamarin
 
-val tamarin_add_rule
+val add_rule
   :  tamarin
   -> string * string * fact list * fact list * fact list
   -> tamarin
 
-val tamarin_add_rule'
+val add_rule'
   :  tamarin
   -> string * string * fact' list * fact' list * fact' list
   -> tamarin
 
-val tamarin_add_comment : tamarin -> string -> tamarin
+val add_comment : tamarin -> string -> tamarin
 
-val tamarin_add_lemma : tamarin -> lemma -> tamarin
+val add_lemma : tamarin -> lemma -> tamarin
 
 val print_transition : transition -> bool -> string
 

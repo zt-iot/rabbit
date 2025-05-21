@@ -1,3 +1,4 @@
+(* XXX unused? *)
 (** A toplevel computation carries around the current environment. *)
 type state =
   {
