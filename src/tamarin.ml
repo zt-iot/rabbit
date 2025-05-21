@@ -384,15 +384,15 @@ let add_eqn tamarin eq =
 
 let add_model t m = { t with models = m :: t.models }
 
-let tamarin_add_rule t (a, b, c, d, e) =
+let add_rule t (a, b, c, d, e) =
   { t with rules = Rule (a, b,List.map print_fact' c,List.map print_fact' d,List.map print_fact' e) :: t.rules }
 
-let tamarin_add_rule' t (a, b, c, d, e) =
+let add_rule' t (a, b, c, d, e) =
   { t with rules= Rule (a, b, c,d,e) :: t.rules }
 
-let tamarin_add_comment t s = { t with rules = Comment s :: t.rules }
+let add_comment t s = { t with rules = Comment s :: t.rules }
 
-let tamarin_add_lemma t lem = { t with lemmas = lem :: t.lemmas }
+let add_lemma t lem = { t with lemmas = lem :: t.lemmas }
 
 let empty_tamarin : tamarin  = { signature= empty_signature; models= []; rules= []; lemmas= [] }
 

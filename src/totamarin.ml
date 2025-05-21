@@ -1,10 +1,8 @@
 open Tamarin
 
-let get_return_var () =
-  Var ("return" ^ !separator ^ "var")
+let get_return_var () = Var ("return" ^ !separator ^ "var")
 
 let expr_pair a b = List [a ; b]
-
 let index_inc index scope =
   match scope with
   | None ->
@@ -835,39 +833,39 @@ let translate_sys {
   let t = List.fold_left (fun t (_, e1, e2) -> add_eqn t (translate_expr e1, translate_expr e2)) t (List.rev def.Context.def_ext_eq) in
 
   (* global constants *)
-  let t = tamarin_add_comment t "Global Constants:" in
+  let t = add_comment t "Global Constants:" in
 
   let t = List.fold_left (fun t (v, e) ->
               match e with
               | None -> (* when v is fresh *)
-          tamarin_add_rule t
+          add_rule t
           ("Const"^sep^v, "", [ResFact(2, [Var v])],
             [InitFact [String ("Const"^sep^v)];
             InitFact [List [String ("Const"^sep^v); Var v]]; mk_constant_fact v],
             [mk_constant_fact v])
               | Some e -> (* when v is defined *)
           let e, gv, _ = translate_expr2 e in
-                tamarin_add_rule t ("Const"^sep^v, "", gv, [ConstantFact(String v, e)], [ConstantFact(String v, e)])) t (List.rev def.Context.def_const) in
+                add_rule t ("Const"^sep^v, "", gv, [ConstantFact(String v, e)], [ConstantFact(String v, e)])) t (List.rev def.Context.def_const) in
 
-  let t = tamarin_add_comment t "Parametric global Constants:" in
+  let t = add_comment t "Parametric global Constants:" in
 
   let t = List.fold_left (fun t (v, e) ->
     match e with
     | None -> (* when v is fresh *)
-      tamarin_add_rule t
+      add_rule t
       ("Const"^sep^v, "",
         [ResFact(2, [Var v])],
         [InitFact [expr_pair (String v) Param]; ConstantFact (expr_pair (String v) Param, Var v)],
         [ConstantFact (expr_pair (String v) Param, Var v)])
     | Some (_p, e) -> (* when v is defined *)
       let e, gv, _ = translate_expr2 e in
-      tamarin_add_rule t ("Const"^sep^v, "", gv,
+      add_rule t ("Const"^sep^v, "", gv,
         [InitFact [expr_pair (String v) Param]; ConstantFact (expr_pair (String v) Param, e)],
         [ConstantFact (expr_pair (String v) Param, e)]))
       t (List.rev def.Context.def_param_const) in
 
 
-  let t = tamarin_add_comment t "Access control:" in
+  let t = add_comment t "Access control:" in
   (* access control *)
 
   (* let t = add_comment t "Processes:" in *)
@@ -898,7 +896,7 @@ let translate_sys {
     ) ([]) (List.rev proc) in
 
 
-  let t = tamarin_add_rule' t
+  let t = add_rule' t
     ("Init"^ !separator ^"system", "system", [], [print_fact' (InitFact ([String "system"]))],
     (* initializing tokens..  *)
     (List.map (fun m ->
@@ -911,7 +909,7 @@ let translate_sys {
 
   let t, _ = List.fold_left (fun (t, n) (b, facts, gv) ->
     List.fold_left (fun (t, n) (fact : fact') ->
-      tamarin_add_rule' t
+      add_rule' t
         ("Init"^ !separator ^"system"^ !separator^"ACP" ^ !separator^ string_of_int n, "system",
         (List.map print_fact' gv)@
         [print_fact' (AccessGenFact ("system"^ !separator, String !fresh_string))],
@@ -959,7 +957,7 @@ let translate_sys {
       ) ([]) (List.rev pl) in
 
 
-    let t = tamarin_add_rule' t
+    let t = add_rule' t
       ("Init"^ !separator ^"system"^string_of_int n, "system"^string_of_int n,
       [("Fr", [Param], config_linear)],
       [print_fact' (InitFact ([List [String ("system"^string_of_int n); Param]]))],
@@ -971,7 +969,7 @@ let translate_sys {
 
     let t, _ = List.fold_left (fun (t, m) (b, facts, gv) ->
       List.fold_left (fun (t, m) (fact : fact') ->
-        tamarin_add_rule' t
+        add_rule' t
           ("Init"^ !separator ^"system"^string_of_int n^ !separator^"ACP" ^ !separator^ string_of_int m, "system"^string_of_int n,
           (List.map print_fact' gv)@
           [print_fact' (AccessGenFact ("system"^string_of_int n^ !separator, Param))],
@@ -1019,5 +1017,5 @@ let translate_sys {
             (match e2.Location.data with
             | Syntax.Event (id, el) -> (mk_fact_name id, List.map (translate_expr ~ch:false) el)))
       *)
-    in tamarin_add_lemma t l) t lem in
+    in add_lemma t l) t lem in
   t
