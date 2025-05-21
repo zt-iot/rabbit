@@ -1,12 +1,4 @@
-type desugar_error =
-  | UnknownIdentifier of string
-  | UnknownFunction of string
-  | AlreadyDefined of string
-  | ForbiddenIdentifier of string
-  | ArgNumMismatch of string * int * int
-  | NegativeArity of int
-  | ForbiddenFresh
-  | WrongInputType
+type desugar_error
 
 include Sig.ERROR with type error := desugar_error
 
@@ -98,7 +90,6 @@ type local_definition =
   ; ldef_func : (Name.ident * Name.ident list * Syntax.cmd) list
   }
 
-val find_index : ('a -> bool) -> 'a list -> int option
 val ctx_check_ext_func : context -> Name.ident -> bool
 val ctx_check_ext_func_and_arity : context -> Name.ident * int -> bool
 val ctx_check_ext_const : context -> Name.ident -> bool
