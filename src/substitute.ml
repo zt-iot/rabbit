@@ -1,7 +1,6 @@
 type substitute_error =
   | AccessError of string
   | PremissionError of string
-  | UnintendedError of string
 
 exception Error of substitute_error Location.located
 
@@ -13,7 +12,6 @@ let print_error err ppf =
   match err with
   | AccessError a -> Format.fprintf ppf "Channel access %s not granted" (a)
   | PremissionError a -> Format.fprintf ppf "Channel access %s not granted" (a)
-  | UnintendedError a -> Format.fprintf ppf "Unintended Error (%s)" (a)
 
 let rec expr_chan_sub e f t  =
   let loc = e.Location.loc in
@@ -52,7 +50,7 @@ let fact_chan_sub f fr t  =
       Syntax.ChannelFact (expr_chan_sub l fr t , id, (List.map (fun e -> expr_chan_sub e fr t ) el))
    | Syntax.ResFact (v, el) -> Syntax.ResFact (v, (List.map (fun e -> expr_chan_sub e fr t ) el))
 
-  | _ -> error ~loc (UnintendedError "")
+  | _ -> assert false
  in Location.locate ~loc:loc f
 
 
@@ -124,7 +122,7 @@ let rec cmd_chan_sub c f t  =
        Syntax.ChannelFact (expr_param_chan_sub l fr t , id, (List.map (fun e -> expr_param_chan_sub e fr t ) el))
     | Syntax.ResFact (v, el) -> Syntax.ResFact (v, (List.map (fun e -> expr_param_chan_sub e fr t ) el))
 
-   | _ -> error ~loc (UnintendedError "")
+   | _ -> assert false
   in Location.locate ~loc:loc f
 
 
@@ -179,7 +177,7 @@ let fact_param f t  =
       Syntax.ChannelFact (expr_param l t , id, (List.map (fun e -> expr_param e t ) el))
    | Syntax.ResFact (v, el) -> Syntax.ResFact (v, (List.map (fun e -> expr_param e t ) el))
 
-  | _ -> error ~loc (UnintendedError "")
+  | _ -> assert false
  in Location.locate ~loc:loc f
 
 

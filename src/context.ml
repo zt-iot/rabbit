@@ -7,7 +7,6 @@ type desugar_error =
   | ArgNumMismatch of string * int * int
   | NegativeArity of int
   | ForbiddenFresh
-  | UnintendedError
   | WrongInputType
 
 exception Error of desugar_error Location.located
@@ -23,7 +22,6 @@ let print_error err ppf =
   | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
   | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
   | ArgNumMismatch (x, i, j) -> Format.fprintf ppf "%s arguments provided while %s requires %s" (string_of_int i) x (string_of_int j)
-  | UnintendedError -> Format.fprintf ppf "unintended behavior. contact the developer"
   | WrongInputType -> Format.fprintf ppf "wrong input type"
   | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
   | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
@@ -431,44 +429,15 @@ let lctx_add_new_top_var ~loc lctx v =
    if lctx_check_id lctx v  then error ~loc (AlreadyDefined v) else
    {lctx with lctx_top_var=v::lctx.lctx_top_var}
 
-(*    match lctx.lctx_loc_var with
-   | f::frames -> {lctx with lctx_var=(v::f)::frames}
-   | _ -> error ~loc (UnintendedError)
- *)
 let lctx_add_new_meta ~loc lctx v =
    if lctx_check_id lctx v  then error ~loc (AlreadyDefined v) else
    {lctx with lctx_meta_var=v::lctx.lctx_meta_var}
-(*    match lctx.lctx_meta with
-   | f::frames -> {lctx with lctx_meta=(v::f)::frames}
-   | _ -> error ~loc (UnintendedError)
- *)
 
-(* let lctx_add_frame lctx = {lctx with lctx_var=([]::lctx.lctx_var); lctx_meta=([]::lctx.lctx_meta)} *)
-
-(* let lctx_pop_frame ~loc lctx =
-   match lctx.lctx_var, lctx.lctx_meta with
-   | f::frames, f'::frames' -> {lctx with lctx_var=frames; lctx_meta=frames'}
-   | _, _ -> error ~loc (UnintendedError)
- *)
 let lctx_get_func_arity lctx f =
    let (_, k) = List.find (fun (i, _) -> i = f) lctx.lctx_func in k
 
 let lctx_add_new_func ~loc lctx (f, i) =
    if lctx_check_func lctx f then error ~loc (AlreadyDefined f) else {lctx with lctx_func=(f, i)::lctx.lctx_func}
-
-(* let lctx_get_var_index ~loc lctx v =
-   match find_index (fun l -> List.exists (fun s -> s = v) l) lctx.lctx_var with
-   | Some i ->
-      begin let lctxi = List.nth lctx.lctx_var i in
-      match find_index (fun s -> s = v) lctxi with
-      | Some j ->
-         (i,j,
-            match (find_index (fun s -> s = v) (List.fold_left (fun l vl -> l @ vl) [] lctx.lctx_var)) with Some k -> k | _ -> error ~loc (UnintendedError)
-         )
-         (* (List.length lctx.lctx_var - i - 1, List.length lctxi - j - 1) *)
-      | None -> error ~loc (UnintendedError) end
-   | None -> error ~loc (UnknownIdentifier v) *)
-
 
 (** Initial contexts *)
 let ctx_init =
