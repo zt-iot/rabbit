@@ -27,40 +27,6 @@ type def_process_template =
   ; def_proctmpl_main : Syntax.cmd
   }
 
-val mk_ctx_proctmpl
-  :  Name.ident
-     * Name.ident option
-     * (bool * Name.ident * Name.ident) list
-     * Name.ident
-     * Name.ident list
-     * (Name.ident * int) list
-  -> ctx_process_template
-
-val mk_def_proctmpl
-  :  Name.ident
-     * (Syntax.expr * Name.ident * Syntax.expr) list
-     * (Name.ident * Syntax.expr) list
-     * (Name.ident * Name.ident list * Syntax.cmd) list
-     * Syntax.cmd
-  -> def_process_template
-
-val to_pair_ctx_proctmpl
-  :  ctx_process_template
-  -> Name.ident
-     * Name.ident option
-     * (bool * Name.ident * Name.ident) list
-     * Name.ident
-     * Name.ident list
-     * (Name.ident * int) list
-
-val to_pair_def_proctmpl
-  :  def_process_template
-  -> Name.ident
-     * (Syntax.expr * Name.ident * Syntax.expr) list
-     * (Name.ident * Syntax.expr) list
-     * (Name.ident * Name.ident list * Syntax.cmd) list
-     * Syntax.cmd
-
 type context =
   { ctx_ext_const : Name.ident list
   ; ctx_ext_func : (Name.ident * int) list
