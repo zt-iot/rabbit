@@ -291,8 +291,6 @@ type rule =
 | Rule of string * string * fact' list * fact' list * fact' list
 | Comment of string
 
-(* type tamarin = signature * rule list *)
-
 type model = {
   model_name : string;
   model_states : state list;
@@ -365,38 +363,38 @@ let add_transition m t = {m with model_transitions = t :: m.model_transitions; m
   | ReachabilityLemma of string * string list * string list * string list * fact list * fact list
   | CorrespondenceLemma of string * string list * (fact list * fact) * (fact list * fact)
 
-(* tamarin as a pair of a sigature and a finite list of models *)
-(* model and its initialization rules *)
-type tamarin = signature * model list * rule list * lemma list
+type tamarin = {
+  signature : signature;
+  models : model list;
+  rules : rule list;
+  lemmas : lemma list
+}
 
-let add_fun (((fns,eqns), mo, rules, lemmas) : tamarin) f : tamarin = ((f::fns, eqns), mo, rules, lemmas)
-let add_const (((fns,eqns), mo, rules, lemmas) : tamarin) c = (((c,0)::fns, eqns), mo, rules, lemmas)
-let add_eqn (((fns,eqns), mo, rules, lemmas): tamarin) eq = ((fns, eq::eqns), mo, rules, lemmas)
+let add_fun tamarin f =
+  let fns, eqns = tamarin.signature in
+  { tamarin with signature = (f::fns, eqns) }
 
-let add_model (t : tamarin) m =
-  let (si, mo, rules, lemmas) = t in
-    (si, m :: mo, rules, lemmas)
+let add_const tamarin c =
+  let fns, eqns = tamarin.signature in
+  { tamarin with signature = ((c,0)::fns, eqns) }
 
-let tamarin_add_rule (t : tamarin) (a, b, c, d, e) =
-  let (si, mo, rules, lemmas) = t in
-    (si, mo, (Rule (a, b,List.map print_fact' c,List.map print_fact' d,List.map print_fact' e)) :: rules, lemmas)
+let add_eqn tamarin eq =
+  let fns, eqns = tamarin.signature in
+  { tamarin with signature = (fns, eq::eqns) }
 
-let tamarin_add_rule' (t : tamarin) (a, b, c, d, e) =
-  let (si, mo, rules, lemmas) = t in
-    (si, mo, (Rule (a, b, c,d,e)) :: rules, lemmas)
+let add_model t m = { t with models = m :: t.models }
 
+let tamarin_add_rule t (a, b, c, d, e) =
+  { t with rules = Rule (a, b,List.map print_fact' c,List.map print_fact' d,List.map print_fact' e) :: t.rules }
 
+let tamarin_add_rule' t (a, b, c, d, e) =
+  { t with rules= Rule (a, b, c,d,e) :: t.rules }
 
-let tamarin_add_comment (t : tamarin) s =
-  let (si, mo, rules, lemmas) = t in
-    (si, mo, (Comment s :: rules), lemmas)
+let tamarin_add_comment t s = { t with rules = Comment s :: t.rules }
 
-let tamarin_add_lemma ((si, mo, rules, lemmas): tamarin) lem =
-  (si, mo, rules, lem :: lemmas)
+let tamarin_add_lemma t lem = { t with lemmas = lem :: t.lemmas }
 
-let empty_tamarin : tamarin  = empty_signature , [] , [] , []
-
-
+let empty_tamarin : tamarin  = { signature= empty_signature; models= []; rules= []; lemmas= [] }
 
 let print_signature (fns, eqns) =
   let print_functions fns =
@@ -534,8 +532,7 @@ let print_lemma lemma =
     (print_fact (print_fact' b)) ^"@#time" ^ !separator ^ "2 & #time" ^ !separator ^"2 < #time" ^ !separator ^"1 \""
 
 
-(* signature * model list * rule list * lemma list *)
-let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev print_transition_label =
+let print_tamarin { signature=si; models= mo_lst; rules= r_lst; lemmas= lem_lst } is_dev print_transition_label =
   "theory rabbit\n\nbegin\nbuiltins: natural-numbers\n\n"^
 
     (* print signature *)
