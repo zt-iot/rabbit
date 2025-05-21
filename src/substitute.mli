@@ -1,8 +1,4 @@
-type substitute_error =
-  | AccessError of string
-  | PremissionError of string
-
-include Sig.ERROR with type error := substitute_error
+include Sig.ERROR
 
 val expr_chan_sub : Syntax.expr -> string -> Syntax.expr -> Syntax.expr
 val fact_chan_sub : Syntax.fact -> string -> Syntax.expr -> Syntax.fact

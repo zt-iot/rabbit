@@ -1,17 +1,22 @@
-type substitute_error =
+type error = ..
+(* XXX unused
   | AccessError of string
   | PremissionError of string
+*)
 
-exception Error of substitute_error Location.located
+exception Error of error Location.located
 
 (** [error ~loc err] raises the given runtime error. *)
 let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 
 (** Print error description. *)
-let print_error err ppf =
+let print_error err _ppf =
   match err with
+  | _ -> assert false
+(*
   | AccessError a -> Format.fprintf ppf "Channel access %s not granted" (a)
   | PremissionError a -> Format.fprintf ppf "Channel access %s not granted" (a)
+*)
 
 let rec expr_chan_sub e f t  =
   let loc = e.Location.loc in
