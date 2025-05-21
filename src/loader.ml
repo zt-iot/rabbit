@@ -3,27 +3,29 @@
     optimal but is systematic. *)
 
 (** Conversion errors *)
-type desugar_error =
+type error =
   | UnknownVariable of string
   | UnknownIdentifier of string
-  | UnknownIdentifier_ch of string
-  | UnknownIdentifier_path of string
-  | UnknownIdentifier_process of string
   | UnknownIdentifier2 of string
-  | UnknownFunction of string
   | AlreadyDefined of string
   | ForbiddenIdentifier of string
   | ArgNumMismatch of string * int * int
   | NegativeArity of int
-  | OtherError of string
-  | ForbiddenFresh
   | WrongInputType
   | NoBindingVariable
   | WrongChannelType of string * string
   | UnstagedConst of string
+(* XXX unused
+  | UnknownIdentifier_ch of string
+  | UnknownIdentifier_path of string
+  | UnknownIdentifier_process of string
+  | UnknownFunction of string
+  | ForbiddenFresh
+  | OtherError of string
   | UnstagedParamConst of string
+*)
 
-exception Error of desugar_error Location.located
+exception Error of error Location.located
 
 (** [error ~loc err] raises the given runtime error. *)
 let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
@@ -33,23 +35,24 @@ let print_error err ppf =
   match err with
   | UnknownVariable x -> Format.fprintf ppf "unknown variable %s" x
   | UnknownIdentifier x -> Format.fprintf ppf "unknown identifier %s" x
-  | UnknownIdentifier_ch x -> Format.fprintf ppf "unknown identifier channel %s" x
-  | UnknownIdentifier_path x -> Format.fprintf ppf "unknown identifier path %s" x
-  | UnknownIdentifier_process x -> Format.fprintf ppf "unknown identifier process %s" x
   | UnknownIdentifier2 x -> Format.fprintf ppf "unknown identifier2 %s" x
-  | UnknownFunction x -> Format.fprintf ppf "unknown function %s" x
   | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
   | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
   | ArgNumMismatch (x, i, j) -> Format.fprintf ppf "%s arguments provided while %s requires %s" (string_of_int i) x (string_of_int j)
   | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
-  | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
   | WrongInputType -> Format.fprintf ppf "wrong input type"
   | NoBindingVariable -> Format.fprintf ppf "no binding variable"
   | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given"  x y
-  | OtherError x -> Format.fprintf ppf "Uncategorized error: %s" x
   | UnstagedConst x -> Format.fprintf ppf "This is unintended error. Contact the developper. Hint: %s" x
+(*
+  | UnknownIdentifier_ch x -> Format.fprintf ppf "unknown identifier channel %s" x
+  | UnknownIdentifier_path x -> Format.fprintf ppf "unknown identifier path %s" x
+  | UnknownIdentifier_process x -> Format.fprintf ppf "unknown identifier process %s" x
+  | UnknownFunction x -> Format.fprintf ppf "unknown function %s" x
+  | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
+  | OtherError x -> Format.fprintf ppf "Uncategorized error: %s" x
   | UnstagedParamConst x -> Format.fprintf ppf "This is unintended error. Contact the developper. Hint: %s" x
-
+*)
 
 let find_index f lst =
   let rec aux i = function
@@ -267,9 +270,11 @@ let rec collect_meta_global_fact used_const used_param_const new_meta_vars ctx l
          let (r, consts, pconsts, l) = collect_meta_global_fact (v::used_const) used_param_const new_meta_vars ctx lctx f in
          (r, consts @ [v], pconsts, l)
 
+(*
       | UnstagedParamConst v ->
          let (r, consts, pconsts, l) = collect_meta_global_fact used_const (v::used_param_const) new_meta_vars ctx lctx f in
          (r, consts, pconsts @ [v], l)
+*)
       | _ -> error ~loc:locc err
    end
 
