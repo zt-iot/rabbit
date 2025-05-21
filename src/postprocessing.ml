@@ -1,9 +1,9 @@
 open Tamarin
 
-type postprocessing_error =
+type error =
   | ConflictingCondition'
 
-exception Error of postprocessing_error
+exception Error of error
 
 (** [error err] raises the given runtime error. *)
 let error' err = Stdlib.raise (Error err)
