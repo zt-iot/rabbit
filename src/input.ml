@@ -1,12 +1,5 @@
-type simpletyp = 
-  | SimpleTyp of Name.ident * subsimpletyp list
-
-and subsimpletyp = 
-  | PolyType of Name.ident
-  | SubSimpleTyp of simpletyp
-
 type operator = string
-type type_class = CProc | CFsys | CChan | CSimple of simpletyp
+type type_class = CProc | CFsys | CChan
 type arg_type = TyValue | TyChannel | TyProcess | TyPath
 
 type expr = expr' Location.located
@@ -74,6 +67,15 @@ and prop' =
 type lemma = lemma' Location.located
 and lemma' =
   | Lemma of Name.ident * prop 
+
+
+
+type simpletyp = 
+  | SimpleTyp of Name.ident * subsimpletyp list
+
+and subsimpletyp = 
+  | PolyType of Name.ident
+  | SubSimpleTyp of simpletyp
   
 
 type decl = decl' Location.located

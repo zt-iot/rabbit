@@ -60,11 +60,8 @@ plain_decl:
   | FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
   | CONSTANT id=NAME  { DeclExtFun(id, 0) }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
-
-  (* This rule declares type <kind> : process | channel | filesys *)
+  
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
-
-  | 
   
   | ALLOW ATTACK t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAttack(t,a)}  
   | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t, Some a)} 
@@ -221,11 +218,16 @@ simple_typ:
   | t=NAME { (t, []) }
   | t=NAME LBRACKET type_params=separated_nonempty_list(COMMA, sub_simple_typ) RBRACKET { (t, type_params) }
 
+
+
+
+poly_ty:
+  | APOSTROPHE t=NAME { (* TODO *) }
+
 type_c:
   | FILESYS { CFsys }
   | PROCESS { CProc }
   | CHANNEL { CChan }
-  | st=simple_typ { let (t, type_params) = st in CSimple(SimpleTyp(t, type_params)) }
 
 expr : mark_location(plain_expr) { $1 }
 plain_expr:
