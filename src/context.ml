@@ -1,5 +1,5 @@
 (** Conversion errors *)
-type desugar_error =
+type error =
   | UnknownIdentifier of string
   | AlreadyDefined of string
   | ArgNumMismatch of string * int * int
@@ -11,7 +11,7 @@ type desugar_error =
   | ForbiddenFresh
 *)
 
-exception Error of desugar_error Location.located
+exception Error of error Location.located
 
 (** [error ~loc err] raises the given runtime error. *)
 let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))

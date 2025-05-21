@@ -1,6 +1,4 @@
-type desugar_error
-
-include Sig.ERROR with type error := desugar_error
+include Sig.ERROR
 
 type ctx_process_template =
   { ctx_proctmpl_id : Name.ident
