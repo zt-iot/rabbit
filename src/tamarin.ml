@@ -256,7 +256,7 @@ let rec print_expr e =
   match e with
   | FVar e ->
     (* "~"^ *)
-  print_expr e
+      print_expr e
   | Var s -> s
   | MetaVar i -> "meta"^ !separator ^string_of_int i
   | LocVar i -> "loc"^ !separator ^string_of_int i
@@ -385,10 +385,10 @@ let add_eqn tamarin eq =
 let add_model t m = { t with models = m :: t.models }
 
 let add_rule t (a, b, c, d, e) =
-  { t with rules = Rule (a, b,List.map print_fact' c,List.map print_fact' d,List.map print_fact' e) :: t.rules }
+  { t with rules = Rule(a, b, List.map print_fact' c, List.map print_fact' d, List.map print_fact' e) :: t.rules }
 
 let add_rule' t (a, b, c, d, e) =
-  { t with rules= Rule (a, b, c,d,e) :: t.rules }
+  { t with rules= Rule(a, b, c, d, e) :: t.rules }
 
 let add_comment t s = { t with rules = Comment s :: t.rules }
 
