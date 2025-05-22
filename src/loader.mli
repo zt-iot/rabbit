@@ -4,23 +4,20 @@
 
 include Sig.ERROR
 
+type env =
+  { context : Context.context
+  ; access_policy : Context.access_policy
+  ; definition : Context.definition
+  ; system : Context.system list
+  ; used_idents : string list
+  ; used_strings : string list
+  }
+
 (** Initial state for loading and desugaring *)
-val process_init : Context.context * Context.access_policy *
-  Context.definition * Context.system list * string list * string list
+val process_init : env
 
 (** Load and process a Rabbit source file
     @param filename The file to load
-    @param context The current context
-    @param policy The access policy
-    @param definition The current definition
-    @param systems List of systems
-    @return Updated context, policy, definition, systems, and lists of strings *)
-val load :
-  string ->
-  Context.context ->
-  Context.access_policy ->
-  Context.definition ->
-  Context.system list ->
-  Context.context * Context.access_policy *
-  Context.definition * Context.system list *
-  string list * string list
+    @param env The current environment
+    @return Updated environment *)
+val load : string -> env -> env
