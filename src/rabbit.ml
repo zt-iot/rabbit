@@ -67,11 +67,8 @@ let _main =
     (* Run and load all the specified files. *)
     (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
   try
-      let (_ctx, _pol, _def, sys, used_idents, used_strings) =
-        List.fold_left
-          (fun (ctx, pol, def, sys, a, b) (fn, _quiet) ->
-             let (ctx, pol, def, sys, a', b') = Loader.load fn ctx pol def sys in
-             (ctx, pol, def, sys, a'@a, b'@b))
+      let Loader.{ system= sys; used_idents; used_strings; _ } =
+        List.fold_left (fun (env : Loader.env) (fn, _quiet) -> Loader.load fn env)
           Loader.process_init !files
       in
       print_string "Loading complete..\n";
