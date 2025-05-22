@@ -1,96 +1,159 @@
 type operator = string
-type type_class = CProc | CFsys | CChan
-type arg_type = TyValue | TyChannel | TyProcess | TyPath
+
+type type_class =
+  | CProc (** [process] *)
+  | CFsys (** [filesys] *)
+  | CChan (** [channel] *)
+
+type arg_type =
+  | TyValue (** value argument, [a] *)
+  | TyChannel (** channel argument, [channel a] *)
+  | TyProcess (** process argument, [process a] *)
+  | TyPath (** path argument, [path a] *)
 
 type expr = expr' Location.located
 and expr' =
   | Var of Name.ident
+  (** variable, [x] *)
   | Boolean of bool
-  | String of string  
+  (** boolean, [true]/[false] *)
+  | String of string
+  (** string, ["hello"] *)
   (* | Integer of Mpzf.t *)
   | Integer of int
+  (** integer, [42] *)
   | Float of string (* store the string so we can correctly round later *)
+  (** float, [4.12] *)
   | Apply of operator * expr list
+  (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list
-
+  (** tuple, [(e1,..,en)] *)
   | Param of Name.ident * expr
+  (** parameter, [f<e>] *)
 
 type fact = fact' Location.located
-and fact' = 
+and fact' =
   | Fact of Name.ident * expr list
+  (** [n(e1,..,en)] *)
   | GlobalFact of Name.ident * expr list
+  (** [:: n(e1,..,en) ]*)
   | ChannelFact of expr * Name.ident * expr list
+  (** [e :: n(e1,..,en)] *)
   | ProcessFact of expr * Name.ident * expr list
+  (** [e % n(e1,..,en)] *)
   | ResFact of int * expr list (* 0: eq 1: neq 3 : FILE*)
-  (* | InjFact of  *)
+  (** - [e1 = e2]
+      - [e1 != e2]
+      - [S.e]
+   *)
 
 type cmd = cmd' Location.located
-and cmd' = 
+and cmd' =
   | Skip
+  (** skip *)
   | Sequence of cmd * cmd
+  (** sequencing, [c1; c2] *)
   (* | Wait of fact list * cmd *)
   | Put of fact list
-  | Let of Name.ident * expr * cmd 
+  (** output, [put[f1,..,fn]] *)
+  | Let of Name.ident * expr * cmd
+  (** let binding, [let x = e in c] *)
   | Assign of Name.ident option * expr
+  (** assignment, [x := e] or [_ := e] *)
   | Case of (fact list * cmd) list
+  (** guarded cases, [case [x,..] => c1 | .. | [z,..] => cn end] *)
   | While of (fact list * cmd) list * (fact list * cmd) list
+  (** guarded loop,
+     [repeat [x,..] => c1 | .. | [z,..] => cn
+      until [x',..] => c1 | .. | [z',..] => cn'
+      end] *)
   | Event of fact list
+  (** tag, [event[T]] *)
   | Return of expr
-
-  | New of Name.ident * Name.ident * expr list * cmd 
+  (** return *)
+  | New of Name.ident * Name.ident * expr list * cmd
+  (** allocation, [new x := S(e1,..,en) in c] *)
   | Get of Name.ident list * expr * Name.ident * cmd
+  (** fetch, [let x1,...,xn := e.S in c] *)
   | Del of expr * Name.ident
+  (** deletion, [delete e.S] *)
 
+(** Channel argument *)
 type chan_arg =
-  | ChanArgPlain of Name.ident
-  | ChanArgParam of Name.ident
-  | ChanArgParamInst of Name.ident * expr
-
-
+  | ChanArgPlain of Name.ident (** [id] *)
+  | ChanArgParam of Name.ident (** [id<>] *)
+  | ChanArgParamInst of Name.ident * expr (** [id<e>] *)
 
 type pproc = pproc' Location.located
 and pproc' =
   | Proc of Name.ident * (chan_arg list)
   | ParamProc of Name.ident * expr * (chan_arg list)
 
-type proc = 
-| UnboundedProc of pproc 
+type proc =
+| UnboundedProc of pproc
 | BoundedProc of (Name.ident * pproc list)
 
 
 type prop = prop' Location.located
 and prop' =
   | PlainString of string
+  (** [exists-trace "xxx"]
+      [all-traces "xxx"]
+  *)
   | Reachability of fact list
+  (** [reachable f1,..,fn] *)
   | Correspondence of fact * fact
+  (** [corresponds fa ~> fb] *)
 
 type lemma = lemma' Location.located
 and lemma' =
-  | Lemma of Name.ident * prop 
+  | Lemma of Name.ident * prop
+  (** lemma [Name : prop] *)
 
 
 type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int
+  (** external function, [function id : arity] *)
   | DeclExtEq of expr * expr
+  (** external equation, [equation e1 = e2] *)
   | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * cmd
+  (** system call, [syscall f(a1,..,an) { c }]
+                   [passive attack f(a1,..,an) { c }]
+  *)
   | DeclExtAttack of Name.ident * Name.ident * (arg_type * Name.ident) list * cmd
+  (** [attack f on name (typ x,..) { c }] *)
   | DeclType of Name.ident * type_class
+  (** type declaration, [type t : filesys/process/channel] *)
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
+  (** [allow s t1 .. tn [f1, .., fm]]
+      [allow s t1 .. tn [.]] *)
   | DeclAttack of Name.ident list * Name.ident list
+  (** [allow attack t1 .. tn [f1, .., fm]] *)
   | DeclInit of Name.ident * expr option
+  (** [const n = e]
+      [const fresh n]
+  *)
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
+  (** // [filesys n = [f1, .., fm]] XXX unused *)
   | DeclChan of Name.ident * Name.ident
-  | DeclProc of Name.ident * (bool * Name.ident * Name.ident) list * Name.ident * 
-                ((expr * Name.ident * expr) list) * 
-                ((Name.ident * expr) list) * 
+  (** [channel n : ty] *)
+  | DeclProc of Name.ident * (bool * Name.ident * Name.ident) list * Name.ident *
+                ((expr * Name.ident * expr) list) *
+                ((Name.ident * expr) list) *
                 (Name.ident * (Name.ident list) * cmd) list * cmd
-  | DeclParamProc of Name.ident * Name.ident * (bool * Name.ident * Name.ident) list * Name.ident * 
-                ((expr * Name.ident * expr) list) * 
-                ((Name.ident * expr) list) * 
+  (** [process id(x1 : ty1, .., xn : tyn) : ty { file ...  var ... function ... main ... }] *)
+  | DeclParamProc of Name.ident * Name.ident * (bool * Name.ident * Name.ident) list * Name.ident *
+                ((expr * Name.ident * expr) list) *
+                ((Name.ident * expr) list) *
                 (Name.ident * (Name.ident list) * cmd) list * cmd
-  | DeclSys of proc list * lemma list 
+  (** [process id<p>(x1 : ty1, .., xn : tyn) : ty { file ... var ... function ... main ... }] *)
+  | DeclSys of proc list * lemma list
+  (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
   | DeclLoad of string
-
+  (** [load "fn"] *)
   | DeclParamInit of Name.ident * (Name.ident * expr) option
+  (** - [const n<p> = e]
+      - [const fresh n<>] *)
   | DeclParamChan of Name.ident * Name.ident
+  (** [channel n<> : ty] *)
