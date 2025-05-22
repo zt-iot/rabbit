@@ -67,25 +67,26 @@ let _main =
     (* Run and load all the specified files. *)
     (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
   try
-      let (_ctx, _pol, _def, sys, x) =
-      List.fold_left
-        (fun (ctx, pol, def, sys, (a, b)) (fn, _quiet) ->
-          let (ctx, pol, def, sys, (a', b')) = Loader.load fn ctx pol def sys in
-          (ctx, pol, def, sys, (a'@a, b'@b)))
-        Loader.process_init  !files in
-        print_string "Loading complete..\n";
-        List.fold_left (fun _ s ->
-        let t = Totamarin.translate_sys s x in
-        let t =
-          if !Config.optimize then Tamarin.{ t with models= List.map Postprocessing.optimize t.models }
-          else t
-        in
-        let tamarin = (Tamarin.print_tamarin t !Config.dev !Config.tag_transition) in
-        if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Error" "%s" "output file not specified"
-        else let oc = open_out (fst !ofile) in
-        Printf.fprintf oc "%s\n" tamarin;
-        close_out oc;
-        Print.message ~loc:Location.Nowhere "Translated into" "%s" (fst !ofile)
+      let (_ctx, _pol, _def, sys, used_idents, used_strings) =
+        List.fold_left
+          (fun (ctx, pol, def, sys, a, b) (fn, _quiet) ->
+             let (ctx, pol, def, sys, a', b') = Loader.load fn ctx pol def sys in
+             (ctx, pol, def, sys, a'@a, b'@b))
+          Loader.process_init !files
+      in
+      print_string "Loading complete..\n";
+      List.fold_left (fun _ s ->
+          let t = Totamarin.translate_sys s (used_idents, used_strings) in
+          let t =
+            if !Config.optimize then Tamarin.{ t with models= List.map Postprocessing.optimize t.models }
+            else t
+          in
+          let tamarin = (Tamarin.print_tamarin t !Config.dev !Config.tag_transition) in
+          if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Error" "%s" "output file not specified"
+          else let oc = open_out (fst !ofile) in
+            Printf.fprintf oc "%s\n" tamarin;
+            close_out oc;
+            Print.message ~loc:Location.Nowhere "Translated into" "%s" (fst !ofile)
         ) () sys;
     ()
 

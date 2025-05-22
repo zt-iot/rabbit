@@ -6,7 +6,7 @@ include Sig.ERROR
 
 (** Initial state for loading and desugaring *)
 val process_init : Context.context * Context.access_policy *
-  Context.definition * Context.system list * (string list * string list)
+  Context.definition * Context.system list * string list * string list
 
 (** Load and process a Rabbit source file
     @param filename The file to load
@@ -23,4 +23,4 @@ val load :
   Context.system list ->
   Context.context * Context.access_policy *
   Context.definition * Context.system list *
-  (string list * string list)
+  string list * string list
