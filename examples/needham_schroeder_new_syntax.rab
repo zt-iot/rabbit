@@ -182,6 +182,12 @@ requires [
       reachable ::AliceSendNonceA(nonce_a) ;
     lemma NonceAIsSent_Alt : 
       exists-trace "Ex na #i . AliceSendNonceA(na) @ i" ;
+
+
+    lemma NonceBIsSent : 
+      reachable ::BobSendNonceB(nonce_b) ;
+    lemma NonceBIsSent_Alt : 
+      exists-trace "Ex nb #j . BobSendNonceB(nb) @ j" ;
     
     lemma SecrecyCanBeEstablishedA : 
       reachable ::SecretNonceAlice(nonce_a) ;
