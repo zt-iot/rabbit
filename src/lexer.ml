@@ -3,41 +3,41 @@ open Parser
 let reserved = [
   ("skip", SKIP) ;
   ("system", SYSTEM) ;
-  ("lemma", LEMMA) ; 
+  ("lemma", LEMMA) ;
   ("type", TYPE) ;
   ("allow", ALLOW) ;
   ("passive", PASSIVE) ;
   ("attack", ATTACK) ;
   ("filesys", FILESYS) ;
   ("file", FILE) ;
-  ("channel", CHANNEL) ; 
-  ("path", PATH) ; 
+  ("channel", CHANNEL) ;
+  ("path", PATH) ;
   ("process", PROCESS) ;
   ("with", WITH) ;
   ("function", FUNC) ;
   ("main", MAIN) ;
-  ("return", RETURN) ; 
-  ("data", DATA) ; 
+  ("return", RETURN) ;
+  ("data", DATA) ;
   ("skip", SKIP) ;
   ("let", LET) ;
-  ("requires", REQUIRES) ; 
-  ("constant", CONSTANT) ; 
-  ("equation", EQUATION) ; 
-  ("syscall", SYSCALL) ; 
+  ("requires", REQUIRES) ;
+  ("constant", CONSTANT) ;
+  ("equation", EQUATION) ;
+  ("syscall", SYSCALL) ;
   ("load", LOAD) ;
   ("fresh", FRESH) ;
   ("const", CONST) ;
   ("reachable", REACHABLE) ;
   ("corresponds", CORRESPONDS) ;
-  ("put", PUT) ; 
-  ("case", CASE) ; 
-  ("end", END) ; 
+  ("put", PUT) ;
+  ("case", CASE) ;
+  ("end", END) ;
   ("repeat", REPEAT);
   ("until", UNTIL);
   ("in", IN);
   ("then", THEN) ;
   ("event", EVENT) ;
-  ("on", ON) ; 
+  ("on", ON) ;
   ("var", VAR) ;
   ("new", NEW) ;
   ("delete", DEL) ;
@@ -75,7 +75,8 @@ let hspace  = [%sedlex.regexp? (' ' | '\t' | '\r')]
 
 let quoted_string = [%sedlex.regexp? '"', Star (Compl '"'), '"']
 
-let update_eoi ({ Ulexbuf.pos_end; line_limit;_ } as lexbuf) =
+(* xxx unused *)
+let _update_eoi ({ Ulexbuf.pos_end; line_limit;_ } as lexbuf) =
   match line_limit with None -> () | Some line_limit ->
     if pos_end.Lexing.pos_lnum >= line_limit
     then Ulexbuf.reached_end_of_input lexbuf
@@ -105,7 +106,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
      let n = ref 0 in
      String.iter (fun c -> if c = '\n' then incr n) s;
      Ulexbuf.new_line ~n:!n lexbuf;
-     let r = String.sub s 1 (l - 2) in 
+     let r = String.sub s 1 (l - 2) in
      Ulexbuf.record_string r lexbuf;
      QUOTED_STRING (r)
   | "~>" | 8605              -> f (); LEADSTO
@@ -129,7 +130,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | "||"                     -> f (); BBAR
   | '|'                      -> f (); BAR
   | "=>" | 8658 | 10233      -> f (); DARROW
-  | "->" | 8594 | 10230      -> f (); ARROW 
+  | "->" | 8594 | 10230      -> f (); ARROW
   | ":="                     -> f (); COLONEQ
   | "="                      -> f (); EQ
   | ','                      -> f (); COMMA
@@ -207,7 +208,7 @@ let read_file parse fn =
     let lex = Ulexbuf.from_channel ~fn fh in
       let terms = run token parse lex in
       close_in fh;
-      terms, (Ulexbuf.used_indent lex, Ulexbuf.used_string lex)
+      terms, (lex.Ulexbuf.used_idents, lex.Ulexbuf.used_strings)
 
 (* let read_file parse fn =
   try
@@ -224,7 +225,8 @@ let read_file parse fn =
   (* Any errors when opening or closing a file are fatal. *)
     Sys_error msg -> raise (Ulexbuf.error ~loc:Location.Nowhere (Ulexbuf.SysError msg))
  *)
-let read_toplevel parse () =
+(* xxx unused *)
+let _read_toplevel parse () =
   let all_white str =
     let n = String.length str in
     let rec fold k =
@@ -255,6 +257,7 @@ let read_toplevel parse () =
   let lex = Ulexbuf.from_string (str ^ "\n") in
   run token parse lex
 
-let read_string parse s =
+(* xxx unused *)
+let _read_string parse s =
   let lex = Ulexbuf.from_string s in
   run token parse lex
