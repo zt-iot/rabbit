@@ -881,6 +881,6 @@ in process_decl' ctx pol def sys ps c
 
 and load fn ctx pol def sys =
    let decls, parser_state = Lexer.read_file Parser.file fn in
-   let (ctx, pol, def, sys, parser_state) = List.fold_left
-   (fun (ctx, pol, def, sys, parser_state) decl -> process_decl ctx pol def sys (parser_state, fn) decl)
-   (ctx, pol, def, sys, parser_state) decls in (ctx, pol, def, sys, parser_state)
+   List.fold_left (fun (ctx, pol, def, sys, parser_state) decl ->
+     process_decl ctx pol def sys (parser_state, fn) decl)
+     (ctx, pol, def, sys, parser_state) decls
