@@ -45,7 +45,10 @@ and fact' =
   (** - [e1 = e2]
       - [e1 != e2]
       - [S.e]
+      XXX should be fixed
    *)
+
+type 'cmd case = (fact list * 'cmd)
 
 type cmd = cmd' Location.located
 and cmd' =
@@ -60,9 +63,9 @@ and cmd' =
   (** let binding, [let x = e in c] *)
   | Assign of Name.ident option * expr
   (** assignment, [x := e] or [_ := e] *)
-  | Case of (fact list * cmd) list
+  | Case of cmd case list
   (** guarded cases, [case [x,..] => c1 | .. | [z,..] => cn end] *)
-  | While of (fact list * cmd) list * (fact list * cmd) list
+  | While of cmd case list * cmd case list
   (** guarded loop,
      [repeat [x,..] => c1 | .. | [z,..] => cn
       until [x',..] => c1 | .. | [z',..] => cn'
