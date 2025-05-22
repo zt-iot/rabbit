@@ -1,7 +1,6 @@
 _build/
 _opam
 .DS_Store
-*.spthy
 *~
 *.aes
 _test/
