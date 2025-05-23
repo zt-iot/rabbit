@@ -31,7 +31,7 @@ type context =
   ; ctx_proctmpl : ctx_process_template list
   ; ctx_event : (Name.ident * int) list
   ; ctx_fact : (Name.ident * int * bool) list
-  ; ctx_inj_fact : (Name.ident * int) list
+  ; ctx_inj_fact : (Name.ident * int) list (* xxx structures ? *)
   }
 
 type definition =

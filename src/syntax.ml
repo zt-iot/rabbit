@@ -12,30 +12,44 @@ and expr' =
   | MetaVariable of string * int
   | MetaNewVariable of string * int
   | Boolean of bool
+  (** boolean, [true]/[false] *)
   | String of string
+  (** string, ["hello"] *)
   | Integer of int
+  (** integer, [42] *)
   | Float of string (* store the string so we can correctly round later *)
+  (** float, [4.12] *)
   | Apply of operator * expr list
+  (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list
+  (** tuple, [(e1,..,en)] *)
   | Channel of string * Name.ident (* second field records necessary permissions.. *)
-  | Path of string  (* only needed for syscall defintiions *)
+  | Path of string  (* only needed for syscall defintions *)
   | Process of string (* only needed for syscall defintiions *)
   (* | Run of string * expr list (* only needed for syscall defintiions *) *)
   (* | FrVariable of string *)
   | ParamChan of string * expr
+  (** id<e> *)
   | ParamConst of string * expr
-
+  (** id<e> *)
   | Param of string
 
 type fact = fact' Location.located
 and fact' =
   | Fact of Name.ident * expr list
+  (** [n(e1,..,en)] *)
   | GlobalFact of Name.ident * expr list
+  (** [:: n(e1,..,en) ]*)
   | ChannelFact of expr * Name.ident * expr list
+  (** [e :: n(e1,..,en)] *)
   | ProcessFact of Name.ident * Name.ident * expr list
+  (** [e % n(e1,..,en)] *)
   | ResFact of int * expr list
-
-
+  (** - [e1 = e2]
+      - [e1 != e2]
+      - [S.e]
+      XXX should be fixed
+  *)
 
 (* meta vars, local vars, top-level variables *)
 (* type local_typing_context = Name.ident list * Name.ident list * Name.ident list *)
@@ -45,17 +59,21 @@ type 'cmd case = string list * fact list * 'cmd
 type cmd = cmd' Location.located
 and cmd' =
   | Skip
+  (** skip *)
   | Sequence of cmd * cmd
+  (** sequencing, [c1; c2] *)
   | Put of fact list
+  (** output, [put[f1,..,fn]] *)
   | Let of Name.ident * expr * cmd
+  (** let binding, [let x = e in c] *)
   | Assign of (Name.ident * (int * bool)) * expr (* (k, true) : k'th in top-level (k, false): k'th in local *)
+  (** assignment, [x := e] *)
   | FCall of (Name.ident * (int * bool)) option * Name.ident * expr list
   | SCall of (Name.ident * (int * bool)) option * Name.ident * expr list
   | Case of cmd case list
   | While of cmd case list * cmd case list
   | Event of fact list
   | Return of expr
-
   | New of Name.ident * Name.ident * expr list * cmd
   | Get of Name.ident list * expr * Name.ident * cmd
   | Del of expr * Name.ident

@@ -274,7 +274,7 @@ let check_fresh ctx s =
       ctx_check_param_const ctx s
       then false else true
 
-let check_used ctx s = if (check_fresh ctx s) then false else true
+let check_used ctx s = not @@ check_fresh ctx s
 
 let ctx_add_or_check_fact ~loc ctx (id, k) =
    if List.exists (fun (s, _, _)->s = id) ctx.ctx_fact then
