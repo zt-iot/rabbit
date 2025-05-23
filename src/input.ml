@@ -6,10 +6,10 @@ type type_class =
   | CChan (** [channel] *)
 
 type arg_type =
-  | TyValue (** value argument, [a] *)
-  | TyChannel (** channel argument, [channel a] *)
-  | TyProcess (** process argument, [process a] *)
-  | TyPath (** path argument, [path a] *)
+  | TyValue (** value argument, [<None>] *)
+  | TyChannel (** channel argument, [channel] *)
+  | TyProcess (** process argument, [process] *)
+  | TyPath (** path argument, [path] *)
 
 type expr = expr' Location.located
 and expr' =
@@ -41,12 +41,9 @@ and fact' =
   (** [e :: n(e1,..,en)] *)
   | ProcessFact of expr * Name.ident * expr list
   (** [e % n(e1,..,en)] *)
-  | ResFact of int * expr list (* 0: eq 1: neq 3 : FILE*)
-  (** - [e1 = e2]
-      - [e1 != e2]
-      - [S.e]
-      XXX should be fixed
-   *)
+  | EqFact of expr * expr (** e1 = e2 *)
+  | NeqFact of expr * expr (** e1 != e2 *)
+  | FileFact of expr * expr (** S.e *)
 
 type 'cmd case = (fact list * 'cmd)
 
@@ -121,12 +118,12 @@ and decl' =
   | DeclExtEq of expr * expr
   (** external equation, [equation e1 = e2] *)
   | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * cmd
-  (** system call, [syscall f(a1,..,an) { c }]
-                   [passive attack f(a1,..,an) { c }]
+  (** system call, [syscall f(ty1 a1,..,tyn an) { c }]
+                   [passive attack f(ty1 a1,..,tyn an) { c }]
       XXX what is passive attack for?  It is not distinguishable from syscall in Input.
   *)
   | DeclExtAttack of Name.ident * Name.ident * (arg_type * Name.ident) list * cmd
-  (** [attack f on name (typ x,..) { c }] *)
+  (** [attack f on name (ty1 a1,..,tyn an) { c }] *)
   | DeclType of Name.ident * type_class
   (** type declaration, [type t : filesys/process/channel] *)
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
@@ -145,15 +142,28 @@ and decl' =
   (** // [filesys n = [f1, .., fm]] XXX unused *)
   | DeclChan of Name.ident * Name.ident
   (** [channel n : ty] *)
-  | DeclProc of Name.ident * (bool * Name.ident * Name.ident) list * Name.ident *
-                ((expr * Name.ident * expr) list) *
-                ((Name.ident * expr) list) *
-                (Name.ident * (Name.ident list) * cmd) list * cmd
-  (** [process id(x1 : ty1, .., xn : tyn) : ty { file ...  var ... function ... main ... }] *)
-  | DeclParamProc of Name.ident * Name.ident * (bool * Name.ident * Name.ident) list * Name.ident *
-                ((expr * Name.ident * expr) list) *
-                ((Name.ident * expr) list) *
-                (Name.ident * (Name.ident list) * cmd) list * cmd
+  | DeclProc of { id : Name.ident
+                ; args : (bool * Name.ident * Name.ident) list
+                ; typ : Name.ident
+                ; files : (expr * Name.ident * expr) list
+                ; vars : (Name.ident * expr) list
+                ; funcs : (Name.ident * (Name.ident list) * cmd) list
+                ; main : cmd }
+  (** [ process id(x1 : ty1, .., xn : tyn) : ty {
+          file id : ty = e ...
+          var ...
+          function ...
+          main ...
+        }
+      ] *)
+  | DeclParamProc of { id : Name.ident
+                     ; param : Name.ident
+                     ; args : (bool * Name.ident * Name.ident) list
+                     ; typ : Name.ident
+                     ; files : (expr * Name.ident * expr) list
+                     ; vars : (Name.ident * expr) list
+                     ; funcs : (Name.ident * (Name.ident list) * cmd) list
+                     ; main : cmd }
   (** [process id<p>(x1 : ty1, .., xn : tyn) : ty { file ... var ... function ... main ... }] *)
   | DeclSys of proc list * lemma list
   (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
