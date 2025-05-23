@@ -71,10 +71,14 @@ plain_decl:
   | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
 
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME
-    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, parems, ty, fl, l, f, m) }
+    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE {
+      DeclProc{ id=id; args= parems; typ= ty; files= fl; vars= l; funcs= f; main= m }
+    }
 
   | PROCESS id=NAME LT p=NAME GT LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME
-    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclParamProc(id, p, parems, ty,fl, l, f, m) }
+    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE {
+      DeclParamProc{ id=id; param= p; args= parems; typ= ty; files= fl; vars= l; funcs= f; main= m }
+    }
 
 
   | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
@@ -119,9 +123,9 @@ plain_fact:
   | scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
   | DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact(id, es) }
   | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact(id, es) }
-  | e1=expr EQ e2=expr { ResFact(0, [e1; e2]) }
-  | e1=expr NEQ e2=expr { ResFact(1, [e1; e2]) }
-  | scope=expr DOT e=expr { ResFact(3, [scope; e]) }
+  | e1=expr EQ e2=expr { EqFact(e1, e2) }
+  | e1=expr NEQ e2=expr { NeqFact(e1, e2) }
+  | scope=expr DOT e=expr { FileFact(scope, e) }
 
 typed_arg:
   | var=NAME { (TyValue, var) }
