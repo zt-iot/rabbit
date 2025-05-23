@@ -123,6 +123,7 @@ and decl' =
   | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * cmd
   (** system call, [syscall f(a1,..,an) { c }]
                    [passive attack f(a1,..,an) { c }]
+      XXX what is passive attack for?  It is not distinguishable from syscall in Input.
   *)
   | DeclExtAttack of Name.ident * Name.ident * (arg_type * Name.ident) list * cmd
   (** [attack f on name (typ x,..) { c }] *)
@@ -130,7 +131,10 @@ and decl' =
   (** type declaration, [type t : filesys/process/channel] *)
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   (** [allow s t1 .. tn [f1, .., fm]]
-      [allow s t1 .. tn [.]] *)
+      [allow s t1 .. tn [.]]  for all the syscalls
+
+      XXX the list [ti] is either empty or singleton.  Should use option type?
+  *)
   | DeclAttack of Name.ident list * Name.ident list
   (** [allow attack t1 .. tn [f1, .., fm]] *)
   | DeclInit of Name.ident * expr option
