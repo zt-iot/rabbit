@@ -14,26 +14,42 @@ and expr' =
   | MetaVariable of string * int
   | MetaNewVariable of string * int
   | Boolean of bool
+  (** boolean, [true]/[false] *)
   | String of string
+  (** string, ["hello"] *)
   | Integer of int
-  | Float of string
+  (** integer, [42] *)
+  | Float of string (* store the string so we can correctly round later *)
+  (** float, [4.12] *)
   | Apply of operator * expr list
+  (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list
-  | Channel of string * Name.ident
-  | Path of string
-  | Process of string
+  (** tuple, [(e1,..,en)] *)
+  | Channel of string * Name.ident (* second field records necessary permissions.. *)
+  | Path of string  (* only needed for syscall defintions *)
+  | Process of string (* only needed for syscall defintiions *)
+  (* | Run of string * expr list (* only needed for syscall defintiions *) *)
+  (* | FrVariable of string *)
   | ParamChan of string * expr
+  (** id<e> *)
   | ParamConst of string * expr
+  (** id<e> *)
   | Param of string
 
 type fact = fact' Location.located
 
 and fact' =
   | Fact of Name.ident * expr list
+  (** [n(e1,..,en)] *)
   | GlobalFact of Name.ident * expr list
+  (** [:: n(e1,..,en) ]*)
   | ChannelFact of expr * Name.ident * expr list
+  (** [e :: n(e1,..,en)] *)
   | ProcessFact of Name.ident * Name.ident * expr list
-  | ResFact of int * expr list
+  (** [e % n(e1,..,en)] *)
+  | EqFact of expr * expr (** e1 = e2 *)
+  | NeqFact of expr * expr (** e1 != e2 *)
+  | FileFact of expr * expr (** S.e *)
 
 type 'cmd case = string list * fact list * 'cmd
 

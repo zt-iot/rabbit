@@ -48,7 +48,9 @@ let fact_chan_sub f fr t  =
    (* | Syntax.PathFact (l, id, el) -> Syntax.PathFact (expr_chan_sub l fr t , id, (List.map (fun e -> expr_chan_sub e fr t ) el)) *)
    | Syntax.ChannelFact (l, id, el) ->
       Syntax.ChannelFact (expr_chan_sub l fr t , id, (List.map (fun e -> expr_chan_sub e fr t ) el))
-   | Syntax.ResFact (v, el) -> Syntax.ResFact (v, (List.map (fun e -> expr_chan_sub e fr t ) el))
+   | Syntax.EqFact (e1, e2) -> Syntax.EqFact (expr_chan_sub e1 fr t, expr_chan_sub e2 fr t)
+   | Syntax.NeqFact (e1, e2) -> Syntax.NeqFact (expr_chan_sub e1 fr t, expr_chan_sub e2 fr t)
+   | Syntax.FileFact (e1, e2) -> Syntax.FileFact (expr_chan_sub e1 fr t, expr_chan_sub e2 fr t)
    | _ -> assert false
  in Location.locate ~loc:loc f
 
@@ -113,9 +115,10 @@ let rec expr_param_chan_sub e f t =
     (* | Syntax.PathFact (l, id, el) -> Syntax.PathFact (expr_param_chan_sub l fr t , id, (List.map (fun e -> expr_param_chan_sub e fr t ) el)) *)
     | Syntax.ChannelFact (l, id, el) ->
        Syntax.ChannelFact (expr_param_chan_sub l fr t , id, (List.map (fun e -> expr_param_chan_sub e fr t ) el))
-    | Syntax.ResFact (v, el) -> Syntax.ResFact (v, (List.map (fun e -> expr_param_chan_sub e fr t ) el))
-
-   | _ -> assert false
+    | Syntax.EqFact (e1, e2) -> Syntax.EqFact (expr_param_chan_sub e1 fr t, expr_param_chan_sub e2 fr t )
+    | Syntax.NeqFact (e1, e2) -> Syntax.NeqFact (expr_param_chan_sub e1 fr t, expr_param_chan_sub e2 fr t )
+    | Syntax.FileFact (e1, e2) -> Syntax.FileFact (expr_param_chan_sub e1 fr t, expr_param_chan_sub e2 fr t )
+    | _ -> assert false
   in Location.locate ~loc:loc f
 
 
@@ -162,16 +165,18 @@ let rec expr_param e t =
 let fact_param f t  =
   let loc = f.Location.loc in
   let f =
-   match f.Location.data with
-   | Syntax.Fact (v, el) -> Syntax.Fact (v, (List.map (fun e -> expr_param e t ) el))
-   | Syntax.GlobalFact (v, el) -> Syntax.GlobalFact (v, (List.map (fun e -> expr_param e t ) el))
-   (* | Syntax.PathFact (l, id, el) -> Syntax.PathFact (expr_param_chan_sub l fr t , id, (List.map (fun e -> expr_param_chan_sub e fr t ) el)) *)
-   | Syntax.ChannelFact (l, id, el) ->
-      Syntax.ChannelFact (expr_param l t , id, (List.map (fun e -> expr_param e t ) el))
-   | Syntax.ResFact (v, el) -> Syntax.ResFact (v, (List.map (fun e -> expr_param e t ) el))
+    match f.Location.data with
+    | Syntax.Fact (v, el) -> Syntax.Fact (v, (List.map (fun e -> expr_param e t ) el))
+    | Syntax.GlobalFact (v, el) -> Syntax.GlobalFact (v, (List.map (fun e -> expr_param e t ) el))
+    (* | Syntax.PathFact (l, id, el) -> Syntax.PathFact (expr_param_chan_sub l fr t , id, (List.map (fun e -> expr_param_chan_sub e fr t ) el)) *)
+    | Syntax.ChannelFact (l, id, el) ->
+        Syntax.ChannelFact (expr_param l t , id, (List.map (fun e -> expr_param e t ) el))
+    | Syntax.EqFact (e1, e2) -> Syntax.EqFact (expr_param e1 t, expr_param e2 t)
+    | Syntax.NeqFact (e1, e2) -> Syntax.NeqFact (expr_param e1 t, expr_param e2 t)
+    | Syntax.FileFact (e1, e2) -> Syntax.FileFact (expr_param e1 t, expr_param e2 t)
 
-  | _ -> assert false
- in Location.locate ~loc:loc f
+    | _ -> assert false
+  in Location.locate ~loc:loc f
 
 
 let facts_param fl t  =

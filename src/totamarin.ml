@@ -119,23 +119,22 @@ let translate_fact ?(num=0) namespace f =
 
     ChannelFact (id, e, el), gv@g, [e], n
 
-  | Syntax.ResFact (0, el) ->
-    let el, gv, n = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
-                                  (el @ [e], gv @ g, n)) ([],[], num) el in
+  | Syntax.EqFact (e1, e2) ->
+      let es, gv, n = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+                                       (el @ [e], gv @ g, n)) ([],[], num) [e1; e2] in
+      let e1, e2 = match es with [e1; e2] -> e1, e2 | _ -> assert false in
+      ResFact (0, [e1; e2]), gv, [], n
 
-    ResFact (0, el), gv, [], n
+  | Syntax.NeqFact (e1, e2) ->
+      let es, gv, n = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+                                       (el @ [e], gv @ g, n)) ([],[], num) [e1; e2] in
+      let e1, e2 = match es with [e1; e2] -> e1, e2 | _ -> assert false in
+      ResFact (1, [e1; e2]), gv, [], n
 
-  | Syntax.ResFact (1, el) ->
-    let el, gv, n = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
-                                  (el @ [e], gv @ g, n)) ([],[], num) el in
-
-    ResFact (1, el), gv, [], n
-
-  | Syntax.ResFact (3, [p; d]) ->
-    let p, g1, n = translate_expr2 ~num:num p in
-    let d, g2, n = translate_expr2 ~num:n d in
-
-    FileFact (namespace, p, d), g1@g2, [p], n
+  | Syntax.FileFact (p, d) ->
+      let p, g1, n = translate_expr2 ~num:num p in
+      let d, g2, n = translate_expr2 ~num:n d in
+      FileFact (namespace, p, d), g1@g2, [p], n
 
   | _ -> assert false
 
@@ -169,8 +168,12 @@ let _fact_shift_meta shift f =
   (* | Syntax.PathFact (path, id, el) ->
     Syntax.PathFact(expr_shift_meta shift path, id, (List.map (expr_shift_meta shift) el)) *)
 
-  | Syntax.ResFact (i, el) ->
-    Syntax.ResFact(i, (List.map (expr_shift_meta shift) el))
+  | Syntax.EqFact (e1, e2) ->
+      Syntax.EqFact(expr_shift_meta shift e1, expr_shift_meta shift e2)
+  | Syntax.NeqFact (e1, e2) ->
+      Syntax.NeqFact(expr_shift_meta shift e1, expr_shift_meta shift e2)
+  | Syntax.FileFact (e1, e2) ->
+      Syntax.FileFact(expr_shift_meta shift e1, expr_shift_meta shift e2)
 
   | _ -> assert false
 
