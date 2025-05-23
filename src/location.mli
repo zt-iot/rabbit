@@ -20,3 +20,5 @@ val make : Lexing.position -> Lexing.position -> t
 
 (** Print a location *)
 val print : t -> Format.formatter -> unit
+
+val map_located : ('a -> 'b) -> 'a located -> 'b located
