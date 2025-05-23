@@ -1,8 +1,10 @@
-type indexed_var = Name.ident * int * int * int
 type operator = string
 
+(* XXX unused
+type indexed_var = Name.ident * int * int * int
 val index_var : Name.ident -> int * int * int -> indexed_var
 val indexed_underscore : indexed_var
+*)
 
 type expr = expr' Location.located
 

@@ -42,8 +42,6 @@ type ctx_process_template =
   ; ctx_proctmpl_var : Name.ident list (** field variables *)
   ; ctx_proctmpl_func : (Name.ident * int) list (** functions *)
   }
-(* declared process template name, its channel arguments, type, member variables, and
-member functions and their arities *)
 
 type def_process_template =
   { def_proctmpl_id : Name.ident (** id *)

@@ -1,3 +1,4 @@
+(* unused
 (** Exception [Error (loc, err, msg)] indicates an error of type [err] with error message
     [msg], occurring at location [loc]. *)
 exception Error of (Location.t * string * string)
@@ -20,3 +21,4 @@ let print_message ?(loc=Location.Nowhere) msg_type =
   | Location.Location _ ->
      Format.eprintf "%s at %t:@\n" msg_type (Location.print loc) ;
      Format.kfprintf (fun ppf -> Format.fprintf ppf "@.") Format.err_formatter
+*)
