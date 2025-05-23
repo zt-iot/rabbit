@@ -27,3 +27,5 @@ let print loc ppf =
         Format.fprintf ppf "file %S, line %d, charaters %d-%d" filename begin_line begin_char end_char
       else
         Format.fprintf ppf "line %d, characters %d-%d" (begin_line - 1) begin_char end_char
+
+let map_located f lc = { lc with data = f lc.data }
