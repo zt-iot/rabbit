@@ -1,4 +1,4 @@
-(* XXX unused? *)
+(* XXX unused
 (** A toplevel computation carries around the current environment. *)
 type state =
   {
@@ -18,3 +18,4 @@ let load_file ~quiet {desugar; typecheck; runtime} fn =
   let typecheck, cmds = Typecheck.topfile typecheck cmds in
   let runtime = Eval.topfile ~quiet runtime cmds in
   {desugar; typecheck; runtime}
+*)
