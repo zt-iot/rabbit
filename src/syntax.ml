@@ -1,7 +1,10 @@
-type indexed_var = Name.ident * int * int * int
 type operator = string
+
+(* XXX unused
+type indexed_var = Name.ident * int * int * int
 let index_var s (i, j, k) = (s, i, j, k)
 let indexed_underscore = ("",-1,-1, -1)
+*)
 
 type expr = expr' Location.located
 and expr' =
@@ -63,7 +66,6 @@ type chan_arg =
   | ChanArgPlain of string * string
   | ChanArgParam of string * string
   | ChanArgParamInst of string * expr * string
-
 
 (* XXX not used
 type proc = proc' Location.located
