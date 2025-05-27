@@ -27,7 +27,8 @@ type client_t 	  : process
 type client_ta_t  : process
 
 type udp_t 	  : channel[image * signature] (* image and signature are exposed to attacker on udp_t channel *)
-type rpc_t 	  : channel[client_img] (* the attacker cannot tamper or eavesdrop on the rpc_t channel *)
+type rpc_t 	  : channel[client_img + client_ta_sig] (* channel accepts a sum of types `client_img, client_ta_sig` as write type *) 
+(* the attacker cannot tamper or eavesdrop on the rpc_t channel *)
 
 type conn_client : connection
 type client_img : image
@@ -117,14 +118,15 @@ allow server_t readonly_t     [fopen, fread, fclose]
 
 (** access control necessary for defining security lattice of TYPE SYSTEM *)
 allow client_t client_img [get_picture, invoke_rpc, send]
-allow client_t client_ta_sig [send, recv] (* client is allowed to receive a client_ta_sig type from `recv` and is allowed to pass it to `send` *)
+allow client_t client_ta_sig [send, invoke_rpc] (* client is allowed to access a client_ta_sig type through invoke_rpc and is allowed to pass it to `send` *)
 allow client_t conn_client [connect_rpc, invoke_rpc, close_rpc] (* client is allowed to get a conn_client from `connect_rpc` and to give it to `invoke_rpc`, `close_rpc` *)
 
-allow client_ta_t symkey_client_ta [.] (* client_ta is allowed to directly access symkey_client_ta *)
+allow client_ta_t symkey_client_ta [.] (* client_ta is allowed to directly interact with symkey_client_ta *)
 allow client_ta_t sigkey_client_ta [.] (* client_ta is allowed to directly interact with a term of `sigkey_client_ta` through equational theory functions *)
 
 allow client_ta_t client_img [.] (* client_ta is allowed to directly interact with client_img type *)
-allow client_ta_t client_ta_sig [send] (* client_ta is allowed to send client_ta_sig type *)
+allow client_ta_t client_ta_sig [.] (* client_ta is allowed to directly read and provide client_ta_sig *)
+
 (* note that client_ta_t does not use functions `connect_rpc`, `invoke_rpc`, `close_rpc`, thus it is not necessary to give client_ta_t access to conn_client *)
 (* allow client_ta_t conn_client [.] *)
 

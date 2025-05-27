@@ -26,7 +26,7 @@ syscall invoke_rpc (cid : conn_client, f : 'a -> 'b -> 'c, arg1 : 'a, arg2 : 'b)
   case [c:: Returned(v)] → v end
 }
 
-syscall close_rpc (cid : conn_client){
+syscall close_rpc (cid : conn_client) {
   let c = cid.chid in
   delete cid.chid;
   put[c::exit()]
