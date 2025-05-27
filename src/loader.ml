@@ -425,13 +425,14 @@ let collect_meta_global_facts ctx lctx fl =
     fl
 ;;
 
-(* XXX unused *)
-let _process_global_facts ctx lctx fl =
+(*
+let process_global_facts ctx lctx fl =
   let _, cs, ps, vl = collect_meta_global_facts ctx lctx fl in
   (* let lctx = {lctx with Context.lctx_meta_var = vl@lctx.Context.lctx_meta_var} in  *)
   let ctx, fl = process_global_facts_closed cs ps vl ctx lctx fl in
   (ctx, lctx, fl), cs, ps, vl
 ;;
+*)
 
 let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
   let ctx, lctx, c =
@@ -589,6 +590,7 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
         ctx, lctx, Syntax.Event fl
     | Input.Return e -> ctx, lctx, Syntax.Return (process_expr ctx lctx e)
     | Input.New (v, fid, el, c) ->
+        (* [new x := S(e1,..,en) in c] *)
         if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ();
         let ctx = Context.ctx_add_or_check_inj_fact ~loc ctx (fid, List.length el) in
         (* (if Context.ctx_check_inj_fact ctx fid then error ~loc (AlreadyDefined v) else ()); *)
@@ -596,6 +598,7 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
         let ctx, _, c = process_cmd ctx lctx' c in
         ctx, lctx, Syntax.New (v, fid, List.map (process_expr ctx lctx) el, c)
     | Input.Get (vl, id, fid, c) ->
+        (* [let x1,...,xn := e.S in c] *)
         if not (Context.ctx_check_inj_fact ctx fid)
         then error ~loc (UnknownIdentifier (`Structure (* ??? *), fid));
         (let i = Context.ctx_get_inj_fact_arity ~loc ctx fid in

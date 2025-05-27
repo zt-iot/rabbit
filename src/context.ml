@@ -37,7 +37,7 @@ type ctx_process_template =
   { ctx_proctmpl_id : Name.ident (** id *)
   ; ctx_proctmpl_param : Name.ident option (** channel parameter *)
   ; ctx_proctmpl_ch : (bool * Name.ident * Name.ident) list
-  (** channels. [true] means that the channel is parametric *)
+    (** channels. [true] means that the channel is parametric *)
   ; ctx_proctmpl_ty : Name.ident (** type for access control *)
   ; ctx_proctmpl_var : Name.ident list (** field variables *)
   ; ctx_proctmpl_func : (Name.ident * int) list (** functions *)
@@ -60,7 +60,7 @@ type context =
   ; ctx_ty : (Name.ident * Input.type_class) list (** type names and their classes *)
   ; ctx_const : Name.ident list (** consts *)
   ; ctx_fsys : (Name.ident * Name.ident * Name.ident) list
-  (** fsys name, fsys path, type
+    (** fsys name, fsys path, type
       installed file syatem name, path, and its type *)
   ; ctx_ch : (Name.ident * Name.ident) list
     (** installed channel name, method, and its type *)
