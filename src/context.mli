@@ -75,17 +75,20 @@ type local_context =
   { lctx_chan : Name.ident list
   ; lctx_param_chan : Name.ident list
   ; lctx_path : Name.ident list
-  ; lctx_process : Name.ident list
-  ; lctx_loc_var : Name.ident list
+  ; lctx_process : Name.ident list (** Processes *)
+  ; lctx_loc_var : Name.ident list (** Normal non global variables *)
   ; lctx_top_var : Name.ident list
+    (** Variables defined by [var ...] in process definition *)
   ; lctx_meta_var : Name.ident list
-  ; lctx_func : (Name.ident * int) list
-  ; lctx_param : Name.ident option
+    (** Variables defined by [new x := S(e1,..,en) in c] and [let x1,...,xn := e.S in c] *)
+  ; lctx_func : (Name.ident * int) list (** Functions *)
+  ; lctx_param : Name.ident option (** Parameter *)
   }
 
 type local_definition =
-  { ldef_var : (Name.ident * Syntax.expr) list
+  { ldef_var : (Name.ident * Syntax.expr) list (** Variable definitions *)
   ; ldef_func : (Name.ident * Name.ident list * Syntax.cmd) list
+    (** Function definitions *)
   }
 
 val ctx_check_ext_func : context -> Name.ident -> bool
