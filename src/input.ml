@@ -56,9 +56,9 @@ and fact' =
   | NeqFact of expr * expr (** e1 != e2 *)
   | FileFact of expr * expr (** S.e *)
 
-let vars_of_fact fact =
+let vars_of_fact (fact : fact) =
   let module NS = Name.Set in
-  match fact with
+  match fact.data with
   | Fact (_, es) -> List.fold_left (fun s e -> NS.union s (vars_of_expr e)) NS.empty es
   | GlobalFact (_, es) -> List.fold_left (fun s e -> NS.union s (vars_of_expr e)) NS.empty es
   | ChannelFact (e, _, es)
