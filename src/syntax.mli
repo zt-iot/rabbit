@@ -1,11 +1,5 @@
 type operator = string
 
-(* XXX unused
-type indexed_var = Name.ident * int * int * int
-val index_var : Name.ident -> int * int * int -> indexed_var
-val indexed_underscore : indexed_var
-*)
-
 type expr = expr' Location.located
 
 and expr' =
@@ -25,8 +19,6 @@ and expr' =
   | Channel of string * Name.ident (* second field records necessary permissions.. *)
   | Path of string (* only needed for syscall defintions *)
   | Process of string (* only needed for syscall defintiions *)
-  (* | Run of string * expr list (* only needed for syscall defintiions *) *)
-  (* | FrVariable of string *)
   | ParamChan of string * expr (** id<e> *)
   | ParamConst of string * expr (** id<e> *)
   | Param of string
