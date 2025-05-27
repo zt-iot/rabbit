@@ -1,0 +1,48 @@
+data image
+
+data keykind 
+data key[keykind]
+
+(***********)
+(** declare security types with their simple types *)
+
+type client_img : image (* not readable by attacker *)
+type secret_key_alice : key[Dec] (* only readable by Alice *)
+
+
+type client_t : process
+type alice_t : process
+type bob_t : process
+
+type udp_t : channel[client_img]
+
+
+(** access control *)
+allow alice_t udp_t [send, recv]
+allow bob_t udp_t [send, recv]
+
+allow alice_t client_img [generate_image]
+allow bob_t client_img [generate_image]
+
+allow alice_t secret_key_alice [.] 
+
+(* key[Dec] is a type with (Public, Untrusted) security level *)
+function pk : key[Dec] -> key[Enc]
+
+syscall generate_image() : client_img {
+    new img : client_img in 
+    img
+}
+
+const priv_key_alice : secret_key_alice
+const priv_key_bob : secret_key_bob
+
+process alice() : alice_t  {
+    (* ill-typed because pk expects as input a term with (Public, Untrusted) security level *)
+    var public_key_alice : key[Enc] = pk(priv_key_alice)
+}
+
+
+process bob() : bob_t {
+    ...
+}
