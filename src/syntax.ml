@@ -1,11 +1,5 @@
 type operator = string
 
-(* XXX unused
-type indexed_var = Name.ident * int * int * int
-let index_var s (i, j, k) = (s, i, j, k)
-let indexed_underscore = ("",-1,-1, -1)
-*)
-
 type expr = expr' Location.located
 and expr' =
   | Const of Name.ident
@@ -23,8 +17,6 @@ and expr' =
   | Channel of string * Name.ident (* second field records necessary permissions.. *)
   | Path of string  (* only needed for syscall defintions *)
   | Process of string (* only needed for syscall defintiions *)
-  (* | Run of string * expr list (* only needed for syscall defintiions *) *)
-  (* | FrVariable of string *)
   | ParamChan of string * expr
   | ParamConst of string * expr
   | Param of string
@@ -38,9 +30,6 @@ and fact' =
   | EqFact of expr * expr
   | NeqFact of expr * expr
   | FileFact of expr * expr
-
-(* meta vars, local vars, top-level variables *)
-(* type local_typing_context = Name.ident list * Name.ident list * Name.ident list *)
 
 type 'cmd case = string list * fact list * 'cmd
 
@@ -66,16 +55,6 @@ type chan_arg =
   | ChanArgPlain of string * string
   | ChanArgParam of string * string
   | ChanArgParamInst of string * expr * string
-
-(* XXX not used
-type proc = proc' Location.located
-and proc' =
-  | Proc of Name.ident * (Name.ident list) * Name.ident
-
-type fpath = fpath' Location.located
-and fpath' =
-  | Fpath of (Name.ident * expr * Name.ident)
-*)
 
 type lemma = lemma' Location.located
 and lemma' =
