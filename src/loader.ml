@@ -26,16 +26,6 @@ type error =
   | WrongInputType
   | NoBindingVariable
   | WrongChannelType of string * string
-  | UnstagedConst of string
-(* XXX unused
-  | UnknownIdentifier_ch of string
-  | UnknownIdentifier_path of string
-  | UnknownIdentifier_process of string
-  | UnknownFunction of string
-  | ForbiddenFresh
-  | OtherError of string
-  | UnstagedParamConst of string
-*)
 
 exception Error of error Location.located
 
@@ -70,19 +60,6 @@ let print_error err ppf =
   | WrongInputType -> Format.fprintf ppf "wrong input type"
   | NoBindingVariable -> Format.fprintf ppf "no binding variable"
   | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given" x y
-  | UnstagedConst x ->
-      Format.fprintf ppf "This is unintended error. Contact the developper. Hint: %s" x
-;;
-
-(*
-   | UnknownIdentifier_ch x -> Format.fprintf ppf "unknown identifier channel %s" x
-  | UnknownIdentifier_path x -> Format.fprintf ppf "unknown identifier path %s" x
-  | UnknownIdentifier_process x -> Format.fprintf ppf "unknown identifier process %s" x
-  | UnknownFunction x -> Format.fprintf ppf "unknown function %s" x
-  | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
-  | OtherError x -> Format.fprintf ppf "Uncategorized error: %s" x
-  | UnstagedParamConst x -> Format.fprintf ppf "This is unintended error. Contact the developper. Hint: %s" x
-*)
 
 let find_index f lst =
   let rec aux i = function
@@ -275,165 +252,6 @@ let process_facts ctx lctx fl =
   (ctx, lctx, fl), vl
 ;;
 
-(* These are used for processing facts in lemmas *)
-let rec process_expr3
-          used_const
-          used_param_const
-          new_meta_vars
-          ctx
-          lctx
-          { Location.data = c; Location.loc }
-  =
-  let c =
-    match c with
-    | Input.Var id ->
-        if Context.ctx_check_const ctx id
-        then
-          if List.exists (fun s -> s = id) used_const
-          then Syntax.Const id
-          else error ~loc (UnstagedConst id)
-        else if Context.ctx_check_ext_const ctx id
-        then Syntax.ExtConst id
-        else if Context.lctx_check_chan lctx id
-        then Syntax.Channel (id, "")
-        else if Context.lctx_check_path lctx id
-        then Syntax.Path id
-        else if Context.lctx_check_process lctx id
-        then Syntax.Process id
-        else if Context.lctx_check_param lctx id
-        then Syntax.Param id
-        else (
-          match find_index (fun v -> v = id) lctx.Context.lctx_top_var with
-          | Some i -> Syntax.TopVariable (id, i)
-          | None ->
-              (match find_index (fun v -> v = id) lctx.Context.lctx_loc_var with
-               | Some i -> Syntax.LocVariable (id, i)
-               | None ->
-                   (match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
-                    | Some i -> Syntax.MetaVariable (id, i)
-                    | None ->
-                        (match find_index (fun v -> v = id) new_meta_vars with
-                         | Some i -> Syntax.MetaNewVariable (id, i)
-                         | None -> error ~loc (UnknownVariable (`MetaVar, id))))))
-    | Input.Boolean b -> Syntax.Boolean b
-    | Input.String s -> Syntax.String s
-    | Input.Integer z -> Syntax.Integer z
-    | Input.Float f -> Syntax.Float f
-    | Input.Apply (o, el) ->
-        if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o);
-        if not @@ Context.ctx_check_ext_func_and_arity ctx (o, List.length el)
-        then error ~loc (UnknownIdentifier (`Function, o));
-        Syntax.Apply
-          ( o
-          , List.map
-              (fun a ->
-                 process_expr3 used_const used_param_const new_meta_vars ctx lctx a)
-              el )
-    | Input.Tuple el ->
-        Syntax.Tuple
-          (List.map
-             (fun a -> process_expr3 used_const used_param_const new_meta_vars ctx lctx a)
-             el)
-    | Input.Param (pid, p) ->
-        if Context.ctx_check_param_const ctx pid
-        then
-          if List.exists (fun s -> s = pid) used_param_const
-          then
-            Syntax.ParamConst
-              (pid, process_expr3 used_const used_param_const new_meta_vars ctx lctx p)
-          else error ~loc (UnstagedConst pid)
-        else if Context.lctx_check_param_chan lctx pid
-        then
-          Syntax.ParamChan
-            (pid, process_expr3 used_const used_param_const new_meta_vars ctx lctx p)
-        else error ~loc (UnknownIdentifier (`Parameter, pid))
-  in
-  Location.locate ~loc c
-;;
-
-let process_global_fact_closed used_const used_param_const new_meta_vars ctx lctx f =
-  let loc = f.Location.loc in
-  match f.Location.data with
-  | Input.GlobalFact (id, el) ->
-      ( Context.ctx_add_or_check_fact ~loc ctx (id, List.length el)
-      , Location.locate
-          ~loc:f.Location.loc
-          (Syntax.GlobalFact
-             ( id
-             , List.map
-                 (process_expr3 used_const used_param_const new_meta_vars ctx lctx)
-                 el )) )
-  | _ -> error ~loc (UnknownIdentifier2 "")
-;;
-
-let process_global_facts_closed used_const used_param_const new_meta_vars ctx lctx fl =
-  List.fold_left
-    (fun (ctx, fl) f ->
-       let ctx, f =
-         process_global_fact_closed used_const used_param_const new_meta_vars ctx lctx f
-       in
-       ctx, fl @ [ f ])
-    (ctx, [])
-    fl
-;;
-
-let rec collect_meta_global_fact used_const used_param_const new_meta_vars ctx lctx f =
-  try
-    let ctx, f =
-      process_global_fact_closed used_const used_param_const new_meta_vars ctx lctx f
-    in
-    (ctx, lctx, f), [], [], []
-  with
-  | Error { Location.data = err; Location.loc = locc } ->
-      (match err with
-       | UnknownVariable (_k, v) ->
-           let r, consts, pconsts, l =
-             collect_meta_global_fact
-               used_const
-               used_param_const
-               (v :: new_meta_vars)
-               ctx
-               lctx
-               f
-           in
-           r, consts, pconsts, l @ [ v ]
-       | UnstagedConst v ->
-           let r, consts, pconsts, l =
-             collect_meta_global_fact
-               (v :: used_const)
-               used_param_const
-               new_meta_vars
-               ctx
-               lctx
-               f
-           in
-           r, consts @ [ v ], pconsts, l
-       (*
-          | UnstagedParamConst v ->
-         let (r, consts, pconsts, l) = collect_meta_global_fact used_const (v::used_param_const) new_meta_vars ctx lctx f in
-         (r, consts, pconsts @ [v], l)
-       *)
-       | _ -> error ~loc:locc err)
-;;
-
-let collect_meta_global_facts ctx lctx fl =
-  List.fold_left
-    (fun ((ctx, lctx, fl), cs, ps, ls) f ->
-       let (ctx, lctx, f), c, p, l = collect_meta_global_fact cs ps ls ctx lctx f in
-       (ctx, lctx, fl @ [ f ]), cs @ c, ps @ p, ls @ l)
-    ((ctx, lctx, []), [], [], [])
-    fl
-;;
-
-(*
-let process_global_facts ctx lctx fl =
-  let _, cs, ps, vl = collect_meta_global_facts ctx lctx fl in
-  (* let lctx = {lctx with Context.lctx_meta_var = vl@lctx.Context.lctx_meta_var} in  *)
-  let ctx, fl = process_global_facts_closed cs ps vl ctx lctx fl in
-  (ctx, lctx, fl), cs, ps, vl
-;;
-*)
-
 let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
   let ctx, lctx, c =
     match c with
@@ -621,8 +439,6 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
   in
   ctx, lctx, Location.locate ~loc c
 ;;
-
-(* (ctx, lctx, ((lctx.Context.lctx_meta_var, lctx.Context.lctx_loc_var, lctx.Context.lctx_top_var), Location.locate ~loc c)) *)
 
 type env =
   { context : Context.context
