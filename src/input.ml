@@ -31,6 +31,17 @@ and expr' =
   | Param of Name.ident * expr
   (** parameter, [f<e>] *)
 
+let vars_of_expr e =
+  let module NS = Name.Set in
+  let rec aux s (e : expr) =
+    match e.data with
+    | Var id -> NS.add id s
+    | Boolean _ | String _ | Integer _ | Float _ -> s
+    | Apply (_, es) | Tuple es -> List.fold_left aux s es
+    | Param (id, e) -> NS.add id (aux s e)
+  in
+  aux NS.empty e
+
 type fact = fact' Location.located
 and fact' =
   | Fact of Name.ident * expr list
@@ -44,6 +55,16 @@ and fact' =
   | EqFact of expr * expr (** e1 = e2 *)
   | NeqFact of expr * expr (** e1 != e2 *)
   | FileFact of expr * expr (** S.e *)
+
+let vars_of_fact (fact : fact) =
+  let module NS = Name.Set in
+  match fact.data with
+  | Fact (_, es) -> List.fold_left (fun s e -> NS.union s (vars_of_expr e)) NS.empty es
+  | GlobalFact (_, es) -> List.fold_left (fun s e -> NS.union s (vars_of_expr e)) NS.empty es
+  | ChannelFact (e, _, es)
+  | ProcessFact (e, _, es)  -> List.fold_left (fun s e -> NS.union s (vars_of_expr e)) NS.empty (e::es)
+  | EqFact (e1, e2) | NeqFact (e1, e2) | FileFact (e1, e2) ->
+      NS.union (vars_of_expr e1) (vars_of_expr e2)
 
 type 'cmd case = (fact list * 'cmd)
 
