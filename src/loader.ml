@@ -407,14 +407,17 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
         let ctx, fl = process_facts_closed [] ctx lctx fl in
         ctx, lctx, Syntax.Event fl
     | Input.Return e -> ctx, lctx, Syntax.Return (process_expr ctx lctx e)
-    | Input.New (v, fid, el, c) ->
+    | Input.New (v, fid_el_opt, c) ->
         (* [new x := S(e1,..,en) in c] *)
         if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ();
-        let ctx = Context.ctx_add_or_check_inj_fact ~loc ctx (fid, List.length el) in
+        let ctx =
+          let fid, el = Option.value fid_el_opt ~default:("",[]) in
+          Context.ctx_add_or_check_inj_fact ~loc ctx (fid, List.length el)
+        in
         (* (if Context.ctx_check_inj_fact ctx fid then error ~loc (AlreadyDefined v) else ()); *)
         let lctx' = Context.lctx_add_new_meta ~loc lctx v in
         let ctx, _, c = process_cmd ctx lctx' c in
-        ctx, lctx, Syntax.New (v, fid, List.map (process_expr ctx lctx) el, c)
+        ctx, lctx, Syntax.New (v, Option.map (fun (fid, el) -> fid, List.map (process_expr ctx lctx) el) fid_el_opt, c)
     | Input.Get (vl, id, fid, c) ->
         (* [let x1,...,xn := e.S in c] *)
         if not (Context.ctx_check_inj_fact ctx fid)

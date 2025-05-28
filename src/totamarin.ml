@@ -571,7 +571,8 @@ let rec translate_cmd mo (st : state) funs syscalls attacks vars scope syscall p
   | Get of Name.ident list * expr * Name.ident * cmd
   | Del of expr * Name.ident *)
 
-| Syntax.New (_v, fid, el, c) ->
+ | Syntax.New (_v, fid_el_opt, c) ->
+  let fid, el = Option.value fid_el_opt ~default:("",[]) in
   let el, gv, _ = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
     (el @ [e], gv @ g, n)) ([],[], 0) el in
 
