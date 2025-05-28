@@ -26,7 +26,7 @@ let print_error err ppf =
 ;;
 
 (*
-  | UnknownFunction x -> Format.fprintf ppf "unknown function %s" x
+   | UnknownFunction x -> Format.fprintf ppf "unknown function %s" x
   | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
   | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
   | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
@@ -53,24 +53,20 @@ type def_process_template =
 
 (* ctx : context refers to the external specification of the system *)
 type context =
-  { ctx_ext_const : Name.ident list (** ext consts *)
-  ; ctx_ext_func : (Name.ident * int) list (** ext funcs with arities *)
-  ; ctx_ext_syscall : (Name.ident * Input.arg_type list) list (** ext system calls *)
-  ; ctx_ext_attack : (Name.ident * Name.ident * Input.arg_type list) list (** attacks *)
-  ; ctx_ty : (Name.ident * Input.type_class) list (** type names and their classes *)
-  ; ctx_const : Name.ident list (** consts *)
+  { ctx_ext_const : Name.ident list
+  ; ctx_ext_func : (Name.ident * int) list
+  ; ctx_ext_syscall : (Name.ident * Input.arg_type list) list
+  ; ctx_ext_attack : (Name.ident * Name.ident * Input.arg_type list) list
+  ; ctx_ty : (Name.ident * Input.type_class) list
+  ; ctx_const : Name.ident list
   ; ctx_fsys : (Name.ident * Name.ident * Name.ident) list
-    (** fsys name, fsys path, type
-      installed file syatem name, path, and its type *)
   ; ctx_ch : (Name.ident * Name.ident) list
-    (** installed channel name, method, and its type *)
   ; ctx_param_ch : (Name.ident * Name.ident) list
-    (** installed channel name, method, and its type *)
-  ; ctx_param_const : Name.ident list (** ext_const name *)
+  ; ctx_param_const : Name.ident list
   ; ctx_proctmpl : ctx_process_template list
-  ; ctx_event : (Name.ident * int) list (** event predicate name, its arity *)
+  ; ctx_event : (Name.ident * int) list
   ; ctx_fact : (Name.ident * int * bool) list
-  ; ctx_inj_fact : (Name.ident * int) list
+  ; ctx_inj_fact : (Name.ident * int) list (* xxx structures ? *)
   }
 
 (* def : definition stores definitions of the system *)
