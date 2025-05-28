@@ -17,21 +17,33 @@ type def_process_template =
   ; def_proctmpl_main : Syntax.cmd
   }
 
+(* ctx : context refers to the external specification of the system *)
 type context =
-  { ctx_ext_const : Name.ident list
+  { ctx_ext_const : Name.ident list (** ext consts, by [DeclExtFun(_,0)], [ExtConst id] *)
   ; ctx_ext_func : (Name.ident * int) list
+    (** ext funcs with arities, by [DeclExtFun(_,a)] where a > 0 *)
   ; ctx_ext_syscall : (Name.ident * Input.arg_type list) list
+    (** ext system calls, by [DeclExtSyscall], [syscall f(args) {c}] or [passive attack f(args) {c} *)
   ; ctx_ext_attack : (Name.ident * Name.ident * Input.arg_type list) list
+    (** attacks, by [DeclExtAttack], [attack f on name (args) { c }] *)
   ; ctx_ty : (Name.ident * Input.type_class) list
+    (** type names and their classes, by [DeclType], [type t : tyclass] *)
   ; ctx_const : Name.ident list
+    (** consts, by [DeclInit], [const n = e] or [const fresh n] *)
   ; ctx_fsys : (Name.ident * Name.ident * Name.ident) list
+    (** Installed file system name, path, and its type, by [DeclFsys], [filesys n = [fs]] *)
   ; ctx_ch : (Name.ident * Name.ident) list
+    (** installed channel name, method, and its type, by [DeclChan], [channel n : ty] *)
   ; ctx_param_ch : (Name.ident * Name.ident) list
+    (** installed channel name, method, and its type, by [DeclParamChan], [channel n<> : ty] *)
   ; ctx_param_const : Name.ident list
+    (** const with parameter, by [DeclParamInit], [const n<p> = e] or [const fresh n<>] *)
   ; ctx_proctmpl : ctx_process_template list
+    (** process templates, by [DeclParamProc] and [DeclProc] *)
   ; ctx_event : (Name.ident * int) list
-  ; ctx_fact : (Name.ident * int * bool) list
-  ; ctx_inj_fact : (Name.ident * int) list (* xxx structures ? *)
+    (** event predicate name, its arity, probably unused. Not used... *)
+  ; ctx_fact : (Name.ident * int * bool) list (** facts, not used *)
+  ; ctx_inj_fact : (Name.ident * int) list (** structure by [new x := S(es) in c] *)
   }
 
 type definition =
