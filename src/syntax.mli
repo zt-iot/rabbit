@@ -57,7 +57,7 @@ and cmd' =
   *)
   | Event of fact list (** tag, event[T] *)
   | Return of expr (** return *)
-  | New of Name.ident * Name.ident * expr list * cmd
+  | New of Name.ident * (Name.ident * expr list) option * cmd
   (** allocation, new x := S(e1,..en) in c *)
   | Get of Name.ident list * expr * Name.ident * cmd
   (** fetch, let x1,..,xn := e.S in c *)
