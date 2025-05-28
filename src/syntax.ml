@@ -46,7 +46,7 @@ and cmd' =
   | While of cmd case list * cmd case list
   | Event of fact list
   | Return of expr
-  | New of Name.ident * Name.ident * expr list * cmd
+  | New of Name.ident * (Name.ident * expr list) option * cmd
   | Get of Name.ident list * expr * Name.ident * cmd
   | Del of expr * Name.ident
 

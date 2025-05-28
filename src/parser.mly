@@ -260,8 +260,8 @@ plain_cmd:
   | EVENT LBRACKET a=separated_list(COMMA, fact) RBRACKET           { Event(a) }
 
   | LET ids=separated_list(COMMA, NAME) EQ e=expr DOT fid=NAME IN c=cmd { Get (ids, e, fid, c) }
-  | NEW id=NAME EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd { New (id, fid, args, c) }
-  | NEW id=NAME IN c=cmd { New (id, "", [], c) }
+  | NEW id=NAME EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd { New (id, Some(fid, args), c) }
+  | NEW id=NAME IN c=cmd { New (id, None, c) }
   | DEL e=expr DOT fid=NAME { Del (e, fid) }
 
   | e=expr { Return e }
