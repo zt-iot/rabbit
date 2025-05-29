@@ -30,13 +30,16 @@ type udp_t 	  : channel[image * signature] (* image and signature are exposed to
 type rpc_t 	  : channel[client_img + client_ta_sig] (* channel accepts a sum of types `client_img, client_ta_sig` as write type *) 
 (* the attacker cannot tamper or eavesdrop on the rpc_t channel *)
 
-type conn_client : connection
+(***********)
+(* SECURITY TYPES *)
+
 type client_img : image
+type client_ta_sig : signature
 
 type symkey_client_ta : key[Sym] (* We have not specified the type of data which the key performs on *)
 type sigkey_client_ta : key[Sig]
-type client_ta_sig : signature
 
+type conn_client : connection
 type ver_key_server : key[Chk]
 
 
@@ -132,6 +135,8 @@ allow client_ta_t client_ta_sig [.] (* client_ta is allowed to directly read and
 
 
 allow server_t ver_key_server [.]
+allow client_t ver_key_server [.]
+allow client_ta_t ver_key_server [.]
 
 
 (***********)
@@ -261,7 +266,7 @@ process server(ch_net : udp_t) : server_t
     var pubkey : ver_key_server = fread(pubkey_fd) in 
     repeat 
     | [] →
-      var sig_img_pair : client_ta_sig * client_img = recv(ch_net) in
+      var sig_img_pair : signature * image = recv(ch_net) in
       var res : bool = verify(fst(p), snd(p), pubkey) in 
       case 
       | [res =  true] →
