@@ -18,7 +18,6 @@ type error =
       | `Attack
       ]
       * string
-  | UnknownIdentifier2 of string
   | AlreadyDefined of string
   | ForbiddenIdentifier of string
   | ArgNumMismatch of string * int * int
@@ -46,7 +45,6 @@ let print_error err ppf =
   | UnknownIdentifier (`ChannelType, x) -> Format.fprintf ppf "unknown channel type %s" x
   | UnknownIdentifier (`Type, x) -> Format.fprintf ppf "unknown type %s" x
   | UnknownIdentifier (`Attack, x) -> Format.fprintf ppf "unknown attack %s" x
-  | UnknownIdentifier2 x -> Format.fprintf ppf "unknown identifier2 %s" x
   | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
   | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
   | ArgNumMismatch (x, i, j) ->
@@ -316,26 +314,16 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
              if Context.ctx_check_ext_syscall ctx o
              then (*  when o is a system call *)
                (
-               let args_ty = Context.ctx_get_ext_syscall_arity ~loc ctx o in
-               if List.length args = List.length args_ty
+               let args' = Context.ctx_get_ext_syscall_arity ~loc ctx o in
+               if List.length args = List.length args'
                then ()
-               else error ~loc (ArgNumMismatch (o, List.length args, List.length args_ty));
+               else error ~loc (ArgNumMismatch (o, List.length args, List.length args'));
                ( ctx
                , lctx
                , Syntax.SCall
                    ( ov
                    , o
-                   , List.map2
-                       (fun arg arg_ty ->
-                          let e = process_expr ctx lctx arg in
-                          match e.Location.data, arg_ty with
-                          | Syntax.Channel (s, _), Input.TyChannel ->
-                              Location.locate ~loc:e.Location.loc (Syntax.Channel (s, o))
-                          | _, Input.TyChannel -> error ~loc WrongInputType
-                          | _, _ -> e
-                          (* , arg_ty *))
-                       args
-                       args_ty ) ))
+                   , List.map (fun arg -> process_expr ctx lctx arg) args )))
              else if
                (*  when o is a function *)
                Context.lctx_check_func lctx o
@@ -641,18 +629,11 @@ let process_proc loc ctx def pol (proc : Input.proc) =
 ;;
 
 (* parse arguments and build a local context *)
-let local_context_of_typed_arguments ~loc typed_args =
-  List.fold_left
-    (fun lctx ta ->
-       match ta with
-       | Input.TyValue, v -> Context.lctx_add_new_var ~loc lctx v
-       | Input.TyChannel, v -> Context.lctx_add_new_chan ~loc lctx v
-       | Input.TyPath, v -> Context.lctx_add_new_path ~loc lctx v
-       | Input.TyProcess, v ->
-           (* cannot take a process *)
-           error ~loc (UnknownIdentifier2 v))
+let local_context_of_arguments ~loc args =
+  List.fold_left (fun lctx v ->
+      Context.lctx_add_new_var ~loc lctx v)
     Context.lctx_init
-    typed_args
+    args
 ;;
 
 let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
@@ -691,29 +672,29 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         definition =
           Context.def_add_ext_eq env.definition (lctx.Context.lctx_loc_var, e1', e2')
       }
-  | Input.DeclExtSyscall (f, typed_args, c) ->
+  | Input.DeclExtSyscall (f, args, c) ->
       (* [syscall f(a1,..,an) { c }] or [passive attack f(a1,..,an) { c }] *)
       if Context.check_used env.context f then error ~loc (AlreadyDefined f);
-      let lctx = local_context_of_typed_arguments ~loc typed_args in
+      let lctx = local_context_of_arguments ~loc args in
       let ctx, _lctx, c = process_cmd env.context lctx c in
       { env with
-        context = Context.ctx_add_ext_syscall ctx (f, List.map fst typed_args)
-      ; definition = Context.def_add_ext_syscall env.definition (f, typed_args, c)
+        context = Context.ctx_add_ext_syscall ctx (f, args)
+      ; definition = Context.def_add_ext_syscall env.definition (f, args, c)
       }
-  | Input.DeclExtAttack (f, t, typed_args, c) ->
+  | Input.DeclExtAttack (f, t, args, c) ->
       (* [attack f on name (typ x,..) { c }] *)
       if Context.check_used env.context f then error ~loc (AlreadyDefined f);
       (* [t] must be a syscall *)
       if not (Context.ctx_check_ext_syscall env.context t)
       then error ~loc (UnknownIdentifier (`SysCall, t));
-      let args_ty = Context.ctx_get_ext_syscall_arity ~loc env.context t in
-      if List.length typed_args <> List.length args_ty
-      then error ~loc (ArgNumMismatch (t, List.length typed_args, List.length args_ty));
-      let lctx = local_context_of_typed_arguments ~loc typed_args in
+      let args' = Context.ctx_get_ext_syscall_arity ~loc env.context t in
+      if List.length args <> List.length args'
+      then error ~loc (ArgNumMismatch (t, List.length args, List.length args'));
+      let lctx = local_context_of_arguments ~loc args in
       let ctx, _lctx, c = process_cmd env.context lctx c in
       { env with
-        context = Context.ctx_add_ext_attack ctx (f, t, List.map fst typed_args)
-      ; definition = Context.def_add_ext_attack env.definition (f, t, typed_args, c)
+        context = Context.ctx_add_ext_attack ctx (f, t, args)
+      ; definition = Context.def_add_ext_attack env.definition (f, t, args, c)
       }
   | Input.DeclType (id, tc) ->
       (* [type t : tyclass] *)
