@@ -55,8 +55,8 @@ type def_process_template =
 type context =
   { ctx_ext_const : Name.ident list
   ; ctx_ext_func : (Name.ident * int) list
-  ; ctx_ext_syscall : (Name.ident * Input.arg_type list) list
-  ; ctx_ext_attack : (Name.ident * Name.ident * Input.arg_type list) list
+  ; ctx_ext_syscall : (Name.ident * Name.ident list) list
+  ; ctx_ext_attack : (Name.ident * Name.ident * Name.ident list) list
   ; ctx_ty : (Name.ident * Input.type_class) list
   ; ctx_const : Name.ident list
   ; ctx_fsys : (Name.ident * Name.ident * Name.ident) list
@@ -73,9 +73,9 @@ type context =
 type definition =
   { def_ext_eq : (Name.ident list * Syntax.expr * Syntax.expr) list
     (* free variables, e1, e2  such that e1 = e2 under the free variables *)
-  ; def_ext_syscall : (Name.ident * (Input.arg_type * Name.ident) list * Syntax.cmd) list
+  ; def_ext_syscall : (Name.ident * Name.ident list * Syntax.cmd) list
   ; def_ext_attack :
-      (Name.ident * Name.ident * (Input.arg_type * Name.ident) list * Syntax.cmd) list
+      (Name.ident * Name.ident * Name.ident list * Syntax.cmd) list
   ; def_const : (Name.ident * Syntax.expr option) list (* const name, and its value *)
   ; def_param_const : (Name.ident * (Name.ident * Syntax.expr) option) list
     (* const name, and its value *)

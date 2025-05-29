@@ -90,13 +90,13 @@ and decl' =
   (** external function, [function id : arity] *)
   | DeclExtEq of expr * expr
   (** external equation, [equation e1 = e2] *)
-  | DeclExtSyscall of Name.ident * (Input.arg_type * Name.ident) list * cmd
-  (** system call, [syscall f(ty1 a1,..,tyn an) { c }]
+  | DeclExtSyscall of Name.ident * Name.ident list * cmd
+  (** system call, [syscall f(a1,..,an) { c }]
                    [passive attack f(ty1 a1,..,tyn an) { c }]
       XXX what is passive attack for?  It is not distinguishable from syscall in Input.
   *)
-  | DeclExtAttack of Name.ident * Name.ident * (Input.arg_type * Name.ident) list * cmd
-  (** [attack f on name (ty1 a1,..,tyn an) { c }] *)
+  | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
+  (** [attack f on name (a1,..,an) { c }] *)
   | DeclType of Name.ident * Input.type_class
   (** type declaration, [type t : filesys/process/channel] *)
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option

@@ -87,7 +87,7 @@ plain_decl:
 
   | CONST FRESH t=NAME { DeclInit(t,None) }
 
-  | ATTACK f=NAME ON t=NAME LPAREN arg=separated_list(COMMA, typed_arg) RPAREN LBRACE c=cmd RBRACE { DeclExtAttack (f, t, arg, c) }
+  | ATTACK f=NAME ON t=NAME LPAREN arg=separated_list(COMMA, NAME) RPAREN LBRACE c=cmd RBRACE { DeclExtAttack (f, t, arg, c) }
 
   | external_syscall { $1 }
 
@@ -110,7 +110,7 @@ colon_name_pair :
   | a=NAME LTGT COLON b=NAME { (true, a, b) }
 
 external_syscall:
-  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, typed_arg) RPAREN
+  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN
       LBRACE c=cmd RBRACE { DeclExtSyscall(f, parems, c) }
 
 syscall_tk:
@@ -126,13 +126,6 @@ plain_fact:
   | e1=expr EQ e2=expr { EqFact(e1, e2) }
   | e1=expr NEQ e2=expr { NeqFact(e1, e2) }
   | scope=expr DOT e=expr { FileFact(scope, e) }
-
-typed_arg:
-  | var=NAME { (TyValue, var) }
-  | CHANNEL var=NAME { (TyChannel, var) }
-  | PROCESS var=NAME { (TyProcess, var) }
-  | PATH var=NAME { (TyPath, var) }
-
 
 sys:
   | SYSTEM p=separated_nonempty_list(BAR, proc) REQUIRES

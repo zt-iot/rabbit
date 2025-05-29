@@ -22,9 +22,9 @@ type context =
   { ctx_ext_const : Name.ident list (** ext consts, by [DeclExtFun(_,0)], [ExtConst id] *)
   ; ctx_ext_func : (Name.ident * int) list
     (** ext funcs with arities, by [DeclExtFun(_,a)] where a > 0 *)
-  ; ctx_ext_syscall : (Name.ident * Input.arg_type list) list
+  ; ctx_ext_syscall : (Name.ident * Name.ident list) list
     (** ext system calls, by [DeclExtSyscall], [syscall f(args) {c}] or [passive attack f(args) {c} *)
-  ; ctx_ext_attack : (Name.ident * Name.ident * Input.arg_type list) list
+  ; ctx_ext_attack : (Name.ident * Name.ident * Name.ident list) list
     (** attacks, by [DeclExtAttack], [attack f on name (args) { c }] *)
   ; ctx_ty : (Name.ident * Input.type_class) list
     (** type names and their classes, by [DeclType], [type t : tyclass] *)
@@ -48,9 +48,9 @@ type context =
 
 type definition =
   { def_ext_eq : (Name.ident list * Syntax.expr * Syntax.expr) list
-  ; def_ext_syscall : (Name.ident * (Input.arg_type * Name.ident) list * Syntax.cmd) list
+  ; def_ext_syscall : (Name.ident * Name.ident list * Syntax.cmd) list
   ; def_ext_attack :
-      (Name.ident * Name.ident * (Input.arg_type * Name.ident) list * Syntax.cmd) list
+      (Name.ident * Name.ident * Name.ident list * Syntax.cmd) list
   ; def_const : (Name.ident * Syntax.expr option) list
   ; def_param_const : (Name.ident * (Name.ident * Syntax.expr) option) list
   ; def_fsys : (Name.ident * Name.ident * Syntax.expr) list
@@ -124,13 +124,13 @@ val ctx_get_ext_syscall_arity
   :  loc:Location.t
   -> context
   -> Name.ident
-  -> Input.arg_type list
+  -> Name.ident list
 
 val ctx_get_ext_attack_arity
   :  loc:Location.t
   -> context
   -> Name.ident
-  -> Input.arg_type list
+  -> Name.ident list
 
 val ctx_get_inj_fact_arity : loc:Location.t -> context -> Name.ident -> int
 val ctx_get_proctmpl : context -> Name.ident -> ctx_process_template
@@ -146,11 +146,11 @@ val ctx_add_ch : context -> Name.ident * Name.ident -> context
 val ctx_add_param_ch : context -> Name.ident * Name.ident -> context
 val ctx_add_proctmpl : context -> ctx_process_template -> context
 val ctx_add_event : context -> Name.ident * int -> context
-val ctx_add_ext_syscall : context -> Name.ident * Input.arg_type list -> context
+val ctx_add_ext_syscall : context -> Name.ident * Name.ident list -> context
 
 val ctx_add_ext_attack
   :  context
-  -> Name.ident * Name.ident * Input.arg_type list
+  -> Name.ident * Name.ident * Name.ident list
   -> context
 
 val ctx_add_fact : context -> Name.ident * int -> context
@@ -186,12 +186,12 @@ val def_add_proctmpl
 
 val def_add_ext_syscall
   :  definition
-  -> Name.ident * (Input.arg_type * Name.ident) list * Syntax.cmd
+  -> Name.ident * Name.ident list * Syntax.cmd
   -> definition
 
 val def_add_ext_attack
   :  definition
-  -> Name.ident * Name.ident * (Input.arg_type * Name.ident) list * Syntax.cmd
+  -> Name.ident * Name.ident * Name.ident list * Syntax.cmd
   -> definition
 
 val def_get_proctmpl : definition -> Name.ident -> def_process_template

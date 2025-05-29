@@ -384,10 +384,9 @@ and type_case env (facts, cmd) =
   in
   env, (Name.Set.elements fresh, facts, cmd)
 
-let extend_with_args env (args : (Input.arg_type * Name.ident) list) =
+let extend_with_args env (args : Name.ident list) =
   (* XXX channels are not declared like [channel ch] but simply as [ch] *)
-  List.fold_left (fun env (arg_type, id) ->
-      assert (arg_type = Input.TyValue);
+  List.fold_left (fun env id ->
       let idx = Ident.local id in
       Env.add env id (Var (Loc (snd idx)))) env args
 
