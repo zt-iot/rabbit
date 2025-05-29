@@ -56,8 +56,40 @@ type chan_arg =
   | ChanArgParam of string * string
   | ChanArgParamInst of string * expr * string
 
+type pproc = pproc' Location.located
+and pproc' =
+  | Proc of Name.ident * expr option * (chan_arg list)
+
+type proc =
+| UnboundedProc of pproc
+| BoundedProc of (Name.ident * pproc list)
+
 type lemma = lemma' Location.located
 and lemma' =
-  | PlainLemma of Name.ident * Name.ident
+  | PlainLemma of Name.ident * string
   | ReachabilityLemma of Name.ident * Name.ident list * Name.ident list * Name.ident list * fact list
   | CorrespondenceLemma of Name.ident * Name.ident list * fact * fact
+
+type decl = decl' Location.located
+and decl' =
+  | DeclExtFun of Name.ident * int
+  | DeclExtEq of expr * expr
+  | DeclExtSyscall of Name.ident * (Input.arg_type * Name.ident) list * cmd
+  | DeclExtAttack of Name.ident * Name.ident * (Input.arg_type * Name.ident) list * cmd
+  | DeclType of Name.ident * Input.type_class
+  | DeclAccess of Name.ident * Name.ident list * Name.ident list option
+  | DeclAttack of Name.ident list * Name.ident list
+  | DeclInit of Name.ident * expr option
+  | DeclParamInit of Name.ident * (Name.ident * expr) option
+  | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
+  | DeclChan of Name.ident * unit option * Name.ident
+  | DeclProc of { id : Name.ident
+                ; param : Name.ident option
+                ; args : (bool * Name.ident * Name.ident) list
+                ; typ : Name.ident
+                ; files : (expr * Name.ident * expr) list
+                ; vars : (Name.ident * expr) list
+                ; funcs : (Name.ident * (Name.ident list) * cmd) list
+                ; main : cmd }
+  | DeclSys of proc list * lemma list
+  | DeclLoad of string * decl list

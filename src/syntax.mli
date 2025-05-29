@@ -68,10 +68,66 @@ type chan_arg =
   | ChanArgParam of string * string
   | ChanArgParamInst of string * expr * string
 
+type pproc = pproc' Location.located
+and pproc' =
+  | Proc of Name.ident * expr option * (chan_arg list)
+
+type proc =
+| UnboundedProc of pproc
+| BoundedProc of (Name.ident * pproc list)
+
 (** Lemma *)
 type lemma = lemma' Location.located
 and lemma' =
-  | PlainLemma of Name.ident * Name.ident
+  | PlainLemma of Name.ident * string
   | ReachabilityLemma of
       Name.ident * Name.ident list * Name.ident list * Name.ident list * fact list
   | CorrespondenceLemma of Name.ident * Name.ident list * fact * fact
+
+type decl = decl' Location.located
+and decl' =
+  | DeclExtFun of Name.ident * int
+  (** external function, [function id : arity] *)
+  | DeclExtEq of expr * expr
+  (** external equation, [equation e1 = e2] *)
+  | DeclExtSyscall of Name.ident * (Input.arg_type * Name.ident) list * cmd
+  (** system call, [syscall f(ty1 a1,..,tyn an) { c }]
+                   [passive attack f(ty1 a1,..,tyn an) { c }]
+      XXX what is passive attack for?  It is not distinguishable from syscall in Input.
+  *)
+  | DeclExtAttack of Name.ident * Name.ident * (Input.arg_type * Name.ident) list * cmd
+  (** [attack f on name (ty1 a1,..,tyn an) { c }] *)
+  | DeclType of Name.ident * Input.type_class
+  (** type declaration, [type t : filesys/process/channel] *)
+  | DeclAccess of Name.ident * Name.ident list * Name.ident list option
+  (** [allow s t1 .. tn [f1, .., fm]]
+      [allow s t1 .. tn [.]]  for all the syscalls
+
+      XXX the list [ti] is either empty or singleton.  Should use option type?
+  *)
+  | DeclAttack of Name.ident list * Name.ident list
+  (** [allow attack t1 .. tn [f1, .., fm]] *)
+  | DeclInit of Name.ident * expr option
+  (** [const n = e]
+      [const fresh n]
+  *)
+  | DeclParamInit of Name.ident * (Name.ident * expr) option
+  (** - [const n<p> = e]
+      - [const fresh n<>] *)
+  | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
+  (** // [filesys n = [f1, .., fm]] XXX unused *)
+  | DeclChan of Name.ident * unit option * Name.ident
+  (** [channel n : ty] or [channel n<> : ty *)
+  | DeclProc of { id : Name.ident
+                ; param : Name.ident option
+                ; args : (bool * Name.ident * Name.ident) list
+                ; typ : Name.ident
+                ; files : (expr * Name.ident * expr) list
+                ; vars : (Name.ident * expr) list
+                ; funcs : (Name.ident * (Name.ident list) * cmd) list
+                ; main : cmd }
+  (** [process id<p>(x1 : ty1, .., xn : tyn) : ty { file ... var ... function ... main ... }] *)
+  | DeclSys of proc list * lemma list
+  (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
+  | DeclLoad of string * decl list
+  (** [load "fn"] *)
