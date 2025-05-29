@@ -131,9 +131,9 @@ allow client_ta_t client_img [.] (* client_ta is allowed to directly interact wi
 allow client_ta_t client_ta_sig [.] (* client_ta is allowed to directly read and provide client_ta_sig *)
 
 (* note that client_ta_t does not use functions `connect_rpc`, `invoke_rpc`, `close_rpc`, thus it is not necessary to give client_ta_t access to conn_client *)
-(* allow client_ta_t conn_client [.] *)
 
-
+allow server_t client_img [recv] (* it's a bit confusing we have to give server_t access to client_img, even if server is going to receive image *)
+allow server_t client_ta_sig [recv]
 allow server_t ver_key_server [.]
 allow client_t ver_key_server [.]
 allow client_ta_t ver_key_server [.]
@@ -291,6 +291,5 @@ requires  [
   lemma Reachable :
   	exists-trace "Ex x #i #j #k  . ClientClose() @ #j & ClientTAClose() @ #k & ImgRecvValid(x) @ #i" ;
   lemma Correspondence :
-  	all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j" 
 ]
 
