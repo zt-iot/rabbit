@@ -291,5 +291,6 @@ requires  [
   lemma Reachable :
   	exists-trace "Ex x #i #j #k  . ClientClose() @ #j & ClientTAClose() @ #k & ImgRecvValid(x) @ #i" ;
   lemma Correspondence :
+    all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j"
 ]
 
