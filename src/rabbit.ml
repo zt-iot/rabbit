@@ -68,7 +68,16 @@ let _main =
     (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
   try
       let Loader.{ system= sys; used_idents; used_strings; _ } =
-        List.fold_left (fun (env : Loader.env) (fn, _quiet) -> Loader.load fn env)
+        List.fold_left (fun (env : Loader.env) (fn, _quiet) ->
+            ignore (
+              try
+                Typer.load Typer.Env.empty fn
+              with
+              | Typer.Error e ->
+                  Format.eprintf "Error: %t: %t@." (Location.print e.loc) (Typer.print_error e.data);
+                  assert false
+            );
+            Loader.load fn env)
           Loader.process_init !files
       in
       print_string "Loading complete..\n";
