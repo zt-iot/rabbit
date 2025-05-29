@@ -66,6 +66,10 @@ let vars_of_fact (fact : fact) =
   | EqFact (e1, e2) | NeqFact (e1, e2) | FileFact (e1, e2) ->
       NS.union (vars_of_expr e1) (vars_of_expr e2)
 
+let vars_of_facts facts =
+  List.fold_left (fun s fact ->
+      Name.Set.union s (vars_of_fact fact)) Name.Set.empty facts
+
 type 'cmd case = (fact list * 'cmd)
 
 type cmd = cmd' Location.located
