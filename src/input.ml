@@ -5,12 +5,6 @@ type type_class =
   | CFsys (** [filesys] *)
   | CChan (** [channel] *)
 
-type arg_type =
-  | TyValue (** value argument, [<None>] *)
-  | TyChannel (** channel argument, [channel] *)
-  | TyProcess (** process argument, [process] *)
-  | TyPath (** path argument, [path] *)
-
 type expr = expr' Location.located
 and expr' =
   | Var of Name.ident
@@ -142,12 +136,12 @@ and decl' =
   (** external function, [function id : arity] *)
   | DeclExtEq of expr * expr
   (** external equation, [equation e1 = e2] *)
-  | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * cmd
+  | DeclExtSyscall of Name.ident * Name.ident list * cmd
   (** system call, [syscall f(ty1 a1,..,tyn an) { c }]
                    [passive attack f(ty1 a1,..,tyn an) { c }]
       XXX what is passive attack for?  It is not distinguishable from syscall in Input.
   *)
-  | DeclExtAttack of Name.ident * Name.ident * (arg_type * Name.ident) list * cmd
+  | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
   (** [attack f on name (ty1 a1,..,tyn an) { c }] *)
   | DeclType of Name.ident * type_class
   (** type declaration, [type t : filesys/process/channel] *)
