@@ -11,14 +11,10 @@ and expr' =
   | Boolean of bool
   | String of string
   | Integer of int
-  | Float of string (* store the string so we can correctly round later *)
+  | Float of string
   | Apply of operator * expr list
   | Tuple of expr list
-  | Channel of string * Name.ident (* second field records necessary permissions.. *)
-(*
-  | Path of string  (* only needed for syscall defintions *)
-*)
-  | Process of string (* only needed for syscall defintiions *)
+  | Channel of string * Name.ident
   | ParamChan of string * expr
   | ParamConst of string * expr
   | Param of string
