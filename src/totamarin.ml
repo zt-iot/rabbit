@@ -39,10 +39,6 @@ let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=_loc} =
     | Syntax.Tuple el ->
        List (List.map (translate_expr ~ch:ch) el)
     | Syntax.Channel (c, _l) -> if ch then Var c else String c
-    | Syntax.Process v -> Var v
-(*
-    | Syntax.Path v -> Var v
-*)
     | Syntax.ParamChan (cid, e) -> expr_pair (String (cid)) (translate_expr ~ch:ch e)
     | Syntax.ParamConst (_cid, _e) -> assert false
     | Syntax.Param _ -> Param
@@ -72,10 +68,6 @@ let rec translate_expr2 ?(ch=false) ?(num=0) {Location.data=e; Location.loc=_loc
                           (el @ [e], sl @ s, n)) ([], [], num) el in
        List el, sl, n
     | Syntax.Channel (c, _l) -> if ch then Var c, [], num else String c, [], num
-    | Syntax.Process v -> Var v, [], num
-(*
-    | Syntax.Path v -> Var v, [], num
-*)
     | Syntax.ParamChan (cid, e) ->
       let e', l, n = (translate_expr2 ~ch:ch ~num:num e) in
       (* let var_name = (cid ^ !separator ^ string_of_int num) in *)

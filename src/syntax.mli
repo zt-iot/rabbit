@@ -16,8 +16,6 @@ and expr' =
   | Apply of operator * expr list (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Channel of Name.ident * Name.ident (** channel name and type *)
-  (* | Path of string (* only needed for syscall defintions *) *)
-  | Process of string (* only needed for syscall defintiions *)
   | ParamChan of string * expr (** id<e> *)
   | ParamConst of string * expr (** id<e> *)
   | Param of string
