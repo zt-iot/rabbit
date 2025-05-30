@@ -2,10 +2,10 @@ include Sig.ERROR
 
 type ctx_process_template =
   { ctx_proctmpl_id : Name.ident (** name *)
-  ; ctx_proctmpl_param : Name.ident option (** parameter [<p>] *)
+  ; ctx_proctmpl_param : Name.ident option (** channel parameter [<p>] *)
   ; ctx_proctmpl_ch : (bool * Name.ident * Name.ident) list
   (** list of channel arguments of [(with_parameter, name, typ)] *)
-  ; ctx_proctmpl_ty : Name.ident (** process type *)
+  ; ctx_proctmpl_ty : Name.ident (** process type for access control *)
   ; ctx_proctmpl_var : Name.ident list (** toplevel variables *)
   ; ctx_proctmpl_func : (Name.ident * int) list (** function names and their arities *)
   }
@@ -94,8 +94,6 @@ type system =
 type local_context =
   { lctx_chan : Name.ident list
   ; lctx_param_chan : Name.ident list
-  ; lctx_path : Name.ident list
-  ; lctx_process : Name.ident list (** Processes *)
   ; lctx_loc_var : Name.ident list (** Normal non global variables *)
   ; lctx_top_var : Name.ident list
     (** Variables defined by [var ...] in process definition *)
@@ -117,24 +115,14 @@ val ctx_check_ext_const : context -> Name.ident -> bool
 val ctx_check_ty : context -> Name.ident -> bool
 val ctx_check_const : context -> Name.ident -> bool
 val ctx_check_param_const : context -> Name.ident -> bool
-val ctx_check_fsys : context -> Name.ident -> bool
 val ctx_check_ch : context -> Name.ident -> bool
 val ctx_check_param_ch : context -> Name.ident -> bool
 val ctx_check_proctmpl : context -> Name.ident -> bool
-val ctx_check_event : context -> Name.ident -> bool
-val ctx_check_fact : context -> Name.ident -> bool
 val ctx_check_ext_syscall : context -> Name.ident -> bool
 val ctx_check_ext_attack : context -> Name.ident -> bool
 val ctx_check_inj_fact : context -> Name.ident -> bool
-val ctx_get_event_arity : loc:Location.t -> context -> Name.ident -> int
 
 val ctx_get_ext_syscall_arity
-  :  loc:Location.t
-  -> context
-  -> Name.ident
-  -> Name.ident list
-
-val ctx_get_ext_attack_arity
   :  loc:Location.t
   -> context
   -> Name.ident
@@ -153,7 +141,6 @@ val ctx_add_fsys : context -> Name.ident * Name.ident * Name.ident -> context
 val ctx_add_ch : context -> Name.ident * Name.ident -> context
 val ctx_add_param_ch : context -> Name.ident * Name.ident -> context
 val ctx_add_proctmpl : context -> ctx_process_template -> context
-val ctx_add_event : context -> Name.ident * int -> context
 val ctx_add_ext_syscall : context -> Name.ident * Name.ident list -> context
 
 val ctx_add_ext_attack
@@ -161,10 +148,6 @@ val ctx_add_ext_attack
   -> Name.ident * Name.ident * Name.ident list
   -> context
 
-val ctx_add_fact : context -> Name.ident * int -> context
-val ctx_add_lfact : context -> Name.ident * int -> context
-val ctx_add_inj_fact : context -> Name.ident * int -> context
-val check_fresh : context -> Name.ident -> bool
 val check_used : context -> Name.ident -> bool
 val ctx_add_or_check_fact : loc:Location.t -> context -> Name.ident * int -> context
 val ctx_add_or_check_lfact : loc:Location.t -> context -> Name.ident * int -> context
@@ -203,7 +186,6 @@ val def_add_ext_attack
   -> definition
 
 val def_get_proctmpl : definition -> Name.ident -> def_process_template
-val def_get_const : definition -> Name.ident -> Name.ident * Syntax.expr option
 
 val pol_add_access
   :  access_policy
@@ -212,7 +194,6 @@ val pol_add_access
 
 val pol_add_access_all : access_policy -> Name.ident * Name.ident list -> access_policy
 val pol_add_attack : access_policy -> Name.ident * Name.ident -> access_policy
-val pol_get_attack_opt : access_policy -> Name.ident -> Name.ident option
 val ldef_add_new_var : local_definition -> Name.ident * Syntax.expr -> local_definition
 
 val ldef_add_new_func
@@ -223,12 +204,8 @@ val ldef_add_new_func
 val lctx_check_param : local_context -> Name.ident -> bool
 val lctx_check_chan : local_context -> Name.ident -> bool
 val lctx_check_param_chan : local_context -> Name.ident -> bool
-val lctx_check_path : local_context -> Name.ident -> bool
-val lctx_check_process : local_context -> Name.ident -> bool
 val lctx_check_var : local_context -> Name.ident -> bool
-val lctx_check_meta : local_context -> Name.ident -> bool
 val lctx_check_func : local_context -> Name.ident -> bool
-val lctx_check_id : local_context -> Name.ident -> bool
 val lctx_add_new_chan : loc:Location.t -> local_context -> Name.ident -> local_context
 
 val lctx_add_new_param_chan
@@ -237,13 +214,13 @@ val lctx_add_new_param_chan
   -> Name.ident
   -> local_context
 
-val lctx_add_new_path : loc:Location.t -> local_context -> Name.ident -> local_context
-val lctx_add_new_process : loc:Location.t -> local_context -> Name.ident -> local_context
 val lctx_add_new_var : loc:Location.t -> local_context -> Name.ident -> local_context
 val lctx_add_new_param : loc:Location.t -> local_context -> Name.ident -> local_context
-val lctx_add_new_loc_var : loc:Location.t -> local_context -> Name.ident -> local_context
 val lctx_add_new_top_var : loc:Location.t -> local_context -> Name.ident -> local_context
+
 val lctx_add_new_meta : loc:Location.t -> local_context -> Name.ident -> local_context
+(** Adds a new Meta variable. Note, not a MetaNew variable *)
+
 val lctx_get_func_arity : local_context -> Name.ident -> int
 
 val lctx_add_new_func
