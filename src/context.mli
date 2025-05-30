@@ -1,20 +1,22 @@
 include Sig.ERROR
 
 type ctx_process_template =
-  { ctx_proctmpl_id : Name.ident
-  ; ctx_proctmpl_param : Name.ident option
+  { ctx_proctmpl_id : Name.ident (** name *)
+  ; ctx_proctmpl_param : Name.ident option (** parameter [<p>] *)
   ; ctx_proctmpl_ch : (bool * Name.ident * Name.ident) list
-  ; ctx_proctmpl_ty : Name.ident
-  ; ctx_proctmpl_var : Name.ident list
-  ; ctx_proctmpl_func : (Name.ident * int) list
+  (** list of channel arguments of [(with_parameter, name, typ)] *)
+  ; ctx_proctmpl_ty : Name.ident (** process type *)
+  ; ctx_proctmpl_var : Name.ident list (** toplevel variables *)
+  ; ctx_proctmpl_func : (Name.ident * int) list (** function names and their arities *)
   }
 
 type def_process_template =
-  { def_proctmpl_id : Name.ident
+  { def_proctmpl_id : Name.ident (** name *)
   ; def_proctmpl_files : (Syntax.expr * Name.ident * Syntax.expr) list
-  ; def_proctmpl_var : (Name.ident * Syntax.expr) list
-  ; def_proctmpl_func : (Name.ident * Name.ident list * Syntax.cmd) list
-  ; def_proctmpl_main : Syntax.cmd
+  (** list of files: [(path, typ, contents)] *)
+  ; def_proctmpl_var : (Name.ident * Syntax.expr) list (** variable definitions *)
+  ; def_proctmpl_func : (Name.ident * Name.ident list * Syntax.cmd) list (** function definitions *)
+  ; def_proctmpl_main : Syntax.cmd (** main *)
   }
 
 (* ctx : context refers to the external specification of the system *)
@@ -48,19 +50,25 @@ type context =
 
 type definition =
   { def_ext_eq : (Name.ident list * Syntax.expr * Syntax.expr) list
+  (** external equations *)
   ; def_ext_syscall : (Name.ident * Name.ident list * Syntax.cmd) list
+  (** external system calls *)
   ; def_ext_attack :
-      (Name.ident * Name.ident * Name.ident list * Syntax.cmd) list
-  ; def_const : (Name.ident * Syntax.expr option) list
+      (Name.ident * Name.ident * Name.ident list * Syntax.cmd) list (** attacks *)
+  ; def_const : (Name.ident * Syntax.expr option) list (** constants *)
   ; def_param_const : (Name.ident * (Name.ident * Syntax.expr) option) list
-  ; def_fsys : (Name.ident * Name.ident * Syntax.expr) list
-  ; def_proctmpl : def_process_template list
+  (** constants with parameters *)
+  ; def_fsys : (Name.ident * Name.ident * Syntax.expr) list (** file systems *)
+  ; def_proctmpl : def_process_template list (** process templates *)
   }
 
 type access_policy =
   { pol_access : (Name.ident * Name.ident list * Name.ident) list
+  (** Access for a system call: [(process_type, types, system_call)] *)
   ; pol_access_all : (Name.ident * Name.ident list) list
+  (** Access for all the system calls: [(process_type, types)] *)
   ; pol_attack : (Name.ident * Name.ident) list
+  (** Attack allowance: [(process_type, attack)] *)
   }
 
 type process =

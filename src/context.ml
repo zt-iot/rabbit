@@ -25,13 +25,6 @@ let print_error err ppf =
   | WrongInputType -> Format.fprintf ppf "wrong input type"
 ;;
 
-(*
-   | UnknownFunction x -> Format.fprintf ppf "unknown function %s" x
-  | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
-  | ForbiddenFresh -> Format.fprintf ppf "fresh is reserved identifier"
-  | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
-*)
-
 (* process tempates spec and definition *)
 type ctx_process_template =
   { ctx_proctmpl_id : Name.ident (** id *)
@@ -327,7 +320,6 @@ let def_get_const def id = List.find (fun (s, _) -> s = id) def.def_const
 
 (** pol related funcitons *)
 let pol_add_access pol x = { pol with pol_access = x :: pol.pol_access }
-
 let pol_add_access_all pol x = { pol with pol_access_all = x :: pol.pol_access_all }
 let pol_add_attack pol x = { pol with pol_attack = x :: pol.pol_attack }
 
@@ -484,12 +476,6 @@ let def_init =
 ;;
 
 let pol_init = { pol_access = []; pol_access_all = []; pol_attack = [] }
-(* let sys_init = {
-   sys_ctx = [];
-   sys_def = [];
-   sys_pol = [];
-   sys_proc =[] }
-*)
 
 let lctx_init =
   { lctx_chan = []
