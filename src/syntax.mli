@@ -18,7 +18,7 @@ and expr' =
   | Channel of Name.ident * Name.ident (** channel name and type *)
   | ParamChan of string * expr (** id<e> *)
   | ParamConst of string * expr (** id<e> *)
-  | Param of string
+  | Param of string (** parameter variable *)
 
 type fact = fact' Location.located
 
@@ -42,9 +42,9 @@ and cmd' =
   | Let of Name.ident * expr * cmd (** let binding, let x = e in c *)
   | Assign of (Name.ident * (int * bool)) * expr (** assignment, x := e *)
   | FCall of (Name.ident * (int * bool)) option * Name.ident * expr list
-  (** function call, x := f(e1,..,en) *)
+  (** function call, [x := f(e1,..,en)]. [x] is [(name, (idx, top_or_local))] *)
   | SCall of (Name.ident * (int * bool)) option * Name.ident * expr list
-  (** syscall call, x := s(e1,..,en) *)
+  (** syscall call, [x := s(e1,..,en)]. [x] is [(name, (idex, top_or_local))] *)
   | Case of cmd case list (** guarded cases, case [a1s] => c1 | .. | [ans] => cn end *)
   | While of cmd case list * cmd case list
   (** guarded loop,
@@ -61,25 +61,31 @@ and cmd' =
   | Del of expr * Name.ident (** deletion , delete e.S *)
 
 type chan_arg =
-  | ChanArgPlain of string * string
-  | ChanArgParam of string * string
-  | ChanArgParamInst of string * expr * string
+  | ChanArgPlain of Name.ident * Name.ident (** [id] and type *)
+  | ChanArgParam of Name.ident * Name.ident (** [id<>] and type *)
+  | ChanArgParamInst of Name.ident * expr * Name.ident (** [id<e>] and type *)
 
 type pproc = pproc' Location.located
 and pproc' =
-  | Proc of Name.ident * expr option * (chan_arg list)
+  | Proc of Name.ident * expr option * (chan_arg list) (** [pid<e>(chargs,..,chargs)] *)
+
 
 type proc =
-| UnboundedProc of pproc
-| BoundedProc of (Name.ident * pproc list)
+  | UnboundedProc of pproc (** [proc] *)
+  | BoundedProc of (Name.ident * pproc list) (** [!name.(pproc1|..|pprocn)] *)
 
 (** Lemma *)
 type lemma = lemma' Location.located
 and lemma' =
   | PlainLemma of Name.ident * string
+  (** [name : exists-trace "xxx"]
+      [name : all-traces "xxx"]
+  *)
   | ReachabilityLemma of
       Name.ident * Name.ident list * Name.ident list * Name.ident list * fact list
+  (** [name : reachable f1,..,fn] *)
   | CorrespondenceLemma of Name.ident * Name.ident list * fact * fact
+  (** [name : corresponds fa ~> fb] *)
 
 type decl = decl' Location.located
 and decl' =
