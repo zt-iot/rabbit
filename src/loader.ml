@@ -77,10 +77,6 @@ let rec process_expr ?(param = "") ctx lctx { Location.data = c; Location.loc } 
         then Syntax.ExtConst id
         else if Context.lctx_check_chan lctx id
         then Syntax.Channel (id, "")
-        else if Context.lctx_check_path lctx id
-        then Syntax.Path id
-        else if Context.lctx_check_process lctx id
-        then Syntax.Process id
         else if Context.lctx_check_param lctx id
         then Syntax.Param id
         else if id = param
@@ -129,10 +125,6 @@ let rec process_expr2 new_meta_vars ctx lctx { Location.data = c; Location.loc }
         then Syntax.ExtConst id
         else if Context.lctx_check_chan lctx id
         then Syntax.Channel (id, "")
-        else if Context.lctx_check_path lctx id
-        then Syntax.Path id
-        else if Context.lctx_check_process lctx id
-        then Syntax.Process id
         else if Context.lctx_check_param lctx id
         then Syntax.Param id
         else (
@@ -244,10 +236,10 @@ let collect_meta_facts ctx lctx fl =
 ;;
 
 let process_facts ctx lctx fl =
-  let _, vl = collect_meta_facts ctx lctx fl in
+  let _, new_meta_vars = collect_meta_facts ctx lctx fl in
   (* let lctx = {lctx with Context.lctx_meta_var = vl@lctx.Context.lctx_meta_var} in  *)
-  let ctx, fl = process_facts_closed vl ctx lctx fl in
-  (ctx, lctx, fl), vl
+  let ctx, fl = process_facts_closed new_meta_vars ctx lctx fl in
+  (ctx, lctx, fl), new_meta_vars
 ;;
 
 let rec process_cmd ctx lctx { Location.data = c; Location.loc } =

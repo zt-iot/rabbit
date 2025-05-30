@@ -15,7 +15,9 @@ and expr' =
   | Apply of operator * expr list
   | Tuple of expr list
   | Channel of string * Name.ident (* second field records necessary permissions.. *)
+(*
   | Path of string  (* only needed for syscall defintions *)
+*)
   | Process of string (* only needed for syscall defintiions *)
   | ParamChan of string * expr
   | ParamConst of string * expr
