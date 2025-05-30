@@ -48,11 +48,10 @@ and cmd' =
   | Get of Name.ident list * expr * Name.ident * cmd
   | Del of expr * Name.ident
 
-(* last one is type` *)
 type chan_arg =
-  | ChanArgPlain of string * string
-  | ChanArgParam of string * string
-  | ChanArgParamInst of string * expr * string
+  | ChanArgPlain of Name.ident * Name.ident
+  | ChanArgParam of Name.ident * Name.ident
+  | ChanArgParamInst of Name.ident * expr * Name.ident
 
 type pproc = pproc' Location.located
 and pproc' =

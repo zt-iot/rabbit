@@ -105,12 +105,12 @@ type chan_arg =
 
 type pproc = pproc' Location.located
 and pproc' =
-  | Proc of Name.ident * (chan_arg list)
-  | ParamProc of Name.ident * expr * (chan_arg list)
+  | Proc of Name.ident * (chan_arg list) (** [pid(chargs,..,chargs)] *)
+  | ParamProc of Name.ident * expr * (chan_arg list) (** [pid<e>(chargs,..,chargs)] *)
 
 type proc =
-| UnboundedProc of pproc
-| BoundedProc of (Name.ident * pproc list)
+| UnboundedProc of pproc (** [proc] *)
+| BoundedProc of (Name.ident * pproc list) (** [!name.(pproc1|..|pprocn)] *)
 
 
 type prop = prop' Location.located
