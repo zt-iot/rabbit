@@ -4,20 +4,19 @@ type expr = expr' Location.located
 
 and expr' =
   | Const of Name.ident (** const by [const n = e] or [const fresh n] *)
-  | ExtConst of Name.ident (** ext function by [function f:arity] *)
+  | ExtConst of Name.ident (** ext function by [function f:0] *)
   | TopVariable of string * int (** variables by [var ...] in process definition *)
-  | LocVariable of string * int
-  | MetaVariable of string * int
-  | MetaNewVariable of string * int
+  | LocVariable of string * int (** local variables by function arguments, etc. *)
+  | MetaVariable of string * int (** variables introduced by [new] and [let x1,...,xn := e.S in ...] *)
+  | MetaNewVariable of string * int (** pattern variables in cases and free variables in lemmas *)
   | Boolean of bool (** boolean, [true]/[false] *)
   | String of string (** string, ["hello"] *)
   | Integer of int (** integer, [42] *)
-  | Float of string (* store the string so we can correctly round later *)
-  (** float, [4.12] *)
+  | Float of string (** float, [4.12]. Store the string so we can correctly round later *)
   | Apply of operator * expr list (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
-  | Channel of string * Name.ident (* second field records necessary permissions.. *)
-  | Path of string (* only needed for syscall defintions *)
+  | Channel of Name.ident * Name.ident (** channel name and type *)
+  (* | Path of string (* only needed for syscall defintions *) *)
   | Process of string (* only needed for syscall defintiions *)
   | ParamChan of string * expr (** id<e> *)
   | ParamConst of string * expr (** id<e> *)

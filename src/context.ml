@@ -27,21 +27,20 @@ let print_error err ppf =
 
 (* process tempates spec and definition *)
 type ctx_process_template =
-  { ctx_proctmpl_id : Name.ident (** id *)
-  ; ctx_proctmpl_param : Name.ident option (** channel parameter *)
+  { ctx_proctmpl_id : Name.ident
+  ; ctx_proctmpl_param : Name.ident option
   ; ctx_proctmpl_ch : (bool * Name.ident * Name.ident) list
-    (** channels. [true] means that the channel is parametric *)
-  ; ctx_proctmpl_ty : Name.ident (** type for access control *)
-  ; ctx_proctmpl_var : Name.ident list (** field variables *)
-  ; ctx_proctmpl_func : (Name.ident * int) list (** functions *)
+  ; ctx_proctmpl_ty : Name.ident
+  ; ctx_proctmpl_var : Name.ident list
+  ; ctx_proctmpl_func : (Name.ident * int) list
   }
 
 type def_process_template =
-  { def_proctmpl_id : Name.ident (** id *)
-  ; def_proctmpl_files : (Syntax.expr * Name.ident * Syntax.expr) list (** files *)
-  ; def_proctmpl_var : (Name.ident * Syntax.expr) list (** field variables *)
-  ; def_proctmpl_func : (Name.ident * Name.ident list * Syntax.cmd) list (** functions *)
-  ; def_proctmpl_main : Syntax.cmd (** main *)
+  { def_proctmpl_id : Name.ident
+  ; def_proctmpl_files : (Syntax.expr * Name.ident * Syntax.expr) list
+  ; def_proctmpl_var : (Name.ident * Syntax.expr) list
+  ; def_proctmpl_func : (Name.ident * Name.ident list * Syntax.cmd) list
+  ; def_proctmpl_main : Syntax.cmd
   }
 
 (* ctx : context refers to the external specification of the system *)
@@ -107,8 +106,6 @@ type system =
 type local_context =
   { lctx_chan : Name.ident list
   ; lctx_param_chan : Name.ident list
-  ; lctx_path : Name.ident list
-  ; lctx_process : Name.ident list
   ; lctx_loc_var : Name.ident list
   ; lctx_top_var : Name.ident list
   ; lctx_meta_var : Name.ident list
@@ -123,9 +120,7 @@ type local_definition =
 
 (* membership checks *)
 
-(** ctx related functions *)
 let ctx_check_ext_func ctx o = List.exists (fun (s, _) -> s = o) ctx.ctx_ext_func
-
 let ctx_check_ext_func_and_arity ctx o = List.exists (fun s -> s = o) ctx.ctx_ext_func
 let ctx_check_ext_const ctx o = List.exists (fun s -> s = o) ctx.ctx_ext_const
 let ctx_check_ty ctx o = List.exists (fun (s, _) -> s = o) ctx.ctx_ty
@@ -152,27 +147,10 @@ let ctx_check_ext_attack ctx eid =
 
 let ctx_check_inj_fact ctx id = List.exists (fun (s, _) -> s = id) ctx.ctx_inj_fact
 
-(* get access *)
-let ctx_get_event_arity ~loc ctx eid =
-  if ctx_check_event ctx eid
-  then (
-    let _, k = List.find (fun (s, _) -> s = eid) ctx.ctx_event in
-    k)
-  else error ~loc (UnknownIdentifier eid)
-;;
-
 let ctx_get_ext_syscall_arity ~loc ctx eid =
   if ctx_check_ext_syscall ctx eid
   then (
     let _, k = List.find (fun (s, _) -> s = eid) ctx.ctx_ext_syscall in
-    k)
-  else error ~loc (UnknownIdentifier eid)
-;;
-
-let ctx_get_ext_attack_arity ~loc ctx eid =
-  if ctx_check_ext_attack ctx eid
-  then (
-    let _, _, k = List.find (fun (s, _, _) -> s = eid) ctx.ctx_ext_attack in
     k)
   else error ~loc (UnknownIdentifier eid)
 ;;
@@ -218,7 +196,6 @@ let ctx_add_fsys ctx (a, p, ty) = { ctx with ctx_fsys = (a, p, ty) :: ctx.ctx_fs
 let ctx_add_ch ctx (c, t) = { ctx with ctx_ch = (c, t) :: ctx.ctx_ch }
 let ctx_add_param_ch ctx (c, t) = { ctx with ctx_param_ch = (c, t) :: ctx.ctx_param_ch }
 let ctx_add_proctmpl ctx p = { ctx with ctx_proctmpl = p :: ctx.ctx_proctmpl }
-let ctx_add_event ctx (eid, k) = { ctx with ctx_event = (eid, k) :: ctx.ctx_event }
 
 let ctx_add_ext_syscall ctx (eid, k) =
   { ctx with ctx_ext_syscall = (eid, k) :: ctx.ctx_ext_syscall }
@@ -289,7 +266,7 @@ let ctx_add_or_check_inj_fact ~loc ctx (id, k) =
   else ctx_add_inj_fact ctx (id, k)
 ;;
 
-(** def related functions *)
+(* def related functions *)
 let def_add_ext_eq def x = { def with def_ext_eq = x :: def.def_ext_eq }
 
 let def_add_const def x = { def with def_const = x :: def.def_const }
@@ -316,20 +293,12 @@ let def_get_proctmpl def pid =
   List.find (fun x -> x.def_proctmpl_id = pid) def.def_proctmpl
 ;;
 
-let def_get_const def id = List.find (fun (s, _) -> s = id) def.def_const
-
-(** pol related funcitons *)
+(* pol related funcitons *)
 let pol_add_access pol x = { pol with pol_access = x :: pol.pol_access }
 let pol_add_access_all pol x = { pol with pol_access_all = x :: pol.pol_access_all }
 let pol_add_attack pol x = { pol with pol_attack = x :: pol.pol_attack }
 
-let pol_get_attack_opt pol x =
-  match List.find_opt (fun (a, _b) -> a = x) pol.pol_attack with
-  | Some (_a, b) -> Some b
-  | None -> None
-;;
-
-(** ldef and lctx related functions *)
+(* ldef and lctx related functions *)
 let ldef_add_new_var ldef (v, e) = { ldef with ldef_var = (v, e) :: ldef.ldef_var }
 
 let ldef_add_new_func ldef f = { ldef with ldef_func = f :: ldef.ldef_func }
@@ -342,8 +311,6 @@ let lctx_check_param lctx p =
 
 let lctx_check_chan lctx c = List.exists (fun i -> i = c) lctx.lctx_chan
 let lctx_check_param_chan lctx c = List.exists (fun i -> i = c) lctx.lctx_param_chan
-let lctx_check_path lctx c = List.exists (fun i -> i = c) lctx.lctx_path
-let lctx_check_process lctx c = List.exists (fun i -> i = c) lctx.lctx_process
 
 let lctx_check_var lctx v =
   List.exists
@@ -356,17 +323,7 @@ let lctx_check_var lctx v =
      | None -> [])
 ;;
 
-(* List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_var false  *)
-
-(* List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_loc_var false  *)
-
 let lctx_check_meta lctx v = List.exists (fun s -> s = v) lctx.lctx_meta_var
-
-(* List.fold_right (fun l b -> (List.exists (fun s -> s = v) l) || b) lctx.lctx_meta false  *)
-(*
-   let lctx_remove_var lctx v =
-   let lctx_var' = List.map (fun vl -> List.find_all (fun s -> not (s = v)) vl)  lctx.lctx_var in
-   {lctx with lctx_var=lctx_var'} *)
 
 let lctx_check_func lctx f = List.exists (fun (i, _) -> i = f) lctx.lctx_func
 
@@ -376,8 +333,6 @@ let lctx_check_id lctx id =
   || lctx_check_chan lctx id
   || lctx_check_param_chan lctx id
   || lctx_check_func lctx id
-  || lctx_check_path lctx id
-  || lctx_check_process lctx id
 ;;
 
 let lctx_add_new_chan ~loc lctx c =
@@ -392,18 +347,6 @@ let lctx_add_new_param_chan ~loc lctx c =
   else { lctx with lctx_param_chan = c :: lctx.lctx_param_chan }
 ;;
 
-let lctx_add_new_path ~loc lctx c =
-  if lctx_check_id lctx c
-  then error ~loc (AlreadyDefined c)
-  else { lctx with lctx_path = c :: lctx.lctx_path }
-;;
-
-let lctx_add_new_process ~loc lctx c =
-  if lctx_check_id lctx c
-  then error ~loc (AlreadyDefined c)
-  else { lctx with lctx_process = c :: lctx.lctx_process }
-;;
-
 let lctx_add_new_var ~loc lctx v =
   if lctx_check_id lctx v
   then error ~loc (AlreadyDefined v)
@@ -414,12 +357,6 @@ let lctx_add_new_param ~loc lctx v =
   if lctx_check_id lctx v
   then error ~loc (AlreadyDefined v)
   else { lctx with lctx_param = Some v }
-;;
-
-let lctx_add_new_loc_var ~loc lctx v =
-  if lctx_check_id lctx v
-  then error ~loc (AlreadyDefined v)
-  else { lctx with lctx_loc_var = v :: lctx.lctx_loc_var }
 ;;
 
 let lctx_add_new_top_var ~loc lctx v =
@@ -445,7 +382,7 @@ let lctx_add_new_func ~loc lctx (f, i) =
   else { lctx with lctx_func = (f, i) :: lctx.lctx_func }
 ;;
 
-(** Initial contexts *)
+(* Initial contexts *)
 let ctx_init =
   { ctx_ext_func = []
   ; ctx_ext_const = []
@@ -479,8 +416,6 @@ let pol_init = { pol_access = []; pol_access_all = []; pol_attack = [] }
 
 let lctx_init =
   { lctx_chan = []
-  ; lctx_path = []
-  ; lctx_process = []
   ; lctx_loc_var = []
   ; lctx_meta_var = []
   ; lctx_top_var = []
@@ -490,5 +425,4 @@ let lctx_init =
   }
 ;;
 
-(* let lctx_init = {lctx_var=[]; lctx_meta=[]} *)
 let ldef_init = { ldef_var = []; ldef_func = [] }
