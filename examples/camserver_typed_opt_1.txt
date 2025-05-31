@@ -237,20 +237,8 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
   main 
   {
     _ := accept_rpc(ch_rpc);
-    
-    repeat
-    | [ch_rpc::invoke(fname, image, priv_path)] →
-      case
-      | [fname = "sign_image"] →
-        var signed : client_ta_sig = sign_image(image, priv_path) in
-        put[ch_rpc:: Returned(signed)]		
 
-      | [fname <> "sign_image"] →
-        event [InValidName(fname)]
-      end 
-    until
-    | [ch_rpc::exit()] → skip 
-    end;
+    _ := send_recv_rpc_loop(ch_rpc);
 
     event [::ClientTAClose ()]
   }
@@ -264,20 +252,8 @@ process server(ch_net : udp_t) : server_t
   {
     var pubkey_fd : filedescr[ver_key_server] = fopen(pubkey_path) in 
     var pubkey : ver_key_server = fread(pubkey_fd) in 
-    repeat 
-    | [] →
-      var sig_img_pair : signature * image = recv(ch_net) in
-      var res : bool = verify(fst(p), snd(p), pubkey) in 
-      case 
-      | [res =  true] →
-        event [::ImgRecvValid(snd(p))]
-
-      | [res <> true] →  
-        event [::ImgRecvInvalid(snd(p))]
-      end
-    until
-    | [::False()] →  skip 
-    end 	    
+    _ := recv_verify_loop(ch_net, pubkey);
+    fclose(pubkey_fd)
   }
 }
 
