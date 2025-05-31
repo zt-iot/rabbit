@@ -5,18 +5,6 @@ synopsis:
   "Rabbit: A modeling and verification framework for networked systems"
 description: """
 
-
-
-
-
-
-
-
-
-
-
-
-
 Rabbit is a domain-specific language and toolchain for modeling networked systems
 and verifying their security properties using the Tamarin and ProVerif backends.
 """
