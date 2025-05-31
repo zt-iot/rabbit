@@ -84,7 +84,7 @@ and lemma' =
       [name : all-traces "xxx"]
   *)
   | ReachabilityLemma of
-      Name.ident * Name.ident list (* fresh variables *) * Name.ident list * Name.ident list * fact list
+      Name.ident * Name.ident list (* fresh variables *) * fact list
   (** [name : reachable f1,..,fn] *)
   | CorrespondenceLemma of Name.ident * Name.ident list (* fresh variables *) * fact * fact
   (** [name : corresponds fa ~> fb] *)

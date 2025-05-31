@@ -955,7 +955,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
                           process_facts env.context Context.lctx_init evs
                         in
                         (* XXX 3rd and 4th are always empty *)
-                        Syntax.ReachabilityLemma (l, vl, [], [], fl)
+                        Syntax.ReachabilityLemma (l, vl, fl)
                     | Input.Correspondence (a, b) ->
                         (match process_facts env.context Context.lctx_init [ a; b ] with
                          | (_, _, [ a; b ]), vl -> Syntax.CorrespondenceLemma (l, vl, a, b)
