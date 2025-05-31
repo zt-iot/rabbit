@@ -16,8 +16,8 @@ and expr' =
   | Apply of operator * expr list (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Channel of Name.ident * Name.ident (** channel name and type *)
-  | ParamChan of Name.ident * expr (** id<e> *)
-  | ParamConst of Name.ident * expr (** id<e> *)
+  | ParamChan of Name.ident * expr (** [id<e>] *)
+  | ParamConst of Name.ident * expr (** [id<e>] *)
   | Param of Name.ident (** parameter variable *)
 
 type fact = fact' Location.located
@@ -27,9 +27,9 @@ and fact' =
   | GlobalFact of Name.ident * expr list (** [:: n(e1,..,en) ]*)
   | ChannelFact of expr * Name.ident * expr list (** [e :: n(e1,..,en)] *)
   | ProcessFact of Name.ident * Name.ident * expr list (** [e % n(e1,..,en)] *)
-  | EqFact of expr * expr (** e1 = e2 *)
-  | NeqFact of expr * expr (** e1 != e2 *)
-  | FileFact of expr * expr (** S.e *)
+  | EqFact of expr * expr (** [e1 = e2] *)
+  | NeqFact of expr * expr (** [e1 != e2] *)
+  | FileFact of expr * expr (** [S.e] *)
 
 type 'cmd case = Name.ident list * fact list * 'cmd
 (** case: [fresh_vars * facts * cmd] *)
@@ -39,28 +39,28 @@ type cmd = cmd' Location.located
 and cmd' =
   | Skip (** doing nothing *)
   | Sequence of cmd * cmd (** sequencing, c1; c2 *)
-  | Put of fact list (** output, put[f1,..,fn] *)
-  | Let of Name.ident * expr * cmd (** let binding, var x = e in c *)
+  | Put of fact list (** output, [put[f1,..,fn]] *)
+  | Let of Name.ident * expr * cmd (** let binding, [var x = e in c] *)
   | Assign of (Name.ident * (int * bool)) * expr
-  (** assignment, x := e. [x] is [(name, (idx, top_or_local))] *)
+  (** assignment, [x := e]. [x] is [(name, (idx, top_or_local))] *)
   | FCall of (Name.ident * (int * bool)) option * Name.ident * expr list
   (** function call, [x := f(e1,..,en)]. [x] is [(name, (idx, top_or_local))] *)
   | SCall of (Name.ident * (int * bool)) option * Name.ident * expr list
   (** syscall call, [x := s(e1,..,en)]. [x] is [(name, (idex, top_or_local))] *)
-  | Case of cmd case list (** guarded cases, case [a1s] => c1 | .. | [ans] => cn end *)
+  | Case of cmd case list (** guarded cases, [case [a1s] => c1 | .. | [ans] => cn end] *)
   | While of cmd case list * cmd case list
   (** guarded loop,
-      repeat [a1s] => c1 | .. | [ans] => cn
-      until [a'1s] => c'1 | .. | [a'ms] => c'm
-      end
+      [repeat [a1s] => c1 | .. | [ans] => cn
+       until [a'1s] => c'1 | .. | [a'ms] => c'm
+       end]
   *)
-  | Event of fact list (** tag, event[T] *)
+  | Event of fact list (** tag, [event[T]] *)
   | Return of expr (** return *)
   | New of Name.ident * (Name.ident * expr list) option * cmd
-  (** allocation, new x := S(e1,..en) in c *)
+  (** allocation, [new x := S(e1,..en) in c] *)
   | Get of Name.ident list * expr * Name.ident * cmd
-  (** fetch, let x1,..,xn := e.S in c *)
-  | Del of expr * Name.ident (** deletion , delete e.S *)
+  (** fetch, [let x1,..,xn := e.S in c] *)
+  | Del of expr * Name.ident (** deletion , [delete e.S] *)
 
 type chan_arg =
   | ChanArgPlain of Name.ident * Name.ident (** [id] and type *)
@@ -122,7 +122,7 @@ and decl' =
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
   (** [filesys n = [f1, .., fm]] XXX unused *)
   | DeclChan of Name.ident * unit option * Name.ident
-  (** [channel name : chan_ty] or [channel name<> : chan_ty *)
+  (** [channel name : chan_ty] or [channel name<> : chan_ty] *)
   | DeclProc of { id : Name.ident
                 ; param : Name.ident option
                 ; args : (bool * Name.ident * Name.ident) list
