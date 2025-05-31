@@ -758,25 +758,6 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       (* [channel n<> : ty] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       { env with context = Context.ctx_add_param_ch env.context (id, ty) }
-  | Input.DeclFsys (id, fl) ->
-      (* [filesys n = [f1, .., fm]] XXX The parser rule is commented out *)
-      if Context.check_used env.context id then error ~loc (AlreadyDefined id);
-      let fl' =
-        List.map
-          (fun (a, e, ty) ->
-             match Context.ctx_get_ty ~loc env.context ty with
-             | Input.CFsys -> a, process_expr env.context Context.lctx_init e, ty
-             | _ -> error ~loc WrongInputType)
-          fl
-      in
-      let ctx', def' =
-        List.fold_left
-          (fun (ctx', def') (a, e, b) ->
-             Context.ctx_add_fsys ctx' (id, a, b), Context.def_add_fsys def' (id, a, e))
-          (env.context, env.definition)
-          fl'
-      in
-      { env with context = ctx'; definition = def' }
   | Input.DeclChan (id, c) ->
       (* [channel n : ty] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
