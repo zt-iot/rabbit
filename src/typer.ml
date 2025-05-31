@@ -396,7 +396,7 @@ let extend_with_args2 env (args : Name.ident list) =
       Env.add env id (Var (Loc (snd idx)))) env args
 
 let type_process ~loc env id param_opt args typ files vars funcs main =
-  (* [ process id<param>(ch1 : chty1, .., chn : chtyn) : ty {
+  (* [ process id<param>(ch1 : chty1, .., chn : chtyn) : proc_ty {
           file path : filety = contents ...
           var id = e ...
           function fid(args) { c }
@@ -513,7 +513,7 @@ let rec type_decl base_fn env (d : Input.decl) =
         in
         Env.add_global ~loc env id (ExtSyscall (List.length args)), DeclExtSyscall (id, args, c)
     | DeclExtAttack (id, syscall, args, c) ->
-        (* [attack id on syscall (ty1 a1,..,tyn an) { c }] *)
+        (* [attack id on syscall (a1,..,an) { c }] *)
         (match Env.find ~loc env syscall with
          | ExtSyscall _ -> ()
          | _ -> misc_errorf ~loc "%s is not a syscall" syscall);
@@ -545,7 +545,7 @@ let rec type_decl base_fn env (d : Input.decl) =
         env,
         DeclAccess (proc_ty, tys, syscalls_opt)
     | DeclAttack (proc_tys, attacks) ->
-        (* [allow attack t1 .. tn [f1, .., fm]] *)
+        (* [allow attack proc_ty1 .. proc_tyn [attack1, .., attackn]] *)
         List.iter (fun ty ->
             match Env.find ~loc env ty with
             | Type CProc -> ()
