@@ -98,14 +98,19 @@ let _main =
 
   with
   | Ulexbuf.Error {Location.data=err; Location.loc} ->
-    Print.message ~loc "Parsing error" "%t" (Ulexbuf.print_error err)
+      Print.message ~loc "Parsing error" "%t" (Ulexbuf.print_error err);
+      exit 1
   | Loader.Error {Location.data=err; Location.loc} ->
-    Print.message ~loc "Syntax error" "%t" (Loader.print_error err)
+      Print.message ~loc "Syntax error" "%t" (Loader.print_error err);
+      exit 1
   | Context.Error {Location.data=err; Location.loc} ->
-    Print.message ~loc "Context error" "%t" (Context.print_error err)
+      Print.message ~loc "Context error" "%t" (Context.print_error err);
+      exit 1
   (* | Toxml.Error {Location.data=err; Location.loc} ->
     Print.message ~loc "ToXml error" "%t" (Toxml.print_error err) *)
   | Substitute.Error {Location.data=err; Location.loc} ->
-    Print.message ~loc "Substitute error" "%t" (Substitute.print_error err)
+      Print.message ~loc "Substitute error" "%t" (Substitute.print_error err);
+      exit 1
   | Postprocessing.Error err ->
-    Print.message ~loc:Location.Nowhere "Translate error" "%t" (Postprocessing.print_error err)
+      Print.message ~loc:Location.Nowhere "Translate error" "%t" (Postprocessing.print_error err);
+      exit 1
