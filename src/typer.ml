@@ -1,23 +1,3 @@
-(** Conversion errors *)
-type error =
-  | Misc of string
-  | IdentifierAlreadyBound of Name.ident
-  | UnknownIdentifier of Name.ident
-
-exception Error of error Location.located
-
-(** [error ~loc err] raises the given runtime error. *)
-let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
-
-let misc_errorf ~loc fmt = Format.kasprintf (fun s -> error ~loc (Misc s)) fmt
-
-(** Print error description. *)
-let print_error err ppf =
-  match err with
-  | Misc s -> Format.fprintf ppf "%s" s
-  | IdentifierAlreadyBound id -> Format.fprintf ppf "Identifier %s is already bound" id
-  | UnknownIdentifier id -> Format.fprintf ppf "Unknown identifier %s" id
-
 type var_desc =
   | Top of int
   | Loc of int
@@ -30,7 +10,12 @@ type named_fact_desc =
   | Global
   | Channel
   | Process
-  | Event
+
+let string_of_named_fact_desc = function
+  | NoName -> "plain"
+  | Global -> "global"
+  | Channel -> "channel"
+  | Process -> "process"
 
 type desc =
   | Var of var_desc
@@ -64,6 +49,79 @@ let print_desc desc ppf =
   | Function i -> f ppf "Function (arity=%d)" i
   | Process -> f ppf "Process"
 
+let kind_of_desc = function
+  | Var (Top _) -> "toplevel"
+  | Var (Loc _) -> "local"
+  | Var (Meta _) -> "meta"
+  | Var (MetaNew _) -> "metanew"
+  | Var Param -> "parameter"
+  | ExtFun _ -> "external function"
+  | ExtConst -> "external constant"
+  | ExtSyscall _ -> "system call"
+  | Const _ -> "constant"
+  | Channel _ -> "channel"
+  | Attack -> "attack"
+  | Type CProc -> "process type"
+  | Type CFsys -> "filesys type"
+  | Type CChan -> "channel type"
+  | Function _ -> "function"
+  | Process -> "process"
+
+(** Conversion errors *)
+type error =
+  | Misc of string
+  | IdentifierAlreadyBound of Name.ident
+  | UnknownIdentifier of Name.ident
+  | ArityMismatch of { arity : int; use : int }
+  | InvalidIdentifier of Name.ident * desc
+  | NonCallableIdentifier of Name.ident * desc
+  | NonParameterizableIdentifier of Name.ident * desc
+  | InvalidFact of { ident : Name.ident; def: named_fact_desc; use: named_fact_desc }
+  | InvalidVariable of { ident : Name.ident; def: desc; use: desc }
+  | InvalidNullAssign
+  | InvalidVariableAtAssign of Name.ident * desc
+  | UnboundFact of Name.ident
+
+exception Error of error Location.located
+
+(** [error ~loc err] raises the given runtime error. *)
+let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
+
+let misc_errorf ~loc fmt = Format.kasprintf (fun s -> error ~loc (Misc s)) fmt
+
+(** Print error description. *)
+let print_error err ppf =
+  match err with
+  | Misc s -> Format.fprintf ppf "%s" s
+  | IdentifierAlreadyBound id -> Format.fprintf ppf "Identifier %s is already bound" id
+  | UnknownIdentifier id -> Format.fprintf ppf "Unknown identifier %s" id
+  | ArityMismatch { arity; use } -> Format.fprintf ppf "Function of arity %d takes %d arguments" arity use
+  | InvalidIdentifier (id, desc) ->
+      Format.fprintf ppf "%s variable %s cannot be used in an expression"
+        (String.capitalize_ascii (kind_of_desc desc)) id
+  | NonCallableIdentifier (id, desc) ->
+      Format.fprintf ppf "%s variable %s cannot be called"
+        (String.capitalize_ascii (kind_of_desc desc)) id
+  | NonParameterizableIdentifier (id, desc) ->
+      Format.fprintf ppf "%s variable %s cannot be parameterized"
+        (String.capitalize_ascii (kind_of_desc desc)) id
+  | InvalidFact { ident; def; use } ->
+      Format.fprintf ppf "%s is %s fact but used as %s"
+        ident
+        (string_of_named_fact_desc def)
+        (string_of_named_fact_desc use)
+  | InvalidVariable { ident; def; use } ->
+      Format.fprintf ppf "%s is %s but used as %s"
+        ident
+        (kind_of_desc def)
+        (kind_of_desc use)
+  | InvalidNullAssign ->
+      Format.fprintf ppf "Right hand side of ignore assignment must be an application"
+  | InvalidVariableAtAssign (id, desc) ->
+      Format.fprintf ppf "%s variable %s cannot be assigned"
+        (String.capitalize_ascii (kind_of_desc desc)) id
+  | UnboundFact id -> Format.fprintf ppf "Unbound fact %s" id
+
 module Env : sig
   type t
 
@@ -75,6 +133,8 @@ module Env : sig
 
   val find : loc:Location.t -> t -> Name.ident -> desc
 
+  val find_desc : loc:Location.t -> t -> Name.ident -> desc -> unit
+
   val find_opt : t -> Name.ident -> desc option
 
   val add : t -> Name.ident -> desc -> t
@@ -84,7 +144,7 @@ module Env : sig
   val add_global : loc:Location.t -> t -> Name.ident -> desc -> t
   (** Fails if the name is bound in the environment *)
 
-  val add_fact : loc:Location.t -> t -> Name.ident -> named_fact_desc * int -> t
+  val add_fact : t -> Name.ident -> named_fact_desc * int -> t
 
   val find_fact_opt : t -> Name.ident -> (named_fact_desc * int) option
 end = struct
@@ -105,13 +165,17 @@ end = struct
     | None -> error ~loc (UnknownIdentifier id)
     | Some desc -> desc
 
+  let find_desc ~loc env id desc =
+    let desc' = find ~loc env id in
+    if desc <> desc' then
+      error ~loc @@ InvalidVariable { ident= id; def= desc'; use= desc }
+
   let find_opt env id = List.assoc_opt id env.vars
 
   let add env x desc = { env with vars = (x, desc) :: env.vars }
 
-  let add_fact ~loc env id fact_desc =
-    if List.mem_assoc id env.facts then
-      misc_errorf ~loc "Fact %s is already defined" id;
+  let add_fact env id fact_desc =
+    if List.mem_assoc id env.facts then assert false;
     { env with facts = (id, fact_desc) :: env.facts }
 
   let find_fact_opt env id = List.assoc_opt id env.facts
@@ -126,9 +190,8 @@ end = struct
     add env id desc
 end
 
-let check_arity ~loc ~arity ~given =
-  if arity <> given then
-    misc_errorf ~loc "Expects %d parameters but %d arguments given" arity given
+let check_arity ~loc ~arity ~use =
+  if arity <> use then error ~loc @@ ArityMismatch { arity; use }
 
 let rec type_expr env (e : Input.expr) =
   let loc = e.loc in
@@ -144,25 +207,25 @@ let rec type_expr env (e : Input.expr) =
          | Channel (_with_param, chty) -> Channel (id, chty)
          | Const _param -> Const id
          | Var Param -> Param id
-         | desc -> misc_errorf ~loc "Invalid identifier %s (%t)" id (print_desc desc))
+         | desc -> error ~loc @@ InvalidIdentifier (id, desc))
     | Boolean b -> Boolean b
     | String s -> String s
     | Integer i -> Integer i
     | Float f -> Float f
     | Apply (f, es) ->
         let es = List.map (type_expr env) es in
-        let given = List.length es in
+        let use = List.length es in
         (match Env.find ~loc env f with
          | ExtFun arity ->
-             check_arity ~loc ~arity ~given;
+             check_arity ~loc ~arity ~use;
              Apply (f, es)
          | ExtSyscall arity ->
-             check_arity ~loc ~arity ~given;
+             check_arity ~loc ~arity ~use;
              Apply (f, es)
          | Function arity ->
-             check_arity ~loc ~arity ~given;
+             check_arity ~loc ~arity ~use;
              Apply (f, es)
-         | _ -> misc_errorf ~loc "%s is neither function nor system call" f)
+         | desc -> error ~loc @@ NonCallableIdentifier (f, desc))
     | Tuple es ->
         assert (List.length es > 0);
         Tuple (List.map (type_expr env) es)
@@ -170,7 +233,7 @@ let rec type_expr env (e : Input.expr) =
         (match Env.find ~loc env f with
          | Const true -> ParamConst (f, type_expr env e)
          | Channel (true, _cty) -> ParamChan (f, type_expr env e)
-         | _ -> misc_errorf ~loc "%s lacks a parameter" f)
+         | desc -> error ~loc @@ NonParameterizableIdentifier (f, desc))
   in
   { e with data }
 
@@ -183,41 +246,41 @@ let type_fact env (fact : Input.fact) =
         let nes = List.length es in
         (match Env.find_fact_opt env id with
          | None ->
-             Env.add_fact ~loc env id (NoName, nes),
+             Env.add_fact env id (NoName, nes),
              Syntax.Fact (id, List.map (type_expr env) es)
          | Some (NoName, arity) ->
-             check_arity ~loc ~arity ~given:nes;
+             check_arity ~loc ~arity ~use:nes;
              env,
              Syntax.Fact (id, List.map (type_expr env) es)
-         | Some _ ->
-             misc_errorf ~loc "%s is not a noname fact" id
+         | Some (desc, _) ->
+             error ~loc @@ InvalidFact { ident=id; def= desc; use= NoName }
         )
     | GlobalFact (id, es) ->
         let nes = List.length es in
         (match Env.find_fact_opt env id with
         | None ->
-            Env.add_fact ~loc env id (Global, nes),
+            Env.add_fact env id (Global, nes),
             Syntax.GlobalFact (id, List.map (type_expr env) es)
         | Some (Global, arity) ->
-            check_arity ~loc ~arity ~given:nes;
+            check_arity ~loc ~arity ~use:nes;
             env,
             Syntax.Fact (id, List.map (type_expr env) es)
-        | Some _ ->
-            misc_errorf ~loc "%s is not a global fact" id)
+        | Some (desc, _) ->
+            error ~loc @@ InvalidFact { ident=id; def= desc; use= Global })
     | ChannelFact (e, id, es) ->
         let e = type_expr env e in
         let es = List.map (type_expr env) es in
         let nes = List.length es in
         (match Env.find_fact_opt env id with
         | None ->
-            Env.add_fact ~loc env id (Channel, nes),
+            Env.add_fact env id (Channel, nes),
             Syntax.ChannelFact (e, id, es)
         | Some (Channel, arity) ->
-            check_arity ~loc ~arity ~given:nes;
+            check_arity ~loc ~arity ~use:nes;
             env,
             Syntax.ChannelFact (e, id, es)
-        | Some _ ->
-            misc_errorf ~loc "%s is not a global fact" id)
+        | Some (desc, _) ->
+            error ~loc @@ InvalidFact { ident=id; def= desc; use= Channel })
     | ProcessFact _ -> assert false (* XXX ??? *)
     | EqFact (e1, e2) ->
         let e1 = type_expr env e1 in
@@ -272,8 +335,8 @@ let rec type_cmd env (cmd : Input.cmd) =
               (match Env.find ~loc env f with
                | Function _ -> Syntax.FCall (None, f, args)
                | ExtSyscall _ -> SCall (None, f, args)
-               | _ -> misc_errorf ~loc "Invalid form of _ := e")
-          | _ -> misc_errorf ~loc "Invalid form of _ := e"
+               | desc -> error ~loc @@ NonCallableIdentifier (f, desc))
+          | _ -> error ~loc InvalidNullAssign
         in
         env, c
     | Assign (Some id, e) ->
@@ -282,7 +345,7 @@ let rec type_cmd env (cmd : Input.cmd) =
           match Env.find ~loc env id with
           | Var (Top i) -> (i, true)
           | Var (Loc i) -> (i, false)
-          | _ -> misc_errorf ~loc "%s is not a top/local variable" id
+          | desc -> error ~loc @@ InvalidVariableAtAssign (id, desc)
         in
         let c =
           match e.data with
@@ -336,8 +399,10 @@ let rec type_cmd env (cmd : Input.cmd) =
         let e = type_expr env e in
         (match Env.find_fact_opt env str with
          | Some (NoName, arity) ->
-             check_arity ~loc ~arity ~given:(List.length ids)
-         | _ -> misc_errorf ~loc "%s is not a noname fact" str
+             check_arity ~loc ~arity ~use:(List.length ids)
+         | Some (desc, _) ->
+             error ~loc @@ InvalidFact { ident= str; def= desc; use= NoName }
+         | None -> error ~loc @@ UnboundFact str
         );
         let env, cmd =
           Env.in_local env @@ fun env ->
@@ -354,7 +419,9 @@ let rec type_cmd env (cmd : Input.cmd) =
         let e = type_expr env e in
         (match Env.find_fact_opt env str with
          | Some (NoName, _arity) -> ()
-         | _ -> misc_errorf ~loc "%s is not a noname fact" str
+         | Some (desc, _) ->
+             error ~loc @@ InvalidFact { ident= str; def= desc; use= NoName }
+         | None -> error ~loc @@ UnboundFact str
         );
         env, Del (e, str)
   in
@@ -410,19 +477,16 @@ let type_process ~loc env id param_opt args typ files vars funcs main =
       | Some param -> Env.add env param (Var Param)
     in
     let env' = List.fold_left (fun env (with_param, chanid, chanty) ->
-        match Env.find ~loc env chanty with
-        | Type CChan -> Env.add env chanid (Channel (with_param, chanty))
-        | _ -> misc_errorf ~loc "%s is not a channel type" chanty)
+        Env.find_desc ~loc env chanty (Type CChan);
+        Env.add env chanid (Channel (with_param, chanty)))
         env' args
     in
     (match Env.find ~loc env typ with
      | Type CProc -> ()
-     | _ -> misc_errorf ~loc "%s is not a process type" typ);
+     | desc -> error ~loc @@ InvalidVariable { ident= typ; def= desc; use= Type CProc });
     let files = List.map (fun (path, filety, contents) ->
         let path = type_expr env' path in
-        (match Env.find ~loc env' filety with
-         | Type CFsys -> ()
-         | _ -> misc_errorf ~loc "%s is not a filesystem type" filety);
+        Env.find_desc ~loc env' filety (Type CFsys);
         let contents = type_expr env' contents in
         path, filety, contents) files
     in
@@ -516,7 +580,7 @@ let rec type_decl base_fn env (d : Input.decl) =
         (* [attack id on syscall (a1,..,an) { c }] *)
         (match Env.find ~loc env syscall with
          | ExtSyscall _ -> ()
-         | _ -> misc_errorf ~loc "%s is not a syscall" syscall);
+         | desc -> error ~loc @@ InvalidVariable { ident=syscall; def= desc; use= ExtSyscall (-1) });
         let env, c =
           Env.in_local env @@ fun env ->
           let env' = extend_with_args env args in
@@ -527,12 +591,10 @@ let rec type_decl base_fn env (d : Input.decl) =
         Env.must_be_fresh ~loc env id;
         Env.add env id (Type tclass), DeclType (id, tclass)
     | DeclAccess (proc_ty, tys, syscalls_opt) ->
-        (match Env.find ~loc env proc_ty with
-         | Type Input.CProc -> ()
-         | _ -> misc_errorf ~loc "%s must be a process type" proc_ty);
+        Env.find_desc ~loc env proc_ty (Type CProc);
         (List.iter (fun ty ->
              match Env.find ~loc env ty with
-             | Type (Input.CChan | Input.CFsys) -> ()
+             | Type (CChan | CFsys) -> ()
              | _ -> misc_errorf ~loc "%s must be a channel or filesys type" ty) tys);
         (match tys with
          | [] | [_] -> ()
@@ -541,19 +603,13 @@ let rec type_decl base_fn env (d : Input.decl) =
             List.iter (fun syscall ->
                 match Env.find ~loc env syscall with
                 | ExtSyscall _ -> ()
-                | _ -> misc_errorf ~loc "%s is not a syscall" syscall) syscalls) syscalls_opt;
+                | desc -> error ~loc @@ InvalidVariable { ident= syscall; def= desc; use= ExtSyscall (-1) }) syscalls)  syscalls_opt;
         env,
         DeclAccess (proc_ty, tys, syscalls_opt)
     | DeclAttack (proc_tys, attacks) ->
         (* [allow attack proc_ty1 .. proc_tyn [attack1, .., attackn]] *)
-        List.iter (fun ty ->
-            match Env.find ~loc env ty with
-            | Type CProc -> ()
-            | _ -> misc_errorf ~loc "%s is not a process type" ty) proc_tys;
-        List.iter (fun attack ->
-            match Env.find ~loc env attack with
-            | Attack -> ()
-            | _ -> misc_errorf ~loc "%s is not an attack" attack) attacks;
+        List.iter (fun ty -> Env.find_desc ~loc env ty (Type CProc)) proc_tys;
+        List.iter (fun attack -> Env.find_desc ~loc env attack Attack) attacks;
         env,
         DeclAttack (proc_tys, attacks)
     | DeclInit (id, eopt) ->
@@ -570,21 +626,15 @@ let rec type_decl base_fn env (d : Input.decl) =
         let e = type_expr (Env.add env p (Var Param)) e in
         Env.add_global ~loc env id (Const true), (* no info of param? *)
         DeclParamInit (id, Some (p, e))
-    | DeclFsys _ -> assert false
-    (* // [filesys n = [f1, .., fm]] XXX unused *)
     | DeclChan (id, chty) ->
         (* [channel n : ty] *)
         Env.must_be_fresh ~loc env id;
-        (match Env.find ~loc env chty with
-         | Type CChan -> ()
-         | _ -> misc_errorf ~loc "%s is not a channel type" chty);
+        Env.find_desc ~loc env chty (Type CChan);
         Env.add env id (Channel (false, chty)), DeclChan (id, None, chty)
     | DeclParamChan (id, chty) ->
         (* [channel n<> : ty] *)
         Env.must_be_fresh ~loc env id;
-        (match Env.find ~loc env chty with
-         | Type CChan -> ()
-         | _ -> misc_errorf ~loc "%s is not a channel type" chty);
+        Env.find_desc ~loc env chty (Type CChan);
         Env.add env id (Channel (true, chty)), DeclChan (id, Some (), chty)
     | DeclProc { id; args; typ; files; vars; funcs; main } ->
         type_process ~loc env id None args typ files vars funcs main
@@ -616,9 +666,7 @@ let rec type_decl base_fn env (d : Input.decl) =
             match pproc.data with
               | Proc (pid, chan_args) ->
                   (* [pid (chargs,..,chargs)] *)
-                  (match Env.find ~loc env pid with
-                   | Process -> ()
-                   | _ -> misc_errorf ~loc "%s is not a process" pid);
+                  Env.find_desc ~loc env pid Process;
                   let chan_args = List.map (type_chan_arg ~loc env) chan_args in
                   Syntax.Proc (pid, None, chan_args)
               | ParamProc (pid, e, chan_args) ->

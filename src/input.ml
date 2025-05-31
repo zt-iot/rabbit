@@ -46,9 +46,9 @@ and fact' =
   (** [e :: n(e1,..,en)] *)
   | ProcessFact of expr * Name.ident * expr list
   (** [e % n(e1,..,en)] *)
-  | EqFact of expr * expr (** e1 = e2 *)
-  | NeqFact of expr * expr (** e1 != e2 *)
-  | FileFact of expr * expr (** S.e *)
+  | EqFact of expr * expr (** [e1 = e2] *)
+  | NeqFact of expr * expr (** [e1 != e2] *)
+  | FileFact of expr * expr (** [S.e] *)
 
 let vars_of_fact (fact : fact) =
   let module NS = Name.Set in
@@ -157,8 +157,6 @@ and decl' =
   (** [const n = e]
       [const fresh n]
   *)
-  | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
-  (** // [filesys n = [f1, .., fm]] XXX unused *)
   | DeclChan of Name.ident * Name.ident
   (** [channel n : ty] *)
   | DeclProc of { id : Name.ident
