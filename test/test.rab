@@ -1,0 +1,82 @@
+(*** Fail "Unknown identifier foo" *)
+channel ch : foo
+
+(*** Success *)
+type ch_ty : channel
+channel ch : ch_ty
+
+(*** Success *)
+equation 42 = 42
+
+(*** Fail "Unknown identifier f" *)
+equation f(x) = 42
+
+(*** Success *)
+function add:2
+function f:1
+equation f(x) = f(add(x,42))
+
+(*** Success *)
+const c = 42
+const fresh x
+const fresh y<>
+
+(*** Fail "Identifier c is already bound" *)
+const c = 42
+const fresh c
+
+(*** Success *)
+syscall f(a, b, c) { c }
+
+(*** Fail "forbidden identifier s" *)
+(* system call cannot be called without assignment *)
+syscall s(a, b, c) { c }
+syscall c(a, b) { s(a, b, b) }
+
+(*** Fail "forbidden identifier s" *)
+(* system call cannot be called without assignment *)
+syscall s(a, b, c) { c }
+equation s(1, 2, 3) = 4
+
+(*** Success *)
+(* function can be called without assignment *)
+function f:1
+syscall c(a) { f(a) }
+
+(*** Fail "unknown local variable x" *)
+(* In [x := s(a)], [x] must be a local variable.
+   In [new x in ...], [x] is not a local variable!
+*)
+
+syscall s(a) { a }
+syscall s2(a) { new x in x := s(a) }
+
+(*** Success *)
+(* syscall can be called inside syscall definition *)
+
+syscall s(a) { a }
+syscall s2(a) { _ := s(a) }
+
+(*** Success *)
+(* function arguments are local *)
+
+syscall s(a) { a }
+syscall s2(a) { a := s(a) }
+
+(*** Success *)
+(* Minimal process def *)
+type client_t : process
+process client() : client_t 
+{  
+  main 
+  {
+    1
+  }
+}
+
+(*** Success *)
+(* Local variable can shadow other ids *)
+
+const fresh a
+syscall s(a) { a }
+
