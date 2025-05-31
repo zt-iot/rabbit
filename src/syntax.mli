@@ -1,14 +1,14 @@
-type operator = string
+type operator = Name.ident
 
 type expr = expr' Location.located
 
 and expr' =
   | Const of Name.ident (** const by [const n = e] or [const fresh n] *)
   | ExtConst of Name.ident (** ext function by [function f:0] *)
-  | TopVariable of string * int (** variables by [var ...] in process definition *)
-  | LocVariable of string * int (** local variables by function arguments, etc. *)
-  | MetaVariable of string * int (** variables introduced by [new] and [let x1,...,xn := e.S in ...] *)
-  | MetaNewVariable of string * int (** pattern variables in cases and free variables in lemmas *)
+  | TopVariable of Name.ident * int (** variables by [var ...] in process definition *)
+  | LocVariable of Name.ident * int (** local variables by function arguments, etc. *)
+  | MetaVariable of Name.ident * int (** variables introduced by [new] and [let x1,...,xn := e.S in ...] *)
+  | MetaNewVariable of Name.ident * int (** pattern variables in cases and free variables in lemmas *)
   | Boolean of bool (** boolean, [true]/[false] *)
   | String of string (** string, ["hello"] *)
   | Integer of int (** integer, [42] *)
@@ -16,9 +16,9 @@ and expr' =
   | Apply of operator * expr list (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Channel of Name.ident * Name.ident (** channel name and type *)
-  | ParamChan of string * expr (** id<e> *)
-  | ParamConst of string * expr (** id<e> *)
-  | Param of string (** parameter variable *)
+  | ParamChan of Name.ident * expr (** id<e> *)
+  | ParamConst of Name.ident * expr (** id<e> *)
+  | Param of Name.ident (** parameter variable *)
 
 type fact = fact' Location.located
 
@@ -31,7 +31,8 @@ and fact' =
   | NeqFact of expr * expr (** e1 != e2 *)
   | FileFact of expr * expr (** S.e *)
 
-type 'cmd case = string list * fact list * 'cmd
+type 'cmd case = Name.ident list * fact list * 'cmd
+(** case: [fresh_vars * facts * cmd] *)
 
 type cmd = cmd' Location.located
 
@@ -39,8 +40,9 @@ and cmd' =
   | Skip (** doing nothing *)
   | Sequence of cmd * cmd (** sequencing, c1; c2 *)
   | Put of fact list (** output, put[f1,..,fn] *)
-  | Let of Name.ident * expr * cmd (** let binding, let x = e in c *)
-  | Assign of (Name.ident * (int * bool)) * expr (** assignment, x := e *)
+  | Let of Name.ident * expr * cmd (** let binding, var x = e in c *)
+  | Assign of (Name.ident * (int * bool)) * expr
+  (** assignment, x := e. [x] is [(name, (idx, top_or_local))] *)
   | FCall of (Name.ident * (int * bool)) option * Name.ident * expr list
   (** function call, [x := f(e1,..,en)]. [x] is [(name, (idx, top_or_local))] *)
   | SCall of (Name.ident * (int * bool)) option * Name.ident * expr list
@@ -82,9 +84,9 @@ and lemma' =
       [name : all-traces "xxx"]
   *)
   | ReachabilityLemma of
-      Name.ident * Name.ident list * Name.ident list * Name.ident list * fact list
+      Name.ident * Name.ident list (* fresh variables *) * Name.ident list * Name.ident list * fact list
   (** [name : reachable f1,..,fn] *)
-  | CorrespondenceLemma of Name.ident * Name.ident list * fact * fact
+  | CorrespondenceLemma of Name.ident * Name.ident list (* fresh variables *) * fact * fact
   (** [name : corresponds fa ~> fb] *)
 
 type decl = decl' Location.located
@@ -94,33 +96,33 @@ and decl' =
   | DeclExtEq of expr * expr
   (** external equation, [equation e1 = e2] *)
   | DeclExtSyscall of Name.ident * Name.ident list * cmd
-  (** system call, [syscall f(a1,..,an) { c }]
-                   [passive attack f(ty1 a1,..,tyn an) { c }]
+  (** system call, [syscall name(args) { c }]
+                   [passive attack name(args) { c }]
       XXX what is passive attack for?  It is not distinguishable from syscall in Input.
   *)
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
-  (** [attack f on name (a1,..,an) { c }] *)
+  (** [attack name on syscall (args) { c }] *)
   | DeclType of Name.ident * Input.type_class
   (** type declaration, [type t : filesys/process/channel] *)
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
-  (** [allow s t1 .. tn [f1, .., fm]]
-      [allow s t1 .. tn [.]]  for all the syscalls
+  (** [allow proc_ty target_ty1 .. target_tyn [syscall1, .., syscallm]]
+      [allow proc_ty target_ty1 .. targe_t_tyn [.]]  for all the syscalls
 
-      XXX the list [ti] is either empty or singleton.  Should use option type?
+      XXX the list [target_tyi] is either empty or singleton.  Should use option type?
   *)
   | DeclAttack of Name.ident list * Name.ident list
-  (** [allow attack t1 .. tn [f1, .., fm]] *)
+  (** [allow attack proc_ty1 .. proc_tyn [attack1, .., attackn]] *)
   | DeclInit of Name.ident * expr option
   (** [const n = e]
       [const fresh n]
   *)
   | DeclParamInit of Name.ident * (Name.ident * expr) option
-  (** - [const n<p> = e]
-      - [const fresh n<>] *)
+  (** - [const name<param> = e]
+      - [const fresh name<>] *)
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
-  (** // [filesys n = [f1, .., fm]] XXX unused *)
+  (** [filesys n = [f1, .., fm]] XXX unused *)
   | DeclChan of Name.ident * unit option * Name.ident
-  (** [channel n : ty] or [channel n<> : ty *)
+  (** [channel name : chan_ty] or [channel name<> : chan_ty *)
   | DeclProc of { id : Name.ident
                 ; param : Name.ident option
                 ; args : (bool * Name.ident * Name.ident) list
@@ -129,7 +131,7 @@ and decl' =
                 ; vars : (Name.ident * expr) list
                 ; funcs : (Name.ident * (Name.ident list) * cmd) list
                 ; main : cmd }
-  (** [process id<p>(x1 : ty1, .., xn : tyn) : ty { file ... var ... function ... main ... }] *)
+  (** [process id<param>(ch1 : chty1, .., chn : chtyn) : proc_ty { file ... var ... function ... main ... }] *)
   | DeclSys of proc list * lemma list
   (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
   | DeclLoad of string * decl list

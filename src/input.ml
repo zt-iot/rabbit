@@ -76,7 +76,7 @@ and cmd' =
   | Put of fact list
   (** output, [put[f1,..,fn]] *)
   | Let of Name.ident * expr * cmd
-  (** let binding, [let x = e in c] *)
+  (** let binding, [var x = e in c] *)
   | Assign of Name.ident option * expr
   (** assignment, [x := e] or [_ := e] *)
   | Case of cmd case list
