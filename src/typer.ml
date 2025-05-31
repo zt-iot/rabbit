@@ -534,8 +534,7 @@ let type_lemma env (lemma : Input.lemma) =
                 Env.add env v (Var (Meta (snd idx)))) fresh env
             in
             let _env', facts = type_facts env' facts in
-            (* XXX 3rd and 4th are always empty *)
-            env, ReachabilityLemma (id, Name.Set.elements fresh, [], [], facts)
+            env, ReachabilityLemma (id, Name.Set.elements fresh, facts)
         | Correspondence (f1, f2) ->
             let vs = Name.Set.union (Input.vars_of_fact f1) (Input.vars_of_fact f2) in
             let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in

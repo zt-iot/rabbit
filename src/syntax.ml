@@ -64,7 +64,7 @@ type proc =
 type lemma = lemma' Location.located
 and lemma' =
   | PlainLemma of Name.ident * string
-  | ReachabilityLemma of Name.ident * Name.ident list * Name.ident list * Name.ident list * fact list
+  | ReachabilityLemma of Name.ident * Name.ident list * fact list
   | CorrespondenceLemma of Name.ident * Name.ident list * fact * fact
 
 type decl = decl' Location.located

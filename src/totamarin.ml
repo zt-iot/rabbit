@@ -990,9 +990,9 @@ let translate_sys {
     let l =
       match l.Location.data with
       | Syntax.PlainLemma (l, p) -> PlainLemma (l, p)
-      | Syntax.ReachabilityLemma (l, cs, ps, vs, fs) ->
+      | Syntax.ReachabilityLemma (l, cs, fs) ->
         let fs, gv, _, _ = translate_facts "" fs in
-        ReachabilityLemma (l, cs, ps, vs, gv, fs)
+        ReachabilityLemma (l, cs, [], [], gv, fs)
       | Syntax.CorrespondenceLemma (l, vl,a, b) ->
         let a, gva =
           match translate_facts "" [a] with
