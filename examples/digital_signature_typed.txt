@@ -56,9 +56,15 @@ allow client_t [gen_message]
 
 
 (** access control necessary for defining security lattice of TYPE SYSTEM *)
-allow client_t client_msg [gen_message, send, recv]
-allow client_t client_sig [send]
-allow client_t client_sig [.]  (* client_t are able to create signatures using `sign` equational theory function *)
+allow alice_t client_msg [gen_message, send, recv]
+allow alice_t client_sig [send]
+allow alice_t client_sig [.]  (* able to create signatures using `sign` equational theory function *)
+allow alice_t sign_key_alice [.] (* able to instantiate terms of sign_key_alice in memory instantiation *)
+
+allow bob_t client_msg [gen_message, send, recv]
+allow bob_t client_sig [send]
+allow bob_t client_sig [.]  (* able to create signatures using `sign` equational theory function *)
+
 
 allow attacker_ty client_msg [read, provide]
 allow attacker_ty client_sig [read, provide]
@@ -103,7 +109,7 @@ channel udp : udp_t (* Only a single UDP channel for now *)
 (***********)
 (** process templates *)
 
-process alice(ch_net : udp_t) : client_t
+process alice(ch_net : udp_t) : alice_t
 {
     var priv_key_alice : sign_key_alice = secret_key_alice
 
@@ -124,7 +130,7 @@ process alice(ch_net : udp_t) : client_t
   	}
 }
 
-process bob(ch_net : udp_t) : client_t
+process bob(ch_net : udp_t) : bob_t
 {
   (* Use public key of Alice to verify message *)
   var pub_key_alice : key[Ver] = vk(priv_key_alice)
