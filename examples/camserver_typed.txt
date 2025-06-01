@@ -133,8 +133,8 @@ allow server_t client_ta_sig [recv]
 allow server_t ver_key_server [.]
 
 
-allow attacker_ty client_img [read]
-allow attacker_ty client_ta_sig [read]
+allow attacker_ty client_img [read, provide]
+allow attacker_ty client_ta_sig [read, provide]
 
 
 
