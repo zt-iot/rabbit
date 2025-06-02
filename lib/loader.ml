@@ -883,14 +883,16 @@ and load fn ctx pol def sys =
 
 
    let cwd = Sys.getcwd() in
+
+
    (* SOME PARSER TEST *)
-   let _ = Printf.printf "Current working dir: %s\n" cwd in
+   (* let _ = Printf.printf "Current working dir: %s\n" cwd in
    
 
    let fn2 = "examples/camserver_simple_type_decls.txt" in
    let decls2, parser_state2 = Lexer.read_file Parser.file fn2 in
    let size2 = List.length decls2 in 
-   let _ = Printf.printf "List size: %d\n" size2 in
+   let _ = Printf.printf "List size: %d\n" size2 in *)
 
    (* let%expect_test "double of 2 is 4" =
    print_int (double 2);

@@ -1,0 +1,13 @@
+(library
+ (name rabbit_lib)
+ (public_name rabbit.rabbit_lib)
+ (flags -w +a-4-27-29-50)
+ (libraries sedlex menhirLib str ppx_deriving)
+ (preprocess (pps sedlex.ppx))
+)
+
+; https://dune.readthedocs.io/en/stable/reference/dune/menhir.html
+(menhir
+  (modules parser)
+  (flags --explain --dump)
+)
