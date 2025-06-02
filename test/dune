@@ -1,0 +1,4 @@
+(test
+ (name main)
+ (modules parser_test sample_test main)
+ (libraries rabbit.rabbit_lib alcotest))
