@@ -1,4 +1,4 @@
-let print_type_class c = 
+(* let print_type_class c = 
    match c with 
    | Input.CProc -> "Proc"
    | Input.CFsys -> "Fsys" 
@@ -271,4 +271,4 @@ let pprint_system procs ppf =
 
             (pprint_stmts m)
 
-            ) ppf procs 
+            ) ppf procs  *)

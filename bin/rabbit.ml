@@ -1,4 +1,5 @@
 (** Clerial main program *)
+open Rabbit_lib
 
 (** The usage message. *)
 let usage = "Usage: Rabbit [option] ... [file] ..."

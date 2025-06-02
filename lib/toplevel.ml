@@ -1,5 +1,5 @@
 (** A toplevel computation carries around the current environment. *)
-type state =
+(* type state =
   {
     desugar : Desugar.context;
     typecheck : Typecheck.context;
@@ -16,4 +16,4 @@ let load_file ~quiet {desugar; typecheck; runtime} fn =
   let desugar, cmds = Desugar.load desugar fn in
   let typecheck, cmds = Typecheck.topfile typecheck cmds in
   let runtime = Eval.topfile ~quiet runtime cmds in
-  {desugar; typecheck; runtime}
+  {desugar; typecheck; runtime} *)
