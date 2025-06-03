@@ -9,7 +9,7 @@ equation fst ((x, y)) = x
 equation snd ((x, y)) = y
 function true:0
 function verify:3
-equation dec(enc(x, y), y) = x
+equation dec(enc(x, pk(d)), d) = x
 equation verify (sign(d, k), d, pk(k)) = true
 
 
@@ -102,9 +102,9 @@ process alice(ch_net : udp_t) : client_t
 
   	main 
   	{
-      var pub_key_bob_fd = fopen("/secret/pub_bob") in    
+      var pub_key_bob_fd = fopen("/secret/pub_bob") in (* this is tampered by attacker to point to attacker's public key *)
       var pub_key_bob = fread(pub_key_bob_fd) in 
-      var c_txt1 = enc((nonce_a, "Alice"), pub_key_bob) in 
+      var c_txt1 = enc((nonce_a, "Alice"), pub_key_bob) in (* pub_key_bob is tampered, therefore, nonce_a is readable by the attacker *)
 
       _ := eaves_mem(c_txt1);
       _ := send(ch_net, c_txt1);
@@ -122,9 +122,10 @@ process alice(ch_net : udp_t) : client_t
       | [echo_nonce_a = nonce_a] →
         event [::SecretNonceAlice(nonce_a)]; (* declares that `nonce_a` has been established as a shared secret *)
 
-        var c_txt3 = enc(nonce_b, pub_key_bob) in 
+        var c_txt3 = enc(nonce_b, pub_key_bob) in (* pub_key_bob is tampered, therefore, nonce_b is readable by the attacker *)
         _ := eaves_mem(c_txt3);
-        _ := send(ch_net, c_txt3)
+        _ := send(ch_net, c_txt3);
+        event [::AliceSendNonceBTag(nonce_b)]
         
       end;
       
@@ -189,6 +190,10 @@ requires [
       reachable ::BobSendNonceBTag(nonce_b) ;
     lemma NonceBIsSent_tmrn : 
       exists-trace "Ex nb #j . BobSendNonceBTag(nb) @ j" ;
+
+    (* lemma: 3rd message gets sent in some trace *)
+    lemma NonceBIsSentByAlice : 
+      reachable ::AliceSendNonceBTag(nonce_b) ;
     
     lemma SecrecyCanBeEstablishedA : 
       reachable ::SecretNonceAlice(nonce_a) ;
@@ -204,7 +209,7 @@ requires [
       all-traces "All na #i . SecretNonceAlice(na) @ i ==> not(Ex #l . K(na) @ l)" ;
 
     lemma NonceSecrecyB : 
-      all-traces "All nb #j . SecretNonceBob(nb) @ #j ==> not(Ex #m . K(nb) @ #m)" ;
+      all-traces "All nb #i . SecretNonceBob(nb) @ i ==> not(Ex #m . K(nb) @ m)" ;
 
     (* it cannot be that na is established as a secret and attacker knows it *)
     lemma NonceSecrecyA_tmrn : 
