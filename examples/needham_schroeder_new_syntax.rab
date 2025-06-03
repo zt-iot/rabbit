@@ -119,7 +119,7 @@ process alice(ch_net : udp_t) : client_t
 
       (* In principle, Alice should only send the final message if nonce_a == echo_nonce_a *)
       case 
-      | [::AliceSendNonceA(echo_nonce_a)] →
+      | [echo_nonce_a = nonce_a] →
         event [::SecretNonceAlice(nonce_a)]; (* declares that `nonce_a` has been established as a shared secret *)
 
         var c_txt3 = enc(nonce_b, pub_key_bob) in 
@@ -158,7 +158,7 @@ process bob(ch_net : udp_t) : client_t
 
     (* output SecretNonceBob event if the nonce that Bob receives equals the one he sent *)
     case 
-    | [::BobSendNonceB(echo_nonce_b)] →
+    | [echo_nonce_b = nonce_b] →
       event [::SecretNonceBob(nonce_b)] (* declares that `echo_nonce_b` has been established as a shared secret *)
     end;
 

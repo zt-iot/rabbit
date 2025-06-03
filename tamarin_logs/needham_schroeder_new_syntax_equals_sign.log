@@ -16033,7 +16033,7 @@ summary of summaries:
 
 analyzed: tamarin_models/needham_schroeder_new_syntax_equals_sign.spthy
 
-  processing time: 138.31s
+  processing time: 145.65s
   
   WARNING: 7 wellformedness check failed!
            The analysis results might be wrong!
