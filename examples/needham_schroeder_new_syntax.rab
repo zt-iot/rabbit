@@ -99,33 +99,34 @@ channel udp : udp_t (* Only a single UDP channel *)
 process alice(ch_net : udp_t) : client_t
 {
     file "/secret/pub_bob" : readonly_t = pk(priv_key_bob)
+    var loc_nonce_a = nonce_a
 
   	main 
   	{
       var pub_key_bob_fd = fopen("/secret/pub_bob") in (* this is tampered by attacker to point to attacker's public key *)
       var pub_key_bob = fread(pub_key_bob_fd) in 
-      var c_txt1 = enc((nonce_a, "Alice"), pub_key_bob) in (* pub_key_bob is tampered, therefore, nonce_a is readable by the attacker *)
+      var c_txt1 = enc((loc_nonce_a, "Alice"), pub_key_bob) in (* pub_key_bob is tampered, therefore, loc_nonce_a is readable by the attacker *)
 
       _ := eaves_mem(c_txt1);
       _ := send(ch_net, c_txt1);
-      put [::AliceSendNonceA(nonce_a)];
-      event [::AliceSendNonceATag(nonce_a)];
+      put [::AliceSendNonceA(loc_nonce_a)];
+      event [::AliceSendNonceATag(loc_nonce_a)];
 
       var c_txt2 = recv(ch_net) in
       var p_txt2 = dec(c_txt2, priv_key_alice) in
 
-      var echo_nonce_a = fst(p_txt2) in 
-      var nonce_b = snd(p_txt2) in 
+      var echo_loc_nonce_a = fst(p_txt2) in 
+      var loc_nonce_b = snd(p_txt2) in 
 
-      (* In principle, Alice should only send the final message if nonce_a == echo_nonce_a *)
+      (* In principle, Alice should only send the final message if loc_nonce_a == echo_loc_nonce_a *)
       case 
-      | [echo_nonce_a = nonce_a] →
-        event [::SecretNonceAlice(nonce_a)]; (* declares that `nonce_a` has been established as a shared secret *)
+      | [echo_loc_nonce_a = loc_nonce_a] →
+        event [::SecretNonceAlice(loc_nonce_a)]; (* declares that `loc_nonce_a` has been established as a shared secret *)
 
-        var c_txt3 = enc(nonce_b, pub_key_bob) in (* pub_key_bob is tampered, therefore, nonce_b is readable by the attacker *)
+        var c_txt3 = enc(loc_nonce_b, pub_key_bob) in (* pub_key_bob is tampered, therefore, loc_nonce_b is readable by the attacker *)
         _ := eaves_mem(c_txt3);
         _ := send(ch_net, c_txt3);
-        event [::AliceSendNonceBTag(nonce_b)]
+        event [::AliceSendNonceBTag(loc_nonce_b)]
         
       end;
       
@@ -137,6 +138,7 @@ process alice(ch_net : udp_t) : client_t
 process bob(ch_net : udp_t) : client_t
 {
   (* Use public key of Alice to verify message *)
+  var loc_nonce_b = nonce_b
   var pub_key_alice = pk(priv_key_alice)
 
   main 
@@ -146,21 +148,21 @@ process bob(ch_net : udp_t) : client_t
     var c_txt1 = recv(ch_net) in 
 
     (* shadowing *)
-    var nonce_a = fst(dec(c_txt1, priv_key_bob)) in 
-    var c_txt2 = enc((nonce_a, nonce_b), pk(priv_key_alice)) in 
+    var loc_nonce_a = fst(dec(c_txt1, priv_key_bob)) in 
+    var c_txt2 = enc((loc_nonce_a, loc_nonce_b), pub_key_alice) in 
 
     _ := eaves_mem(c_txt2);
     _ := send(ch_net, c_txt2); 
-    put [::BobSendNonceB(nonce_b)]; 
-    event [::BobSendNonceBTag(nonce_b)];
+    put [::BobSendNonceB(loc_nonce_b)]; 
+    event [::BobSendNonceBTag(loc_nonce_b)];
 
     var c_txt3 = recv(ch_net) in 
-    var echo_nonce_b = dec(c_txt3, priv_key_bob) in 
+    var echo_loc_nonce_b = dec(c_txt3, priv_key_bob) in 
 
     (* output SecretNonceBob event if the nonce that Bob receives equals the one he sent *)
     case 
-    | [echo_nonce_b = nonce_b] →
-      event [::SecretNonceBob(nonce_b)] (* declares that `echo_nonce_b` has been established as a shared secret *)
+    | [echo_loc_nonce_b = loc_nonce_b] →
+      event [::SecretNonceBob(loc_nonce_b)] (* declares that `echo_loc_nonce_b` has been established as a shared secret *)
     end;
 
     event [::BobClose()]
