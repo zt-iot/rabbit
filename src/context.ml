@@ -29,7 +29,7 @@ let print_error err ppf =
 type ctx_process_template =
   { ctx_proctmpl_id : Name.ident
   ; ctx_proctmpl_param : Name.ident option
-  ; ctx_proctmpl_ch : (bool * Name.ident * Name.ident) list
+  ; ctx_proctmpl_ch : Syntax.chan_param list
   ; ctx_proctmpl_ty : Name.ident
   ; ctx_proctmpl_var : Name.ident list
   ; ctx_proctmpl_func : (Name.ident * int) list

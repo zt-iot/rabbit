@@ -50,10 +50,8 @@ and cmd' =
   | Del of expr * Name.ident
 
 type chan_arg = ChanArg of { id : Name.ident; param : expr option option; typ : Name.ident }
-  (** - [param= None]: [id]
-      - [param= Some None]: [id<>]
-      - [param= Some (Some e)]: [id<e>]
-  *)
+
+type chan_param = Input.chan_param = ChanParam of { id : Name.ident; param : unit option; typ : Name.ident }
 
 type pproc = pproc' Location.located
 and pproc' =
@@ -81,10 +79,10 @@ and decl' =
   | DeclInit of Name.ident * expr option
   | DeclParamInit of Name.ident * (Name.ident * expr) option
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
-  | DeclChan of Name.ident * unit option * Name.ident
+  | DeclChan of chan_param
   | DeclProc of { id : Name.ident
                 ; param : Name.ident option
-                ; args : (bool * Name.ident * Name.ident) list
+                ; args : chan_param list
                 ; typ : Name.ident
                 ; files : (expr * Name.ident * expr) list
                 ; vars : (Name.ident * expr) list

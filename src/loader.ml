@@ -522,7 +522,8 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
   then error ~loc (ArgNumMismatch (pid, List.length chans, List.length cargs));
   let files, vl, fl, m, installed_channels =
     List.fold_left2
-      (fun (files, vl, fl, m, installed_channels) (is_param, ch_f, ty_f) ch_t ->
+      (fun (files, vl, fl, m, installed_channels) (Syntax.ChanParam {id=ch_f; param=is_param; typ=ty_f}) ch_t ->
+         let is_param = is_param <> None in
          match ch_t with
          | Input.ChanArgPlain ch_t ->
              if is_param then error ~loc (WrongChannelType ("", ""));
@@ -754,15 +755,15 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         context = Context.ctx_add_param_const env.context id
       ; definition = Context.def_add_param_const env.definition (id, e')
       }
-  | Input.DeclParamChan (id, ty) ->
+  | Input.DeclChan (ChanParam {id; typ= ty; param= Some ()}) ->
       (* [channel n<> : ty] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       { env with context = Context.ctx_add_param_ch env.context (id, ty) }
-  | Input.DeclChan (id, c) ->
+  | Input.DeclChan (ChanParam {id; typ= ty; param= None}) ->
       (* [channel n : ty] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       (* xxx No need to check [c] ? *)
-      { env with context = Context.ctx_add_ch env.context (id, c) }
+      { env with context = Context.ctx_add_ch env.context (id, ty) }
   | Input.DeclParamProc
       { id = pid
       ; param = p
@@ -780,10 +781,10 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       (* load channel parameters [p] and [chanargs] *)
       let lctx =
         List.fold_left
-          (fun lctx' (b, cid, cty) ->
+          (fun lctx' (Input.ChanParam {id=cid; param; typ= cty}) ->
              if not @@ Context.ctx_check_ty_ch ctx cty
              then error ~loc (UnknownIdentifier (`ChannelType, cty));
-             if b
+             if param <> None
              then Context.lctx_add_new_param_chan ~loc lctx' cid
              else Context.lctx_add_new_chan ~loc lctx' cid)
           (Context.lctx_add_new_param ~loc Context.lctx_init p)
@@ -857,10 +858,10 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       (* load channel parameters *)
       let lctx =
         List.fold_left
-          (fun lctx' (b, cid, cty) ->
+          (fun lctx' (Syntax.ChanParam {id=cid; param=p; typ= cty}) ->
              if not @@ Context.ctx_check_ty_ch ctx cty
              then error ~loc (UnknownIdentifier (`ChannelType, cty));
-             if b
+             if p <> None
              then Context.lctx_add_new_param_chan ~loc lctx' cid
              else Context.lctx_add_new_chan ~loc lctx' cid)
           Context.lctx_init

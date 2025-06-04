@@ -81,6 +81,9 @@ type chan_arg =
   | ChanArgParam of Name.ident
   | ChanArgParamInst of Name.ident * expr
 
+type chan_param = ChanParam of { id : Name.ident; param : unit option; typ : Name.ident }
+(** [chan_name : chan_ty] or [chan_name<> : chan_ty] *)
+
 type pproc = pproc' Location.located
 
 and pproc' =
@@ -112,10 +115,10 @@ and decl' =
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   | DeclAttack of Name.ident list * Name.ident list
   | DeclInit of Name.ident * expr option
-  | DeclChan of Name.ident * Name.ident
+  | DeclChan of chan_param
   | DeclProc of
       { id : Name.ident
-      ; args : (bool * Name.ident * Name.ident) list
+      ; args : chan_param list
       ; typ : Name.ident
       ; files : (expr * Name.ident * expr) list
       ; vars : (Name.ident * expr) list
@@ -125,7 +128,7 @@ and decl' =
   | DeclParamProc of
       { id : Name.ident
       ; param : Name.ident
-      ; args : (bool * Name.ident * Name.ident) list
+      ; args : chan_param list
       ; typ : Name.ident
       ; files : (expr * Name.ident * expr) list
       ; vars : (Name.ident * expr) list
@@ -135,4 +138,3 @@ and decl' =
   | DeclSys of proc list * lemma list
   | DeclLoad of string
   | DeclParamInit of Name.ident * (Name.ident * expr) option
-  | DeclParamChan of Name.ident * Name.ident

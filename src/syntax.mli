@@ -71,6 +71,9 @@ type chan_arg = ChanArg of { id : Name.ident; param : expr option option; typ : 
       - [param= Some (Some e)]: [id<e>]
   *)
 
+type chan_param = Input.chan_param = ChanParam of { id : Name.ident; param : unit option; typ : Name.ident }
+(** [chan_name : chan_ty] or [chan_name<> : chan_ty] *)
+
 type pproc = pproc' Location.located
 and pproc' =
   | Proc of Name.ident * expr option * (chan_arg list) (** [pid<e>(chargs,..,chargs)] *)
@@ -125,11 +128,11 @@ and decl' =
       - [const fresh name<>] *)
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
   (** [filesys n = [f1, .., fm]] XXX unused *)
-  | DeclChan of Name.ident * unit option * Name.ident
+  | DeclChan of chan_param
   (** [channel name : chan_ty] or [channel name<> : chan_ty] *)
   | DeclProc of { id : Name.ident
                 ; param : Name.ident option
-                ; args : (bool * Name.ident * Name.ident) list
+                ; args : chan_param list
                 ; typ : Name.ident
                 ; files : (expr * Name.ident * expr) list
                 ; vars : (Name.ident * expr) list
