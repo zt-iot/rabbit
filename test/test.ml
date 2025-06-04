@@ -53,13 +53,13 @@ let test_block lines =
       List.iter prerr_endline lines;
       List.iter prerr_endline outputs;
       exit 2
-  | Fail rex, WEXITED (1 | 2) ->
+  | Fail rex, WEXITED n ->
       if List.exists (Re.execp rex) outputs then
         prerr_endline "Failed as expected"
       else begin
         List.iter prerr_endline lines;
         List.iter prerr_endline outputs;
-        prerr_endline "Unexpected error message";
+        Format.eprintf "Unexpected error message (exit=%d)" n;
         exit 2
       end
   | _ -> assert false

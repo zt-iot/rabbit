@@ -14,8 +14,7 @@ and expr' =
   | Float of string
   | Apply of operator * expr list
   | Tuple of expr list
-  | Channel of string * Name.ident
-  | ParamChan of string * expr
+  | Channel of Name.ident * expr option
   | ParamConst of string * expr
   | Param of string
 

@@ -18,8 +18,13 @@ equation f(x) = f(add(x,42))
 
 (*** Success *)
 const c = 42
+const f = 4.12
 const fresh x
 const fresh y<>
+
+(*** Fail "Unknown identifier true" *)
+(* true/false is not defined in the parser, therefore they are considered as variables *)
+const c = true
 
 (*** Fail "Identifier c is already bound" *)
 const c = 42

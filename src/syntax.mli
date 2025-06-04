@@ -15,8 +15,7 @@ and expr' =
   | Float of string (** float, [4.12]. Store the string so we can correctly round later *)
   | Apply of operator * expr list (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
-  | Channel of Name.ident * Name.ident (** channel name and type *)
-  | ParamChan of Name.ident * expr (** [id<e>] *)
+  | Channel of Name.ident * expr option (** [id] or [id<e>] *)
   | ParamConst of Name.ident * expr (** [id<e>] *)
   | Param of Name.ident (** parameter variable *)
 
