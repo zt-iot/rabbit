@@ -9,7 +9,7 @@ and expr' =
   | LocVariable of Name.ident * int (** local variables by function arguments, etc. *)
   | MetaVariable of Name.ident * int (** variables introduced by [new] and [let x1,...,xn := e.S in ...] *)
   | MetaNewVariable of Name.ident * int (** pattern variables in cases and free variables in lemmas *)
-  | Boolean of bool (** boolean, [true]/[false] *)
+  | Boolean of bool (** boolean, XXX no constant available for now *)
   | String of string (** string, ["hello"] *)
   | Integer of int (** integer, [42] *)
   | Float of string (** float, [4.12]. Store the string so we can correctly round later *)
