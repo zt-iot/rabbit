@@ -462,7 +462,7 @@ let extend_with_args2 env (args : Name.ident list) =
       Env.add env id (Var (Loc (snd idx)))) env args
 
 let type_process ~loc env id param_opt args typ files vars funcs main =
-  (* [ process id<param>(ch1 : chty1, .., chn : chtyn) : proc_ty {
+  (* [ process id<param>(ch1 : chty1, .., chn : chtyn) : proc_ty {n
           file path : filety = contents ...
           var id = e ...
           function fid(args) { c }
@@ -475,7 +475,8 @@ let type_process ~loc env id param_opt args typ files vars funcs main =
       | None -> env
       | Some param -> Env.add env param (Var Param)
     in
-    let env' = List.fold_left (fun env (with_param, chanid, chanty) ->
+    let env' = List.fold_left (fun env (Syntax.ChanParam {id= chanid; param; typ= chanty}) ->
+        let with_param = param <> None in
         Env.find_desc ~loc env chanty (Type CChan);
         Env.add env chanid (Channel (with_param, chanty)))
         env' args
@@ -624,16 +625,16 @@ let rec type_decl base_fn env (d : Input.decl) =
         let e = type_expr (Env.add env p (Var Param)) e in
         Env.add_global ~loc env id (Const true), (* no info of param? *)
         DeclParamInit (id, Some (p, e))
-    | DeclChan (id, chty) ->
+    | DeclChan (ChanParam {id; param= None; typ= chty}) ->
         (* [channel n : ty] *)
         Env.must_be_fresh ~loc env id;
         Env.find_desc ~loc env chty (Type CChan);
-        Env.add env id (Channel (false, chty)), DeclChan (id, None, chty)
-    | DeclParamChan (id, chty) ->
+        Env.add env id (Channel (false, chty)), DeclChan (ChanParam {id; param= None; typ= chty})
+    | DeclChan (ChanParam {id; param= Some (); typ= chty}) ->
         (* [channel n<> : ty] *)
         Env.must_be_fresh ~loc env id;
         Env.find_desc ~loc env chty (Type CChan);
-        Env.add env id (Channel (true, chty)), DeclChan (id, Some (), chty)
+        Env.add env id (Channel (true, chty)), DeclChan (ChanParam {id; param= Some (); typ= chty})
     | DeclProc { id; args; typ; files; vars; funcs; main } ->
         type_process ~loc env id None args typ files vars funcs main
     | DeclParamProc { id; param; args; typ; files; vars; funcs; main } ->

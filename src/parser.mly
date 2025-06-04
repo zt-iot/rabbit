@@ -68,7 +68,7 @@ plain_decl:
 
   // | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
 
-  | CHANNEL id=NAME COLON n=NAME { DeclChan(id, n) }
+  | CHANNEL id=NAME COLON n=NAME { DeclChan (ChanParam {id; param= None; typ= n}) }
 
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME
     LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE {
@@ -93,8 +93,8 @@ plain_decl:
 
   | sys { $1 }
 
-  | CHANNEL id=NAME LT GT COLON n=NAME { DeclParamChan(id, n) }
-  | CHANNEL id=NAME LTGT COLON n=NAME { DeclParamChan(id, n) }
+  | CHANNEL id=NAME LT GT COLON n=NAME { DeclChan (ChanParam {id; param= Some (); typ= n}) }
+  | CHANNEL id=NAME LTGT COLON n=NAME { DeclChan (ChanParam {id; param= Some (); typ= n}) }
 
 
   | CONST t=NAME LT p=NAME GT EQ e=expr { DeclParamInit(t, Some (p, e)) }
@@ -105,9 +105,9 @@ plain_decl:
 
 
 colon_name_pair :
-  | a=NAME COLON b=NAME { (false, a, b) }
-  | a=NAME LT GT COLON b=NAME { (true, a, b) }
-  | a=NAME LTGT COLON b=NAME { (true, a, b) }
+  | a=NAME COLON b=NAME { ChanParam {id=a; param= None; typ=b} }
+  | a=NAME LT GT COLON b=NAME { ChanParam {id=a; param= Some (); typ=b} }
+  | a=NAME LTGT COLON b=NAME { ChanParam {id=a; param= Some (); typ=b} }
 
 external_syscall:
   |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN

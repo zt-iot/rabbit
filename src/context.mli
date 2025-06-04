@@ -3,8 +3,7 @@ include Sig.ERROR
 type ctx_process_template =
   { ctx_proctmpl_id : Name.ident (** name *)
   ; ctx_proctmpl_param : Name.ident option (** channel parameter [<p>] *)
-  ; ctx_proctmpl_ch : (bool * Name.ident * Name.ident) list
-  (** list of channel arguments of [(with_parameter, name, typ)] *)
+  ; ctx_proctmpl_ch : Syntax.chan_param list (** list of channel arguments *)
   ; ctx_proctmpl_ty : Name.ident (** process type for access control *)
   ; ctx_proctmpl_var : Name.ident list (** toplevel variables *)
   ; ctx_proctmpl_func : (Name.ident * int) list (** function names and their arities *)
