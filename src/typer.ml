@@ -1,4 +1,4 @@
-type var_desc =
+type var_desc = Syntax.variable_desc =
   | Top of int
   | Loc of int
   | Meta of int
@@ -341,20 +341,19 @@ let rec type_cmd env (cmd : Input.cmd) =
         env, c
     | Assign (Some id, e) ->
         let e = type_expr env e in
-        let i, top =
+        let vdesc =
           match Env.find ~loc env id with
-          | Var (Top i) -> (i, true)
-          | Var (Loc i) -> (i, false)
+          | Var (Top _ | Loc _ as vdesc) -> vdesc
           | desc -> error ~loc @@ InvalidVariableAtAssign (id, desc)
         in
         let c =
           match e.data with
           | Apply (f, args) ->
               (match Env.find ~loc env f with
-               | Function _ -> Syntax.FCall (Some (id, (i, top)), f, args)
-               | ExtSyscall _ -> SCall (Some (id, (i, top)), f, args)
-               | _ -> Assign ((id, (i, top)), e))
-          | _ -> Assign ((id, (i, top)), e)
+               | Function _ -> Syntax.FCall (Some (id, vdesc), f, args)
+               | ExtSyscall _ -> SCall (Some (id, vdesc), f, args)
+               | _ -> Assign ((id, vdesc), e))
+          | _ -> Assign ((id, vdesc), e)
         in
         env, c
     | Case cases ->

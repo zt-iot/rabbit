@@ -44,11 +44,11 @@ and cmd' =
   | Sequence of cmd * cmd (** sequencing, c1; c2 *)
   | Put of fact list (** output, [put[f1,..,fn]] *)
   | Let of Name.ident * expr * cmd (** let binding, [var x = e in c] *)
-  | Assign of (Name.ident * (int * bool)) * expr
+  | Assign of (Name.ident * variable_desc) * expr
   (** assignment, [x := e]. [x] is [(name, (idx, top_or_local))] *)
-  | FCall of (Name.ident * (int * bool)) option * Name.ident * expr list
+  | FCall of (Name.ident * variable_desc) option * Name.ident * expr list
   (** function call, [x := f(e1,..,en)]. [x] is [(name, (idx, top_or_local))] *)
-  | SCall of (Name.ident * (int * bool)) option * Name.ident * expr list
+  | SCall of (Name.ident * variable_desc) option * Name.ident * expr list
   (** syscall call, [x := s(e1,..,en)]. [x] is [(name, (idex, top_or_local))] *)
   | Case of cmd case list (** guarded cases, [case [a1s] => c1 | .. | [ans] => cn end] *)
   | While of cmd case list * cmd case list
