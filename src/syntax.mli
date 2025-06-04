@@ -96,6 +96,12 @@ and lemma' =
   | CorrespondenceLemma of Name.ident * Name.ident list (* fresh variables *) * fact * fact
   (** [name : corresponds fa ~> fb] *)
 
+type init_desc =
+  | Fresh (** [const fresh n] *)
+  | Value of expr (** [const n = e] *)
+  | Value_with_param of expr * Name.ident (** [const n<p> = e] *)
+  | Fresh_with_param (** [const fresh n<>] *)
+
 type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int
@@ -119,13 +125,11 @@ and decl' =
   *)
   | DeclAttack of Name.ident list * Name.ident list
   (** [allow attack proc_ty1 .. proc_tyn [attack1, .., attackn]] *)
-  | DeclInit of Name.ident * expr option
+  | DeclInit of Name.ident * init_desc
   (** [const n = e]
       [const fresh n]
-  *)
-  | DeclParamInit of Name.ident * (Name.ident * expr) option
-  (** - [const name<param> = e]
-      - [const fresh name<>] *)
+      [const name<param> = e]
+      [const fresh name<>] *)
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
   (** [filesys n = [f1, .., fm]] XXX unused *)
   | DeclChan of chan_param
