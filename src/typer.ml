@@ -611,20 +611,24 @@ let rec type_decl base_fn env (d : Input.decl) =
         List.iter (fun attack -> Env.find_desc ~loc env attack Attack) attacks;
         env,
         DeclAttack (proc_tys, attacks)
-    | DeclInit (id, eopt) ->
-        (* [const n = e] or [const fresh n] *)
-        let eopt = Option.map (type_expr env) eopt in
+    | DeclInit (id, None) ->
+        (* [const fresh n] *)
         Env.add_global ~loc env id (Const false),
-        DeclInit (id, eopt)
+        DeclInit (id, Fresh)
+    | DeclInit (id, Some e) ->
+        (* [const n = e] *)
+        Env.add_global ~loc env id (Const false),
+        let e = type_expr env e in
+        DeclInit (id, Value e)
     | DeclParamInit (id, None) ->
         (* [const fresh n<>] *)
         Env.add_global ~loc env id (Const true),
-        DeclParamInit (id, None)
+        DeclInit (id, Fresh_with_param)
     | DeclParamInit (id, Some (p, e)) ->
         (* [const n<p> = e] *)
         let e = type_expr (Env.add env p (Var Param)) e in
         Env.add_global ~loc env id (Const true), (* no info of param? *)
-        DeclParamInit (id, Some (p, e))
+        DeclInit (id, Value_with_param (e, p))
     | DeclChan (ChanParam {id; param= None; typ= chty}) ->
         (* [channel n : ty] *)
         Env.must_be_fresh ~loc env id;

@@ -67,6 +67,12 @@ and lemma' =
   | ReachabilityLemma of Name.ident * Name.ident list * fact list
   | CorrespondenceLemma of Name.ident * Name.ident list * fact * fact
 
+type init_desc =
+  | Fresh
+  | Value of expr
+  | Value_with_param of expr * Name.ident
+  | Fresh_with_param
+
 type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int
@@ -76,8 +82,7 @@ and decl' =
   | DeclType of Name.ident * Input.type_class
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   | DeclAttack of Name.ident list * Name.ident list
-  | DeclInit of Name.ident * expr option
-  | DeclParamInit of Name.ident * (Name.ident * expr) option
+  | DeclInit of Name.ident * init_desc
   | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
   | DeclChan of chan_param
   | DeclProc of { id : Name.ident
