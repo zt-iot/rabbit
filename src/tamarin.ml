@@ -193,7 +193,7 @@ let mk_constant_fact s = ConstantFact (String s, Var s)
     How to read: *)
 type action =
   | ActionReturn of expr
-  | ActionAssign of (int * bool) * expr
+  | ActionAssign of Syntax.variable_desc * expr
   | ActionSeq of action * action
   | ActionAddMeta of int
   | ActionIntro of expr list
@@ -204,7 +204,9 @@ type action =
 let rec action_sem (a : action) ((ret, meta_lst, loc_lst, top_lst) : expr * expr list * expr list * expr list) : expr * expr list * expr list * expr list =
   match a with
   | ActionReturn e -> (e, meta_lst, loc_lst, top_lst)
-  | ActionAssign ((i, b), e) -> (Unit, meta_lst, (if not b then replace_nth loc_lst i e else loc_lst), (if b then replace_nth top_lst i e else top_lst))
+  | ActionAssign (Top i, e) -> (Unit, meta_lst, loc_lst, replace_nth top_lst i e)
+  | ActionAssign (Loc i, e) -> (Unit, meta_lst, (replace_nth loc_lst i e), top_lst)
+  | ActionAssign _ -> assert false
   | ActionSeq (a, b) -> action_sem b (action_sem a (ret, meta_lst, loc_lst, top_lst))
   | ActionAddMeta k -> (Unit,
    List.map (fun i -> MetaNewVar i) (int_to_list k)

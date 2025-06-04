@@ -290,10 +290,10 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
           match ov with
           | Some id ->
               (match find_index (fun v -> v = id) lctx.Context.lctx_top_var with
-               | Some i -> Some (id, (i, true))
+               | Some i -> Some (id, Syntax.Top i)
                | None ->
                    (match find_index (fun v -> v = id) lctx.Context.lctx_loc_var with
-                    | Some i -> Some (id, (i, false))
+                    | Some i -> Some (id, Loc i)
                     | None -> error ~loc (UnknownIdentifier (`LocalVar, id))))
               (*                      match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
                      | Some i -> Syntax.MetaVariable (id, i)

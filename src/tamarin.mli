@@ -67,7 +67,7 @@ val mk_constant_fact : string -> fact
 
 type action =
   | ActionReturn of expr
-  | ActionAssign of (int * bool) * expr
+  | ActionAssign of Syntax.variable_desc * expr
   | ActionSeq of action * action
   | ActionAddMeta of int
   | ActionIntro of expr list
