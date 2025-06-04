@@ -83,9 +83,9 @@ plain_decl:
 
   | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
 
-  | CONST t=NAME EQ e=expr { DeclInit(t,Some e) }
+  | CONST t=NAME EQ e=expr { DeclInit(t, Value e) }
 
-  | CONST FRESH t=NAME { DeclInit(t,None) }
+  | CONST FRESH t=NAME { DeclInit(t, Fresh) }
 
   | ATTACK f=NAME ON t=NAME LPAREN arg=separated_list(COMMA, NAME) RPAREN LBRACE c=cmd RBRACE { DeclExtAttack (f, t, arg, c) }
 
@@ -97,10 +97,10 @@ plain_decl:
   | CHANNEL id=NAME LTGT COLON n=NAME { DeclChan (ChanParam {id; param= Some (); typ= n}) }
 
 
-  | CONST t=NAME LT p=NAME GT EQ e=expr { DeclParamInit(t, Some (p, e)) }
+  | CONST t=NAME LT p=NAME GT EQ e=expr { DeclInit(t, Value_with_param (e, p)) }
 
-  | CONST FRESH t=NAME LT GT { DeclParamInit(t,None) }
-  | CONST FRESH t=NAME LTGT { DeclParamInit(t,None) }
+  | CONST FRESH t=NAME LT GT { DeclInit(t, Fresh_with_param) }
+  | CONST FRESH t=NAME LTGT { DeclInit(t, Fresh_with_param) }
 
 
 

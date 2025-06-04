@@ -87,6 +87,12 @@ and prop' =
 type lemma = lemma' Location.located
 and lemma' = Lemma of Name.ident * prop (** lemma [Name : prop] *)
 
+type init_desc =
+  | Fresh
+  | Value of expr
+  | Value_with_param of expr * Name.ident
+  | Fresh_with_param
+
 type decl = decl' Location.located
 
 and decl' =
@@ -109,9 +115,11 @@ and decl' =
   *)
   | DeclAttack of Name.ident list * Name.ident list
   (** [allow attack t1 .. tn [f1, .., fm]] *)
-  | DeclInit of Name.ident * expr option (** [const n = e]
+  | DeclInit of Name.ident * init_desc
+  (** [const n = e]
       [const fresh n]
-  *)
+      [const n<p> = e]
+      [const fresh n<>] *)
   | DeclChan of chan_param (** [channel n : ty] or [channel n<> : ty] *)
   | DeclProc of
       { id : Name.ident
@@ -143,9 +151,6 @@ and decl' =
   | DeclSys of proc list * lemma list
   (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
   | DeclLoad of string (** [load "fn"] *)
-  | DeclParamInit of Name.ident * (Name.ident * expr) option
-  (** - [const n<p> = e]
-      - [const fresh n<>] *)
 
 val vars_of_expr : expr -> Name.Set.t
 val vars_of_fact : fact -> Name.Set.t

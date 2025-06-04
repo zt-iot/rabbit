@@ -735,25 +735,35 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           tl
       in
       { env with access_policy = p }
-  | Input.DeclInit (id, e) ->
-      (* [const n = e] or [const fresh n] *)
+  | Input.DeclInit (id, Fresh) ->
+      (* [const fresh n] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
-      let e' = Option.map (process_expr env.context Context.lctx_init) e in
       { env with
         context = Context.ctx_add_const env.context id
-      ; definition = Context.def_add_const env.definition (id, e')
+      ; definition = Context.def_add_const env.definition (id, None)
       }
-  | Input.DeclParamInit (id, e) ->
-      (* [const n<p> = e] or [const fresh n<>] *)
+  | Input.DeclInit (id, Value e) ->
+      (* [const n = e] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
-      let e' =
-        Option.map
-          (fun (p, e) -> p, process_expr ~param:p env.context Context.lctx_init e)
-          e
-      in
+      let e' = process_expr env.context Context.lctx_init e in
+      { env with
+        context = Context.ctx_add_const env.context id
+      ; definition = Context.def_add_const env.definition (id, Some e')
+      }
+  | Input.DeclInit (id, Fresh_with_param) ->
+      (* [const fresh n<>] *)
+      if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       { env with
         context = Context.ctx_add_param_const env.context id
-      ; definition = Context.def_add_param_const env.definition (id, e')
+      ; definition = Context.def_add_param_const env.definition (id, None)
+      }
+  | Input.DeclInit (id, Value_with_param (e, p)) ->
+      (* [const n<p> = e] *)
+      if Context.check_used env.context id then error ~loc (AlreadyDefined id);
+      let e' = process_expr ~param:p env.context Context.lctx_init e in
+      { env with
+        context = Context.ctx_add_param_const env.context id
+      ; definition = Context.def_add_param_const env.definition (id, Some (p, e'))
       }
   | Input.DeclChan (ChanParam {id; typ= ty; param= Some ()}) ->
       (* [channel n<> : ty] *)
