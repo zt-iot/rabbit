@@ -204,7 +204,7 @@ let rec type_expr env (e : Input.expr) =
          | Var (Meta i) -> MetaVariable (id, i)
          | Var (MetaNew i) -> MetaNewVariable (id, i)
          | ExtConst -> ExtConst id
-         | Channel (_with_param, chty) -> Channel (id, chty)
+         | Channel (_with_param, _chty) -> Channel (id, None)
          | Const _param -> Const id
          | Var Param -> Param id
          | desc -> error ~loc @@ InvalidIdentifier (id, desc))
@@ -232,7 +232,7 @@ let rec type_expr env (e : Input.expr) =
     | Param (f, e) (* [f<e>] *) ->
         (match Env.find ~loc env f with
          | Const true -> ParamConst (f, type_expr env e)
-         | Channel (true, _cty) -> ParamChan (f, type_expr env e)
+         | Channel (true, _cty) -> Channel (f, Some (type_expr env e))
          | desc -> error ~loc @@ NonParameterizableIdentifier (f, desc))
   in
   { e with data }

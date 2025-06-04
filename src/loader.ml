@@ -76,7 +76,7 @@ let rec process_expr ?(param = "") ctx lctx { Location.data = c; Location.loc } 
         else if Context.ctx_check_ext_const ctx id
         then Syntax.ExtConst id
         else if Context.lctx_check_chan lctx id
-        then Syntax.Channel (id, "")
+        then Syntax.Channel (id, None)
         else if Context.lctx_check_param lctx id
         then Syntax.Param id
         else if id = param
@@ -104,11 +104,11 @@ let rec process_expr ?(param = "") ctx lctx { Location.data = c; Location.loc } 
         Syntax.Tuple (List.map (fun a -> process_expr ~param ctx lctx a) el)
     | Input.Param (pid, p) ->
         (* [Input.Param] is converted NOT to [Syntax.Param]
-           but to [Syntax.ParamConst] or [Syntax.ParamChan] *)
+           but to [Syntax.ParamConst] or [Syntax.Channel {param= Some _}] *)
         if Context.ctx_check_param_const ctx pid
         then Syntax.ParamConst (pid, process_expr ~param ctx lctx p)
         else if Context.lctx_check_param_chan lctx pid
-        then Syntax.ParamChan (pid, process_expr ~param ctx lctx p)
+        then Syntax.Channel (pid, Some (process_expr ~param ctx lctx p))
         else error ~loc (UnknownIdentifier (`Parameter, pid))
   in
   Location.locate ~loc c
@@ -124,7 +124,7 @@ let rec process_expr2 new_meta_vars ctx lctx { Location.data = c; Location.loc }
         else if Context.ctx_check_ext_const ctx id
         then Syntax.ExtConst id
         else if Context.lctx_check_chan lctx id
-        then Syntax.Channel (id, "")
+        then Syntax.Channel (id, None)
         else if Context.lctx_check_param lctx id
         then Syntax.Param id
         else (
@@ -155,7 +155,7 @@ let rec process_expr2 new_meta_vars ctx lctx { Location.data = c; Location.loc }
         if Context.ctx_check_param_const ctx pid
         then Syntax.ParamConst (pid, process_expr2 new_meta_vars ctx lctx p)
         else if Context.lctx_check_param_chan lctx pid
-        then Syntax.ParamChan (pid, process_expr2 new_meta_vars ctx lctx p)
+        then Syntax.Channel (pid, Some (process_expr2 new_meta_vars ctx lctx p))
         else error ~loc (UnknownIdentifier (`Parameter, pid))
   in
   Location.locate ~loc c
@@ -533,7 +533,7 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
              then error ~loc (WrongChannelType (ch_f ^ ":" ^ ty_f, ch_t ^ ":" ^ chan_ty));
              (* replace channel variables and check access policies! *)
              let new_chan =
-               Location.locate ~loc:Location.Nowhere (Syntax.Channel (ch_t, ""))
+               Location.locate ~loc:Location.Nowhere (Syntax.Channel (ch_t, None))
              in
              ( List.map
                  (fun (p, ty, e) ->
@@ -583,7 +583,7 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
              (* replace channel variables and check access policies! *)
              let e = process_expr ~param ctx Context.lctx_init e in
              let new_chan =
-               Location.locate ~loc:Location.Nowhere (Syntax.ParamChan (cid, e))
+               Location.locate ~loc:Location.Nowhere (Syntax.Channel (cid, Some e))
              in
              ( List.map
                  (fun (p, ty, e) ->

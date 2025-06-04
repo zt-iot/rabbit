@@ -21,11 +21,13 @@ let print_error err _ppf =
 let rec expr_chan_sub e f t  =
   let loc = e.Location.loc in
   match e.Location.data with
-  | Syntax.Channel (s, _o) when s = f -> t
-  | Syntax.Channel _ -> e
+  | Syntax.Channel (s, None) when s = f -> t
+  | Syntax.Channel (_, None) -> e
+  | Syntax.Channel (s, Some e) ->
+      (* It seems [expr_param_chan_sub] handles the case [s = f] *)
+      Location.locate ~loc:loc (Syntax.Channel (s, Some (expr_chan_sub e f t)))
   | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_chan_sub e f t ) el))
   | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_chan_sub e f t ) el))
-  | Syntax.ParamChan (fid, e) -> Location.locate ~loc:loc (Syntax.ParamChan (fid, expr_chan_sub e f t) )
   | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamConst (fid, expr_chan_sub e f t) )
   | Syntax.Const _  -> e
   | Syntax.ExtConst _  -> e
@@ -89,10 +91,11 @@ let rec cmd_chan_sub c f t  =
 let rec expr_param_chan_sub e f t =
    let loc = e.Location.loc in
    match e.Location.data with
-   | Syntax.ParamChan (fid, e) when fid = f ->
-       Location.locate ~loc:loc (Syntax.ParamChan (t, expr_param_chan_sub e f t) )
-   | Syntax.ParamChan (fid, e) ->
-       Location.locate ~loc:loc (Syntax.ParamChan (fid, expr_param_chan_sub e f t) )
+   | Syntax.Channel (fid, Some e) when fid = f ->
+       Location.locate ~loc:loc (Syntax.Channel (t, Some (expr_param_chan_sub e f t)))
+   | Syntax.Channel (fid, Some e) ->
+       Location.locate ~loc:loc (Syntax.Channel (fid, Some (expr_param_chan_sub e f t)))
+   | Channel (_, None) -> e (* [expr_chan_sub] handles this *)
    | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_param_chan_sub e f t ) el))
    | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_param_chan_sub e f t ) el))
    | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamConst (fid, expr_param_chan_sub e f t) )
@@ -162,7 +165,8 @@ let rec expr_param e t =
   let loc = e.Location.loc in
   match e.Location.data with
   | Syntax.Param _ -> t
-  | Syntax.ParamChan (fid, e) -> Location.locate ~loc:loc (Syntax.ParamChan (fid, expr_param e t) )
+  | Syntax.Channel (fid, Some e) ->
+      Location.locate ~loc:loc (Syntax.Channel (fid, Some (expr_param e t)))
   | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamConst (fid, expr_param e t) )
   | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_param e t) el))
   | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_param e t) el))
