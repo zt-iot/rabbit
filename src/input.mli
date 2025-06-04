@@ -123,6 +123,7 @@ and decl' =
   | DeclChan of chan_param (** [channel n : ty] or [channel n<> : ty] *)
   | DeclProc of
       { id : Name.ident
+      ; param : Name.ident option
       ; args : chan_param list
       ; typ : Name.ident
       ; files : (expr * Name.ident * expr) list
@@ -130,24 +131,13 @@ and decl' =
       ; funcs : (Name.ident * Name.ident list * cmd) list
       ; main : cmd
       }
-  (** [ process id(x1 : ty1, .., xn : tyn) : ty {
+  (** [ process id<p>(x1 : ty1, .., xn : tyn) : ty {
           file id : ty = e ...
           var ...
           function ...
           main ...
         }
       ] *)
-  | DeclParamProc of
-      { id : Name.ident
-      ; param : Name.ident
-      ; args : chan_param list
-      ; typ : Name.ident
-      ; files : (expr * Name.ident * expr) list
-      ; vars : (Name.ident * expr) list
-      ; funcs : (Name.ident * Name.ident list * cmd) list
-      ; main : cmd
-      }
-  (** [process id<p>(x1 : ty1, .., xn : tyn) : ty { file ... var ... function ... main ... }] *)
   | DeclSys of proc list * lemma list
   (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
   | DeclLoad of string (** [load "fn"] *)

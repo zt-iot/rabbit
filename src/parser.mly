@@ -72,12 +72,12 @@ plain_decl:
 
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME
     LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE {
-      DeclProc{ id=id; args= parems; typ= ty; files= fl; vars= l; funcs= f; main= m }
+      DeclProc{ id=id; param= None; args= parems; typ= ty; files= fl; vars= l; funcs= f; main= m }
     }
 
   | PROCESS id=NAME LT p=NAME GT LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME
     LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE {
-      DeclParamProc{ id=id; param= p; args= parems; typ= ty; files= fl; vars= l; funcs= f; main= m }
+      DeclProc{ id=id; param= Some p; args= parems; typ= ty; files= fl; vars= l; funcs= f; main= m }
     }
 
 

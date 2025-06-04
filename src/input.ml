@@ -124,16 +124,7 @@ and decl' =
   | DeclChan of chan_param
   | DeclProc of
       { id : Name.ident
-      ; args : chan_param list
-      ; typ : Name.ident
-      ; files : (expr * Name.ident * expr) list
-      ; vars : (Name.ident * expr) list
-      ; funcs : (Name.ident * Name.ident list * cmd) list
-      ; main : cmd
-      }
-  | DeclParamProc of
-      { id : Name.ident
-      ; param : Name.ident
+      ; param : Name.ident option
       ; args : chan_param list
       ; typ : Name.ident
       ; files : (expr * Name.ident * expr) list
