@@ -774,9 +774,9 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       (* xxx No need to check [c] ? *)
       { env with context = Context.ctx_add_ch env.context (id, ty) }
-  | Input.DeclParamProc
+  | Input.DeclProc
       { id = pid
-      ; param = p
+      ; param = Some p
       ; args = chanargs
       ; typ = ty
       ; files = fls
@@ -854,6 +854,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       }
   | Input.DeclProc
       { id = pid
+      ; param = None
       ; args = chanargs
       ; typ = ty
       ; files = fls

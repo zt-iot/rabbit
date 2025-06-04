@@ -639,9 +639,9 @@ let rec type_decl base_fn env (d : Input.decl) =
         Env.must_be_fresh ~loc env id;
         Env.find_desc ~loc env chty (Type CChan);
         Env.add env id (Channel (true, chty)), DeclChan (ChanParam {id; param= Some (); typ= chty})
-    | DeclProc { id; args; typ; files; vars; funcs; main } ->
+    | DeclProc { id; param= None; args; typ; files; vars; funcs; main } ->
         type_process ~loc env id None args typ files vars funcs main
-    | DeclParamProc { id; param; args; typ; files; vars; funcs; main } ->
+    | DeclProc { id; param= Some param; args; typ; files; vars; funcs; main } ->
         type_process ~loc env id (Some param) args typ files vars funcs main
     | DeclSys (procs, lemmas) ->
         (* [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
