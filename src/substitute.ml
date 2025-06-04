@@ -28,7 +28,7 @@ let rec expr_chan_sub e f t  =
       Location.locate ~loc:loc (Syntax.Channel (s, Some (expr_chan_sub e f t)))
   | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_chan_sub e f t ) el))
   | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_chan_sub e f t ) el))
-  | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamConst (fid, expr_chan_sub e f t) )
+  | Syntax.Const (fid, Some e) -> Location.locate ~loc:loc (Syntax.Const (fid, Some (expr_chan_sub e f t) ))
   | Syntax.Const _  -> e
   | Syntax.ExtConst _  -> e
   | Syntax.LocVariable _  -> e
@@ -98,7 +98,7 @@ let rec expr_param_chan_sub e f t =
    | Channel (_, None) -> e (* [expr_chan_sub] handles this *)
    | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_param_chan_sub e f t ) el))
    | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_param_chan_sub e f t ) el))
-   | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamConst (fid, expr_param_chan_sub e f t) )
+   | Syntax.Const (fid, Some e) -> Location.locate ~loc:loc (Syntax.Const (fid, Some (expr_param_chan_sub e f t) ))
    | Syntax.Const _ -> e
    | Syntax.ExtConst _ -> e
    | Syntax.LocVariable _ -> e
@@ -167,7 +167,8 @@ let rec expr_param e t =
   | Syntax.Param _ -> t
   | Syntax.Channel (fid, Some e) ->
       Location.locate ~loc:loc (Syntax.Channel (fid, Some (expr_param e t)))
-  | Syntax.ParamConst (fid, e) -> Location.locate ~loc:loc (Syntax.ParamConst (fid, expr_param e t) )
+  | Syntax.Const (fid, Some e) ->
+      Location.locate ~loc:loc (Syntax.Const (fid, Some (expr_param e t) ))
   | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_param e t) el))
   | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_param e t) el))
   | _ -> e

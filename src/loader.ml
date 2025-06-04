@@ -72,7 +72,7 @@ let rec process_expr ?(param = "") ctx lctx { Location.data = c; Location.loc } 
     match c with
     | Input.Var id ->
         if Context.ctx_check_const ctx id
-        then Syntax.Const id
+        then Syntax.Const (id, None)
         else if Context.ctx_check_ext_const ctx id
         then Syntax.ExtConst id
         else if Context.lctx_check_chan lctx id
@@ -106,7 +106,7 @@ let rec process_expr ?(param = "") ctx lctx { Location.data = c; Location.loc } 
         (* [Input.Param] is converted NOT to [Syntax.Param]
            but to [Syntax.ParamConst] or [Syntax.Channel {param= Some _}] *)
         if Context.ctx_check_param_const ctx pid
-        then Syntax.ParamConst (pid, process_expr ~param ctx lctx p)
+        then Syntax.Const (pid, Some (process_expr ~param ctx lctx p))
         else if Context.lctx_check_param_chan lctx pid
         then Syntax.Channel (pid, Some (process_expr ~param ctx lctx p))
         else error ~loc (UnknownIdentifier (`Parameter, pid))
@@ -120,7 +120,7 @@ let rec process_expr2 new_meta_vars ctx lctx { Location.data = c; Location.loc }
     match c with
     | Input.Var id ->
         if Context.ctx_check_const ctx id
-        then Syntax.Const id
+        then Syntax.Const (id, None)
         else if Context.ctx_check_ext_const ctx id
         then Syntax.ExtConst id
         else if Context.lctx_check_chan lctx id
@@ -153,7 +153,7 @@ let rec process_expr2 new_meta_vars ctx lctx { Location.data = c; Location.loc }
         Syntax.Tuple (List.map (fun a -> process_expr2 new_meta_vars ctx lctx a) el)
     | Input.Param (pid, p) ->
         if Context.ctx_check_param_const ctx pid
-        then Syntax.ParamConst (pid, process_expr2 new_meta_vars ctx lctx p)
+        then Syntax.Const (pid, Some (process_expr2 new_meta_vars ctx lctx p))
         else if Context.lctx_check_param_chan lctx pid
         then Syntax.Channel (pid, Some (process_expr2 new_meta_vars ctx lctx p))
         else error ~loc (UnknownIdentifier (`Parameter, pid))
