@@ -3,7 +3,9 @@ type operator = Name.ident
 type expr = expr' Location.located
 
 and expr' =
-  | Const of Name.ident (** const by [const n = e] or [const fresh n] *)
+  | Const of Name.ident * expr option
+  (** - const [n] by [const n = e] or [const fresh n]
+      - const [n<e>] by [const name<param> = e] or [const fresh name<>] *)
   | ExtConst of Name.ident (** ext function by [function f:0] *)
   | TopVariable of Name.ident * int (** variables by [var ...] in process definition *)
   | LocVariable of Name.ident * int (** local variables by function arguments, etc. *)
@@ -16,7 +18,6 @@ and expr' =
   | Apply of operator * expr list (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Channel of Name.ident * expr option (** [id] or [id<e>] *)
-  | ParamConst of Name.ident * expr (** [id<e>] *)
   | Param of Name.ident (** parameter variable *)
 
 type fact = fact' Location.located

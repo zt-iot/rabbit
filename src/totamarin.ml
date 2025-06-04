@@ -26,7 +26,8 @@ let next_state ?(shift=(0,0,0)) st scope  =
 let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=_loc} =
   let translate_expr' = function
     | Syntax.ExtConst s -> Apply (s, [])
-    | Syntax.Const _s -> assert false
+    | Syntax.Const (_s, None) -> assert false
+    | Syntax.Const (_cid, Some _e) -> assert false
     | Syntax.TopVariable (_v, i) -> TopVar i
     | Syntax.LocVariable (_v, i) -> LocVar i
     | Syntax.MetaVariable (_v, i) -> MetaVar i
@@ -40,7 +41,6 @@ let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=_loc} =
        List (List.map (translate_expr ~ch:ch) el)
     | Syntax.Channel (c, None) -> if ch then Var c else String c
     | Syntax.Channel (c, Some e) -> expr_pair (String c) (translate_expr ~ch e)
-    | Syntax.ParamConst (_cid, _e) -> assert false
     | Syntax.Param _ -> Param
   in translate_expr' e
 
@@ -48,7 +48,11 @@ let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=_loc} =
 let rec translate_expr2 ?(ch=false) ?(num=0) {Location.data=e; Location.loc=_loc} =
   let translate_expr2' = function
     | Syntax.ExtConst s -> Apply (s, []), [], num
-    | Syntax.Const s -> Var s, [ConstantFact (String s, Var s)], num
+    | Syntax.Const (s, None) -> Var s, [ConstantFact (String s, Var s)], num
+    | Syntax.Const (cid, Some e) ->
+        let e', l, n = (translate_expr2 ~ch:ch ~num:(num+1) e) in
+        let var_name = (cid ^ !separator ^ string_of_int num) in
+        Var var_name, (ConstantFact (expr_pair (String cid) e', Var var_name))::l, n
     | Syntax.TopVariable (_v, i) -> TopVar i, [], num
     | Syntax.LocVariable (_v, i) -> LocVar i, [], num
     | Syntax.MetaVariable (_v, i) -> MetaVar i, [], num
@@ -73,10 +77,6 @@ let rec translate_expr2 ?(ch=false) ?(num=0) {Location.data=e; Location.loc=_loc
         let e', l, n = (translate_expr2 ~ch:ch ~num:num e) in
         (* let var_name = (cid ^ !separator ^ string_of_int num) in *)
         expr_pair (String c) e', l, n
-    | Syntax.ParamConst (cid, e) ->
-      let e', l, n = (translate_expr2 ~ch:ch ~num:(num+1) e) in
-      let var_name = (cid ^ !separator ^ string_of_int num) in
-      Var var_name, (ConstantFact (expr_pair (String cid) e', Var var_name))::l, n
     | Syntax.Param _ -> Param, [], num
 
   in translate_expr2' e

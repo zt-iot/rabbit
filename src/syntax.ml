@@ -2,7 +2,7 @@ type operator = string
 
 type expr = expr' Location.located
 and expr' =
-  | Const of Name.ident
+  | Const of Name.ident * expr option
   | ExtConst of Name.ident
   | TopVariable of string * int
   | LocVariable of string * int
@@ -15,7 +15,6 @@ and expr' =
   | Apply of operator * expr list
   | Tuple of expr list
   | Channel of Name.ident * expr option
-  | ParamConst of string * expr
   | Param of string
 
 type fact = fact' Location.located
