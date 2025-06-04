@@ -31,10 +31,7 @@ let rec expr_chan_sub e f t  =
   | Syntax.Const (fid, Some e) -> Location.locate ~loc:loc (Syntax.Const (fid, Some (expr_chan_sub e f t) ))
   | Syntax.Const _  -> e
   | Syntax.ExtConst _  -> e
-  | Syntax.LocVariable _  -> e
-  | Syntax.MetaVariable _ -> e
-  | Syntax.MetaNewVariable _ -> e
-  | Syntax.TopVariable _ -> e
+  | Syntax.Variable _  -> e
   | Syntax.Boolean _ -> e
   | Syntax.String _ -> e
   | Syntax.Integer _ -> e
@@ -101,10 +98,7 @@ let rec expr_param_chan_sub e f t =
    | Syntax.Const (fid, Some e) -> Location.locate ~loc:loc (Syntax.Const (fid, Some (expr_param_chan_sub e f t) ))
    | Syntax.Const _ -> e
    | Syntax.ExtConst _ -> e
-   | Syntax.LocVariable _ -> e
-   | Syntax.MetaVariable _ -> e
-   | Syntax.MetaNewVariable _ -> e
-   | Syntax.TopVariable _ -> e
+   | Syntax.Variable _ -> e
    | Syntax.Boolean _ -> e
    | Syntax.String _ -> e
    | Syntax.Integer _ -> e
