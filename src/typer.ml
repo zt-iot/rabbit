@@ -199,10 +199,10 @@ let rec type_expr env (e : Input.expr) =
     match e.data with
     | Var id ->
         (match Env.find ~loc env id with
-         | Var (Top i) -> Syntax.TopVariable (id, i)
-         | Var (Loc i) -> LocVariable (id, i)
-         | Var (Meta i) -> MetaVariable (id, i)
-         | Var (MetaNew i) -> MetaNewVariable (id, i)
+         | Var (Top i) -> Syntax.Variable (id, (Top, i))
+         | Var (Loc i) -> Variable (id, (Loc, i))
+         | Var (Meta i) -> Variable (id, (Meta, i))
+         | Var (MetaNew i) -> Variable (id, (MetaNew, i))
          | ExtConst -> ExtConst id
          | Channel (_with_param, _chty) -> Channel (id, None)
          | Const _param -> Const (id, None)

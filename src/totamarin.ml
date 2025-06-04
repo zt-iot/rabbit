@@ -28,10 +28,10 @@ let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=_loc} =
     | Syntax.ExtConst s -> Apply (s, [])
     | Syntax.Const (_s, None) -> assert false
     | Syntax.Const (_cid, Some _e) -> assert false
-    | Syntax.TopVariable (_v, i) -> TopVar i
-    | Syntax.LocVariable (_v, i) -> LocVar i
-    | Syntax.MetaVariable (_v, i) -> MetaVar i
-    | Syntax.MetaNewVariable (_v, i) -> MetaNewVar i
+    | Syntax.Variable (_v, (Top, i)) -> TopVar i
+    | Syntax.Variable (_v, (Loc, i)) -> LocVar i
+    | Syntax.Variable (_v, (Meta, i)) -> MetaVar i
+    | Syntax.Variable (_v, (MetaNew, i)) -> MetaNewVar i
     | Syntax.Boolean _b -> assert false
     | Syntax.String s -> String s
     | Syntax.Integer _z -> assert false
@@ -53,10 +53,10 @@ let rec translate_expr2 ?(ch=false) ?(num=0) {Location.data=e; Location.loc=_loc
         let e', l, n = (translate_expr2 ~ch:ch ~num:(num+1) e) in
         let var_name = (cid ^ !separator ^ string_of_int num) in
         Var var_name, (ConstantFact (expr_pair (String cid) e', Var var_name))::l, n
-    | Syntax.TopVariable (_v, i) -> TopVar i, [], num
-    | Syntax.LocVariable (_v, i) -> LocVar i, [], num
-    | Syntax.MetaVariable (_v, i) -> MetaVar i, [], num
-    | Syntax.MetaNewVariable (_v, i) -> MetaNewVar i, [], num
+    | Syntax.Variable (_v, (Top, i)) -> TopVar i, [], num
+    | Syntax.Variable (_v, (Loc, i)) -> LocVar i, [], num
+    | Syntax.Variable (_v, (Meta, i)) -> MetaVar i, [], num
+    | Syntax.Variable (_v, (MetaNew, i)) -> MetaNewVar i, [], num
     | Syntax.Boolean _b -> assert false
     | Syntax.String s -> String s, [], num
     | Syntax.Integer z -> Integer z, [], num
@@ -143,7 +143,7 @@ let translate_facts ?(num=0) namespace fl =
 let rec expr_shift_meta shift e =
   let e' =
   match e.Location.data with
-  | Syntax.MetaVariable (v, i) -> Syntax.MetaVariable (v, i+ shift)
+  | Syntax.Variable (v, (Meta, i)) -> Syntax.Variable (v, (Meta, i+ shift))
   | Syntax.Apply (o, el) ->
     Syntax.Apply (o, List.map (expr_shift_meta shift) el)
   | Syntax.Tuple el ->

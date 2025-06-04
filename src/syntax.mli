@@ -1,5 +1,11 @@
 type operator = Name.ident
 
+type variable_class =
+  | Top (** variables by [var ...] in process definition *)
+  | Loc (** local variables by function arguments, etc. *)
+  | Meta (** variables introduced by [new] and [let x1,...,xn := e.S in ...] *)
+  | MetaNew (** pattern variables in cases and free variables in lemmas *)
+
 type expr = expr' Location.located
 
 and expr' =
@@ -7,10 +13,7 @@ and expr' =
   (** - const [n] by [const n = e] or [const fresh n]
       - const [n<e>] by [const name<param> = e] or [const fresh name<>] *)
   | ExtConst of Name.ident (** ext function by [function f:0] *)
-  | TopVariable of Name.ident * int (** variables by [var ...] in process definition *)
-  | LocVariable of Name.ident * int (** local variables by function arguments, etc. *)
-  | MetaVariable of Name.ident * int (** variables introduced by [new] and [let x1,...,xn := e.S in ...] *)
-  | MetaNewVariable of Name.ident * int (** pattern variables in cases and free variables in lemmas *)
+  | Variable of string * (variable_class * int (* index *))
   | Boolean of bool (** boolean, XXX no constant available for now *)
   | String of string (** string, ["hello"] *)
   | Integer of int (** integer, [42] *)

@@ -83,13 +83,13 @@ let rec process_expr ?(param = "") ctx lctx { Location.data = c; Location.loc } 
         then Syntax.Param id
         else (
           match find_index (fun v -> v = id) lctx.Context.lctx_top_var with
-          | Some i -> Syntax.TopVariable (id, i)
+          | Some i -> Syntax.Variable (id, (Top, i))
           | None ->
               (match find_index (fun v -> v = id) lctx.Context.lctx_loc_var with
-               | Some i -> Syntax.LocVariable (id, i)
+               | Some i -> Syntax.Variable (id, (Loc, i))
                | None ->
                    (match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
-                    | Some i -> Syntax.MetaVariable (id, i)
+                    | Some i -> Syntax.Variable (id, (Meta, i))
                     | None -> error ~loc (UnknownIdentifier (`MetaVar, id)))))
     | Input.Boolean b -> Syntax.Boolean b
     | Input.String s -> Syntax.String s
@@ -129,16 +129,16 @@ let rec process_expr2 new_meta_vars ctx lctx { Location.data = c; Location.loc }
         then Syntax.Param id
         else (
           match find_index (fun v -> v = id) lctx.Context.lctx_top_var with
-          | Some i -> Syntax.TopVariable (id, i)
+          | Some i -> Syntax.Variable (id, (Top, i))
           | None ->
               (match find_index (fun v -> v = id) lctx.Context.lctx_loc_var with
-               | Some i -> Syntax.LocVariable (id, i)
+               | Some i -> Syntax.Variable (id, (Loc, i))
                | None ->
                    (match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
-                    | Some i -> Syntax.MetaVariable (id, i)
+                    | Some i -> Syntax.Variable (id, (Meta, i))
                     | None ->
                         (match find_index (fun v -> v = id) new_meta_vars with
-                         | Some i -> Syntax.MetaNewVariable (id, i)
+                         | Some i -> Syntax.Variable (id, (MetaNew, i))
                          | None -> error ~loc (UnknownVariable (`MetaVar, id))))))
     | Input.Boolean b -> Syntax.Boolean b
     | Input.String s -> Syntax.String s

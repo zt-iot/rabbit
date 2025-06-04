@@ -1,13 +1,16 @@
-type operator = string
+type operator = Name.ident
+
+type variable_class =
+  | Top
+  | Loc
+  | Meta
+  | MetaNew
 
 type expr = expr' Location.located
 and expr' =
   | Const of Name.ident * expr option
   | ExtConst of Name.ident
-  | TopVariable of string * int
-  | LocVariable of string * int
-  | MetaVariable of string * int
-  | MetaNewVariable of string * int
+  | Variable of string * (variable_class * int)
   | Boolean of bool
   | String of string
   | Integer of int
