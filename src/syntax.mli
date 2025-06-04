@@ -65,10 +65,11 @@ and cmd' =
   (** fetch, [let x1,..,xn := e.S in c] *)
   | Del of expr * Name.ident (** deletion , [delete e.S] *)
 
-type chan_arg =
-  | ChanArgPlain of Name.ident * Name.ident (** [id] and type *)
-  | ChanArgParam of Name.ident * Name.ident (** [id<>] and type *)
-  | ChanArgParamInst of Name.ident * expr * Name.ident (** [id<e>] and type *)
+type chan_arg = ChanArg of { id : Name.ident; param : expr option option; typ : Name.ident }
+  (** - [param= None]: [id]
+      - [param= Some None]: [id<>]
+      - [param= Some (Some e)]: [id<e>]
+  *)
 
 type pproc = pproc' Location.located
 and pproc' =

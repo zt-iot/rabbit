@@ -546,7 +546,7 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
                  (fun (fn, args, c) -> fn, args, Substitute.cmd_chan_sub c ch_f new_chan)
                  fl
              , Substitute.cmd_chan_sub m ch_f new_chan
-             , Syntax.ChanArgPlain (ch_t, ty_f) :: installed_channels )
+             , Syntax.ChanArg { id= ch_t; typ= ty_f; param= None } :: installed_channels )
          | Input.ChanArgParam ch_t ->
              if not is_param then error ~loc (WrongChannelType ("", ""));
              if not (Context.ctx_check_param_ch ctx ch_t)
@@ -570,7 +570,7 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
                     fn, args, Substitute.cmd_param_chan_sub c ch_f ch_t)
                  fl
              , Substitute.cmd_param_chan_sub m ch_f ch_t
-             , Syntax.ChanArgParam (ch_t, ty_f) :: installed_channels )
+             , Syntax.ChanArg { id= ch_t; typ= ty_f; param= Some None } :: installed_channels )
          | Input.ChanArgParamInst (cid, e) ->
              if is_param then error ~loc (WrongChannelType ("", ""));
              if not (Context.ctx_check_param_ch ctx cid)
@@ -596,7 +596,7 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
                  (fun (fn, args, c) -> fn, args, Substitute.cmd_chan_sub c ch_f new_chan)
                  fl
              , Substitute.cmd_chan_sub m ch_f new_chan
-             , Syntax.ChanArgParamInst (cid, e, ty_f) :: installed_channels ))
+             , Syntax.ChanArg {id= cid; param= Some (Some e); typ=  ty_f} :: installed_channels ))
       (files, vl, fl, m, [])
       cargs
       chans
