@@ -1,10 +1,11 @@
 type operator = Name.ident
 
-type variable_class =
-  | Top (** variables by [var ...] in process definition *)
-  | Loc (** local variables by function arguments, etc. *)
-  | Meta (** variables introduced by [new] and [let x1,...,xn := e.S in ...] *)
-  | MetaNew (** pattern variables in cases and free variables in lemmas *)
+type variable_desc =
+  | Top of int (** variables by [var ...] in process definition *)
+  | Loc of int (** local variables by function arguments, etc. *)
+  | Meta of int (** variables introduced by [new] and [let x1,...,xn := e.S in ...] *)
+  | MetaNew of int (** pattern variables in cases and free variables in lemmas *)
+  | Param (** parameter variable *)
 
 type expr = expr' Location.located
 
@@ -13,7 +14,7 @@ and expr' =
   (** - const [n] by [const n = e] or [const fresh n]
       - const [n<e>] by [const name<param> = e] or [const fresh name<>] *)
   | ExtConst of Name.ident (** ext function by [function f:0] *)
-  | Variable of string * (variable_class * int (* index *))
+  | Variable of string * variable_desc
   | Boolean of bool (** boolean, XXX no constant available for now *)
   | String of string (** string, ["hello"] *)
   | Integer of int (** integer, [42] *)
@@ -21,7 +22,6 @@ and expr' =
   | Apply of operator * expr list (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Channel of Name.ident * expr option (** [id] or [id<e>] *)
-  | Param of Name.ident (** parameter variable *)
 
 type fact = fact' Location.located
 

@@ -36,7 +36,6 @@ let rec expr_chan_sub e f t  =
   | Syntax.String _ -> e
   | Syntax.Integer _ -> e
   | Syntax.Float _ -> e
-  | _ -> e
 
 let fact_chan_sub f fr t  =
   let loc = f.Location.loc in
@@ -103,7 +102,6 @@ let rec expr_param_chan_sub e f t =
    | Syntax.String _ -> e
    | Syntax.Integer _ -> e
    | Syntax.Float _s -> e
-   | _ -> e
 
  let fact_param_chan_sub f fr t  =
    let loc = f.Location.loc in
@@ -158,7 +156,7 @@ let rec expr_param_chan_sub e f t =
 let rec expr_param e t =
   let loc = e.Location.loc in
   match e.Location.data with
-  | Syntax.Param _ -> t
+  | Syntax.Variable (_, Param) -> t
   | Syntax.Channel (fid, Some e) ->
       Location.locate ~loc:loc (Syntax.Channel (fid, Some (expr_param e t)))
   | Syntax.Const (fid, Some e) ->

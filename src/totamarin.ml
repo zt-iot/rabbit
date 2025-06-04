@@ -28,10 +28,11 @@ let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=_loc} =
     | Syntax.ExtConst s -> Apply (s, [])
     | Syntax.Const (_s, None) -> assert false
     | Syntax.Const (_cid, Some _e) -> assert false
-    | Syntax.Variable (_v, (Top, i)) -> TopVar i
-    | Syntax.Variable (_v, (Loc, i)) -> LocVar i
-    | Syntax.Variable (_v, (Meta, i)) -> MetaVar i
-    | Syntax.Variable (_v, (MetaNew, i)) -> MetaNewVar i
+    | Syntax.Variable (_v, (Top i)) -> TopVar i
+    | Syntax.Variable (_v, (Loc i)) -> LocVar i
+    | Syntax.Variable (_v, (Meta i)) -> MetaVar i
+    | Syntax.Variable (_v, (MetaNew i)) -> MetaNewVar i
+    | Syntax.Variable (_v, Param) -> Param
     | Syntax.Boolean _b -> assert false
     | Syntax.String s -> String s
     | Syntax.Integer _z -> assert false
@@ -41,7 +42,6 @@ let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=_loc} =
        List (List.map (translate_expr ~ch:ch) el)
     | Syntax.Channel (c, None) -> if ch then Var c else String c
     | Syntax.Channel (c, Some e) -> expr_pair (String c) (translate_expr ~ch e)
-    | Syntax.Param _ -> Param
   in translate_expr' e
 
   (* ConstantFact (String s, Var s) *)
@@ -53,10 +53,11 @@ let rec translate_expr2 ?(ch=false) ?(num=0) {Location.data=e; Location.loc=_loc
         let e', l, n = (translate_expr2 ~ch:ch ~num:(num+1) e) in
         let var_name = (cid ^ !separator ^ string_of_int num) in
         Var var_name, (ConstantFact (expr_pair (String cid) e', Var var_name))::l, n
-    | Syntax.Variable (_v, (Top, i)) -> TopVar i, [], num
-    | Syntax.Variable (_v, (Loc, i)) -> LocVar i, [], num
-    | Syntax.Variable (_v, (Meta, i)) -> MetaVar i, [], num
-    | Syntax.Variable (_v, (MetaNew, i)) -> MetaNewVar i, [], num
+    | Syntax.Variable (_v, (Top i)) -> TopVar i, [], num
+    | Syntax.Variable (_v, (Loc i)) -> LocVar i, [], num
+    | Syntax.Variable (_v, (Meta i)) -> MetaVar i, [], num
+    | Syntax.Variable (_v, (MetaNew i)) -> MetaNewVar i, [], num
+    | Syntax.Variable (_v, Param) -> Param, [], num
     | Syntax.Boolean _b -> assert false
     | Syntax.String s -> String s, [], num
     | Syntax.Integer z -> Integer z, [], num
@@ -77,7 +78,6 @@ let rec translate_expr2 ?(ch=false) ?(num=0) {Location.data=e; Location.loc=_loc
         let e', l, n = (translate_expr2 ~ch:ch ~num:num e) in
         (* let var_name = (cid ^ !separator ^ string_of_int num) in *)
         expr_pair (String c) e', l, n
-    | Syntax.Param _ -> Param, [], num
 
   in translate_expr2' e
 
@@ -143,7 +143,7 @@ let translate_facts ?(num=0) namespace fl =
 let rec expr_shift_meta shift e =
   let e' =
   match e.Location.data with
-  | Syntax.Variable (v, (Meta, i)) -> Syntax.Variable (v, (Meta, i+ shift))
+  | Syntax.Variable (v, (Meta i)) -> Syntax.Variable (v, (Meta (i+ shift)))
   | Syntax.Apply (o, el) ->
     Syntax.Apply (o, List.map (expr_shift_meta shift) el)
   | Syntax.Tuple el ->

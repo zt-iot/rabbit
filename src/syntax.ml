@@ -1,16 +1,17 @@
 type operator = Name.ident
 
-type variable_class =
-  | Top
-  | Loc
-  | Meta
-  | MetaNew
+type variable_desc =
+  | Top of int
+  | Loc of int
+  | Meta of int
+  | MetaNew of int
+  | Param
 
 type expr = expr' Location.located
 and expr' =
   | Const of Name.ident * expr option
   | ExtConst of Name.ident
-  | Variable of string * (variable_class * int)
+  | Variable of string * variable_desc
   | Boolean of bool
   | String of string
   | Integer of int
@@ -18,7 +19,6 @@ and expr' =
   | Apply of operator * expr list
   | Tuple of expr list
   | Channel of Name.ident * expr option
-  | Param of string
 
 type fact = fact' Location.located
 and fact' =

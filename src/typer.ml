@@ -199,14 +199,14 @@ let rec type_expr env (e : Input.expr) =
     match e.data with
     | Var id ->
         (match Env.find ~loc env id with
-         | Var (Top i) -> Syntax.Variable (id, (Top, i))
-         | Var (Loc i) -> Variable (id, (Loc, i))
-         | Var (Meta i) -> Variable (id, (Meta, i))
-         | Var (MetaNew i) -> Variable (id, (MetaNew, i))
+         | Var (Top i) -> Syntax.Variable (id, (Top i))
+         | Var (Loc i) -> Variable (id, (Loc i))
+         | Var (Meta i) -> Variable (id, (Meta i))
+         | Var (MetaNew i) -> Variable (id, (MetaNew i))
+         | Var Param -> Variable (id, Param)
          | ExtConst -> ExtConst id
          | Channel (_with_param, _chty) -> Channel (id, None)
          | Const _param -> Const (id, None)
-         | Var Param -> Param id
          | desc -> error ~loc @@ InvalidIdentifier (id, desc))
     | Boolean b -> Boolean b
     | String s -> String s
