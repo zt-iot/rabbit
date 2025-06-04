@@ -49,10 +49,11 @@ and cmd' =
   | Get of Name.ident list * expr * Name.ident * cmd
   | Del of expr * Name.ident
 
-type chan_arg =
-  | ChanArgPlain of Name.ident * Name.ident
-  | ChanArgParam of Name.ident * Name.ident
-  | ChanArgParamInst of Name.ident * expr * Name.ident
+type chan_arg = ChanArg of { id : Name.ident; param : expr option option; typ : Name.ident }
+  (** - [param= None]: [id]
+      - [param= Some None]: [id<>]
+      - [param= Some (Some e)]: [id<e>]
+  *)
 
 type pproc = pproc' Location.located
 and pproc' =

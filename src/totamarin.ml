@@ -878,15 +878,15 @@ let translate_sys {
       (* List.fold_left  *)
       begin
       match c with
-      | Syntax.ChanArgPlain (cname, cty) ->
+      | Syntax.ChanArg {id= cname; typ= cty; param= None} ->
         false, List.map (fun (_, _, scall) ->
           print_fact' (AccessFact(namespace, String !fresh_string, String cname, scall)))
           (List.filter (fun (pty, tyl, _scall ) -> pty = p.Context.proc_type && List.exists (fun v -> v = cty) tyl) new_pol), []
-      | Syntax.ChanArgParam (cname, cty) ->
+      | Syntax.ChanArg {id= cname; typ= cty; param= Some None} ->
         true, List.map (fun (_, _, scall) ->
           print_fact' (AccessFact(namespace, String !fresh_string,List [String cname; Var !fresh_ident], scall)))
           (List.filter (fun (pty, tyl, _scall ) -> pty = p.Context.proc_type && List.exists (fun v -> v = cty) tyl) new_pol), []
-      | Syntax.ChanArgParamInst (cname, e, cty) ->
+      | Syntax.ChanArg {id= cname; typ= cty; param= Some (Some e)} ->
         let e, gv', _ = translate_expr2 e in
         false, List.map (fun (_, _, scall) ->
           print_fact' (AccessFact(namespace, String !fresh_string,List [String cname; e], scall)))
@@ -934,17 +934,17 @@ let translate_sys {
       let new_pol = pol.Context.pol_access @ (List.map (fun (a, b) -> (a, b, "")) pol.Context.pol_access_all) in
       let facts_gv_list' = List.fold_left (fun facts_gv_list c ->
         begin match c with
-        | Syntax.ChanArgPlain (cname, cty) ->
+        | Syntax.ChanArg {id= cname; typ= cty; param= None} ->
 
           false, List.map (fun (_, _, scall) ->
             print_fact' (AccessFact(namespace, Param, String cname, scall)))
             (List.filter (fun (pty, tyl, _scall ) -> pty = p.Context.proc_type && List.exists (fun v -> v = cty) tyl) new_pol), []
-        | Syntax.ChanArgParam (cname, cty) ->
+        | Syntax.ChanArg {id= cname; typ= cty; param= Some None} ->
 
           true, List.map (fun (_, _, scall) ->
             print_fact' (AccessFact(namespace, Param, List [String cname; Var !fresh_ident], scall)))
             (List.filter (fun (pty, tyl, _scall ) -> pty = p.Context.proc_type && List.exists (fun v -> v = cty) tyl) new_pol), []
-        | Syntax.ChanArgParamInst (cname, e, cty) ->
+        | Syntax.ChanArg {id= cname; typ= cty; param= Some (Some e)} ->
 
           let e, gv', _ = translate_expr2 e in
           false, List.map (fun (_, _, scall) ->

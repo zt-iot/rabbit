@@ -645,18 +645,18 @@ let rec type_decl base_fn env (d : Input.decl) =
           | Input.ChanArgPlain id ->
               (* [id] *)
               (match Env.find ~loc env id with
-               | Channel (false, chty) -> Syntax.ChanArgPlain (id, chty)
+               | Channel (false, chty) -> Syntax.ChanArg { id; typ= chty; param= None }
                | _ -> misc_errorf ~loc "%s is not a channel without a parameter" id)
           | ChanArgParam id ->
               (* [id<>] *)
               (match Env.find ~loc env id with
-               | Channel (true, chty) -> ChanArgParam (id, chty)
+               | Channel (true, chty) -> ChanArg { id; typ= chty; param= None }
                | _ -> misc_errorf ~loc "%s is not a channel with a parameter" id)
           | ChanArgParamInst (id, e) ->
               (* [id<e>] *)
               let e = type_expr env e in
               (match Env.find ~loc env id with
-               | Channel (true, chty) -> ChanArgParamInst (id, e, chty)
+               | Channel (true, chty) -> ChanArg { id; typ= chty; param= Some (Some e) }
                | _ -> misc_errorf ~loc "%s is not a channel with a parameter" id)
         in
         let type_pproc env (pproc : Input.pproc) =
