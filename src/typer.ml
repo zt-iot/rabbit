@@ -611,20 +611,20 @@ let rec type_decl base_fn env (d : Input.decl) =
         List.iter (fun attack -> Env.find_desc ~loc env attack Attack) attacks;
         env,
         DeclAttack (proc_tys, attacks)
-    | DeclInit (id, None) ->
+    | DeclInit (id, Fresh) ->
         (* [const fresh n] *)
         Env.add_global ~loc env id (Const false),
         DeclInit (id, Fresh)
-    | DeclInit (id, Some e) ->
+    | DeclInit (id, Value e) ->
         (* [const n = e] *)
         Env.add_global ~loc env id (Const false),
         let e = type_expr env e in
         DeclInit (id, Value e)
-    | DeclParamInit (id, None) ->
+    | DeclInit (id, Fresh_with_param) ->
         (* [const fresh n<>] *)
         Env.add_global ~loc env id (Const true),
         DeclInit (id, Fresh_with_param)
-    | DeclParamInit (id, Some (p, e)) ->
+    | DeclInit (id, Value_with_param(e, p)) ->
         (* [const n<p> = e] *)
         let e = type_expr (Env.add env p (Var Param)) e in
         Env.add_global ~loc env id (Const true), (* no info of param? *)
