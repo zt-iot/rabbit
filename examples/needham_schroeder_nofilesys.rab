@@ -75,14 +75,14 @@ attack tamper_file on fopen (p) {
 (** attacker model *)
 
 (* UNCOMMENT FOLLOWING LINE TO TURN ON PASSIVE ATTACKS *)
-(* 
+ 
 allow client_t [eaves_mem]
-*)
+
 
 (* UNCOMMENT FOLLOWING TWO LINES TO TURN ON ACTIVE ATTACKS *)
 
 allow attack client_t [tamper_channel]
-allow attack client_t [tamper_file]
+(* allow attack client_t [tamper_file] *)
 
 
 (***********)
