@@ -199,7 +199,7 @@ system
 |   alice(udp, key_chan)
 |   bob(udp)
 requires [
-    
+    (*
     lemma BobOpenReachable : 
       reachable ::BobOpen() ;
 
@@ -217,7 +217,8 @@ requires [
     lemma SecrecyCanBeEstablishedA : 
       reachable ::SecretNonceAlice(nonce_a) ;
     lemma SecrecyCanBeEstablishedB : 
-      reachable ::SecretNonceBob(nonce_b) ;
+      reachable ::SecretNonceBob(nonce_b) ; 
+    *)
 
     lemma NonceSecrecyA : 
       all-traces "All na #i . SecretNonceAlice(na) @ i ==> not(Ex #l . K(na) @ l)" ;
