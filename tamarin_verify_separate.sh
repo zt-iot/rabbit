@@ -15,7 +15,7 @@ else
     # Extract all lines that start with 'lemma'
     if [[ $line == lemma* ]]; then 
       set -- $line # split $line into words and assign them to $1, $2, $3, ...
-      echo "Second word: $2"
+
       # We consider the second word to be a lemma name if it DOES NOT contain '[', ']' or ','
       if [[ ! "$2" == *,* && ! "$2" == *"]"* && ! "$2" == *"["* ]]; then
         lemma_names+=("$2") 
@@ -23,7 +23,7 @@ else
     fi
   done < $TAMARIN_FILE
 
-  base=$(basename "$TAMARIN_FILE")
+  base=$(basename "$TAMARIN_FILE" .spthy) # basename of TAMARIN file with extension removed
   for lemma_name in "${lemma_names[@]}"; do
     cmd="tamarin-prover --prove=$lemma_name $TAMARIN_FILE > ./tamarin_logs/${base}_${lemma_name}.log"
     
