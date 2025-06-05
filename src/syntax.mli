@@ -1,8 +1,8 @@
 type operator = Name.ident
 
 type variable_desc =
-  | Top of int (** variables by [var ...] in process definition *)
-  | Loc of int (** local variables by function arguments, etc. *)
+  | Top of int (** variables by [var ...] in process definition. Mutable. *)
+  | Loc of int (** local variables by function arguments, etc. Mutable. *)
   | Meta of int (** variables introduced by [new] and [let x1,...,xn := e.S in ...] *)
   | MetaNew of int (** pattern variables in cases and free variables in lemmas *)
   | Param (** parameter variable *)
@@ -45,11 +45,11 @@ and cmd' =
   | Put of fact list (** output, [put[f1,..,fn]] *)
   | Let of Name.ident * expr * cmd (** let binding, [var x = e in c] *)
   | Assign of (Name.ident * variable_desc) * expr
-  (** assignment, [x := e]. [x] is [(name, (idx, top_or_local))] *)
+  (** assignment, [x := e]. *)
   | FCall of (Name.ident * variable_desc) option * Name.ident * expr list
-  (** function call, [x := f(e1,..,en)]. [x] is [(name, (idx, top_or_local))] *)
+  (** function call, [x := f(e1,..,en)]. *)
   | SCall of (Name.ident * variable_desc) option * Name.ident * expr list
-  (** syscall call, [x := s(e1,..,en)]. [x] is [(name, (idex, top_or_local))] *)
+  (** syscall call, [x := s(e1,..,en)]. *)
   | Case of cmd case list (** guarded cases, [case [a1s] => c1 | .. | [ans] => cn end] *)
   | While of cmd case list * cmd case list
   (** guarded loop,
