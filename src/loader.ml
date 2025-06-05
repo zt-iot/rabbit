@@ -289,15 +289,17 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
         let ov =
           match ov with
           | Some id ->
+              (* Only [Top] and [Loc] variables are mutable *)
               (match find_index (fun v -> v = id) lctx.Context.lctx_top_var with
                | Some i -> Some (id, Syntax.Top i)
                | None ->
                    (match find_index (fun v -> v = id) lctx.Context.lctx_loc_var with
                     | Some i -> Some (id, Loc i)
                     | None -> error ~loc (UnknownIdentifier (`LocalVar, id))))
-              (*                      match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
-                     | Some i -> Syntax.MetaVariable (id, i)
-                     | None -> error ~loc (UnknownIdentifier id)
+              (* [Meta] is not mutable somehow *)
+              (* match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
+                 | Some i -> Syntax.MetaVariable (id, i)
+                 | None -> error ~loc (UnknownIdentifier id)
               *)
           | None -> None
         in
