@@ -1,49 +1,53 @@
-(*** Fail "Unknown identifier foo" *)
+(*** Success, TyperFail "Unknown identifier foo" *)
+(* Loader does not check the channel type existence *)
 channel ch : foo
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 type ch_ty : channel
 channel ch : ch_ty
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 equation 42 = 42
 
-(*** Fail "Unknown identifier f" *)
+(*** Fail "identifier already defined f", TyperFail "Unknown identifier f" *)
+(* Error message of loader is wrong *)
 equation f(x) = 42
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 function add:2
 function f:1
 equation f(x) = f(add(x,42))
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 const c = 42
 const f = 4.12
 const fresh x
 const fresh y<>
 
-(*** Fail "Unknown identifier true" *)
+(*** Fail "Unknown identifier true", TyperFail "Unknown identifier true" *)
 (* true/false is not defined in the parser, therefore they are considered as variables *)
 const c = true
 
-(*** Fail "Identifier c is already bound" *)
+(*** Fail "Identifier c is already bound", TyperFail "Identifier c is already bound" *)
 const c = 42
 const fresh c
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 syscall f(a, b, c) { c }
 
-(*** Fail "forbidden identifier s" *)
+(*** Fail "forbidden identifier s", TyperSuccess *)
 (* system call cannot be called without assignment *)
+(* Typer allows syscall inside syscall *)
 syscall s(a, b, c) { c }
 syscall c(a, b) { s(a, b, b) }
 
-(*** Fail "forbidden identifier s" *)
-(* system call cannot be called without assignment *)
+(*** Fail "forbidden identifier s", TyperSuccess *)
+(* system call cannot be used in equation *)
+(* Typer allows syscall inside equation *)
 syscall s(a, b, c) { c }
 equation s(1, 2, 3) = 4
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 (* function can be called without assignment *)
 function f:1
 syscall c(a) { f(a) }
@@ -56,19 +60,19 @@ syscall c(a) { f(a) }
 syscall s(a) { a }
 syscall s2(a) { new x in x := s(a) }
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 (* syscall can be called inside syscall definition *)
 
 syscall s(a) { a }
 syscall s2(a) { _ := s(a) }
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 (* function arguments are local *)
 
 syscall s(a) { a }
 syscall s2(a) { a := s(a) }
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 (* Minimal process def *)
 type client_t : process
 process client() : client_t 
@@ -79,13 +83,13 @@ process client() : client_t
   }
 }
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 (* Local variable can shadow other ids *)
 
 const fresh a
 syscall s(a) { a }
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 type client_t : process
 type readonly_t : filesys
 const fresh priv_k
@@ -96,7 +100,7 @@ process client() : client_t
   main { 1 }
 }
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 type client_t : process
 const fresh x
 process client() : client_t
@@ -105,7 +109,7 @@ process client() : client_t
   main { 1 }
 }
 
-(*** Success *)
+(*** Success, TyperSuccess *)
 type client_t : process
 const fresh x
 process client() : client_t
@@ -114,7 +118,9 @@ process client() : client_t
   main { 1 }
 }
 
-(*** Fail "identifier already defined x" *)
+(*** Fail "identifier already defined x", TyperSuccess *)
+(* arguments cannot shadow toplevel variables *)
+(* Typer allows the shadowing *)
 type client_t : process
 process client() : client_t
 {
@@ -122,3 +128,47 @@ process client() : client_t
   function f(x){ 1 } (* argument cannot shadow toplevel variable *)
   main { 1 }
 }
+
+(*** Verified *)
+(* One of the simplest Rabbit code *)
+
+type proc_t 	  : process
+
+process p() : proc_t
+{
+  main 
+  {
+    event [::Event()]
+  }
+}
+
+
+system 
+  p()
+requires  
+[
+  lemma Reachable :
+    reachable ::Event()
+]
+
+(*** Fail "1 arguments provided while Event requires 0", TyperFail "Function of arity 0 takes 1 arguments" *)
+(* One of the simplest Rabbit code *)
+
+type proc_t 	  : process
+
+process p() : proc_t
+{
+  main 
+  {
+    event [::Event()]
+  }
+}
+
+
+system 
+  p()
+requires  
+[
+  lemma Reachable :
+    reachable ::Event(1)
+]
