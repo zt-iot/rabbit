@@ -166,7 +166,6 @@ process bob(ch_net : udp_t) : client_t
 {
   (* Use public key of Alice to verify message *)
   var loc_nonce_b = nonce_b
-  var pub_key_alice = pk(priv_key_alice)
 
   main 
   {
@@ -176,7 +175,7 @@ process bob(ch_net : udp_t) : client_t
 
     (* shadowing *)
     var loc_nonce_a = fst(dec(c_txt1, priv_key_bob)) in 
-    var c_txt2 = enc((loc_nonce_a, loc_nonce_b), pub_key_alice) in 
+    var c_txt2 = enc((loc_nonce_a, loc_nonce_b), pk(priv_key_alice)) in 
 
     _ := eaves_mem(c_txt2);
     _ := send(ch_net, c_txt2); 
