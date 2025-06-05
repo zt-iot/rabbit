@@ -69,15 +69,30 @@ let _main =
   try
       let Loader.{ system= sys; used_idents; used_strings; _ } =
         List.fold_left (fun (env : Loader.env) (fn, _quiet) ->
-            ignore (
+            let loader_result =
               try
-                Typer.load Typer.Env.empty fn
+                Ok (Loader.load fn env)
               with
-              | Typer.Error e ->
-                  Format.eprintf "Error: %t: %t@." (Location.print e.loc) (Typer.print_error e.data);
-                  assert false
-            );
-            Loader.load fn env)
+              | exn -> Error exn
+            in
+            let typer_result =
+              try
+                ignore @@ Typer.load Typer.Env.empty fn; Ok ()
+              with
+              | Typer.Error e -> Error e
+            in
+            match loader_result, typer_result with
+            | Ok res, Ok _ ->
+                prerr_endline "TyperSuccess";
+                res
+            | Error exn, Error e ->
+                Format.eprintf "TyperFail: %t@." (Typer.print_error e.data);
+                raise exn
+            | Ok res, Error e ->
+                Format.eprintf "TyperFail: %t@." (Typer.print_error e.data); res
+            | Error exn, Ok _ ->
+                prerr_endline "TyperSuccess";
+                raise exn)
           Loader.process_init !files
       in
       print_string "Loading complete..\n";
