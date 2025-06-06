@@ -8,7 +8,7 @@ data filedescr
 data list['a] (* if we want to declare a type with a polymorphic type parameter, we do it like this *)
               (* these "'a, 'b" etc. can be inferred whenever they are used *)
 
-data keykind      (* we can think of keykind as a set with 5 elements: keykind := {Sym, Enc, Dec, Sig, Chk} *)
+data keykind      (* we can think of keykind as a set with 5 elements: keykind := {Sym, Enc, Dec, Sig, Ver} *)
 data key[keykind] (* declare a simple type which takes an element of another type as a parameter *)
 
 data hash   (* assign this type to the result of a hash computation *)
@@ -40,13 +40,13 @@ type symkey_client_ta : key[Sym] (* We have not specified the type of data which
 type sigkey_client_ta : key[Sig]
 
 type conn_client : connection
-type ver_key_server : key[Chk]
+type ver_key_server : key[Ver]
 
 
 
 (* security primitives *)
 function pk : key[Dec] -> key[Enc]
-function vk : key[Sig] -> key[Chk]
+function vk : key[Sig] -> key[Ver]
 function enc : 'a -> key[Sym] -> cipher['a]
 function sign : 'a -> key[Sig] -> signature
 function dec : cipher['a] -> key[Sym] -> 'a
