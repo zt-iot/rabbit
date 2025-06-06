@@ -266,8 +266,8 @@ let rec optimize_at (m : model) (st : state) =
 
 
         print_endline "Merging";
-        print_endline ("- " ^ print_transition tr1 true);
-        print_endline ("- " ^ print_transition tr2 true);
+        print_endline ("- " ^ print_transition tr1 ~dev:true);
+        print_endline ("- " ^ print_transition tr2 ~dev:true);
 
         begin
           let {ret= ret1; metas= meta1; locs= loc1; tops= top1} = (snd tr1.transition_state_transition) in
@@ -308,14 +308,14 @@ let rec optimize_at (m : model) (st : state) =
                 transition_is_loop_back = false
               } in
               print_endline "Merged into:";
-              print_endline ("- " ^ print_transition tr true);
+              print_endline ("- " ^ print_transition tr ~dev:true);
               add_transition m tr
             | _ -> print_endline "Failed to merge"; m
         end
       | _ ->
         print_endline "Not Merging";
-        print_endline ("- " ^ print_transition tr1 true);
-        print_endline ("- " ^ print_transition tr2 true);
+        print_endline ("- " ^ print_transition tr1 ~dev:true);
+        print_endline ("- " ^ print_transition tr2 ~dev:true);
 
         m
     ) m tr2_lst in m) m tr1_lst in

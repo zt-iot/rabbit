@@ -2,7 +2,6 @@ val separator : string ref
 val fresh_ident : string ref
 val fresh_string : string ref
 val fresh_param : string ref
-
 val int_to_list : int -> int list
 val contains : string -> string -> bool
 
@@ -29,12 +28,14 @@ type expr =
 val print_expr : expr -> string
 
 type equations = (expr * expr) list
-type signature = {
-  functions : functions;
-  equations : equations
-}
+
+type signature =
+  { functions : functions
+  ; equations : equations
+  }
 
 val empty_signature : signature
+
 type rule_config =
   { is_persist : bool
   ; priority : int
@@ -68,7 +69,6 @@ type fact' =
   }
 
 val print_fact' : fact -> fact'
-
 val mk_constant_fact : string -> fact
 
 type action =
@@ -89,13 +89,18 @@ type state_desc =
   }
 
 val empty_state_desc : state_desc
-
 val map_state_desc : (expr -> expr) -> state_desc -> state_desc
+
+type var_nums =
+  { meta : int
+  ; loc : int
+  ; top : int
+  }
 
 type state =
   { state_namespace : string
-  ; state_index : (int list * int) list
-  ; state_vars : int * int * int
+  ; state_index : mindex
+  ; state_vars : var_nums
   }
 
 type transition =
@@ -111,17 +116,20 @@ type transition =
   ; transition_is_loop_back : bool
   }
 
-val mk_state_transition_from_action
-  :  action
-  -> int * int * int
-  -> state_desc * state_desc
-
+val mk_state_transition_from_action : action -> var_nums -> state_desc * state_desc
 val state_index_to_string_aux : state -> string
-
 val mk_state : ?param:string -> state -> state_desc -> fact'
 
+type 'fact rule_ =
+  { name : string
+  ; act : string
+  ; pre : 'fact list
+  ; label : 'fact list
+  ; post : 'fact list
+  }
+
 type rule =
-  | Rule of string * string * fact' list * fact' list * fact' list
+  | Rule of fact' rule_
   | Comment of string
 
 type model =
@@ -138,55 +146,35 @@ val mk_state_transition
   :  ?param:string
   -> state
   -> state_desc
-  -> bool
-  -> bool
+  -> is_initial:bool
+  -> is_loop:bool
   -> fact'
 
 val initial_model : string -> string -> model * state
-
 val initial_state : string -> state
-
 val add_transition : model -> transition -> model
-
 val add_state : model -> state -> model
 
 type lemma =
   | PlainLemma of string * string
-  | ReachabilityLemma of
-      string * string list * string list * string list * fact list * fact list
+  | ReachabilityLemma of string * fact list * fact list
   | CorrespondenceLemma of string * string list * (fact list * fact) * (fact list * fact)
 
-type tamarin = {
-  signature : signature;
-  models : model list;
-  rules : rule list;
-  lemmas : lemma list
-}
+type tamarin =
+  { signature : signature
+  ; models : model list
+  ; rules : rule list
+  ; lemmas : lemma list
+  }
 
 val empty_tamarin : tamarin
-
 val add_fun : tamarin -> string * int -> tamarin
-
 val add_const : tamarin -> string -> tamarin
-
 val add_eqn : tamarin -> expr * expr -> tamarin
-
 val add_model : tamarin -> model -> tamarin
-
-val add_rule
-  :  tamarin
-  -> string * string * fact list * fact list * fact list
-  -> tamarin
-
-val add_rule'
-  :  tamarin
-  -> string * string * fact' list * fact' list * fact' list
-  -> tamarin
-
+val add_rule : tamarin -> fact rule_ -> tamarin
+val add_rule' : tamarin -> fact' rule_ -> tamarin
 val add_comment : tamarin -> string -> tamarin
-
 val add_lemma : tamarin -> lemma -> tamarin
-
-val print_transition : transition -> bool -> string
-
-val print_tamarin : tamarin -> bool -> bool -> string
+val print_transition : transition -> dev:bool -> string
+val print_tamarin : tamarin -> dev:bool -> print_transition_label:bool -> string
