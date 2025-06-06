@@ -1010,7 +1010,7 @@ let translate_process
   let namespace = String.capitalize_ascii (s ^ if k = 0 then "" else string_of_int k) in
   (* this must be unique *)
   (* let t = add_comment t ("- Process name: " ^ namespace) in  *)
-  let mo, st = initial_model namespace pty_unused in
+  let mo, st = initial_model ~namespace ~typ:pty_unused in
   (* installed channels: *)
   (* let (mo, st) = List.fold_left (fun (mo, st) c ->
 

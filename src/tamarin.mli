@@ -62,6 +62,8 @@ type fact =
   | FreshFact of expr
   | AccessGenFact of string * expr
 
+val mk_constant_fact : string -> fact
+
 type fact' =
   { name : string
   ; args : expr list
@@ -69,7 +71,6 @@ type fact' =
   }
 
 val compile_fact : fact -> fact'
-val mk_constant_fact : string -> fact
 
 type action =
   | ActionReturn of expr
@@ -150,8 +151,7 @@ val mk_state_transition
   -> is_loop:bool
   -> fact'
 
-val initial_model : string -> string -> model * state
-val initial_state : string -> state
+val initial_model : namespace: string -> typ: string -> model * state
 val add_transition : model -> transition -> model
 val add_state : model -> state -> model
 
@@ -176,5 +176,6 @@ val add_rule : tamarin -> fact rule_ -> tamarin
 val add_rule' : tamarin -> fact' rule_ -> tamarin
 val add_comment : tamarin -> string -> tamarin
 val add_lemma : tamarin -> lemma -> tamarin
+
 val print_transition : transition -> dev:bool -> string
 val print_tamarin : tamarin -> dev:bool -> print_transition_label:bool -> string

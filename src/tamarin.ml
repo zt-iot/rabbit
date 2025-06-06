@@ -401,8 +401,8 @@ let _add_comment (mo : model) r =
 let _add_comment t s = Comment s :: t
 let add_state m s = { m with model_states = s :: m.model_states }
 
-let initial_state name =
-  { state_namespace = name
+let initial_state ~namespace =
+  { state_namespace = namespace
   ; state_index = [ [], 0 ]
   ; state_vars = { meta = 0; loc = 0; top = 0 }
   }
@@ -436,12 +436,12 @@ let mk_state_transition
   }
 ;;
 
-let initial_model name ty =
-  let st = initial_state name in
-  ( { model_name = name
+let initial_model ~namespace ~typ =
+  let st = initial_state ~namespace in
+  ( { model_name = namespace
     ; model_states = [ st ]
     ; model_transitions = []
-    ; model_type = ty
+    ; model_type = typ
     ; model_init_rules = []
     ; model_init_state = st
     ; model_transition_id_max = 0
@@ -449,24 +449,24 @@ let initial_model name ty =
   , st )
 ;;
 
-let initial_state name =
-  { state_namespace = name
+let initial_state ~namespace =
+  { state_namespace = namespace
   ; state_index = [ [], 0 ]
   ; state_vars = { meta = 1; loc = 0; top = 0 }
   }
 ;;
 
-let _initial_attacker_model name ty =
-  let st = initial_state name in
-  ( { model_name = name
+let _initial_attacker_model ~namespace ~typ =
+  let st = initial_state ~namespace in
+  ( { model_name = namespace
     ; model_states = [ st ]
     ; model_transitions = []
-    ; model_type = ty
+    ; model_type = typ
     ; model_init_rules =
         [ Rule
-            { name = "Init" ^ name
-            ; act = name
-            ; pre = [ compile_fact (AttackFact (name, MetaNewVar 0)) ]
+            { name = "Init" ^ namespace
+            ; act = namespace
+            ; pre = [ compile_fact (AttackFact (namespace, MetaNewVar 0)) ]
             ; label = []
             ; post =
                 [ mk_state
