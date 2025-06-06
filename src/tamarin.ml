@@ -83,12 +83,13 @@ type expr =
 
 let rec expr_collect_vars e =
   match e with
-  | FVar e -> [ FVar e ]
-  | Var s -> [ Var s ]
-  | MetaVar i -> [ MetaVar i ]
-  | LocVar i -> [ LocVar i ]
-  | TopVar i -> [ TopVar i ]
-  | MetaNewVar i -> [ MetaNewVar i ]
+  | FVar _
+  | Var _
+  | MetaVar _
+  | LocVar _
+  | TopVar _
+  | MetaNewVar _
+  | Param -> [ e ]
   | Apply (_s, el) -> List.fold_left (fun vl e -> expr_collect_vars e @ vl) [] el
   | String _ -> []
   | Integer _ -> []
@@ -97,7 +98,6 @@ let rec expr_collect_vars e =
   | Int _ -> []
   | AddOne e -> expr_collect_vars e
   | Unit -> []
-  | Param -> [ Param ]
 ;;
 
 let get_return_var () = Var ("return" ^ !separator ^ "var")
@@ -163,41 +163,91 @@ let global_fact_collect_vars f =
   | _ -> assert false
 ;;
 
-type fact' = string * expr list * rule_config
+type fact' =
+  { name : string
+  ; args : expr list
+  ; config : rule_config
+  }
 
 let print_fact' (f : fact) : fact' =
   match f with
   | Fact (fid, nsp, el) ->
-      mk_my_fact_name fid ^ !separator ^ nsp, Param :: el, config_linear
-  | ConstantFact (e1, e2) -> "Const" ^ !separator, [ e1; e2 ], config_persist
-  | GlobalFact (fid, el) -> mk_my_fact_name fid, el, config_linear
-  | ChannelFact (fid, ch, el) -> mk_my_fact_name fid, ch :: el, config_linear
+      { name= mk_my_fact_name fid ^ !separator ^ nsp;
+        args= Param :: el;
+        config= config_linear
+      }
+  | ConstantFact (e1, e2) ->
+      { name= "Const" ^ !separator;
+        args= [ e1; e2 ];
+        config= config_persist
+      }
+  | GlobalFact (fid, el) ->
+      { name= mk_my_fact_name fid;
+        args= el;
+        config= config_linear
+      }
+  | ChannelFact (fid, ch, el) ->
+      { name= mk_my_fact_name fid;
+        args= ch :: el;
+        config= config_linear
+      }
   (* | PathFact (fid, nsp, path, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp,path :: el, config_linear) *)
-  | ResFact (0, el) -> "Eq" ^ !separator, el, config_persist
-  | ResFact (1, el) -> "NEq" ^ !separator, el, config_persist
-  | ResFact (2, el) -> "Fr", el, config_linear
+  | ResFact (0, el) ->
+      { name= "Eq" ^ !separator;
+        args= el;
+        config= config_persist
+      }
+  | ResFact (1, el) ->
+      { name= "NEq" ^ !separator;
+        args= el;
+        config= config_persist
+      }
+  | ResFact (2, el) ->
+      { name= "Fr";
+        args= el;
+        config= config_linear
+      }
   | AccessFact (nsp, param, target, syscall) ->
-      ( "ACP" ^ !separator
-      , [ List [ String nsp; param ]; target; String syscall ]
-      , config_persist )
+      { name= "ACP" ^ !separator;
+        args= [ List [ String nsp; param ]; target; String syscall ];
+        config= config_persist }
   | AttackFact (attack, target) ->
-      "Attack" ^ !separator, [ String attack; target ], config_persist
+      { name= "Attack" ^ !separator;
+        args= [ String attack; target ];
+        config= config_persist
+      }
   | FileFact (nsp, path, e) ->
-      "File" ^ !separator ^ nsp, [ Param; path; e ], config_linear
-  | InitFact el -> "Init" ^ !separator, el, config_linear
+      { name= "File" ^ !separator ^ nsp;
+        args= [ Param; path; e ];
+        config= config_linear }
+  | InitFact el ->
+      { name= "Init" ^ !separator;
+        args= el;
+        config= config_linear }
   | LoopFact (nsp, tid, b) ->
-      ( ("Loop"
-         ^ !separator
-         ^ if b = 0 then "Start" else if b = 1 then "Back" else "Finish")
-      , [ List [ String nsp; Param ]; String (index_to_string tid) ]
-      , config_linear )
+      { name= "Loop"
+              ^ !separator
+              ^ if b = 0 then "Start" else if b = 1 then "Back" else "Finish";
+        args = [ List [ String nsp; Param ]; String (index_to_string tid) ];
+        config= config_linear }
   | TransitionFact (nsp, ind, e, p) ->
-      "Transition" ^ !separator, [ List [ String nsp; p ]; String ind; e ], config_linear
+      { name= "Transition" ^ !separator;
+        args= [ List [ String nsp; p ]; String ind; e ];
+        config= config_linear
+      }
   | InjectiveFact (fid, nsp, id, el) ->
-      mk_my_fact_name fid ^ !separator ^ nsp, [ Param; FVar id; el ], config_linear
-  | FreshFact e -> "Fr", [ FVar e ], config_linear
+      { name= mk_my_fact_name fid ^ !separator ^ nsp;
+        args= [ Param; FVar id; el ];
+        config= config_linear }
+  | FreshFact e ->
+      { name= "Fr";
+        args= [ FVar e ];
+        config= config_linear
+      }
   | AccessGenFact (nsp, param) ->
-      "ACP" ^ !separator ^ "GEN" ^ !separator, [ String nsp; param ], config_persist
+      { name = "ACP" ^ !separator ^ "GEN" ^ !separator;
+        args= [ String nsp; param ];
+        config = config_persist }
   | _ -> assert false
 ;;
 
@@ -297,16 +347,16 @@ let mk_state ?(param = "") st (ret, meta, loc, top) : fact' =
   (* (let (a,b,c) = st.state_vars in
     if not (List.length meta = a ) || not (List.length loc = b ) || not (List.length top = c ) then
       print_endline (print_expr (state_index_to_string st))
-    else ()); *)
-  ( get_state_fact_name st
+     else ()); *)
+  { name= get_state_fact_name st;
     (* ^ (let (a,b,c) = st.state_vars in "_" ^(string_of_int a)^"_" ^(string_of_int b)^"_" ^(string_of_int c)) *)
-  , [ List [ state_index_to_string st; (if param = "" then Param else String param) ]
-    ; ret
-    ; List meta
-    ; List loc
-    ; List top
-    ]
-  , config_linear )
+    args= [ List [ state_index_to_string st; (if param = "" then Param else String param) ]
+               ; ret
+               ; List meta
+               ; List loc
+               ; List top
+               ];
+    config= config_linear }
 ;;
 
 type rule =
@@ -343,22 +393,22 @@ let initial_state name =
 ;;
 
 let mk_state_transition ?(param = "") st (ret, meta, loc, top) is_initial is_loop : fact' =
-  ( get_state_fact_name st
-  , [ List
-        [ state_index_to_string st
-        ; (if param = "" then Param else String param)
-        ; (if is_loop
-           then AddOne (Int ("v" ^ !separator))
-           else if is_initial
-           then One
-           else Int ("v" ^ !separator))
-        ]
-    ; ret
-    ; List meta
-    ; List loc
-    ; List top
-    ]
-  , config_linear )
+  { name= get_state_fact_name st;
+    args= [ List
+                   [ state_index_to_string st
+                   ; (if param = "" then Param else String param)
+                   ; (if is_loop
+                      then AddOne (Int ("v" ^ !separator))
+                      else if is_initial
+                      then One
+                      else Int ("v" ^ !separator))
+                   ]
+               ; ret
+               ; List meta
+               ; List loc
+               ; List top
+               ];
+    config= config_linear }
 ;;
 
 let initial_model name ty =
@@ -472,7 +522,7 @@ let _print_fact_plain (f, el) =
   f ^ "(" ^ String.concat ", " (List.map print_expr el) ^ ")"
 ;;
 
-let print_fact (f, el, b) =
+let print_fact {name= f; args= el; config= b} =
   (if b.is_persist then "!" else "")
   ^ f
   ^ "("
@@ -490,7 +540,7 @@ let print_fact (f, el, b) =
   else ""
 ;;
 
-let print_fact2 (f, el, b) =
+let print_fact2 {name=f; args= el; config= b} =
   (if b.is_persist then "!" else "")
   ^ f
   ^ "("

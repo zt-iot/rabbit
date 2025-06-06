@@ -960,7 +960,7 @@ let translate_sys {
 
     let t = add_rule' t
       ("Init"^ !separator ^"system"^string_of_int n, "system"^string_of_int n,
-      [("Fr", [Param], config_linear)],
+      [{ name= "Fr"; args= [Param]; config= config_linear }],
       [print_fact' (InitFact ([List [String ("system"^string_of_int n); Param]]))],
       [print_fact' (AccessGenFact ("system"^string_of_int n^ !separator, Param)) ] @ List.map (fun m ->
         let st = m.model_init_state in
