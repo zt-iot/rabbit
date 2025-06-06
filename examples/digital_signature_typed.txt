@@ -2,7 +2,7 @@
 data message 
 data signature
 data keykind      (* we can think of keykind as a set with 5 elements: keykind := {Sym, Enc, Dec, Sig, Chk} *)
-data key[keykind] (* declare a simple type which takes an element of another type as a parameter *)
+data key[keykind, 'a] (* a key of a certain keykind and with polymorphic type on which it operates *)
 
 
 (***********)
@@ -14,21 +14,12 @@ type udp_t 	  : channel
 type Sig : keykind
 type Ver : keykind
 
-type sign_key_alice : key[Sig]
+type sign_key_alice : key[Sig, client_msg] (* signing key for client_msg type of data *)
 type client_msg : message
 type client_sig : signature
 
 
-(* security primitives *)
-function vk : key[Sig] -> key[Ver]
-function sign : 'a -> key[Sig] -> signature
-function fst : 'a * 'b -> 'a
-function snd : 'a * 'b -> 'b
-equation fst ((x, y)) = x
-equation snd ((x, y)) = y
-function true : bool
-function verify : signature -> 'a -> key[Ver] -> bool
-equation verify (sign(d, k), d, vk(k)) = true
+load "digital_signature_typed_eq_theory.rab"
 
 
 (* load some primitive syscalls, incl. send and recv *)
@@ -133,7 +124,7 @@ process alice(ch_net : udp_t) : alice_t
 process bob(ch_net : udp_t) : bob_t
 {
   (* Use public key of Alice to verify message *)
-  var pub_key_alice : key[Ver] = vk(priv_key_alice)
+  var pub_key_alice : key[Ver, message] = vk(priv_key_alice)
 
   main 
   {

@@ -1,0 +1,13 @@
+
+(* security primitives *)
+function vk : key[Sig]@(s, i) -> key[Ver]@(Public, i)
+function sign : 'a -> key[Sig, 'a]@(s, i) -> signature@(S('a), i) (* signature@('a, i) will match any "signature security type", E.G.*)
+function fst : 'a * 'b -> 'a
+function snd : 'a * 'b -> 'b
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+function true : bool
+
+(* type bool is a simple type, thus it has TSP security level (Public, Untrusted) *)
+function verify : signature@(s', i') -> 'a@(s', i') -> key[Ver, 'a]@(s, i) -> bool
+equation verify (sign(d, k), d, vk(k)) = true
