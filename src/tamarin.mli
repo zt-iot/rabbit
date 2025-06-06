@@ -68,7 +68,7 @@ type fact' =
   ; config : rule_config
   }
 
-val print_fact' : fact -> fact'
+val compile_fact : fact -> fact'
 val mk_constant_fact : string -> fact
 
 type action =
