@@ -59,7 +59,11 @@ type fact =
   | FreshFact of expr
   | AccessGenFact of string * expr
 
-type fact' = string * expr list * rule_config
+type fact' =
+  { name : string
+  ; args : expr list
+  ; config : rule_config
+  }
 
 val print_fact' : fact -> fact'
 
