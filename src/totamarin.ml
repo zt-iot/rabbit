@@ -829,7 +829,9 @@ let translate_sys {
   let t : tamarin = empty_tamarin in
 
   (* process signature *)
-  let t = List.fold_left (fun t (f, k) -> add_fun t (f, k)) t (List.rev ctx.Context.ctx_ext_func) in
+  let t = List.fold_left (fun t (f, arity) ->
+      add_fun t (f, arity)) t (List.rev ctx.Context.ctx_ext_func)
+  in
   let t = List.fold_left (fun t c -> add_const t c) t (List.rev ctx.Context.ctx_ext_const) in
   let t = List.fold_left (fun t (_, e1, e2) -> add_eqn t (translate_expr e1, translate_expr e2)) t (List.rev def.Context.def_ext_eq) in
 
@@ -903,8 +905,8 @@ let translate_sys {
     (List.map (fun m ->
       let st = m.model_init_state in
       (if !Config.tag_transition
-      then mk_state_transition ~param:!fresh_string st (Unit, [], [], []) true false
-      else mk_state ~param:!fresh_string st (Unit, [], [], []))) mos) @
+      then mk_state_transition ~param:!fresh_string st empty_state_desc true false
+      else mk_state ~param:!fresh_string st empty_state_desc)) mos) @
       [print_fact' (AccessGenFact ("system"^ !separator, String !fresh_string)) ]
       ) in
 
@@ -965,8 +967,8 @@ let translate_sys {
       [print_fact' (AccessGenFact ("system"^string_of_int n^ !separator, Param)) ] @ List.map (fun m ->
         let st = m.model_init_state in
         (if !Config.tag_transition
-        then mk_state_transition st (Unit, [], [], []) true false
-        else mk_state st (Unit, [], [], []))) mos) in
+        then mk_state_transition st empty_state_desc true false
+        else mk_state st empty_state_desc)) mos) in
 
     let t, _ = List.fold_left (fun (t, m) (b, facts, gv) ->
       List.fold_left (fun (t, m) (fact : fact') ->
@@ -1006,10 +1008,6 @@ let translate_sys {
           | _ -> assert false
         in
         CorrespondenceLemma (l, vl, (gva, a), (gvb, b))
-
-          (* | ReachabilityLemma of string * string list * string list * string list * (string * expr list) list *)
-          (* | CorrespondenceLemma of string * string list * (string * expr list) * (string * expr list) *)
-
 
       (* | Syntax.CorrespondenceLemma (l, vars, e1, e2) ->
         CorrespondenceLemma (l, vars,
