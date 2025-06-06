@@ -1326,7 +1326,7 @@ let translate_sys
       { name = "Init" ^ !separator ^ "system"
       ; act = "system"
       ; pre = []
-      ; label = [ print_fact' (InitFact [ String "system" ]) ]
+      ; label = [ compile_fact (InitFact [ String "system" ]) ]
       ; post =
           (* initializing tokens..  *)
           List.map
@@ -1342,7 +1342,7 @@ let translate_sys
                    ~is_loop:false
                else mk_state ~param:!fresh_string st empty_state_desc)
             mos
-          @ [ print_fact' (AccessGenFact ("system" ^ !separator, String !fresh_string)) ]
+          @ [ compile_fact (AccessGenFact ("system" ^ !separator, String !fresh_string)) ]
       }
   in
   let t, _ =
@@ -1435,7 +1435,7 @@ let translate_sys
                             ( false
                             , List.map
                                 (fun (_, _, scall) ->
-                                   print_fact'
+                                   compile_fact
                                      (AccessFact (namespace, Param, String cname, scall)))
                                 (List.filter
                                    (fun (pty, tyl, _scall) ->
@@ -1447,7 +1447,7 @@ let translate_sys
                             ( true
                             , List.map
                                 (fun (_, _, scall) ->
-                                   print_fact'
+                                   compile_fact
                                      (AccessFact
                                         ( namespace
                                         , Param
@@ -1465,7 +1465,7 @@ let translate_sys
                             ( false
                             , List.map
                                 (fun (_, _, scall) ->
-                                   print_fact'
+                                   compile_fact
                                      (AccessFact
                                         (namespace, Param, List [ String cname; e ], scall)))
                                 (List.filter
@@ -1489,11 +1489,11 @@ let translate_sys
              ; act = "system" ^ string_of_int n
              ; pre = [ { name = "Fr"; args = [ Param ]; config = config_linear } ]
              ; label =
-                 [ print_fact'
+                 [ compile_fact
                      (InitFact [ List [ String ("system" ^ string_of_int n); Param ] ])
                  ]
              ; post =
-                 [ print_fact'
+                 [ compile_fact
                      (AccessGenFact ("system" ^ string_of_int n ^ !separator, Param))
                  ]
                  @ List.map
@@ -1528,13 +1528,13 @@ let translate_sys
                              ^ string_of_int m
                          ; act = "system" ^ string_of_int n
                          ; pre =
-                             List.map print_fact' gv
-                             @ [ print_fact'
+                             List.map compile_fact gv
+                             @ [ compile_fact
                                    (AccessGenFact
                                       ("system" ^ string_of_int n ^ !separator, Param))
                                ]
                          ; label =
-                             [ print_fact'
+                             [ compile_fact
                                  (if b
                                   then
                                     InitFact

@@ -162,7 +162,7 @@ type fact' =
   ; config : rule_config
   }
 
-let print_fact' (f : fact) : fact' =
+let compile_fact (f : fact) : fact' =
   match f with
   | Fact (fid, nsp, el) ->
       { name = mk_my_fact_name fid ^ !separator ^ nsp
@@ -386,9 +386,9 @@ let _add_rule (mo : model) (a, b, c, d, e) =
       Rule
         { name = a
         ; act = b
-        ; pre = List.map print_fact' c
-        ; label = List.map print_fact' d
-        ; post = List.map print_fact' e
+        ; pre = List.map compile_fact c
+        ; label = List.map compile_fact d
+        ; post = List.map compile_fact e
         }
       :: mo.model_init_rules
   }
@@ -466,7 +466,7 @@ let _initial_attacker_model name ty =
         [ Rule
             { name = "Init" ^ name
             ; act = name
-            ; pre = [ print_fact' (AttackFact (name, MetaNewVar 0)) ]
+            ; pre = [ compile_fact (AttackFact (name, MetaNewVar 0)) ]
             ; label = []
             ; post =
                 [ mk_state
@@ -530,9 +530,9 @@ let add_rule t (r : _ rule_) =
       Rule
         { name = r.name
         ; act = r.act
-        ; pre = List.map print_fact' r.pre
-        ; label = List.map print_fact' r.label
-        ; post = List.map print_fact' r.post
+        ; pre = List.map compile_fact r.pre
+        ; label = List.map compile_fact r.label
+        ; post = List.map compile_fact r.post
         }
       :: t.rules
   }
@@ -566,29 +566,25 @@ let _print_fact_plain (f, el) =
   f ^ "(" ^ String.concat ", " (List.map print_expr el) ^ ")"
 ;;
 
-let print_fact { name = f; args = el; config = b } =
-  (if b.is_persist then "!" else "")
-  ^ f
+let print_fact { name; args; config } =
+  (if config.is_persist then "!" else "")
+  ^ name
   ^ "("
-  ^ String.concat ", " (List.map print_expr el)
+  ^ String.concat ", " (List.map print_expr args)
   ^ ")"
   ^
-  if b.priority = 0
-  then "[-,no_precomp]"
-  else if b.priority = 1
-  then "[-]"
-  else if b.priority = 2
-  then ""
-  else if b.priority = 3
-  then "[+]"
-  else ""
-;;
+  match config.priority with
+  | 0 -> "[-,no_precomp]"
+  | 1 -> "[-]"
+  | 2 -> ""
+  | 3 -> "[+]"
+  | _ -> assert false
 
-let print_fact2 { name = f; args = el; config = b } =
-  (if b.is_persist then "!" else "")
-  ^ f
+let print_fact2 { name; args; config } =
+  (if config.is_persist then "!" else "")
+  ^ name
   ^ "("
-  ^ String.concat ", " (List.map print_expr el)
+  ^ String.concat ", " (List.map print_expr args)
   ^ ")"
 ;;
 
@@ -614,9 +610,9 @@ let transition_to_rule (tr : transition) : rule =
   Rule
     { name
     ; act = tr.transition_namespace
-    ; pre = initial_state_fact :: List.map print_fact' pre
-    ; label = List.map print_fact' label
-    ; post = final_state_fact :: List.map print_fact' post
+    ; pre = initial_state_fact :: List.map compile_fact pre
+    ; label = List.map compile_fact label
+    ; post = final_state_fact :: List.map compile_fact post
     }
 ;;
 
@@ -659,9 +655,9 @@ let transition_to_transition_rule (tr : transition) : rule =
   Rule
     { name
     ; act = tr.transition_namespace
-    ; pre = initial_state_fact :: List.map print_fact' pre
-    ; label = List.map print_fact' label
-    ; post = final_state_fact :: List.map print_fact' post
+    ; pre = initial_state_fact :: List.map compile_fact pre
+    ; label = List.map compile_fact label
+    ; post = final_state_fact :: List.map compile_fact post
     }
 ;;
 
@@ -752,7 +748,7 @@ let print_lemma lemma =
           (fst
              (List.fold_left
                 (fun (s, n) g ->
-                   ( (print_fact (print_fact' g)
+                   ( (print_fact (compile_fact g)
                       ^ "@#label_time"
                       ^ !separator
                       ^ string_of_int n)
@@ -766,7 +762,7 @@ let print_lemma lemma =
           (fst
              (List.fold_left
                 (fun (s, n) g ->
-                   ( (print_fact (print_fact' g) ^ "@#time" ^ !separator ^ string_of_int n)
+                   ( (print_fact (compile_fact g) ^ "@#time" ^ !separator ^ string_of_int n)
                      :: s
                    , n + 1 ))
                 ([], 0)
@@ -810,7 +806,7 @@ let print_lemma lemma =
           (fst
              (List.fold_left
                 (fun (s, n) g ->
-                   ( (print_fact (print_fact' g)
+                   ( (print_fact (compile_fact g)
                       ^ "@#label_time"
                       ^ !separator
                       ^ string_of_int n)
@@ -819,7 +815,7 @@ let print_lemma lemma =
                 ([], 0)
                 gva))
       ^ (if List.length gva = 0 then "" else " & ")
-      ^ print_fact (print_fact' a)
+      ^ print_fact (compile_fact a)
       ^ "@#time"
       ^ !separator
       ^ "1 ==> Ex "
@@ -840,7 +836,7 @@ let print_lemma lemma =
           (fst
              (List.fold_left
                 (fun (s, n) g ->
-                   ( (print_fact (print_fact' g)
+                   ( (print_fact (compile_fact g)
                       ^ "@#label__time"
                       ^ !separator
                       ^ string_of_int n)
@@ -849,7 +845,7 @@ let print_lemma lemma =
                 ([], 0)
                 gvb))
       ^ (if List.length gvb = 0 then "" else " & ")
-      ^ print_fact (print_fact' b)
+      ^ print_fact (compile_fact b)
       ^ "@#time"
       ^ !separator
       ^ "2 & #time"
