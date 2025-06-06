@@ -48,8 +48,6 @@ let int_to_list n =
   aux (n - 1) []
 ;;
 
-let _mk_fact_name s = String.capitalize_ascii s
-
 let contains s1 s2 =
   let re = Str.regexp_string s2 in
   try
@@ -103,9 +101,12 @@ let rec expr_collect_vars e =
 let get_return_var () = Var ("return" ^ !separator ^ "var")
 
 type equations = (expr * expr) list
-type signature = functions * equations
+type signature = {
+  functions : functions;
+  equations : equations
+}
 
-let empty_signature = [], []
+let empty_signature = { functions= []; equations= [] }
 
 type rule_config =
   { is_persist : bool
@@ -119,9 +120,6 @@ let _config_persist_delayed = { is_persist = true; priority = 0 }
 let _config_linear_prior = { is_persist = false; priority = 3 }
 let _config_linear_less = { is_persist = false; priority = 1 }
 let _config_persist_less = { is_persist = true; priority = 1 }
-
-(* type fact = string * expr list * rule_config  *)
-(* true is persistent fact *)
 
 type fact =
   | Fact of string (* fact name *) * string (* name space*) * expr list
@@ -265,23 +263,45 @@ type action =
   | ActionPopMeta of int
   | ActionLetTop of expr list
 
+type state_desc =
+  { ret : expr
+  ; metas : expr list
+  ; locs : expr list
+  ; tops : expr list
+  }
+
+let empty_state_desc = { ret= Unit; metas= []; locs= []; tops= [] }
+
+let map_state_desc f s = { ret= f s.ret; metas= List.map f s.metas; locs= List.map f s.locs; tops= List.map f s.tops }
+
 let rec action_sem
           (a : action)
-          ((ret, meta_lst, loc_lst, top_lst) : expr * expr list * expr list * expr list)
-  : expr * expr list * expr list * expr list
+          ({ ret= _; metas= meta_lst; locs= loc_lst; tops= top_lst } as state_desc)
+  : state_desc
   =
   match a with
-  | ActionReturn e -> e, meta_lst, loc_lst, top_lst
-  | ActionAssign (Top i, e) -> Unit, meta_lst, loc_lst, replace_nth top_lst i e
-  | ActionAssign (Loc i, e) -> Unit, meta_lst, replace_nth loc_lst i e, top_lst
+  | ActionReturn e ->
+      { state_desc with ret = e }
+  | ActionAssign (Top i, e) ->
+      { state_desc with ret= Unit; tops= replace_nth top_lst i e }
+  | ActionAssign (Loc i, e) ->
+      { state_desc with ret= Unit; locs= replace_nth loc_lst i e }
   | ActionAssign _ -> assert false
-  | ActionSeq (a, b) -> action_sem b (action_sem a (ret, meta_lst, loc_lst, top_lst))
+  | ActionSeq (a, b) ->
+      action_sem b (action_sem a state_desc)
   | ActionAddMeta k ->
-      Unit, List.map (fun i -> MetaNewVar i) (int_to_list k) @ meta_lst, loc_lst, top_lst
-  | ActionIntro el -> Unit, meta_lst, el @ loc_lst, top_lst
-  | ActionPopLoc k -> ret, meta_lst, snd (pop_n k loc_lst), top_lst
-  | ActionPopMeta k -> ret, snd (pop_n k meta_lst), loc_lst, top_lst
-  | ActionLetTop e -> Unit, meta_lst, loc_lst, e @ top_lst
+      { state_desc with
+        ret= Unit
+      ; metas= List.map (fun i -> MetaNewVar i) (int_to_list k) @ meta_lst
+      }
+  | ActionIntro el ->
+      { state_desc with ret= Unit; locs= el @ loc_lst }
+  | ActionPopLoc k ->
+      { state_desc with locs= snd (pop_n k loc_lst) }
+  | ActionPopMeta k ->
+      { state_desc with metas= snd (pop_n k meta_lst) }
+  | ActionLetTop e ->
+      { state_desc with ret= Unit; tops= e @ top_lst }
 ;;
 
 type state =
@@ -298,9 +318,7 @@ type transition =
   ; transition_to : state
   ; transition_pre : fact list
   ; transition_post : fact list
-  ; transition_state_transition :
-      (expr * expr list * expr list * expr list)
-      * (expr * expr list * expr list * expr list)
+  ; transition_state_transition : state_desc * state_desc
   ; transition_label : fact list
   ; transition_is_loop_back : bool
   }
@@ -310,8 +328,8 @@ let mk_state_transition_from_action a (meta_num, loc_num, top_num) =
   let meta_var = List.map (fun i -> MetaVar i) (int_to_list meta_num) in
   let loc_var = List.map (fun i -> LocVar i) (int_to_list loc_num) in
   let top_var = List.map (fun i -> TopVar i) (int_to_list top_num) in
-  ( (return_var, meta_var, loc_var, top_var)
-  , action_sem a (return_var, meta_var, loc_var, top_var) )
+  ( {ret= return_var; metas= meta_var; locs= loc_var; tops= top_var}
+  , action_sem a { ret= return_var; metas= meta_var; locs= loc_var; tops= top_var } )
 ;;
 
 let get_state_fact_name (s : state) = "State" ^ !separator ^ s.state_namespace
@@ -343,7 +361,7 @@ let rec print_expr e =
   | Param -> !fresh_param
 ;;
 
-let mk_state ?(param = "") st (ret, meta, loc, top) : fact' =
+let mk_state ?(param = "") st {ret=ret; metas= meta; locs= loc; tops= top} : fact' =
   (* (let (a,b,c) = st.state_vars in
     if not (List.length meta = a ) || not (List.length loc = b ) || not (List.length top = c ) then
       print_endline (print_expr (state_index_to_string st))
@@ -351,11 +369,11 @@ let mk_state ?(param = "") st (ret, meta, loc, top) : fact' =
   { name= get_state_fact_name st;
     (* ^ (let (a,b,c) = st.state_vars in "_" ^(string_of_int a)^"_" ^(string_of_int b)^"_" ^(string_of_int c)) *)
     args= [ List [ state_index_to_string st; (if param = "" then Param else String param) ]
-               ; ret
-               ; List meta
-               ; List loc
-               ; List top
-               ];
+          ; ret
+          ; List meta
+          ; List loc
+          ; List top
+          ];
     config= config_linear }
 ;;
 
@@ -392,7 +410,7 @@ let initial_state name =
   { state_namespace = name; state_index = [ [], 0 ]; state_vars = 0, 0, 0 }
 ;;
 
-let mk_state_transition ?(param = "") st (ret, meta, loc, top) is_initial is_loop : fact' =
+let mk_state_transition ?(param = "") st {ret; metas= meta; locs= loc; tops= top} is_initial is_loop : fact' =
   { name= get_state_fact_name st;
     args= [ List
                    [ state_index_to_string st
@@ -440,7 +458,7 @@ let _initial_attacker_model name ty =
             , name
             , [ print_fact' (AttackFact (name, MetaNewVar 0)) ]
             , []
-            , [ mk_state st (Unit, [ MetaNewVar 0 ], [], []) ] )
+            , [ mk_state st {ret=Unit; metas= [ MetaNewVar 0 ]; locs= []; tops= []} ] )
         ]
     ; model_init_state = st
     ; model_transition_id_max = 0
@@ -469,19 +487,19 @@ type tamarin =
   ; lemmas : lemma list
   }
 
-let add_fun tamarin f =
-  let fns, eqns = tamarin.signature in
-  { tamarin with signature = f :: fns, eqns }
+let add_fun tamarin f (* name * arity *) =
+  let signature = { tamarin.signature with functions = f :: tamarin.signature.functions } in
+  { tamarin with signature }
 ;;
 
 let add_const tamarin c =
-  let fns, eqns = tamarin.signature in
-  { tamarin with signature = (c, 0) :: fns, eqns }
+  let signature = { tamarin.signature with functions = (c, 0) :: tamarin.signature.functions } in
+  { tamarin with signature }
 ;;
 
 let add_eqn tamarin eq =
-  let fns, eqns = tamarin.signature in
-  { tamarin with signature = fns, eq :: eqns }
+  let signature = { tamarin.signature with equations = eq :: tamarin.signature.equations } in
+  { tamarin with signature }
 ;;
 
 let add_model t m = { t with models = m :: t.models }
@@ -502,7 +520,7 @@ let empty_tamarin : tamarin =
   { signature = empty_signature; models = []; rules = []; lemmas = [] }
 ;;
 
-let print_signature (fns, eqns) =
+let print_signature { functions= fns; equations= eqns } =
   let print_functions fns =
     (if List.length fns = 0 then "" else "functions: ")
     ^ String.concat ", " (List.map (fun (f, ar) -> f ^ "/" ^ string_of_int ar) fns)

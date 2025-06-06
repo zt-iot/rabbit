@@ -135,9 +135,8 @@ let unify_then_expand_variables (tr : transition) (i : int) =
     transition_post = List.map p tr.transition_post;
     transition_label = List.map p tr.transition_label;
     transition_state_transition =
-    let (a, b, c, d), (e, f, g, h) = tr.transition_state_transition in
-    (q a, List.map q b, List.map q c, List.map q d),
-    (q e, List.map q f, List.map q g, List.map q h)
+      let x, y = tr.transition_state_transition in
+      (map_state_desc q x, map_state_desc q y)
   }
 
 let model_remove_transition_by_id (m : model) id =
@@ -271,14 +270,14 @@ let rec optimize_at (m : model) (st : state) =
         print_endline ("- " ^ print_transition tr2 true);
 
         begin
-          let (ret1, meta1, loc1, top1) = (snd tr1.transition_state_transition) in
-          let (ret2, meta2, loc2, top2) = (fst tr2.transition_state_transition) in
+          let {ret= ret1; metas= meta1; locs= loc1; tops= top1} = (snd tr1.transition_state_transition) in
+          let {ret= ret2; metas= meta2; locs= loc2; tops= top2} = (fst tr2.transition_state_transition) in
           let substs = List.map2 (fun f t ->
             match f with
             | Var s -> (s, t)
             | _ -> assert false
             ) (ret2 :: meta2 @ loc2 @ top2) (ret1 :: meta1 @ loc1 @ top1) in
-            let (ret, meta, loc, top) = (snd tr2.transition_state_transition) in
+            let {ret= ret; metas= meta; locs= loc; tops= top} = (snd tr2.transition_state_transition) in
             let pre2 = List.map (fun f -> fact_subst_vars f substs) tr2.transition_pre in
             let post2 = List.map (fun f -> fact_subst_vars f substs) tr2.transition_post in
             let la =
@@ -301,10 +300,10 @@ let rec optimize_at (m : model) (st : state) =
                 transition_post = post1 @ post2;
                 transition_state_transition =
                   fst tr1.transition_state_transition,
-                    (expr_subst_vars ret substs,
-                    List.map (fun e -> expr_subst_vars e substs) meta,
-                    List.map (fun e -> expr_subst_vars e substs) loc,
-                    List.map (fun e -> expr_subst_vars e substs) top);
+                    { ret= expr_subst_vars ret substs;
+                      metas= List.map (fun e -> expr_subst_vars e substs) meta;
+                      locs= List.map (fun e -> expr_subst_vars e substs) loc;
+                      tops= List.map (fun e -> expr_subst_vars e substs) top };
                 transition_label = la;
                 transition_is_loop_back = false
               } in

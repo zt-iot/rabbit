@@ -29,10 +29,12 @@ type expr =
 val print_expr : expr -> string
 
 type equations = (expr * expr) list
-type signature = functions * equations
+type signature = {
+  functions : functions;
+  equations : equations
+}
 
 val empty_signature : signature
-
 type rule_config =
   { is_persist : bool
   ; priority : int
@@ -79,6 +81,17 @@ type action =
   | ActionPopMeta of int
   | ActionLetTop of expr list
 
+type state_desc =
+  { ret : expr
+  ; metas : expr list
+  ; locs : expr list
+  ; tops : expr list
+  }
+
+val empty_state_desc : state_desc
+
+val map_state_desc : (expr -> expr) -> state_desc -> state_desc
+
 type state =
   { state_namespace : string
   ; state_index : (int list * int) list
@@ -93,9 +106,7 @@ type transition =
   ; transition_to : state
   ; transition_pre : fact list
   ; transition_post : fact list
-  ; transition_state_transition :
-      (expr * expr list * expr list * expr list)
-      * (expr * expr list * expr list * expr list)
+  ; transition_state_transition : state_desc * state_desc
   ; transition_label : fact list
   ; transition_is_loop_back : bool
   }
@@ -103,12 +114,11 @@ type transition =
 val mk_state_transition_from_action
   :  action
   -> int * int * int
-  -> (expr * expr list * expr list * expr list)
-     * (expr * expr list * expr list * expr list)
+  -> state_desc * state_desc
 
 val state_index_to_string_aux : state -> string
 
-val mk_state : ?param:string -> state -> expr * expr list * expr list * expr list -> fact'
+val mk_state : ?param:string -> state -> state_desc -> fact'
 
 type rule =
   | Rule of string * string * fact' list * fact' list * fact' list
@@ -127,7 +137,7 @@ type model =
 val mk_state_transition
   :  ?param:string
   -> state
-  -> expr * expr list * expr list * expr list
+  -> state_desc
   -> bool
   -> bool
   -> fact'
