@@ -102,7 +102,7 @@ let _main =
             if !Config.optimize then Tamarin.{ t with models= List.map Postprocessing.optimize t.models }
             else t
           in
-          let tamarin = (Tamarin.print_tamarin t !Config.dev !Config.tag_transition) in
+          let tamarin = (Tamarin.print_tamarin t ~dev:!Config.dev ~print_transition_label:!Config.tag_transition) in
           if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Error" "%s" "output file not specified"
           else let oc = open_out (fst !ofile) in
             Printf.fprintf oc "%s\n" tamarin;

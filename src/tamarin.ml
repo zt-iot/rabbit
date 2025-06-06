@@ -81,13 +81,7 @@ type expr =
 
 let rec expr_collect_vars e =
   match e with
-  | FVar _
-  | Var _
-  | MetaVar _
-  | LocVar _
-  | TopVar _
-  | MetaNewVar _
-  | Param -> [ e ]
+  | FVar _ | Var _ | MetaVar _ | LocVar _ | TopVar _ | MetaNewVar _ | Param -> [ e ]
   | Apply (_s, el) -> List.fold_left (fun vl e -> expr_collect_vars e @ vl) [] el
   | String _ -> []
   | Integer _ -> []
@@ -101,12 +95,13 @@ let rec expr_collect_vars e =
 let get_return_var () = Var ("return" ^ !separator ^ "var")
 
 type equations = (expr * expr) list
-type signature = {
-  functions : functions;
-  equations : equations
-}
 
-let empty_signature = { functions= []; equations= [] }
+type signature =
+  { functions : functions
+  ; equations : equations
+  }
+
+let empty_signature = { functions = []; equations = [] }
 
 type rule_config =
   { is_persist : bool
@@ -170,82 +165,60 @@ type fact' =
 let print_fact' (f : fact) : fact' =
   match f with
   | Fact (fid, nsp, el) ->
-      { name= mk_my_fact_name fid ^ !separator ^ nsp;
-        args= Param :: el;
-        config= config_linear
+      { name = mk_my_fact_name fid ^ !separator ^ nsp
+      ; args = Param :: el
+      ; config = config_linear
       }
   | ConstantFact (e1, e2) ->
-      { name= "Const" ^ !separator;
-        args= [ e1; e2 ];
-        config= config_persist
-      }
+      { name = "Const" ^ !separator; args = [ e1; e2 ]; config = config_persist }
   | GlobalFact (fid, el) ->
-      { name= mk_my_fact_name fid;
-        args= el;
-        config= config_linear
-      }
+      { name = mk_my_fact_name fid; args = el; config = config_linear }
   | ChannelFact (fid, ch, el) ->
-      { name= mk_my_fact_name fid;
-        args= ch :: el;
-        config= config_linear
-      }
+      { name = mk_my_fact_name fid; args = ch :: el; config = config_linear }
   (* | PathFact (fid, nsp, path, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp,path :: el, config_linear) *)
-  | ResFact (0, el) ->
-      { name= "Eq" ^ !separator;
-        args= el;
-        config= config_persist
-      }
-  | ResFact (1, el) ->
-      { name= "NEq" ^ !separator;
-        args= el;
-        config= config_persist
-      }
-  | ResFact (2, el) ->
-      { name= "Fr";
-        args= el;
-        config= config_linear
-      }
+  | ResFact (0, el) -> { name = "Eq" ^ !separator; args = el; config = config_persist }
+  | ResFact (1, el) -> { name = "NEq" ^ !separator; args = el; config = config_persist }
+  | ResFact (2, el) -> { name = "Fr"; args = el; config = config_linear }
   | AccessFact (nsp, param, target, syscall) ->
-      { name= "ACP" ^ !separator;
-        args= [ List [ String nsp; param ]; target; String syscall ];
-        config= config_persist }
+      { name = "ACP" ^ !separator
+      ; args = [ List [ String nsp; param ]; target; String syscall ]
+      ; config = config_persist
+      }
   | AttackFact (attack, target) ->
-      { name= "Attack" ^ !separator;
-        args= [ String attack; target ];
-        config= config_persist
+      { name = "Attack" ^ !separator
+      ; args = [ String attack; target ]
+      ; config = config_persist
       }
   | FileFact (nsp, path, e) ->
-      { name= "File" ^ !separator ^ nsp;
-        args= [ Param; path; e ];
-        config= config_linear }
-  | InitFact el ->
-      { name= "Init" ^ !separator;
-        args= el;
-        config= config_linear }
+      { name = "File" ^ !separator ^ nsp
+      ; args = [ Param; path; e ]
+      ; config = config_linear
+      }
+  | InitFact el -> { name = "Init" ^ !separator; args = el; config = config_linear }
   | LoopFact (nsp, tid, b) ->
-      { name= "Loop"
-              ^ !separator
-              ^ if b = 0 then "Start" else if b = 1 then "Back" else "Finish";
-        args = [ List [ String nsp; Param ]; String (index_to_string tid) ];
-        config= config_linear }
+      { name =
+          ("Loop"
+           ^ !separator
+           ^ if b = 0 then "Start" else if b = 1 then "Back" else "Finish")
+      ; args = [ List [ String nsp; Param ]; String (index_to_string tid) ]
+      ; config = config_linear
+      }
   | TransitionFact (nsp, ind, e, p) ->
-      { name= "Transition" ^ !separator;
-        args= [ List [ String nsp; p ]; String ind; e ];
-        config= config_linear
+      { name = "Transition" ^ !separator
+      ; args = [ List [ String nsp; p ]; String ind; e ]
+      ; config = config_linear
       }
   | InjectiveFact (fid, nsp, id, el) ->
-      { name= mk_my_fact_name fid ^ !separator ^ nsp;
-        args= [ Param; FVar id; el ];
-        config= config_linear }
-  | FreshFact e ->
-      { name= "Fr";
-        args= [ FVar e ];
-        config= config_linear
+      { name = mk_my_fact_name fid ^ !separator ^ nsp
+      ; args = [ Param; FVar id; el ]
+      ; config = config_linear
       }
+  | FreshFact e -> { name = "Fr"; args = [ FVar e ]; config = config_linear }
   | AccessGenFact (nsp, param) ->
-      { name = "ACP" ^ !separator ^ "GEN" ^ !separator;
-        args= [ String nsp; param ];
-        config = config_persist }
+      { name = "ACP" ^ !separator ^ "GEN" ^ !separator
+      ; args = [ String nsp; param ]
+      ; config = config_persist
+      }
   | _ -> assert false
 ;;
 
@@ -270,44 +243,50 @@ type state_desc =
   ; tops : expr list
   }
 
-let empty_state_desc = { ret= Unit; metas= []; locs= []; tops= [] }
+let empty_state_desc = { ret = Unit; metas = []; locs = []; tops = [] }
 
-let map_state_desc f s = { ret= f s.ret; metas= List.map f s.metas; locs= List.map f s.locs; tops= List.map f s.tops }
+let map_state_desc f s =
+  { ret = f s.ret
+  ; metas = List.map f s.metas
+  ; locs = List.map f s.locs
+  ; tops = List.map f s.tops
+  }
+;;
 
 let rec action_sem
           (a : action)
-          ({ ret= _; metas= meta_lst; locs= loc_lst; tops= top_lst } as state_desc)
+          ({ ret = _; metas = meta_lst; locs = loc_lst; tops = top_lst } as state_desc)
   : state_desc
   =
   match a with
-  | ActionReturn e ->
-      { state_desc with ret = e }
+  | ActionReturn e -> { state_desc with ret = e }
   | ActionAssign (Top i, e) ->
-      { state_desc with ret= Unit; tops= replace_nth top_lst i e }
+      { state_desc with ret = Unit; tops = replace_nth top_lst i e }
   | ActionAssign (Loc i, e) ->
-      { state_desc with ret= Unit; locs= replace_nth loc_lst i e }
+      { state_desc with ret = Unit; locs = replace_nth loc_lst i e }
   | ActionAssign _ -> assert false
-  | ActionSeq (a, b) ->
-      action_sem b (action_sem a state_desc)
+  | ActionSeq (a, b) -> action_sem b (action_sem a state_desc)
   | ActionAddMeta k ->
       { state_desc with
-        ret= Unit
-      ; metas= List.map (fun i -> MetaNewVar i) (int_to_list k) @ meta_lst
+        ret = Unit
+      ; metas = List.map (fun i -> MetaNewVar i) (int_to_list k) @ meta_lst
       }
-  | ActionIntro el ->
-      { state_desc with ret= Unit; locs= el @ loc_lst }
-  | ActionPopLoc k ->
-      { state_desc with locs= snd (pop_n k loc_lst) }
-  | ActionPopMeta k ->
-      { state_desc with metas= snd (pop_n k meta_lst) }
-  | ActionLetTop e ->
-      { state_desc with ret= Unit; tops= e @ top_lst }
+  | ActionIntro el -> { state_desc with ret = Unit; locs = el @ loc_lst }
+  | ActionPopLoc k -> { state_desc with locs = snd (pop_n k loc_lst) }
+  | ActionPopMeta k -> { state_desc with metas = snd (pop_n k meta_lst) }
+  | ActionLetTop e -> { state_desc with ret = Unit; tops = e @ top_lst }
 ;;
+
+type var_nums =
+  { meta : int
+  ; loc : int
+  ; top : int
+  }
 
 type state =
   { state_namespace : string
-  ; state_index : (int list * int) list
-  ; state_vars : int * int * int
+  ; state_index : mindex
+  ; state_vars : var_nums
   }
 
 type transition =
@@ -323,13 +302,13 @@ type transition =
   ; transition_is_loop_back : bool
   }
 
-let mk_state_transition_from_action a (meta_num, loc_num, top_num) =
+let mk_state_transition_from_action a { meta = meta_num; loc = loc_num; top = top_num } =
   let return_var = get_return_var () in
   let meta_var = List.map (fun i -> MetaVar i) (int_to_list meta_num) in
   let loc_var = List.map (fun i -> LocVar i) (int_to_list loc_num) in
   let top_var = List.map (fun i -> TopVar i) (int_to_list top_num) in
-  ( {ret= return_var; metas= meta_var; locs= loc_var; tops= top_var}
-  , action_sem a { ret= return_var; metas= meta_var; locs= loc_var; tops= top_var } )
+  ( { ret = return_var; metas = meta_var; locs = loc_var; tops = top_var }
+  , action_sem a { ret = return_var; metas = meta_var; locs = loc_var; tops = top_var } )
 ;;
 
 let get_state_fact_name (s : state) = "State" ^ !separator ^ s.state_namespace
@@ -361,24 +340,34 @@ let rec print_expr e =
   | Param -> !fresh_param
 ;;
 
-let mk_state ?(param = "") st {ret=ret; metas= meta; locs= loc; tops= top} : fact' =
+let mk_state ?(param = "") st { ret; metas = meta; locs = loc; tops = top } : fact' =
   (* (let (a,b,c) = st.state_vars in
     if not (List.length meta = a ) || not (List.length loc = b ) || not (List.length top = c ) then
       print_endline (print_expr (state_index_to_string st))
      else ()); *)
-  { name= get_state_fact_name st;
-    (* ^ (let (a,b,c) = st.state_vars in "_" ^(string_of_int a)^"_" ^(string_of_int b)^"_" ^(string_of_int c)) *)
-    args= [ List [ state_index_to_string st; (if param = "" then Param else String param) ]
-          ; ret
-          ; List meta
-          ; List loc
-          ; List top
-          ];
-    config= config_linear }
+  { name = get_state_fact_name st
+  ; (* ^ (let (a,b,c) = st.state_vars in "_" ^(string_of_int a)^"_" ^(string_of_int b)^"_" ^(string_of_int c)) *)
+    args =
+      [ List [ state_index_to_string st; (if param = "" then Param else String param) ]
+      ; ret
+      ; List meta
+      ; List loc
+      ; List top
+      ]
+  ; config = config_linear
+  }
 ;;
 
+type 'fact rule_ =
+  { name : string
+  ; act : string
+  ; pre : 'fact list
+  ; label : 'fact list
+  ; post : 'fact list
+  }
+
 type rule =
-  | Rule of string * string * fact' list * fact' list * fact' list
+  | Rule of fact' rule_
   | Comment of string
 
 type model =
@@ -394,7 +383,13 @@ type model =
 let _add_rule (mo : model) (a, b, c, d, e) =
   { mo with
     model_init_rules =
-      Rule (a, b, List.map print_fact' c, List.map print_fact' d, List.map print_fact' e)
+      Rule
+        { name = a
+        ; act = b
+        ; pre = List.map print_fact' c
+        ; label = List.map print_fact' d
+        ; post = List.map print_fact' e
+        }
       :: mo.model_init_rules
   }
 ;;
@@ -407,26 +402,38 @@ let _add_comment t s = Comment s :: t
 let add_state m s = { m with model_states = s :: m.model_states }
 
 let initial_state name =
-  { state_namespace = name; state_index = [ [], 0 ]; state_vars = 0, 0, 0 }
+  { state_namespace = name
+  ; state_index = [ [], 0 ]
+  ; state_vars = { meta = 0; loc = 0; top = 0 }
+  }
 ;;
 
-let mk_state_transition ?(param = "") st {ret; metas= meta; locs= loc; tops= top} is_initial is_loop : fact' =
-  { name= get_state_fact_name st;
-    args= [ List
-                   [ state_index_to_string st
-                   ; (if param = "" then Param else String param)
-                   ; (if is_loop
-                      then AddOne (Int ("v" ^ !separator))
-                      else if is_initial
-                      then One
-                      else Int ("v" ^ !separator))
-                   ]
-               ; ret
-               ; List meta
-               ; List loc
-               ; List top
-               ];
-    config= config_linear }
+let mk_state_transition
+      ?(param = "")
+      st
+      { ret; metas = meta; locs = loc; tops = top }
+      ~is_initial
+      ~is_loop
+  : fact'
+  =
+  { name = get_state_fact_name st
+  ; args =
+      [ List
+          [ state_index_to_string st
+          ; (if param = "" then Param else String param)
+          ; (if is_loop
+             then AddOne (Int ("v" ^ !separator))
+             else if is_initial
+             then One
+             else Int ("v" ^ !separator))
+          ]
+      ; ret
+      ; List meta
+      ; List loc
+      ; List top
+      ]
+  ; config = config_linear
+  }
 ;;
 
 let initial_model name ty =
@@ -443,7 +450,10 @@ let initial_model name ty =
 ;;
 
 let initial_state name =
-  { state_namespace = name; state_index = [ [], 0 ]; state_vars = 1, 0, 0 }
+  { state_namespace = name
+  ; state_index = [ [], 0 ]
+  ; state_vars = { meta = 1; loc = 0; top = 0 }
+  }
 ;;
 
 let _initial_attacker_model name ty =
@@ -454,11 +464,16 @@ let _initial_attacker_model name ty =
     ; model_type = ty
     ; model_init_rules =
         [ Rule
-            ( "Init" ^ name
-            , name
-            , [ print_fact' (AttackFact (name, MetaNewVar 0)) ]
-            , []
-            , [ mk_state st {ret=Unit; metas= [ MetaNewVar 0 ]; locs= []; tops= []} ] )
+            { name = "Init" ^ name
+            ; act = name
+            ; pre = [ print_fact' (AttackFact (name, MetaNewVar 0)) ]
+            ; label = []
+            ; post =
+                [ mk_state
+                    st
+                    { ret = Unit; metas = [ MetaNewVar 0 ]; locs = []; tops = [] }
+                ]
+            }
         ]
     ; model_init_state = st
     ; model_transition_id_max = 0
@@ -476,8 +491,7 @@ let add_transition m t =
 (* tamarin lemma *)
 type lemma =
   | PlainLemma of string * string
-  | ReachabilityLemma of
-      string * string list * string list * string list * fact list * fact list
+  | ReachabilityLemma of string * fact list * fact list
   | CorrespondenceLemma of string * string list * (fact list * fact) * (fact list * fact)
 
 type tamarin =
@@ -488,31 +502,43 @@ type tamarin =
   }
 
 let add_fun tamarin f (* name * arity *) =
-  let signature = { tamarin.signature with functions = f :: tamarin.signature.functions } in
+  let signature =
+    { tamarin.signature with functions = f :: tamarin.signature.functions }
+  in
   { tamarin with signature }
 ;;
 
 let add_const tamarin c =
-  let signature = { tamarin.signature with functions = (c, 0) :: tamarin.signature.functions } in
+  let signature =
+    { tamarin.signature with functions = (c, 0) :: tamarin.signature.functions }
+  in
   { tamarin with signature }
 ;;
 
 let add_eqn tamarin eq =
-  let signature = { tamarin.signature with equations = eq :: tamarin.signature.equations } in
+  let signature =
+    { tamarin.signature with equations = eq :: tamarin.signature.equations }
+  in
   { tamarin with signature }
 ;;
 
 let add_model t m = { t with models = m :: t.models }
 
-let add_rule t (a, b, c, d, e) =
+let add_rule t (r : _ rule_) =
   { t with
     rules =
-      Rule (a, b, List.map print_fact' c, List.map print_fact' d, List.map print_fact' e)
+      Rule
+        { name = r.name
+        ; act = r.act
+        ; pre = List.map print_fact' r.pre
+        ; label = List.map print_fact' r.label
+        ; post = List.map print_fact' r.post
+        }
       :: t.rules
   }
 ;;
 
-let add_rule' t (a, b, c, d, e) = { t with rules = Rule (a, b, c, d, e) :: t.rules }
+let add_rule' t r = { t with rules = Rule r :: t.rules }
 let add_comment t s = { t with rules = Comment s :: t.rules }
 let add_lemma t lem = { t with lemmas = lem :: t.lemmas }
 
@@ -520,7 +546,7 @@ let empty_tamarin : tamarin =
   { signature = empty_signature; models = []; rules = []; lemmas = [] }
 ;;
 
-let print_signature { functions= fns; equations= eqns } =
+let print_signature { functions = fns; equations = eqns } =
   let print_functions fns =
     (if List.length fns = 0 then "" else "functions: ")
     ^ String.concat ", " (List.map (fun (f, ar) -> f ^ "/" ^ string_of_int ar) fns)
@@ -540,7 +566,7 @@ let _print_fact_plain (f, el) =
   f ^ "(" ^ String.concat ", " (List.map print_expr el) ^ ")"
 ;;
 
-let print_fact {name= f; args= el; config= b} =
+let print_fact { name = f; args = el; config = b } =
   (if b.is_persist then "!" else "")
   ^ f
   ^ "("
@@ -558,7 +584,7 @@ let print_fact {name= f; args= el; config= b} =
   else ""
 ;;
 
-let print_fact2 {name=f; args= el; config= b} =
+let print_fact2 { name = f; args = el; config = b } =
   (if b.is_persist then "!" else "")
   ^ f
   ^ "("
@@ -567,7 +593,7 @@ let print_fact2 {name=f; args= el; config= b} =
 ;;
 
 let transition_to_rule (tr : transition) : rule =
-  let f =
+  let name =
     tr.transition_namespace
     ^ !separator
     ^ tr.transition_name
@@ -586,15 +612,16 @@ let transition_to_rule (tr : transition) : rule =
   in
   let final_state_fact = mk_state tr.transition_to (snd tr.transition_state_transition) in
   Rule
-    ( f
-    , tr.transition_namespace
-    , initial_state_fact :: List.map print_fact' pre
-    , List.map print_fact' label
-    , final_state_fact :: List.map print_fact' post )
+    { name
+    ; act = tr.transition_namespace
+    ; pre = initial_state_fact :: List.map print_fact' pre
+    ; label = List.map print_fact' label
+    ; post = final_state_fact :: List.map print_fact' post
+    }
 ;;
 
 let transition_to_transition_rule (tr : transition) : rule =
-  let f =
+  let name =
     tr.transition_namespace
     ^ !separator
     ^ tr.transition_name
@@ -619,27 +646,28 @@ let transition_to_transition_rule (tr : transition) : rule =
     mk_state_transition
       tr.transition_from
       (fst tr.transition_state_transition)
-      false
-      false
+      ~is_initial:false
+      ~is_loop:false
   in
   let final_state_fact =
     mk_state_transition
       tr.transition_to
       (snd tr.transition_state_transition)
-      false
-      tr.transition_is_loop_back
+      ~is_initial:false
+      ~is_loop:tr.transition_is_loop_back
   in
   Rule
-    ( f
-    , tr.transition_namespace
-    , initial_state_fact :: List.map print_fact' pre
-    , List.map print_fact' label
-    , final_state_fact :: List.map print_fact' post )
+    { name
+    ; act = tr.transition_namespace
+    ; pre = initial_state_fact :: List.map print_fact' pre
+    ; label = List.map print_fact' label
+    ; post = final_state_fact :: List.map print_fact' post
+    }
 ;;
 
-let print_rule_aux (f, act, pre, label, post) dev =
+let print_rule_aux { name; act; pre; label; post } dev =
   "rule "
-  ^ f
+  ^ name
   ^ (if act = "" || not dev then "" else "[role=\"" ^ act ^ "\"]")
   ^ " : "
   ^ "["
@@ -655,50 +683,46 @@ let print_rule_aux (f, act, pre, label, post) dev =
 
 let print_comment s = "\n// " ^ s ^ "\n\n"
 
-let print_rule r dev =
+let print_rule r ~dev =
   match r with
-  | Rule (a, b, c, d, e) -> print_rule_aux (a, b, c, d, e) dev
+  | Rule r -> print_rule_aux r dev
   | Comment s -> print_comment s
 ;;
 
-let print_transition (tr : transition) (is_dev : bool) =
+let print_transition (tr : transition) ~dev =
   let r = transition_to_rule tr in
-  print_rule r is_dev
+  print_rule r ~dev
 ;;
 
-let print_model m is_dev =
+let print_model m ~dev =
   (* initialization rule  *)
-  (List.map (fun r -> print_rule r is_dev) m.model_init_rules |> String.concat "\n")
+  (List.map (fun r -> print_rule r ~dev) m.model_init_rules |> String.concat "\n")
   ^ "\n"
-  ^ (List.map (fun t -> print_transition t is_dev) m.model_transitions
-     |> String.concat "\n")
+  ^ (List.map (fun t -> print_transition t ~dev) m.model_transitions |> String.concat "\n")
 ;;
 
-let print_transition_transition_rule (tr : transition) (is_dev : bool) =
+let print_transition_transition_rule (tr : transition) ~dev =
   let r = transition_to_transition_rule tr in
-  print_rule r is_dev
+  print_rule r ~dev
 ;;
 
-let print_model_transition_rule m is_dev =
+let print_model_transition_rule m ~dev =
   (* initialization rule  *)
-  (List.map (fun r -> print_rule r is_dev) m.model_init_rules |> String.concat "\n")
+  (List.map (fun r -> print_rule r ~dev) m.model_init_rules |> String.concat "\n")
   ^ "\n"
-  ^ (List.map (fun t -> print_transition_transition_rule t is_dev) m.model_transitions
+  ^ (List.map (fun t -> print_transition_transition_rule t ~dev) m.model_transitions
      |> String.concat "\n")
 ;;
 
 let print_lemma lemma =
   match lemma with
   | PlainLemma (l, p) -> "\nlemma " ^ l ^ " : " ^ p
-  | ReachabilityLemma (l, _cs, _ps, _vars, gv, facts) ->
-      let var1 = List.flatten (List.map global_fact_collect_vars facts) in
-      let var2 = List.flatten (List.map global_fact_collect_vars gv) in
+  | ReachabilityLemma (l, gv, facts) ->
+      let var1 = List.concat_map global_fact_collect_vars facts in
+      let var2 = List.concat_map global_fact_collect_vars gv in
       let var =
         List.fold_left
-          (fun var v ->
-             (* print_string (print_expr v);
-      print_string "  "; *)
-             if List.exists (fun w -> w = v) var then var else v :: var)
+          (fun var v -> if List.exists (fun w -> w = v) var then var else v :: var)
           []
           (var1 @ var2)
       in
@@ -837,8 +861,8 @@ let print_lemma lemma =
 
 let print_tamarin
       { signature = si; models = mo_lst; rules = r_lst; lemmas = lem_lst }
-      is_dev
-      print_transition_label
+      ~dev
+      ~print_transition_label
   =
   "theory rabbit\n\nbegin\nbuiltins: natural-numbers\n\n"
   (* print signature *)
@@ -846,7 +870,7 @@ let print_tamarin
   ^ print_signature si
   (* print initializing rules *)
   ^ print_comment "Initializing the gloval constants and access policy rules:\n\n"
-  ^ String.concat "\n" (List.map (fun r -> print_rule r is_dev) (List.rev r_lst))
+  ^ String.concat "\n" (List.map (fun r -> print_rule r ~dev) (List.rev r_lst))
   (* print models  *)
   ^ String.concat
       "\n"
@@ -855,7 +879,7 @@ let print_tamarin
             print_comment ("Model:  " ^ m.model_name ^ "\n")
             ^ (if print_transition_label then print_model_transition_rule else print_model)
                 m
-                is_dev)
+                ~dev)
          (List.rev mo_lst))
   (* default restrictions *)
   ^ "\nrestriction Init"
