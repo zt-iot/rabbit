@@ -117,7 +117,7 @@ val state_index_to_string_aux : state -> string
 
 type 'fact rule_ =
   { name : string
-  ; act : string
+  ; role : string
   ; pre : 'fact list
   ; label : 'fact list
   ; post : 'fact list
