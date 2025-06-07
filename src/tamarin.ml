@@ -345,12 +345,13 @@ let check_state_and_state_desc st desc =
   assert (List.length desc.locs = st.state_vars.loc);
   assert (List.length desc.tops = st.state_vars.top)
 
-let mk_state ?(param = "") st ({ ret; metas = meta; locs = loc; tops = top } as desc) : fact' =
+let mk_state ?param st ({ ret; metas = meta; locs = loc; tops = top } as desc) : fact' =
   check_state_and_state_desc st desc;
   { name = get_state_fact_name st
   ; (* ^ (let (a,b,c) = st.state_vars in "_" ^(string_of_int a)^"_" ^(string_of_int b)^"_" ^(string_of_int c)) *)
     args =
-      [ List [ state_index_to_string st; (if param = "" then Param else String param) ]
+      [ List [ state_index_to_string st;
+               match param with None -> Param | Some param -> String param ]
       ; ret
       ; List meta
       ; List loc
@@ -411,7 +412,7 @@ let initial_state ~namespace =
 ;;
 
 let mk_state_transition
-      ?(param = "")
+      ?param
       st
       ({ ret; metas = meta; locs = loc; tops = top } as desc)
       ~is_initial
@@ -423,7 +424,7 @@ let mk_state_transition
   ; args =
       [ List
           [ state_index_to_string st
-          ; (if param = "" then Param else String param)
+          ; (match param with None -> Param | Some param -> String param)
           ; (if is_loop
              then AddOne (Int ("v" ^ !separator))
              else if is_initial
