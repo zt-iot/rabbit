@@ -168,14 +168,31 @@ type tamarin =
   }
 
 val empty_tamarin : tamarin
+(** Empty Tamarin code *)
+
 val add_fun : tamarin -> string * int -> tamarin
+(** Add external function with arity *)
+
 val add_const : tamarin -> string -> tamarin
+(** Add external constant as a nullary funciton *)
+
 val add_eqn : tamarin -> expr * expr -> tamarin
+(** Add an equation *)
+
 val add_model : tamarin -> model -> tamarin
+(** Add a model *)
+
 val add_rule : tamarin -> fact rule_ -> tamarin
+(** Add a rule of [fact] *)
+
 val add_rule' : tamarin -> fact' rule_ -> tamarin
+(** Add a rule of compiled [fact'] *)
+
 val add_comment : tamarin -> string -> tamarin
+(** Add a comment *)
+
 val add_lemma : tamarin -> lemma -> tamarin
+(** Add a lemma *)
 
 val print_transition : transition -> dev:bool -> string
 val print_tamarin : tamarin -> dev:bool -> print_transition_label:bool -> string
