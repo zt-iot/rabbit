@@ -340,11 +340,13 @@ let rec print_expr e =
   | Param -> !fresh_param
 ;;
 
-let mk_state ?(param = "") st { ret; metas = meta; locs = loc; tops = top } : fact' =
-  (* (let (a,b,c) = st.state_vars in
-    if not (List.length meta = a ) || not (List.length loc = b ) || not (List.length top = c ) then
-      print_endline (print_expr (state_index_to_string st))
-     else ()); *)
+let check_state_and_state_desc st desc =
+  assert (List.length desc.metas = st.state_vars.meta);
+  assert (List.length desc.locs = st.state_vars.loc);
+  assert (List.length desc.tops = st.state_vars.top)
+
+let mk_state ?(param = "") st ({ ret; metas = meta; locs = loc; tops = top } as desc) : fact' =
+  check_state_and_state_desc st desc;
   { name = get_state_fact_name st
   ; (* ^ (let (a,b,c) = st.state_vars in "_" ^(string_of_int a)^"_" ^(string_of_int b)^"_" ^(string_of_int c)) *)
     args =
@@ -411,11 +413,12 @@ let initial_state ~namespace =
 let mk_state_transition
       ?(param = "")
       st
-      { ret; metas = meta; locs = loc; tops = top }
+      ({ ret; metas = meta; locs = loc; tops = top } as desc)
       ~is_initial
       ~is_loop
   : fact'
   =
+  check_state_and_state_desc st desc;
   { name = get_state_fact_name st
   ; args =
       [ List
