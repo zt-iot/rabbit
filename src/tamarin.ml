@@ -211,6 +211,10 @@ let compile_state_fact param state state_desc transition =
 
 let compile_fact (f : fact) : fact' =
   match f with
+  | PathFact _ ->
+      (* | PathFact (fid, nsp, path, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp,path :: el, config_linear) *)
+      assert false
+  | ProcessFact _ -> assert false
   | Fact (fid, nsp, el) ->
       { name = mk_my_fact_name fid ^ !separator ^ nsp
       ; args = Param :: el
@@ -222,7 +226,6 @@ let compile_fact (f : fact) : fact' =
       { name = mk_my_fact_name fid; args = el; config = config_linear }
   | ChannelFact (fid, ch, el) ->
       { name = mk_my_fact_name fid; args = ch :: el; config = config_linear }
-  (* | PathFact (fid, nsp, path, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp,path :: el, config_linear) *)
   | EqFact (e1, e2) -> { name = "Eq" ^ !separator; args = [e1; e2]; config = config_persist }
   | NeqFact (e1, e2) -> { name = "NEq" ^ !separator; args = [e1; e2]; config = config_persist }
   | AccessFact (nsp, param, target, syscall) ->
@@ -268,7 +271,6 @@ let compile_fact (f : fact) : fact' =
       }
   | StateFact { param; state; state_desc; transition } ->
       compile_state_fact param state state_desc transition
-  | _ -> assert false
 
 let mk_constant_fact s = ConstantFact (String s, Var s)
 
