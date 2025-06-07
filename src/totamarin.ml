@@ -155,7 +155,7 @@ let translate_fact ?(num = 0) namespace (f : Syntax.fact) =
         | [ e1; e2 ] -> e1, e2
         | _ -> assert false
       in
-      ResFact (0, [ e1; e2 ]), gv, [], n
+      EqFact (e1, e2), gv, [], n
   | Syntax.NeqFact (e1, e2) ->
       let es, gv, n =
         List.fold_left
@@ -170,7 +170,7 @@ let translate_fact ?(num = 0) namespace (f : Syntax.fact) =
         | [ e1; e2 ] -> e1, e2
         | _ -> assert false
       in
-      ResFact (1, [ e1; e2 ]), gv, [], n
+      NeqFact (e1, e2), gv, [], n
   | Syntax.FileFact (p, d) ->
       let p, g1, n = translate_expr2 ~num p in
       let d, g2, n = translate_expr2 ~num:n d in
@@ -793,11 +793,6 @@ let rec translate_cmd
           ([], [], 0)
           el
       in
-      (* | InjectiveFact of
-    string * (* fact name *)
-    string * (* namespace *)
-    expr list (* arguments *)
-  | FreshFact of expr *)
       let st_f = next_state ~shift:{meta= 1; loc= 0; top= 0} st scope in
       let mo = add_state mo st_f in
       let mo =
@@ -853,11 +848,6 @@ let rec translate_cmd
       mo, st_f
   | Syntax.Get (vl, id, fid, c) ->
       let e, g, _ = translate_expr2 id in
-      (* | InjectiveFact of
-    string * (* fact name *)
-    string * (* namespace *)
-    expr list (* arguments *)
-  | FreshFact of expr *)
       let st_f = next_state ~shift:{meta= List.length vl; loc= 0; top= 0} st scope in
       let mo = add_state mo st_f in
       let mo =
@@ -1178,7 +1168,7 @@ let translate_sys
                t
                { name = "Const" ^ sep ^ v
                ; act = ""
-               ; pre = [ ResFact (2, [ Var v ]) ]
+               ; pre = [ FreshFact' ( Var v ) ]
                ; label =
                    [ InitFact [ String ("Const" ^ sep ^ v) ]
                    ; InitFact [ List [ String ("Const" ^ sep ^ v); Var v ] ]
@@ -1211,7 +1201,7 @@ let translate_sys
                t
                { name = "Const" ^ sep ^ v
                ; act = ""
-               ; pre = [ ResFact (2, [ Var v ]) ]
+               ; pre = [ FreshFact' ( Var v ) ]
                ; label =
                    [ InitFact [ expr_pair (String v) Param ]
                    ; ConstantFact (expr_pair (String v) Param, Var v)
@@ -1477,7 +1467,7 @@ let translate_sys
              t
              { name = "Init" ^ !separator ^ "system" ^ string_of_int n
              ; act = "system" ^ string_of_int n
-             ; pre = [ ResFact (2, [ Param ]) ] (* XXX This produce the same compilation but not sure it is semantically correct *)
+             ; pre = [ FreshFact' ( Param ) ] (* XXX This produce the same compilation but not sure it is semantically correct *)
              ; label =
                  [ InitFact [ List [ String ("system" ^ string_of_int n); Param ] ] ]
              ; post =

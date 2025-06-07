@@ -76,13 +76,15 @@ let fact_rec_on_expr f (p : expr -> expr) =
   | GlobalFact (fid, el) -> GlobalFact (fid, List.map p el)
   | ChannelFact (fid, ch, el) -> ChannelFact (fid, p ch, List.map p el)
   | PathFact (fid, nsp, path, el) ->  PathFact (fid, nsp, p path, List.map p el)
-  | ResFact (n, el) -> ResFact (n, List.map p el)
+  | EqFact (e1, e2) -> EqFact (p e1, p e2)
+  | NeqFact (e1, e2) -> NeqFact (p e1, p e2)
   | AccessFact (nsp, param, ch, sys) -> AccessFact (nsp,p param, p ch, sys)
   | AccessGenFact (nsp, param) -> AccessGenFact (nsp, p param)
   | FileFact (nsp, path, data) -> FileFact(nsp, path, p data)
   | InitFact el -> InitFact (List.map p el)
   | InjectiveFact (fid, nsp, e, el) -> InjectiveFact (fid, nsp, p e,  p el)
   | FreshFact e ->  FreshFact (p e)
+  | FreshFact' e ->  FreshFact' (p e)
   | LoopFact _
   | AttackFact _  -> f
   | _ -> assert false
@@ -197,7 +199,7 @@ let reduce_conditions post pre' =
           print_endline ("- " ^ Tamarin.print_expr e');
 
           if e = e'
-            then (print_endline ("- judged equal"); (ResFact (0, [arg; arg']))::pre )
+            then (print_endline ("- judged equal"); (EqFact (arg, arg'))::pre )
             else (print_endline ("- judged inequal"); error' ConflictingCondition')
         | _ -> error' ConflictingCondition'
         end

@@ -73,7 +73,8 @@ type fact =
   | ChannelFact of string * expr * expr list
   | PathFact of string * string * expr * expr list
   | ProcessFact of string * expr * expr list
-  | ResFact of int * expr list
+  | EqFact of expr * expr
+  | NeqFact of expr * expr
   | AccessFact of string * expr * expr * string
   | AttackFact of string * expr
   | FileFact of string * expr * expr
@@ -82,6 +83,7 @@ type fact =
   | TransitionFact of string * string * expr * expr
   | InjectiveFact of string * string * expr * expr
   | FreshFact of expr
+  | FreshFact' of expr  (** It was once [ResFact(2, [e])]. Compilation is slightly different from [FreshFact] *)
   | AccessGenFact of string * expr
   | StateFact of { param : string option; state : state; state_desc : state_desc; transition : expr option }
 
