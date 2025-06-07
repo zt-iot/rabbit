@@ -377,7 +377,7 @@ let mk_transition_expr = function
 
 type 'fact rule_ =
   { name : string
-  ; act : string
+  ; role : string
   ; pre : 'fact list
   ; label : 'fact list
   ; post : 'fact list
@@ -407,7 +407,7 @@ let _add_rule (mo : model) (a, b, c, d, e) =
     model_init_rules =
       Rule
         { name = a
-        ; act = b
+        ; role = b
         ; pre = c
         ; label = d
         ; post = e
@@ -459,7 +459,7 @@ let _initial_attacker_model ~namespace ~typ =
     ; model_init_rules =
         [ Rule
             { name = "Init" ^ namespace
-            ; act = namespace
+            ; role = namespace
             ; pre = [ AttackFact (namespace, MetaNewVar 0) ]
             ; label = []
             ; post =
@@ -596,7 +596,7 @@ let transition_to_rule (tr : transition) : rule =
   let final_state_fact = mk_state_fact tr.transition_to (snd tr.transition_state_transition) None in
   Rule
     { name
-    ; act = tr.transition_namespace
+    ; role = tr.transition_namespace
     ; pre = initial_state_fact :: pre
     ; label = label
     ; post = final_state_fact :: post
@@ -639,17 +639,17 @@ let transition_to_transition_rule (tr : transition) : rule =
   in
   Rule
     { name
-    ; act = tr.transition_namespace
+    ; role = tr.transition_namespace
     ; pre = initial_state_fact :: pre
     ; label = label
     ; post = final_state_fact :: post
     }
 ;;
 
-let print_rule_aux { name; act; pre; label; post } dev =
+let print_rule_aux { name; role; pre; label; post } dev =
   "rule "
   ^ name
-  ^ (if act = "" || not dev then "" else "[role=\"" ^ act ^ "\"]")
+  ^ (if role = "" || not dev then "" else "[role=\"" ^ role ^ "\"]")
   ^ " : "
   ^ "["
   ^ String.concat ", " (List.map print_fact pre)

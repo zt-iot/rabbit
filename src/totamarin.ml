@@ -1140,7 +1140,7 @@ let translate_sys
              add_rule
                t
                { name = "Const" ^ sep ^ v
-               ; act = ""
+               ; role = ""
                ; pre = [ FreshFact' ( Var v ) ]
                ; label =
                    [ InitFact [ String ("Const" ^ sep ^ v) ]
@@ -1155,7 +1155,7 @@ let translate_sys
              add_rule
                t
                { name = "Const" ^ sep ^ v
-               ; act = ""
+               ; role = ""
                ; pre = gv
                ; label = [ ConstantFact (String v, e) ]
                ; post = [ ConstantFact (String v, e) ]
@@ -1173,7 +1173,7 @@ let translate_sys
              add_rule
                t
                { name = "Const" ^ sep ^ v
-               ; act = ""
+               ; role = ""
                ; pre = [ FreshFact' ( Var v ) ]
                ; label =
                    [ InitFact [ expr_pair (String v) Param ]
@@ -1187,7 +1187,7 @@ let translate_sys
              add_rule
                t
                { name = "Const" ^ sep ^ v
-               ; act = ""
+               ; role = ""
                ; pre = gv
                ; label =
                    [ InitFact [ expr_pair (String v) Param ]
@@ -1281,7 +1281,7 @@ let translate_sys
     add_rule
       t
       { name = "Init" ^ !separator ^ "system"
-      ; act = "system"
+      ; role = "system"
       ; pre = []
       ; label = [ InitFact [ String "system" ] ]
       ; post =
@@ -1316,7 +1316,7 @@ let translate_sys
                       ^ "ACP"
                       ^ !separator
                       ^ string_of_int n
-                  ; act = "system"
+                  ; role = "system"
                   ; pre =
                       gv @ [ AccessGenFact ("system" ^ !separator, String !fresh_string) ]
                   ; label =
@@ -1439,7 +1439,7 @@ let translate_sys
            add_rule
              t
              { name = "Init" ^ !separator ^ "system" ^ string_of_int n
-             ; act = "system" ^ string_of_int n
+             ; role = "system" ^ string_of_int n
              ; pre = [ FreshFact' ( Param ) ] (* XXX This produce the same compilation but not sure it is semantically correct *)
              ; label =
                  [ InitFact [ List [ String ("system" ^ string_of_int n); Param ] ] ]
@@ -1474,7 +1474,7 @@ let translate_sys
                              ^ "ACP"
                              ^ !separator
                              ^ string_of_int m
-                         ; act = "system" ^ string_of_int n
+                         ; role = "system" ^ string_of_int n
                          ; pre =
                              gv
                              @ [ AccessGenFact
