@@ -44,44 +44,6 @@ type rule_config =
 val config_linear : rule_config
 val config_persist : rule_config
 
-type fact =
-  | Fact of string * string * expr list
-  | ConstantFact of expr * expr
-  | GlobalFact of string * expr list
-  | ChannelFact of string * expr * expr list
-  | PathFact of string * string * expr * expr list
-  | ProcessFact of string * expr * expr list
-  | ResFact of int * expr list
-  | AccessFact of string * expr * expr * string
-  | AttackFact of string * expr
-  | FileFact of string * expr * expr
-  | InitFact of expr list
-  | LoopFact of string * mindex * int
-  | TransitionFact of string * string * expr * expr
-  | InjectiveFact of string * string * expr * expr
-  | FreshFact of expr
-  | AccessGenFact of string * expr
-
-val mk_constant_fact : string -> fact
-
-type fact' =
-  { name : string
-  ; args : expr list
-  ; config : rule_config
-  }
-
-val compile_fact : fact -> fact'
-
-type action =
-  | ActionReturn of expr
-  | ActionAssign of Syntax.variable_desc * expr
-  | ActionSeq of action * action
-  | ActionAddMeta of int
-  | ActionIntro of expr list
-  | ActionPopLoc of int
-  | ActionPopMeta of int
-  | ActionLetTop of expr list
-
 type state_desc =
   { ret : expr
   ; metas : expr list
@@ -104,6 +66,37 @@ type state =
   ; state_vars : var_nums
   }
 
+type fact =
+  | Fact of string * string * expr list
+  | ConstantFact of expr * expr
+  | GlobalFact of string * expr list
+  | ChannelFact of string * expr * expr list
+  | PathFact of string * string * expr * expr list
+  | ProcessFact of string * expr * expr list
+  | ResFact of int * expr list
+  | AccessFact of string * expr * expr * string
+  | AttackFact of string * expr
+  | FileFact of string * expr * expr
+  | InitFact of expr list
+  | LoopFact of string * mindex * int
+  | TransitionFact of string * string * expr * expr
+  | InjectiveFact of string * string * expr * expr
+  | FreshFact of expr
+  | AccessGenFact of string * expr
+  | StateFact of { param : string option; state : state; state_desc : state_desc; transition : expr option }
+
+val mk_constant_fact : string -> fact
+
+type action =
+  | ActionReturn of expr
+  | ActionAssign of Syntax.variable_desc * expr
+  | ActionSeq of action * action
+  | ActionAddMeta of int
+  | ActionIntro of expr list
+  | ActionPopLoc of int
+  | ActionPopMeta of int
+  | ActionLetTop of expr list
+
 type transition =
   { transition_id : int
   ; transition_namespace : string
@@ -119,7 +112,6 @@ type transition =
 
 val mk_state_transition_from_action : action -> var_nums -> state_desc * state_desc
 val state_index_to_string_aux : state -> string
-val mk_state : ?param:string -> state -> state_desc -> fact'
 
 type 'fact rule_ =
   { name : string
@@ -130,7 +122,7 @@ type 'fact rule_ =
   }
 
 type rule =
-  | Rule of fact' rule_
+  | Rule of fact rule_
   | Comment of string
 
 type model =
@@ -143,13 +135,9 @@ type model =
   ; model_type : string
   }
 
-val mk_state_transition
-  :  ?param:string
-  -> state
-  -> state_desc
-  -> is_initial:bool
-  -> is_loop:bool
-  -> fact'
+val mk_state_fact : ?param:string -> state -> state_desc -> expr option -> fact
+
+val mk_transition_expr : [ `Initial | `Loop | `None ] -> expr
 
 val initial_model : namespace: string -> typ: string -> model * state
 val add_transition : model -> transition -> model
@@ -184,9 +172,6 @@ val add_model : tamarin -> model -> tamarin
 
 val add_rule : tamarin -> fact rule_ -> tamarin
 (** Add a rule of [fact] *)
-
-val add_rule' : tamarin -> fact' rule_ -> tamarin
-(** Add a rule of compiled [fact'] *)
 
 val add_comment : tamarin -> string -> tamarin
 (** Add a comment *)

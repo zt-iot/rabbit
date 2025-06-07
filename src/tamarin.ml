@@ -116,6 +116,25 @@ let _config_linear_prior = { is_persist = false; priority = 3 }
 let _config_linear_less = { is_persist = false; priority = 1 }
 let _config_persist_less = { is_persist = true; priority = 1 }
 
+type var_nums =
+  { meta : int
+  ; loc : int
+  ; top : int
+  }
+
+type state =
+  { state_namespace : string
+  ; state_index : mindex
+  ; state_vars : var_nums
+  }
+
+type state_desc =
+  { ret : expr
+  ; metas : expr list
+  ; locs : expr list
+  ; tops : expr list
+  }
+
 type fact =
   | Fact of string (* fact name *) * string (* name space*) * expr list
   | ConstantFact of expr * expr
@@ -144,6 +163,8 @@ type fact =
     (* arguments *)
   | FreshFact of expr
   | AccessGenFact of string (* namespace *) * expr (* param *)
+  | StateFact of { param : string option; state : state; state_desc : state_desc; transition : expr option }
+
 
 let global_fact_collect_vars f =
   match f with
@@ -160,6 +181,30 @@ type fact' =
   { name : string
   ; args : expr list
   ; config : rule_config
+  }
+
+let check_state_and_state_desc st desc =
+  assert (List.length desc.metas = st.state_vars.meta);
+  assert (List.length desc.locs = st.state_vars.loc);
+  assert (List.length desc.tops = st.state_vars.top)
+
+let get_state_fact_name (s : state) = "State" ^ !separator ^ s.state_namespace
+let state_index_to_string_aux (st : state) = index_to_string st.state_index
+let state_index_to_string st = String (state_index_to_string_aux st)
+
+let compile_state_fact param state state_desc transition =
+  check_state_and_state_desc state state_desc;
+  { name = get_state_fact_name state
+  ; args =
+      [ List ( [ state_index_to_string state;
+                 match param with None -> Param | Some param -> String param ]
+               @ Option.to_list transition )
+      ; state_desc.ret
+      ; List state_desc.metas
+      ; List state_desc.locs
+      ; List state_desc.tops
+      ]
+  ; config = config_linear
   }
 
 let compile_fact (f : fact) : fact' =
@@ -219,8 +264,9 @@ let compile_fact (f : fact) : fact' =
       ; args = [ String nsp; param ]
       ; config = config_persist
       }
+  | StateFact { param; state; state_desc; transition } ->
+      compile_state_fact param state state_desc transition
   | _ -> assert false
-;;
 
 let mk_constant_fact s = ConstantFact (String s, Var s)
 
@@ -235,13 +281,6 @@ type action =
   | ActionPopLoc of int
   | ActionPopMeta of int
   | ActionLetTop of expr list
-
-type state_desc =
-  { ret : expr
-  ; metas : expr list
-  ; locs : expr list
-  ; tops : expr list
-  }
 
 let empty_state_desc = { ret = Unit; metas = []; locs = []; tops = [] }
 
@@ -277,18 +316,6 @@ let rec action_sem
   | ActionLetTop e -> { state_desc with ret = Unit; tops = e @ top_lst }
 ;;
 
-type var_nums =
-  { meta : int
-  ; loc : int
-  ; top : int
-  }
-
-type state =
-  { state_namespace : string
-  ; state_index : mindex
-  ; state_vars : var_nums
-  }
-
 type transition =
   { transition_id : int
   ; transition_namespace : string
@@ -310,10 +337,6 @@ let mk_state_transition_from_action a { meta = meta_num; loc = loc_num; top = to
   ( { ret = return_var; metas = meta_var; locs = loc_var; tops = top_var }
   , action_sem a { ret = return_var; metas = meta_var; locs = loc_var; tops = top_var } )
 ;;
-
-let get_state_fact_name (s : state) = "State" ^ !separator ^ s.state_namespace
-let state_index_to_string_aux (st : state) = index_to_string st.state_index
-let state_index_to_string st = String (state_index_to_string_aux st)
 
 let rec print_expr e =
   match e with
@@ -340,26 +363,13 @@ let rec print_expr e =
   | Param -> !fresh_param
 ;;
 
-let check_state_and_state_desc st desc =
-  assert (List.length desc.metas = st.state_vars.meta);
-  assert (List.length desc.locs = st.state_vars.loc);
-  assert (List.length desc.tops = st.state_vars.top)
+let mk_state_fact ?param st desc transition : fact =
+  StateFact { param; state= st; state_desc=desc; transition }
 
-let mk_state ?param st ({ ret; metas = meta; locs = loc; tops = top } as desc) : fact' =
-  check_state_and_state_desc st desc;
-  { name = get_state_fact_name st
-  ; (* ^ (let (a,b,c) = st.state_vars in "_" ^(string_of_int a)^"_" ^(string_of_int b)^"_" ^(string_of_int c)) *)
-    args =
-      [ List [ state_index_to_string st;
-               match param with None -> Param | Some param -> String param ]
-      ; ret
-      ; List meta
-      ; List loc
-      ; List top
-      ]
-  ; config = config_linear
-  }
-;;
+let mk_transition_expr = function
+  | `Loop -> AddOne (Int ("v" ^ !separator))
+  | `Initial -> One
+  | `None -> Int ("v" ^ !separator)
 
 type 'fact rule_ =
   { name : string
@@ -369,8 +379,13 @@ type 'fact rule_ =
   ; post : 'fact list
   }
 
+let compile_rule_ r =
+    { r with pre = List.map compile_fact r.pre;
+             label = List.map compile_fact r.label;
+             post = List.map compile_fact r.post }
+
 type rule =
-  | Rule of fact' rule_
+  | Rule of fact rule_
   | Comment of string
 
 type model =
@@ -389,9 +404,9 @@ let _add_rule (mo : model) (a, b, c, d, e) =
       Rule
         { name = a
         ; act = b
-        ; pre = List.map compile_fact c
-        ; label = List.map compile_fact d
-        ; post = List.map compile_fact e
+        ; pre = c
+        ; label = d
+        ; post = e
         }
       :: mo.model_init_rules
   }
@@ -408,35 +423,6 @@ let initial_state ~namespace =
   { state_namespace = namespace
   ; state_index = [ [], 0 ]
   ; state_vars = { meta = 0; loc = 0; top = 0 }
-  }
-;;
-
-let mk_state_transition
-      ?param
-      st
-      ({ ret; metas = meta; locs = loc; tops = top } as desc)
-      ~is_initial
-      ~is_loop
-  : fact'
-  =
-  check_state_and_state_desc st desc;
-  { name = get_state_fact_name st
-  ; args =
-      [ List
-          [ state_index_to_string st
-          ; (match param with None -> Param | Some param -> String param)
-          ; (if is_loop
-             then AddOne (Int ("v" ^ !separator))
-             else if is_initial
-             then One
-             else Int ("v" ^ !separator))
-          ]
-      ; ret
-      ; List meta
-      ; List loc
-      ; List top
-      ]
-  ; config = config_linear
   }
 ;;
 
@@ -470,12 +456,13 @@ let _initial_attacker_model ~namespace ~typ =
         [ Rule
             { name = "Init" ^ namespace
             ; act = namespace
-            ; pre = [ compile_fact (AttackFact (namespace, MetaNewVar 0)) ]
+            ; pre = [ AttackFact (namespace, MetaNewVar 0) ]
             ; label = []
             ; post =
-                [ mk_state
+                [ mk_state_fact
                     st
                     { ret = Unit; metas = [ MetaNewVar 0 ]; locs = []; tops = [] }
+                    None
                 ]
             }
         ]
@@ -530,19 +517,11 @@ let add_model t m = { t with models = m :: t.models }
 
 let add_rule t (r : _ rule_) =
   { t with
-    rules =
-      Rule
-        { name = r.name
-        ; act = r.act
-        ; pre = List.map compile_fact r.pre
-        ; label = List.map compile_fact r.label
-        ; post = List.map compile_fact r.post
-        }
-      :: t.rules
+    rules = Rule r :: t.rules
   }
 ;;
 
-let add_rule' t r = { t with rules = Rule r :: t.rules }
+(* let add_rule' t r = { t with rules = Rule r :: t.rules } *)
 let add_comment t s = { t with rules = Comment s :: t.rules }
 let add_lemma t lem = { t with lemmas = lem :: t.lemmas }
 
@@ -608,15 +587,15 @@ let transition_to_rule (tr : transition) : rule =
   let post = tr.transition_post in
   let label = tr.transition_label in
   let initial_state_fact =
-    mk_state tr.transition_from (fst tr.transition_state_transition)
+    mk_state_fact tr.transition_from (fst tr.transition_state_transition) None
   in
-  let final_state_fact = mk_state tr.transition_to (snd tr.transition_state_transition) in
+  let final_state_fact = mk_state_fact tr.transition_to (snd tr.transition_state_transition) None in
   Rule
     { name
     ; act = tr.transition_namespace
-    ; pre = initial_state_fact :: List.map compile_fact pre
-    ; label = List.map compile_fact label
-    ; post = final_state_fact :: List.map compile_fact post
+    ; pre = initial_state_fact :: pre
+    ; label = label
+    ; post = final_state_fact :: post
     }
 ;;
 
@@ -643,25 +622,23 @@ let transition_to_transition_rule (tr : transition) : rule =
     :: tr.transition_label
   in
   let initial_state_fact =
-    mk_state_transition
+    mk_state_fact
       tr.transition_from
       (fst tr.transition_state_transition)
-      ~is_initial:false
-      ~is_loop:false
+      (Some (mk_transition_expr `None))
   in
   let final_state_fact =
-    mk_state_transition
+    mk_state_fact
       tr.transition_to
       (snd tr.transition_state_transition)
-      ~is_initial:false
-      ~is_loop:tr.transition_is_loop_back
+      (Some (mk_transition_expr (if tr.transition_is_loop_back then `Loop else `None)))
   in
   Rule
     { name
     ; act = tr.transition_namespace
-    ; pre = initial_state_fact :: List.map compile_fact pre
-    ; label = List.map compile_fact label
-    ; post = final_state_fact :: List.map compile_fact post
+    ; pre = initial_state_fact :: pre
+    ; label = label
+    ; post = final_state_fact :: post
     }
 ;;
 
@@ -685,7 +662,7 @@ let print_comment s = "\n// " ^ s ^ "\n\n"
 
 let print_rule r ~dev =
   match r with
-  | Rule r -> print_rule_aux r dev
+  | Rule r -> print_rule_aux (compile_rule_ r) dev
   | Comment s -> print_comment s
 ;;
 

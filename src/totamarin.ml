@@ -1315,12 +1315,12 @@ let translate_sys
       (List.rev proc)
   in
   let t =
-    add_rule'
+    add_rule
       t
       { name = "Init" ^ !separator ^ "system"
       ; act = "system"
       ; pre = []
-      ; label = [ compile_fact (InitFact [ String "system" ]) ]
+      ; label = [ InitFact [ String "system" ] ]
       ; post =
           (* initializing tokens..  *)
           List.map
@@ -1328,15 +1328,14 @@ let translate_sys
                let st = m.model_init_state in
                if !Config.tag_transition
                then
-                 mk_state_transition
+                 mk_state_fact
                    ~param:!fresh_string
                    st
                    empty_state_desc
-                   ~is_initial:true
-                   ~is_loop:false
-               else mk_state ~param:!fresh_string st empty_state_desc)
+                   (Some (mk_transition_expr `Initial))
+               else mk_state_fact ~param:!fresh_string st empty_state_desc None)
             mos
-          @ [ compile_fact (AccessGenFact ("system" ^ !separator, String !fresh_string)) ]
+          @ [ AccessGenFact ("system" ^ !separator, String !fresh_string) ]
       }
   in
   let t, _ =
@@ -1429,8 +1428,7 @@ let translate_sys
                             ( false
                             , List.map
                                 (fun (_, _, scall) ->
-                                   compile_fact
-                                     (AccessFact (namespace, Param, String cname, scall)))
+                                   AccessFact (namespace, Param, String cname, scall))
                                 (List.filter
                                    (fun (pty, tyl, _scall) ->
                                       pty = p.Context.proc_type
@@ -1441,12 +1439,11 @@ let translate_sys
                             ( true
                             , List.map
                                 (fun (_, _, scall) ->
-                                   compile_fact
-                                     (AccessFact
-                                        ( namespace
-                                        , Param
-                                        , List [ String cname; Var !fresh_ident ]
-                                        , scall )))
+                                   AccessFact
+                                     ( namespace
+                                     , Param
+                                     , List [ String cname; Var !fresh_ident ]
+                                     , scall ))
                                 (List.filter
                                    (fun (pty, tyl, _scall) ->
                                       pty = p.Context.proc_type
@@ -1459,9 +1456,8 @@ let translate_sys
                             ( false
                             , List.map
                                 (fun (_, _, scall) ->
-                                   compile_fact
-                                     (AccessFact
-                                        (namespace, Param, List [ String cname; e ], scall)))
+                                   AccessFact
+                                     (namespace, Param, List [ String cname; e ], scall))
                                 (List.filter
                                    (fun (pty, tyl, _scall) ->
                                       pty = p.Context.proc_type
@@ -1477,30 +1473,25 @@ let translate_sys
              (List.rev pl)
          in
          let t =
-           add_rule'
+           add_rule
              t
              { name = "Init" ^ !separator ^ "system" ^ string_of_int n
              ; act = "system" ^ string_of_int n
-             ; pre = [ { name = "Fr"; args = [ Param ]; config = config_linear } ]
+             ; pre = [ ResFact (2, [ Param ]) ] (* XXX This produce the same compilation but not sure it is semantically correct *)
              ; label =
-                 [ compile_fact
-                     (InitFact [ List [ String ("system" ^ string_of_int n); Param ] ])
-                 ]
+                 [ InitFact [ List [ String ("system" ^ string_of_int n); Param ] ] ]
              ; post =
-                 [ compile_fact
-                     (AccessGenFact ("system" ^ string_of_int n ^ !separator, Param))
-                 ]
+                 [ AccessGenFact ("system" ^ string_of_int n ^ !separator, Param) ]
                  @ List.map
                      (fun m ->
                         let st = m.model_init_state in
                         if !Config.tag_transition
                         then
-                          mk_state_transition
+                          mk_state_fact
                             st
                             empty_state_desc
-                            ~is_initial:true
-                            ~is_loop:false
-                        else mk_state st empty_state_desc)
+                            (Some (mk_transition_expr `Initial))
+                        else mk_state_fact st empty_state_desc None)
                      mos
              }
          in
@@ -1508,8 +1499,8 @@ let translate_sys
            List.fold_left
              (fun (t, m) (b, facts, gv) ->
                 List.fold_left
-                  (fun (t, m) (fact : fact') ->
-                     ( add_rule'
+                  (fun (t, m) (fact : fact) ->
+                     ( add_rule
                          t
                          { name =
                              "Init"
@@ -1522,41 +1513,38 @@ let translate_sys
                              ^ string_of_int m
                          ; act = "system" ^ string_of_int n
                          ; pre =
-                             List.map compile_fact gv
-                             @ [ compile_fact
-                                   (AccessGenFact
-                                      ("system" ^ string_of_int n ^ !separator, Param))
-                               ]
+                             gv
+                             @ [ AccessGenFact
+                                   ("system" ^ string_of_int n ^ !separator, Param) ]
                          ; label =
-                             [ compile_fact
-                                 (if b
-                                  then
-                                    InitFact
-                                      [ List
-                                          [ String
-                                              ("system"
-                                               ^ string_of_int n
-                                               ^ !separator
-                                               ^ "ACP"
-                                               ^ !separator
-                                               ^ string_of_int m)
-                                          ; Param
-                                          ; Var !fresh_ident
-                                          ]
-                                      ]
-                                  else
-                                    InitFact
-                                      [ List
-                                          [ String
-                                              ("system"
-                                               ^ string_of_int n
-                                               ^ !separator
-                                               ^ "ACP"
-                                               ^ !separator
-                                               ^ string_of_int m)
-                                          ; Param
-                                          ]
-                                      ])
+                             [ if b
+                               then
+                                 InitFact
+                                   [ List
+                                       [ String
+                                           ("system"
+                                            ^ string_of_int n
+                                            ^ !separator
+                                            ^ "ACP"
+                                            ^ !separator
+                                            ^ string_of_int m)
+                                       ; Param
+                                       ; Var !fresh_ident
+                                       ]
+                                   ]
+                               else
+                                 InitFact
+                                   [ List
+                                       [ String
+                                           ("system"
+                                            ^ string_of_int n
+                                            ^ !separator
+                                            ^ "ACP"
+                                            ^ !separator
+                                            ^ string_of_int m)
+                                       ; Param
+                                       ]
+                                   ]
                              ]
                          ; post = [ fact ]
                          }
