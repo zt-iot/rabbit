@@ -44,26 +44,9 @@ type ver_key_server : key[Ver]
 
 
 
-(* security primitives *)
-function pk : key[Dec] -> key[Enc]
-function vk : key[Sig] -> key[Ver]
-function enc : 'a -> key[Sym] -> cipher['a]
-function sign : 'a -> key[Sig] -> signature
-function dec : cipher['a] -> key[Sym] -> 'a
-function fst : 'a * 'b -> 'a
-function snd : 'a * 'b -> 'b
-equation fst ((x, y)) = x
-equation snd ((x, y)) = y
-function true : bool                                        (* A 0-argument function, aka a constant, which is of type bool *)
-function verify : signature -> 'a -> key[Enc] -> bool
-equation dec(enc(x, y), y) = x
-equation verify (sign(d, k), d, vk(k)) = true
-
-
-
 
 (* load syscalls on channels *)
-load "udp_rpc_typed_opt_1.rab"
+load "camserver_typed_eq_theory.rab"
 
 (* picture *)
 syscall get_picture () : client_img {
@@ -174,7 +157,7 @@ channel rpc : rpc_t
 
 filesys server_fs = 
 [ 
-  {path: "/secret/pub", data: pk(priv_k), type: readonly_t} 
+  {path: "/secret/pub", data: vk(priv_k), type: readonly_t} 
 ]
 
 filesys client_ta_fs = 
