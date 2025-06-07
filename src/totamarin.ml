@@ -20,78 +20,69 @@ let next_state ?(shift = {meta=0; loc=0; top=0}) st scope =
   }
 ;;
 
-let rec translate_expr ?(ch = false) { Location.data = e; Location.loc = _loc } =
-  let translate_expr' = function
-    | Syntax.ExtConst s -> Apply (s, [])
-    | Syntax.Const (_s, None) -> assert false
-    | Syntax.Const (_cid, Some _e) -> assert false
-    | Syntax.Variable (_v, Top i) -> TopVar i
-    | Syntax.Variable (_v, Loc i) -> LocVar i
-    | Syntax.Variable (_v, Meta i) -> MetaVar i
-    | Syntax.Variable (_v, MetaNew i) -> MetaNewVar i
-    | Syntax.Variable (_v, Param) -> Param
-    | Syntax.Boolean _b -> assert false
-    | Syntax.String s -> String s
-    | Syntax.Integer _z -> assert false
-    | Syntax.Float _f -> assert false
-    | Syntax.Apply (o, el) -> Apply (o, List.map (translate_expr ~ch) el)
-    | Syntax.Tuple el -> List (List.map (translate_expr ~ch) el)
-    | Syntax.Channel (c, None) -> if ch then Var c else String c
-    | Syntax.Channel (c, Some e) -> expr_pair (String c) (translate_expr ~ch e)
-  in
-  translate_expr' e
-;;
+let rec translate_expr ?(ch = false) e : expr =
+  match e.Location.data with
+  | Syntax.ExtConst s -> Apply (s, [])
+  | Syntax.Const (_s, None) -> assert false
+  | Syntax.Const (_cid, Some _e) -> assert false
+  | Syntax.Variable (_v, Top i) -> TopVar i
+  | Syntax.Variable (_v, Loc i) -> LocVar i
+  | Syntax.Variable (_v, Meta i) -> MetaVar i
+  | Syntax.Variable (_v, MetaNew i) -> MetaNewVar i
+  | Syntax.Variable (_v, Param) -> Param
+  | Syntax.Boolean _b -> assert false
+  | Syntax.String s -> String s
+  | Syntax.Integer _z -> assert false
+  | Syntax.Float _f -> assert false
+  | Syntax.Apply (o, el) -> Apply (o, List.map (translate_expr ~ch) el)
+  | Syntax.Tuple el -> List (List.map (translate_expr ~ch) el)
+  | Syntax.Channel (c, None) -> if ch then Var c else String c
+  | Syntax.Channel (c, Some e) -> expr_pair (String c) (translate_expr ~ch e)
 
 (* ConstantFact (String s, Var s) *)
-let rec translate_expr2
-          ?(ch = false)
-          ?(num = 0)
-          { Location.data = e; Location.loc = _loc }
+let rec translate_expr2 ?(ch = false) ?(num = 0) e : expr * fact list * int
   =
-  let translate_expr2' = function
-    | Syntax.ExtConst s -> Apply (s, []), [], num
-    | Syntax.Const (s, None) -> Var s, [ ConstantFact (String s, Var s) ], num
-    | Syntax.Const (cid, Some e) ->
-        let e', l, n = translate_expr2 ~ch ~num:(num + 1) e in
-        let var_name = cid ^ !separator ^ string_of_int num in
-        Var var_name, ConstantFact (expr_pair (String cid) e', Var var_name) :: l, n
-    | Syntax.Variable (_v, Top i) -> TopVar i, [], num
-    | Syntax.Variable (_v, Loc i) -> LocVar i, [], num
-    | Syntax.Variable (_v, Meta i) -> MetaVar i, [], num
-    | Syntax.Variable (_v, MetaNew i) -> MetaNewVar i, [], num
-    | Syntax.Variable (_v, Param) -> Param, [], num
-    | Syntax.Boolean _b -> assert false
-    | Syntax.String s -> String s, [], num
-    | Syntax.Integer z -> Integer z, [], num
-    | Syntax.Float _f -> assert false
-    | Syntax.Apply (o, el) ->
-        let el, sl, n =
-          List.fold_left
-            (fun (el, sl, n) e ->
-               let e, s, n = translate_expr2 ~ch ~num:n e in
-               el @ [ e ], sl @ s, n)
-            ([], [], num)
-            el
-        in
-        Apply (o, el), sl, n
-    | Syntax.Tuple el ->
-        let el, sl, n =
-          List.fold_left
-            (fun (el, sl, n) e ->
-               let e, s, n = translate_expr2 ~ch ~num:n e in
-               el @ [ e ], sl @ s, n)
-            ([], [], num)
-            el
-        in
-        List el, sl, n
-    | Syntax.Channel (c, None) -> if ch then Var c, [], num else String c, [], num
-    | Syntax.Channel (c, Some e) ->
-        let e', l, n = translate_expr2 ~ch ~num e in
-        (* let var_name = (cid ^ !separator ^ string_of_int num) in *)
-        expr_pair (String c) e', l, n
-  in
-  translate_expr2' e
-;;
+  match e.Location.data with
+  | Syntax.ExtConst s -> Apply (s, []), [], num
+  | Syntax.Const (s, None) -> Var s, [ ConstantFact (String s, Var s) ], num
+  | Syntax.Const (cid, Some e) ->
+      let e', l, n = translate_expr2 ~ch ~num:(num + 1) e in
+      let var_name = cid ^ !separator ^ string_of_int num in
+      Var var_name, ConstantFact (expr_pair (String cid) e', Var var_name) :: l, n
+  | Syntax.Variable (_v, Top i) -> TopVar i, [], num
+  | Syntax.Variable (_v, Loc i) -> LocVar i, [], num
+  | Syntax.Variable (_v, Meta i) -> MetaVar i, [], num
+  | Syntax.Variable (_v, MetaNew i) -> MetaNewVar i, [], num
+  | Syntax.Variable (_v, Param) -> Param, [], num
+  | Syntax.Boolean _b -> assert false
+  | Syntax.String s -> String s, [], num
+  | Syntax.Integer z -> Integer z, [], num
+  | Syntax.Float _f -> assert false
+  | Syntax.Apply (o, el) ->
+      let el, sl, n =
+        List.fold_left
+          (fun (el, sl, n) e ->
+             let e, s, n = translate_expr2 ~ch ~num:n e in
+             el @ [ e ], sl @ s, n)
+          ([], [], num)
+          el
+      in
+      Apply (o, el), sl, n
+  | Syntax.Tuple el ->
+      let el, sl, n =
+        List.fold_left
+          (fun (el, sl, n) e ->
+             let e, s, n = translate_expr2 ~ch ~num:n e in
+             el @ [ e ], sl @ s, n)
+          ([], [], num)
+          el
+      in
+      List el, sl, n
+  | Syntax.Channel (c, None) -> if ch then Var c, [], num else String c, [], num
+  | Syntax.Channel (c, Some e) ->
+      let e', l, n = translate_expr2 ~ch ~num e in
+      (* let var_name = (cid ^ !separator ^ string_of_int num) in *)
+      expr_pair (String c) e', l, n
 
 (* let make_rule_name eng scope =
   eng.namespace^engine_state_aux eng ^ (match scope with Some scope -> (mult_list_with_concat (List.map string_of_int scope) "_") | None -> "") *)
@@ -228,20 +219,6 @@ let rec tamarin_expr_shift_meta shift e =
 (* xxx not used *)
 let _ = tamarin_expr_shift_meta
 
-let rec pop_hd n lst =
-  if n > 0
-  then (
-    match lst with
-    | _ :: lst -> pop_hd (n - 1) lst
-    | [] -> assert false)
-  else if n = 0
-  then lst
-  else assert false
-;;
-
-(* xxx not used *)
-let _ = pop_hd
-
 (*
    given a model, the current state that is promised to be already in the model,
   this function returns an extended model
@@ -256,10 +233,10 @@ let rec translate_cmd
           scope
           syscall
           pol
-          { Location.data = c; Location.loc = _loc }
+          c
   =
   let return_var = get_return_var () in
-  match c with
+  match c.Location.data with
   | Syntax.Return e ->
       let e, gv, _ = translate_expr2 e in
       let (st_f : state) = next_state st scope in
@@ -1095,10 +1072,6 @@ let translate_process
   in
   mo
 ;;
-
-(* List.fold_left (fun t r -> add_rule t
-    (let (rname, pre, lab, post) = r in
-    (rname, namespace, pre, lab, post))) t r  *)
 
 let get_fact_names ctx =
   List.map (fun (a, _, _) -> a) ctx.Context.ctx_fact
