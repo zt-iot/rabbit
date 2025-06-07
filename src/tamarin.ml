@@ -142,7 +142,8 @@ type fact =
   | ChannelFact of string * expr * expr list
   | PathFact of string * string (* namespace *) * expr (* path *) * expr list
   | ProcessFact of string * expr * expr list
-  | ResFact of int * expr list
+  | EqFact of expr * expr
+  | NeqFact of expr * expr
   | AccessFact of string * expr * expr * string
   | AttackFact of string * expr
   | FileFact of string * expr * expr
@@ -162,6 +163,7 @@ type fact =
         expr
     (* arguments *)
   | FreshFact of expr
+  | FreshFact' of expr
   | AccessGenFact of string (* namespace *) * expr (* param *)
   | StateFact of { param : string option; state : state; state_desc : state_desc; transition : expr option }
 
@@ -221,9 +223,8 @@ let compile_fact (f : fact) : fact' =
   | ChannelFact (fid, ch, el) ->
       { name = mk_my_fact_name fid; args = ch :: el; config = config_linear }
   (* | PathFact (fid, nsp, path, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp,path :: el, config_linear) *)
-  | ResFact (0, el) -> { name = "Eq" ^ !separator; args = el; config = config_persist }
-  | ResFact (1, el) -> { name = "NEq" ^ !separator; args = el; config = config_persist }
-  | ResFact (2, el) -> { name = "Fr"; args = el; config = config_linear }
+  | EqFact (e1, e2) -> { name = "Eq" ^ !separator; args = [e1; e2]; config = config_persist }
+  | NeqFact (e1, e2) -> { name = "NEq" ^ !separator; args = [e1; e2]; config = config_persist }
   | AccessFact (nsp, param, target, syscall) ->
       { name = "ACP" ^ !separator
       ; args = [ List [ String nsp; param ]; target; String syscall ]
@@ -258,6 +259,7 @@ let compile_fact (f : fact) : fact' =
       ; args = [ Param; FVar id; el ]
       ; config = config_linear
       }
+  | FreshFact' e -> { name = "Fr"; args = [ e ]; config = config_linear }
   | FreshFact e -> { name = "Fr"; args = [ FVar e ]; config = config_linear }
   | AccessGenFact (nsp, param) ->
       { name = "ACP" ^ !separator ^ "GEN" ^ !separator
