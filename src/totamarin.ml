@@ -12,11 +12,12 @@ let index_inc index scope =
   | Some s -> (s, 0) :: index
 ;;
 
-let next_state ?(shift = {meta=0; loc=0; top=0}) st scope =
+let next_state ?(shift = { meta = 0; loc = 0; top = 0 }) st scope =
   let { meta; loc; top } = st.state_vars in
   { st with
     state_index = index_inc st.state_index scope
-  ; state_vars = { meta = meta + shift.meta; loc = loc + shift.loc; top = top + shift.top }
+  ; state_vars =
+      { meta = meta + shift.meta; loc = loc + shift.loc; top = top + shift.top }
   }
 ;;
 
@@ -38,10 +39,10 @@ let rec translate_expr ?(ch = false) e : expr =
   | Syntax.Tuple el -> List (List.map (translate_expr ~ch) el)
   | Syntax.Channel (c, None) -> if ch then Var c else String c
   | Syntax.Channel (c, Some e) -> expr_pair (String c) (translate_expr ~ch e)
+;;
 
 (* ConstantFact (String s, Var s) *)
-let rec translate_expr2 ?(ch = false) ?(num = 0) e : expr * fact list * int
-  =
+let rec translate_expr2 ?(ch = false) ?(num = 0) e : expr * fact list * int =
   match e.Location.data with
   | Syntax.ExtConst s -> Apply (s, []), [], num
   | Syntax.Const (s, None) -> Var s, [ ConstantFact (String s, Var s) ], num
@@ -83,6 +84,7 @@ let rec translate_expr2 ?(ch = false) ?(num = 0) e : expr * fact list * int
       let e', l, n = translate_expr2 ~ch ~num e in
       (* let var_name = (cid ^ !separator ^ string_of_int num) in *)
       expr_pair (String c) e', l, n
+;;
 
 (* let make_rule_name eng scope =
   eng.namespace^engine_state_aux eng ^ (match scope with Some scope -> (mult_list_with_concat (List.map string_of_int scope) "_") | None -> "") *)
@@ -166,7 +168,7 @@ let translate_fact ?(num = 0) namespace (f : Syntax.fact) =
       let p, g1, n = translate_expr2 ~num p in
       let d, g2, n = translate_expr2 ~num:n d in
       FileFact (namespace, p, d), g1 @ g2, [ p ], n
-  | _ -> assert false
+  | Syntax.ProcessFact _ -> assert false
 ;;
 
 let translate_facts ?(num = 0) namespace (fl : Syntax.fact list) =
@@ -186,7 +188,7 @@ let rec expr_shift_meta shift e =
     | Syntax.Tuple el -> Syntax.Tuple (List.map (expr_shift_meta shift) el)
     | _ -> e.Location.data
   in
-  Location.locate ~loc:e.Location.loc e'
+  { e with data = e' }
 ;;
 
 let _fact_shift_meta shift f =
@@ -223,18 +225,7 @@ let _ = tamarin_expr_shift_meta
    given a model, the current state that is promised to be already in the model,
   this function returns an extended model
 *)
-let rec translate_cmd
-          mo
-          (st : state)
-          funs
-          syscalls
-          attacks
-          vars
-          scope
-          syscall
-          pol
-          c
-  =
+let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c =
   let return_var = get_return_var () in
   match c.Location.data with
   | Syntax.Return e ->
@@ -252,7 +243,7 @@ let rec translate_cmd
           ; transition_pre = gv
           ; transition_post = []
           ; transition_state_transition =
-              mk_state_transition_from_action (ActionReturn e) vars
+              mk_state_transition_from_action (ActionReturn e) st.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
           }
@@ -272,15 +263,15 @@ let rec translate_cmd
           ; transition_pre = []
           ; transition_post = []
           ; transition_state_transition =
-              mk_state_transition_from_action (ActionReturn Unit) vars
+              mk_state_transition_from_action (ActionReturn Unit) st.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
           }
       in
       mo, st_f
   | Syntax.Sequence (c1, c2) ->
-      let mo, st = translate_cmd mo st funs syscalls attacks vars scope syscall pol c1 in
-      let mo, st = translate_cmd mo st funs syscalls attacks vars None syscall pol c2 in
+      let mo, st = translate_cmd mo st funs syscalls attacks scope syscall pol c1 in
+      let mo, st = translate_cmd mo st funs syscalls attacks None syscall pol c2 in
       mo, st
   | Syntax.Put fl ->
       let fl, gv, acps, _ = translate_facts mo.model_name fl in
@@ -300,7 +291,7 @@ let rec translate_cmd
           ; transition_pre = gv @ acps
           ; transition_post = fl
           ; transition_state_transition =
-              mk_state_transition_from_action (ActionReturn Unit) vars
+              mk_state_transition_from_action (ActionReturn Unit) st.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
           }
@@ -308,7 +299,7 @@ let rec translate_cmd
       mo, st_f
   | Syntax.Let (_v, e, c) ->
       let e, gv, _ = translate_expr2 e in
-      let st_f = next_state ~shift:{meta= 0; loc= 1; top= 0} st scope in
+      let st_f = next_state ~shift:{ meta = 0; loc = 1; top = 0 } st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -321,25 +312,13 @@ let rec translate_cmd
           ; transition_pre = gv
           ; transition_post = []
           ; transition_state_transition =
-              mk_state_transition_from_action (ActionIntro [ e ]) vars
+              mk_state_transition_from_action (ActionIntro [ e ]) st.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
           }
       in
-      let mo, st =
-        translate_cmd
-          mo
-          st_f
-          funs
-          syscalls
-          attacks
-          { vars with loc = vars.loc + 1 }
-          None
-          syscall
-          pol
-          c
-      in
-      let st_f = next_state ~shift:{meta= 0; loc= -1; top= 0} st scope in
+      let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol c in
+      let st_f = next_state ~shift:{ meta = 0; loc = -1; top = 0 } st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -390,7 +369,7 @@ let rec translate_cmd
       in
       let el = List.rev el in
       let _f, _args, cmd = List.find (fun (f', _args, _cmd) -> f = f') funs in
-      let st_f = next_state ~shift:{meta= 0; loc= List.length el; top= 0} st scope in
+      let st_f = next_state ~shift:{ meta = 0; loc = List.length el; top = 0 } st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -408,20 +387,10 @@ let rec translate_cmd
           ; transition_is_loop_back = false
           }
       in
-      let mo, st =
-        translate_cmd
-          mo
-          st_f
-          funs
-          syscalls
-          attacks
-          { vars with loc = vars.loc + List.length el }
-          None
-          syscall
-          pol
-          cmd
+      let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol cmd in
+      let st_f =
+        next_state ~shift:{ meta = 0; loc = -List.length el; top = 0 } st scope
       in
-      let st_f = next_state ~shift:{meta= 0; loc= -List.length el; top= 0} st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -457,7 +426,9 @@ let rec translate_cmd
       in
       let el = List.rev el in
       let _f, _args, cmd = List.find (fun (f', _args, _cmd) -> o = f') syscalls in
-      let st_i = next_state ~shift:{meta= 0; loc= List.length el; top= 0} st (Some [ 0 ]) in
+      let st_i =
+        next_state ~shift:{ meta = 0; loc = List.length el; top = 0 } st (Some [ 0 ])
+      in
       let mo = add_state mo st_i in
       let mo =
         add_transition
@@ -475,19 +446,7 @@ let rec translate_cmd
           ; transition_is_loop_back = false
           }
       in
-      let mo, st_m =
-        translate_cmd
-          mo
-          st_i
-          funs
-          syscalls
-          attacks
-          { vars with loc = vars.loc + List.length el }
-          None
-          o
-          pol
-          cmd
-      in
+      let mo, st_m = translate_cmd mo st_i funs syscalls attacks None o pol cmd in
       let st_f = next_state st None in
       let mo = add_state mo st_f in
       let mo =
@@ -530,7 +489,9 @@ let rec translate_cmd
            let mo =
              List.fold_left2
                (fun mo scope (_a, _, _, c) ->
-                  let st_i2 = next_state ~shift:{meta= 0; loc= List.length el; top= 0} st scope in
+                  let st_i2 =
+                    next_state ~shift:{ meta = 0; loc = List.length el; top = 0 } st scope
+                  in
                   let mo = add_state mo st_i2 in
                   let mo =
                     add_transition
@@ -549,17 +510,7 @@ let rec translate_cmd
                       }
                   in
                   let mo, st_m =
-                    translate_cmd
-                      mo
-                      st_i2
-                      funs
-                      syscalls
-                      attacks
-                      { vars with loc = vars.loc + List.length el }
-                      None
-                      o
-                      pol
-                      c
+                    translate_cmd mo st_i2 funs syscalls attacks None o pol c
                   in
                   add_transition
                     mo
@@ -606,7 +557,6 @@ let rec translate_cmd
                  funs
                  syscalls
                  attacks
-                 vars
                  scope
                  syscall
                  pol
@@ -673,7 +623,6 @@ let rec translate_cmd
                  funs
                  syscalls
                  attacks
-                 vars
                  scope
                  syscall
                  pol
@@ -709,7 +658,6 @@ let rec translate_cmd
                  funs
                  syscalls
                  attacks
-                 vars
                  scope
                  syscall
                  pol
@@ -757,9 +705,6 @@ let rec translate_cmd
           }
       in
       mo, st_f
-  (* | New of Name.ident * Name.ident * expr list * cmd
-  | Get of Name.ident list * expr * Name.ident * cmd
-  | Del of expr * Name.ident *)
   | Syntax.New (_v, fid_el_opt, c) ->
       let fid, el = Option.value fid_el_opt ~default:("", []) in
       let el, gv, _ =
@@ -770,7 +715,7 @@ let rec translate_cmd
           ([], [], 0)
           el
       in
-      let st_f = next_state ~shift:{meta= 1; loc= 0; top= 0} st scope in
+      let st_f = next_state ~shift:{ meta = 1; loc = 0; top = 0 } st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -786,25 +731,13 @@ let rec translate_cmd
                then []
                else [ InjectiveFact (fid, mo.model_name, MetaNewVar 0, List el) ])
           ; transition_state_transition =
-              mk_state_transition_from_action (ActionAddMeta 1) vars
+              mk_state_transition_from_action (ActionAddMeta 1) st.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
           }
       in
-      let mo, st =
-        translate_cmd
-          mo
-          st_f
-          funs
-          syscalls
-          attacks
-          { vars with meta = vars.meta + 1 }
-          None
-          syscall
-          pol
-          c
-      in
-      let st_f = next_state ~shift:{meta= -1; loc= 0; top= 0} st scope in
+      let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol c in
+      let st_f = next_state ~shift:{ meta = -1; loc = 0; top = 0 } st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -825,7 +758,7 @@ let rec translate_cmd
       mo, st_f
   | Syntax.Get (vl, id, fid, c) ->
       let e, g, _ = translate_expr2 id in
-      let st_f = next_state ~shift:{meta= List.length vl; loc= 0; top= 0} st scope in
+      let st_f = next_state ~shift:{ meta = List.length vl; loc = 0; top = 0 } st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -853,25 +786,17 @@ let rec translate_cmd
                   )
               ]
           ; transition_state_transition =
-              mk_state_transition_from_action (ActionAddMeta (List.length vl)) vars
+              mk_state_transition_from_action
+                (ActionAddMeta (List.length vl))
+                st.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
           }
       in
-      let mo, st =
-        translate_cmd
-          mo
-          st_f
-          funs
-          syscalls
-          attacks
-          { vars with meta = vars.meta + List.length vl }
-          None
-          syscall
-          pol
-          c
+      let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol c in
+      let st_f =
+        next_state ~shift:{ meta = -List.length vl; loc = 0; top = 0 } st scope
       in
-      let st_f = next_state ~shift:{meta= -List.length vl; loc= 0; top= 0} st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -907,19 +832,19 @@ let rec translate_cmd
           ; transition_pre = [ InjectiveFact (fid, mo.model_name, e, MetaNewVar 0) ] @ g
           ; transition_post = []
           ; transition_state_transition =
-              mk_state_transition_from_action (ActionReturn Unit) vars
+              mk_state_transition_from_action (ActionReturn Unit) st.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
           }
       in
       mo, st_f
 
-and translate_guarded_cmd mo st funs syscalls attacks vars scope syscall pol (vl, fl, c) =
+and translate_guarded_cmd mo st funs syscalls attacks scope syscall pol (vl, fl, c) =
   let fl, gv, acps, _ = translate_facts mo.model_name fl in
   let acps =
     List.map (fun target -> AccessFact (mo.model_name, Param, target, syscall)) acps
   in
-  let st_f = next_state ~shift:{meta= List.length vl; loc= 0; top= 0} st scope in
+  let st_f = next_state ~shift:{ meta = List.length vl; loc = 0; top = 0 } st scope in
   let mo = add_state mo st_f in
   (* let eng_f = engine_index_inc eng scope in *)
   let mo =
@@ -938,21 +863,8 @@ and translate_guarded_cmd mo st funs syscalls attacks vars scope syscall pol (vl
       ; transition_is_loop_back = false
       }
   in
-  let mo, st_f =
-    translate_cmd
-      mo
-      st_f
-      funs
-      syscalls
-      attacks
-      { vars with meta = vars.meta + List.length vl }
-      None
-      syscall
-      pol
-      c
-  in
-  mo, st_f
-;;
+  translate_cmd mo st_f funs syscalls attacks None syscall pol c
+
 
 let translate_process
       { Context.proc_pid = k
@@ -982,7 +894,7 @@ let translate_process
     List.fold_left
       (fun (mo, st) (path, ty, e) ->
          (* let path = (mk_dir eng fsys path) in *)
-         let st_f = next_state ~shift:{meta= 0; loc= 0; top= 0} st None in
+         let st_f = next_state ~shift:{ meta = 0; loc = 0; top = 0 } st None in
          let mo = add_state mo st_f in
          let e, gv, _ = translate_expr2 e in
          let path, _gv', _ = translate_expr2 path in
@@ -1033,7 +945,7 @@ let translate_process
   let mo, st =
     List.fold_left
       (fun (mo, st) (_x, e) ->
-         let st_f = next_state ~shift:{meta= 0; loc= 0; top= 1} st None in
+         let st_f = next_state ~shift:{ meta = 0; loc = 0; top = 1 } st None in
          let mo = add_state mo st_f in
          let e, gv, _ = translate_expr2 e in
          let mo =
@@ -1057,19 +969,7 @@ let translate_process
       (List.rev vars)
   in
   (* translate the main function *)
-  let mo, _st =
-    translate_cmd
-      mo
-      st
-      fns
-      syscalls
-      attacks
-      { meta = 0; loc = 0; top = List.length vars }
-      None
-      ""
-      pol
-      m
-  in
+  let mo, _st = translate_cmd mo st fns syscalls attacks None "" pol m in
   mo
 ;;
 
@@ -1141,7 +1041,7 @@ let translate_sys
                t
                { name = "Const" ^ sep ^ v
                ; role = ""
-               ; pre = [ FreshFact' ( Var v ) ]
+               ; pre = [ FreshFact' (Var v) ]
                ; label =
                    [ InitFact [ String ("Const" ^ sep ^ v) ]
                    ; InitFact [ List [ String ("Const" ^ sep ^ v); Var v ] ]
@@ -1174,7 +1074,7 @@ let translate_sys
                t
                { name = "Const" ^ sep ^ v
                ; role = ""
-               ; pre = [ FreshFact' ( Var v ) ]
+               ; pre = [ FreshFact' (Var v) ]
                ; label =
                    [ InitFact [ expr_pair (String v) Param ]
                    ; ConstantFact (expr_pair (String v) Param, Var v)
@@ -1440,7 +1340,9 @@ let translate_sys
              t
              { name = "Init" ^ !separator ^ "system" ^ string_of_int n
              ; role = "system" ^ string_of_int n
-             ; pre = [ FreshFact' ( Param ) ] (* XXX This produce the same compilation but not sure it is semantically correct *)
+             ; pre =
+                 [ FreshFact' Param ]
+                 (* XXX This produce the same compilation but not sure it is semantically correct *)
              ; label =
                  [ InitFact [ List [ String ("system" ^ string_of_int n); Param ] ] ]
              ; post =
@@ -1478,36 +1380,37 @@ let translate_sys
                          ; pre =
                              gv
                              @ [ AccessGenFact
-                                   ("system" ^ string_of_int n ^ !separator, Param) ]
+                                   ("system" ^ string_of_int n ^ !separator, Param)
+                               ]
                          ; label =
-                             [ if b
-                               then
-                                 InitFact
-                                   [ List
-                                       [ String
-                                           ("system"
-                                            ^ string_of_int n
-                                            ^ !separator
-                                            ^ "ACP"
-                                            ^ !separator
-                                            ^ string_of_int m)
-                                       ; Param
-                                       ; Var !fresh_ident
-                                       ]
-                                   ]
-                               else
-                                 InitFact
-                                   [ List
-                                       [ String
-                                           ("system"
-                                            ^ string_of_int n
-                                            ^ !separator
-                                            ^ "ACP"
-                                            ^ !separator
-                                            ^ string_of_int m)
-                                       ; Param
-                                       ]
-                                   ]
+                             [ (if b
+                                then
+                                  InitFact
+                                    [ List
+                                        [ String
+                                            ("system"
+                                             ^ string_of_int n
+                                             ^ !separator
+                                             ^ "ACP"
+                                             ^ !separator
+                                             ^ string_of_int m)
+                                        ; Param
+                                        ; Var !fresh_ident
+                                        ]
+                                    ]
+                                else
+                                  InitFact
+                                    [ List
+                                        [ String
+                                            ("system"
+                                             ^ string_of_int n
+                                             ^ !separator
+                                             ^ "ACP"
+                                             ^ !separator
+                                             ^ string_of_int m)
+                                        ; Param
+                                        ]
+                                    ])
                              ]
                          ; post = [ fact ]
                          }
