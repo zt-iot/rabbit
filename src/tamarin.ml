@@ -165,8 +165,12 @@ type fact =
   | FreshFact of expr
   | FreshFact' of expr
   | AccessGenFact of string (* namespace *) * expr (* param *)
-  | StateFact of { param : string option; state : state; state_desc : state_desc; transition : expr option }
-
+  | StateFact of
+      { param : string option
+      ; state : state
+      ; state_desc : state_desc
+      ; transition : expr option
+      }
 
 let global_fact_collect_vars f =
   match f with
@@ -189,6 +193,7 @@ let check_state_and_state_desc st desc =
   assert (List.length desc.metas = st.state_vars.meta);
   assert (List.length desc.locs = st.state_vars.loc);
   assert (List.length desc.tops = st.state_vars.top)
+;;
 
 let get_state_fact_name (s : state) = "State" ^ !separator ^ s.state_namespace
 let state_index_to_string_aux (st : state) = index_to_string st.state_index
@@ -198,9 +203,13 @@ let compile_state_fact param state state_desc transition =
   check_state_and_state_desc state state_desc;
   { name = get_state_fact_name state
   ; args =
-      [ List ( [ state_index_to_string state;
-                 match param with None -> Param | Some param -> String param ]
-               @ Option.to_list transition )
+      [ List
+          ([ state_index_to_string state
+           ; (match param with
+              | None -> Param
+              | Some param -> String param)
+           ]
+           @ Option.to_list transition)
       ; state_desc.ret
       ; List state_desc.metas
       ; List state_desc.locs
@@ -208,6 +217,7 @@ let compile_state_fact param state state_desc transition =
       ]
   ; config = config_linear
   }
+;;
 
 let compile_fact (f : fact) : fact' =
   match f with
@@ -226,8 +236,10 @@ let compile_fact (f : fact) : fact' =
       { name = mk_my_fact_name fid; args = el; config = config_linear }
   | ChannelFact (fid, ch, el) ->
       { name = mk_my_fact_name fid; args = ch :: el; config = config_linear }
-  | EqFact (e1, e2) -> { name = "Eq" ^ !separator; args = [e1; e2]; config = config_persist }
-  | NeqFact (e1, e2) -> { name = "NEq" ^ !separator; args = [e1; e2]; config = config_persist }
+  | EqFact (e1, e2) ->
+      { name = "Eq" ^ !separator; args = [ e1; e2 ]; config = config_persist }
+  | NeqFact (e1, e2) ->
+      { name = "NEq" ^ !separator; args = [ e1; e2 ]; config = config_persist }
   | AccessFact (nsp, param, target, syscall) ->
       { name = "ACP" ^ !separator
       ; args = [ List [ String nsp; param ]; target; String syscall ]
@@ -271,6 +283,7 @@ let compile_fact (f : fact) : fact' =
       }
   | StateFact { param; state; state_desc; transition } ->
       compile_state_fact param state state_desc transition
+;;
 
 let mk_constant_fact s = ConstantFact (String s, Var s)
 
@@ -368,12 +381,14 @@ let rec print_expr e =
 ;;
 
 let mk_state_fact ?param st desc transition : fact =
-  StateFact { param; state= st; state_desc=desc; transition }
+  StateFact { param; state = st; state_desc = desc; transition }
+;;
 
 let mk_transition_expr = function
   | `Loop -> AddOne (Int ("v" ^ !separator))
   | `Initial -> One
   | `None -> Int ("v" ^ !separator)
+;;
 
 type 'fact rule_ =
   { name : string
@@ -384,9 +399,12 @@ type 'fact rule_ =
   }
 
 let compile_rule_ r =
-    { r with pre = List.map compile_fact r.pre;
-             label = List.map compile_fact r.label;
-             post = List.map compile_fact r.post }
+  { r with
+    pre = List.map compile_fact r.pre
+  ; label = List.map compile_fact r.label
+  ; post = List.map compile_fact r.post
+  }
+;;
 
 type rule =
   | Rule of fact rule_
@@ -405,14 +423,7 @@ type model =
 let _add_rule (mo : model) (a, b, c, d, e) =
   { mo with
     model_init_rules =
-      Rule
-        { name = a
-        ; role = b
-        ; pre = c
-        ; label = d
-        ; post = e
-        }
-      :: mo.model_init_rules
+      Rule { name = a; role = b; pre = c; label = d; post = e } :: mo.model_init_rules
   }
 ;;
 
@@ -518,12 +529,7 @@ let add_eqn tamarin eq =
 ;;
 
 let add_model t m = { t with models = m :: t.models }
-
-let add_rule t (r : _ rule_) =
-  { t with
-    rules = Rule r :: t.rules
-  }
-;;
+let add_rule t (r : _ rule_) = { t with rules = Rule r :: t.rules }
 
 (* let add_rule' t r = { t with rules = Rule r :: t.rules } *)
 let add_comment t s = { t with rules = Comment s :: t.rules }
@@ -566,6 +572,7 @@ let print_fact { name; args; config } =
   | 2 -> ""
   | 3 -> "[+]"
   | _ -> assert false
+;;
 
 let print_fact2 { name; args; config } =
   (if config.is_persist then "!" else "")
@@ -593,12 +600,14 @@ let transition_to_rule (tr : transition) : rule =
   let initial_state_fact =
     mk_state_fact tr.transition_from (fst tr.transition_state_transition) None
   in
-  let final_state_fact = mk_state_fact tr.transition_to (snd tr.transition_state_transition) None in
+  let final_state_fact =
+    mk_state_fact tr.transition_to (snd tr.transition_state_transition) None
+  in
   Rule
     { name
     ; role = tr.transition_namespace
     ; pre = initial_state_fact :: pre
-    ; label = label
+    ; label
     ; post = final_state_fact :: post
     }
 ;;
@@ -641,7 +650,7 @@ let transition_to_transition_rule (tr : transition) : rule =
     { name
     ; role = tr.transition_namespace
     ; pre = initial_state_fact :: pre
-    ; label = label
+    ; label
     ; post = final_state_fact :: post
     }
 ;;
@@ -747,7 +756,8 @@ let print_lemma lemma =
           (fst
              (List.fold_left
                 (fun (s, n) g ->
-                   ( (print_fact (compile_fact g) ^ "@#time" ^ !separator ^ string_of_int n)
+                   ( (print_fact (compile_fact g) ^ "@#time" ^ !separator ^ string_of_int n
+                     )
                      :: s
                    , n + 1 ))
                 ([], 0)
