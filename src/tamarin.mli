@@ -83,9 +83,15 @@ type fact =
   | TransitionFact of string * string * expr * expr
   | InjectiveFact of string * string * expr * expr
   | FreshFact of expr
-  | FreshFact' of expr  (** It was once [ResFact(2, [e])]. Compilation is slightly different from [FreshFact] *)
+  | FreshFact' of expr
+  (** It was once [ResFact(2, [e])]. Compilation is slightly different from [FreshFact] *)
   | AccessGenFact of string * expr
-  | StateFact of { param : string option; state : state; state_desc : state_desc; transition : expr option }
+  | StateFact of
+      { param : string option
+      ; state : state
+      ; state_desc : state_desc
+      ; transition : expr option
+      }
 
 val mk_constant_fact : string -> fact
 
@@ -138,10 +144,8 @@ type model =
   }
 
 val mk_state_fact : ?param:string -> state -> state_desc -> expr option -> fact
-
 val mk_transition_expr : [ `Initial | `Loop | `None ] -> expr
-
-val initial_model : namespace: string -> typ: string -> model * state
+val initial_model : namespace:string -> typ:string -> model * state
 val add_transition : model -> transition -> model
 val add_state : model -> state -> model
 
@@ -157,29 +161,29 @@ type tamarin =
   ; lemmas : lemma list
   }
 
-val empty_tamarin : tamarin
 (** Empty Tamarin code *)
+val empty_tamarin : tamarin
 
-val add_fun : tamarin -> string * int -> tamarin
 (** Add external function with arity *)
+val add_fun : tamarin -> string * int -> tamarin
 
-val add_const : tamarin -> string -> tamarin
 (** Add external constant as a nullary funciton *)
+val add_const : tamarin -> string -> tamarin
 
-val add_eqn : tamarin -> expr * expr -> tamarin
 (** Add an equation *)
+val add_eqn : tamarin -> expr * expr -> tamarin
 
-val add_model : tamarin -> model -> tamarin
 (** Add a model *)
+val add_model : tamarin -> model -> tamarin
 
-val add_rule : tamarin -> fact rule_ -> tamarin
 (** Add a rule of [fact] *)
+val add_rule : tamarin -> fact rule_ -> tamarin
 
-val add_comment : tamarin -> string -> tamarin
 (** Add a comment *)
+val add_comment : tamarin -> string -> tamarin
 
-val add_lemma : tamarin -> lemma -> tamarin
 (** Add a lemma *)
+val add_lemma : tamarin -> lemma -> tamarin
 
 val print_transition : transition -> dev:bool -> string
 val print_tamarin : tamarin -> dev:bool -> print_transition_label:bool -> string
