@@ -12,12 +12,12 @@ let index_inc index scope =
   | Some s -> (s, 0) :: index
 ;;
 
-let next_state ?(shift = { meta = 0; loc = 0; top = 0 }) st scope =
+let next_state ?(shift_meta=0) ?(shift_loc=0) ?(shift_top=0) st scope =
   let { meta; loc; top } = st.state_vars in
   { st with
     state_index = index_inc st.state_index scope
   ; state_vars =
-      { meta = meta + shift.meta; loc = loc + shift.loc; top = top + shift.top }
+      { meta = meta + shift_meta; loc = loc + shift_loc; top = top + shift_top }
   }
 ;;
 
@@ -299,7 +299,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       mo, st_f
   | Syntax.Let (_v, e, c) ->
       let e, gv, _ = translate_expr2 e in
-      let st_f = next_state ~shift:{ meta = 0; loc = 1; top = 0 } st scope in
+      let st_f = next_state ~shift_loc:1 st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -318,7 +318,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           }
       in
       let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol c in
-      let st_f = next_state ~shift:{ meta = 0; loc = -1; top = 0 } st scope in
+      let st_f = next_state ~shift_loc:(-1) st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -369,7 +369,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       in
       let el = List.rev el in
       let _f, _args, cmd = List.find (fun (f', _args, _cmd) -> f = f') funs in
-      let st_f = next_state ~shift:{ meta = 0; loc = List.length el; top = 0 } st scope in
+      let st_f = next_state ~shift_loc:(List.length el) st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -389,7 +389,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       in
       let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol cmd in
       let st_f =
-        next_state ~shift:{ meta = 0; loc = -List.length el; top = 0 } st scope
+        next_state ~shift_loc:(-List.length el) st scope
       in
       let mo = add_state mo st_f in
       let mo =
@@ -427,7 +427,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       let el = List.rev el in
       let _f, _args, cmd = List.find (fun (f', _args, _cmd) -> o = f') syscalls in
       let st_i =
-        next_state ~shift:{ meta = 0; loc = List.length el; top = 0 } st (Some [ 0 ])
+        next_state ~shift_loc:(List.length el) st (Some [ 0 ])
       in
       let mo = add_state mo st_i in
       let mo =
@@ -490,7 +490,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
              List.fold_left2
                (fun mo scope (_a, _, _, c) ->
                   let st_i2 =
-                    next_state ~shift:{ meta = 0; loc = List.length el; top = 0 } st scope
+                    next_state ~shift_loc:(List.length el) st scope
                   in
                   let mo = add_state mo st_i2 in
                   let mo =
@@ -715,7 +715,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ([], [], 0)
           el
       in
-      let st_f = next_state ~shift:{ meta = 1; loc = 0; top = 0 } st scope in
+      let st_f = next_state ~shift_meta:1 st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -737,7 +737,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           }
       in
       let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol c in
-      let st_f = next_state ~shift:{ meta = -1; loc = 0; top = 0 } st scope in
+      let st_f = next_state ~shift_meta:(-1) st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -758,7 +758,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       mo, st_f
   | Syntax.Get (vl, id, fid, c) ->
       let e, g, _ = translate_expr2 id in
-      let st_f = next_state ~shift:{ meta = List.length vl; loc = 0; top = 0 } st scope in
+      let st_f = next_state ~shift_meta:(List.length vl) st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -795,7 +795,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       in
       let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol c in
       let st_f =
-        next_state ~shift:{ meta = -List.length vl; loc = 0; top = 0 } st scope
+        next_state ~shift_meta:(-List.length vl) st scope
       in
       let mo = add_state mo st_f in
       let mo =
@@ -844,7 +844,7 @@ and translate_guarded_cmd mo st funs syscalls attacks scope syscall pol (vl, fl,
   let acps =
     List.map (fun target -> AccessFact (mo.model_name, Param, target, syscall)) acps
   in
-  let st_f = next_state ~shift:{ meta = List.length vl; loc = 0; top = 0 } st scope in
+  let st_f = next_state ~shift_meta:(List.length vl) st scope in
   let mo = add_state mo st_f in
   (* let eng_f = engine_index_inc eng scope in *)
   let mo =
@@ -894,7 +894,7 @@ let translate_process
     List.fold_left
       (fun (mo, st) (path, ty, e) ->
          (* let path = (mk_dir eng fsys path) in *)
-         let st_f = next_state ~shift:{ meta = 0; loc = 0; top = 0 } st None in
+         let st_f = next_state st None in
          let mo = add_state mo st_f in
          let e, gv, _ = translate_expr2 e in
          let path, _gv', _ = translate_expr2 path in
@@ -945,7 +945,7 @@ let translate_process
   let mo, st =
     List.fold_left
       (fun (mo, st) (_x, e) ->
-         let st_f = next_state ~shift:{ meta = 0; loc = 0; top = 1 } st None in
+         let st_f = next_state ~shift_top:1 st None in
          let mo = add_state mo st_f in
          let e, gv, _ = translate_expr2 e in
          let mo =
