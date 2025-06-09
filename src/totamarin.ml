@@ -12,7 +12,7 @@ let next_state ?(shift_meta=0) ?(shift_loc=0) ?(shift_top=0) st scope =
   }
 ;;
 
-let rec translate_expr ?(ch = false) e : expr =
+let rec translate_expr ?(ch = false) (e : Syntax.expr) : expr =
   match e.Location.data with
   | Syntax.ExtConst s -> Apply (s, [])
   | Syntax.Const (_s, None) -> assert false
@@ -38,9 +38,9 @@ let rec translate_expr2 ?(ch = false) ?(num = 0) e : expr * fact list * int =
   | Syntax.ExtConst s -> Apply (s, []), [], num
   | Syntax.Const (s, None) -> Var s, [ ConstantFact (String s, Var s) ], num
   | Syntax.Const (cid, Some e) ->
-      let e', l, n = translate_expr2 ~ch ~num:(num + 1) e in
+      let e', fs, n = translate_expr2 ~ch ~num:(num + 1) e in
       let var_name = cid ^ !separator ^ string_of_int num in
-      Var var_name, ConstantFact (expr_pair (String cid) e', Var var_name) :: l, n
+      Var var_name, ConstantFact (expr_pair (String cid) e', Var var_name) :: fs, n
   | Syntax.Variable (_v, Top i) -> TopVar i, [], num
   | Syntax.Variable (_v, Loc i) -> LocVar i, [], num
   | Syntax.Variable (_v, Meta i) -> MetaVar i, [], num
@@ -51,124 +51,82 @@ let rec translate_expr2 ?(ch = false) ?(num = 0) e : expr * fact list * int =
   | Syntax.Integer z -> Integer z, [], num
   | Syntax.Float _f -> assert false
   | Syntax.Apply (o, el) ->
-      let el, sl, n =
+      let es, fs, n =
         List.fold_left
-          (fun (el, sl, n) e ->
-             let e, s, n = translate_expr2 ~ch ~num:n e in
-             el @ [ e ], sl @ s, n)
+          (fun (es, fs, n) e ->
+             let e, fs', n = translate_expr2 ~ch ~num:n e in
+             es @ [ e ], fs @ fs', n)
           ([], [], num)
           el
       in
-      Apply (o, el), sl, n
+      Apply (o, es), fs, n
   | Syntax.Tuple el ->
-      let el, sl, n =
+      let el, fs, n =
         List.fold_left
-          (fun (el, sl, n) e ->
-             let e, s, n = translate_expr2 ~ch ~num:n e in
-             el @ [ e ], sl @ s, n)
+          (fun (es, fs, n) e ->
+             let e, fs', n = translate_expr2 ~ch ~num:n e in
+             es @ [ e ], fs @ fs', n)
           ([], [], num)
           el
       in
-      List el, sl, n
+      List el, fs, n
   | Syntax.Channel (c, None) -> if ch then Var c, [], num else String c, [], num
   | Syntax.Channel (c, Some e) ->
-      let e', l, n = translate_expr2 ~ch ~num e in
+      let e', fs, n = translate_expr2 ~ch ~num e in
       (* let var_name = (cid ^ !separator ^ string_of_int num) in *)
-      expr_pair (String c) e', l, n
+      expr_pair (String c) e', fs, n
 ;;
 
-(* let make_rule_name eng scope =
-  eng.namespace^engine_state_aux eng ^ (match scope with Some scope -> (mult_list_with_concat (List.map string_of_int scope) "_") | None -> "") *)
-
-let _lctx_to_var_list lctx = List.map (fun s -> Var s) lctx
-
-let rec var_list_replace lctx s e =
-  match lctx with
-  | Var w :: l -> (if w = s then e else Var w) :: var_list_replace l s e
-  | _ :: _l -> assert false
-  | [] -> []
-;;
-
-(* xxx not used *)
-let _ = var_list_replace
+let translate_expr2s ~num es =
+  List.fold_left
+    (fun (es, fs, num) e ->
+       let e, fs', num = translate_expr2 ~num e in
+       es @ [ e ], fs @ fs', num)
+    ([], [], num)
+    es
 
 let translate_fact ?(num = 0) namespace (f : Syntax.fact) =
   match f.Location.data with
-  | Syntax.Fact (id, el) ->
-      let el, gv, n =
-        List.fold_left
-          (fun (el, gv, n) e ->
-             let e, g, n = translate_expr2 ~num:n e in
-             el @ [ e ], gv @ g, n)
-          ([], [], num)
-          el
-      in
-      Fact (id, namespace, el), gv, [], n
-  | Syntax.GlobalFact (id, el) ->
-      let el, gv, n =
-        List.fold_left
-          (fun (el, gv, n) e ->
-             let e, g, n = translate_expr2 ~num:n e in
-             el @ [ e ], gv @ g, n)
-          ([], [], num)
-          el
-      in
-      GlobalFact (id, el), gv, [], n
-  | Syntax.ChannelFact (ch, id, el) ->
-      let el, gv, n =
-        List.fold_left
-          (fun (el, gv, n) e ->
-             let e, g, n = translate_expr2 ~num:n e in
-             el @ [ e ], gv @ g, n)
-          ([], [], num)
-          el
-      in
-      let e, g, n = translate_expr2 ~num:n ch in
-      ChannelFact (id, e, el), gv @ g, [ e ], n
+  | Syntax.Fact (id, es) ->
+      let es, fs, num = translate_expr2s ~num es in
+      Fact (id, namespace, es), fs, [], num
+  | Syntax.GlobalFact (id, es) ->
+      let es, fs, num = translate_expr2s ~num es in
+      GlobalFact (id, es), fs, [], num
+  | Syntax.ChannelFact (ch, id, es) ->
+      let es, fs, num = translate_expr2s ~num es in
+      let e, fs', num = translate_expr2 ~num ch in
+      ChannelFact (id, e, es), fs @ fs', [ e ], num
   | Syntax.EqFact (e1, e2) ->
-      let es, gv, n =
-        List.fold_left
-          (fun (el, gv, n) e ->
-             let e, g, n = translate_expr2 ~num:n e in
-             el @ [ e ], gv @ g, n)
-          ([], [], num)
-          [ e1; e2 ]
-      in
+      let es, fs, num = translate_expr2s ~num [ e1; e2 ] in
       let e1, e2 =
         match es with
         | [ e1; e2 ] -> e1, e2
         | _ -> assert false
       in
-      EqFact (e1, e2), gv, [], n
+      EqFact (e1, e2), fs, [], num
   | Syntax.NeqFact (e1, e2) ->
-      let es, gv, n =
-        List.fold_left
-          (fun (el, gv, n) e ->
-             let e, g, n = translate_expr2 ~num:n e in
-             el @ [ e ], gv @ g, n)
-          ([], [], num)
-          [ e1; e2 ]
-      in
+      let es, fs, num = translate_expr2s ~num [ e1; e2 ] in
       let e1, e2 =
         match es with
         | [ e1; e2 ] -> e1, e2
         | _ -> assert false
       in
-      NeqFact (e1, e2), gv, [], n
+      NeqFact (e1, e2), fs, [], num
   | Syntax.FileFact (p, d) ->
-      let p, g1, n = translate_expr2 ~num p in
-      let d, g2, n = translate_expr2 ~num:n d in
-      FileFact (namespace, p, d), g1 @ g2, [ p ], n
+      let p, fs1, num = translate_expr2 ~num p in
+      let d, fs2, num = translate_expr2 ~num d in
+      FileFact (namespace, p, d), fs1 @ fs2, [ p ], num
   | Syntax.ProcessFact _ -> assert false
 ;;
 
-let translate_facts ?(num = 0) namespace (fl : Syntax.fact list) =
+let translate_facts ?(num = 0) namespace (fs : Syntax.fact list) =
   List.fold_left
-    (fun (fl, gv, acps, n) f ->
-       let f, gv', acps', n = translate_fact ~num:n namespace f in
-       fl @ [ f ], gv @ gv', acps @ acps', n)
+    (fun (fs, gfs, es, num) f ->
+       let f, gfs', es', num = translate_fact ~num namespace f in
+       fs @ [ f ], gfs @ gfs', es @ es', num)
     ([], [], [], num)
-    fl
+    fs
 ;;
 
 let rec expr_shift_meta shift e =
@@ -220,7 +178,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
   let return_var = get_return_var () in
   match c.Location.data with
   | Syntax.Return e ->
-      let e, gv, _ = translate_expr2 e in
+      let e, pre, _ = translate_expr2 e in
       let (st_f : state) = next_state st scope in
       let mo = add_state mo st_f in
       let mo =
@@ -231,7 +189,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_name = "return"
           ; transition_from = st
           ; transition_to = st_f
-          ; transition_pre = gv
+          ; transition_pre = pre
           ; transition_post = []
           ; transition_state_transition =
               mk_state_transition_from_action (ActionReturn e) st.state_vars
@@ -265,9 +223,9 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       let mo, st = translate_cmd mo st funs syscalls attacks None syscall pol c2 in
       mo, st
   | Syntax.Put fl ->
-      let fl, gv, acps, _ = translate_facts mo.model_name fl in
-      let acps =
-        List.map (fun target -> AccessFact (mo.model_name, Param, target, syscall)) acps
+      let post, pre, es, _ = translate_facts mo.model_name fl in
+      let pre' =
+        List.map (fun target -> AccessFact (mo.model_name, Param, target, syscall)) es
       in
       let st_f = next_state st scope in
       let mo = add_state mo st_f in
@@ -279,8 +237,8 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_name = "put"
           ; transition_from = st
           ; transition_to = st_f
-          ; transition_pre = gv @ acps
-          ; transition_post = fl
+          ; transition_pre = pre @ pre'
+          ; transition_post = post
           ; transition_state_transition =
               mk_state_transition_from_action (ActionReturn Unit) st.state_vars
           ; transition_label = []
@@ -289,7 +247,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       in
       mo, st_f
   | Syntax.Let (_v, e, c) ->
-      let e, gv, _ = translate_expr2 e in
+      let e, pre, _ = translate_expr2 e in
       let st_f = next_state ~shift_loc:1 st scope in
       let mo = add_state mo st_f in
       let mo =
@@ -300,7 +258,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_name = "let_intro"
           ; transition_from = st
           ; transition_to = st_f
-          ; transition_pre = gv
+          ; transition_pre = pre
           ; transition_post = []
           ; transition_state_transition =
               mk_state_transition_from_action (ActionIntro [ e ]) st.state_vars
@@ -329,7 +287,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       in
       mo, st_f
   | Syntax.Assign ((_v, di), e) ->
-      let e, gv, _ = translate_expr2 e in
+      let e, pre, _ = translate_expr2 e in
       let st_f = next_state st scope in
       let mo = add_state mo st_f in
       let mo =
@@ -340,7 +298,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_name = "assign"
           ; transition_from = st
           ; transition_to = st_f
-          ; transition_pre = gv
+          ; transition_pre = pre
           ; transition_post = []
           ; transition_state_transition =
               mk_state_transition_from_action (ActionAssign (di, e)) st.state_vars
@@ -349,18 +307,11 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           }
       in
       mo, st_f
-  | Syntax.FCall (ov, f, el) ->
-      let el, gv, _ =
-        List.fold_left
-          (fun (el, gv, n) e ->
-             let e, g, n = translate_expr2 ~num:n e in
-             el @ [ e ], gv @ g, n)
-          ([], [], 0)
-          el
-      in
-      let el = List.rev el in
+  | Syntax.FCall (ov, f, es) ->
+      let rev_es, pre, _ = translate_expr2s ~num:0 es in
+      let es = List.rev rev_es in
       let _f, _args, cmd = List.find (fun (f', _args, _cmd) -> f = f') funs in
-      let st_f = next_state ~shift_loc:(List.length el) st scope in
+      let st_f = next_state ~shift_loc:(List.length es) st scope in
       let mo = add_state mo st_f in
       let mo =
         add_transition
@@ -370,17 +321,17 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_name = "fcall_intro"
           ; transition_from = st
           ; transition_to = st_f
-          ; transition_pre = gv
+          ; transition_pre = pre
           ; transition_post = []
           ; transition_state_transition =
-              mk_state_transition_from_action (ActionIntro el) st.state_vars
+              mk_state_transition_from_action (ActionIntro es) st.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
           }
       in
       let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol cmd in
       let st_f =
-        next_state ~shift_loc:(-List.length el) st scope
+        next_state ~shift_loc:(-List.length es) st scope
       in
       let mo = add_state mo st_f in
       let mo =
@@ -396,29 +347,22 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_state_transition =
               mk_state_transition_from_action
                 (match ov with
-                 | None -> ActionPopLoc (List.length el)
+                 | None -> ActionPopLoc (List.length es)
                  | Some (_, v) ->
                      ActionSeq
-                       (ActionPopLoc (List.length el), ActionAssign (v, return_var)))
+                       (ActionPopLoc (List.length es), ActionAssign (v, return_var)))
                 st.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
           }
       in
       mo, st_f
-  | Syntax.SCall (ov, o, el) ->
-      let el, gv, _ =
-        List.fold_left
-          (fun (el, gv, n) e ->
-             let e, g, n = translate_expr2 ~num:n e in
-             el @ [ e ], gv @ g, n)
-          ([], [], 0)
-          el
-      in
-      let el = List.rev el in
+  | Syntax.SCall (ov, o, es) ->
+      let rev_es, pre, _ = translate_expr2s ~num:0 es in
+      let es = List.rev rev_es in
       let _f, _args, cmd = List.find (fun (f', _args, _cmd) -> o = f') syscalls in
       let st_i =
-        next_state ~shift_loc:(List.length el) st (Some [ 0 ])
+        next_state ~shift_loc:(List.length es) st (Some [ 0 ])
       in
       let mo = add_state mo st_i in
       let mo =
@@ -429,10 +373,10 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_name = "scall_intro"
           ; transition_from = st
           ; transition_to = st_i
-          ; transition_pre = gv
+          ; transition_pre = pre
           ; transition_post = []
           ; transition_state_transition =
-              mk_state_transition_from_action (ActionIntro el) st.state_vars
+              mk_state_transition_from_action (ActionIntro es) st.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
           }
@@ -453,10 +397,10 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_state_transition =
               mk_state_transition_from_action
                 (match ov with
-                 | None -> ActionPopLoc (List.length el)
+                 | None -> ActionPopLoc (List.length es)
                  | Some (_, v) ->
                      ActionSeq
-                       (ActionPopLoc (List.length el), ActionAssign (v, return_var)))
+                       (ActionPopLoc (List.length es), ActionAssign (v, return_var)))
                 st_m.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
@@ -481,7 +425,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
              List.fold_left2
                (fun mo scope (_a, _, _, c) ->
                   let st_i2 =
-                    next_state ~shift_loc:(List.length el) st scope
+                    next_state ~shift_loc:(List.length es) st scope
                   in
                   let mo = add_state mo st_i2 in
                   let mo =
@@ -492,10 +436,10 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
                       ; transition_name = "attack_intro"
                       ; transition_from = st
                       ; transition_to = st_i2
-                      ; transition_pre = gv
+                      ; transition_pre = pre
                       ; transition_post = []
                       ; transition_state_transition =
-                          mk_state_transition_from_action (ActionIntro el) st.state_vars
+                          mk_state_transition_from_action (ActionIntro es) st.state_vars
                       ; transition_label = []
                       ; transition_is_loop_back = false
                       }
@@ -515,10 +459,10 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
                     ; transition_state_transition =
                         mk_state_transition_from_action
                           (match ov with
-                           | None -> ActionPopLoc (List.length el)
+                           | None -> ActionPopLoc (List.length es)
                            | Some (_, v) ->
                                ActionSeq
-                                 ( ActionPopLoc (List.length el)
+                                 ( ActionPopLoc (List.length es)
                                  , ActionAssign (v, return_var) ))
                           st_m.state_vars
                     ; transition_label = []
@@ -605,6 +549,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       in
       let st_f = next_state st None in
       let mo =
+        (* xxx probably a dupe of Case *)
         List.fold_left2
           (fun mo scope (vl, fl, c) ->
              let mo, st_f =
@@ -640,6 +585,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           cs1
       in
       let mo =
+        (* xxx probably a dupe of Case *)
         List.fold_left2
           (fun mo scope (vl, fl, c) ->
              let mo, st =
@@ -675,8 +621,8 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           cs2
       in
       add_state mo st_f, st_f
-  | Syntax.Event fl ->
-      let fl, gv, _acps, _ = translate_facts mo.model_name fl in
+  | Syntax.Event fs ->
+      let label, pre, _acps, _ = translate_facts mo.model_name fs in
       let st_f = next_state st scope in
       let mo = add_state mo st_f in
       let mo =
@@ -687,25 +633,18 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_name = "event"
           ; transition_from = st
           ; transition_to = st_f
-          ; transition_pre = gv
+          ; transition_pre = pre
           ; transition_post = []
           ; transition_state_transition =
               mk_state_transition_from_action (ActionReturn Unit) st.state_vars
-          ; transition_label = fl
+          ; transition_label = label
           ; transition_is_loop_back = false
           }
       in
       mo, st_f
   | Syntax.New (_v, fid_el_opt, c) ->
       let fid, el = Option.value fid_el_opt ~default:("", []) in
-      let el, gv, _ =
-        List.fold_left
-          (fun (el, gv, n) e ->
-             let e, g, n = translate_expr2 ~num:n e in
-             el @ [ e ], gv @ g, n)
-          ([], [], 0)
-          el
-      in
+      let el, pre, _ = translate_expr2s ~num:0 el in
       let st_f = next_state ~shift_meta:1 st scope in
       let mo = add_state mo st_f in
       let mo =
@@ -716,7 +655,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_name = "new_intro"
           ; transition_from = st
           ; transition_to = st_f
-          ; transition_pre = FreshFact (MetaNewVar 0) :: gv
+          ; transition_pre = FreshFact (MetaNewVar 0) :: pre
           ; transition_post =
               (if fid = ""
                then []
@@ -748,7 +687,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       in
       mo, st_f
   | Syntax.Get (vl, id, fid, c) ->
-      let e, g, _ = translate_expr2 id in
+      let e, pre, _ = translate_expr2 id in
       let st_f = next_state ~shift_meta:(List.length vl) st scope in
       let mo = add_state mo st_f in
       let mo =
@@ -767,7 +706,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
                   , List (List.map (fun i -> MetaNewVar i) (int_to_list (List.length vl)))
                   )
               ]
-              @ g
+              @ pre
           ; transition_post =
               [ InjectiveFact
                   ( fid
@@ -809,7 +748,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       in
       mo, st_f
   | Syntax.Del (id, fid) ->
-      let e, g, _ = translate_expr2 id in
+      let e, pre, _ = translate_expr2 id in
       let st_f = next_state st scope in
       let mo = add_state mo st_f in
       let mo =
@@ -820,7 +759,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_name = "del"
           ; transition_from = st
           ; transition_to = st_f
-          ; transition_pre = [ InjectiveFact (fid, mo.model_name, e, MetaNewVar 0) ] @ g
+          ; transition_pre = [ InjectiveFact (fid, mo.model_name, e, MetaNewVar 0) ] @ pre
           ; transition_post = []
           ; transition_state_transition =
               mk_state_transition_from_action (ActionReturn Unit) st.state_vars
