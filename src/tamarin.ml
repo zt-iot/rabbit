@@ -467,13 +467,6 @@ let initial_model ~namespace ~typ =
   , st )
 ;;
 
-let initial_state ~namespace =
-  { state_namespace = namespace
-  ; state_index = Mindex.zero
-  ; state_vars = { meta = 1; loc = 0; top = 0 }
-  }
-;;
-
 let _initial_attacker_model ~namespace ~typ =
   let st = initial_state ~namespace in
   ( { model_name = namespace
