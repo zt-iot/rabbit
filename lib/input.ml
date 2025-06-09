@@ -1,7 +1,8 @@
 type operator = string
-type type_class = CProc | CFsys | CChan
-type arg_type = TyValue | TyChannel | TyProcess | TyPath
 
+(* type type_class = CProc | CFsys | CChan *)
+
+(* Rabbit expression language *)
 type expr = expr' Location.located
 and expr' =
   | Var of Name.ident
@@ -24,6 +25,7 @@ and fact' =
   | ResFact of int * expr list (* 0: eq 1: neq 3 : FILE*)
   (* | InjFact of  *)
 
+(* Rabbit command language *)
 type cmd = cmd' Location.located
 and cmd' = 
   | Skip
@@ -41,55 +43,112 @@ and cmd' =
   | Get of Name.ident list * expr * Name.ident * cmd
   | Del of expr * Name.ident
 
+(* system instantiation *)
 type chan_arg =
   | ChanArgPlain of Name.ident
   | ChanArgParam of Name.ident
   | ChanArgParamInst of Name.ident * expr
 
-
-
+(* system instantiation *)
 type pproc = pproc' Location.located
 and pproc' =
   | Proc of Name.ident * (chan_arg list)
   | ParamProc of Name.ident * expr * (chan_arg list)
 
+(* system instantiation *)
 type proc = 
 | UnboundedProc of pproc 
 | BoundedProc of (Name.ident * pproc list)
 
-
+(* system instantiation *)
 type prop = prop' Location.located
 and prop' =
   | PlainString of string
   | Reachability of fact list
   | Correspondence of fact * fact
 
+(* system instantiation *)
 type lemma = lemma' Location.located
 and lemma' =
   | Lemma of Name.ident * prop 
 
+(* A Rabbit type, which can be: 
+- Unit
+- A Rabbit simple type 
+- A Rabbit security type
+- A Rabbit channel type
+- A product of any Rabbit types
+*)
+type ty = 
+  | Unit                                         (* used for syscalls that do not have a return type *)
+  | Typ of Name.ident * ty_param list            (* <Name.ident>[<ty_param>*] *)
+  | SecTyp of Name.ident * ty                    (* type <security_typ> : <simple_ty> *)
+  | ChannelTyp of Name.ident * ty list           (* type <chan_ty> : channel[t_1 + ... t_n] *)
+  | ProdTyp of ty * ty
+
+(* a simple type has zero or more ty_params between included `[ ]` brackets *)
+and ty_param = 
+  | ParamPolyType of Name.ident
+  | ParamTyp of ty
+
+type proc_ty = 
+  | ProcessTyp of Name.ident
+
+type file_ty = 
+  | FileTyp of Name.ident
 
 
-type simpletyp = 
-  | SimpleTyp of Name.ident * subsimpletyp list
+type func_param_secrecy_lvl = 
+  | Public
+  | SecPoly of Name.ident (* non-concrete secrecy level *)
+  | S of func_ty_param
 
-and subsimpletyp = 
-  | PolyType of Name.ident
-  | SubSimpleTyp of simpletyp
+and func_param_integrity_lvl = 
+  | Untrusted 
+  | IntegPoly of Name.ident (* non-concrete integrity level *)
+  | I of func_ty_param
+
+(* function parameter of an equational theory function or system call *)
+and func_ty_param = 
+  | FuncParamPolyType of Name.ident (* 'a, 'b, 'n etc. *)
+  | FuncParamChannel of Name.ident 
+  | FuncParamTyp of ty * func_param_secrecy_lvl option * func_param_integrity_lvl option (* ty or ty@(s, i) or ty@(Public, i) or ty@(S(t), i) or ty@(s, Untrusted) etc. *)
   
+
 
 type decl = decl' Location.located
 and decl' =
-  | DeclExtFun of Name.ident * int
-  | DeclExtEq of expr * expr
-  | DeclExtSyscall of Name.ident * (arg_type * Name.ident) list * cmd
-  | DeclExtAttack of Name.ident * Name.ident * (arg_type * Name.ident) list * cmd
-  | DeclType of Name.ident * type_class
+  | DeclSimpleTyp of ty (* data <simple_ty> *)
+  | DeclSecurityTyp of Name.ident * ty (* type sec_ty : simple_ty *)
+
+  | DeclChannelType of Name.ident * ty (* has to be a channel type *)
+  
+  (* DeclChannelTyp needs to be separate, so I'm going to separate DeclProcType and DeclFileType as well *)
+  | DeclProcType of Name.ident
+  | DeclFileType of Name.ident
+
+  | DeclEqThyFunc of Name.ident * func_ty_param list
+  | DeclEqThyEquation of expr * expr
+  
+  | DeclExtSyscall of Name.ident * (func_ty_param * Name.ident) list * func_ty_param * cmd
+  
+  (* attack <attack_name> on <syscall_name> (<syscall_param> : <ty>)*  *)
+  | DeclExtAttack of Name.ident * Name.ident * (ty * Name.ident) list * ty * cmd
+
+  (* process "Name.ident" is allowed access to resources of "Name.ident list" with system calls of "Name.ident list option" *)
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
-  | DeclAttack of Name.ident list * Name.ident list
-  | DeclInit of Name.ident * expr option
-  | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
-  | DeclChan of Name.ident * Name.ident
+
+  | DeclAllowAttack of Name.ident list * Name.ident list
+  
+  (* TODO unify these *)
+  | DeclConst of Name.ident * expr option
+  | DeclParamConst of Name.ident * (Name.ident * expr) option
+
+  (* TODO unify these *)
+  | DeclChanInstantiation of Name.ident * Name.ident
+  | DeclParamChanInstantiation of Name.ident * Name.ident
+
+  (* TODO unify these *)
   | DeclProc of Name.ident * (bool * Name.ident * Name.ident) list * Name.ident * 
                 ((expr * Name.ident * expr) list) * 
                 ((Name.ident * expr) list) * 
@@ -98,10 +157,15 @@ and decl' =
                 ((expr * Name.ident * expr) list) * 
                 ((Name.ident * expr) list) * 
                 (Name.ident * (Name.ident list) * cmd) list * cmd
+
+
+
   | DeclSys of proc list * lemma list 
+  
+
+  
+  
   | DeclLoad of string
 
-  | DeclParamInit of Name.ident * (Name.ident * expr) option
-  | DeclParamChan of Name.ident * Name.ident
-  | DeclSimpleTyp of simpletyp
+  
 [@@deriving show]

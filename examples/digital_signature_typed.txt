@@ -8,9 +8,15 @@ data key[keykind, 'a] (* a key of a certain keykind and with polymorphic type on
 (***********)
 (** declare types with their classes *)
 type readonly_t   : filesys
-type client_t 	  : process
+type alice_t      : process
+type bob_t        : process
+
+
+
 type udp_t 	  : channel
 
+
+(** declare security types *)
 type Sig : keykind
 type Ver : keykind
 
@@ -18,12 +24,22 @@ type sign_key_alice : key[Sig, client_msg] (* signing key for client_msg type of
 type client_msg : message
 type client_sig : signature
 
+(* security primitives *)
+function vk : key[Sig]@('s, 'i) -> key[Ver]@(Public, 'i)
+function sign : 'a -> key[Sig, 'a]@('s, 'i) -> signature@(S('a), 'i)                     (* signature@(S('a), i) will match any "signature security type" *)
+function fst : 'a * 'b -> 'a
+function snd : 'a * 'b -> 'b
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+function true : bool
 
-load "digital_signature_typed_eq_theory.rab"
+(* type bool is a simple type, thus it has TSP security level (Public, Untrusted) *)
+function verify : signature@('s, 'i) -> 'a@('s, 'i) -> key[Ver, 'a]@('s1, 'i1) -> bool
+equation verify (sign(d, k), d, vk(k)) = true
 
 
 (* load some primitive syscalls, incl. send and recv *)
-load "udp_rpc.rab"
+load "udp_rpc_typed.rab"
 
 (* syscall that returns some fresh globally known message *)
 syscall gen_message () {
@@ -32,17 +48,16 @@ syscall gen_message () {
 }
 
 
-
-
-
 (***********)
 (** access control for TAMARIN translation *)
 
 (* clients can both send and receive messages on udp_t channels *)
-allow client_t udp_t [send, recv]
+allow alice_t udp_t [send, recv]
+allow bob_t udp_t [send, recv]
 
 (** clients are allowed to generate fresh messages *)
-allow client_t [gen_message]
+allow alice_t [gen_message]
+allow bob_t [gen_message]
 
 
 
@@ -74,14 +89,16 @@ attack tamper_channel on recv (c) {
   end
 }
 
-allow attack client_t [tamper_channel] 
+allow attack alice_t [tamper_channel] 
+allow attack bob_t [tamper_channel] 
 
 passive attack eaves_mem (v) {
   put [::Out(v)]
 }
 
 
-allow client_t [eaves_mem]
+allow alice_t [eaves_mem]
+allow bob_t [eaves_mem]
 
 
 

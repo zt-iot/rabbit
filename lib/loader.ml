@@ -628,8 +628,9 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
       (Context.ctx_add_ext_attack ctx (f, t, List.map fst typed_args), 
          pol, 
          Context.def_add_ext_attack def (f,t, typed_args, c), sys, fst ps)
-
-   | Input.DeclType (id, c) -> 
+   
+   (* REMOVE ONCE I UNDERSTAND THIS *)
+   (* | Input.DeclType (id, c) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else (Context.ctx_add_ty ctx (id, c), pol, def, sys, fst ps)
    
    | Input.DeclAccess(s, t, Some al) -> 
@@ -650,7 +651,7 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
             else error ~loc (UnknownIdentifier a)            
          | _, _ -> error ~loc (WrongInputType)
          end
-      in (ctx, List.fold_left f pol al, def, sys, fst ps)
+      in (ctx, List.fold_left f pol al, def, sys, fst ps) *)
 
    | Input.DeclAccess(s, t, None) -> 
 
@@ -668,7 +669,7 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
          end in 
        (ctx, pol, def, sys, fst ps)
 
-   | Input.DeclAttack (tl, al) -> 
+   | Input.DeclAllowAttack (tl, al) -> 
       let f t a =
          if Context.ctx_check_ty ctx t then
          if Context.ctx_check_ext_attack ctx a then
@@ -689,8 +690,8 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
       let e' = match e with | Some e -> Some (process_expr ctx Context.lctx_init e) | _ -> None in 
       (Context.ctx_add_const ctx id, pol, Context.def_add_const def (id, e'), sys, fst ps)
    
-   (* | DeclParamInit of Name.ident * (Name.ident * expr) option *)
-   | Input.DeclParamInit (id, e) -> 
+   (* | DeclParamConst of Name.ident * (Name.ident * expr) option *)
+   | Input.DeclParamConst (id, e) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 
          let e' = 
             match e with 
@@ -700,11 +701,11 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
          (Context.ctx_add_param_const ctx id, pol, Context.def_add_param_const def (id, e'), sys, fst ps)
    
    
-   | Input.DeclParamChan (id, ty) -> 
+   | Input.DeclParamChanInstantiation (id, ty) -> 
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 
          (Context.ctx_add_param_ch ctx (id, ty), pol, def, sys, fst ps)
       
-  | Input.DeclFsys (id, fl) ->
+  (* | Input.DeclFsys (id, fl) ->
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 
       let fl' = List.map (fun (a, e, b) -> 
          match Context.ctx_get_ty ~loc ctx b with
@@ -714,7 +715,7 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
          ) fl in 
       let (ctx', def') = List.fold_left 
          (fun (ctx', def') (a, e, b) -> (Context.ctx_add_fsys ctx' (id, a, b), Context.def_add_fsys def' (id, a, e))) (ctx, def) fl' in 
-         (ctx', pol, def', sys, fst ps)
+         (ctx', pol, def', sys, fst ps) *)
 
   | Input.DeclChan (id, c) ->
       if Context.check_used ctx id then error ~loc (AlreadyDefined id) else 

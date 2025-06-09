@@ -1,7 +1,7 @@
 
 (* security primitives *)
 function vk : key[Sig]@(s, i) -> key[Ver]@(Public, i)
-function sign : 'a -> key[Sig, 'a]@(s, i) -> signature@(S('a), i) (* signature@('a, i) will match any "signature security type", E.G.*)
+function sign : 'a -> key[Sig, 'a]@(s, i) -> signature@(S('a), i)                     (* signature@(S('a), i) will match any "signature security type" *)
 function fst : 'a * 'b -> 'a
 function snd : 'a * 'b -> 'b
 equation fst ((x, y)) = x
