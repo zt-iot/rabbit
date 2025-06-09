@@ -456,15 +456,14 @@ let initial_state ~namespace =
 
 let initial_model ~namespace ~typ =
   let st = initial_state ~namespace in
-  ( { model_name = namespace
-    ; model_states = [ st ]
-    ; model_transitions = []
-    ; model_type = typ
-    ; model_init_rules = []
-    ; model_init_state = st
-    ; model_transition_id_max = 0
-    }
-  , st )
+  { model_name = namespace
+  ; model_states = [ st ]
+  ; model_transitions = []
+  ; model_type = typ
+  ; model_init_rules = []
+  ; model_init_state = st
+  ; model_transition_id_max = 0
+  }
 ;;
 
 let _initial_attacker_model ~namespace ~typ =
