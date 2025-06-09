@@ -154,7 +154,7 @@ type model =
 
 val mk_state_fact : ?param:string -> state -> state_desc -> expr option -> fact
 val mk_transition_expr : [ `Initial | `Loop | `None ] -> expr
-val initial_model : namespace:string -> typ:string -> model * state
+val initial_model : namespace:string -> typ:string -> model
 val add_transition : model -> transition -> model
 val add_state : model -> state -> model
 
