@@ -29,16 +29,6 @@ type ('a, 'b) sum =
 | Inr of 'b  (* Right injection *)
 
 
-let rec state_eq_ind (i : ((int list) * int) list) j =
-  match i, j with
-  | (il, x) :: i, (jl, y) :: j -> il = jl && x = y && state_eq_ind i j
-  | [], [] -> true
-  | _, _ -> false
-
-(* xxx unused *)
-let _state_eq st1 st2 =
-  state_eq_ind st1.state_index st2.state_index
-
 let forward_transitions_from (m : model) (st : state) : transition list =
   List.filter (fun (tr : transition) -> state_index_to_string_aux st = state_index_to_string_aux tr.transition_from && not tr.transition_is_loop_back) m.model_transitions
 
