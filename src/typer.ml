@@ -525,7 +525,7 @@ let type_lemma env (lemma : Input.lemma) =
   | Lemma (id, prop) ->
       let env, data =
         match prop.data with
-        | PlainString s -> env, Syntax.PlainLemma (id, s)
+        | PlainString s -> env, Syntax.PlainLemma { name= id; desc= s }
         | Reachability facts ->
             let vs = Input.vars_of_facts facts in
             let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
@@ -534,7 +534,7 @@ let type_lemma env (lemma : Input.lemma) =
                 Env.add env v (Var (Meta (snd idx)))) fresh env
             in
             let _env', facts = type_facts env' facts in
-            env, ReachabilityLemma (id, Name.Set.elements fresh, facts)
+            env, ReachabilityLemma { name= id; fresh_variables= Name.Set.elements fresh; facts }
         | Correspondence (f1, f2) ->
             let vs = Name.Set.union (Input.vars_of_fact f1) (Input.vars_of_fact f2) in
             let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
@@ -544,7 +544,7 @@ let type_lemma env (lemma : Input.lemma) =
             in
             let env', f1 = type_fact env' f1 in
             let _env', f2 = type_fact env' f2 in
-            env, CorrespondenceLemma (id, Name.Set.elements fresh, f1, f2)
+            env, CorrespondenceLemma { name= id; fresh_variables= Name.Set.elements fresh; premise= f1; conclusion= f2 }
       in
       env, { prop with data }
 

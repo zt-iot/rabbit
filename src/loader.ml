@@ -942,16 +942,16 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
                       in
                    *)
                    (match p.Location.data with
-                    | Input.PlainString s -> Syntax.PlainLemma (l, s)
+                    | Input.PlainString s -> Syntax.PlainLemma { name=l; desc= s }
                     | Input.Reachability evs ->
                         let (_, _, fl), vl =
                           process_facts env.context Context.lctx_init evs
                         in
                         (* XXX 3rd and 4th are always empty *)
-                        Syntax.ReachabilityLemma (l, vl, fl)
+                        Syntax.ReachabilityLemma { name= l; fresh_variables= vl; facts= fl }
                     | Input.Correspondence (a, b) ->
                         (match process_facts env.context Context.lctx_init [ a; b ] with
-                         | (_, _, [ a; b ]), vl -> Syntax.CorrespondenceLemma (l, vl, a, b)
+                         | (_, _, [ a; b ]), vl -> Syntax.CorrespondenceLemma { name= l; fresh_variables= vl; premise= a; conclusion= b }
                          | _ -> assert false))
              in
              Location.locate ~loc:l.Location.loc tmp)
