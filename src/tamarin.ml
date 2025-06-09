@@ -8,18 +8,6 @@ let fresh_ident = ref "rab"
 let fresh_string = ref "rab"
 let fresh_param = ref "param"
 
-let index_to_string idx =
-  List.fold_left
-    (fun s (scope, ind) ->
-       s
-       ^ !separator
-       ^ String.concat "_" (List.map string_of_int scope)
-       ^ "_"
-       ^ string_of_int ind)
-    ""
-    (List.rev idx)
-;;
-
 let rec replace_nth lst i new_val =
   match lst with
   | [] -> [] (* If the list is empty, return an empty list *)
@@ -57,7 +45,32 @@ let contains s1 s2 =
   | Not_found -> false
 ;;
 
-type mindex = (int list * int) list
+module Mindex = struct
+  type t = Mindex of (int list * int) list
+
+  let zero = Mindex [[], 0]
+
+  let inc index scope =
+    match scope with
+    | None ->
+        (match index with
+         | Mindex ((l, i) :: lst) -> Mindex ((l, i + 1) :: lst)
+         | _ -> assert false)
+    | Some s ->
+        let Mindex i = index in
+        Mindex ((s, 0) :: i)
+
+  let to_string (Mindex idx) =
+    List.fold_left
+      (fun s (scope, ind) ->
+         s
+         ^ !separator
+         ^ String.concat "_" (List.map string_of_int scope)
+         ^ "_"
+         ^ string_of_int ind)
+      ""
+      (List.rev idx)
+end
 
 (* we do not do well-formedness check (at the moment..) *)
 type functions = (string * int) list
@@ -124,7 +137,7 @@ type var_nums =
 
 type state =
   { state_namespace : string
-  ; state_index : mindex
+  ; state_index : Mindex.t
   ; state_vars : var_nums
   }
 
@@ -150,7 +163,7 @@ type fact =
   | InitFact of expr list
   | LoopFact of
       string (* namespace *)
-      * mindex (* the index when the loop is entered  *)
+      * Mindex.t (* the index when the loop is entered  *)
       * int (* 0: loop in 2 : loop back 3 : loop out *)
   | TransitionFact of string * string * expr * expr
   | InjectiveFact of
@@ -196,7 +209,7 @@ let check_state_and_state_desc st desc =
 ;;
 
 let get_state_fact_name (s : state) = "State" ^ !separator ^ s.state_namespace
-let state_index_to_string_aux (st : state) = index_to_string st.state_index
+let state_index_to_string_aux (st : state) = Mindex.to_string st.state_index
 let state_index_to_string st = String (state_index_to_string_aux st)
 
 let compile_state_fact param state state_desc transition =
@@ -261,7 +274,7 @@ let compile_fact (f : fact) : fact' =
           ("Loop"
            ^ !separator
            ^ if b = 0 then "Start" else if b = 1 then "Back" else "Finish")
-      ; args = [ List [ String nsp; Param ]; String (index_to_string tid) ]
+      ; args = [ List [ String nsp; Param ]; String (Mindex.to_string tid) ]
       ; config = config_linear
       }
   | TransitionFact (nsp, ind, e, p) ->
@@ -335,7 +348,7 @@ let rec action_sem
 
 type transition =
   { transition_id : int
-  ; transition_namespace : string
+  ; transition_namespace : string (* Seems always same as the model name *)
   ; transition_name : string
   ; transition_from : state
   ; transition_to : state
@@ -436,7 +449,7 @@ let add_state m s = { m with model_states = s :: m.model_states }
 
 let initial_state ~namespace =
   { state_namespace = namespace
-  ; state_index = [ [], 0 ]
+  ; state_index = Mindex.zero
   ; state_vars = { meta = 0; loc = 0; top = 0 }
   }
 ;;
@@ -456,7 +469,7 @@ let initial_model ~namespace ~typ =
 
 let initial_state ~namespace =
   { state_namespace = namespace
-  ; state_index = [ [], 0 ]
+  ; state_index = Mindex.zero
   ; state_vars = { meta = 1; loc = 0; top = 0 }
   }
 ;;
@@ -488,6 +501,7 @@ let _initial_attacker_model ~namespace ~typ =
 ;;
 
 let add_transition m t =
+  assert (m.model_name = t.transition_namespace);
   { m with
     model_transitions = t :: m.model_transitions
   ; model_transition_id_max = m.model_transition_id_max + 1
@@ -629,7 +643,7 @@ let transition_to_transition_rule (tr : transition) : rule =
   let label =
     TransitionFact
       ( tr.transition_namespace
-      , index_to_string tr.transition_from.state_index (* tr.transition_id *)
+      , Mindex.to_string tr.transition_from.state_index (* tr.transition_id *)
       , Int ("v" ^ !separator)
       , Param )
     :: tr.transition_label

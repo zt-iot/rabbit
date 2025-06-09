@@ -5,7 +5,16 @@ val fresh_param : string ref
 val int_to_list : int -> int list
 val contains : string -> string -> bool
 
-type mindex = (int list * int) list
+module Mindex : sig
+  type t = Mindex of (int list * int) list
+
+  val zero : t
+
+  val to_string : t -> string
+
+  val inc : t -> int list option -> t
+end
+
 type functions = (string * int) list
 
 type expr =
@@ -62,7 +71,7 @@ type var_nums =
 
 type state =
   { state_namespace : string
-  ; state_index : mindex
+  ; state_index : Mindex.t
   ; state_vars : var_nums
   }
 
@@ -79,7 +88,7 @@ type fact =
   | AttackFact of string * expr
   | FileFact of string * expr * expr
   | InitFact of expr list
-  | LoopFact of string * mindex * int
+  | LoopFact of string * Mindex.t * int
   | TransitionFact of string * string * expr * expr
   | InjectiveFact of string * string * expr * expr
   | FreshFact of expr

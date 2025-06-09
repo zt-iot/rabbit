@@ -3,19 +3,10 @@ open Tamarin
 let get_return_var () = Var ("return" ^ !separator ^ "var")
 let expr_pair a b = List [ a; b ]
 
-let index_inc index scope =
-  match scope with
-  | None ->
-      (match index with
-       | (l, i) :: lst -> (l, i + 1) :: lst
-       | _ -> assert false)
-  | Some s -> (s, 0) :: index
-;;
-
 let next_state ?(shift_meta=0) ?(shift_loc=0) ?(shift_top=0) st scope =
   let { meta; loc; top } = st.state_vars in
   { st with
-    state_index = index_inc st.state_index scope
+    state_index = Mindex.inc st.state_index scope
   ; state_vars =
       { meta = meta + shift_meta; loc = loc + shift_loc; top = top + shift_top }
   }
