@@ -86,14 +86,20 @@ type proc =
 (** Lemma *)
 type lemma = lemma' Location.located
 and lemma' =
-  | PlainLemma of Name.ident * string
+  | PlainLemma of { name : Name.ident; desc : string }
   (** [name : exists-trace "xxx"]
       [name : all-traces "xxx"]
   *)
   | ReachabilityLemma of
-      Name.ident * Name.ident list (* fresh variables *) * fact list
+      { name : Name.ident
+      ; fresh_variables : Name.ident list (* fresh variables *)
+      ; facts : fact list }
   (** [name : reachable f1,..,fn] *)
-  | CorrespondenceLemma of Name.ident * Name.ident list (* fresh variables *) * fact * fact
+  | CorrespondenceLemma of
+      { name : Name.ident
+      ; fresh_variables : Name.ident list (* fresh variables *)
+      ; premise : fact
+      ; conclusion : fact }
   (** [name : corresponds fa ~> fb] *)
 
 type init_desc =

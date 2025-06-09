@@ -63,9 +63,9 @@ type proc =
 
 type lemma = lemma' Location.located
 and lemma' =
-  | PlainLemma of Name.ident * string
-  | ReachabilityLemma of Name.ident * Name.ident list * fact list
-  | CorrespondenceLemma of Name.ident * Name.ident list * fact * fact
+  | PlainLemma of { name : Name.ident; desc : string }
+  | ReachabilityLemma of { name : Name.ident; fresh_variables : Name.ident list; facts : fact list }
+  | CorrespondenceLemma of { name : Name.ident; fresh_variables : Name.ident list; premise : fact; conclusion : fact }
 
 type init_desc =
   | Fresh

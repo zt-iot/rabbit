@@ -1422,11 +1422,11 @@ let translate_sys
       (fun t l ->
          let l =
            match l.Location.data with
-           | Syntax.PlainLemma (l, p) -> PlainLemma (l, p)
-           | Syntax.ReachabilityLemma (l, _cs, fs) ->
+           | Syntax.PlainLemma { name=l; desc= p } -> PlainLemma (l, p)
+           | Syntax.ReachabilityLemma { name= l; facts= fs; _ } ->
                let fs, gv, _, _ = translate_facts "" fs in
                ReachabilityLemma (l, gv, fs)
-           | Syntax.CorrespondenceLemma (l, vl, a, b) ->
+           | Syntax.CorrespondenceLemma {name= l; fresh_variables= vl; premise= a; conclusion= b } ->
                let a, gva =
                  match translate_facts "" [ a ] with
                  | [ a ], gva, _, _ -> a, gva
