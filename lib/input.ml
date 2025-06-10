@@ -67,6 +67,8 @@ and prop' =
   | Reachability of fact list
   | Correspondence of fact * fact
 
+
+
 (* system instantiation *)
 type lemma = lemma' Location.located
 and lemma' =
@@ -81,21 +83,13 @@ and lemma' =
 *)
 type ty = 
   | Unit                                         (* used for syscalls that do not have a return type *)
+  | ChannelTyp of ty list                        (* channel[t_1 + ... t_n] *)
+  | ProdTyp of ty * ty                           
   | Typ of Name.ident * ty_param list            (* <Name.ident>[<ty_param>*] *)
-  | SecTyp of Name.ident * ty                    (* type <security_typ> : <simple_ty> *)
-  | ChannelTyp of Name.ident * ty list           (* type <chan_ty> : channel[t_1 + ... t_n] *)
-  | ProdTyp of ty * ty
 
-(* a simple type has zero or more ty_params between included `[ ]` brackets *)
-and ty_param = 
+and ty_param =  (* Why the separate constructor for ty_param? Because I want using a polymorphic type as the "root" type to be a syntax error *)
   | ParamPolyType of Name.ident
   | ParamTyp of ty
-
-type proc_ty = 
-  | ProcessTyp of Name.ident
-
-type file_ty = 
-  | FileTyp of Name.ident
 
 
 type func_param_secrecy_lvl = 
@@ -111,7 +105,6 @@ and func_param_integrity_lvl =
 (* function parameter of an equational theory function or system call *)
 and func_ty_param = 
   | FuncParamPolyType of Name.ident (* 'a, 'b, 'n etc. *)
-  | FuncParamChannel of Name.ident 
   | FuncParamTyp of ty * func_param_secrecy_lvl option * func_param_integrity_lvl option (* ty or ty@(s, i) or ty@(Public, i) or ty@(S(t), i) or ty@(s, Untrusted) etc. *)
   
 
@@ -119,21 +112,20 @@ and func_ty_param =
 type decl = decl' Location.located
 and decl' =
   | DeclSimpleTyp of ty (* data <simple_ty> *)
-  | DeclSecurityTyp of Name.ident * ty (* type sec_ty : simple_ty *)
 
-  | DeclChannelType of Name.ident * ty (* has to be a channel type *)
-  
-  (* DeclChannelTyp needs to be separate, so I'm going to separate DeclProcType and DeclFileType as well *)
   | DeclProcType of Name.ident
   | DeclFileType of Name.ident
+
+  | DeclTyp of Name.ident * ty (* type sec_ty : simple_ty or type ch_ty : channel[<type>+] *)
 
   | DeclEqThyFunc of Name.ident * func_ty_param list
   | DeclEqThyEquation of expr * expr
   
-  | DeclExtSyscall of Name.ident * (func_ty_param * Name.ident) list * func_ty_param * cmd
+
+  | DeclExtSyscall of Name.ident * (Name.ident * func_ty_param) list * func_ty_param * cmd
   
-  (* attack <attack_name> on <syscall_name> (<syscall_param> : <ty>)*  *)
-  | DeclExtAttack of Name.ident * Name.ident * (ty * Name.ident) list * ty * cmd
+  (* attack <attack_name> on <syscall_name> (<syscall_arg>* )  *)
+  | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
 
   (* process "Name.ident" is allowed access to resources of "Name.ident list" with system calls of "Name.ident list option" *)
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
@@ -141,30 +133,39 @@ and decl' =
   | DeclAllowAttack of Name.ident list * Name.ident list
   
   (* TODO unify these *)
-  | DeclConst of Name.ident * expr option
-  | DeclParamConst of Name.ident * (Name.ident * expr) option
+  | DeclConst of Name.ident * ty * expr option
+  | DeclParamConst of Name.ident * ty * (Name.ident * expr) option
 
   (* TODO unify these *)
-  | DeclChanInstantiation of Name.ident * Name.ident
-  | DeclParamChanInstantiation of Name.ident * Name.ident
+  | DeclChanInstantiation of Name.ident * ty
+  | DeclParamChanInstantiation of Name.ident * ty
 
+
+  (*process <name>(ch_1 : ty_1, ..., ch_n : ty_n) : proc_ty  {
+    file path_i : file_ty_i = data_i
+    var x_i : ty_i = e_i
+
+    (function <name> : <func_ty_param>* <cmd>)*
+    main {
+      <cmd>
+    } 
+  } *)
+  (* bool: whether ch_i is parameterized channel type or not *)
   (* TODO unify these *)
-  | DeclProc of Name.ident * (bool * Name.ident * Name.ident) list * Name.ident * 
+  | DeclProc of Name.ident * (bool * Name.ident * ty) list * Name.ident * 
                 ((expr * Name.ident * expr) list) * 
-                ((Name.ident * expr) list) * 
-                (Name.ident * (Name.ident list) * cmd) list * cmd
-  | DeclParamProc of Name.ident * Name.ident * (bool * Name.ident * Name.ident) list * Name.ident * 
+                ((Name.ident * ty * expr) list) * 
+                (Name.ident * (func_ty_param list) * cmd) list * cmd
+  | DeclParamProc of Name.ident * Name.ident * (bool * Name.ident * ty) list * Name.ident * 
                 ((expr * Name.ident * expr) list) * 
-                ((Name.ident * expr) list) * 
-                (Name.ident * (Name.ident list) * cmd) list * cmd
+                ((Name.ident * ty * expr) list) * 
+                (Name.ident * (func_ty_param list) * cmd) list * cmd
 
 
 
   | DeclSys of proc list * lemma list 
   
 
-  
-  
   | DeclLoad of string
 
   

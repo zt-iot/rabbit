@@ -1,6 +1,7 @@
 open Printf
 
 
+
 (** Conversion from concrete syntax to abstract syntax.
     Here we also load all required files, which may not be
     optimal but is systematic. *)
@@ -55,6 +56,10 @@ let print_error err ppf =
   | UnstagedConst x -> Format.fprintf ppf "This is unintended error. Contact the developper. Hint: %s" x
   | UnstagedParamConst x -> Format.fprintf ppf "This is unintended error. Contact the developper. Hint: %s" x
 
+
+
+
+(* 
 
 let find_index f lst =
   let rec aux i = function
@@ -449,8 +454,6 @@ let rec process_cmd ctx lctx {Location.data=c; Location.loc=loc} =
       (ctx, lctx, Location.locate ~loc c)
       (* (ctx, lctx, ((lctx.Context.lctx_meta_var, lctx.Context.lctx_loc_var, lctx.Context.lctx_top_var), Location.locate ~loc c)) *)
 
-
-let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([],[]))
 
 let process_pproc ?(param="") loc ctx def pol (proc : Input.pproc) = 
    let (pid, files, vl, fl, m, cargs, chans, ptype) = 
@@ -877,25 +880,15 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
       
 
 
-in process_decl' ctx pol def sys ps c
+in process_decl' ctx pol def sys ps c *)
 
-and load fn ctx pol def sys =
+let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([],[]))
+
+let rec load fn ctx pol def sys =
    let decls, parser_state = Lexer.read_file Parser.file fn in 
+   process_init
 
-
-   (* let cwd = Sys.getcwd() in *)
-
-
-   (* SOME PARSER TEST *)
-   (* let _ = Printf.printf "Current working dir: %s\n" cwd in
-   
-
-   let fn2 = "examples/camserver_simple_type_decls.txt" in
-   let decls2, parser_state2 = Lexer.read_file Parser.file fn2 in
-   let size2 = List.length decls2 in 
-   let _ = Printf.printf "List size: %d\n" size2 in *)
-
-   let (ctx, pol, def, sys, parser_state) = List.fold_left 
+   (* let (ctx, pol, def, sys, parser_state) = List.fold_left 
    (fun (ctx, pol, def, sys, parser_state) decl -> process_decl ctx pol def sys (parser_state, fn) decl)  
-   (ctx, pol, def, sys, parser_state) decls in (ctx, pol, def, sys, parser_state)
+   (ctx, pol, def, sys, parser_state) decls in (ctx, pol, def, sys, parser_state) *)
 
