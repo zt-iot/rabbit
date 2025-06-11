@@ -306,7 +306,7 @@ plain_cmd:
   | SKIP { Skip }
   | c1=cmd SEMICOLON c2=cmd { Sequence(c1, c2) }
   | PUT LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { Put (postcond) }
-  | VAR id=NAME EQ e=expr IN c=cmd { Let (id, e, c) }
+  | VAR id=NAME COLON typ=ty EQ e=expr IN c=cmd { Let (id, typ, e, c) }
   | id=uname COLONEQ e=expr { Assign (id, e) }
   | CASE 
     BAR? guarded_cmds=separated_nonempty_list(BAR, guarded_cmd) END { Case(guarded_cmds) }
@@ -315,9 +315,9 @@ plain_cmd:
     END                                                             { While(c1, c2) }
   | EVENT LBRACKET a=separated_list(COMMA, fact) RBRACKET           { Event(a) }
   
-  | LET ids=separated_list(COMMA, NAME) EQ e=expr DOT fid=NAME IN c=cmd { Get (ids, e, fid, c) }
-  | NEW id=NAME EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd { New (id, fid, args, c) }
-  | NEW id=NAME IN c=cmd { New (id, "", [], c) }
+  | LET ids=separated_list(COMMA, NAME) typ=ty EQ e=expr DOT fid=NAME IN c=cmd { Get (ids, typ, e, fid, c) }
+  | NEW id=NAME COLON typ=ty EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd { New (id, typ, fid, args, c) }
+  | NEW id=NAME COLON typ=ty IN c=cmd { New (id, typ, "", [], c) }
   | DEL e=expr DOT fid=NAME { Del (e, fid) }
 
   | e=expr { Return e }

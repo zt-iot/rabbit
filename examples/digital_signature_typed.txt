@@ -13,7 +13,7 @@ type bob_t        : process
 
 
 
-type udp_t 	  : channel
+
 
 
 (** declare security types *)
@@ -24,9 +24,11 @@ type sign_key_alice : key[Sig, client_msg] (* signing key for client_msg type of
 type client_msg : message
 type client_sig : signature
 
+type udp_t 	  : channel[client_msg * client_sig]
+
 (* security primitives *)
 function vk : key[Sig]@('s, 'i) -> key[Ver]@(Public, 'i)
-function sign : 'a -> key[Sig, 'a]@('s, 'i) -> signature@(S('a), 'i)                     (* signature@(S('a), i) will match any "signature security type" *)
+function sign : 'a -> key[Sig, 'a]@('s, 'i) -> signature@(S('a), 'i)    (* signature@(S('a), i) will match any "signature security type" *)
 function fst : 'a * 'b -> 'a
 function snd : 'a * 'b -> 'b
 equation fst ((x, y)) = x
@@ -106,7 +108,7 @@ allow bob_t [eaves_mem]
 
 (***********)
 (** global constants *)
-const fresh secret_key_alice
+const fresh secret_key_alice : sign_key_alice
 
 (***********)
 (** installed channels and filesystems *)

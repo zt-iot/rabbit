@@ -2,77 +2,6 @@ type operator = string
 
 (* type type_class = CProc | CFsys | CChan *)
 
-(* Rabbit expression language *)
-type expr = expr' Location.located
-and expr' =
-  | Var of Name.ident
-  | Boolean of bool
-  | String of string  
-  (* | Integer of Mpzf.t *)
-  | Integer of int
-  | Float of string (* store the string so we can correctly round later *)
-  | Apply of operator * expr list
-  | Tuple of expr list
-
-  | Param of Name.ident * expr
-
-type fact = fact' Location.located
-and fact' = 
-  | Fact of Name.ident * expr list
-  | GlobalFact of Name.ident * expr list
-  | ChannelFact of expr * Name.ident * expr list
-  | ProcessFact of expr * Name.ident * expr list
-  | ResFact of int * expr list (* 0: eq 1: neq 3 : FILE*)
-  (* | InjFact of  *)
-
-(* Rabbit command language *)
-type cmd = cmd' Location.located
-and cmd' = 
-  | Skip
-  | Sequence of cmd * cmd
-  (* | Wait of fact list * cmd *)
-  | Put of fact list
-  | Let of Name.ident * expr * cmd 
-  | Assign of Name.ident option * expr
-  | Case of (fact list * cmd) list
-  | While of (fact list * cmd) list * (fact list * cmd) list
-  | Event of fact list
-  | Return of expr
-
-  | New of Name.ident * Name.ident * expr list * cmd 
-  | Get of Name.ident list * expr * Name.ident * cmd
-  | Del of expr * Name.ident
-
-(* system instantiation *)
-type chan_arg =
-  | ChanArgPlain of Name.ident
-  | ChanArgParam of Name.ident
-  | ChanArgParamInst of Name.ident * expr
-
-(* system instantiation *)
-type pproc = pproc' Location.located
-and pproc' =
-  | Proc of Name.ident * (chan_arg list)
-  | ParamProc of Name.ident * expr * (chan_arg list)
-
-(* system instantiation *)
-type proc = 
-| UnboundedProc of pproc 
-| BoundedProc of (Name.ident * pproc list)
-
-(* system instantiation *)
-type prop = prop' Location.located
-and prop' =
-  | PlainString of string
-  | Reachability of fact list
-  | Correspondence of fact * fact
-
-
-
-(* system instantiation *)
-type lemma = lemma' Location.located
-and lemma' =
-  | Lemma of Name.ident * prop 
 
 (* A Rabbit type, which can be: 
 - Unit
@@ -87,9 +16,11 @@ type ty =
   | ProdTyp of ty * ty                           
   | Typ of Name.ident * ty_param list            (* <Name.ident>[<ty_param>*] *)
 
+
 and ty_param =  (* Why the separate constructor for ty_param? Because I want using a polymorphic type as the "root" type to be a syntax error *)
   | ParamPolyType of Name.ident
   | ParamTyp of ty
+
 
 
 type func_param_secrecy_lvl = 
@@ -97,19 +28,106 @@ type func_param_secrecy_lvl =
   | SecPoly of Name.ident (* non-concrete secrecy level *)
   | S of func_ty_param
 
+
 and func_param_integrity_lvl = 
   | Untrusted 
   | IntegPoly of Name.ident (* non-concrete integrity level *)
   | I of func_ty_param
 
+
 (* function parameter of an equational theory function or system call *)
 and func_ty_param = 
   | FuncParamPolyType of Name.ident (* 'a, 'b, 'n etc. *)
   | FuncParamTyp of ty * func_param_secrecy_lvl option * func_param_integrity_lvl option (* ty or ty@(s, i) or ty@(Public, i) or ty@(S(t), i) or ty@(s, Untrusted) etc. *)
+
+
+
+
+
+(* Rabbit expression language *)
+type expr = expr' Location.located
+and expr' =
+  | Var of Name.ident
+  | Boolean of bool
+  | String of string  
+  (* | Integer of Mpzf.t *)
+  | Integer of int
+  | Float of string (* store the string so we can correctly round later *)
+  | Apply of operator * expr list
+  | Tuple of expr list
+  | Param of Name.ident * expr (* parametric Rabbit NOT "function parameter" *)
+
+
+type fact = fact' Location.located
+and fact' = 
+  | Fact of Name.ident * expr list
+  | GlobalFact of Name.ident * expr list
+  | ChannelFact of expr * Name.ident * expr list
+  | ProcessFact of expr * Name.ident * expr list
+  | ResFact of int * expr list (* 0: eq 1: neq 3 : FILE*)
+
+  (* | InjFact of  *)
+
+(* Rabbit command language *)
+type cmd = cmd' Location.located
+and cmd' = 
+  | Skip
+  | Sequence of cmd * cmd
+  (* | Wait of fact list * cmd *)
+  | Put of fact list
+  | Let of Name.ident * ty * expr * cmd 
+  | Assign of Name.ident option * expr
+  | Case of (fact list * cmd) list
+  | While of (fact list * cmd) list * (fact list * cmd) list
+  | Event of fact list
+  | Return of expr
+
+  | New of Name.ident * ty * Name.ident * expr list * cmd 
+  | Get of Name.ident list * ty * expr * Name.ident * cmd
+  | Del of expr * Name.ident
+
+
+(* system instantiation *)
+type chan_arg =
+  | ChanArgPlain of Name.ident
+  | ChanArgParam of Name.ident
+  | ChanArgParamInst of Name.ident * expr
+
+
+(* system instantiation *)
+type pproc = pproc' Location.located
+and pproc' =
+  | Proc of Name.ident * (chan_arg list)
+  | ParamProc of Name.ident * expr * (chan_arg list)
+
+
+(* system instantiation *)
+type proc = 
+  | UnboundedProc of pproc 
+  | BoundedProc of (Name.ident * pproc list)
+
+
+(* system instantiation *)
+type prop = prop' Location.located
+and prop' =
+  | PlainString of string
+  | Reachability of fact list
+  | Correspondence of fact * fact
+
+
+
+
+(* system instantiation *)
+type lemma = lemma' Location.located
+and lemma' =
+  | Lemma of Name.ident * prop 
+
   
 
+let print_hello = 
+  print_endline "hello"
 
-type decl = decl' Location.located
+type decl = decl' Location.located 
 and decl' =
   | DeclSimpleTyp of ty (* data <simple_ty> *)
 
@@ -151,7 +169,7 @@ and decl' =
     } 
   } *)
   (* bool: whether ch_i is parameterized channel type or not *)
-  (* TODO unify these *)
+  (* TODO unify these two constructors *)
   | DeclProc of Name.ident * (bool * Name.ident * ty) list * Name.ident * 
                 ((expr * Name.ident * expr) list) * 
                 ((Name.ident * ty * expr) list) * 
@@ -167,6 +185,3 @@ and decl' =
   
 
   | DeclLoad of string
-
-  
-[@@deriving show]
