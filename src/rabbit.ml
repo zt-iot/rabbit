@@ -77,7 +77,7 @@ let _main =
             in
             let typer_result =
               try
-                ignore @@ Typer.load Typer.Env.empty fn; Ok ()
+                ignore @@ Typer.load ~loc:Location.nowhere (Env.empty ()) fn; Ok ()
               with
               | Typer.Error e -> Error e
             in

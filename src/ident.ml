@@ -11,3 +11,5 @@ let local s =
 let name (s, i) =
   if i = 0 then s
   else Printf.sprintf "%s__%d" s i
+
+let print id ppf = Format.fprintf ppf "%s" (fst id)
