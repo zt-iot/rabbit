@@ -30,6 +30,7 @@ and fact' =
   | Eq of expr * expr
   | Neq of expr * expr
   | File of expr * expr
+  | Fresh of expr
 
 type cmd = cmd' loc_env
 
