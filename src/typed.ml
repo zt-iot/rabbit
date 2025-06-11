@@ -17,6 +17,7 @@ and expr' =
   | Float of string
   | Apply of ident * expr list
   | Tuple of expr list
+  | Unit
 
 type fact = fact' loc_env
 
