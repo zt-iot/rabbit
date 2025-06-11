@@ -19,6 +19,7 @@ and expr' =
   | Float of string (** float, [4.12]. Store the string so we can correctly round later *)
   | Apply of ident * expr list (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
+  | Unit
 
 type fact = fact' loc_env
 
