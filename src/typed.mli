@@ -20,6 +20,7 @@ and expr' =
   | Apply of ident * expr list (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Unit
+  | Rho
 
 type fact = fact' loc_env
 
