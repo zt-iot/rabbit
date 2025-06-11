@@ -18,6 +18,7 @@ and expr' =
   | Apply of ident * expr list
   | Tuple of expr list
   | Unit
+  | Rho
 
 type fact = fact' loc_env
 
