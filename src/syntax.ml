@@ -25,7 +25,7 @@ and fact' =
   | Fact of Name.ident * expr list
   | GlobalFact of Name.ident * expr list
   | ChannelFact of expr * Name.ident * expr list
-  | ProcessFact of Name.ident * Name.ident * expr list
+  | ProcessFact of expr * Name.ident * expr list
   | EqFact of expr * expr
   | NeqFact of expr * expr
   | FileFact of expr * expr

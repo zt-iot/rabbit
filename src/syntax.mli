@@ -29,7 +29,7 @@ and fact' =
   | Fact of Name.ident * expr list (** [n(e1,..,en)] *)
   | GlobalFact of Name.ident * expr list (** [:: n(e1,..,en) ]*)
   | ChannelFact of expr * Name.ident * expr list (** [e :: n(e1,..,en)] *)
-  | ProcessFact of Name.ident * Name.ident * expr list (** [e % n(e1,..,en)] *)
+  | ProcessFact of expr * Name.ident * expr list (** [e % n(e1,..,en)] *)
   | EqFact of expr * expr (** [e1 = e2] *)
   | NeqFact of expr * expr (** [e1 != e2] *)
   | FileFact of expr * expr (** [S.e] *)

@@ -1,56 +1,25 @@
-type var_desc = Syntax.variable_desc =
-  | Top of int
-  | Loc of int
-  | Meta of int
-  | MetaNew of int
-  | Param
+(** Conversion errors *)
+type error =
+  | Misc of string
+  | IdentifierAlreadyBound of Name.ident
+  | UnknownName of Name.ident
+  | ArityMismatch of { arity : int; use : int }
+  | NonCallableIdentifier of Ident.t * Env.desc
+  | NonParameterizableIdentifier of Ident.t * Env.desc
+  | InvalidFact of { name : Name.ident; def: Env.named_fact_desc; use: Env.named_fact_desc }
+  | InvalidVariable of { ident : Ident.t; def: Env.desc; use: Env.desc }
+  | InvalidVariableAtAssign of Ident.t * Env.desc
+  | UnboundFact of Name.ident
 
-type named_fact_desc =
-  | NoName
-  | Global
-  | Channel
-  | Process
+exception Error of error Location.located
 
-let string_of_named_fact_desc = function
-  | NoName -> "plain"
-  | Global -> "global"
-  | Channel -> "channel"
-  | Process -> "process"
+(** [error ~loc err] raises the given runtime error. *)
+let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 
-type desc =
-  | Var of var_desc
-  | ExtFun of int
-  | ExtConst (** external function with arity = 0, ex.  function true 0 *)
-  | ExtSyscall of int (** external system call with arity *)
-  | Const of bool (* with param or not *)
-  | Channel of bool (* with param or not *) * Name.ident (* channel type *)
-  | Attack
-  | Type of Input.type_class
-  | Function of int
-  | Process
-
-let print_desc desc ppf =
-  let f = Format.fprintf in
-  match desc with
-  | Var (Top i) -> f ppf "Top %d" i
-  | Var (Loc i) -> f ppf "Loc %d" i
-  | Var (Meta i) -> f ppf "Meta %d" i
-  | Var (MetaNew i) -> f ppf "MetaNew %d" i
-  | Var Param -> f ppf "Param"
-  | ExtFun i -> f ppf "ExtFun (arity=%d)" i
-  | ExtConst -> f ppf "ExtConst"
-  | ExtSyscall i -> f ppf "ExtSyscall (arity=%d)" i
-  | Const b -> f ppf "Const (param=%b)" b
-  | Channel (b, ty) -> f ppf "Channel (param=%b) : %s" b ty
-  | Attack -> f ppf "Attack"
-  | Type CProc -> f ppf "ty process"
-  | Type CFsys -> f ppf "ty filesys"
-  | Type CChan -> f ppf "ty channel"
-  | Function i -> f ppf "Function (arity=%d)" i
-  | Process -> f ppf "Process"
+let misc_errorf ~loc fmt = Format.kasprintf (fun s -> error ~loc (Misc s)) fmt
 
 let kind_of_desc = function
-  | Var (Top _) -> "toplevel"
+  | Env.Var (Top _) -> "toplevel"
   | Var (Loc _) -> "local"
   | Var (Meta _) -> "meta"
   | Var (MetaNew _) -> "metanew"
@@ -67,646 +36,522 @@ let kind_of_desc = function
   | Function _ -> "function"
   | Process -> "process"
 
-(** Conversion errors *)
-type error =
-  | Misc of string
-  | IdentifierAlreadyBound of Name.ident
-  | UnknownIdentifier of Name.ident
-  | ArityMismatch of { arity : int; use : int }
-  | InvalidIdentifier of Name.ident * desc
-  | NonCallableIdentifier of Name.ident * desc
-  | NonParameterizableIdentifier of Name.ident * desc
-  | InvalidFact of { ident : Name.ident; def: named_fact_desc; use: named_fact_desc }
-  | InvalidVariable of { ident : Name.ident; def: desc; use: desc }
-  | InvalidNullAssign
-  | InvalidVariableAtAssign of Name.ident * desc
-  | UnboundFact of Name.ident
-
-exception Error of error Location.located
-
-(** [error ~loc err] raises the given runtime error. *)
-let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
-
-let misc_errorf ~loc fmt = Format.kasprintf (fun s -> error ~loc (Misc s)) fmt
-
 (** Print error description. *)
 let print_error err ppf =
   match err with
   | Misc s -> Format.fprintf ppf "%s" s
   | IdentifierAlreadyBound id -> Format.fprintf ppf "Identifier %s is already bound" id
-  | UnknownIdentifier id -> Format.fprintf ppf "Unknown identifier %s" id
+  | UnknownName name -> Format.fprintf ppf "Unknown identifier %s" name
   | ArityMismatch { arity; use } -> Format.fprintf ppf "Function of arity %d takes %d arguments" arity use
-  | InvalidIdentifier (id, desc) ->
-      Format.fprintf ppf "%s variable %s cannot be used in an expression"
-        (String.capitalize_ascii (kind_of_desc desc)) id
   | NonCallableIdentifier (id, desc) ->
-      Format.fprintf ppf "%s variable %s cannot be called"
-        (String.capitalize_ascii (kind_of_desc desc)) id
+      Format.fprintf ppf "%s variable %t cannot be called"
+        (String.capitalize_ascii (kind_of_desc desc)) (Ident.print id)
   | NonParameterizableIdentifier (id, desc) ->
-      Format.fprintf ppf "%s variable %s cannot be parameterized"
-        (String.capitalize_ascii (kind_of_desc desc)) id
-  | InvalidFact { ident; def; use } ->
+      Format.fprintf ppf "%s variable %t cannot be parameterized"
+        (String.capitalize_ascii (kind_of_desc desc)) (Ident.print id)
+  | InvalidFact { name; def; use } ->
       Format.fprintf ppf "%s is %s fact but used as %s"
-        ident
-        (string_of_named_fact_desc def)
-        (string_of_named_fact_desc use)
+        name
+        (Env.string_of_named_fact_desc def)
+        (Env.string_of_named_fact_desc use)
   | InvalidVariable { ident; def; use } ->
-      Format.fprintf ppf "%s is %s but used as %s"
-        ident
+      Format.fprintf ppf "%t is %s but used as %s"
+        (Ident.print ident)
         (kind_of_desc def)
         (kind_of_desc use)
-  | InvalidNullAssign ->
-      Format.fprintf ppf "Right hand side of ignore assignment must be an application"
   | InvalidVariableAtAssign (id, desc) ->
-      Format.fprintf ppf "%s variable %s cannot be assigned"
-        (String.capitalize_ascii (kind_of_desc desc)) id
+      Format.fprintf ppf "%s variable %t cannot be assigned"
+        (String.capitalize_ascii (kind_of_desc desc)) (Ident.print id)
   | UnboundFact id -> Format.fprintf ppf "Unbound fact %s" id
 
 module Env : sig
-  type t
+  include module type of struct include Env end
 
-  val empty : t
+  val find : loc:Location.t -> t -> Name.ident -> Ident.t * Env.desc
 
-  val mem : t -> Name.ident -> bool
+  val find_desc : loc:Location.t -> t -> Name.ident -> Env.desc -> Ident.t
 
-  val must_be_fresh : loc:Location.t -> t -> Name.ident -> unit
-
-  val find : loc:Location.t -> t -> Name.ident -> desc
-
-  val find_desc : loc:Location.t -> t -> Name.ident -> desc -> unit
-
-  val find_opt : t -> Name.ident -> desc option
-
-  val add : t -> Name.ident -> desc -> t
-
-  val in_local : t -> (t -> t * 'a) -> t * 'a
-
-  val add_global : loc:Location.t -> t -> Name.ident -> desc -> t
+  val add_global : loc:Location.t -> t -> Name.ident -> Env.desc -> t * Ident.t
   (** Fails if the name is bound in the environment *)
 
-  val add_fact : t -> Name.ident -> named_fact_desc * int -> t
-
-  val find_fact_opt : t -> Name.ident -> (named_fact_desc * int) option
 end = struct
-  type t = {
-    vars : (Name.ident * desc) list;
-    facts : (Name.ident * (named_fact_desc * int)) list
-  }
+  include Env
 
-  let empty = { vars= []; facts= [] }
+  let must_be_fresh ~loc env name =
+    if mem env name then error ~loc (IdentifierAlreadyBound name)
 
-  let mem env id = List.mem_assoc id env.vars
+  let find ~loc env name =
+    match find_opt env name with
+    | None -> error ~loc (UnknownName name)
+    | Some id_desc -> id_desc
 
-  let must_be_fresh ~loc env id =
-    if mem env id then error ~loc (IdentifierAlreadyBound id)
-
-  let find ~loc env id =
-    match List.assoc_opt id env.vars with
-    | None -> error ~loc (UnknownIdentifier id)
-    | Some desc -> desc
-
-  let find_desc ~loc env id desc =
-    let desc' = find ~loc env id in
+  let find_desc ~loc env name desc =
+    let id, desc' = find ~loc env name in
     if desc <> desc' then
       error ~loc @@ InvalidVariable { ident= id; def= desc'; use= desc }
+    else id
 
-  let find_opt env id = List.assoc_opt id env.vars
-
-  let add env x desc = { env with vars = (x, desc) :: env.vars }
-
-  let add_fact env id fact_desc =
-    if List.mem_assoc id env.facts then assert false;
-    { env with facts = (id, fact_desc) :: env.facts }
-
-  let find_fact_opt env id = List.assoc_opt id env.facts
-
-  let in_local env f =
-    let env', res = f env in
-    (* Extend [facts] of [env'] back to [env] *)
-    { env with facts = env'.facts }, res
-
-  let add_global ~loc env id desc =
-    must_be_fresh ~loc env id;
-    add env id desc
+  let add_global ~loc env name desc =
+    must_be_fresh ~loc env name;
+    let id = Ident.global name in
+    add env id desc, id
 end
 
 let check_arity ~loc ~arity ~use =
   if arity <> use then error ~loc @@ ArityMismatch { arity; use }
 
-let rec type_expr env (e : Input.expr) =
+let rec type_expr env (e : Input.expr) : Typed.expr =
   let loc = e.loc in
-  let data =
+  let desc =
     match e.data with
-    | Var id ->
-        (match Env.find ~loc env id with
-         | Var (Top i) -> Syntax.Variable (id, (Top i))
-         | Var (Loc i) -> Variable (id, (Loc i))
-         | Var (Meta i) -> Variable (id, (Meta i))
-         | Var (MetaNew i) -> Variable (id, (MetaNew i))
-         | Var Param -> Variable (id, Param)
-         | ExtConst -> ExtConst id
-         | Channel (_with_param, _chty) -> Channel (id, None)
-         | Const _param -> Const (id, None)
-         | desc -> error ~loc @@ InvalidIdentifier (id, desc))
-    | Boolean b -> Boolean b
+    | Boolean b -> Typed.Boolean b
     | String s -> String s
     | Integer i -> Integer i
     | Float f -> Float f
+    | Var name ->
+        let id, desc = Env.find ~loc env name in
+        Ident { id; desc; param= None }
+    | Tuple es ->
+        assert (List.length es > 0);
+        Tuple (List.map (type_expr env) es)
     | Apply (f, es) ->
         let es = List.map (type_expr env) es in
         let use = List.length es in
         (match Env.find ~loc env f with
-         | ExtFun arity ->
+         | id, ExtFun arity ->
              check_arity ~loc ~arity ~use;
-             Apply (f, es)
-         | ExtSyscall arity ->
+             Apply (id, es)
+         | id, ExtSyscall arity ->
              check_arity ~loc ~arity ~use;
-             Apply (f, es)
-         | Function arity ->
+             Apply (id, es)
+         | id, Function arity ->
              check_arity ~loc ~arity ~use;
-             Apply (f, es)
-         | desc -> error ~loc @@ NonCallableIdentifier (f, desc))
-    | Tuple es ->
-        assert (List.length es > 0);
-        Tuple (List.map (type_expr env) es)
+             Apply (id, es)
+         | id, desc -> error ~loc @@ NonCallableIdentifier (id, desc))
     | Param (f, e) (* [f<e>] *) ->
         (match Env.find ~loc env f with
-         | Const true -> Const (f, Some (type_expr env e))
-         | Channel (true, _cty) -> Channel (f, Some (type_expr env e))
-         | desc -> error ~loc @@ NonParameterizableIdentifier (f, desc))
+         | id, (Const _ | Channel _ as desc) -> Ident { id; desc; param= Some (type_expr env e) }
+         | id, desc -> error ~loc @@ NonParameterizableIdentifier (id, desc))
   in
-  { e with data }
+  { loc; env; desc }
 
-let type_fact env (fact : Input.fact) =
+let type_fact env (fact : Input.fact) : Typed.fact =
   let loc = fact.loc in
-  let env, data =
+  let desc =
     match fact.data with
-    | Fact (id, es) ->
+    | Fact (name, es) ->
         (* Which fact? For strucure? *)
         let nes = List.length es in
-        (match Env.find_fact_opt env id with
+        (match Env.find_fact_opt env name with
          | None ->
-             Env.add_fact env id (NoName, nes),
-             Syntax.Fact (id, List.map (type_expr env) es)
+             Env.add_fact env name (NoName, nes);
+             Typed.Structure (name, List.map (type_expr env) es)
          | Some (NoName, arity) ->
              check_arity ~loc ~arity ~use:nes;
-             env,
-             Syntax.Fact (id, List.map (type_expr env) es)
+             Structure (name, List.map (type_expr env) es)
          | Some (desc, _) ->
-             error ~loc @@ InvalidFact { ident=id; def= desc; use= NoName }
+             error ~loc @@ InvalidFact { name; def= desc; use= NoName }
         )
-    | GlobalFact (id, es) ->
+    | GlobalFact (name, es) ->
         let nes = List.length es in
-        (match Env.find_fact_opt env id with
-        | None ->
-            Env.add_fact env id (Global, nes),
-            Syntax.GlobalFact (id, List.map (type_expr env) es)
+        (match Env.find_fact_opt env name with
+         | None ->
+             Env.add_fact env name (Global, nes);
+             Global (name, List.map (type_expr env) es)
         | Some (Global, arity) ->
             check_arity ~loc ~arity ~use:nes;
-            env,
-            Syntax.Fact (id, List.map (type_expr env) es)
+            Global (name, List.map (type_expr env) es)
         | Some (desc, _) ->
-            error ~loc @@ InvalidFact { ident=id; def= desc; use= Global })
-    | ChannelFact (e, id, es) ->
+            error ~loc @@ InvalidFact { name; def= desc; use= Global })
+    | ChannelFact (e, name, es) ->
         let e = type_expr env e in
         let es = List.map (type_expr env) es in
         let nes = List.length es in
-        (match Env.find_fact_opt env id with
+        (match Env.find_fact_opt env name with
         | None ->
-            Env.add_fact env id (Channel, nes),
-            Syntax.ChannelFact (e, id, es)
+            Env.add_fact env name (Channel, nes);
+            Channel (e, name, es)
         | Some (Channel, arity) ->
             check_arity ~loc ~arity ~use:nes;
-            env,
-            Syntax.ChannelFact (e, id, es)
+            Channel (e, name, es)
         | Some (desc, _) ->
-            error ~loc @@ InvalidFact { ident=id; def= desc; use= Channel })
+            error ~loc @@ InvalidFact { name; def= desc; use= Channel })
     | ProcessFact _ -> assert false (* XXX ??? *)
     | EqFact (e1, e2) ->
         let e1 = type_expr env e1 in
         let e2 = type_expr env e2 in
-        env, Syntax.EqFact (e1, e2)
+        Eq (e1, e2)
     | NeqFact (e1, e2) ->
         let e1 = type_expr env e1 in
         let e2 = type_expr env e2 in
-        env, Syntax.NeqFact (e1, e2)
+        Neq (e1, e2)
     | FileFact (e1, e2) ->
         let e1 = type_expr env e1 in
         let e2 = type_expr env e2 in
-        env, Syntax.FileFact (e1, e2)
+        File (e1, e2)
   in
-  env, { fact with data }
+  { env; loc; desc }
 
-let type_facts env facts =
-  let env, rev_facts = List.fold_left (fun (env, rev_fact) fact ->
-      let env, fact = type_fact env fact in
-      env, fact :: rev_fact) (env, []) facts
+let extend_with_args env (args : Name.ident list) f =
+  let env, rev_ids =
+    List.fold_left (fun (env, rev_ids) name ->
+        let id = Ident.local name in
+        Env.add env id (f id),
+        id :: rev_ids) (env, []) args
   in
-  env, List.rev rev_facts
+  env, List.rev rev_ids
 
-let rec type_cmd env (cmd : Input.cmd) =
+let type_facts env facts = List.map (type_fact env) facts
+
+let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
   let loc = cmd.loc in
-  let env, data =
+  let desc =
     match cmd.data with
-    | Input.Skip -> env, Syntax.Skip
+    | Input.Skip -> Typed.Skip
     | Sequence (c1, c2) ->
-        let env, c1 = type_cmd env c1 in
-        let env, c2 = type_cmd env c2 in
-        env, Sequence (c1, c2)
+        let c1 = type_cmd env c1 in
+        let c2 = type_cmd env c2 in
+        Sequence (c1, c2)
     | Put facts ->
-        let env, facts = type_facts env facts in
-        env, Put facts
-    | Let (id, e, cmd) ->
+        let facts = type_facts env facts in
+        Put facts
+    | Let (name, e, cmd) ->
         let e = type_expr env e in
-        let env, cmd =
-          Env.in_local env @@ fun env ->
-            let env' =
-              let id' = Ident.local id in
-              Env.add env id (Var (Loc (snd id')))
-            in
-            type_cmd env' cmd
-        in
-        env, Let (id, e, cmd)
+        let id = Ident.local name in
+        let env' = Env.add env id (Var (Loc (snd id))) in
+        let cmd = type_cmd env' cmd in
+        Let (id, e, cmd)
     | Assign (None, e) ->
         let e = type_expr env e in
-        let c =
-          match e.data with
-          | Apply (f, args) ->
-              (match Env.find ~loc env f with
-               | Function _ -> Syntax.FCall (None, f, args)
-               | ExtSyscall _ -> SCall (None, f, args)
-               | desc -> error ~loc @@ NonCallableIdentifier (f, desc))
-          | _ -> error ~loc InvalidNullAssign
-        in
-        env, c
-    | Assign (Some id, e) ->
+        Assign (None, e)
+    | Assign (Some name, e) ->
+        let id, vdesc = Env.find ~loc env name in
+        (match vdesc with
+         | Var (Top _ | Loc _ | Meta _) -> ()
+         | desc -> error ~loc @@ InvalidVariableAtAssign (id, desc));
         let e = type_expr env e in
-        let vdesc =
-          match Env.find ~loc env id with
-          | Var (Top _ | Loc _ as vdesc) -> vdesc
-          | desc -> error ~loc @@ InvalidVariableAtAssign (id, desc)
-        in
-        let c =
-          match e.data with
-          | Apply (f, args) ->
-              (match Env.find ~loc env f with
-               | Function _ -> Syntax.FCall (Some (id, vdesc), f, args)
-               | ExtSyscall _ -> SCall (Some (id, vdesc), f, args)
-               | _ -> Assign ((id, vdesc), e))
-          | _ -> Assign ((id, vdesc), e)
-        in
-        env, c
+        Assign (Some id, e)
     | Case cases ->
-        let env, cases = type_cases env cases in
-        env, Case cases
+        Case (type_cases env cases)
     | While (cases1, cases2) ->
-        let env, cases1 = type_cases env cases1 in
-        let env, cases2 = type_cases env cases2 in
-        env, While (cases1, cases2)
+        let cases1 = type_cases env cases1 in
+        let cases2 = type_cases env cases2 in
+        While (cases1, cases2)
     | Event facts ->
-        let env, facts = type_facts env facts in
-        env, Event facts
+        let facts = type_facts env facts in
+        Event facts
     | Return e ->
-        let e = type_expr env e in
-        env, Return e
-    | New (id, str_es_opt, cmd) ->
+        Return (type_expr env e)
+    | New (name, str_es_opt, cmd) ->
         (* allocation, [new x := S(e1,..,en) in c] or [new x in c] *)
-        let env, str_es_opt =
+        let str_es_opt =
           match str_es_opt with
-          | None -> env, None
+          | None -> None
           | Some (str, es) ->
-              (* Treat S(e1,..,en) as a fact *)
-              let env, fact = type_fact env {cmd with data= Input.Fact (str, es)} in
+              (* Treat S(e1,..,en) as a structure fact *)
+              let fact = type_fact env {cmd with data= Input.Fact (str, es)} in
               let str, es =
-                match fact.data with
-                | Fact (str, es) -> str, es
+                match fact.desc with
+                | Structure (str, es) -> str, es
                 | _ -> assert false
               in
-              env, Some (str, es)
+              Some (str, es)
         in
-        let env, cmd =
-          Env.in_local env @@ fun env ->
-          let env' =
-            let idx = Ident.local id in
-            Env.add env id (Var (Loc (snd idx)))
-          in
-          type_cmd env' cmd
-        in
-        env, New (id, str_es_opt, cmd)
-    | Get (ids, e, str, cmd) ->
+        let id = Ident.local name in
+        let env' = Env.add env id (Var (Loc (snd id))) in
+        let cmd = type_cmd env' cmd in
+        New (id, str_es_opt, cmd)
+    | Get (names, e, str, cmd) ->
         (* fetch, [let x1,...,xn := e.S in c] *)
         let e = type_expr env e in
         (match Env.find_fact_opt env str with
          | Some (NoName, arity) ->
-             check_arity ~loc ~arity ~use:(List.length ids)
+             check_arity ~loc ~arity ~use:(List.length names)
          | Some (desc, _) ->
-             error ~loc @@ InvalidFact { ident= str; def= desc; use= NoName }
+             error ~loc @@ InvalidFact { name= str; def= desc; use= NoName }
          | None -> error ~loc @@ UnboundFact str
         );
-        let env, cmd =
-          Env.in_local env @@ fun env ->
-          let env' =
-            List.fold_left (fun env' id ->
-                let idx = Ident.local id in
-                Env.add env' id (Var (Loc (snd idx)))) env ids
-          in
-          type_cmd env' cmd
+        let ids = List.map Ident.local names in
+        let env' =
+          List.fold_left (fun env' id ->
+              Env.add env' id (Var (Loc (snd id)))) env ids
         in
-        env, Get (ids, e, str, cmd)
+        let cmd = type_cmd env' cmd in
+        Get (ids, e, str, cmd)
     | Del (e, str) ->
         (* deletion, [delete e.S] *)
         let e = type_expr env e in
         (match Env.find_fact_opt env str with
          | Some (NoName, _arity) -> ()
          | Some (desc, _) ->
-             error ~loc @@ InvalidFact { ident= str; def= desc; use= NoName }
+             error ~loc @@ InvalidFact { name= str; def= desc; use= NoName }
          | None -> error ~loc @@ UnboundFact str
         );
-        env, Del (e, str)
+        Del (e, str)
   in
-  env, { cmd with data }
+  { loc; env; desc }
 
-and type_cases env cases =
-  let env, rev_cases = List.fold_left (fun (env, rev_cases) case ->
-      let env, case = type_case env case in
-      env, case :: rev_cases) (env, []) cases
-  in
-  env, List.rev rev_cases
+and type_cases env cases : Typed.case list = List.map (type_case env) cases
 
-and type_case env (facts, cmd) =
+and type_case env (facts, cmd) : Typed.case =
   (* facts -> cmd *)
-  let env, (fresh, facts, cmd) = Env.in_local env @@ fun env ->
-    let vs = List.fold_left (fun vs fact ->
-        Name.Set.union vs (Input.vars_of_fact fact)) Name.Set.empty facts
-    in
-    let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
-    let env' = Name.Set.fold (fun v env ->
-        let idx = Ident.local v in
-        Env.add env v (Var (Meta (snd idx)))) fresh env
-    in
-    let env', facts = type_facts env' facts in
-    let env', cmd = type_cmd env' cmd in
-    env', (fresh, facts, cmd)
+  let vs = List.fold_left (fun vs fact ->
+      Name.Set.union vs (Input.vars_of_fact fact)) Name.Set.empty facts
   in
-  env, (Name.Set.elements fresh, facts, cmd)
+  let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
+  let fresh_ids = Name.Set.fold (fun name ids -> Ident.local name :: ids) fresh [] in
+  let env' = List.fold_left (fun env id ->
+      Env.add env id (Var (Meta (snd id)))) env fresh_ids
+  in
+  let facts = type_facts env' facts in
+  let cmd = type_cmd env' cmd in
+  Typed.{ fresh= fresh_ids; facts; cmd }
 
-let extend_with_args env (args : Name.ident list) =
-  (* XXX channels are not declared like [channel ch] but simply as [ch] *)
-  List.fold_left (fun env id ->
-      let idx = Ident.local id in
-      Env.add env id (Var (Loc (snd idx)))) env args
-
-let extend_with_args2 env (args : Name.ident list) =
-  List.fold_left (fun env id ->
-      let idx = Ident.local id in
-      Env.add env id (Var (Loc (snd idx)))) env args
-
-let type_process ~loc env id param_opt args typ files vars funcs main =
-  (* [ process id<param>(ch1 : chty1, .., chn : chtyn) : proc_ty {n
+let type_process ~loc env (name : Name.ident) (param_opt : Name.ident option) args proc_ty files vars funcs main : Env.t * Typed.decl=
+  (* [ process name<param>(ch1 : chty1, .., chn : chtyn) : proc_ty {n
           file path : filety = contents ...
           var id = e ...
           function fid(args) { c }
           main ...
         }
      ] *)
-  let env, (files, vars, funcs, main) = Env.in_local env @@ fun env ->
-    let env' =
+  let (param_opt, args, proc_ty, files, vars, funcs, main) =
+    let env', param_opt =
       match param_opt with
-      | None -> env
-      | Some param -> Env.add env param (Var Param)
+      | None -> env, None
+      | Some name ->
+          let id = Ident.local name in
+          Env.add env id (Var Param), Some id
     in
-    let env' = List.fold_left (fun env (Syntax.ChanParam {id= chanid; param; typ= chanty}) ->
+    let env', rev_args = List.fold_left (fun (env, rev_args) (Input.ChanParam {id= chanid; param; typ= chanty}) ->
         let with_param = param <> None in
-        Env.find_desc ~loc env chanty (Type CChan);
-        Env.add env chanid (Channel (with_param, chanty)))
-        env' args
+        let chanty = Env.find_desc ~loc env chanty (Type CChan) in
+        let chanid = Ident.local chanid in
+        Env.add env chanid (Channel (with_param, chanty)), (with_param, chanid, chanty) :: rev_args)
+        (env', []) args
     in
-    (match Env.find ~loc env typ with
-     | Type CProc -> ()
-     | desc -> error ~loc @@ InvalidVariable { ident= typ; def= desc; use= Type CProc });
+    let args = List.rev rev_args in
+    let proc_ty =
+      match Env.find ~loc env proc_ty with
+      | proc_ty, Type CProc -> proc_ty
+      | id, desc -> error ~loc @@ InvalidVariable { ident= id; def= desc; use= Type CProc }
+    in
     let files = List.map (fun (path, filety, contents) ->
         let path = type_expr env' path in
-        Env.find_desc ~loc env' filety (Type CFsys);
+        let filety = Env.find_desc ~loc env' filety (Type CFsys) in
         let contents = type_expr env' contents in
         path, filety, contents) files
     in
-    let env', rev_vars = List.fold_left (fun (env, rev_vars) (id, e) ->
+    let env', rev_vars = List.fold_left (fun (env, rev_vars) (name, e) ->
         let e = type_expr env e in
+        let id = Ident.local name in
         let env' =
-          let idx = Ident.local id in
-          Env.add env id (Var (Loc (snd idx)))
+          Env.add env id (Var (Loc (snd id)))
         in
         env', (id, e) :: rev_vars) (env', []) vars
     in
     let vars = List.rev rev_vars in
     let env', rev_funcs =
-      List.fold_left (fun (env', rev_funcs) (fid, args, c) ->
-          let env', c =
-            Env.in_local env' @@ fun env' ->
-            let env'' = extend_with_args2 env' args in
-            let env'' =
-              let idx = Ident.local fid in
-              Env.add env'' id (Var (Loc (snd idx)))
-            in
-            type_cmd env'' c
-          in
+      List.fold_left (fun (env', rev_funcs) (fname, args, c) ->
+          let env'', args = extend_with_args env' args @@ fun id -> Var (Loc (snd id)) in
+          let c = type_cmd env'' c in
+          let fid = Ident.local fname in
           Env.add env' fid (Function (List.length args)),
-          (id, args, c) :: rev_funcs) (env', []) funcs
+          (fid, args, c) :: rev_funcs) (env', []) funcs
     in
     let funcs = List.rev rev_funcs in
-    let env', main = type_cmd env' main in
-    env', (files, vars, funcs, main)
+    let main = type_cmd env' main in
+    (param_opt, args, proc_ty, files, vars, funcs, main)
   in
-  Env.add_global ~loc env id Process,
-  Syntax.DeclProc { id; param= param_opt; args; typ; files; vars; funcs; main }
+  let env', id = Env.add_global ~loc env name Process in
+  let decl : Typed.decl = { env; loc; desc= Process { id; param= param_opt; args; typ= proc_ty; files; vars; funcs; main } } in
+  env', decl
 
-let type_lemma env (lemma : Input.lemma) =
-  match lemma.data with
-  | Lemma (id, prop) ->
-      let env, data =
-        match prop.data with
-        | PlainString s -> env, Syntax.PlainLemma { name= id; desc= s }
-        | Reachability facts ->
-            let vs = Input.vars_of_facts facts in
-            let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
-            let env' = Name.Set.fold (fun v env ->
-                let idx = Ident.local v in
-                Env.add env v (Var (Meta (snd idx)))) fresh env
-            in
-            let _env', facts = type_facts env' facts in
-            env, ReachabilityLemma { name= id; fresh_variables= Name.Set.elements fresh; facts }
-        | Correspondence (f1, f2) ->
-            let vs = Name.Set.union (Input.vars_of_fact f1) (Input.vars_of_fact f2) in
-            let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
-            let env' = Name.Set.fold (fun v env ->
-                let idx = Ident.local v in
-                Env.add env v (Var (Meta (snd idx)))) fresh env
-            in
-            let env', f1 = type_fact env' f1 in
-            let _env', f2 = type_fact env' f2 in
-            env, CorrespondenceLemma { name= id; fresh_variables= Name.Set.elements fresh; premise= f1; conclusion= f2 }
-      in
-      env, { prop with data }
+let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
+  let loc = lemma.loc in
+  let Lemma (name, prop) = lemma.data in
+  let desc =
+    match prop.data with
+    | PlainString s -> Typed.Plain s
+    | Reachability facts ->
+        let vs = Input.vars_of_facts facts in
+        let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
+        let fresh_ids = Name.Set.fold (fun name ids -> Ident.local name :: ids) fresh [] in
+        let env' = List.fold_left (fun env id ->
+            Env.add env id (Var (Meta (snd id)))) env fresh_ids
+        in
+        let facts = type_facts env' facts in
+        Reachability { fresh= fresh_ids; facts }
+    | Correspondence (f1, f2) ->
+        let vs = Name.Set.union (Input.vars_of_fact f1) (Input.vars_of_fact f2) in
+        let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
+        let fresh_ids = Name.Set.fold (fun name ids -> Ident.local name :: ids) fresh [] in
+        let env' = List.fold_left (fun env id ->
+            Env.add env id (Var (Meta (snd id)))) env fresh_ids
+        in
+        let f1 = type_fact env' f1 in
+        let f2 = type_fact env' f2 in
+        Correspondence { fresh= fresh_ids; from= f1; to_= f2 }
+  in
+  let lemma : Typed.lemma = { env; loc; desc } in
+  let env, id = Env.add_global ~loc env name Process in
+  env, (id, lemma)
 
-let rec type_decl base_fn env (d : Input.decl) =
+let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl =
   let loc = d.loc in
-  let env, data =
-    match d.data with
-    | DeclExtFun (id, 0) ->
-        Env.add_global ~loc env id ExtConst,
-        Syntax.DeclExtFun (id, 0)
-    | DeclExtFun (id, arity) ->
-        Env.add_global ~loc env id (ExtFun arity),
-        Syntax.DeclExtFun (id, arity)
-    | DeclExtEq (e1, e2) ->
-        let vars = Name.Set.union (Input.vars_of_expr e1) (Input.vars_of_expr e2) in
-        let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vars in
-        let env' =  Name.Set.fold (fun v env ->
-            let idx = Ident.local v in
-            Env.add env v (Var (Loc (snd idx))))  fresh env
-        in
-        let e1 = type_expr env' e1 in
-        let e2 = type_expr env' e2 in
-        env, DeclExtEq (e1, e2) (* XXX fresh should be included *)
-    | DeclExtSyscall (id, args, c) ->
-        let env, c =
-          Env.in_local env @@ fun env ->
-          let env' = extend_with_args env args in
-          type_cmd env' c
-        in
-        Env.add_global ~loc env id (ExtSyscall (List.length args)), DeclExtSyscall (id, args, c)
-    | DeclExtAttack (id, syscall, args, c) ->
-        (* [attack id on syscall (a1,..,an) { c }] *)
-        (match Env.find ~loc env syscall with
-         | ExtSyscall _ -> ()
-         | desc -> error ~loc @@ InvalidVariable { ident=syscall; def= desc; use= ExtSyscall (-1) });
-        let env, c =
-          Env.in_local env @@ fun env ->
-          let env' = extend_with_args env args in
-          type_cmd env' c
-        in
-        Env.add_global ~loc env id Attack, DeclExtAttack(id, syscall, args, c)
-    | DeclType (id, tclass) ->
-        Env.must_be_fresh ~loc env id;
-        Env.add env id (Type tclass), DeclType (id, tclass)
-    | DeclAccess (proc_ty, tys, syscalls_opt) ->
-        Env.find_desc ~loc env proc_ty (Type CProc);
-        (List.iter (fun ty ->
-             match Env.find ~loc env ty with
-             | Type (CChan | CFsys) -> ()
-             | _ -> misc_errorf ~loc "%s must be a channel or filesys type" ty) tys);
-        (match tys with
-         | [] | [_] -> ()
-         | _ -> error ~loc (Misc "At most 1 channel or filesys type is allowed"));
-        Option.iter (fun syscalls ->
-            List.iter (fun syscall ->
+  match d.data with
+  | DeclLoad fn ->
+      (* [load "xxx.rab"] *)
+      let fn = Filename.dirname base_fn ^ "/" ^ fn in
+      load env ~loc fn
+  | DeclExtFun (name, arity) ->
+      let env', id = Env.add_global ~loc env name ExtConst in
+      env', { env; loc; desc= Function { id; arity } }
+  | DeclExtEq (e1, e2) ->
+      let vars = Name.Set.union (Input.vars_of_expr e1) (Input.vars_of_expr e2) in
+      let fresh = Name.Set.elements (Name.Set.filter (fun v -> not (Env.mem env v)) vars) in
+      let env', _fresh_ids (* XXX should be in the tree *) = extend_with_args env fresh @@ fun id -> Var (Meta (snd id)) in
+      let e1 = type_expr env' e1 in
+      let e2 = type_expr env' e2 in
+      env, { env= env'; loc; desc= Equation (e1, e2) (* XXX fresh should be included *) }
+  | DeclExtSyscall (name, args, c) ->
+      let args, cmd =
+        let env', args = extend_with_args env args @@ fun id -> Var (Loc (snd id)) in
+        let c = type_cmd env' c in
+        args, c
+      in
+      let env', id = Env.add_global ~loc env name (ExtSyscall (List.length args)) in
+      env', { env; loc; desc= Syscall { id; args; cmd } }
+  | DeclExtAttack (name, syscall, args, c) ->
+      (* [attack id on syscall (a1,..,an) { c }] *)
+      let syscall =
+        match Env.find ~loc env syscall with
+        | syscall, ExtSyscall _ -> syscall
+        | id, desc -> error ~loc @@ InvalidVariable { ident=id; def= desc; use= ExtSyscall (List.length args) }
+      in
+      let args, cmd =
+        let env', args = extend_with_args env args @@ fun id -> Var (Loc (snd id)) in
+        let c = type_cmd env' c in
+        args, c
+      in
+      let env', id = Env.add_global ~loc env name Attack in
+      env', { env; loc; desc= Attack { id; syscall; args; cmd } }
+  | DeclType (name, tclass) ->
+      let env', id = Env.add_global ~loc env name (Type tclass) in
+      env', { env; loc; desc= Type { id; typclass= tclass } }
+  | DeclAccess (proc_ty, tys, syscalls_opt) ->
+      let proc_ty = Env.find_desc ~loc env proc_ty (Type CProc) in
+      let tys =
+        List.map (fun ty ->
+            match Env.find ~loc env ty with
+            | id, Type (CChan | CFsys) -> id
+            | _ -> misc_errorf ~loc "%s must be a channel or filesys type" ty) tys
+      in
+      (match tys with
+       | [] | [_] -> ()
+       | _ -> error ~loc (Misc "At most 1 channel or filesys type is allowed"));
+      let syscalls_opt =
+        Option.map (fun syscalls ->
+            List.map (fun syscall ->
                 match Env.find ~loc env syscall with
-                | ExtSyscall _ -> ()
-                | desc -> error ~loc @@ InvalidVariable { ident= syscall; def= desc; use= ExtSyscall (-1) }) syscalls)  syscalls_opt;
-        env,
-        DeclAccess (proc_ty, tys, syscalls_opt)
-    | DeclAttack (proc_tys, attacks) ->
-        (* [allow attack proc_ty1 .. proc_tyn [attack1, .., attackn]] *)
-        List.iter (fun ty -> Env.find_desc ~loc env ty (Type CProc)) proc_tys;
-        List.iter (fun attack -> Env.find_desc ~loc env attack Attack) attacks;
-        env,
-        DeclAttack (proc_tys, attacks)
-    | DeclInit (id, Fresh) ->
-        (* [const fresh n] *)
-        Env.add_global ~loc env id (Const false),
-        DeclInit (id, Fresh)
-    | DeclInit (id, Value e) ->
-        (* [const n = e] *)
-        Env.add_global ~loc env id (Const false),
-        let e = type_expr env e in
-        DeclInit (id, Value e)
-    | DeclInit (id, Fresh_with_param) ->
-        (* [const fresh n<>] *)
-        Env.add_global ~loc env id (Const true),
-        DeclInit (id, Fresh_with_param)
-    | DeclInit (id, Value_with_param(e, p)) ->
-        (* [const n<p> = e] *)
-        let e = type_expr (Env.add env p (Var Param)) e in
-        Env.add_global ~loc env id (Const true), (* no info of param? *)
-        DeclInit (id, Value_with_param (e, p))
-    | DeclChan (ChanParam {id; param= None; typ= chty}) ->
-        (* [channel n : ty] *)
-        Env.must_be_fresh ~loc env id;
-        Env.find_desc ~loc env chty (Type CChan);
-        Env.add env id (Channel (false, chty)), DeclChan (ChanParam {id; param= None; typ= chty})
-    | DeclChan (ChanParam {id; param= Some (); typ= chty}) ->
-        (* [channel n<> : ty] *)
-        Env.must_be_fresh ~loc env id;
-        Env.find_desc ~loc env chty (Type CChan);
-        Env.add env id (Channel (true, chty)), DeclChan (ChanParam {id; param= Some (); typ= chty})
-    | DeclProc { id; param= None; args; typ; files; vars; funcs; main } ->
-        type_process ~loc env id None args typ files vars funcs main
-    | DeclProc { id; param= Some param; args; typ; files; vars; funcs; main } ->
-        type_process ~loc env id (Some param) args typ files vars funcs main
-    | DeclSys (procs, lemmas) ->
-        (* [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
-        let type_chan_arg ~loc env = function
-          | Input.ChanArgPlain id ->
-              (* [id] *)
-              (match Env.find ~loc env id with
-               | Channel (false, chty) -> Syntax.ChanArg { id; typ= chty; param= None }
-               | _ -> misc_errorf ~loc "%s is not a channel without a parameter" id)
-          | ChanArgParam id ->
-              (* [id<>] *)
-              (match Env.find ~loc env id with
-               | Channel (true, chty) -> ChanArg { id; typ= chty; param= None }
-               | _ -> misc_errorf ~loc "%s is not a channel with a parameter" id)
-          | ChanArgParamInst (id, e) ->
-              (* [id<e>] *)
+                | id, ExtSyscall _ -> id
+                | id, desc -> error ~loc @@ InvalidVariable { ident= id; def= desc; use= ExtSyscall (-1) }) syscalls) syscalls_opt
+      in
+      env,
+      { env; loc; desc= Allow { process_typ= proc_ty; target_typs= tys; syscalls= syscalls_opt } }
+  | DeclAttack (proc_tys, attacks) ->
+      (* [allow attack proc_ty1 .. proc_tyn [attack1, .., attackn]] *)
+      let proc_tys = List.map (fun ty -> Env.find_desc ~loc env ty (Type CProc)) proc_tys in
+      let attacks = List.map (fun attack -> Env.find_desc ~loc env attack Attack) attacks in
+      env, { env; loc; desc= AllowAttack { process_typs= proc_tys; attacks } }
+  | DeclInit (name, Fresh) ->
+      (* [const fresh n] *)
+      let env', id = Env.add_global ~loc env name (Const false) in
+      env', { env; loc; desc= Init { id; desc= Fresh } }
+  | DeclInit (name, Value e) ->
+      (* [const n = e] *)
+      let e = type_expr env e in
+      let env', id = Env.add_global ~loc env name (Const false) in
+      env', { env; loc; desc= Init { id; desc= Value e } }
+  | DeclInit (name, Fresh_with_param) ->
+      (* [const fresh n<>] *)
+      let env', id = Env.add_global ~loc env name (Const true) in
+      env', { env; loc; desc= Init { id; desc= Fresh_with_param } }
+  | DeclInit (name, Value_with_param(e, p)) ->
+      (* [const n<p> = e] *)
+      let p = Ident.local p in
+      let env' = Env.add env p (Var Param) in
+      let e = type_expr env' e in
+      let env', id = Env.add_global ~loc env name (Const true) (* no info of param? *) in
+      env', { env; loc; desc= Init { id; desc= Value_with_param (p, e) } }
+  | DeclChan (ChanParam {id= name; param; typ= chty}) ->
+      (* [channel n : ty] *)
+      (* [channel n<> : ty] *)
+      let chty = Env.find_desc ~loc env chty (Type CChan) in
+      let env', id =  Env.add_global ~loc env name (Channel (false, chty)) in
+      env', { env; loc; desc= Channel { id; param; typ= chty } }
+  | DeclProc { id; param; args; typ; files; vars; funcs; main } ->
+      type_process ~loc env id param args typ files vars funcs main
+  | DeclSys (procs, lemmas) ->
+      (* [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
+      let type_chan_arg ~loc env : _ -> Typed.chan_arg = function
+        | Input.ChanArgPlain name ->
+            (* [id] *)
+            (match Env.find ~loc env name with
+             | id, Channel (false, chty) -> { channel= id; parameter= None; typ= chty }
+             | id, _ -> misc_errorf ~loc "%t is not a channel without a parameter" (Ident.print id))
+        | ChanArgParam name ->
+            (* [id<>] *)
+            (match Env.find ~loc env name with
+             | id, Channel (true, chty) -> { channel= id; parameter= Some None; typ= chty }
+             | id, _ -> misc_errorf ~loc "%t is not a channel with a parameter" (Ident.print id))
+        | ChanArgParamInst (name, e) ->
+            (* [id<e>] *)
+            let e = type_expr env e in
+            (match Env.find ~loc env name with
+             | id, Channel (true, chty) -> { channel= id; parameter= Some (Some e); typ= chty }
+             | id, _ -> misc_errorf ~loc "%t is not a channel with a parameter" (Ident.print id))
+      in
+      let type_pproc env (pproc : Input.pproc) =
+        let loc = pproc.loc in
+        let data : Typed.pproc' =
+          match pproc.data with
+          | Proc (pname, chan_args) ->
+              (* [pname (chargs,..,chargs)] *)
+              let pid = Env.find_desc ~loc env pname Process in
+              let chan_args = List.map (type_chan_arg ~loc env) chan_args in
+              { id= pid; parameter= None; args= chan_args }
+          | ParamProc (pname, e, chan_args) ->
+              (* [pname <e> (chargs,..,chargs)] *)
+              let pid = Env.find_desc ~loc env pname Process in
               let e = type_expr env e in
-              (match Env.find ~loc env id with
-               | Channel (true, chty) -> ChanArg { id; typ= chty; param= Some (Some e) }
-               | _ -> misc_errorf ~loc "%s is not a channel with a parameter" id)
+              let chan_args = List.map (type_chan_arg ~loc env) chan_args in
+              { id= pid; parameter= Some e; args= chan_args }
         in
-        let type_pproc env (pproc : Input.pproc) =
-          let loc = pproc.loc in
-          let data =
-            match pproc.data with
-              | Proc (pid, chan_args) ->
-                  (* [pid (chargs,..,chargs)] *)
-                  Env.find_desc ~loc env pid Process;
-                  let chan_args = List.map (type_chan_arg ~loc env) chan_args in
-                  Syntax.Proc (pid, None, chan_args)
-              | ParamProc (pid, e, chan_args) ->
-                  (* [pid <e> (chargs,..,chargs)] *)
-                  let e = type_expr env e in
-                  let chan_args = List.map (type_chan_arg ~loc env) chan_args in
-                  Proc (pid, Some e, chan_args)
-          in
-          { pproc with data }
-        in
-        let type_proc env = function
-          | Input.UnboundedProc pproc ->
-              Syntax.UnboundedProc (type_pproc env pproc)
-          | BoundedProc (id, pprocs) (* [!name.(pproc1|..|pprocn)] *) ->
-              let env = Env.add env id (Var Param) in
-              let pprocs = List.map (type_pproc env) pprocs in
-              BoundedProc (id, pprocs)
-        in
-        let procs = List.map (type_proc env) procs in
-        let env, rev_lemmas = List.fold_left (fun (env, rev_lemmas) lemma ->
-            let env, lemma = type_lemma env lemma in
-            env, lemma :: rev_lemmas) (env, []) lemmas
-        in
-        let lemmas = List.rev rev_lemmas in
-        env, DeclSys (procs, lemmas)
-    | DeclLoad fn ->
-        (* [load "xxx.rab"] *)
-        let fn = Filename.dirname base_fn ^ "/" ^ fn in
-        load env fn
-  in
-  env, { d with data }
+        { pproc with data }
+      in
+      let type_proc env : _ -> Typed.proc = function
+        | Input.UnboundedProc pproc ->
+            Unbounded (type_pproc env pproc)
+        | BoundedProc (name, pprocs) (* [!name.(pproc1|..|pprocn)] *) ->
+            let id = Ident.local name in
+            let env = Env.add env id (Var Param) in
+            let pprocs = List.map (type_pproc env) pprocs in
+            Bounded (id, pprocs)
+      in
+      let procs = List.map (type_proc env) procs in
+      let _env, rev_lemmas = List.fold_left (fun (env, rev_lemmas) lemma ->
+          let env, lemma = type_lemma env lemma in
+          env, lemma :: rev_lemmas) (env, []) lemmas
+      in
+      let lemmas = List.rev rev_lemmas in
+      env, { env; loc; desc= System (procs, lemmas) }
 
-and load env fn =
+and load env ~loc fn : Env.t * Typed.decl =
   let decls, (_used_idents, _used_strings) = Lexer.read_file Parser.file fn in
-  let env, decls =
+  let env', decls =
     List.fold_left (fun (env, rev_decls) decl ->
         let env, decl = type_decl fn env decl in
         env, decl :: rev_decls) (env, []) decls
   in
-  env, DeclLoad (fn, decls)
+  env', { env; loc; desc= Load (fn, decls) }
