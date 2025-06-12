@@ -1,1 +1,1 @@
-type ident = string
+type ident = string [@@deriving show]

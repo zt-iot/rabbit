@@ -1,4 +1,4 @@
-type operator = string
+type operator = string [@@deriving show]
 
 (* type type_class = CProc | CFsys | CChan *)
 
@@ -15,11 +15,13 @@ type ty =
   | ChannelTyp of ty list                        (* channel[t_1 + ... t_n] *)
   | ProdTyp of ty * ty                           
   | Typ of Name.ident * ty_param list            (* <Name.ident>[<ty_param>*] *)
+[@@deriving show]
 
 
 and ty_param =  (* Why the separate constructor for ty_param? Because I want using a polymorphic type as the "root" type to be a syntax error *)
   | ParamPolyType of Name.ident
   | ParamTyp of ty
+[@@deriving show]
 
 
 
@@ -27,25 +29,28 @@ type func_param_secrecy_lvl =
   | Public
   | SecPoly of Name.ident (* non-concrete secrecy level *)
   | S of func_ty_param
+[@@deriving show]
 
 
 and func_param_integrity_lvl = 
   | Untrusted 
   | IntegPoly of Name.ident (* non-concrete integrity level *)
   | I of func_ty_param
+[@@deriving show]
 
 
 (* function parameter of an equational theory function or system call *)
 and func_ty_param = 
   | FuncParamPolyType of Name.ident (* 'a, 'b, 'n etc. *)
   | FuncParamTyp of ty * func_param_secrecy_lvl option * func_param_integrity_lvl option (* ty or ty@(s, i) or ty@(Public, i) or ty@(S(t), i) or ty@(s, Untrusted) etc. *)
+[@@deriving show]
 
 
 
 
 
 (* Rabbit expression language *)
-type expr = expr' Location.located
+type expr = expr' Location.located [@@deriving show]
 and expr' =
   | Var of Name.ident
   | Boolean of bool
@@ -56,20 +61,22 @@ and expr' =
   | Apply of operator * expr list
   | Tuple of expr list
   | Param of Name.ident * expr (* parametric Rabbit NOT "function parameter" *)
+[@@deriving show]
 
 
-type fact = fact' Location.located
+type fact = fact' Location.located [@@deriving show]
 and fact' = 
   | Fact of Name.ident * expr list
   | GlobalFact of Name.ident * expr list
   | ChannelFact of expr * Name.ident * expr list
   | ProcessFact of expr * Name.ident * expr list
-  | ResFact of int * expr list (* 0: eq 1: neq 3 : FILE*)
+  | ResFact of int * expr list (* 0: eq 1: neq 3 : FILE*) 
+[@@deriving show]
 
   (* | InjFact of  *)
 
 (* Rabbit command language *)
-type cmd = cmd' Location.located
+type cmd = cmd' Location.located [@@deriving show]
 and cmd' = 
   | Skip
   | Sequence of cmd * cmd
@@ -85,13 +92,15 @@ and cmd' =
   | New of Name.ident * ty * Name.ident * expr list * cmd 
   | Get of Name.ident list * ty * expr * Name.ident * cmd
   | Del of expr * Name.ident
+[@@deriving show]
 
 
 (* system instantiation *)
-type chan_arg =
+type chan_arg = 
   | ChanArgPlain of Name.ident
   | ChanArgParam of Name.ident
   | ChanArgParamInst of Name.ident * expr
+[@@deriving show]
 
 
 (* system instantiation *)
@@ -99,12 +108,14 @@ type pproc = pproc' Location.located
 and pproc' =
   | Proc of Name.ident * (chan_arg list)
   | ParamProc of Name.ident * expr * (chan_arg list)
+[@@deriving show]
 
 
 (* system instantiation *)
 type proc = 
   | UnboundedProc of pproc 
   | BoundedProc of (Name.ident * pproc list)
+[@@deriving show]
 
 
 (* system instantiation *)
@@ -113,6 +124,7 @@ and prop' =
   | PlainString of string
   | Reachability of fact list
   | Correspondence of fact * fact
+[@@deriving show]
 
 
 
@@ -120,14 +132,15 @@ and prop' =
 (* system instantiation *)
 type lemma = lemma' Location.located
 and lemma' =
-  | Lemma of Name.ident * prop 
+  | Lemma of Name.ident * prop
+[@@deriving show]
 
   
 
 let print_hello = 
   print_endline "hello"
 
-type decl = decl' Location.located 
+type decl = decl' Location.located [@@deriving show]
 and decl' =
   | DeclSimpleTyp of ty (* data <simple_ty> *)
 
@@ -185,3 +198,4 @@ and decl' =
   
 
   | DeclLoad of string
+[@@deriving show]

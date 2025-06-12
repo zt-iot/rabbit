@@ -886,14 +886,14 @@ let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([
 
 let rec load fn ctx pol def sys =
    let decls, parser_state = Lexer.read_file Parser.file fn in 
-   (* let print_decls_list decls = 
-      List.fold_left (fun () decl -> 
-         print_endline (Input.show_decl decl)) in *)
-   (* let _ = print_decls_list decls in  *)
+   let _ = print_endline (Input.show_decl (List.hd decls)) in
+
+   let _ = List.fold_left (fun (ctx, pol, def, sys, parser_state) decl -> 
+         let _ = print_endline (Input.show_decl decl) in
+         (ctx, pol, def, sys, parser_state)
+      ) process_init decls in
    process_init
-
-
-
+   
    (* let (ctx, pol, def, sys, parser_state) = List.fold_left 
    (fun (ctx, pol, def, sys, parser_state) decl -> process_decl ctx pol def sys (parser_state, fn) decl)  
    (ctx, pol, def, sys, parser_state) decls in (ctx, pol, def, sys, parser_state) *)

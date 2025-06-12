@@ -96,7 +96,8 @@ const fresh priv_key_bob
 (***********)
 (** installed channels and filesystems *)
 
-channel udp : udp_t 
+channel udpab : udp_t 
+channel udpba : udp_t 
 channel key_chan : udp_t
 
 
@@ -113,7 +114,7 @@ process keyprovider(ch_key_net : udp_t) : client_t {
   }
 }
 
-process alice(ch_net : udp_t, ch_key_net : udp_t) : client_t
+process alice(ch_send : udp_t, ch_recv : udp_t, ch_key_net : udp_t) : client_t
 {
     (* UNCOMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
     (* file "/secret/pub_bob" : readonly_t = pk(priv_key_bob) *)
@@ -134,11 +135,11 @@ process alice(ch_net : udp_t, ch_key_net : udp_t) : client_t
       var c_txt1 = enc((nonce_a, "Alice"), pub_key_bob) in (* pub_key_bob is tampered, therefore, nonce_a is readable by the attacker *)
 
       _ := eaves_mem(c_txt1);
-      _ := send(ch_net, c_txt1);
-      put [::AliceSendNonceA(nonce_a)];
+      _ := send(ch_send, c_txt1);
+
       event [::AliceSendNonceATag(nonce_a)];
 
-      var c_txt2 = recv(ch_net) in
+      var c_txt2 = recv(ch_recv) in
       var p_txt2 = dec(c_txt2, priv_key_alice) in
 
       var echo_nonce_a = fst(p_txt2) in 
@@ -151,7 +152,7 @@ process alice(ch_net : udp_t, ch_key_net : udp_t) : client_t
 
         var c_txt3 = enc(loc_nonce_b, pub_key_bob) in (* pub_key_bob is tampered, therefore, loc_nonce_b is readable by the attacker *)
         _ := eaves_mem(c_txt3);
-        _ := send(ch_net, c_txt3);
+        _ := send(ch_send, c_txt3);
         event [::AliceSendNonceBTag(loc_nonce_b)]
         
       end;
@@ -163,7 +164,7 @@ process alice(ch_net : udp_t, ch_key_net : udp_t) : client_t
   	}
 }
 
-process bob(ch_net : udp_t) : client_t
+process bob(ch_send : udp_t, ch_recv : udp_t) : client_t
 {
   (* var loc_nonce_b = nonce_b *)
 
@@ -171,17 +172,17 @@ process bob(ch_net : udp_t) : client_t
   {
     event [::BobOpen ()];
 
-    var c_txt1 = recv(ch_net) in 
+    var c_txt1 = recv(ch_recv) in 
 
     var loc_nonce_a = fst(dec(c_txt1, priv_key_bob)) in 
     var c_txt2 = enc((loc_nonce_a, nonce_b), pk(priv_key_alice)) in 
 
     _ := eaves_mem(c_txt2);
-    _ := send(ch_net, c_txt2); 
-    put [::BobSendNonceB(nonce_b)]; 
+    _ := send(ch_send, c_txt2); 
+
     event [::BobSendNonceBTag(nonce_b)];
 
-    var c_txt3 = recv(ch_net) in 
+    var c_txt3 = recv(ch_recv) in 
     var echo_nonce_b = dec(c_txt3, priv_key_bob) in 
 
     (* output SecretNonceBob event if the nonce that Bob receives equals the one he sent *)
@@ -197,62 +198,28 @@ process bob(ch_net : udp_t) : client_t
 
 system 
     keyprovider(key_chan)
-|   alice(udp, key_chan)
-|   bob(udp)
+|   alice(udpab, udpba, key_chan)
+|   bob(udpba, udpab)
 requires [
-    (*
-    lemma BobOpenReachable : 
-      reachable ::BobOpen() ;
+  lemma secret_nonce_A : 
+    reachable ::K(nonce_a);
 
-    lemma NonceAIsSent : 
-      reachable ::AliceSendNonceATag(nonce_a);
+  lemma agreement_A : 
+    reachable ::SecretNonceAlice(x);
 
-    lemma NonceBIsSent : 
-      reachable ::BobSendNonceBTag(nonce_b) ;
-    
+  lemma secret_nonce_B : 
+    reachable ::K(nonce_b);
 
-    (* lemma: 3rd message gets sent in some trace *)
-    lemma NonceBIsSentByAlice : 
-      reachable ::AliceSendNonceBTag(nonce_b) ;
-    
-    lemma SecrecyCanBeEstablishedA : 
-      reachable ::SecretNonceAlice(nonce_a) ;
-    lemma SecrecyCanBeEstablishedB : 
-      reachable ::SecretNonceBob(nonce_b) ; 
-    *)
+  lemma secret_nonce_A_upon_agreement : 
+    reachable ::K(x), ::SecretNonceAlice(x);
 
-    lemma NonceSecrecyA : 
-      all-traces "All na #i . SecretNonceAlice(na) @ i ==> not(Ex #l . K(na) @ l)" ;
-
-    lemma NonceSecrecyB : 
-      all-traces "All nb #i . SecretNonceBob(nb) @ i ==> not(Ex #m . K(nb) @ m)"  ;
-
-    (* it cannot be that na is established as a secret and attacker knows it *)
-    lemma NonceSecrecyA_alt : 
-      all-traces "not(Ex na #i #j . SecretNonceAlice(na) @ i & K(na) @ j)" ;
-
-    (* it cannot be that nb is established as a secret and attacker knows it *)
-    lemma NonceSecrecyB_alt : 
-      all-traces "not(Ex nb #i #j . SecretNonceBob(nb) @ i & K(nb) @ j)" ;
+  lemma secret_nonce_B_upon_agreement : 
+    reachable ::K(x), ::SecretNonceBob(x);
   
+  lemma agreement_B : 
+    reachable ::SecretNonceBob(x)
 
-    (* TAMARIN VERSIONS OF ABOVE LEMMAS *)
-    lemma BobOpenReachable_tmrn : 
-      exists-trace "Ex #i . BobOpen() @ #i " ;
-    lemma NonceAIsSent_tmrn : 
-      exists-trace "Ex na #i . AliceSendNonceATag(na) @ i" ;
-    lemma NonceBIsSent_tmrn : 
-      exists-trace "Ex nb #j . BobSendNonceBTag(nb) @ j" ;
 
-    lemma SecrecyCanBeEstablishedA_tmrn : 
-      exists-trace "Ex na #i  . SecretNonceAlice(na) @ i" ; 
-    lemma SecrecyCanBeEstablishedB_tmrn : 
-      exists-trace "Ex nb #j . SecretNonceBob(nb) @ j" ; 
 
-    lemma secret_nonce_A_upon_agreement : 
-      reachable ::K(x), ::SecretNonceAlice(x);
 
-    lemma secret_nonce_B_upon_agreement : 
-      reachable ::K(x), ::SecretNonceBob(x)
-      
 ]

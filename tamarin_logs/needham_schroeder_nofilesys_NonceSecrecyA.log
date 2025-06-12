@@ -1,0 +1,27 @@
+
+==============================================================================
+summary of summaries:
+
+analyzed: tamarin_models/needham_schroeder_no_filesys_tt_pp.spthy
+
+  processing time: 45.39s
+  
+  WARNING: 7 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  AlwaysStarts__ (all-traces): analysis incomplete (1 steps)
+  AlwaysStartsWhenEnds__ (all-traces): analysis incomplete (1 steps)
+  TransitionOnce__ (all-traces): analysis incomplete (1 steps)
+  secret_nonce_B_upon_agreement (exists-trace): analysis incomplete (1 steps)
+  secret_nonce_A_upon_agreement (exists-trace): analysis incomplete (1 steps)
+  SecrecyCanBeEstablishedB_tmrn (exists-trace): analysis incomplete (1 steps)
+  SecrecyCanBeEstablishedA_tmrn (exists-trace): analysis incomplete (1 steps)
+  NonceBIsSent_tmrn (exists-trace): analysis incomplete (1 steps)
+  NonceAIsSent_tmrn (exists-trace): analysis incomplete (1 steps)
+  BobOpenReachable_tmrn (exists-trace): analysis incomplete (1 steps)
+  NonceSecrecyB_alt (all-traces): analysis incomplete (1 steps)
+  NonceSecrecyA_alt (all-traces): analysis incomplete (1 steps)
+  NonceSecrecyB (all-traces): analysis incomplete (1 steps)
+  NonceSecrecyA (all-traces): falsified - found trace (16 steps)
+
+==============================================================================
