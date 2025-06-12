@@ -2,8 +2,8 @@
   (name "rabbit")
   (public_name "rabbit")
   (flags -w +a-4-27-29-50)
-  (libraries sedlex menhirLib str)
-  (preprocess (pps sedlex.ppx)))
+  (libraries sedlex menhirLib str ppx_deriving)
+  (preprocess (pps ppx_deriving.show sedlex.ppx)))
 
 (menhir
   (modules parser)
