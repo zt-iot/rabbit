@@ -18,19 +18,26 @@ and expr' =
   | Apply of ident * expr list
   | Tuple of expr list
   | Unit
-  | Rho
+
+type loop_mode = In | Back | Out
 
 type fact = fact' loc_env
 
 and fact' =
-  | Structure of string * expr list
-  | Global of string * expr list
-  | Channel of expr * string * expr list
-  | Process of expr * string * expr list
+  | Channel of { channel : expr; name : name; args : expr list }
+  | Out of expr
+  | In of expr
   | Eq of expr * expr
   | Neq of expr * expr
-  | File of expr * expr
+  | File of { path : expr; contents : expr }
   | Fresh of expr
+  | Structure of { name : name; process : string; address : expr; args : expr list } (** Structure fact [name(process, address, args)] *)
+  | Loop of { mode : loop_mode; process : name; index : name }
+(*
+  | Structure of name * expr list (** [n(e1,..,en)] *)
+  | Global of string * expr list
+  | Process of expr * string * expr list
+*)
 
 type cmd = cmd' loc_env
 

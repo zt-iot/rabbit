@@ -20,19 +20,21 @@ and expr' =
   | Apply of ident * expr list (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Unit
-  | Rho
+
+type loop_mode = In | Back | Out
 
 type fact = fact' loc_env
 
 and fact' =
-  | Structure of name * expr list (** [n(e1,..,en)] *)
-  | Global of name * expr list (** [:: n(e1,..,en) ]*)
-  | Channel of expr * name * expr list (** [e :: n(e1,..,en)] *)
-  | Process of expr * name * expr list (** [e % n(e1,..,en)] *)
-  | Eq of expr * expr (** e1 = e2 *)
-  | Neq of expr * expr (** e1 != e2 *)
-  | File of expr * expr (** S.e *)
+  | Channel of { channel : expr; name : string; args : expr list } (** Channel fact [ch :: name(args)] *)
+  | Out of expr (** Attacker fact: Out *)
+  | In of expr (** Attacker fact: In *)
+  | Eq of expr * expr
+  | Neq of expr * expr
+  | File of { path : expr; contents : expr } (** File fact [path.contents] *)
   | Fresh of expr
+  | Structure of { name : string; process : string; address : expr; args : expr list } (** Structure fact [name(process, address, args)] *)
+  | Loop of { mode : loop_mode; process : name; index : name }
 
 type cmd = cmd' loc_env
 
