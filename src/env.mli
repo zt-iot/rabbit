@@ -6,10 +6,8 @@ type var_desc = Syntax.variable_desc =
   | Param
 
 type named_fact_desc =
-  | NoName
-  | Global
   | Channel
-  | Process
+  | Structure
 
 val string_of_named_fact_desc : named_fact_desc -> string
 
@@ -27,7 +25,14 @@ type desc =
 
 val print_desc : desc -> Format.formatter -> unit
 
-type t
+type t = {
+  vars : (Ident.t * desc) list;
+  facts : (Name.ident * (named_fact_desc * int option)) list ref
+  (** Fact names with descriptions and arities. Arities can be unknown
+      if [delete e.S] first appear than [new x := S(args) in c]
+      and [let xi := e.S in c]
+  *)
+}
 
 val empty : unit -> t
 
@@ -39,6 +44,7 @@ val find_opt_by_id : t -> Ident.t -> desc option
 
 val add : t -> Ident.t -> desc -> t
 
-val add_fact : t -> Name.ident -> named_fact_desc * int -> unit
+val update_fact : t -> Name.ident -> named_fact_desc * int option -> unit
+(** If the binding already exists, it is overridden *)
 
-val find_fact_opt : t -> Name.ident -> (named_fact_desc * int) option
+val find_fact_opt : t -> Name.ident -> (named_fact_desc * int option) option
