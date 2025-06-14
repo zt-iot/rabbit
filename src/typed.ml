@@ -1,4 +1,4 @@
-type name = Name.ident
+type name = Name.t
 type ident = Ident.t
 
 type 'desc loc_env =
@@ -10,7 +10,11 @@ type 'desc loc_env =
 type expr = expr' loc_env
 
 and expr' =
-  | Ident of { id : ident; desc : Env.desc; param : expr option }
+  | Ident of
+      { id : ident
+      ; desc : Env.desc
+      ; param : expr option
+      }
   | Boolean of bool
   | String of string
   | Integer of int
@@ -19,29 +23,52 @@ and expr' =
   | Tuple of expr list
   | Unit
 
-type loop_mode = In | Back | Out
+type loop_mode =
+  | In
+  | Back
+  | Out
 
 type fact = fact' loc_env
 
 and fact' =
-  | Channel of { channel : expr; name : name; args : expr list }
+  | Channel of
+      { channel : expr
+      ; name : name
+      ; args : expr list
+      }
   | Out of expr
   | In of expr
   | Eq of expr * expr
   | Neq of expr * expr
-  | File of { path : expr; contents : expr }
+  | File of
+      { path : expr
+      ; contents : expr
+      }
   | Fresh of expr
-  | Structure of { name : name; process : string; address : expr; args : expr list } (** Structure fact [name(process, address, args)] *)
-  | Loop of { mode : loop_mode; process : name; index : name }
+  | Structure of
+      { name : name
+      ; process : string
+      ; address : expr
+      ; args : expr list
+      } (** Structure fact [name(process, address, args)] *)
+  | Loop of
+      { mode : loop_mode
+      ; process : name
+      ; index : name
+      }
 (*
-  | Structure of name * expr list (** [n(e1,..,en)] *)
+   | Structure of name * expr list (** [n(e1,..,en)] *)
   | Global of string * expr list
   | Process of expr * string * expr list
 *)
 
 type cmd = cmd' loc_env
 
-and case = { fresh : ident list; facts : fact list; cmd : cmd }
+and case =
+  { fresh : ident list
+  ; facts : fact list
+  ; cmd : cmd
+  }
 
 and cmd' =
   | Skip
@@ -57,18 +84,19 @@ and cmd' =
   | Get of ident list * expr * name * cmd
   | Del of expr * name
 
-type chan_arg = {
-  channel: ident;
-  parameter : expr option option;
-  typ : ident;
-}
+type chan_arg =
+  { channel : ident
+  ; parameter : expr option option
+  ; typ : ident
+  }
 
 type pproc = pproc' Location.located
-and pproc' = {
-  id : ident;
-  parameter : expr option;
-  args : chan_arg list
-}
+
+and pproc' =
+  { id : ident
+  ; parameter : expr option
+  ; args : chan_arg list
+  }
 
 type proc =
   | Unbounded of pproc
@@ -78,8 +106,15 @@ type lemma = lemma' loc_env
 
 and lemma' =
   | Plain of string
-  | Reachability of { fresh : ident list; facts : fact list }
-  | Correspondence of { fresh : ident list; from : fact; to_ : fact }
+  | Reachability of
+      { fresh : ident list
+      ; facts : fact list
+      }
+  | Correspondence of
+      { fresh : ident list
+      ; from : fact
+      ; to_ : fact
+      }
 
 type init_desc =
   | Value of expr
@@ -88,23 +123,55 @@ type init_desc =
   | Fresh_with_param
 
 type decl = decl' loc_env
+
 and decl' =
-  | Function of { id : ident; arity : int  }
+  | Function of
+      { id : ident
+      ; arity : int
+      }
   | Equation of expr * expr
-  | Syscall of { id : ident; args : ident list; cmd : cmd }
-  | Attack of { id : ident; syscall : ident; args : ident list; cmd : cmd }
-  | Type of { id : ident; typclass : Input.type_class }
-  | Allow of { process_typ : ident; target_typs : ident list; syscalls : ident list option }
-  | AllowAttack of { process_typs : ident list; attacks : ident list }
-  | Init of { id : ident; desc : init_desc }
-  | Channel of { id : ident; param : unit option; typ : ident }
-  | Process of { id : ident
-                ; param : ident option
-                ; args : (bool * ident * ident) list
-                ; typ : ident
-                ; files : (expr * ident * expr) list
-                ; vars : (ident * expr) list
-                ; funcs : (ident * (ident list) * cmd) list
-                ; main : cmd }
+  | Syscall of
+      { id : ident
+      ; args : ident list
+      ; cmd : cmd
+      }
+  | Attack of
+      { id : ident
+      ; syscall : ident
+      ; args : ident list
+      ; cmd : cmd
+      }
+  | Type of
+      { id : ident
+      ; typclass : Input.type_class
+      }
+  | Allow of
+      { process_typ : ident
+      ; target_typs : ident list
+      ; syscalls : ident list option
+      }
+  | AllowAttack of
+      { process_typs : ident list
+      ; attacks : ident list
+      }
+  | Init of
+      { id : ident
+      ; desc : init_desc
+      }
+  | Channel of
+      { id : ident
+      ; param : unit option
+      ; typ : ident
+      }
+  | Process of
+      { id : ident
+      ; param : ident option
+      ; args : (bool * ident * ident) list
+      ; typ : ident
+      ; files : (expr * ident * expr) list
+      ; vars : (ident * expr) list
+      ; funcs : (ident * ident list * cmd) list
+      ; main : cmd
+      }
   | System of proc list * (Ident.t * lemma) list
   | Load of string * decl list

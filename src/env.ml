@@ -6,16 +6,12 @@ type var_desc = Syntax.variable_desc =
   | Param
 
 type named_fact_desc =
-  | NoName
-  | Global
   | Channel
-  | Process
+  | Structure
 
 let string_of_named_fact_desc = function
-  | NoName -> "plain"
-  | Global -> "global"
   | Channel -> "channel"
-  | Process -> "process"
+  | Structure -> "struture"
 
 type desc =
   | Var of var_desc
@@ -51,7 +47,8 @@ let print_desc desc ppf =
 
 type t = {
   vars : (Ident.t * desc) list;
-  facts : (Name.ident * (named_fact_desc * int)) list ref
+  facts : (Name.ident * (named_fact_desc * int option)) list ref
+  (* The fact environment is global therefore implemented as mutable *)
 }
 
 let empty () = { vars= []; facts= ref [] }
@@ -65,8 +62,13 @@ let mem env name = find_opt env name <> None
 
 let add env id desc = { env with vars = (id, desc) :: env.vars }
 
-let add_fact env name fact_desc =
-  if List.mem_assoc name !(env.facts) then assert false;
-  env.facts := (name, fact_desc) :: !(env.facts)
+let update_fact env name v =
+  let rec update rev_facts = function
+    | [] -> (name, v) :: List.rev rev_facts
+    | (name', _) :: facts when name = name' ->
+        List.rev_append rev_facts ((name, v) :: facts)
+    | f :: facts -> update (f :: rev_facts) facts
+  in
+  env.facts := update [] !(env.facts)
 
 let find_fact_opt env name = List.assoc_opt name !(env.facts)
