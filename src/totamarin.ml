@@ -1178,7 +1178,7 @@ let translate_sys
       (t, 0)
       facts_gv_list
   in
-  let t = List.fold_left (fun t m -> add_model t m) t mos in
+  let t = List.fold_left add_model t mos in
   let t, _ =
     List.fold_left
       (fun (t, n) pl ->
