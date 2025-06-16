@@ -799,7 +799,7 @@ and translate_guarded_cmd mo st funs syscalls attacks scope syscall pol (vl, fl,
 let translate_process
       { Context.proc_pid = k
       ; Context.proc_name = s
-      ; Context.proc_type = pty_unused
+      ; Context.proc_type = proc_type
       ; Context.proc_filesys = fls
       ; Context.proc_variable = vars
       ; Context.proc_function = fns
@@ -813,7 +813,7 @@ let translate_process
   let namespace = String.capitalize_ascii (s ^ if k = 0 then "" else string_of_int k) in
   (* this must be unique *)
   (* let t = add_comment t ("- Process name: " ^ namespace) in  *)
-  let mo = initial_model ~namespace ~typ:pty_unused in
+  let mo = initial_model ~namespace ~typ:proc_type in
   let st = mo.model_init_state in
   (* installed channels: *)
   (* let (mo, st) = List.fold_left (fun (mo, st) c ->
@@ -846,13 +846,13 @@ let translate_process
                          AccessFact (mo.model_name, Param, path, scall))
                       (List.filter
                          (fun (pty, tyl, _) ->
-                            pty = pty_unused && List.exists (fun s -> s = ty) tyl)
+                            pty = proc_type && List.exists (fun s -> s = ty) tyl)
                          pol.Context.pol_access)
                   @
                   if
                     List.exists
                       (fun (pty, tyl) ->
-                         pty = pty_unused && List.exists (fun s -> s = ty) tyl)
+                         pty = proc_type && List.exists (fun s -> s = ty) tyl)
                       pol.Context.pol_access_all
                   then [ AccessFact (mo.model_name, Param, path, "") ]
                   else [])
