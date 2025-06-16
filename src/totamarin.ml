@@ -1033,12 +1033,8 @@ let translate_sys
   (* access control *)
   (* let t = add_comment t "Processes:" in *)
   let mos =
-    List.fold_left
-      (fun mos p ->
-         translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack pol
-         :: mos)
-      []
-      (List.rev proc)
+    List.map (fun p ->
+        translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack pol) proc
   in
   let facts_gv_list : (bool * fact list * fact list) list =
     List.fold_left
