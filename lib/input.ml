@@ -96,7 +96,7 @@ let vars_of_facts facts =
   (* | InjFact of  *)
 
 
-type 'cmd case = fact list * 'cmd
+type 'cmd case = fact list * 'cmd [@@deriving show]
 
 (* Rabbit command language *)
 type cmd = cmd' Location.located [@@deriving show]
@@ -112,7 +112,7 @@ and cmd' =
   | Event of fact list
   | Return of expr
 
-  | New of Name.ident * ty * (Name.ident * expr list) option * cmd 
+  | New of Name.ident * ty option * (Name.ident * expr list) option * cmd 
   | Get of Name.ident list * ty * expr * Name.ident * cmd
   | Del of expr * Name.ident
 [@@deriving show]
@@ -170,10 +170,11 @@ type const_desc =
   | Fresh 
   | Value of expr
   | Value_with_param of expr * Name.ident
-  | Fresh_with_param 
+  | Fresh_with_param
+[@@deriving show]
 
 
-type chan_param = ChanParam of { id : Name.ident; param : unit option; typ : ty}
+type chan_param = ChanParam of { id : Name.ident; param : unit option; typ : ty} [@@deriving show]
 
 
 type decl = decl' Location.located [@@deriving show]
@@ -221,7 +222,7 @@ and decl' =
   | DeclProc of 
     {
       id : Name.ident
-      ; is_process_paramatric : Name.ident option (* Whether process is a parameterized process or not *)
+      ; is_process_parametric : Name.ident option (* Whether process is a parameterized process or not *)
       ; params : chan_param list (* Parameters (ch_1 : ty_1, ch_2<> : ty_2 ..., ch_n : ty_n) of a process*)
       ; proc_typ : Name.ident 
       ; file_stmts : (expr * Name.ident * expr) list

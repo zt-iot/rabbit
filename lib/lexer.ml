@@ -216,7 +216,7 @@ let read_file parse fn =
     let lex = Ulexbuf.from_channel ~fn fh in
       let terms = run token parse lex in
       close_in fh;
-      terms, (lex.Ulexbuf.used_indents, lex.Ulexbuf.used_strings)
+      terms, (lex.Ulexbuf.used_idents, lex.Ulexbuf.used_strings)
 
 (* let read_file parse fn =
   try

@@ -83,17 +83,23 @@ plain_decl:
   | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)}
 
 
-  | CHANNEL id=NAME COLON t=ty { DeclChanInstantiation(ChanParam(id, None, t)) }
-  | CHANNEL id=NAME LT GT COLON t=ty { DeclChanInstantiation(ChanParam(id, Some (), t)) }
-  | CHANNEL id=NAME LTGT COLON t=ty { DeclChanInstantiation(ChanParam(id, Some (), t)) }
+  | CHANNEL id=NAME COLON t=ty { DeclChanInstantiation(ChanParam{ id=id; param=None; typ=t} ) }
+  | CHANNEL id=NAME LT GT COLON t=ty { DeclChanInstantiation(ChanParam{id=id; param= Some (); typ=t}) }
+  | CHANNEL id=NAME LTGT COLON t=ty { DeclChanInstantiation(ChanParam{id=id; param= Some (); typ=t}) }
 
 
 
   | PROCESS id=NAME LT process_param=NAME GT LPAREN params=separated_list(COMMA, name_channel_pair) RPAREN COLON proc_typ=NAME 
-    LBRACE fs=file_stmts ls=let_stmts mfs=member_fun_decls m=main_stmt RBRACE { DeclProc(id, Some(process_param), params, proc_typ, fs, ls, mfs, m) }
+    LBRACE fs=file_stmts ls=let_stmts mfs=member_fun_decls m=main_stmt RBRACE { 
+      DeclProc{ id=id; is_process_parametric=Some(process_param); params=params; 
+        proc_typ=proc_typ; file_stmts=fs; let_stmts=ls; funcs=mfs; main_func=m } 
+    }
 
   | PROCESS id=NAME LPAREN params=separated_list(COMMA, name_channel_pair) RPAREN COLON proc_typ=NAME 
-    LBRACE fs=file_stmts ls=let_stmts mfs=member_fun_decls m=main_stmt RBRACE { DeclProc(id, None, params, proc_typ, fl, ls, mfs, m) }
+    LBRACE fs=file_stmts ls=let_stmts mfs=member_fun_decls m=main_stmt RBRACE { 
+      DeclProc{ id=id; is_process_parametric=None; params=params; 
+        proc_typ=proc_typ; file_stmts=fs; let_stmts=ls; funcs=mfs; main_func=m }  
+    }
 
   
 
@@ -114,7 +120,7 @@ plain_decl:
   | CONST FRESH c=NAME LTGT { DeclConst(c, Fresh_with_param, None) }
 
   | CONST c=NAME LT const_param=NAME GT COLON typ=ty EQ e=expr { DeclConst(c, Value_with_param(e, const_param), Some typ) }
-  | CONST c=NAME LT const_param=NAME GT EQ e=expr { DeclConst(c, Value_with_param(e, const_param)) }
+  | CONST c=NAME LT const_param=NAME GT EQ e=expr { DeclConst(c, Value_with_param(e, const_param), None) }
    
   (* TODO parse arguments as a suitable AST node instead of "NAME" *)
   | ATTACK f=NAME ON t=NAME LPAREN arg=separated_list(COMMA, NAME) RPAREN LBRACE c=cmd RBRACE { DeclExtAttack (f, t, arg, c) }
@@ -129,9 +135,9 @@ plain_decl:
 
 
 name_channel_pair :
-  | a=NAME COLON typ=ty { ChanParam(a, None, typ) }
-  | a=NAME LT GT COLON typ=ty { ChanParam(a, Some (), typ) }
-  | a=NAME LTGT COLON typ=ty { ChanParam(a, Some (), typ) }
+  | a=NAME COLON typ=ty { ChanParam{id=a; param=None; typ=typ} }
+  | a=NAME LT GT COLON typ=ty { ChanParam{id=a; param=Some (); typ=typ} }
+  | a=NAME LTGT COLON typ=ty { ChanParam{id=a; param=Some (); typ=typ} }
 
 
 external_syscall_name_ty_param_pair : 
@@ -152,9 +158,9 @@ plain_fact:
   | scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
   | DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact(id, es) }
   | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact(id, es) }
-  | e1=expr EQ e2=expr { ResFact(0, [e1; e2]) }
-  | e1=expr NEQ e2=expr { ResFact(1, [e1; e2]) }
-  | scope=expr DOT e=expr { ResFact(3, [scope; e]) }
+  | e1=expr EQ e2=expr { EqFact(e1, e2) }
+  | e1=expr NEQ e2=expr { NeqFact(e1, e2) }
+  | scope=expr DOT e=expr { FileFact(scope, e) }
 
 // syscall_param:
 //   | var=NAME { (TyValue, var) }
@@ -215,7 +221,7 @@ let_stmts:
 
 let_stmt:
   | VAR id=NAME COLON typ=ty EQ e=expr { (id, e, Some typ) }
-  | Var id=NAME EQ e=expr { (id, e, None) }
+  | VAR id=NAME EQ e=expr { (id, e, None) }
 
 member_fun_decls:
   | { [] }
@@ -324,8 +330,19 @@ plain_cmd:
   | EVENT LBRACKET a=separated_list(COMMA, fact) RBRACKET           { Event(a) }
   
   | LET ids=separated_list(COMMA, NAME) typ=ty EQ e=expr DOT fid=NAME IN c=cmd { Get (ids, typ, e, fid, c) }
-  | NEW id=NAME COLON typ=ty EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd { New (id, typ, fid, args, c) }
-  | NEW id=NAME COLON typ=ty IN c=cmd { New (id, typ, "", [], c) }
+
+  | NEW id=NAME COLON typ=ty EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd { 
+      New (id, Some typ, Some(fid, args), c) 
+    }
+  | NEW id=NAME EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd {
+      New (id, None, Some(fid, args), c)
+    }
+  | NEW id=NAME COLON typ=ty IN c=cmd { 
+      New (id, Some typ, None, c) 
+    }
+  | NEW id=NAME IN c=cmd {
+      New (id, None, None, c)
+    }
   | DEL e=expr DOT fid=NAME { Del (e, fid) }
 
   | e=expr { Return e }
