@@ -36,7 +36,7 @@ equation snd ((x, y)) = y
 function true : bool
 
 (* type bool is a simple type, thus it has TSP security level (Public, Untrusted) *)
-function verify : signature@('s, 'i) -> 'a@('s, 'i) -> key[Ver, 'a]@('s1, 'i1) -> bool
+(* function verify : signature@('s, 'i) -> 'a@('s, 'i) -> key[Ver, 'a]@('s1, 'i1) -> bool *)
 equation verify (sign(d, k), d, vk(k)) = true
 
 

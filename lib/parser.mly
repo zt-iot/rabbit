@@ -70,7 +70,7 @@ plain_decl:
   | TYPE id=NAME COLON t=ty { DeclTyp(id, t) } (* channel type or security type declaration *)
   
   (* any function must have a return type (or unit) so 0-argument function also parses like this *)
-  | FUNC id=NAME COLON params=separated_nonempty_list(ARROW, func_ty_param) { DeclEqThyFunc(id,  params) }
+  | FUNC id=NAME COLON params=separated_nonempty_list(ARROW, ty) { DeclEqThyFunc(id,  params) }
 
   | EQUATION x=expr EQ y=expr { DeclEqThyEquation(x, y) } (* Equational theory equation *)
   
@@ -80,28 +80,41 @@ plain_decl:
   (* allow proc_ty <type>* [<syscall>*] *)
   | ALLOW proc=NAME ts=list(NAME) LBRACKET syscalls=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(proc, ts, Some syscalls) }
   (* allow direct access with '[.]' *) 
-  | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)} 
-
-  | CHANNEL id=NAME COLON t=ty { DeclChanInstantiation(id, t) }
+  | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)}
 
 
-  | PROCESS id=NAME LPAREN params=separated_list(COMMA, name_channel_pair) RPAREN COLON ty=NAME 
-    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclProc(id, params, ty, fl, l, f, m) }
+  | CHANNEL id=NAME COLON t=ty { DeclChanInstantiation(ChanParam(id, None, t)) }
+  | CHANNEL id=NAME LT GT COLON t=ty { DeclChanInstantiation(ChanParam(id, Some (), t)) }
+  | CHANNEL id=NAME LTGT COLON t=ty { DeclChanInstantiation(ChanParam(id, Some (), t)) }
 
-  | PROCESS id=NAME LT process_param=NAME GT LPAREN params=separated_list(COMMA, name_channel_pair) RPAREN COLON ty=NAME 
-    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE { DeclParamProc(id, process_param, params, ty, fl, l, f, m) }
+
+
+  | PROCESS id=NAME LT process_param=NAME GT LPAREN params=separated_list(COMMA, name_channel_pair) RPAREN COLON proc_typ=NAME 
+    LBRACE fs=file_stmts ls=let_stmts mfs=member_fun_decls m=main_stmt RBRACE { DeclProc(id, Some(process_param), params, proc_typ, fs, ls, mfs, m) }
+
+  | PROCESS id=NAME LPAREN params=separated_list(COMMA, name_channel_pair) RPAREN COLON proc_typ=NAME 
+    LBRACE fs=file_stmts ls=let_stmts mfs=member_fun_decls m=main_stmt RBRACE { DeclProc(id, None, params, proc_typ, fl, ls, mfs, m) }
+
+  
 
 
   | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
 
-  | CONST n=NAME COLON typ=ty EQ e=expr { DeclConst(n, typ, Some e) }
-
-  | CONST FRESH n=NAME COLON typ=ty { DeclConst(n, typ, None) }
-
   
-  | CONST FRESH c=NAME LT GT COLON typ=ty { DeclParamConst(c, typ, None) }
-  | CONST FRESH c=NAME LTGT COLON typ=ty { DeclParamConst(c, typ, None) }
-  | CONST c=NAME LT const_param=NAME GT COLON typ=ty EQ e=expr { DeclParamConst(c, typ, Some (const_param, e)) }
+
+  | CONST FRESH n=NAME COLON typ=ty { DeclConst(n, Fresh, Some typ) }
+  | CONST FRESH n=NAME { DeclConst(n, Fresh, None) }
+
+  | CONST n=NAME COLON typ=ty EQ e=expr { DeclConst(n, Value(e), Some typ) }
+  | CONST n=NAME EQ e=expr { DeclConst(n, Value(e), None) }
+
+  | CONST FRESH c=NAME LT GT COLON typ=ty { DeclConst(c, Fresh_with_param, Some typ) }
+  | CONST FRESH c=NAME LTGT COLON typ=ty { DeclConst(c, Fresh_with_param, Some typ) }
+  | CONST FRESH c=NAME LT GT { DeclConst(c, Fresh_with_param, None) }
+  | CONST FRESH c=NAME LTGT { DeclConst(c, Fresh_with_param, None) }
+
+  | CONST c=NAME LT const_param=NAME GT COLON typ=ty EQ e=expr { DeclConst(c, Value_with_param(e, const_param), Some typ) }
+  | CONST c=NAME LT const_param=NAME GT EQ e=expr { DeclConst(c, Value_with_param(e, const_param)) }
    
   (* TODO parse arguments as a suitable AST node instead of "NAME" *)
   | ATTACK f=NAME ON t=NAME LPAREN arg=separated_list(COMMA, NAME) RPAREN LBRACE c=cmd RBRACE { DeclExtAttack (f, t, arg, c) }
@@ -110,24 +123,23 @@ plain_decl:
 
   | sys { $1 }
 
-  | CHANNEL id=NAME LT GT COLON t=ty { DeclParamChanInstantiation(id, t) }
-  | CHANNEL id=NAME LTGT COLON t=ty { DeclParamChanInstantiation(id, t) }
+  
 
 
 
 
 name_channel_pair :
-  | a=NAME COLON b=ty { (false, a, b) }
-  | a=NAME LT GT COLON b=ty { (true, a, b) }
-  | a=NAME LTGT COLON b=ty { (true, a, b) }
+  | a=NAME COLON typ=ty { ChanParam(a, None, typ) }
+  | a=NAME LT GT COLON typ=ty { ChanParam(a, Some (), typ) }
+  | a=NAME LTGT COLON typ=ty { ChanParam(a, Some (), typ) }
 
 
 external_syscall_name_ty_param_pair : 
-  | n=NAME COLON p=func_ty_param { (n, p) }
+  | n=NAME COLON p=ty { (n, p) }
 
 external_syscall:
   |  syscall_tk f=NAME LPAREN params=separated_list(COMMA, external_syscall_name_ty_param_pair) RPAREN 
-      COLON retty=func_ty_param (* "COLON syscall_param" -> return type of syscall *)
+      COLON retty=ty (* "COLON syscall_param" -> return type of syscall *)
       LBRACE c=cmd RBRACE { DeclExtSyscall(f, params, retty, c) }
 
 syscall_tk:
@@ -195,22 +207,23 @@ file_stmts:
   | l=file_stmt ls=file_stmts { l :: ls }
 
 file_stmt:
-  | FILE id=expr COLON ty=NAME EQ e=expr { (id, ty, e) }
+  | FILE filepath=expr COLON file_ty=NAME EQ file_content=expr { (filepath, file_ty, file_content) }
 
 let_stmts:
   | { [] }
   | l=let_stmt ls=let_stmts { l :: ls }
 
 let_stmt:
-  | VAR id=NAME COLON typ=ty EQ e=expr { (id, typ, e) }
+  | VAR id=NAME COLON typ=ty EQ e=expr { (id, e, Some typ) }
+  | Var id=NAME EQ e=expr { (id, e, None) }
 
-fun_decls:
+member_fun_decls:
   | { [] }
-  | f = fun_decl fs=fun_decls { f :: fs }
+  | f = member_fun_decl fs=member_fun_decls { f :: fs }
 
-fun_decl:
-  | FUNC id=NAME LPAREN parems=separated_list(COMMA, func_ty_param) RPAREN 
-    LBRACE c=cmd RBRACE { (id, parems, c) }
+member_fun_decl:
+  | FUNC id=NAME LPAREN params=separated_list(COMMA, ty) RPAREN 
+    LBRACE c=cmd RBRACE { (id, params, c) }
 
 main_stmt:
   | MAIN LBRACE c=cmd RBRACE { c }
@@ -231,33 +244,28 @@ plain_fpath: *)
 func_param_secrecy_lvl:
   | PUBLIC { Public }
   | APOSTROPHE s=NAME { SecPoly(s) }
-  | S LPAREN p=func_ty_param RPAREN { S(p) }
+  | S LPAREN p=ty RPAREN { S(p) }
 
 func_param_integrity_lvl:
   | UNTRUSTED { Untrusted }
   | APOSTROPHE i=NAME { IntegPoly(i) }
-  | I LPAREN p=func_ty_param RPAREN { I(p) }
-
-func_ty_param : 
-  | APOSTROPHE t=NAME { FuncParamPolyType(t) }
-  | t=ty { FuncParamTyp(t, None, None) }
-  | t=ty AT LPAREN s=func_param_secrecy_lvl COMMA i=func_param_integrity_lvl RPAREN { FuncParamTyp(t, Some s, Some i) }
-
-
-(* A ty_param is either a polymorphic type or another simple type *)
-ty_param :
-  | APOSTROPHE t=NAME { ParamPolyType(t) }
-  | t=NAME { ParamTyp(Typ(t, [])) }
-  | t=NAME LBRACKET type_params=separated_nonempty_list(COMMA, ty_param) RBRACKET { ParamTyp(Typ(t, type_params)) }
+  | I LPAREN p=ty RPAREN { I(p) }
 
 ty:
   | UNIT { Unit }
+  | APOSTROPHE t=NAME { PolyType(t) }
   | CHANNEL LBRACKET typs=separated_nonempty_list(PLUS, ty) RBRACKET { ChannelTyp(typs) }
 
   (* First parse the situation where there are type parameters... *)
-  | t=NAME LBRACKET type_params=separated_nonempty_list(COMMA, ty_param) RBRACKET { Typ(t, type_params) }
+  | t=NAME LBRACKET type_params=separated_nonempty_list(COMMA, ty) RBRACKET { Typ(t, type_params, None, None) }
   (* Then the situation in which there are no type parameters... *)
-  | t=NAME { Typ(t, []) }
+  | t=NAME { Typ(t, [], None, None) }
+
+  (* Then both situations again, but now it's the case that there is an @(s, i) in the type *)
+  | t=NAME LBRACKET type_params=separated_nonempty_list(COMMA, ty) RBRACKET 
+    AT LPAREN s=func_param_secrecy_lvl COMMA i=func_param_integrity_lvl RPAREN { Typ(t, type_params, Some s, Some i) }
+  | t=NAME AT LPAREN s=func_param_secrecy_lvl COMMA i=func_param_integrity_lvl RPAREN { Typ(t, [], Some s, Some i) }
+
   | t1=ty STAR t2=ty { ProdTyp(t1, t2) }
 
 

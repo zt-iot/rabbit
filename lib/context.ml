@@ -62,9 +62,9 @@ type context = {
                      (* ext_const name *)
    ctx_ext_func   :  (Name.ident * int) list ; 
                      (* ext_func name, its arity *)
-   ctx_ext_syscall:  (Name.ident * Input.func_ty_param list) list ; 
+   ctx_ext_syscall:  (Name.ident * Input.ty list) list ; 
                      (* ext_syscalltruction name, its arity *)
-   ctx_ext_attack :  (Name.ident * Name.ident *  Input.func_ty_param list) list ; 
+   ctx_ext_attack :  (Name.ident * Name.ident *  Input.ty list) list ; 
 
    ctx_ty         :  (Name.ident * Input.ty) list ;
                      (* type name, its class *)
@@ -95,9 +95,9 @@ type definition = {
    def_ext_eq  :  (Name.ident list * Syntax.expr * Syntax.expr) list ;
                   (* free variables, e1, e2  such that e1 = e2 under the free variables *)
  
-   def_ext_syscall : (Name.ident *  (Input.func_ty_param * Name.ident) list * Syntax.cmd) list ;
+   def_ext_syscall : (Name.ident *  (Input.ty * Name.ident) list * Syntax.cmd) list ;
    
-   def_ext_attack  : (Name.ident * Name.ident *  (Input.func_ty_param * Name.ident) list  * Syntax.cmd) list ;
+   def_ext_attack  : (Name.ident * Name.ident *  (Input.ty * Name.ident) list  * Syntax.cmd) list ;
 
    def_const   :  (Name.ident * Syntax.expr option) list ;
                   (* const name, and its value *) 

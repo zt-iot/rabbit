@@ -12,41 +12,26 @@ type operator = string [@@deriving show]
 *)
 type ty = 
   | Unit                                         (* used for syscalls that do not have a return type *)
+  | PolyType of Name.ident                       (* 'a, 'b, 'k etc.*)
   | ChannelTyp of ty list                        (* channel[t_1 + ... t_n] *)
-  | ProdTyp of ty * ty                           
-  | Typ of Name.ident * ty_param list            (* <Name.ident>[<ty_param>*] *)
+  | ProdTyp of ty * ty
+  
+  (* <Name.ident>[<ty>*] but also key[Sig]@('s, 'i) *)
+  | Typ of Name.ident * ty list * func_param_secrecy_lvl option * func_param_integrity_lvl option
 [@@deriving show]
 
-
-and ty_param =  (* Why the separate constructor for ty_param? Because I want using a polymorphic type as the "root" type to be a syntax error *)
-  | ParamPolyType of Name.ident
-  | ParamTyp of ty
-[@@deriving show]
-
-
-
-type func_param_secrecy_lvl = 
+and func_param_secrecy_lvl = 
   | Public
   | SecPoly of Name.ident (* non-concrete secrecy level *)
-  | S of func_ty_param
+  | S of ty
 [@@deriving show]
 
 
 and func_param_integrity_lvl = 
   | Untrusted 
   | IntegPoly of Name.ident (* non-concrete integrity level *)
-  | I of func_ty_param
+  | I of ty
 [@@deriving show]
-
-
-(* function parameter of an equational theory function or system call *)
-and func_ty_param = 
-  | FuncParamPolyType of Name.ident (* 'a, 'b, 'n etc. *)
-  | FuncParamTyp of ty * func_param_secrecy_lvl option * func_param_integrity_lvl option (* ty or ty@(s, i) or ty@(Public, i) or ty@(S(t), i) or ty@(s, Untrusted) etc. *)
-[@@deriving show]
-
-
-
 
 
 (* Rabbit expression language *)
@@ -63,6 +48,20 @@ and expr' =
   | Param of Name.ident * expr (* parametric Rabbit NOT "function parameter" *)
 [@@deriving show]
 
+(* 
+let vars_of_expr e =
+  let module NS = Name.Set in
+  let rec aux s (e : expr) =
+    match e.data with
+    | Var id -> NS.add id s
+    | Boolean _ | String _ | Integer _ | Float _ -> s
+    | Apply (_, es) | Tuple es -> List.fold_left aux s es
+    | Param (id, e) -> NS.add id (aux s e)
+  in
+  aux NS.empty e
+;;
+*)
+
 
 type fact = fact' Location.located [@@deriving show]
 and fact' = 
@@ -70,10 +69,34 @@ and fact' =
   | GlobalFact of Name.ident * expr list
   | ChannelFact of expr * Name.ident * expr list
   | ProcessFact of expr * Name.ident * expr list
-  | ResFact of int * expr list (* 0: eq 1: neq 3 : FILE*) 
+  | EqFact of expr * expr
+  | NeqFact of expr * expr
+  | FileFact of expr * expr
 [@@deriving show]
 
+
+(* 
+let vars_of_fact (fact : fact) =
+  let module NS = Name.Set in
+  match fact.data with
+  | Fact (_, es) -> List.fold_left (fun s e -> NS.union s (vars_of_expr e)) NS.empty es
+  | GlobalFact (_, es) ->
+      List.fold_left (fun s e -> NS.union s (vars_of_expr e)) NS.empty es
+  | ChannelFact (e, _, es) | ProcessFact (e, _, es) ->
+      List.fold_left (fun s e -> NS.union s (vars_of_expr e)) NS.empty (e :: es)
+  | EqFact (e1, e2) | NeqFact (e1, e2) | FileFact (e1, e2) ->
+      NS.union (vars_of_expr e1) (vars_of_expr e2)
+;;
+
+let vars_of_facts facts =
+  List.fold_left (fun s fact -> Name.Set.union s (vars_of_fact fact)) Name.Set.empty facts
+;;
+*)
+
   (* | InjFact of  *)
+
+
+type 'cmd case = fact list * 'cmd
 
 (* Rabbit command language *)
 type cmd = cmd' Location.located [@@deriving show]
@@ -84,12 +107,12 @@ and cmd' =
   | Put of fact list
   | Let of Name.ident * ty * expr * cmd 
   | Assign of Name.ident option * expr
-  | Case of (fact list * cmd) list
-  | While of (fact list * cmd) list * (fact list * cmd) list
+  | Case of cmd case list
+  | While of cmd case list * cmd case list
   | Event of fact list
   | Return of expr
 
-  | New of Name.ident * ty * Name.ident * expr list * cmd 
+  | New of Name.ident * ty * (Name.ident * expr list) option * cmd 
   | Get of Name.ident list * ty * expr * Name.ident * cmd
   | Del of expr * Name.ident
 [@@deriving show]
@@ -137,8 +160,21 @@ and lemma' =
 
   
 
-let print_hello = 
-  print_endline "hello"
+(* let print_hello = 
+  print_endline "hello" *)
+
+
+
+
+type const_desc = 
+  | Fresh 
+  | Value of expr
+  | Value_with_param of expr * Name.ident
+  | Fresh_with_param 
+
+
+type chan_param = ChanParam of { id : Name.ident; param : unit option; typ : ty}
+
 
 type decl = decl' Location.located [@@deriving show]
 and decl' =
@@ -149,11 +185,11 @@ and decl' =
 
   | DeclTyp of Name.ident * ty (* type sec_ty : simple_ty or type ch_ty : channel[<type>+] *)
 
-  | DeclEqThyFunc of Name.ident * func_ty_param list
+  | DeclEqThyFunc of Name.ident * ty list
   | DeclEqThyEquation of expr * expr
   
 
-  | DeclExtSyscall of Name.ident * (Name.ident * func_ty_param) list * func_ty_param * cmd
+  | DeclExtSyscall of Name.ident * (Name.ident * ty) list * ty * cmd
   
   (* attack <attack_name> on <syscall_name> (<syscall_arg>* )  *)
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
@@ -162,14 +198,13 @@ and decl' =
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
 
   | DeclAllowAttack of Name.ident list * Name.ident list
-  
-  (* TODO unify these *)
-  | DeclConst of Name.ident * ty * expr option
-  | DeclParamConst of Name.ident * ty * (Name.ident * expr) option
 
-  (* TODO unify these *)
-  | DeclChanInstantiation of Name.ident * ty
-  | DeclParamChanInstantiation of Name.ident * ty
+
+  | DeclConst of  Name.ident * const_desc * ty option
+
+  
+  (* channel <name> <param yes/no> : <type> *)
+  | DeclChanInstantiation of chan_param
 
 
   (*process <name>(ch_1 : ty_1, ..., ch_n : ty_n) : proc_ty  {
@@ -182,16 +217,18 @@ and decl' =
     } 
   } *)
   (* bool: whether ch_i is parameterized channel type or not *)
-  (* TODO unify these two constructors *)
-  | DeclProc of Name.ident * (bool * Name.ident * ty) list * Name.ident * 
-                ((expr * Name.ident * expr) list) * 
-                ((Name.ident * ty * expr) list) * 
-                (Name.ident * (func_ty_param list) * cmd) list * cmd
-  | DeclParamProc of Name.ident * Name.ident * (bool * Name.ident * ty) list * Name.ident * 
-                ((expr * Name.ident * expr) list) * 
-                ((Name.ident * ty * expr) list) * 
-                (Name.ident * (func_ty_param list) * cmd) list * cmd
 
+  | DeclProc of 
+    {
+      id : Name.ident
+      ; is_process_paramatric : Name.ident option (* Whether process is a parameterized process or not *)
+      ; params : chan_param list (* Parameters (ch_1 : ty_1, ch_2<> : ty_2 ..., ch_n : ty_n) of a process*)
+      ; proc_typ : Name.ident 
+      ; file_stmts : (expr * Name.ident * expr) list
+      ; let_stmts : (Name.ident * expr * ty option) list
+      ; funcs : (Name.ident * ty list * cmd) list
+      ; main_func : cmd
+    }
 
 
   | DeclSys of proc list * lemma list 
