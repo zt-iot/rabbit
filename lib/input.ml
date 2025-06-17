@@ -13,7 +13,7 @@ type operator = string [@@deriving show]
 type ty = 
   | Unit                                         (* used for syscalls that do not have a return type *)
   | PolyType of Name.ident                       (* 'a, 'b, 'k etc.*)
-  | ChannelTyp of ty list                        (* channel[t_1 + ... t_n] *)
+  | ChannelTyp of ty list                        (* channel[t_1 + ... + t_n] *)
   | ProdTyp of ty * ty
   
   (* <Name.ident>[<ty>*] but also key[Sig]@('s, 'i) *)
@@ -181,8 +181,8 @@ type decl = decl' Location.located [@@deriving show]
 and decl' =
   | DeclSimpleTyp of ty (* data <simple_ty> *)
 
-  | DeclProcType of Name.ident
-  | DeclFileType of Name.ident
+  | DeclProcType of Name.ident (* type client_t : process *)
+  | DeclFileType of Name.ident (* type readonly_t : filesys *)
 
   | DeclTyp of Name.ident * ty (* type sec_ty : simple_ty or type ch_ty : channel[<type>+] *)
 

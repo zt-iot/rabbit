@@ -8,6 +8,6 @@ equation fst ((x, y)) = x
 equation snd ((x, y)) = y
 function true : bool
 
-(* type bool is a simple type, thus it has TSP security level (Public, Untrusted) *)
+(* the signature and the term being verified have to have the same security level, which is why we need this typing annotation *)
 function verify : signature@('s1, 'i1) -> 'a@('s1, 'i1) -> key[Ver, 'a]@('s2, 'i2) -> bool
 equation verify (sign(d, k), d, vk(k)) = true
