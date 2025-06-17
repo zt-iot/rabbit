@@ -1,9 +1,9 @@
 (* security primitives *)
 function vk : key[Sig]@(s, i) -> key[Ver]@(Public, i)
 
-function enc : 'a -> key[Sym, 'a]@(Public, i) -> cipher['a]@(Public, i)
-function dec : cipher['a] -> key[Sym, 'a] -> 'a
-equation dec(enc(x, y), y) = x
+function senc : 'a -> key[Sym, 'a]@(Public, i) -> cipher['a]@(Public, i)
+function sdec : cipher['a] -> key[Sym, 'a] -> 'a
+equation sdec(enc(x, y), y) = x
 
 function sign : 'a -> key[Sig, 'a]@(s, i) -> signature@(S('a), i) (* signature@('a, i) will match any "signature security type", E.G.*)
 

@@ -168,7 +168,7 @@ filesys server_fs =
 
 filesys client_ta_fs = 
 [ 
-  {path: "/secret/priv", data: enc(priv_k, sym_k), type: readonly_t}
+  {path: "/secret/priv", data: senc(priv_k, sym_k), type: readonly_t}
 ]
 
 (***********)
@@ -214,9 +214,9 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
   {
     var privkey_fd : filedescr[cipher[sigkey_client_ta]] = fopen(privkey_path) in
 
-    var privkey : cipher[sigkey_client_ta] = fread(privkey_fd) in (* what type should privkey get? The return type of `enc` *)
+    var privkey : cipher[sigkey_client_ta] = fread(privkey_fd) in (* what type should privkey get? The return type of `senc` *)
 
-    var privkey0 : sigkey_client_ta = dec(privkey, fek) in 
+    var privkey0 : sigkey_client_ta = sdec(privkey, fek) in 
 
     var sig : client_ta_sig = sign(image, privkey0) in
 
