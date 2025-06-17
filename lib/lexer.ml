@@ -80,6 +80,7 @@ let hspace  = [%sedlex.regexp? (' ' | '\t' | '\r')]
 
 let quoted_string = [%sedlex.regexp? '"', Star (Compl '"'), '"']
 
+(* xxx unused *)
 let update_eoi ({ Ulexbuf.pos_end; line_limit;_ } as lexbuf) =
   match line_limit with None -> () | Some line_limit ->
     if pos_end.Lexing.pos_lnum >= line_limit
@@ -215,7 +216,7 @@ let read_file parse fn =
     let lex = Ulexbuf.from_channel ~fn fh in
       let terms = run token parse lex in
       close_in fh;
-      terms, (Ulexbuf.used_indent lex, Ulexbuf.used_string lex)
+      terms, (lex.Ulexbuf.used_indents, lex.Ulexbuf.used_strings)
 
 (* let read_file parse fn =
   try
