@@ -218,6 +218,11 @@ let read_file parse fn =
       close_in fh;
       terms, (lex.Ulexbuf.used_idents, lex.Ulexbuf.used_strings)
 
+
+
+
+
+
 (* let read_file parse fn =
   try
     let fh = open_in fn in
@@ -233,6 +238,14 @@ let read_file parse fn =
   (* Any errors when opening or closing a file are fatal. *)
     Sys_error msg -> raise (Ulexbuf.error ~loc:Location.Nowhere (Ulexbuf.SysError msg))
  *)
+
+
+
+
+
+
+
+(* xxx unused *)
 let read_toplevel parse () =
   let all_white str =
     let n = String.length str in
@@ -264,6 +277,7 @@ let read_toplevel parse () =
   let lex = Ulexbuf.from_string (str ^ "\n") in
   run token parse lex
 
+(* xxx unused *)
 let read_string parse s =
   let lex = Ulexbuf.from_string s in
   run token parse lex
