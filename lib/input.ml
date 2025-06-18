@@ -174,6 +174,11 @@ type eq_thy_func_desc =
   | TypeSig of rabbit_ty list (* when types are given *)
 [@@deriving show]
 
+type fun_signature = 
+  | UntypedSig of Name.ident list 
+  | TypedSig of Name.ident list * rabbit_ty list * rabbit_ty
+[@@deriving show]
+
 type const_desc = 
   | Fresh 
   | Value of expr
@@ -198,7 +203,7 @@ and decl' =
   | DeclEqThyEquation of expr * expr
   
 
-  | DeclExtSyscall of Name.ident * Name.ident list * (rabbit_ty list) option * rabbit_ty option * cmd
+  | DeclExtSyscall of Name.ident * fun_signature * cmd
   
   (* attack <attack_name> on <syscall_name> (<syscall_arg>* )  *)
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
@@ -235,7 +240,7 @@ and decl' =
       ; proc_typ : Name.ident 
       ; file_stmts : (expr * Name.ident * expr) list
       ; let_stmts : (Name.ident * expr * rabbit_ty option) list
-      ; funcs : (Name.ident * Name.ident list * (rabbit_ty list) option * cmd) list
+      ; funcs : (Name.ident * fun_signature * cmd) list
       ; main_func : cmd
     }
 

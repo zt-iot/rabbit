@@ -141,15 +141,30 @@ name_channel_pair :
   | a=NAME LTGT COLON typ=rabbit_ty { ChanParam{id=a; param=Some (); typ=typ} }
 
 
+
 name_ty_param_pair : 
   | n=NAME COLON p=rabbit_ty { (n, p) }
+
+(* function signature for syscalls and member functions *)
+fun_signature:
+
+  (* the case where there are zero parameters in between the (...) is handled separately 
+  because otherwise this causes a Menhir reduce/reduce conflict *)
+  | LPAREN RPAREN COLON retty=rabbit_ty { TypedSig([], [], retty) }
+  | LPAREN RPAREN { UntypedSig([]) }
+
+  | LPAREN names_and_types=separated_nonempty_list(COMMA, name_ty_param_pair) RPAREN 
+      COLON retty=rabbit_ty { TypedSig(List.map fst names_and_types, List.map snd names_and_types, retty) }
+  | LPAREN names=separated_nonempty_list(COMMA, NAME) RPAREN { UntypedSig(names) }
+
+
 
 external_syscall:
   // |  syscall_tk f=NAME LPAREN params=separated_list(COMMA, name_ty_param_pair) RPAREN 
   //     COLON retty=rabbit_ty 
   //     LBRACE c=cmd RBRACE { DeclExtSyscall(f, List.map fst params, Some(List.map snd params), Some retty, c) }
-  |  syscall_tk f=NAME LPAREN params=separated_list(COMMA, NAME) RPAREN 
-      LBRACE c=cmd RBRACE { DeclExtSyscall(f, params, None, None, c) }
+  |  syscall_tk f=NAME signature=fun_signature
+      LBRACE c=cmd RBRACE { DeclExtSyscall(f, signature, c) }
 
 syscall_tk:
   | SYSCALL {()}
@@ -164,12 +179,6 @@ plain_fact:
   | e1=expr EQ e2=expr { EqFact(e1, e2) }
   | e1=expr NEQ e2=expr { NeqFact(e1, e2) }
   | scope=expr DOT e=expr { FileFact(scope, e) }
-
-// syscall_param:
-//   | var=NAME { (TyValue, var) }
-//   | CHANNEL var=NAME { (TyChannel, var) }
-//   | PROCESS var=NAME { (TyProcess, var) }
-//   | PATH var=NAME { (TyPath, var) }
 
 
 sys:
@@ -233,8 +242,8 @@ member_fun_decls:
 member_fun_decl:
   // | FUNC id=NAME LPAREN params=separated_list(COMMA, name_ty_param_pair) RPAREN 
   //   LBRACE c=cmd RBRACE { (id, List.map fst params, Some (List.map snd params), c) }
-  | FUNC id=NAME LPAREN param_names=separated_list(COMMA, NAME) RPAREN 
-    LBRACE c=cmd RBRACE { (id, param_names, None, c) }
+  | FUNC id=NAME signature=fun_signature 
+    LBRACE c=cmd RBRACE { (id, signature, c) }
 
 main_stmt:
   | MAIN LBRACE c=cmd RBRACE { c }
