@@ -156,20 +156,10 @@ const fresh priv_k : sigkey_client_ta
 const fresh sym_k : symkey_client_ta
 
 (***********)
-(** installed channels and filesystems *)
+(** installed channels *)
 channel udp : udp_t
 
 channel rpc : rpc_t
-
-filesys server_fs = 
-[ 
-  {path: "/secret/pub", data: vk(priv_k), type: readonly_t} 
-]
-
-filesys client_ta_fs = 
-[ 
-  {path: "/secret/priv", data: senc(priv_k, sym_k), type: readonly_t}
-]
 
 (***********)
 (** process templates *)
@@ -208,6 +198,7 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
 
 process client_ta(ch_rpc : rpc_t) : client_ta_t 
 {
+  file "/secret/priv" : readonly_t = senc(priv_k, sym_k)
   var fek : symkey_client_ta = sym_k
 
   function sign_image(image : client_img, privkey_path : string) : client_ta_sig 
@@ -237,6 +228,7 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
 
 process server(ch_net : udp_t) : server_t 
 {
+  file "/secret/pub" : readonly_t = vk(priv_k)
   var pubkey_path : string = "/secret/pub"
 
   main 
@@ -252,8 +244,8 @@ process server(ch_net : udp_t) : server_t
 (***********)
 system 
   client(udp, rpc)
-  ||	server(udp) with server_fs 
-  ||	client_ta(rpc) with client_ta_fs
+  |	server(udp) 
+  |	client_ta(rpc)
 requires  [
   lemma Reachable :
   	exists-trace "Ex x #i #j #k  . ClientClose() @ #j & ClientTAClose() @ #k & ImgRecvValid(x) @ #i" ;
