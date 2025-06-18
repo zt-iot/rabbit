@@ -158,7 +158,7 @@ and decl' =
       ; syscalls : ident list option
       }
   (** [allow s t1 .. tn [f1, .., fm]]
-      [allow s t1 .. tn [.]]  for all the syscalls
+      [allow s t1 .. tn [.]]  for the direct accesses via [put] and [case], [repeat]
 
       XXX the list [ti] is either empty or singleton.  Should use option type?
   *)

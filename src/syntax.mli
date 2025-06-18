@@ -125,7 +125,7 @@ and decl' =
   (** type declaration, [type t : filesys/process/channel] *)
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   (** [allow proc_ty target_ty1 .. target_tyn [syscall1, .., syscallm]]
-      [allow proc_ty target_ty1 .. targe_t_tyn [.]]  for all the syscalls
+      [allow proc_ty target_ty1 .. targe_t_tyn [.]]  for the direct accesses via [put] and [case], [repeat]
 
       XXX the list [target_tyi] is either empty or singleton.  Should use option type?
   *)

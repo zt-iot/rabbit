@@ -109,7 +109,7 @@ and decl' =
   (** type declaration, [type t : filesys/process/channel] *)
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   (** [allow s t1 .. tn [f1, .., fm]]
-      [allow s t1 .. tn [.]]  for all the syscalls
+      [allow s t1 .. tn [.]]  for the direct accesses via [put] and [case], [repeat]
 
       XXX the list [ti] is either empty or singleton.  Should use option type?
   *)
