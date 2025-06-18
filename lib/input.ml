@@ -10,27 +10,31 @@ type operator = string [@@deriving show]
 - A Rabbit channel type
 - A product of any Rabbit types
 *)
-type ty = 
+type plain_ty = 
   | Unit                                         (* used for syscalls that do not have a return type *)
+  | PlainTyp of Name.ident * rabbit_ty list
   | PolyType of Name.ident                       (* 'a, 'b, 'k etc.*)
-  | ChannelTyp of ty list                        (* channel[t_1 + ... + t_n] *)
-  | ProdTyp of ty * ty
-  
-  (* <Name.ident>[<ty>*] but also key[Sig]@('s, 'i) *)
-  | Typ of Name.ident * ty list * func_param_secrecy_lvl option * func_param_integrity_lvl option
+  | ChannelTyp of rabbit_ty list                        (* channel[t_1 + ... + t_n] *)
+  | ProdTyp of rabbit_ty * rabbit_ty
 [@@deriving show]
 
 and func_param_secrecy_lvl = 
   | Public
   | SecPoly of Name.ident (* non-concrete secrecy level *)
-  | S of ty
+  | S of rabbit_ty
 [@@deriving show]
 
 
 and func_param_integrity_lvl = 
   | Untrusted 
   | IntegPoly of Name.ident (* non-concrete integrity level *)
-  | I of ty
+  | I of rabbit_ty
+[@@deriving show]
+
+and security_lvl = func_param_secrecy_lvl * func_param_integrity_lvl [@@deriving show]
+
+and rabbit_ty = 
+  | RabbitTyp of plain_ty * security_lvl option 
 [@@deriving show]
 
 
@@ -105,15 +109,16 @@ and cmd' =
   | Sequence of cmd * cmd
   (* | Wait of fact list * cmd *)
   | Put of fact list
-  | Let of Name.ident * ty * expr * cmd 
+  | Let of Name.ident * rabbit_ty option * expr * cmd 
   | Assign of Name.ident option * expr
   | Case of cmd case list
   | While of cmd case list * cmd case list
   | Event of fact list
   | Return of expr
 
-  | New of Name.ident * ty option * (Name.ident * expr list) option * cmd 
-  | Get of Name.ident list * ty * expr * Name.ident * cmd
+  | New of Name.ident * rabbit_ty option * (Name.ident * expr list) option * cmd 
+  (* Get only takes a single `rabbit_ty option` because it will be a product of smaller types, where each smaller type is the type of expression i *)
+  | Get of Name.ident list * rabbit_ty option * expr * Name.ident * cmd
   | Del of expr * Name.ident
 [@@deriving show]
 
@@ -164,7 +169,10 @@ and lemma' =
   print_endline "hello" *)
 
 
-
+type eq_thy_func_desc = 
+  | Arity of int (* when types are not given *)
+  | TypeSig of rabbit_ty list (* when types are given *)
+[@@deriving show]
 
 type const_desc = 
   | Fresh 
@@ -174,23 +182,23 @@ type const_desc =
 [@@deriving show]
 
 
-type chan_param = ChanParam of { id : Name.ident; param : unit option; typ : ty} [@@deriving show]
+type chan_param = ChanParam of { id : Name.ident; param : unit option; typ : rabbit_ty} [@@deriving show]
 
 
 type decl = decl' Location.located [@@deriving show]
 and decl' =
-  | DeclSimpleTyp of ty (* data <simple_ty> *)
+  | DeclSimpleTyp of rabbit_ty (* data <simple_ty> *)
 
   | DeclProcType of Name.ident (* type client_t : process *)
   | DeclFileType of Name.ident (* type readonly_t : filesys *)
 
-  | DeclTyp of Name.ident * ty (* type sec_ty : simple_ty or type ch_ty : channel[<type>+] *)
+  | DeclTyp of Name.ident * rabbit_ty (* type sec_ty : simple_ty or type ch_ty : channel[<type>+] *)
 
-  | DeclEqThyFunc of Name.ident * ty list
+  | DeclEqThyFunc of Name.ident * eq_thy_func_desc
   | DeclEqThyEquation of expr * expr
   
 
-  | DeclExtSyscall of Name.ident * (Name.ident * ty) list * ty * cmd
+  | DeclExtSyscall of Name.ident * Name.ident list * (rabbit_ty list) option * rabbit_ty option * cmd
   
   (* attack <attack_name> on <syscall_name> (<syscall_arg>* )  *)
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
@@ -201,7 +209,7 @@ and decl' =
   | DeclAllowAttack of Name.ident list * Name.ident list
 
 
-  | DeclConst of  Name.ident * const_desc * ty option
+  | DeclConst of  Name.ident * const_desc * rabbit_ty option
 
   
   (* channel <name> <param yes/no> : <type> *)
@@ -226,8 +234,8 @@ and decl' =
       ; params : chan_param list (* Parameters (ch_1 : ty_1, ch_2<> : ty_2 ..., ch_n : ty_n) of a process*)
       ; proc_typ : Name.ident 
       ; file_stmts : (expr * Name.ident * expr) list
-      ; let_stmts : (Name.ident * expr * ty option) list
-      ; funcs : (Name.ident * ty list * cmd) list
+      ; let_stmts : (Name.ident * expr * rabbit_ty option) list
+      ; funcs : (Name.ident * Name.ident list * (rabbit_ty list) option * cmd) list
       ; main_func : cmd
     }
 

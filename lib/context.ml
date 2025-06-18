@@ -1,5 +1,9 @@
-(** Conversion errors *)
-type desugar_error =
+
+
+
+
+(* Conversion errors *)
+(* type desugar_error =
   | UnknownIdentifier of string
   | UnknownFunction of string
   | AlreadyDefined of string 
@@ -62,11 +66,11 @@ type context = {
                      (* ext_const name *)
    ctx_ext_func   :  (Name.ident * int) list ; 
                      (* ext_func name, its arity *)
-   ctx_ext_syscall:  (Name.ident * Input.ty list) list ; 
+   ctx_ext_syscall:  (Name.ident * Input.rabbit_ty list) list ; 
                      (* ext_syscalltruction name, its arity *)
-   ctx_ext_attack :  (Name.ident * Name.ident *  Input.ty list) list ; 
+   ctx_ext_attack :  (Name.ident * Name.ident *  Input.rabbit_ty list) list ; 
 
-   ctx_ty         :  (Name.ident * Input.ty) list ;
+   ctx_ty         :  (Name.ident * Input.rabbit_ty) list ;
                      (* type name, its class *)
    ctx_const      :  Name.ident list ;
                      (* const name *)
@@ -95,9 +99,9 @@ type definition = {
    def_ext_eq  :  (Name.ident list * Syntax.expr * Syntax.expr) list ;
                   (* free variables, e1, e2  such that e1 = e2 under the free variables *)
  
-   def_ext_syscall : (Name.ident *  (Input.ty * Name.ident) list * Syntax.cmd) list ;
+   def_ext_syscall : (Name.ident *  (Input.rabbit_ty * Name.ident) list * Syntax.cmd) list ;
    
-   def_ext_attack  : (Name.ident * Name.ident *  (Input.ty * Name.ident) list  * Syntax.cmd) list ;
+   def_ext_attack  : (Name.ident * Name.ident *  (Input.rabbit_ty * Name.ident) list  * Syntax.cmd) list ;
 
    def_const   :  (Name.ident * Syntax.expr option) list ;
                   (* const name, and its value *) 
@@ -501,4 +505,4 @@ let lctx_init = {lctx_chan = []; lctx_path = []; lctx_process = []; lctx_loc_var
 (* let lctx_init = {lctx_var=[]; lctx_meta=[]} *)
 let ldef_init = {ldef_var=[]; ldef_func=[]}
 
-
+ *)

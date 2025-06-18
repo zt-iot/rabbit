@@ -1,4 +1,4 @@
-(* For translating to and printing Tamarin models.
+(* (* For translating to and printing Tamarin models.
    * 'Rabbit' is a string value palceholder for void output of system calls and functions.
    * GlobalFact is fact that does not bound to any process or channel. Currently 
    it only contains reserved facts.
@@ -1620,4 +1620,4 @@ let translate_sys {
       | _ -> error ~loc:Location.Nowhere (UnintendedError "")
     in tamarin_add_lemma t l) t lem in
   t
-
+ *)
