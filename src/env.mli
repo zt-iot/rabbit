@@ -8,6 +8,8 @@ type var_desc = Syntax.variable_desc =
 type named_fact_desc =
   | Channel
   | Structure
+  | Plain
+  | Global
 
 val string_of_named_fact_desc : named_fact_desc -> string
 

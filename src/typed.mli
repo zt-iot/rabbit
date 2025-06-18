@@ -13,7 +13,8 @@ and expr' =
   | Ident of
       { id : ident
       ; desc : Env.desc
-      ; param : expr option
+      ; param : ident option
+       (** [param= Some _] iff [desc= Const true] *)
       }
   (** [id] or [id<e>].
       [id<e>] is only possible either for [id] of [Channel {param=true}] or [Const {param=true}] *)
@@ -35,29 +36,19 @@ type fact = fact' loc_env
 and fact' =
   | Channel of
       { channel : expr
-      ; name : string
+      ; name : name
       ; args : expr list
       } (** Channel fact [ch :: name(args)] *)
   | Out of expr (** Attacker fact: Out *)
   | In of expr (** Attacker fact: In *)
+  | Plain of name * expr list
   | Eq of expr * expr
   | Neq of expr * expr
   | File of
       { path : expr
       ; contents : expr
       } (** File fact [path.contents] *)
-  | Fresh of expr
-  | Structure of
-      { name : string
-      ; process : string
-      ; address : expr
-      ; args : expr list
-      } (** Structure fact [name(process, address, args)] *)
-  | Loop of
-      { mode : loop_mode
-      ; process : name
-      ; index : name
-      }
+  | Global of string * expr list
 
 type cmd = cmd' loc_env
 
@@ -87,12 +78,14 @@ and cmd' =
   | Get of ident list * expr * name * cmd (** fetch, let x1,..,xn := e.S in c *)
   | Del of expr * name (** deletion , delete e.S *)
 
+type chan_param = { channel : ident; param : unit option; typ : ident }
+
 type chan_arg =
   { channel : ident
-  ; parameter : expr option option
-    (** - [None]: Simple channel [id],
+  ; parameter : ident option option
+  (** - [None]: Simple channel [id],
       - [Some None]: Channel with a parameter [id<>],
-      - [Some (Some e)]: Instantiated channel with a parameter [id<e>]
+      - [Some (Some p)]: Instantiated channel with a parameter [id<p>]
   *)
   ; typ : ident
   }
@@ -101,13 +94,13 @@ type pproc = pproc' Location.located
 
 and pproc' =
   { id : ident
-  ; parameter : expr option
+  ; parameter : unit option
   ; args : chan_arg list
   }
 
 type proc =
   | Unbounded of pproc (** [proc] *)
-  | Bounded of (ident * pproc list) (** [!name.(pproc1|..|pprocn)] *)
+  | Bounded of ident * pproc list (** [!name.(pproc1|..|pprocn)] *)
 
 (** Lemma *)
 type lemma = lemma' loc_env
@@ -185,7 +178,7 @@ and decl' =
   | Process of
       { id : ident
       ; param : ident option
-      ; args : (bool * ident * ident) list
+      ; args : chan_param list
       ; typ : ident
       ; files : (expr * ident * expr) list
       ; vars : (ident * expr) list
@@ -196,3 +189,22 @@ and decl' =
   | System of proc list * (Ident.t * lemma) list
   (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
   | Load of string * decl list (** [load "fn"] *)
+
+module Subst : sig
+  type t = (ident * ident) list
+
+  val expr : t -> expr -> expr
+  val fact : t -> fact -> fact
+  val cmd : t -> cmd -> cmd
+
+  type instantiated_process =
+    { id : Ident.t
+    ; typ : ident
+    ; files : (expr * ident * expr) list
+    ; vars : (ident * expr) list
+    ; funcs : (ident * ident list * cmd) list
+    ; main : cmd
+    }
+
+  val instantiate_proc : decl list -> proc -> instantiated_process list
+end

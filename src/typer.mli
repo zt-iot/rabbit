@@ -1,3 +1,3 @@
 include Sig.ERROR
 
-val load : Env.t -> loc:Location.t -> string -> Env.t * Typed.decl
+val load : Env.t -> string -> Env.t * Typed.decl list

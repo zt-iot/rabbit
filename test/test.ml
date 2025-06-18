@@ -55,7 +55,8 @@ end
 
 let run_check_syntax fn =
   (* [cd ..] is required *)
-  let ic = Unix.open_process_in (Printf.sprintf "cd ..; opam exec -- dune exec -- src/rabbit.exe %s -o %s.spthy 2>&1" fn fn) in
+  let com = Printf.sprintf "cd ..; opam exec -- dune exec -- src/rabbit.exe %s -o %s.spthy 2>&1" fn fn in
+  let ic = Unix.open_process_in com in
   let outputs = In_channel.input_lines ic in
   let res =
     match Unix.close_process_in ic with
@@ -86,6 +87,17 @@ let test specs fn =
   in
   let typerfail = List.exists (Re.execp re_typerfail) outputs_syntax in
   let typersuccess = List.exists (Re.execp re_typersuccess) outputs_syntax in
+  let specs : Test.t list =
+    (* mend specs *)
+    if
+      (* Verified and Falsified imply Success *)
+      (List.mem Test.Verified specs
+       || List.mem Test.Falsified specs)
+      && (not @@ List.mem Test.Success specs)
+    then
+      Success :: specs
+    else specs
+  in
   List.iter (function
       | Test.Success ->
           if success_syntax then

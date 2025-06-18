@@ -21,6 +21,7 @@ type error =
       }
   | InvalidVariableAtAssign of Ident.t * Env.desc
   | UnboundFact of Name.ident
+  | NonCallableInExpression of Ident.t * Env.desc
 
 exception Error of error Location.located
 
@@ -59,8 +60,15 @@ let print_error err ppf =
   | NonCallableIdentifier (id, desc) ->
       Format.fprintf
         ppf
-        "%s variable %t cannot be called"
+        "%s %t cannot be called"
         (String.capitalize_ascii (kind_of_desc desc))
+        (Ident.print id)
+  | NonCallableInExpression (id, desc) ->
+      Format.fprintf
+        ppf
+        "%s %t can be called only at command x := %t(..)"
+        (String.capitalize_ascii (kind_of_desc desc))
+        (Ident.print id)
         (Ident.print id)
   | NonParameterizableIdentifier (id, desc) ->
       Format.fprintf
@@ -167,24 +175,47 @@ let rec type_expr env (e : Input.expr) : Typed.expr =
         let es = List.map (type_expr env) es in
         let use = List.length es in
         (match Env.find ~loc env f with
-         | id, ExtFun arity ->
+         | id, (ExtFun arity | ExtSyscall arity | Function arity) ->
              check_arity ~loc ~arity ~use;
              Apply (id, es)
-         | id, ExtSyscall arity ->
-             check_arity ~loc ~arity ~use;
-             Apply (id, es)
-         | id, Function arity ->
-             check_arity ~loc ~arity ~use;
-             Apply (id, es)
-         | id, desc -> error ~loc @@ NonCallableIdentifier (id, desc))
+         | id, desc ->
+             error ~loc @@ NonCallableIdentifier (id, desc))
     | Param (f, e) (* [f<e>] *) ->
         (match Env.find ~loc env f with
          | id, ((Const _ | Channel _) as desc) ->
-             Ident { id; desc; param = Some (type_expr env e) }
+             (match type_expr env e with
+              | {desc= Ident {id=pid; desc= Var Param; _}; _} ->
+                  Ident { id; desc; param = Some pid }
+              | _ -> misc_errorf ~loc "Parameter must be a parameter variable")
          | id, desc -> error ~loc @@ NonParameterizableIdentifier (id, desc))
   in
   { loc; env; desc }
 ;;
+
+(* If [f] is a system call or a funciton w/ definition, an application of [f] is only
+   allowed at commands [x := f (..)].
+*)
+
+let check_apps e =
+  let rec aux (e : Typed.expr) =
+    match e.desc with
+    | Boolean _ | String _ | Integer _ | Float _ | Unit -> ()
+    | Ident _ -> ()
+    | Apply (id, es) ->
+        let desc = Option.get @@ Env.find_opt_by_id e.env id in
+        (match desc with
+         | ExtFun _ -> ()
+         | ExtSyscall _ | Function _ -> error ~loc:e.loc @@ NonCallableInExpression (id, desc)
+         | _ -> assert false);
+        List.iter aux es
+    | Tuple es -> List.iter aux es
+  in
+  aux e
+
+let type_expr ?(at_assignment=false) env (e : Input.expr) : Typed.expr =
+  let e = type_expr env e in
+  if not at_assignment then check_apps e;
+  e
 
 let type_fact env (fact : Input.fact) : Typed.fact =
   let loc = fact.loc in
@@ -193,36 +224,24 @@ let type_fact env (fact : Input.fact) : Typed.fact =
     | ProcessFact _ -> assert false (* XXX ??? *)
     | Fact ("In", [ e ]) -> In (type_expr env e)
     | Fact ("Out", [ e ]) -> Out (type_expr env e)
-    | Fact (_name, _es) -> assert false
-    (*
-       | Fact (_name, _es) ->
+    | Fact (name, es) ->
         (* Which fact? For strucure? *)
         let nes = List.length es in
         (match Env.find_fact_opt env name with
          | None ->
-             Env.add_fact env name (NoName, nes);
-             Typed.Structure (name, List.map (type_expr env) es)
-         | Some (NoName, arity) ->
+             Env.add_fact ~loc env name (Plain, Some nes);
+             Typed.Plain (name, List.map (type_expr env) es)
+         | Some (Plain, Some arity) ->
              check_arity ~loc ~arity ~use:nes;
-             Structure (name, List.map (type_expr env) es)
+             Plain (name, List.map (type_expr env) es)
+         | Some (Plain, None) -> assert false
          | Some (desc, _) ->
-             error ~loc @@ InvalidFact { name; def= desc; use= NoName }
+             error ~loc @@ InvalidFact { name; def= desc; use= Plain }
         )
-    *)
-    | GlobalFact (_name, _es) -> assert false
-    (*
-       | GlobalFact (_name, _es) ->
+    | GlobalFact (name, es) ->
         let nes = List.length es in
-        (match Env.find_fact_opt env name with
-         | None ->
-             Env.add_fact env name (Global, nes);
-             Global (name, List.map (type_expr env) es)
-        | Some (Global, arity) ->
-            check_arity ~loc ~arity ~use:nes;
-            Global (name, List.map (type_expr env) es)
-        | Some (desc, _) ->
-            error ~loc @@ InvalidFact { name; def= desc; use= Global })
-    *)
+        Env.add_fact ~loc env name (Global, Some nes);
+        Global (name, List.map (type_expr env) es)
     | ChannelFact (e, name, es) ->
         let e = type_expr env e in
         let es = List.map (type_expr env) es in
@@ -278,20 +297,20 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         let facts = type_facts env facts in
         Put facts
     | Let (name, e, cmd) ->
-        let e = type_expr env e in
+        let e = type_expr ~at_assignment:true env e in
         let id = Ident.local name in
         let env' = Env.add env id (Var (Loc (snd id))) in
         let cmd = type_cmd env' cmd in
         Let (id, e, cmd)
     | Assign (None, e) ->
-        let e = type_expr env e in
+        let e = type_expr ~at_assignment:true env e in
         Assign (None, e)
     | Assign (Some name, e) ->
         let id, vdesc = Env.find ~loc env name in
         (match vdesc with
          | Var (Top _ | Loc _ | Meta _) -> ()
          | desc -> error ~loc @@ InvalidVariableAtAssign (id, desc));
-        let e = type_expr env e in
+        let e = type_expr env ~at_assignment:true e in
         Assign (Some id, e)
     | Case cases -> Case (type_cases env cases)
     | While (cases1, cases2) ->
@@ -393,7 +412,7 @@ let type_process
            let chanty = Env.find_desc ~loc env chanty (Type CChan) in
            let chanid = Ident.local chanid in
            ( Env.add env chanid (Channel (with_param, chanty))
-           , (with_param, chanid, chanty) :: rev_args ))
+           , Typed.{ channel=chanid; param; typ= chanty } :: rev_args ))
         (env', [])
         args
     in
@@ -454,7 +473,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
   let (Lemma (name, prop)) = lemma.data in
   let desc =
     match prop.data with
-    | PlainString s -> Typed.Plain s
+    | PlainString s -> (Typed.Plain s : Typed.lemma')
     | Reachability facts ->
         let vs = Input.vars_of_facts facts in
         let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
@@ -490,16 +509,19 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
   env, (id, lemma)
 ;;
 
-let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl =
+let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   let loc = d.loc in
   match d.data with
   | DeclLoad fn ->
       (* [load "xxx.rab"] *)
       let fn = Filename.dirname base_fn ^ "/" ^ fn in
-      load env ~loc fn
-  | DeclExtFun (name, arity) ->
+      load env fn
+  | DeclExtFun (name, 0) ->
       let env', id = Env.add_global ~loc env name ExtConst in
-      env', { env; loc; desc = Function { id; arity } }
+      env', [{ env; loc; desc = Function { id; arity= 0 } }]
+  | DeclExtFun (name, arity) ->
+      let env', id = Env.add_global ~loc env name (ExtFun arity) in
+      env', [{ env; loc; desc = Function { id; arity } }]
   | DeclExtEq (e1, e2) ->
       let vars = Name.Set.union (Input.vars_of_expr e1) (Input.vars_of_expr e2) in
       let fresh =
@@ -511,7 +533,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl =
       let e1 = type_expr env' e1 in
       let e2 = type_expr env' e2 in
       ( env
-      , { env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *) } )
+      , [{ env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *) }] )
   | DeclExtSyscall (name, args, c) ->
       let args, cmd =
         let env', args = extend_with_args env args @@ fun id -> Var (Loc (snd id)) in
@@ -519,7 +541,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl =
         args, c
       in
       let env', id = Env.add_global ~loc env name (ExtSyscall (List.length args)) in
-      env', { env; loc; desc = Syscall { id; args; cmd } }
+      env', [{ env; loc; desc = Syscall { id; args; cmd } }]
   | DeclExtAttack (name, syscall, args, c) ->
       (* [attack id on syscall (a1,..,an) { c }] *)
       let syscall =
@@ -536,10 +558,10 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl =
         args, c
       in
       let env', id = Env.add_global ~loc env name Attack in
-      env', { env; loc; desc = Attack { id; syscall; args; cmd } }
+      env', [{ env; loc; desc = Attack { id; syscall; args; cmd } }]
   | DeclType (name, tclass) ->
       let env', id = Env.add_global ~loc env name (Type tclass) in
-      env', { env; loc; desc = Type { id; typclass = tclass } }
+      env', [{ env; loc; desc = Type { id; typclass = tclass } }]
   | DeclAccess (proc_ty, tys, syscalls_opt) ->
       let proc_ty = Env.find_desc ~loc env proc_ty (Type CProc) in
       let tys =
@@ -567,11 +589,11 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl =
           syscalls_opt
       in
       ( env
-      , { env
+      , [{ env
         ; loc
         ; desc =
             Allow { process_typ = proc_ty; target_typs = tys; syscalls = syscalls_opt }
-        } )
+        }] )
   | DeclAttack (proc_tys, attacks) ->
       (* [allow attack proc_ty1 .. proc_tyn [attack1, .., attackn]] *)
       let proc_tys =
@@ -580,20 +602,20 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl =
       let attacks =
         List.map (fun attack -> Env.find_desc ~loc env attack Attack) attacks
       in
-      env, { env; loc; desc = AllowAttack { process_typs = proc_tys; attacks } }
+      env, [{ env; loc; desc = AllowAttack { process_typs = proc_tys; attacks } }]
   | DeclInit (name, Fresh) ->
       (* [const fresh n] *)
       let env', id = Env.add_global ~loc env name (Const false) in
-      env', { env; loc; desc = Init { id; desc = Fresh } }
+      env', [{ env; loc; desc = Init { id; desc = Fresh } }]
   | DeclInit (name, Value e) ->
       (* [const n = e] *)
       let e = type_expr env e in
       let env', id = Env.add_global ~loc env name (Const false) in
-      env', { env; loc; desc = Init { id; desc = Value e } }
+      env', [{ env; loc; desc = Init { id; desc = Value e } }]
   | DeclInit (name, Fresh_with_param) ->
       (* [const fresh n<>] *)
       let env', id = Env.add_global ~loc env name (Const true) in
-      env', { env; loc; desc = Init { id; desc = Fresh_with_param } }
+      env', [{ env; loc; desc = Init { id; desc = Fresh_with_param } }]
   | DeclInit (name, Value_with_param (e, p)) ->
       (* [const n<p> = e] *)
       let p = Ident.local p in
@@ -603,15 +625,16 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl =
         Env.add_global ~loc env name (Const true)
         (* no info of param? *)
       in
-      env', { env; loc; desc = Init { id; desc = Value_with_param (p, e) } }
+      env', [{ env; loc; desc = Init { id; desc = Value_with_param (p, e) } }]
   | DeclChan (ChanParam { id = name; param; typ = chty }) ->
       (* [channel n : ty] *)
       (* [channel n<> : ty] *)
       let chty = Env.find_desc ~loc env chty (Type CChan) in
       let env', id = Env.add_global ~loc env name (Channel (false, chty)) in
-      env', { env; loc; desc = Channel { id; param; typ = chty } }
+      env', [{ env; loc; desc = Channel { id; param; typ = chty } }]
   | DeclProc { id; param; args; typ; files; vars; funcs; main } ->
-      type_process ~loc env id param args typ files vars funcs main
+      let env', decl = type_process ~loc env id param args typ files vars funcs main in
+      env', [decl]
   | DeclSys (procs, lemmas) ->
       (* [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
       let type_chan_arg ~loc env : _ -> Typed.chan_arg = function
@@ -633,37 +656,51 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl =
                  misc_errorf ~loc "%t is not a channel with a parameter" (Ident.print id))
         | ChanArgParamInst (name, e) ->
             (* [id<e>] *)
-            let e = type_expr env e in
+            let pid =
+              match type_expr env e with
+              | { desc= Ident { id=pid; desc= Var Param; _ }; _ } -> pid
+              | _ -> misc_errorf ~loc "Parameter must be a parameter variable"
+            in
             (match Env.find ~loc env name with
              | id, Channel (true, chty) ->
-                 { channel = id; parameter = Some (Some e); typ = chty }
+                 { channel = id; parameter = Some (Some pid); typ = chty }
              | id, _ ->
                  misc_errorf ~loc "%t is not a channel with a parameter" (Ident.print id))
       in
-      let type_pproc env (pproc : Input.pproc) =
+      let type_pproc env idopt (pproc : Input.pproc) =
         let loc = pproc.loc in
         let data : Typed.pproc' =
-          match pproc.data with
-          | Proc (pname, chan_args) ->
+          match pproc.data, idopt with
+          | Proc (pname, chan_args), None ->
               (* [pname (chargs,..,chargs)] *)
               let pid = Env.find_desc ~loc env pname Process in
               let chan_args = List.map (type_chan_arg ~loc env) chan_args in
               { id = pid; parameter = None; args = chan_args }
-          | ParamProc (pname, e, chan_args) ->
-              (* [pname <e> (chargs,..,chargs)] *)
-              let pid = Env.find_desc ~loc env pname Process in
+          | ParamProc (pname, e, chan_args), Some p ->
+              (* [pname <id> (chargs,..,chargs)] *)
               let e = type_expr env e in
+              (match e.desc with
+               | Ident { id; _ } ->
+                   if id = p then ()
+                   else misc_errorf ~loc "Process must be parameterized with the quantification %t" (Ident.print p)
+               | _ -> assert false
+              );
+              let pid = Env.find_desc ~loc env pname Process in
               let chan_args = List.map (type_chan_arg ~loc env) chan_args in
-              { id = pid; parameter = Some e; args = chan_args }
+              { id = pid; parameter = Some (); args = chan_args }
+          | Proc _, Some p ->
+              misc_errorf ~loc "Process must be parameterized with the quantification %t" (Ident.print p)
+          | ParamProc _, None ->
+              misc_errorf ~loc "Process cannot be parameterized"
         in
         { pproc with data }
       in
       let type_proc env : _ -> Typed.proc = function
-        | Input.UnboundedProc pproc -> Unbounded (type_pproc env pproc)
+        | Input.UnboundedProc pproc -> Unbounded (type_pproc env None pproc)
         | BoundedProc (name, pprocs) (* [!name.(pproc1|..|pprocn)] *) ->
             let id = Ident.local name in
             let env = Env.add env id (Var Param) in
-            let pprocs = List.map (type_pproc env) pprocs in
+            let pprocs = List.map (type_pproc env (Some id)) pprocs in
             Bounded (id, pprocs)
       in
       let procs = List.map (type_proc env) procs in
@@ -676,17 +713,17 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl =
           lemmas
       in
       let lemmas = List.rev rev_lemmas in
-      env, { env; loc; desc = System (procs, lemmas) }
+      env, [{ env; loc; desc = System (procs, lemmas) }]
 
-and load env ~loc fn : Env.t * Typed.decl =
+and load env fn : Env.t * Typed.decl list =
   let decls, (_used_idents, _used_strings) = Lexer.read_file Parser.file fn in
-  let env', decls =
+  let env, rev_decls =
     List.fold_left
       (fun (env, rev_decls) decl ->
          let env, decl = type_decl fn env decl in
-         env, decl :: rev_decls)
+         env, List.rev_append decl rev_decls)
       (env, [])
       decls
   in
-  env', { env; loc; desc = Load (fn, decls) }
+  env, List.rev rev_decls
 ;;

@@ -35,15 +35,13 @@ const fresh c
 (*** Success, TyperSuccess *)
 syscall f(a, b, c) { c }
 
-(*** Fail "forbidden identifier s", TyperSuccess *)
+(*** Fail "forbidden identifier s", TyperFail "System call s can be called only at command" *)
 (* system call cannot be called without assignment *)
-(* Typer allows syscall inside syscall *)
 syscall s(a, b, c) { c }
 syscall c(a, b) { s(a, b, b) }
 
-(*** Fail "forbidden identifier s", TyperSuccess *)
+(*** Fail "forbidden identifier s", TyperFail "System call s can be called only at command" *)
 (* system call cannot be used in equation *)
-(* Typer allows syscall inside equation *)
 syscall s(a, b, c) { c }
 equation s(1, 2, 3) = 4
 
@@ -138,6 +136,32 @@ process p() : proc_t
 {
   main 
   {
+    event [::Event()];
+    event [::Event2()]
+  }
+}
+
+
+system 
+  p()
+requires  
+[
+  lemma Reachable :
+    reachable ::Event2() ;
+
+  lemma Correspondence :
+    corresponds ::Event2() ~> ::Event()
+]
+
+(*** Falsified *)
+(* One of the simplest Rabbit code *)
+
+type proc_t 	  : process
+
+process p() : proc_t
+{
+  main 
+  {
     event [::Event()]
   }
 }
@@ -148,10 +172,10 @@ system
 requires  
 [
   lemma Reachable :
-    reachable ::Event()
+    reachable ::Event2()
 ]
 
-(*** Fail "1 arguments provided while Event requires 0", TyperFail "Function of arity 0 takes 1 arguments" *)
+(*** Fail "1 arguments provided while Event requires 0", TyperFail "Object of arity 1 takes 0 arguments" *)
 (* One of the simplest Rabbit code *)
 
 type proc_t 	  : process
@@ -172,3 +196,6 @@ requires
   lemma Reachable :
     reachable ::Event(1)
 ]
+
+(*** Fail "unknown local variable x", TyperFail "Unknown identifier x" *)
+syscall s() { x := 1 }

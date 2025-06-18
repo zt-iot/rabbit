@@ -13,3 +13,5 @@ let name (s, i) =
   else Printf.sprintf "%s__%d" s i
 
 let print id ppf = Format.fprintf ppf "%s" (fst id)
+
+let to_string id = fst id ^ "__" ^ string_of_int (snd id)
