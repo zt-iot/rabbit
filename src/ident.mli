@@ -7,3 +7,6 @@ val local : string -> t
 val name : t -> string
 
 val print : t -> Format.formatter -> unit
+
+val to_string : t -> string
+(** ["name__idx"] *)

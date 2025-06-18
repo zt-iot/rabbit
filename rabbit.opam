@@ -11,6 +11,12 @@ license: "MIT"
 homepage: "https://github.com/zt-iot/rabbit"
 depends: [
   "dune" {>= "3.15"}
+  "ocaml" {>= "5.2.1"}
+  "ocamlgraph"
+  "menhir"
+  "menhirLib"
+  "sedlex"
+  "re"
   "odoc" {with-doc}
 ]
 build: [

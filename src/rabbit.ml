@@ -77,22 +77,50 @@ let _main =
             in
             let typer_result =
               try
-                ignore @@ Typer.load ~loc:Location.nowhere (Env.empty ()) fn; Ok ()
+                let _, decls = Typer.load (Env.empty ()) fn in
+                Ok decls
               with
-              | Typer.Error e -> Error e
+              | (Typer.Error _ as exn) -> Error exn
+              | exn ->
+                  Format.eprintf "Unexpected exception: %s@." (Printexc.to_string exn);
+                  Error exn
             in
-            match loader_result, typer_result with
-            | Ok res, Ok _ ->
-                prerr_endline "TyperSuccess";
-                res
-            | Error exn, Error e ->
-                Format.eprintf "TyperFail: %t@." (Typer.print_error e.data);
-                raise exn
-            | Ok res, Error e ->
-                Format.eprintf "TyperFail: %t@." (Typer.print_error e.data); res
-            | Error exn, Ok _ ->
-                prerr_endline "TyperSuccess";
-                raise exn)
+            let res =
+              match loader_result, typer_result with
+              | Ok res, Ok _ ->
+                  prerr_endline "TyperSuccess";
+                  res
+              | Error exn, Error (Typer.Error e) ->
+                  Format.eprintf "TyperFail: %t@." (Typer.print_error e.data);
+                  raise exn
+              | Error exn, Error exn' ->
+                  Format.eprintf "TyperFail: %s@." (Printexc.to_string exn');
+                  raise exn
+              | Ok res, Error (Typer.Error e) ->
+                  Format.eprintf "TyperFail: %t@." (Typer.print_error e.data); res
+              | Ok res, Error exn ->
+                  Format.eprintf "TyperFail: %s@." (Printexc.to_string exn); res
+              | Error exn, Ok _ ->
+                  prerr_endline "TyperSuccess";
+                  raise exn
+            in
+            (match typer_result with
+             | Error _ -> ()
+             | Ok decls ->
+                 let sys =
+                   List.find_opt (fun decl ->
+                       match decl.Typed.desc with
+                       | Typed.System _ -> true
+                       | _ -> false) decls
+                 in
+                 match sys with
+                 | Some sys ->
+                     let _gs = Sem.graph_system decls sys in
+                     prerr_endline "graph checked"
+                 | None -> prerr_endline "no system"
+            );
+            res
+          )
           Loader.process_init !files
       in
       print_string "Loading complete..\n";
@@ -103,7 +131,7 @@ let _main =
             else t
           in
           let tamarin = (Tamarin.print_tamarin t ~dev:!Config.dev ~print_transition_label:!Config.tag_transition) in
-          if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Error" "%s" "output file not specified"
+          if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Warning:" "%s" "output file not specified"
           else let oc = open_out (fst !ofile) in
             Printf.fprintf oc "%s\n" tamarin;
             close_out oc;

@@ -8,10 +8,14 @@ type var_desc = Syntax.variable_desc =
 type named_fact_desc =
   | Channel
   | Structure
+  | Plain
+  | Global
 
 let string_of_named_fact_desc = function
   | Channel -> "channel"
   | Structure -> "struture"
+  | Plain -> "plain"
+  | Global -> "global"
 
 type desc =
   | Var of var_desc

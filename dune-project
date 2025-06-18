@@ -10,4 +10,12 @@
   (maintainers "sewon@sewonpark.com")
   (authors "Sewon Park")
   (license "MIT")
-  (homepage "https://github.com/zt-iot/rabbit"))
+  (homepage "https://github.com/zt-iot/rabbit")
+  (depends
+    (ocaml (>= 5.2.1))
+    ocamlgraph
+    menhir
+    menhirLib
+    sedlex
+    re
+  ))
