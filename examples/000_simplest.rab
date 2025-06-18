@@ -1,0 +1,24 @@
+(* One of the simplest Rabbit code *)
+
+type proc_t 	  : process
+
+process p() : proc_t
+{
+  main 
+  {
+    event [::Event()];
+    event [::Event2()]
+  }
+}
+
+
+system 
+  p()
+requires  
+[
+  lemma Reachable :
+    reachable ::Event2() ;
+
+  lemma Correspondence :
+    corresponds ::Event2() ~> ::Event()
+]

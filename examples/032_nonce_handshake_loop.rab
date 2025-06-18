@@ -1,0 +1,105 @@
+(* https://www-kb.is.s.u-tokyo.ac.jp/~koba/spica2/example/nonce-handshake.txt 
+
+/* simple nonce handshake protocols */
+
+(newSym key)
+( *(ch?n.   /*** Alice ***/
+     (new msg)
+      begin msg.
+      ch!{(msg,n)}key
+   )
+ |
+ *(new non)  /*** Bob ***/
+    (ch!non
+     |
+     ch?ctext.  /* Jun: I am afraid non could be read as ctext here */
+     decrypt ctext is {x}key in
+     split x is (m,non2) in
+     check non is non2 in
+     end m)
+)
+*)
+
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+
+function enc:2
+function dec:2
+equation dec(enc(x, y), y) = x
+
+
+(** asynchronous channels *)
+(* use the same channel, with a tag for the destination to avoid crosstalk *)
+
+syscall send(c, dest, v) {
+  put [c::store(dest, v)]
+}
+
+syscall recv(c, src) {
+  case 
+  | [c::store(src, v)] →   v 
+  end
+}
+
+const fresh sym_k (* symmetric key *)
+
+type person_t : process
+type chan_t : channel
+
+process alice(ch : chan_t) : person_t 
+{
+    main {
+        repeat
+        | [] →
+	    var n = recv(ch, "bob") in			 (* receive nonce [n] *)
+	    new msg in					 (* a new message [msg] *)
+	    event [::Sent(msg, n)];			 (* log (msg, n) *)
+	    _ := send(ch, "alice", enc((msg, n), sym_k)) (* send encrypted [(msg, n)] *)
+        until				        
+        | [::False()] →  skip				 (* never terminate *)
+        end
+    }
+}
+
+process bob(ch : chan_t) : person_t 
+{
+    main {
+        repeat
+        | [] →
+	    new n in			   (* new nonce [n] *)
+	    _ := send(ch, "bob", n);       (* send the nonce *)
+	    var dat = recv(ch, "alice") in (* receive an encrypted data *)
+	    var pair = dec(dat, sym_k) in  (* decrypt *)
+	    var msg = fst(pair) in         (* message *)
+	    var m = snd(pair) in           (* nonce *)
+	    case
+	    | [n = m] ->		   (* check the nonces are equal *)
+	         event [::Valid(msg, n)]   (* successful handshake *)
+            | [n != m] ->
+	         event [::Invalid()]       (* something went wrong *)
+            end
+        until
+        | [::False()] →  skip		   (* never terminate *)
+        end
+    }
+}
+
+allow person_t chan_t [send, recv]
+
+channel chan : chan_t
+
+system
+  alice(chan) | bob(chan)
+requires
+[
+  lemma Valid:
+    reachable ::Valid(msg, n) ;
+
+  lemma Invalid:
+    reachable ::Invalid() ;
+
+  lemma Correspondence :
+    corresponds ::Valid(msg, n) ~> ::Sent(msg, n)
+]
