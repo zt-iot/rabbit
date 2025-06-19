@@ -888,7 +888,8 @@ let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([
 
 
 let rec load_just_parse fn =
-   let decls, parser_state = Lexer.read_file Parser.file fn in 
+   let decls, parser_state = Lexer.read_file Parser.file fn in
+   
    let _ = print_endline (Input.show_decl (List.hd decls)) in
    let _ = List.fold_left (fun acc decl -> 
          let _ = print_endline (Input.show_decl decl) in

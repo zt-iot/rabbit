@@ -57,7 +57,7 @@ let options = Arg.align [
 
 
 (** Main program for just parsing *)
-let main_just_parse =
+let main_just_parse () =
   try
       let res = 
         List.fold_left (fun acc (fn, quiet) -> 
@@ -92,10 +92,7 @@ let _main =
 
 
   if !Config.parse_only then
-    let _ = print_endline "hello" in
-    main_just_parse 
-  else
-    ()
+    main_just_parse ()
 
   (* try
       let (ctx, pol, def, sys, x) = 
