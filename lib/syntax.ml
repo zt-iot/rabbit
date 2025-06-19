@@ -1,31 +1,34 @@
+type variable_desc =
+  
+  
+  (* Loc is used for a lot of things: 
+    let statements in process, 
+    "x := ..." stmts, in `equation a(x) = b(y)`, 
+    the parameters `x, y` in `syscall a(x, y) { ... }`/ `passive attack ...
+    the parameters `x, y` in member functions `function (x, y) {...}` of a process template
+    and variables within a `lemma`
+    *)
+  | Top of int  (* variables declared in memory instantiation of a process *)
+  | Loc of int
+  | Meta of int
+
+
 type indexed_var = Name.ident * int * int * int
 type operator = string 
-let index_var s (i, j, k) = (s, i, j, k)
-let indexed_underscore = ("",-1,-1, -1)
+
 
 type expr = expr' Location.located
 and expr' =
-  | Const of Name.ident
-  | ExtConst of Name.ident
-  | TopVariable of string * int
-  | LocVariable of string * int
-  | MetaVariable of string * int
-  | MetaNewVariable of string * int
+  | Const of Name.ident * expr option
+  | ExtConst of Name.ident (* we require this as opposed to just Apply, due to some 0-argument equational theory functions such as function true:0 *)
+  | Variable of string * variable_desc
   | Boolean of bool
   | String of string
   | Integer of int
   | Float of string (* store the string so we can correctly round later *)
   | Apply of operator * expr list
   | Tuple of expr list
-  | Channel of string * Name.ident (* second field records necessary permissions.. *) 
-  | Path of string  (* only needed for syscall defintiions *) 
-  | Process of string (* only needed for syscall defintiions *)
-  (* | Run of string * expr list (* only needed for syscall defintiions *) *)
-  (* | FrVariable of string *)
-  | ParamChan of string * expr 
-  | ParamConst of string * expr
-
-  | Param of string
+  | Channel of Name.ident 
 
 type fact = fact' Location.located
 and fact' = 
@@ -33,7 +36,10 @@ and fact' =
   | GlobalFact of Name.ident * expr list
   | ChannelFact of expr * Name.ident * expr list
   | ProcessFact of Name.ident * Name.ident * expr list
-  | ResFact of int * expr list
+  | EqFact of expr * expr
+  | NeqFact of expr * expr
+  | FileFact of expr * expr
+
 
 
 
@@ -59,7 +65,7 @@ and cmd' =
   | Del of expr * Name.ident
 
 (* last one is type` *)
-type chan_arg =
+type chan_arg = 
   | ChanArgPlain of string * string 
   | ChanArgParam of string * string 
   | ChanArgParamInst of string * expr * string
@@ -75,7 +81,7 @@ and fpath' =
 
 type lemma = lemma' Location.located
 and lemma' = 
-  | PlainLemma of Name.ident * Name.ident  
-  | ReachabilityLemma of Name.ident * Name.ident list * Name.ident list * Name.ident list * fact list
-  | CorrespondenceLemma of Name.ident * Name.ident list * fact * fact 
+  | PlainLemma of { name : Name.ident; desc : string }
+  | ReachabilityLemma of { name : Name.ident; fresh_variables : Name.ident list; facts : fact list }
+  | CorrespondenceLemma of { name : Name.ident; fresh_variables : Name.ident list; premise : fact; conclusion : fact }
 
