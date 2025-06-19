@@ -9,3 +9,4 @@ val verbose : bool ref
 val dev : bool ref
 val optimize : bool ref
 val tag_transition : bool ref
+val parse_only : bool ref

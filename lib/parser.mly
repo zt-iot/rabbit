@@ -160,10 +160,7 @@ fun_signature:
 
 
 external_syscall:
-  // |  syscall_tk f=NAME LPAREN params=separated_list(COMMA, name_ty_param_pair) RPAREN 
-  //     COLON retty=rabbit_ty 
-  //     LBRACE c=cmd RBRACE { DeclExtSyscall(f, List.map fst params, Some(List.map snd params), Some retty, c) }
-  |  syscall_tk f=NAME signature=fun_signature
+  | syscall_tk f=NAME signature=fun_signature
       LBRACE c=cmd RBRACE { DeclExtSyscall(f, signature, c) }
 
 syscall_tk:
@@ -240,8 +237,6 @@ member_fun_decls:
   | f = member_fun_decl fs=member_fun_decls { f :: fs }
 
 member_fun_decl:
-  // | FUNC id=NAME LPAREN params=separated_list(COMMA, name_ty_param_pair) RPAREN 
-  //   LBRACE c=cmd RBRACE { (id, List.map fst params, Some (List.map snd params), c) }
   | FUNC id=NAME signature=fun_signature 
     LBRACE c=cmd RBRACE { (id, signature, c) }
 

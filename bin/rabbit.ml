@@ -47,10 +47,32 @@ let options = Arg.align [
     ("-o",
      Arg.String (fun str -> add_ofile true str),
      "<file> Printing the translated program into <file>");
+
+     ("--parse-only", 
+     Arg.Set Config.parse_only, 
+      "Run only the parser, print parsed abstract syntax tree and quit program afterwards");
     ]
 
+
+
+
+(** Main program for just parsing *)
+let main_just_parse =
+  try
+      let res = 
+        List.fold_left (fun acc (fn, quiet) -> 
+          let res = Loader.load_just_parse fn in 
+          acc
+          ) 0 !files in 
+      print_string "Loading complete..\n";
+      ()
+  with
+  | Ulexbuf.Error {Location.data=err; Location.loc} ->
+    Print.message ~loc "Parsing error" "%t" (Ulexbuf.print_error err)
+
 (** Main program *)
-(* let _main =
+
+let _main =
   Sys.catch_break true ;
   (* Parse the arguments. *)
   Arg.parse
@@ -64,10 +86,18 @@ let options = Arg.align [
   Format.set_max_boxes !Config.max_boxes ;
   Format.set_margin !Config.columns ;
   Format.set_ellipsis_text "..." ;
-  (* try *)
-    (* Run and load all the specified files. *)
-    (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
-  try
+
+
+  
+
+
+  if !Config.parse_only then
+    let _ = print_endline "hello" in
+    main_just_parse 
+  else
+    ()
+
+  (* try
       let (ctx, pol, def, sys, x) = 
       List.fold_left 
         (fun (ctx, pol, def, sys, (a, b)) (fn, quiet) -> 
@@ -106,36 +136,4 @@ let options = Arg.align [
   | Postprocessing.Error err ->
     Print.message ~loc:Location.Nowhere "Translate error" "%t" (Postprocessing.print_error err) *)
 
-
-
-
-(** Main program for just parsing *)
-let _main =
-  Sys.catch_break true ;
-  (* Parse the arguments. *)
-  Arg.parse
-    options
-    (fun str -> add_file false str)
-    usage ;
-  (* Files were accumulated in the wrong order, so we reverse them *)
-  files := List.rev !files ;
-
-  (* Set the maximum depth of pretty-printing, after which it prints ellipsis. *)
-  Format.set_max_boxes !Config.max_boxes ;
-  Format.set_margin !Config.columns ;
-  Format.set_ellipsis_text "..." ;
-  (* try *)
-    (* Run and load all the specified files. *)
-    (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
-  try
-      let res = 
-        List.fold_left (fun acc (fn, quiet) -> 
-          let res = Loader.load_just_parse fn in 
-          acc
-          ) 0 !files in 
-      print_string "Loading complete..\n";
-      ()
-  with
-  | Ulexbuf.Error {Location.data=err; Location.loc} ->
-    Print.message ~loc "Parsing error" "%t" (Ulexbuf.print_error err)
-      
+    

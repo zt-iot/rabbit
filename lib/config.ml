@@ -25,3 +25,5 @@ let optimize = ref false
 
 let tag_transition = ref false
 
+let parse_only = ref false
+
