@@ -1,4 +1,4 @@
-type substitute_error =
+(* type substitute_error =
   | AccessError of string
   | PremissionError of string
   | UnintendedError of string
@@ -210,4 +210,4 @@ let rec cmd_param c t  =
     | Syntax.Get (vl, id, fid, c) -> Syntax.Get (vl, expr_param id t , fid, cmd_param c t )
     | Syntax.Del (id, fid) -> Syntax.Del (expr_param id t , fid)
   in
-  Location.locate ~loc:loc c
+  Location.locate ~loc:loc c *)

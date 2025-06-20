@@ -13,12 +13,11 @@ type variable_desc =
   | Meta of int
 
 
-type indexed_var = Name.ident * int * int * int
+
 type operator = string 
 
 
-type expr = expr' Location.located
-and expr' =
+type expr = 
   | Const of Name.ident * expr option
   | ExtConst of Name.ident (* we require this as opposed to just Apply, due to some 0-argument equational theory functions such as function true:0 *)
   | Variable of string * variable_desc
@@ -30,8 +29,7 @@ and expr' =
   | Tuple of expr list
   | Channel of Name.ident 
 
-type fact = fact' Location.located
-and fact' = 
+type fact = 
   | Fact of Name.ident * expr list
   | GlobalFact of Name.ident * expr list
   | ChannelFact of expr * Name.ident * expr list
@@ -46,8 +44,7 @@ and fact' =
 (* meta vars, local vars, top-level variables *)
 (* type local_typing_context = Name.ident list * Name.ident list * Name.ident list *)
 
-type cmd = cmd' Location.located
-and cmd' = 
+type cmd =
   | Skip
   | Sequence of cmd * cmd
   | Put of fact list
@@ -64,23 +61,8 @@ and cmd' =
   | Get of Name.ident list * expr * Name.ident * cmd
   | Del of expr * Name.ident
 
-(* last one is type` *)
-type chan_arg = 
-  | ChanArgPlain of string * string 
-  | ChanArgParam of string * string 
-  | ChanArgParamInst of string * expr * string
 
-
-type proc = proc' Location.located
-and proc' =
-  | Proc of Name.ident * (Name.ident list) * Name.ident
-
-type fpath = fpath' Location.located
-and fpath' = 
-  | Fpath of (Name.ident * expr * Name.ident)
-
-type lemma = lemma' Location.located
-and lemma' = 
+type lemma = 
   | PlainLemma of { name : Name.ident; desc : string }
   | ReachabilityLemma of { name : Name.ident; fresh_variables : Name.ident list; facts : fact list }
   | CorrespondenceLemma of { name : Name.ident; fresh_variables : Name.ident list; premise : fact; conclusion : fact }
