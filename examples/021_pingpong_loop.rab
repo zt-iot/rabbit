@@ -48,9 +48,9 @@ requires
   lemma Reachable :
     reachable ::Valid(n) ;
 
-  lemma Corresponds :
+  lemma Corresponds : (* verified *)
     corresponds ::Pong(n) ~> ::Ping(n) ;
 
-  lemma Corresponds2 :
+  lemma Corresponds2 : (* verified *)
     corresponds ::Valid(n) ~> ::Ping(n)
 ]

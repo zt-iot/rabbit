@@ -42,9 +42,9 @@ system
   alice(chan) | bob(chan)
 requires
 [
-  lemma Reachable :
+  lemma Reachable : (* verified *)
     reachable ::Valid() ;
 
-  lemma Correspondent :
+  lemma Correspondent : (* verified *)
     corresponds ::Received() ~> ::Sent()
 ]

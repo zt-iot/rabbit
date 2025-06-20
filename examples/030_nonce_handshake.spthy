@@ -1,0 +1,90 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+functions: dec/2, enc/2, snd/1, fst/1
+equations: dec(enc(loc_1, loc_0), loc_0)=loc_1, snd(<loc_1, loc_0>)=loc_0, fst(<loc_1, loc_0>)=loc_1
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Global Constants:
+
+
+rule Const_sym_k : [Fr(sym_k)]--[Init_('rab_Const_sym_k'), Init_(<'rab_Const_sym_k', sym_k>), !Const_('rab_sym_k', sym_k)]->[!Const_('rab_sym_k', sym_k)] 
+
+
+// Parametric global Constants:
+
+
+
+// Access control:
+
+
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[State_Alice(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), State_Bob(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), !ACP_GEN_('rab_system_', 'rab_rab')] 
+
+rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_0')]->[!ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan', 'rab_recv')] 
+
+rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_1')]->[!ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan', 'rab_send')] 
+
+rule Init_system_ACP_2[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_2')]->[!ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan2', 'rab_recv')] 
+
+rule Init_system_ACP_3[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_3')]->[!ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan2', 'rab_send')] 
+
+rule Init_system_ACP_4[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_4')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_recv')] 
+
+rule Init_system_ACP_5[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_5')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_send')] 
+
+rule Init_system_ACP_6[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_6')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan2', 'rab_recv')] 
+
+rule Init_system_ACP_7[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_7')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan2', 'rab_send')] 
+
+// Model:  Alice
+
+
+
+rule Alice_merged___0___1_0_0_22[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_)]->[State_Alice(<'rab___1_0_0', param, %v_>, 'rab_', 'rab_', <'rab_chan', 'rab_'>, 'rab_')] 
+
+rule Alice_merged___1_0_0___4_21[role="Alice"] : [State_Alice(<'rab___1_0_0', param, %v_>, return_var_2, 'rab_', <l_0_2, l_1_2>, 'rab_'), Store(l_0_2, n_0_2), !ACP_(<'rab_Alice', param>, l_0_2, 'rab_recv'), Fr(n_0_6)]--[Transition_(<'rab_Alice', param>, 'rab___1_0_0', %v_), Sent(n_0_6, n_0_2)]->[State_Alice(<'rab___4', param, %v_>, 'rab_', n_0_6, n_0_2, 'rab_')] 
+
+rule Alice_merged___4___7_16[role="Alice"] : [State_Alice(<'rab___4', param, %v_>, return_var_8, m_0_8, l_0_8, 'rab_'), !Const_('rab_sym_k', sym_k_8), !ACP_(<'rab_Alice', param>, 'rab_chan2', 'rab_send')]--[Transition_(<'rab_Alice', param>, 'rab___4', %v_)]->[State_Alice(<'rab___7', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_'), Store('rab_chan2', enc(<m_0_8, l_0_8>, sym_k_8))] 
+
+
+// Model:  Bob
+
+
+
+rule Bob_merged___0___3_0_0_52[role="Bob"] : [State_Bob(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), Fr(n_0_0), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_send')]--[Transition_(<'rab_Bob', param>, 'rab___0', %v_)]->[State_Bob(<'rab___3_0_0', param, %v_>, 'rab_', n_0_0, <'rab_chan2', 'rab_'>, 'rab_'), Store('rab_chan', n_0_0)] 
+
+rule Bob_merged___3_0_0___13_47[role="Bob"] : [State_Bob(<'rab___3_0_0', param, %v_>, return_var_6, m_0_6, <l_0_6, l_1_6>, 'rab_'), Store(l_0_6, n_0_6), !ACP_(<'rab_Bob', param>, l_0_6, 'rab_recv'), !Const_('rab_sym_k', sym_k_10), !NEq_(m_0_6, snd(dec(n_0_6, sym_k_10)))]--[Transition_(<'rab_Bob', param>, 'rab___3_0_0', %v_), Invalid()]->[State_Bob(<'rab___13', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Bob_merged___3_0_0___13_46[role="Bob"] : [State_Bob(<'rab___3_0_0', param, %v_>, return_var_6, m_0_6, <l_0_6, l_1_6>, 'rab_'), Store(l_0_6, n_0_6), !ACP_(<'rab_Bob', param>, l_0_6, 'rab_recv'), !Const_('rab_sym_k', sym_k_10), !Eq_(m_0_6, snd(dec(n_0_6, sym_k_10)))]--[Transition_(<'rab_Bob', param>, 'rab___3_0_0', %v_), Valid(fst(dec(n_0_6, sym_k_10)), m_0_6)]->[State_Bob(<'rab___13', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+rule Equality_gen: [] --> [!Eq_(x,x)]
+rule NEquality_gen: [] --[NEq__(x,y)]-> [!NEq_(x,y)]
+restriction NEquality_rule: "All x #i. NEq__(x,x) @ #i ==> F"
+lemma AlwaysStarts_[reuse,use_induction]:
+
+      "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
+
+      "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+lemma TransitionOnce_[reuse,use_induction]:
+
+      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+        Transition_(x, p, %i) @ #k ==> #j = #k"
+
+lemma Correspondence : all-traces "All new_0 new_1 #time_1 . Valid(new_1, new_0)@#time_1 ==> Ex  #time_2 . Sent(new_1, new_0)@#time_2 & #time_2 < #time_1 "
+lemma Invalid : exists-trace "Ex  #time_0 . Invalid()@#time_0 "
+lemma Valid : exists-trace "Ex new_0 new_1 #time_0 . Valid(new_1, new_0)@#time_0 "
+end
+
