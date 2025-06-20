@@ -1,0 +1,75 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+
+
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Global Constants:
+
+
+
+// Parametric global Constants:
+
+
+
+// Access control:
+
+
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[State_Alice(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), State_Bob(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), !ACP_GEN_('rab_system_', 'rab_rab')] 
+
+rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_0')]->[!ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan', 'rab_')] 
+
+rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_1')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_')] 
+
+// Model:  Alice
+
+
+
+rule Alice_merged___0___0_0_1_5[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), Ping('rab_chan', n_0_0), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_), Pong(n_0_0)]->[State_Alice(<'rab___0_0_1', param, %v_>, 'rab_', n_0_0, 'rab_', 'rab_')] 
+
+rule Alice_merged___0_0_1___1_4[role="Alice"] : [State_Alice(<'rab___0_0_1', param, %v_>, return_var_2, m_0_2, 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___0_0_1', %v_)]->[State_Alice(<'rab___1', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_'), Pong('rab_chan', m_0_2)] 
+
+
+// Model:  Bob
+
+
+
+rule Bob_merged___0___2_16[role="Bob"] : [State_Bob(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), Fr(n_0_0)]--[Transition_(<'rab_Bob', param>, 'rab___0', %v_), Ping(n_0_0)]->[State_Bob(<'rab___2', param, %v_>, 'rab_', n_0_0, 'rab_', 'rab_')] 
+
+rule Bob_merged___3___5_15[role="Bob"] : [State_Bob(<'rab___3', param, %v_>, return_var_3, m_0_3, 'rab_', 'rab_'), Pong('rab_chan', m_0_3), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___3', %v_), Valid(m_0_3)]->[State_Bob(<'rab___5', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Bob_merged___3___5_14[role="Bob"] : [State_Bob(<'rab___3', param, %v_>, return_var_6, m_0_6, 'rab_', 'rab_'), Pong('rab_chan', n_0_6), !NEq_(m_0_6, n_0_6), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___3', %v_), Invalid(m_0_6, n_0_6)]->[State_Bob(<'rab___5', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Bob_put___2___3_2[role="Bob"] : [State_Bob(<'rab___2', param, %v_>, return_var_2, m_0_2, 'rab_', 'rab_'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___2', %v_)]->[State_Bob(<'rab___3', param, %v_>, 'rab_', m_0_2, 'rab_', 'rab_'), Ping('rab_chan', m_0_2)] 
+
+restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+rule Equality_gen: [] --> [!Eq_(x,x)]
+rule NEquality_gen: [] --[NEq__(x,y)]-> [!NEq_(x,y)]
+restriction NEquality_rule: "All x #i. NEq__(x,x) @ #i ==> F"
+lemma AlwaysStarts_[reuse,use_induction]:
+
+      "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
+
+      "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+lemma TransitionOnce_[reuse,use_induction]:
+
+      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+        Transition_(x, p, %i) @ #k ==> #j = #k"
+
+lemma Corresponds : all-traces "All new_0 #time_1 . Pong(new_0)@#time_1 ==> Ex  #time_2 . Ping(new_0)@#time_2 & #time_2 < #time_1 "
+lemma Reachable : exists-trace "Ex new_0 #time_0 . Valid(new_0)@#time_0 "
+end
+

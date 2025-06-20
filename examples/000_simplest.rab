@@ -16,9 +16,9 @@ system
   p()
 requires  
 [
-  lemma Reachable :
+  lemma Reachable : (* verified *)
     reachable ::Event2() ;
 
-  lemma Correspondence :
+  lemma Correspondence : (* verified *)
     corresponds ::Event2() ~> ::Event()
 ]

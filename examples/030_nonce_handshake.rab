@@ -83,12 +83,12 @@ system
   alice(chan, chan2) | bob(chan, chan2)
 requires
 [
-  lemma Valid:
+  lemma Valid: (* verified *)
     reachable ::Valid(msg, n) ;
 
-  lemma Invalid:
+  lemma Invalid: (* falsified *)
     reachable ::Invalid() ;
 
-  lemma Correspondence :
+  lemma Correspondence : (* verified *)
     corresponds ::Valid(msg, n) ~> ::Sent(msg, n)
 ]

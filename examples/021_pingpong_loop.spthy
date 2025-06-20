@@ -1,0 +1,106 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+
+
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Global Constants:
+
+
+
+// Parametric global Constants:
+
+
+
+// Access control:
+
+
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[State_Alice(<'rab___0', 'rab_rab'>, 'rab_', 'rab_', 'rab_', 'rab_'), State_Bob(<'rab___0', 'rab_rab'>, 'rab_', 'rab_', 'rab_', 'rab_'), !ACP_GEN_('rab_system_', 'rab_rab')] 
+
+rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_0')]->[!ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan', 'rab_')] 
+
+rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_1')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_')] 
+
+// Model:  Alice
+
+
+
+rule Alice_repeat_out___1_1_1___2_9[role="Alice"] : [State_Alice(<'rab___1_1_1', param>, return_var, 'rab_', 'rab_', 'rab_')]--[Loop_Finish(<'rab_Alice', param>, 'rab___0')]->[State_Alice(<'rab___2', param>, return_var, 'rab_', 'rab_', 'rab_')] 
+
+rule Alice_skip___1_1_0___1_1_1_8[role="Alice"] : [State_Alice(<'rab___1_1_0', param>, return_var, 'rab_', 'rab_', 'rab_')]-->[State_Alice(<'rab___1_1_1', param>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Alice_guarded___1___1_1_0_7[role="Alice"] : [State_Alice(<'rab___1', param>, return_var, 'rab_', 'rab_', 'rab_'), False()]-->[State_Alice(<'rab___1_1_0', param>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Alice_repeat___1_0_1___1_6[role="Alice"] : [State_Alice(<'rab___1_0_1', param>, return_var, 'rab_', 'rab_', 'rab_')]--[Loop_Back(<'rab_Alice', param>, 'rab___0')]->[State_Alice(<'rab___1', param>, return_var, 'rab_', 'rab_', 'rab_')] 
+
+rule Alice_case_out___1_0_0_0_2___1_0_1_5[role="Alice"] : [State_Alice(<'rab___1_0_0_0_2', param>, return_var, meta_0, 'rab_', 'rab_')]-->[State_Alice(<'rab___1_0_1', param>, return_var, 'rab_', 'rab_', 'rab_')] 
+
+rule Alice_put___1_0_0_0_1___1_0_0_0_2_4[role="Alice"] : [State_Alice(<'rab___1_0_0_0_1', param>, return_var, meta_0, 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_')]-->[State_Alice(<'rab___1_0_0_0_2', param>, 'rab_', meta_0, 'rab_', 'rab_'), Pong('rab_chan', meta_0)] 
+
+rule Alice_event___1_0_0_0_0___1_0_0_0_1_3[role="Alice"] : [State_Alice(<'rab___1_0_0_0_0', param>, return_var, meta_0, 'rab_', 'rab_')]--[Pong(meta_0)]->[State_Alice(<'rab___1_0_0_0_1', param>, 'rab_', meta_0, 'rab_', 'rab_')] 
+
+rule Alice_guarded___1_0_0___1_0_0_0_0_2[role="Alice"] : [State_Alice(<'rab___1_0_0', param>, return_var, 'rab_', 'rab_', 'rab_'), Ping('rab_chan', new_0), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_')]-->[State_Alice(<'rab___1_0_0_0_0', param>, 'rab_', new_0, 'rab_', 'rab_')] 
+
+rule Alice_guarded___1___1_0_0_1[role="Alice"] : [State_Alice(<'rab___1', param>, return_var, 'rab_', 'rab_', 'rab_')]-->[State_Alice(<'rab___1_0_0', param>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Alice_repeat_in___0___1_0[role="Alice"] : [State_Alice(<'rab___0', param>, return_var, 'rab_', 'rab_', 'rab_')]--[Loop_Start(<'rab_Alice', param>, 'rab___0')]->[State_Alice(<'rab___1', param>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+
+// Model:  Bob
+
+
+
+rule Bob_repeat_out___1_1_1___2_15[role="Bob"] : [State_Bob(<'rab___1_1_1', param>, return_var, 'rab_', 'rab_', 'rab_')]--[Loop_Finish(<'rab_Bob', param>, 'rab___0')]->[State_Bob(<'rab___2', param>, return_var, 'rab_', 'rab_', 'rab_')] 
+
+rule Bob_skip___1_1_0___1_1_1_14[role="Bob"] : [State_Bob(<'rab___1_1_0', param>, return_var, 'rab_', 'rab_', 'rab_')]-->[State_Bob(<'rab___1_1_1', param>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Bob_guarded___1___1_1_0_13[role="Bob"] : [State_Bob(<'rab___1', param>, return_var, 'rab_', 'rab_', 'rab_'), False()]-->[State_Bob(<'rab___1_1_0', param>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Bob_repeat___1_0_5___1_12[role="Bob"] : [State_Bob(<'rab___1_0_5', param>, return_var, 'rab_', 'rab_', 'rab_')]--[Loop_Back(<'rab_Bob', param>, 'rab___0')]->[State_Bob(<'rab___1', param>, return_var, 'rab_', 'rab_', 'rab_')] 
+
+rule Bob_new_out___1_0_4___1_0_5_11[role="Bob"] : [State_Bob(<'rab___1_0_4', param>, return_var, meta_0, 'rab_', 'rab_')]-->[State_Bob(<'rab___1_0_5', param>, return_var, 'rab_', 'rab_', 'rab_')] 
+
+rule Bob_case_out___1_0_3_1_1___1_0_4_10[role="Bob"] : [State_Bob(<'rab___1_0_3_1_1', param>, return_var, <meta_0, meta_1>, 'rab_', 'rab_')]-->[State_Bob(<'rab___1_0_4', param>, return_var, meta_1, 'rab_', 'rab_')] 
+
+rule Bob_event___1_0_3_1_0___1_0_3_1_1_9[role="Bob"] : [State_Bob(<'rab___1_0_3_1_0', param>, return_var, <meta_0, meta_1>, 'rab_', 'rab_')]--[Invalid(meta_1, meta_0)]->[State_Bob(<'rab___1_0_3_1_1', param>, 'rab_', <meta_0, meta_1>, 'rab_', 'rab_')] 
+
+rule Bob_guarded___1_0_3___1_0_3_1_0_8[role="Bob"] : [State_Bob(<'rab___1_0_3', param>, return_var, meta_0, 'rab_', 'rab_'), Pong('rab_chan', new_0), !NEq_(meta_0, new_0), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_')]-->[State_Bob(<'rab___1_0_3_1_0', param>, 'rab_', <new_0, meta_0>, 'rab_', 'rab_')] 
+
+rule Bob_case_out___1_0_3_0_1___1_0_4_7[role="Bob"] : [State_Bob(<'rab___1_0_3_0_1', param>, return_var, meta_0, 'rab_', 'rab_')]-->[State_Bob(<'rab___1_0_4', param>, return_var, meta_0, 'rab_', 'rab_')] 
+
+rule Bob_event___1_0_3_0_0___1_0_3_0_1_6[role="Bob"] : [State_Bob(<'rab___1_0_3_0_0', param>, return_var, meta_0, 'rab_', 'rab_')]--[Valid(meta_0)]->[State_Bob(<'rab___1_0_3_0_1', param>, 'rab_', meta_0, 'rab_', 'rab_')] 
+
+rule Bob_guarded___1_0_3___1_0_3_0_0_5[role="Bob"] : [State_Bob(<'rab___1_0_3', param>, return_var, meta_0, 'rab_', 'rab_'), Pong('rab_chan', meta_0), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_')]-->[State_Bob(<'rab___1_0_3_0_0', param>, 'rab_', meta_0, 'rab_', 'rab_')] 
+
+rule Bob_put___1_0_2___1_0_3_4[role="Bob"] : [State_Bob(<'rab___1_0_2', param>, return_var, meta_0, 'rab_', 'rab_'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_')]-->[State_Bob(<'rab___1_0_3', param>, 'rab_', meta_0, 'rab_', 'rab_'), Ping('rab_chan', meta_0)] 
+
+rule Bob_event___1_0_1___1_0_2_3[role="Bob"] : [State_Bob(<'rab___1_0_1', param>, return_var, meta_0, 'rab_', 'rab_')]--[Ping(meta_0)]->[State_Bob(<'rab___1_0_2', param>, 'rab_', meta_0, 'rab_', 'rab_')] 
+
+rule Bob_new_intro___1_0_0___1_0_1_2[role="Bob"] : [State_Bob(<'rab___1_0_0', param>, return_var, 'rab_', 'rab_', 'rab_'), Fr(new_0)]-->[State_Bob(<'rab___1_0_1', param>, 'rab_', new_0, 'rab_', 'rab_')] 
+
+rule Bob_guarded___1___1_0_0_1[role="Bob"] : [State_Bob(<'rab___1', param>, return_var, 'rab_', 'rab_', 'rab_')]-->[State_Bob(<'rab___1_0_0', param>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Bob_repeat_in___0___1_0[role="Bob"] : [State_Bob(<'rab___0', param>, return_var, 'rab_', 'rab_', 'rab_')]--[Loop_Start(<'rab_Bob', param>, 'rab___0')]->[State_Bob(<'rab___1', param>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+rule Equality_gen: [] --> [!Eq_(x,x)]
+rule NEquality_gen: [] --[NEq__(x,y)]-> [!NEq_(x,y)]
+restriction NEquality_rule: "All x #i. NEq__(x,x) @ #i ==> F"
+
+lemma Corresponds2 : all-traces "All new_0 #time_1 . Valid(new_0)@#time_1 ==> Ex  #time_2 . Ping(new_0)@#time_2 & #time_2 < #time_1 "
+lemma Corresponds : all-traces "All new_0 #time_1 . Pong(new_0)@#time_1 ==> Ex  #time_2 . Ping(new_0)@#time_2 & #time_2 < #time_1 "
+lemma Reachable : exists-trace "Ex new_0 #time_0 . Valid(new_0)@#time_0 "
+end
+
