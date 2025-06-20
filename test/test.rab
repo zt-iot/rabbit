@@ -199,3 +199,28 @@ requires
 
 (*** Fail "unknown local variable x", TyperFail "Unknown identifier x" *)
 syscall s() { x := 1 }
+
+(*** Verified *)
+type person_t : process
+type chan_t : channel
+
+process alice(ch : chan_t) : person_t 
+{
+    main {
+	put [ch::store(1)];
+	event[::Valid()]
+    }
+}
+
+(* Allowance is required to call [put] on [ch] *)
+allow person_t chan_t [.]
+
+channel chan : chan_t
+
+system
+  alice(chan)
+requires
+[
+  lemma Reachable :
+    reachable ::Valid()
+]
