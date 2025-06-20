@@ -9,3 +9,5 @@ _*/
 */.*
 \#*#
 node_modules/
+examples/_*
+examples/*.log
