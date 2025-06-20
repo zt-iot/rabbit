@@ -14,7 +14,7 @@ let spec_of_string = function
   | s -> failwithf "invalid spec: %S" s
 
 let run (com : string) : int * string list =
-  Format.eprintf "execute %s@." com;
+  Format.printf "execute %s@." com;
   let ic = Unix.open_process_in com in
   let outputs = In_channel.input_lines ic in
   let exit =
@@ -27,6 +27,8 @@ let run (com : string) : int * string list =
 let runf fmt = Printf.ksprintf run fmt
 
 let test_file rab =
+  let module_ = Re.replace !!{|\.rab$|} ~f:(fun _ -> "") rab in
+  Format.printf "Testing module: %s@." module_;
 
   let re = Re.compile @@ Re.Pcre.re {|lemma\s*(\w+)\s*:\s*\(\*\s*(\w*)\s*\*\)|} in
   In_channel.with_open_text rab @@ fun ic ->
@@ -37,13 +39,11 @@ let test_file rab =
       | Some g ->
           let lemma_name = Re.Group.get g 1 in
           let result = Re.Group.get g 2 in
-          Format.eprintf "spec: %s: %s@." lemma_name result;
+          Format.printf "spec: %s: %s@." lemma_name result;
           let result = spec_of_string result in
           Some (lemma_name, result)) lines
   in
 
-  let module_ = Re.replace !!{|\.rab$|} ~f:(fun _ -> "") rab in
-  Format.eprintf "module: %s@." module_;
   let spthy = module_ ^ ".spthy" in
   let out_spthy = "_" ^ spthy in
   let log = "_" ^ module_ ^ ".log" in
@@ -60,10 +60,10 @@ let test_file rab =
   write_log output;
   (match res with
    | 0 ->
-       Format.eprintf "%s: compiled@." rab
+       Format.printf "%s: compiled@." rab
    | _ ->
-       Format.eprintf "%s: %d compilation failed@." rab res;
-       List.iter prerr_endline output;
+       Format.printf "%s: %d compilation failed@." rab res;
+       List.iter print_endline output;
        exit 2);
 
   (* Compare the spthys *)
@@ -72,8 +72,8 @@ let test_file rab =
     (match res with
      | 0 -> ()
      | _ ->
-         Format.eprintf "%s: different from %s@." out_spthy spthy;
-         List.iter prerr_endline output;
+         Format.printf "%s: different from %s@." out_spthy spthy;
+         List.iter print_endline output;
          exit 2);
   else
     ignore @@ runf "cp %s %s" out_spthy spthy;
@@ -89,7 +89,7 @@ let test_file rab =
   in
   let summary = skip output in
 
-  List.iter prerr_endline summary;
+  List.iter print_endline summary;
 
   let re = Re.compile @@ Re.Pcre.re {|(\w+) \([^)]*\): (\w+)|} in
   let results = List.filter_map (fun line ->
@@ -98,7 +98,7 @@ let test_file rab =
       | Some g ->
           let lemma_name = Re.Group.get g 1 in
           let result = Re.Group.get g 2 in
-          Format.eprintf "result: %s: %s@." lemma_name result;
+          Format.printf "result: %s: %s@." lemma_name result;
           let result = spec_of_string result in
           Some (lemma_name, result)) summary
   in
@@ -107,28 +107,38 @@ let test_file rab =
   List.iter (fun (lemma_name, expected) ->
       match List.assoc_opt lemma_name results with
       | None ->
-          Format.eprintf "%s: no result - Oops@." lemma_name;
+          Format.printf "%s: no result - Oops@." lemma_name;
           fail := true
       | Some result ->
         if result = expected then
-          Format.eprintf "%s: %s - Ok@." lemma_name (string_of_spec result)
+          Format.printf "%s: %s - Ok@." lemma_name (string_of_spec result)
         else (
-          Format.eprintf "%s: %s - Oops@." lemma_name (string_of_spec result);
+          Format.printf "%s: %s - Oops@." lemma_name (string_of_spec result);
           fail := true
         )
     ) specs;
 
   if !fail then (
-    Format.eprintf "Oops, something went wrong@.";
-    exit 1
+    Format.printf "%s: Oops, something went wrong@." rab;
   ) else (
-    Format.eprintf "Ok, everything went fine@.";
-    exit 0
-  )
+    Format.printf "%s: Ok, everything went fine@." rab;
+  );
+  !fail
 
 
 let () =
   let rev_files = ref [] in
   let () = Arg.parse [] (fun fn -> rev_files := fn :: !rev_files) "test files" in
   let files = List.rev !rev_files in
-  List.iter test_file files
+  let results =
+    List.map (fun fn ->
+        let start = Unix.gettimeofday () in
+        let res = test_file fn in
+        let end_ = Unix.gettimeofday () in
+        fn, res, end_ -. start) files
+  in
+  Format.printf "Test summary:@.";
+  List.iter (fun (fn, res, secs) ->
+      Format.printf "- %s: %s (%.2f secs)@." fn (if res then "Failure" else "Ok") secs) results;
+  let has_failure = List.exists (function (_,true,_) -> true | _ -> false) results in
+  exit (if has_failure then 1 else 0)
