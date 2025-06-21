@@ -7,3 +7,6 @@ let pp_proc_set fmt set =
   Format.fprintf fmt "{ ";
   ProcSet.iter (fun s -> Format.fprintf fmt "%s; " s) set;
   Format.fprintf fmt "}"
+
+
+let equal_proc_set = ProcSet.equal

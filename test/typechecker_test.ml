@@ -5,8 +5,7 @@ open Rabbit_lib
 
 let rabbit_ty_testable = Alcotest.testable Typechecker.pp_rabbit_ty Typechecker.equal_rabbit_ty
 
-let test_typechecker () = 
-
+let test_tr_var () = 
 
   let ty_inner = Typechecker.PlainTyp ("bool", []) in
   let rabbit_typ = Typechecker.RabbitTyp( ty_inner, (Typechecker.Public, Typechecker.Untrusted) ) in
@@ -17,10 +16,20 @@ let test_typechecker () =
   
   let expected_type = Typechecker.RabbitTyp( ty_inner, (Typechecker.Public, Typechecker.Untrusted) ) in
 
-  (* check int "0 equals 0" 0 0 *)
+
   check rabbit_ty_testable "type equals expected type" resulting_type expected_type
 
 
 
+let test_tr_app () = 
+  check int "0 equals 0" 0 0
+  
 
-let suite = ("Typechecker module", [test_case "test_typechecker" `Quick test_typechecker])
+
+
+
+
+let suite = ("Typechecker module", [
+  test_case "test_tr_var" `Quick test_tr_var; 
+  test_case "test_tr_app" `Quick test_tr_app
+  ])
