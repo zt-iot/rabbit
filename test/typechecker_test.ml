@@ -9,7 +9,10 @@ let test_tr_var () =
 
   let ty_inner = Typechecker.PlainTyp ("bool", []) in
   let rabbit_typ = Typechecker.RabbitTyp( ty_inner, (Typechecker.Public, Typechecker.Untrusted) ) in
-  let env = Maps.StringMap.(empty |> add "x" rabbit_typ ) in   
+
+  let env = Maps.StringMap.(empty |> add "x" (Typechecker.ValueRabbitTyp rabbit_typ )) in   
+
+
   let expr = Syntax.Variable("x", Loc(0)) in 
 
   let resulting_type = Typechecker.typeof_expr expr env in 
@@ -22,24 +25,34 @@ let test_tr_var () =
 
 
 let test_tr_app () = 
-
+  
   (* suppose x is a message type *)
-  (* let type_of_x = Typechecker.RabbitTyp(Typechecker.PlainTyp("message", []), 
+  let type_of_x = Typechecker.RabbitTyp(Typechecker.PlainTyp("message", []), 
     (Typechecker.SNode(Sets.ProcSet.of_list ["alice"; "bob"]), 
      Typechecker.INode(Sets.ProcSet.of_list ["alice"; "bob"]))) in 
 
-  (* and suppose y is some signing key type *)
-  let type_of_y = Typechecker.RabbitTyp(Typechecker.PlainTyp("key", [type_of_x]), 
+  (* and suppose y is some signing key type for messages of type `type_of_x *)
+  let type_of_y = Typechecker.RabbitTyp(Typechecker.PlainTyp("sigkey", [type_of_x]), 
     (Typechecker.SNode(Sets.ProcSet.of_list ["alice"]), (* only Alice can read the key *) 
      Typechecker.INode(Sets.ProcSet.of_list ["alice"])) (* only Alice is allowed to provide the key *)
   ) in  
 
-  let ret_ty = Typechecker.RabbitTyp(Typechecker.PlainTyp("signature"))
+  (* and suppose ret_ty is the type that function `sign` returns *)
+  let ret_ty = Typechecker.RabbitTyp(Typechecker.PlainTyp("signature", []), 
+    (Typechecker.SNode(Sets.ProcSet.of_list ["alice"; "bob"]), 
+     Typechecker.INode(Sets.ProcSet.of_list ["alice"]))) in
 
-  let type_of_f = Typechecker.FunTyp()
-  let exp = Syntax.Apply("f", [Syntax.Variable("x", Loc(0)); Syntax.Variable("y", Loc(0))]) *)
+  (* we can then make a function signature type_of_x -> type_of_y -> ret_ty *)
+  let function_sig = Typechecker.FunTyp([type_of_x; type_of_y; ret_ty]) in 
 
-  check int "0 equals 0" 0 0
+  let env = Maps.StringMap.(empty |> add "x" (Typechecker.ValueRabbitTyp type_of_x) |> add "y" (Typechecker.ValueRabbitTyp type_of_y) |> add "sign" (Typechecker.ValueFunTyp function_sig)) in
+  let exp = Syntax.Apply("sign", [Syntax.Variable("x", Loc(0)); Syntax.Variable("y", Loc(0))]) in
+
+  let expected_type = ret_ty in
+  let actual_type = Typechecker.typeof_expr exp env in 
+
+
+  check rabbit_ty_testable "function application" actual_type expected_type
   
 
 

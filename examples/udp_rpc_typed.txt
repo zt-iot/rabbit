@@ -20,7 +20,7 @@ syscall connect_rpc (c : channel['a]) : conn_client {
   end
 } 
 
-syscall invoke_rpc (cid : conn_client, f : 'a -> 'b -> 'c, arg1 : 'a, arg2 : 'b) : 'c {
+syscall invoke_rpc (cid : conn_client, f : string, arg1 : 'a, arg2 : 'b) : 'c {
   let c : rpc_t = cid.chid in 
   put [c::invoke(f, arg1, arg2)]; 
   case [c:: Returned(v)] → v end
