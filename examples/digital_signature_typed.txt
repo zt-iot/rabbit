@@ -1,8 +1,9 @@
 
 data message 
 data signature
-data keykind      (* we can think of keykind as a set with 5 elements: keykind := {Sym, Enc, Dec, Sig, Chk} *)
-data key[keykind, 'a] (* a key of a certain keykind and with polymorphic type on which it operates *)
+
+data sigkey['a] (* a key with polymorphic type on which it operates *)
+data verkey['a]
 
 
 (***********)
@@ -12,7 +13,7 @@ type alice_t      : process
 type bob_t        : process
 
 
-
+(** declare kinds, which are values which do not have any security information *)
 
 
 
@@ -20,15 +21,15 @@ type bob_t        : process
 type Sig : keykind
 type Ver : keykind
 
-type sign_key_alice : key[Sig, client_msg] (* signing key for client_msg type of data *)
+type sign_key_alice : sigkey[client_msg] (* signing key for client_msg type of data *)
 type client_msg : message
 type client_sig : signature
 
 type udp_t 	  : channel[client_msg * client_sig]
 
 (* security primitives *)
-function vk : key[Sig]@('s, 'i) -> key[Ver]@(Public, 'i)
-function sign : 'a -> key[Sig, 'a]@('s, 'i) -> signature@(S('a), 'i)    (* signature@(S('a), i) will match any "signature security type" *)
+function vk : sigkey@('s, 'i) -> verkey@(Public, 'i)
+function sign : 'a -> sigkey['a]@('s, 'i) -> signature@(S('a), 'i)    (* signature@(S('a), i) will match any "signature security type" *)
 function fst : 'a * 'b -> 'a
 function snd : 'a * 'b -> 'b
 equation fst ((x, y)) = x
@@ -36,7 +37,7 @@ equation snd ((x, y)) = y
 function true : bool
 
 (* type bool is a simple type, thus it has TSP security level (Public, Untrusted) *)
-(* function verify : signature@('s, 'i) -> 'a@('s, 'i) -> key[Ver, 'a]@('s1, 'i1) -> bool *)
+(* function verify : signature@('s, 'i) -> 'a@('s, 'i) -> verkey[, 'a]@('s1, 'i1) -> bool *)
 equation verify (sign(d, k), d, vk(k)) = true
 
 
@@ -143,7 +144,7 @@ process alice(ch_net : udp_t) : alice_t
 process bob(ch_net : udp_t) : bob_t
 {
   (* Use public key of Alice to verify message *)
-  var pub_key_alice : key[Ver, message] = vk(priv_key_alice)
+  var pub_key_alice : verkey[message] = vk(priv_key_alice)
 
   main 
   {

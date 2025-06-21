@@ -22,6 +22,23 @@ let test_tr_var () =
 
 
 let test_tr_app () = 
+
+  (* suppose x is a message type *)
+  (* let type_of_x = Typechecker.RabbitTyp(Typechecker.PlainTyp("message", []), 
+    (Typechecker.SNode(Sets.ProcSet.of_list ["alice"; "bob"]), 
+     Typechecker.INode(Sets.ProcSet.of_list ["alice"; "bob"]))) in 
+
+  (* and suppose y is some signing key type *)
+  let type_of_y = Typechecker.RabbitTyp(Typechecker.PlainTyp("key", [type_of_x]), 
+    (Typechecker.SNode(Sets.ProcSet.of_list ["alice"]), (* only Alice can read the key *) 
+     Typechecker.INode(Sets.ProcSet.of_list ["alice"])) (* only Alice is allowed to provide the key *)
+  ) in  
+
+  let ret_ty = Typechecker.RabbitTyp(Typechecker.PlainTyp("signature"))
+
+  let type_of_f = Typechecker.FunTyp()
+  let exp = Syntax.Apply("f", [Syntax.Variable("x", Loc(0)); Syntax.Variable("y", Loc(0))]) *)
+
   check int "0 equals 0" 0 0
   
 
