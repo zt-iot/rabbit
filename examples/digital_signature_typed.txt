@@ -18,8 +18,6 @@ type bob_t        : process
 
 
 (** declare security types *)
-type Sig : keykind
-type Ver : keykind
 
 type sign_key_alice : sigkey[client_msg] (* signing key for client_msg type of data *)
 type client_msg : message
