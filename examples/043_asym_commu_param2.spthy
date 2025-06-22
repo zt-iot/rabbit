@@ -1,0 +1,85 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+functions: false/0, true/0, verify/3, sign/2, pk/1, snd/1, fst/1
+equations: verify(sign(loc_1, loc_0), loc_1, pk(loc_0))=true(), snd(<loc_1, loc_0>)=loc_0, fst(<loc_1, loc_0>)=loc_1
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Global Constants:
+
+
+
+// Parametric global Constants:
+
+
+rule Const_privkey : [Fr(privkey)]--[Init_(<'rab_privkey', param>), !Const_(<'rab_privkey', param>, privkey)]->[!Const_(<'rab_privkey', param>, privkey)] 
+
+rule Const_pubkey : [!Const_(<'rab_privkey', param>, privkey_0)]--[Init_(<'rab_pubkey', param>), !Const_(<'rab_pubkey', param>, pk(privkey_0))]->[!Const_(<'rab_pubkey', param>, pk(privkey_0))] 
+
+
+// Access control:
+
+
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[State_Server(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), !ACP_GEN_('rab_system_', 'rab_rab')] 
+
+rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_(<'rab_system_ACP_0', rab>)]->[!ACP_(<'rab_Server', 'rab_rab'>, <'rab_chan', rab>, 'rab_')] 
+
+rule Init_system1[role="system1"] : [Fr(param)]--[Init_(<'rab_system1', param>)]->[!ACP_GEN_('rab_system1_', param), State_Client(<'rab___0', param, %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Init_system1_ACP_0[role="system1"] : [!ACP_GEN_('rab_system1_', param)]--[Init_(<'rab_system1_ACP_0', param>)]->[!ACP_(<'rab_Client', param>, <'rab_chan', <param, '2'>>, 'rab_')] 
+
+// Model:  Server
+
+
+
+rule Server_merged___1___1_0_7_35[role="Server"] : [State_Server(<'rab___1', param, %v_>, return_var_1, 'rab_', 'rab_', 'rab_'), Store(<'rab_chan', <n_0_1, '2'>>, n_1_1), !ACP_(<'rab_Server', param>, <'rab_chan', <n_0_1, '2'>>, 'rab_'), !Eq_(verify(fst(n_1_1), snd(n_1_1), pubkey_0_4), true()), !Const_(<'rab_pubkey', <n_0_1, '3'>>, pubkey_0_4)]--[Transition_(<'rab_Server', param>, 'rab___1', %v_), Valid(snd(n_1_1))]->[State_Server(<'rab___1_0_7', param, %v_>, 'rab_', <n_0_1, n_1_1>, 'rab_', 'rab_')] 
+
+rule Server_merged___1___1_0_7_34[role="Server"] : [State_Server(<'rab___1', param, %v_>, return_var_1, 'rab_', 'rab_', 'rab_'), Store(<'rab_chan', <n_0_1, '2'>>, n_1_1), !ACP_(<'rab_Server', param>, <'rab_chan', <n_0_1, '2'>>, 'rab_'), !Eq_(verify(fst(n_1_1), snd(n_1_1), pubkey_0_4), false()), !Const_(<'rab_pubkey', <n_0_1, '3'>>, pubkey_0_4)]--[Transition_(<'rab_Server', param>, 'rab___1', %v_), Invalid(snd(n_1_1))]->[State_Server(<'rab___1_0_7', param, %v_>, 'rab_', <n_0_1, n_1_1>, 'rab_', 'rab_')] 
+
+rule Server_merged___1___2_33[role="Server"] : [State_Server(<'rab___1', param, %v_>, return_var_15, 'rab_', 'rab_', 'rab_'), False()]--[Transition_(<'rab_Server', param>, 'rab___1', %v_), Loop_Finish(<'rab_Server', param>, 'rab___0')]->[State_Server(<'rab___2', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Server_repeat___1_0_7___1_14[role="Server"] : [State_Server(<'rab___1_0_7', param, %v_>, return_var_14, <m_0_14, m_1_14>, 'rab_', 'rab_')]--[Transition_(<'rab_Server', param>, 'rab___1_0_7', %v_), Loop_Back(<'rab_Server', param>, 'rab___0')]->[State_Server(<'rab___1', param, %v_ %+ %1>, return_var_14, 'rab_', 'rab_', 'rab_')] 
+
+rule Server_repeat_in___0___1_0[role="Server"] : [State_Server(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_')]--[Transition_(<'rab_Server', param>, 'rab___0', %v_), Loop_Start(<'rab_Server', param>, 'rab___0')]->[State_Server(<'rab___1', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+
+// Model:  Client
+
+
+
+rule Client_merged___0___4_13[role="Client"] : [State_Client(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), Fr(n_0_0), !Const_(<'rab_privkey', <fst(<param, '1'>), '3'>>, privkey_0_2)]--[Transition_(<'rab_Client', param>, 'rab___0', %v_), Sent(n_0_0)]->[State_Client(<'rab___4', param, %v_>, 'rab_', n_0_0, <sign(n_0_0, privkey_0_2), fst(<param, '1'>)>, 'rab_')] 
+
+rule Client_merged___4___8_10[role="Client"] : [State_Client(<'rab___4', param, %v_>, return_var_4, m_0_4, <l_0_4, l_1_4>, 'rab_'), !ACP_(<'rab_Client', param>, <'rab_chan', <param, '2'>>, 'rab_')]--[Transition_(<'rab_Client', param>, 'rab___4', %v_)]->[State_Client(<'rab___8', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_'), Store(<'rab_chan', <param, '2'>>, <l_0_4, m_0_4>)] 
+
+restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+rule Equality_gen: [] --> [!Eq_(x,x)]
+rule NEquality_gen: [] --[NEq__(x,y)]-> [!NEq_(x,y)]
+restriction NEquality_rule: "All x #i. NEq__(x,x) @ #i ==> F"
+lemma AlwaysStarts_[reuse,use_induction]:
+
+      "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
+
+      "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+lemma TransitionOnce_[reuse,use_induction]:
+
+      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+        Transition_(x, p, %i) @ #k ==> #j = #k"
+
+lemma NotCorresponds : all-traces "All new_0 #time_1 . Invalid(new_0)@#time_1 ==> Ex  #time_2 . Sent(new_0)@#time_2 & #time_2 < #time_1 "
+lemma Corresponds : all-traces "All new_0 #time_1 . Valid(new_0)@#time_1 ==> Ex  #time_2 . Sent(new_0)@#time_2 & #time_2 < #time_1 "
+lemma NotReachable : exists-trace "Ex new_0 #time_0 . Invalid(new_0)@#time_0 "
+lemma Reachable : exists-trace "Ex new_0 #time_0 . Valid(new_0)@#time_0 "
+end
+
