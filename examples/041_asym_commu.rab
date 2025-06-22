@@ -1,0 +1,80 @@
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+
+(* [false] and [true] are not primitive! *)
+function true:0
+function false:0
+
+function pk:1
+function sign:2
+function verify:3
+equation verify (sign(d, k), d, pk(k)) = true
+
+type process_t : process
+type client_t : process
+type chan_t : channel
+
+const fresh privkey
+const pubkey = pk(privkey)
+
+process server(ch : chan_t) : process_t (* has many channels *)
+{
+    main {
+        repeat
+        | [ch::store(d)] →
+	    var sig = fst(d) in
+	    var msg = snd(d) in
+	    var res = verify (sig, msg, pubkey) in
+	    case
+	    | [res = true] ->
+	        event[::Valid(msg)]
+	    | [res = false] ->
+	        event[::Invalid(msg)]
+	    end
+        until				        
+        | [::False()] →  skip			(* never terminate *)
+        end
+    }
+}
+
+process client(ch : chan_t) : process_t 
+{
+    main {
+(*
+        repeat
+	| [] ->
+*)
+            new msg in
+    	    var s = sign(msg, privkey) in
+    	    event[::Sent(msg)] ;
+            put[ch::store((s, msg))]
+(*
+        until
+	| [::False()] -> skip
+	end
+*)
+    }
+}
+
+channel chan : chan_t
+
+allow process_t chan_t [.]
+
+system
+  server(chan) | client(chan)
+requires
+[
+  lemma Reachable: (* verified *)
+    reachable ::Valid(msg) ;
+
+  lemma NotReachable: (* falsified *)
+    reachable ::Invalid(msg) ;
+
+  lemma Corresponds: (* verified *)
+    corresponds ::Valid(msg) ~> ::Sent(msg) ;
+
+  lemma NotCorresponds: (* verified *)
+    corresponds ::Invalid(msg) ~> ::Sent(msg)
+]
