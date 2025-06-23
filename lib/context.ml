@@ -1,7 +1,29 @@
+open Maps
 
+
+type simple_ty_param = 
+  | SimpleTypeParam of Name.ident * simple_ty_param list
+  | PolyType of Name.ident
+  | ChannelTyp of simple_ty_param list
+  | ProdTyp of simple_ty_param * simple_ty_param
 
 type ctx_ty = 
-  | TODO
+  | CtxSimpleType of simple_ty_param list 
+  | CtxFileType
+  | CtxProcType
+  | CtxSecurityType of unit
+  | CtxChannelType of unit
+  
+  | CtxEqThyFunc of unit
+  | CtxEqThyEquation of unit 
+
+  | CtxSyscall of unit 
+  | CtxPassiveAttack of unit
+  | CtxActiveAttack of unit 
+  | CtxGlobalConst of Name.ident
+
+
+type env = ctx_ty string_map
 
 
 (* 

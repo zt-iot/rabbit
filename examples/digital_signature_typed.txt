@@ -19,15 +19,15 @@ type bob_t        : process
 
 (** declare security types *)
 
-type sign_key_alice : sigkey[client_msg] (* signing key for client_msg type of data *)
 type client_msg : message
 type client_sig : signature
+type sign_key_alice : sigkey[client_msg] (* signing key for client_msg type of data *)
 
 type udp_t 	  : channel[client_msg * client_sig]
 
 (* security primitives *)
 function vk : sigkey[client_msg]@('s, 'i) -> verkey@(Public, 'i)
-function sign : client_msg -> sigkey[client_msg]@('s, 'i) -> signature@(S(client_msg), 'i) 
+function sign : client_msg -> sigkey[client_msg]@('s, 'i) -> signature@(S(client_msg), 'i)
 function fst : 'a * 'b -> 'a
 function snd : 'a * 'b -> 'b
 equation fst ((x, y)) = x
@@ -47,6 +47,34 @@ syscall gen_message () {
   new v : client_msg in 
   v
 }
+
+
+(***********)
+(** attacker model *)
+
+(* declare active attacks *)
+
+(* tamper message *)
+attack tamper_channel on recv (c) {
+  case [c::store(j), ::In(w)] ->
+    w
+  end
+}
+
+allow attack alice_t [tamper_channel] 
+allow attack bob_t [tamper_channel] 
+
+passive attack eaves_mem (v) {
+  put [::Out(v)]
+}
+
+
+allow alice_t [eaves_mem]
+allow bob_t [eaves_mem]
+
+
+
+
 
 
 (***********)
@@ -75,32 +103,6 @@ allow bob_t client_sig [.]  (* able to create signatures using `sign` equational
 
 allow attacker_ty client_msg [read, provide]
 allow attacker_ty client_sig [read, provide]
-
-
-
-(***********)
-(** attacker model *)
-
-(* declare active attacks *)
-
-(* tamper message *)
-attack tamper_channel on recv (c) {
-  case [c::store(j), ::In(w)] ->
-    w
-  end
-}
-
-allow attack alice_t [tamper_channel] 
-allow attack bob_t [tamper_channel] 
-
-passive attack eaves_mem (v) {
-  put [::Out(v)]
-}
-
-
-allow alice_t [eaves_mem]
-allow bob_t [eaves_mem]
-
 
 
 

@@ -1,6 +1,9 @@
 open Printf
 
 
+exception ConversionException of string
+
+
 
 (** Conversion from concrete syntax to abstract syntax.
     Here we also load all required files, which may not be
@@ -886,6 +889,18 @@ let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([
 
 *)
 
+let rec rabbit_ty_to_simple_ty_params rtyps = failwith "TODO"
+
+
+
+
+let rec process_decl_as_context decl env = match decl.Location.data with 
+   | Input.DeclSimpleTyp(RabbitTyp(PlainTyp(id, tys), None)) -> 
+     let new_entry = (id, Context.CtxSimpleType(rabbit_ty_to_simple_ty_params tys)) in 
+     env
+   | Input.DeclSimpleTyp(RabbitTyp(_, Some s)) -> 
+      raise (ConversionException "Cannot supply a security level when declaring a simple type")   
+   | _ -> raise (ConversionException "")
 
 let rec load_just_parse fn =
    let decls, parser_state = Lexer.read_file Parser.file fn in
@@ -896,6 +911,16 @@ let rec load_just_parse fn =
          acc 
       ) () decls in
    0
+
+
+let rec process_global_context decls = 
+   let env = List.fold_left (fun acc decl -> 
+      let newenv = process_decl_as_context decl acc in 
+      newenv 
+      ) Maps.StringMap.empty decls in 
+   env
+
+
 
 (* let rec load fn ctx pol def sys =
    let decls, parser_state = Lexer.read_file Parser.file fn in 
