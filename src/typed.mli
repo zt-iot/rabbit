@@ -13,7 +13,7 @@ and expr' =
   | Ident of
       { id : ident
       ; desc : Env.desc
-      ; param : ident option
+      ; param : expr option
        (** [param= Some _] iff [desc= Const true] *)
       }
   (** [id] or [id<e>].
@@ -82,19 +82,20 @@ type chan_param = { channel : ident; param : unit option; typ : ident }
 
 type chan_arg =
   { channel : ident
-  ; parameter : ident option option
+  ; parameter : expr option option
   (** - [None]: Simple channel [id],
       - [Some None]: Channel with a parameter [id<>],
-      - [Some (Some p)]: Instantiated channel with a parameter [id<p>]
+      - [Some (Some e)]: Instantiated channel with a parameter [id<e>]
   *)
   ; typ : ident
   }
 
 type pproc = pproc' Location.located
 
+(** id<parameter>(args) *)
 and pproc' =
   { id : ident
-  ; parameter : unit option
+  ; parameter : expr option
   ; args : chan_arg list
   }
 
@@ -191,7 +192,10 @@ and decl' =
   | Load of string * decl list (** [load "fn"] *)
 
 module Subst : sig
-  type t = (ident * ident) list
+  type t =
+    { channels : (ident * ident) list
+    ; parameters : (ident * expr) list
+    }
 
   val expr : t -> expr -> expr
   val fact : t -> fact -> fact

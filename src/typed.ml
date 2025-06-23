@@ -13,7 +13,7 @@ and expr' =
   | Ident of
       { id : ident
       ; desc : Env.desc
-      ; param : ident option
+      ; param : expr option
       }
   | Boolean of bool
   | String of string
@@ -73,7 +73,7 @@ type chan_param = { channel : ident; param : unit option; typ : ident }
 
 type chan_arg =
   { channel : ident
-  ; parameter : ident option option
+  ; parameter : expr option option
   ; typ : ident
   }
 
@@ -81,7 +81,7 @@ type pproc = pproc' Location.located
 
 and pproc' =
   { id : ident
-  ; parameter : unit option
+  ; parameter : expr option
   ; args : chan_arg list
   }
 
@@ -164,28 +164,24 @@ and decl' =
   | Load of string * decl list
 
 module Subst = struct
-  type t = (ident * ident) list
+  type t =
+    { channels : (ident * ident) list
+    ; parameters : (ident * expr) list
+    }
 
   let rec expr (s : t) (e : expr) : expr =
     match e.desc with
     | Boolean _ | String _ | Integer _ | Float _ | Unit -> e
     | Tuple es -> { e with desc= Tuple (List.map (expr s) es) }
     | Apply (f, es) -> { e with desc= Apply (f, List.map (expr s) es) }
-    | Ident ({ id; desc= Channel (false, _chty); param= None } as i) ->
-        (match List.assoc_opt id s with
-         | None -> e
-         | Some id' -> { e with desc= Ident { i with id= id' } }
-        )
-    | Ident ({ id; desc= Channel (true, _chty); param= Some pid } as i) ->
-        (match List.assoc_opt id s with
-         | None ->
-             (match List.assoc_opt pid s with
-              | Some pid' -> { e with desc= Ident { i with param= Some pid' } }
-              | None -> e)
-         | Some id' -> { e with desc= Ident { i with id = id' } }
-        )
-    | Ident { id=_; desc= Channel (true, _chty); param= None }
-    | Ident { id=_; desc= Channel (false, _chty); param= Some _ } -> assert false
+    | Ident ({ id; desc= Channel _; param; _ } as i) ->
+        let id = Option.value ~default:id @@ List.assoc_opt id s.channels in
+        let param = Option.map (expr s) param in
+        { e with desc= Ident { i with id; param } }
+    | Ident { id; desc= Var Param; param= None; _ } ->
+        Option.value ~default:e @@ List.assoc_opt id s.parameters
+    | Ident { id=_; desc= Var Param; param= Some _; _ } ->
+        assert false
     | Ident _ -> e
 
   let fact s (f : fact) : fact =
@@ -242,39 +238,63 @@ module Subst = struct
     let main = cmd s main in
     { id; typ; files; vars; funcs; main }
 
-  let instantiate_pproc ?param (decls : decl list) (pproc : pproc) =
-    let { id; parameter= param_arg; args= chan_args } = pproc.data in
+  let instantiate_pproc
+      s
+      (decls : decl list)
+      (pproc : pproc) (* id<parameter>(args) *) =
+    let { id; parameter= param_arg; args= chan_args } = pproc.data in (* id<param_arg>(chan_args) *)
+    (* instantiate [param_arg] and [chan_args] with [s] *)
+    let s = { parameters= s(*XXX*); channels= [] } in
+    let param_arg = Option.map (expr s) param_arg in
+    let chan_args = List.map (fun (chan_arg : chan_arg) ->
+        { chan_arg
+          with parameter = Option.map (Option.map (expr s)) chan_arg.parameter
+        }) chan_args
+    in
     match
-      List.find_opt (function
-          | {desc= Process { id=id'; _ }; _} when id = id' -> true
-          | _ -> false) decls
+        List.find_opt (function
+            | {desc= Process { id=id'; _ }; _} when id = id' -> true
+            | _ -> false) decls
     with
-    | Some {desc= Process { id=_; param= param_param; args= chan_params; typ; files; vars; funcs; main }; _} ->
+    | Some {desc= Process { id=_
+                          ; param= param_var
+                          ; args= chan_params
+                          ; typ
+                          ; files
+                          ; vars
+                          ; funcs
+                          ; main
+                          };
+            _ } ->
+        (* Instantiate the process with [param_arg] and [chan_args] *)
         let s =
-          (match param_param, param, param_arg with
-           | None, None, None -> []
-           | Some id, Some id', Some () ->
-               [id, id']
-           | _ -> assert false
-          )
-          @ List.map2 (fun chan_param chan_arg ->
-            match chan_param, chan_arg with
-            | { channel=pid; param= None; _ }, { channel=aid; parameter; typ=_ } ->
-                let _param =
-                  match parameter with
-                  | None -> None
-                  | Some (Some pid) -> Some pid
-                  | Some None -> assert false
-                in
-                pid, aid
-            | { channel=pid; param= Some (); _ }, { channel=aid; parameter; typ=_ } ->
-                let _param =
-                  match parameter with
-                  | Some None -> ()
-                  | None | Some (Some _) -> assert false
-                in
-                pid, aid
-          ) chan_params chan_args
+          let parameters =
+            match param_var, param_arg with
+            | None, None -> []
+            | Some id, Some expr -> [id, expr]
+            | _ -> assert false
+          in
+          let channels =
+            List.map2 (fun chan_param chan_arg ->
+                match chan_param, chan_arg with
+                | { channel=pid; param= None; _ }, { channel=aid; parameter; typ=_ } ->
+                    let _param =
+                      match parameter with
+                      | None -> None
+                      | Some (Some pid) -> Some pid
+                      | Some None -> assert false
+                    in
+                    pid, aid
+                | { channel=pid; param= Some (); _ }, { channel=aid; parameter; typ=_ } ->
+                    let _param =
+                      match parameter with
+                      | Some None -> ()
+                      | None | Some (Some _) -> assert false
+                    in
+                    pid, aid
+              ) chan_params chan_args
+          in
+          { parameters; channels }
         in
         instantiate_process s ~id ~typ ~files ~vars ~funcs ~main
     | None -> assert false
@@ -283,7 +303,15 @@ module Subst = struct
   let instantiate_proc decls = function
     | Unbounded { data= { parameter= Some _; _ }; _ } -> assert false
     | Unbounded ({ data= { parameter= None; _ }; _ } as pproc) ->
-        [instantiate_pproc decls (pproc : pproc)]
+        [instantiate_pproc [] decls (pproc : pproc)]
     | Bounded (id, pprocs) ->
-        List.map (instantiate_pproc ~param:id decls) pprocs
+        let new_id = Ident.local (fst id) in
+        let e = { desc= Ident { id= new_id
+                              ; desc= Var Param
+                              ; param= None }
+                ; loc= Location.nowhere
+                ; env= Env.add (Env.empty ()) new_id (Var Param)
+                }
+        in
+        List.map (instantiate_pproc [id, e] decls) pprocs
 end
