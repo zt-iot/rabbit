@@ -39,19 +39,27 @@ type env_value_ty =
   | ValueFunTyp of function_ty (* the reason we introduce a function_ty is because function types do not have a security level *)
 
 
+
+
+
+
+
 let rec typeof_expr e env = match e with 
   | Syntax.Variable(x, _) -> 
     begin 
       match StringMap.find x env with
       | ValueRabbitTyp(rtyp) -> rtyp
-      | _ -> failwith "A variable cannot be of function type"
+      | ValueFunTyp(_) -> failwith "A variable cannot be of function type"
     end
-  | Syntax.Apply(sym, es) -> failwith "TODO"  
+  | Syntax.Apply(sym, es) -> begin
+      match StringMap.find sym env with 
+      | ValueFunTyp(FunTyp(ts)) -> begin
+        failwith "TODO"
+        end
+      | ValueRabbitTyp(_) -> failwith (Printf.sprintf "%s must be a function type" sym)
+      end
   | Syntax.Tuple(es) -> failwith "TODO"  
-  | _ -> failwith "TODO"  
-
-
-
+  | _ -> failwith "TODO"
 
 let rec typecheck_fact env () = failwith "TODO"
 

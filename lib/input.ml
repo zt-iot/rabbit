@@ -160,7 +160,7 @@ and prop' =
 (* system instantiation *)
 type lemma = lemma' Location.located
 and lemma' =
-  | Lemma of Name.ident * prop
+  | Lemma of Name.ident * prop 
 [@@deriving show]
 
   
