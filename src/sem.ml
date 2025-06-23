@@ -72,7 +72,7 @@ and fact' =
       ; index : name
       }
   | Access of { pid: ident; target: expr; syscall: ident option }
-  | AccessX of { pid: ident; target: ident; parameter: ident option option; syscall: ident option }
+  | AccessX of { pid: ident; target: ident; parameter: expr option option; syscall: ident option }
 
 let fact_of_typed (f : Typed.fact) : fact =
   let desc : fact' =

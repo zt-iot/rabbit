@@ -183,10 +183,8 @@ let rec type_expr env (e : Input.expr) : Typed.expr =
     | Param (f, e) (* [f<e>] *) ->
         (match Env.find ~loc env f with
          | id, ((Const _ | Channel _) as desc) ->
-             (match type_expr env e with
-              | {desc= Ident {id=pid; desc= Var Param; _}; _} ->
-                  Ident { id; desc; param = Some pid }
-              | _ -> misc_errorf ~loc "Parameter must be a parameter variable")
+             let e = type_expr env e in
+             Ident { id; desc; param= Some e }
          | id, desc -> error ~loc @@ NonParameterizableIdentifier (id, desc))
   in
   { loc; env; desc }
@@ -656,14 +654,10 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
                  misc_errorf ~loc "%t is not a channel with a parameter" (Ident.print id))
         | ChanArgParamInst (name, e) ->
             (* [id<e>] *)
-            let pid =
-              match type_expr env e with
-              | { desc= Ident { id=pid; desc= Var Param; _ }; _ } -> pid
-              | _ -> misc_errorf ~loc "Parameter must be a parameter variable"
-            in
+            let e = type_expr env e in
             (match Env.find ~loc env name with
              | id, Channel (true, chty) ->
-                 { channel = id; parameter = Some (Some pid); typ = chty }
+                 { channel= id; parameter= Some (Some e); typ= chty }
              | id, _ ->
                  misc_errorf ~loc "%t is not a channel with a parameter" (Ident.print id))
       in
@@ -677,7 +671,8 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
               let chan_args = List.map (type_chan_arg ~loc env) chan_args in
               { id = pid; parameter = None; args = chan_args }
           | ParamProc (pname, e, chan_args), Some p ->
-              (* [pname <id> (chargs,..,chargs)] *)
+              (* [pname <e> (chargs,..,chargs)] *)
+              let pid = Env.find_desc ~loc env pname Process in
               let e = type_expr env e in
               (match e.desc with
                | Ident { id; _ } ->
@@ -685,9 +680,8 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
                    else misc_errorf ~loc "Process must be parameterized with the quantification %t" (Ident.print p)
                | _ -> assert false
               );
-              let pid = Env.find_desc ~loc env pname Process in
               let chan_args = List.map (type_chan_arg ~loc env) chan_args in
-              { id = pid; parameter = Some (); args = chan_args }
+              { id = pid; parameter = Some e; args = chan_args }
           | Proc _, Some p ->
               misc_errorf ~loc "Process must be parameterized with the quantification %t" (Ident.print p)
           | ParamProc _, None ->
