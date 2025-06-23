@@ -11,9 +11,9 @@ type operator = string [@@deriving show]
 - A product of any Rabbit types
 *)
 type plain_ty = 
-  | Unit                                         (* used for syscalls that do not have a return type *)
+  | Unit                                                (* used for syscalls that do not have a return type *)
   | PlainTyp of Name.ident * rabbit_ty list
-  | PolyType of Name.ident                       (* 'a, 'b, 'k etc.*)
+  | PolyType of Name.ident                              (* 'a, 'b, 'k etc.*)
   | ChannelTyp of rabbit_ty list                        (* channel[t_1 + ... + t_n] *)
   | ProdTyp of rabbit_ty * rabbit_ty
 [@@deriving show]

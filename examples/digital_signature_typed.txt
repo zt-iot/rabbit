@@ -26,8 +26,8 @@ type client_sig : signature
 type udp_t 	  : channel[client_msg * client_sig]
 
 (* security primitives *)
-function vk : sigkey@('s, 'i) -> verkey@(Public, 'i)
-function sign : 'a -> sigkey['a]@('s, 'i) -> signature@(S('a), 'i)    (* signature@(S('a), i) will match any "signature security type" *)
+function vk : sigkey[client_msg]@('s, 'i) -> verkey@(Public, 'i)
+function sign : client_msg -> sigkey[client_msg]@('s, 'i) -> signature@(S(client_msg), 'i) 
 function fst : 'a * 'b -> 'a
 function snd : 'a * 'b -> 'b
 equation fst ((x, y)) = x
@@ -35,7 +35,7 @@ equation snd ((x, y)) = y
 function true : bool
 
 (* type bool is a simple type, thus it has TSP security level (Public, Untrusted) *)
-function verify : signature@('s, 'i) -> 'a@('s, 'i) -> verkey['a]@('s1, 'i1) -> bool
+function verify : signature@('s, 'i) -> message@('s, 'i) -> verkey[message]@('s1, 'i1) -> bool
 equation verify (sign(d, k), d, vk(k)) = true
 
 
