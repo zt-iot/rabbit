@@ -1,3 +1,5 @@
+(* Artificial example of non variable parameters *)
+
 function fst:1
 function snd:1
 equation fst ((x, y)) = x
