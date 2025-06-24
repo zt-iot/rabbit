@@ -250,9 +250,11 @@ let compile_fact (f : fact) : fact' =
   | ChannelFact (fid, ch, el) ->
       { name = mk_my_fact_name fid; args = ch :: el; config = config_linear }
   | EqFact (e1, e2) ->
-      { name = "Eq" ^ !separator; args = [ e1; e2 ]; config = config_persist }
+      (* linear because we will move this to tag and it wont be used as facts *)
+      { name = "Eq" ^ !separator; args = [ e1; e2 ]; config = config_linear }
   | NeqFact (e1, e2) ->
-      { name = "NEq" ^ !separator; args = [ e1; e2 ]; config = config_persist }
+      (* linear because we will move this to tag and it wont be used as facts *)
+      { name = "NEq" ^ !separator; args = [ e1; e2 ]; config = config_linear }
   | AccessFact (nsp, param, target, syscall) ->
       { name = "ACP" ^ !separator
       ; args = [ List [ String nsp; param ]; target; String syscall ]
@@ -354,7 +356,6 @@ type transition =
   ; transition_to : state
   ; transition_pre : fact list
   ; transition_post : fact list
-  ; transition_action : action option
   ; transition_state_transition : state_desc * state_desc
   ; transition_label : fact list
   ; transition_is_loop_back : bool
@@ -887,17 +888,8 @@ let print_tamarin
   ^ "(x) @ #i & Init"
   ^ !separator
   ^ "(x) @ #j ==> #i = #j \"\n"
-  ^ "rule Equality_gen: [] --> [!Eq"
-  ^ !separator
-  ^ "(x,x)]\n"
-  ^ "rule NEquality_gen: [] --[NEq_"
-  ^ !separator
-  ^ "(x,y)]-> [!NEq"
-  ^ !separator
-  ^ "(x,y)]\n"
-  ^ "restriction NEquality_rule: \"All x #i. NEq_"
-  ^ !separator
-  ^ "(x,x) @ #i ==> F\"\n"
+  ^ "restriction Equality_rule: \"All x y #i. Eq"^ !separator ^"(x,y) @ #i ==> x = y\"\n"
+  ^ "restriction NEquality_rule: \"All x #i. NEq"^ !separator ^"(x,x) @ #i ==> F\"\n"
   ^ (if !Config.tag_transition
      then
        "lemma AlwaysStarts"

@@ -1,0 +1,52 @@
+type person_t : process
+type chan_t : channel
+
+syscall send(c, v) {
+  put [c::store(v)]
+}
+
+syscall recv(c) {
+  case 
+  | [c::store(v)] -> v
+  end
+}
+
+(* Do not forget prefix [::] before [In()] and [Out()] *)
+attack tamper_recv on recv(c) {
+  case 
+  | [c::store(v), ::In(m)] -> m
+  end
+}
+
+allow person_t chan_t [send, recv]
+allow attack person_t [tamper_recv] 
+
+process alice(ch : chan_t) : person_t 
+{
+    main {
+        new n in
+	event[::Send(n)];
+        _ := send(ch, n);
+	var m = recv(ch) in
+        case
+        | [n = m] -> event[::Valid(n)]
+        | [n != m] -> event[::Invalid()]
+        end
+    }
+}
+
+channel ch : chan_t
+
+system
+  alice(ch)
+requires
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid(n) ;
+
+  lemma Corresponds : (* verified *)
+    corresponds ::Valid(n) ~> ::Send(n) ;
+
+  lemma Tampered : (* verified *)
+    reachable ::Invalid() 
+]

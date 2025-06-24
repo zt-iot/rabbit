@@ -41,7 +41,7 @@ rule Alice_merged___0___1_0_0_14[role="Alice"] : [State_Alice(<'rab___0', param,
 
 rule Alice_merged___1___2_13[role="Alice"] : [State_Alice(<'rab___1', param, %v_>, return_var_7, 'rab_', 'rab_', 'rab_'), False()]--[Transition_(<'rab_Alice', param>, 'rab___1', %v_), Loop_Finish(<'rab_Alice', param>, 'rab___0')]->[State_Alice(<'rab___2', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
-rule Alice_merged___1_0_0___1_0_0_0_1_12[role="Alice"] : [State_Alice(<'rab___1_0_0', param, %v_>, return_var_2, 'rab_', 'rab_', 'rab_'), Ping('rab_chan', n_0_2), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___1_0_0', %v_), Pong(n_0_2)]->[State_Alice(<'rab___1_0_0_0_1', param, %v_>, 'rab_', n_0_2, 'rab_', 'rab_')] 
+rule Alice_merged___1_0_0___1_0_0_0_1_12[role="Alice"] : [State_Alice(<'rab___1_0_0', param, %v_>, return_var_2, 'rab_', 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_'), Ping('rab_chan', n_0_2)]--[Transition_(<'rab_Alice', param>, 'rab___1_0_0', %v_), Pong(n_0_2)]->[State_Alice(<'rab___1_0_0_0_1', param, %v_>, 'rab_', n_0_2, 'rab_', 'rab_')] 
 
 rule Alice_merged___1_0_0_0_1___1_0_1_11[role="Alice"] : [State_Alice(<'rab___1_0_0_0_1', param, %v_>, return_var_4, m_0_4, 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___1_0_0_0_1', %v_)]->[State_Alice(<'rab___1_0_1', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_'), Pong('rab_chan', m_0_4)] 
 
@@ -58,9 +58,9 @@ rule Bob_merged___1___1_0_2_25[role="Bob"] : [State_Bob(<'rab___1', param, %v_>,
 
 rule Bob_merged___1___2_24[role="Bob"] : [State_Bob(<'rab___1', param, %v_>, return_var_13, 'rab_', 'rab_', 'rab_'), False()]--[Transition_(<'rab_Bob', param>, 'rab___1', %v_), Loop_Finish(<'rab_Bob', param>, 'rab___0')]->[State_Bob(<'rab___2', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
-rule Bob_merged___1_0_3___1_0_5_22[role="Bob"] : [State_Bob(<'rab___1_0_3', param, %v_>, return_var_5, m_0_5, 'rab_', 'rab_'), Pong('rab_chan', m_0_5), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___1_0_3', %v_), Valid(m_0_5)]->[State_Bob(<'rab___1_0_5', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Bob_merged___1_0_3___1_0_5_22[role="Bob"] : [State_Bob(<'rab___1_0_3', param, %v_>, return_var_5, m_0_5, 'rab_', 'rab_'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_'), Pong('rab_chan', m_0_5)]--[Transition_(<'rab_Bob', param>, 'rab___1_0_3', %v_), Valid(m_0_5)]->[State_Bob(<'rab___1_0_5', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
-rule Bob_merged___1_0_3___1_0_5_21[role="Bob"] : [State_Bob(<'rab___1_0_3', param, %v_>, return_var_8, m_0_8, 'rab_', 'rab_'), Pong('rab_chan', n_0_8), !NEq_(m_0_8, n_0_8), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___1_0_3', %v_), Invalid(m_0_8, n_0_8)]->[State_Bob(<'rab___1_0_5', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Bob_merged___1_0_3___1_0_5_21[role="Bob"] : [State_Bob(<'rab___1_0_3', param, %v_>, return_var_8, m_0_8, 'rab_', 'rab_'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_'), Pong('rab_chan', n_0_8)]--[Transition_(<'rab_Bob', param>, 'rab___1_0_3', %v_), Invalid(m_0_8, n_0_8), NEq_(m_0_8, n_0_8)]->[State_Bob(<'rab___1_0_5', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 rule Bob_repeat___1_0_5___1_12[role="Bob"] : [State_Bob(<'rab___1_0_5', param, %v_>, return_var_12, 'rab_', 'rab_', 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___1_0_5', %v_), Loop_Back(<'rab_Bob', param>, 'rab___0')]->[State_Bob(<'rab___1', param, %v_ %+ %1>, return_var_12, 'rab_', 'rab_', 'rab_')] 
 
@@ -69,9 +69,8 @@ rule Bob_put___1_0_2___1_0_3_4[role="Bob"] : [State_Bob(<'rab___1_0_2', param, %
 rule Bob_repeat_in___0___1_0[role="Bob"] : [State_Bob(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___0', %v_), Loop_Start(<'rab_Bob', param>, 'rab___0')]->[State_Bob(<'rab___1', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
-rule Equality_gen: [] --> [!Eq_(x,x)]
-rule NEquality_gen: [] --[NEq__(x,y)]-> [!NEq_(x,y)]
-restriction NEquality_rule: "All x #i. NEq__(x,x) @ #i ==> F"
+restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
 lemma AlwaysStarts_[reuse,use_induction]:
 
       "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"

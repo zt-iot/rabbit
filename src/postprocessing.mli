@@ -21,3 +21,5 @@ val print_error : error Sig.printer
     @param model The input Totamarin model to optimize
     @return The optimized Totamarin model *)
 val optimize : Tamarin.model -> Tamarin.model
+
+val move_eq_facts : Tamarin.model -> Tamarin.model

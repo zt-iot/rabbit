@@ -169,7 +169,7 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
         put[ch_rpc:: Returned(signed)]		
 
       | [fname != "sign_image"] →
-        event [InvalidName(fname)]
+        event [InValidName(fname)]
       end 
     until
     | [ch_rpc::exit()] → skip 

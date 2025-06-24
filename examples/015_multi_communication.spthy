@@ -52,14 +52,13 @@ rule Alice_event___0___1_0[role="Alice"] : [State_Alice(<'rab___0', param, %v_>,
 
 rule Bob_merged___0___1_0_0_18[role="Bob"] : [State_Bob(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___0', %v_)]->[State_Bob(<'rab___1_0_0', param, %v_>, 'rab_', 'rab_', <'rab_chan', 'rab_'>, 'rab_')] 
 
-rule Bob_merged___1_0_0___3_17[role="Bob"] : [State_Bob(<'rab___1_0_0', param, %v_>, return_var_2, 'rab_', <l_0_2, l_1_2>, 'rab_'), Store(l_0_2, n_0_2), !ACP_(<'rab_Bob', param>, l_0_2, 'rab_recv')]--[Transition_(<'rab_Bob', param>, 'rab___1_0_0', %v_), Received()]->[State_Bob(<'rab___3', param, %v_>, 'rab_', 'rab_', n_0_2, 'rab_')] 
+rule Bob_merged___1_0_0___3_17[role="Bob"] : [State_Bob(<'rab___1_0_0', param, %v_>, return_var_2, 'rab_', <l_0_2, l_1_2>, 'rab_'), !ACP_(<'rab_Bob', param>, l_0_2, 'rab_recv'), Store(l_0_2, n_0_2)]--[Transition_(<'rab_Bob', param>, 'rab___1_0_0', %v_), Received()]->[State_Bob(<'rab___3', param, %v_>, 'rab_', 'rab_', n_0_2, 'rab_')] 
 
-rule Bob_merged___3___5_13[role="Bob"] : [State_Bob(<'rab___3', param, %v_>, return_var_7, 'rab_', l_0_7, 'rab_'), !Eq_(l_0_7, '1')]--[Transition_(<'rab_Bob', param>, 'rab___3', %v_), Valid()]->[State_Bob(<'rab___5', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Bob_merged___3___5_13[role="Bob"] : [State_Bob(<'rab___3', param, %v_>, return_var_7, 'rab_', l_0_7, 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___3', %v_), Valid(), Eq_(l_0_7, '1')]->[State_Bob(<'rab___5', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
-rule Equality_gen: [] --> [!Eq_(x,x)]
-rule NEquality_gen: [] --[NEq__(x,y)]-> [!NEq_(x,y)]
-restriction NEquality_rule: "All x #i. NEq__(x,x) @ #i ==> F"
+restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
 lemma AlwaysStarts_[reuse,use_induction]:
 
       "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"

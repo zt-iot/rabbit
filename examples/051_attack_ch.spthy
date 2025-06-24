@@ -1,0 +1,72 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+
+
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Global Constants:
+
+
+
+// Parametric global Constants:
+
+
+
+// Access control:
+
+
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[State_Alice(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), !ACP_GEN_('rab_system_', 'rab_rab')] 
+
+rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_0')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_ch', 'rab_recv')] 
+
+rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_1')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_ch', 'rab_send')] 
+
+// Model:  Alice
+
+
+
+rule Alice_merged___0___2_45[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), Fr(n_0_0)]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_), Send(n_0_0)]->[State_Alice(<'rab___2', param, %v_>, 'rab_', n_0_0, 'rab_', 'rab_')] 
+
+rule Alice_merged___2___4_1_0_44[role="Alice"] : [State_Alice(<'rab___2', param, %v_>, return_var_2, m_0_2, 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_ch', 'rab_send')]--[Transition_(<'rab_Alice', param>, 'rab___2', %v_)]->[State_Alice(<'rab___4_1_0', param, %v_>, 'rab_', m_0_2, <'rab_ch', 'rab_'>, 'rab_'), Store('rab_ch', m_0_2)] 
+
+rule Alice_merged___2___4_0_0_43[role="Alice"] : [State_Alice(<'rab___2', param, %v_>, return_var_2, m_0_2, 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_ch', 'rab_send')]--[Transition_(<'rab_Alice', param>, 'rab___2', %v_)]->[State_Alice(<'rab___4_0_0', param, %v_>, 'rab_', m_0_2, <'rab_ch', 'rab_'>, 'rab_'), Store('rab_ch', m_0_2)] 
+
+rule Alice_merged___4_0_0___5_36[role="Alice"] : [State_Alice(<'rab___4_0_0', param, %v_>, return_var_7, m_0_7, <l_0_7, l_1_7>, 'rab_'), !ACP_(<'rab_Alice', param>, l_0_7, 'rab_recv'), Store(l_0_7, n_0_7)]--[Transition_(<'rab_Alice', param>, 'rab___4_0_0', %v_)]->[State_Alice(<'rab___5', param, %v_>, 'rab_', m_0_7, n_0_7, 'rab_')] 
+
+rule Alice_merged___4_1_0___5_33[role="Alice"] : [State_Alice(<'rab___4_1_0', param, %v_>, return_var_12, m_0_12, <l_0_12, l_1_12>, 'rab_'), !ACP_(<'rab_Alice', param>, l_0_12, 'rab_recv'), In(n_1_12), Store(l_0_12, n_0_12)]--[Transition_(<'rab_Alice', param>, 'rab___4_1_0', %v_)]->[State_Alice(<'rab___5', param, %v_>, 'rab_', m_0_12, n_1_12, 'rab_')] 
+
+rule Alice_merged___5___8_30[role="Alice"] : [State_Alice(<'rab___5', param, %v_>, return_var_16, m_0_16, l_0_16, 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___5', %v_), Valid(m_0_16), Eq_(m_0_16, l_0_16)]->[State_Alice(<'rab___8', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+rule Alice_merged___5___8_29[role="Alice"] : [State_Alice(<'rab___5', param, %v_>, return_var_19, m_0_19, l_0_19, 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___5', %v_), Invalid(), NEq_(m_0_19, l_0_19)]->[State_Alice(<'rab___8', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
+lemma AlwaysStarts_[reuse,use_induction]:
+
+      "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
+
+      "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+lemma TransitionOnce_[reuse,use_induction]:
+
+      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+        Transition_(x, p, %i) @ #k ==> #j = #k"
+
+lemma Tampered : exists-trace "Ex  #time_0 . Invalid()@#time_0 "
+lemma Corresponds : all-traces "All new_0 #time_1 . Valid(new_0)@#time_1 ==> Ex  #time_2 . Send(new_0)@#time_2 & #time_2 < #time_1 "
+lemma Reachable : exists-trace "Ex new_0 #time_0 . Valid(new_0)@#time_0 "
+end
+
