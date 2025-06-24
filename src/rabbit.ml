@@ -9,6 +9,8 @@ let files = ref []
 
 let ofile = ref ("", false)
 
+let svg_file = ref None
+
 (** Add a file to the list of files to be loaded, and record whether it should
     be processed in interactive mode. *)
 let add_file quiet filename = (files := (filename, quiet) :: !files)
@@ -46,7 +48,16 @@ let options = Arg.align [
     ("-o",
      Arg.String (fun str -> add_ofile true str),
      "<file> Printing the translated program into <file>");
+
+    ("--svg",
+     Arg.String (fun fn -> svg_file := Some fn),
+     "<file> Output graph SVG <file> (requires graphviz)");
     ]
+
+let write_svg (t : Tamarin.tamarin) =
+  match !svg_file with
+  | None -> ()
+  | Some fn -> Tamarin_debug.write_tamarin_svg fn t
 
 (** Main program *)
 let _main =
@@ -124,12 +135,14 @@ let _main =
           Loader.process_init !files
       in
       print_string "Loading complete..\n";
+      (* XXX What happens if there are multiple systems? *)
       List.fold_left (fun _ s ->
           let t = Totamarin.translate_sys s (used_idents, used_strings) in
           let t =
             if !Config.optimize then Tamarin.{ t with models= List.map Postprocessing.optimize t.models }
             else t
           in
+          write_svg t;
           let tamarin = (Tamarin.print_tamarin t ~dev:!Config.dev ~print_transition_label:!Config.tag_transition) in
           if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Warning:" "%s" "output file not specified"
           else let oc = open_out (fst !ofile) in

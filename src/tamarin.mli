@@ -122,6 +122,7 @@ type transition =
   ; transition_to : state
   ; transition_pre : fact list
   ; transition_post : fact list
+  ; transition_action : action option
   ; transition_state_transition : state_desc * state_desc
   ; transition_label : fact list
   ; transition_is_loop_back : bool
@@ -193,6 +194,8 @@ val add_comment : tamarin -> string -> tamarin
 
 (** Add a lemma *)
 val add_lemma : tamarin -> lemma -> tamarin
+
+val string_of_fact : fact -> string
 
 val print_transition : transition -> dev:bool -> string
 val print_tamarin : tamarin -> dev:bool -> print_transition_label:bool -> string
