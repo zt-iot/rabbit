@@ -328,7 +328,6 @@ let rec optimize_at (m : model) (st : state) =
     ) m tr2_lst in m) m tr1_lst in
   m 
 
-
 let optimize' (m : model) = optimize_at m (m.model_init_state) 
 
 let optimize (m : model) =
@@ -341,3 +340,28 @@ let m = make_variables_unique m in
       m'
     end in 
     op m
+
+
+
+
+(* move equality and inequality facts from precondition to tags because Tamarin cannot handle
+  (N)Eq fact generation rules correctly for fresh values *)
+let move_eq_facts_transition (tr : transition) : transition = 
+  let new_pre, eq_facts = List.fold_left (fun (new_pre, eq_facts) f ->
+    match f with
+    | ResFact(0, _) -> new_pre, f::eq_facts
+    | ResFact(1, _) -> new_pre, f::eq_facts
+    | _ -> (f::new_pre, eq_facts)
+   ) ([], []) tr.transition_pre in
+
+  {
+    tr with
+    transition_pre=new_pre ;
+    transition_label=tr.transition_label@eq_facts
+  }
+let move_eq_facts (m : model) =
+  {
+    m with
+    model_transitions = List.map move_eq_facts_transition m.model_transitions
+  }
+

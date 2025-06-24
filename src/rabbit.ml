@@ -77,8 +77,8 @@ let _main =
         List.fold_left (fun _ s -> 
         let (si, mo_lst, rule_lst, lem_lst)  = (Totamarin.translate_sys s x) in 
         let t = 
-          if !Config.optimize then (si, List.map Postprocessing.optimize mo_lst, rule_lst, lem_lst) 
-          else (si, mo_lst, rule_lst, lem_lst)
+          if !Config.optimize then (si, List.map (fun m -> Postprocessing.move_eq_facts (Postprocessing.optimize m)) mo_lst, rule_lst, lem_lst) 
+          else (si, List.map Postprocessing.move_eq_facts mo_lst, rule_lst, lem_lst)
         in
         let tamarin = (Totamarin.print_tamarin t !Config.dev !Config.tag_transition) in
         if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Error" "%s" "output file not specified"

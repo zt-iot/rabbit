@@ -194,8 +194,8 @@ let print_fact' (f : fact) : fact' =
   | GlobalFact (fid, el) -> (mk_my_fact_name fid, el, config_linear)
   | ChannelFact (fid, ch, el) -> (mk_my_fact_name fid, ch :: el, config_linear)
   (* | PathFact (fid, nsp, path, el) -> (mk_my_fact_name fid ^ ! separator ^ nsp,path :: el, config_linear) *)
-  | ResFact (0, el) -> ("Eq"^ !separator , el, config_persist)
-  | ResFact (1, el) -> ("NEq"^ !separator , el, config_persist)
+  | ResFact (0, el) -> ("Eq"^ !separator , el, config_linear) (* linear because we will move this to tag and it wont be used as facts*)
+  | ResFact (1, el) -> ("NEq"^ !separator , el, config_linear) (* linear because we will move this to tag and it wont be used as facts*)
   | ResFact (2, el) -> ("Fr", el, config_linear)
   | AccessFact (nsp, param, target, syscall) -> ("ACP"^ !separator, [List [String nsp; param]; target; String syscall], config_persist )
   | AttackFact (attack, target) ->  ("Attack"^ !separator, [String attack; target], config_persist )
@@ -580,11 +580,9 @@ let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev print_transiti
     (* default restrictions *)
     "\nrestriction Init"^ !separator ^" : \" All x #i #j . Init"^ !separator ^"(x) @ #i & Init"^ !separator ^"(x) @ #j ==> #i = #j \"\n" ^
 
-    "rule Equality_gen: [] --> [!Eq"^ !separator ^"(x,x)]\n" ^
 
-    "rule NEquality_gen: [] --[NEq_"^ !separator ^"(x,y)]-> [!NEq"^ !separator ^"(x,y)]\n" ^
-
-    "restriction NEquality_rule: \"All x #i. NEq_"^ !separator ^"(x,x) @ #i ==> F\"\n" ^
+    "restriction Equality_rule: \"All x y #i. Eq"^ !separator ^"(x,y) @ #i ==> x = y\"\n" ^
+    "restriction NEquality_rule: \"All x #i. NEq"^ !separator ^"(x,x) @ #i ==> F\"\n" ^
 
     (if !Config.tag_transition then
       begin 
