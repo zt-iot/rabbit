@@ -38,9 +38,8 @@ rule P_event___1___2_1[role="P"] : [State_P(<'rab___1', param, %v_>, return_var_
 rule P_event___0___1_0[role="P"] : [State_P(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_')]--[Transition_(<'rab_P', param>, 'rab___0', %v_), Event()]->[State_P(<'rab___1', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
-rule Equality_gen: [] --> [!Eq_(x,x)]
-rule NEquality_gen: [] --[NEq__(x,y)]-> [!NEq_(x,y)]
-restriction NEquality_rule: "All x #i. NEq__(x,x) @ #i ==> F"
+restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
 lemma AlwaysStarts_[reuse,use_induction]:
 
       "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"

@@ -122,7 +122,6 @@ type transition =
   ; transition_to : state
   ; transition_pre : fact list
   ; transition_post : fact list
-  ; transition_action : action option
   ; transition_state_transition : state_desc * state_desc
   ; transition_label : fact list
   ; transition_is_loop_back : bool

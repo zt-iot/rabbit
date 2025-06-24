@@ -37,14 +37,13 @@ rule Init_system[role="system"] : []--[Init_('rab_system')]->[State_Client(<'rab
 
 
 
-rule Client_merged___0___7_25[role="Client"] : [State_Client(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), Fr(n_0_0), !Const_('rab_pubkey', pubkey_2), !Eq_(verify(sign(n_0_0, privkey_1), n_0_0, pubkey_2), false()), !Const_('rab_privkey', privkey_1)]--[Transition_(<'rab_Client', param>, 'rab___0', %v_), Invalid()]->[State_Client(<'rab___7', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Client_merged___0___7_25[role="Client"] : [State_Client(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), !Const_('rab_privkey', privkey_1), !Const_('rab_pubkey', pubkey_2), Fr(n_0_0)]--[Transition_(<'rab_Client', param>, 'rab___0', %v_), Invalid(), Eq_(verify(sign(n_0_0, privkey_1), n_0_0, pubkey_2), false())]->[State_Client(<'rab___7', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
-rule Client_merged___0___7_24[role="Client"] : [State_Client(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), Fr(n_0_0), !Const_('rab_pubkey', pubkey_2), !Eq_(verify(sign(n_0_0, privkey_1), n_0_0, pubkey_2), true()), !Const_('rab_privkey', privkey_1)]--[Transition_(<'rab_Client', param>, 'rab___0', %v_), Valid()]->[State_Client(<'rab___7', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Client_merged___0___7_24[role="Client"] : [State_Client(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), !Const_('rab_privkey', privkey_1), !Const_('rab_pubkey', pubkey_2), Fr(n_0_0)]--[Transition_(<'rab_Client', param>, 'rab___0', %v_), Valid(), Eq_(verify(sign(n_0_0, privkey_1), n_0_0, pubkey_2), true())]->[State_Client(<'rab___7', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
-rule Equality_gen: [] --> [!Eq_(x,x)]
-rule NEquality_gen: [] --[NEq__(x,y)]-> [!NEq_(x,y)]
-restriction NEquality_rule: "All x #i. NEq__(x,x) @ #i ==> F"
+restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
 lemma AlwaysStarts_[reuse,use_induction]:
 
       "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"

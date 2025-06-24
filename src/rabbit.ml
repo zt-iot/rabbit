@@ -139,8 +139,9 @@ let _main =
       List.fold_left (fun _ s ->
           let t = Totamarin.translate_sys s (used_idents, used_strings) in
           let t =
-            if !Config.optimize then Tamarin.{ t with models= List.map Postprocessing.optimize t.models }
-            else t
+            if !Config.optimize then
+              { t with models= List.map (fun m -> Postprocessing.(move_eq_facts @@ optimize m)) t.models }
+            else { t with models= List.map Postprocessing.move_eq_facts t.models }
           in
           write_svg t;
           let tamarin = (Tamarin.print_tamarin t ~dev:!Config.dev ~print_transition_label:!Config.tag_transition) in

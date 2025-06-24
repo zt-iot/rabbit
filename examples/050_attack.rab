@@ -1,0 +1,40 @@
+function succ:1
+type proc_t : process
+
+syscall id(v) {
+  v
+}
+
+attack tamper_id on id(v) {
+  succ(v)
+}
+
+process alice() : proc_t 
+{
+    main {
+        new n in
+	event[::Send(n)];
+        var m = id(n) in
+        case
+        | [n = m] -> event[::Valid(n)]
+        | [n != m] -> event[::Invalid()]
+        end
+    }
+}
+
+allow proc_t [id]
+allow attack proc_t [tamper_id]
+
+system
+  alice()
+requires
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid(n) ;
+
+  lemma Corresponds : (* verified *)
+    corresponds ::Valid(n) ~> ::Send(n) ;
+
+  lemma Tampered : (* verified *)
+    reachable ::Invalid() 
+]
