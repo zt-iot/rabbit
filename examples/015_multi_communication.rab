@@ -1,0 +1,50 @@
+(** asynchronous channels *)
+syscall send(c, v) {
+  put [c::store(v)]
+}
+
+syscall recv(c) {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+type person_t : process
+type chan_t : channel
+
+process alice(ch : chan_t) : person_t 
+{
+    main {
+	event[::Sent()]; (* [::Sent()] must be here *)
+	_ := send(ch, 1)
+	(* event[::Sent()]
+           You cannot put [::Sent()] here, since [::Received] could happen before it *)
+    }
+}
+
+process bob(ch : chan_t) : person_t 
+{
+    main {
+	var one = recv(ch) in
+	event[::Received()];
+	case
+	| [one = 1] ->
+	    event[::Valid()]
+	end
+    }
+}
+
+allow person_t chan_t [send, recv]
+
+channel chan : chan_t
+
+system
+  alice(chan) | bob(chan)
+requires
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid() ;
+
+  lemma Correspondent : (* verified *)
+    corresponds ::Received() ~> ::Sent()
+]

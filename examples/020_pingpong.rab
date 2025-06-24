@@ -1,0 +1,43 @@
+type person_t : process
+type chan_t : channel
+
+process alice(ch : chan_t) : person_t 
+{
+    main {
+	case
+	| [ch::ping(n)] ->        (* Only takes [ping(n)] *)
+	      event [::Pong(n)];
+	      put [ch::pong(n)]
+        end
+    }
+}
+
+process bob(ch : chan_t) : person_t 
+{
+    main {
+        new n in
+	event [::Ping(n)];
+	put [ch::ping(n)];
+	case
+	| [ch::pong(n)] ->        (* Only takes [pong(n)] *)
+	     event [::Valid(n)]
+	| [ch::pong(m), n != m] ->
+	     event [::Invalid(n, m)]
+        end
+    }
+}
+
+allow person_t chan_t [.]
+
+channel chan : chan_t
+
+system
+  alice(chan) | bob(chan)
+requires
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid(n) ;
+
+  lemma Corresponds : (* verified *)
+    corresponds ::Pong(n) ~> ::Ping(n)
+]
