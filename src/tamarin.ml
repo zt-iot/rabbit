@@ -354,6 +354,7 @@ type transition =
   ; transition_to : state
   ; transition_pre : fact list
   ; transition_post : fact list
+  ; transition_action : action option
   ; transition_state_transition : state_desc * state_desc
   ; transition_label : fact list
   ; transition_is_loop_back : bool
@@ -930,3 +931,5 @@ let print_tamarin
   ^ List.fold_left (fun l lem -> l ^ print_lemma lem) "" lem_lst
   ^ "\nend\n"
 ;;
+
+let string_of_fact f = print_fact @@ compile_fact f
