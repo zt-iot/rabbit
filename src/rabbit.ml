@@ -10,6 +10,7 @@ let files = ref []
 let ofile = ref ("", false)
 
 let svg_file = ref None
+let svg2_file = ref None
 
 (** Add a file to the list of files to be loaded, and record whether it should
     be processed in interactive mode. *)
@@ -52,6 +53,10 @@ let options = Arg.align [
     ("--svg",
      Arg.String (fun fn -> svg_file := Some fn),
      "<file> Output graph SVG <file> (requires graphviz)");
+
+    ("--svg2",
+     Arg.String (fun fn -> svg2_file := Some fn),
+     "<file> Output graph SVG2 <file> (requires graphviz)");
     ]
 
 let write_svg (t : Tamarin.tamarin) =
@@ -126,7 +131,11 @@ let _main =
                  in
                  match sys with
                  | Some sys ->
-                     let _gs = Sem.graph_system decls sys in
+                     let gs = Sem.graphs_system decls sys in
+                     (match !svg2_file with
+                      | None -> ()
+                      | Some fn ->
+                          Sem_debug.write_graphs_svg fn gs);
                      prerr_endline "graph checked"
                  | None -> prerr_endline "no system"
             );
@@ -141,12 +150,14 @@ let _main =
           let t =
             if !Config.optimize then
               { t with models= List.map (fun m -> Postprocessing.(move_eq_facts @@ optimize m)) t.models }
-            else { t with models= List.map Postprocessing.move_eq_facts t.models }
+            else
+              { t with models= List.map Postprocessing.move_eq_facts t.models }
           in
           write_svg t;
-          let tamarin = (Tamarin.print_tamarin t ~dev:!Config.dev ~print_transition_label:!Config.tag_transition) in
+          let tamarin = Tamarin.print_tamarin t ~dev:!Config.dev ~print_transition_label:!Config.tag_transition in
           if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Warning:" "%s" "output file not specified"
-          else let oc = open_out (fst !ofile) in
+          else
+            let oc = open_out (fst !ofile) in
             Printf.fprintf oc "%s\n" tamarin;
             close_out oc;
             Print.message ~loc:Location.Nowhere "Translated into" "%s" (fst !ofile)
