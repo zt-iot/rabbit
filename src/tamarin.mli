@@ -150,7 +150,7 @@ type model =
   ; model_states : state list
   ; model_transitions : transition list
   ; model_init_rules : rule list
-  ; model_init_state : state
+  ; model_init_state : state (** [state_index = Mindex.zero && state_vars = { meta= 0; loc =0; top =0 }] *)
   ; model_transition_id_max : int
   ; model_type : string
   }
