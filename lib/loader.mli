@@ -32,8 +32,20 @@ val print_error : desugar_error -> Format.formatter -> unit
 
 val rabbit_ty_to_simple_ty_params : Input.rabbit_ty -> Context.simple_ty_param list
 
-val process_decl_as_context : Input.decl -> Context.env -> Context.env
+(* val process_decl_as_context : Input.decl -> Context.env -> Context.env *)
 
-val process_global_context : Input.decl list -> Context.env
+val initialize_global_context : Input.decl list -> Context.decl list * Context.env
+
+(** Convert a rabbit type to a simple type parameter.
+    @raise ConversionException if the rabbit type cannot be converted to a simple type parameter *)
+val convert_rabbit_ty_to_simple_ty_param : Input.rabbit_ty -> Context.simple_ty_param
+
+(** Convert a rabbit type to a channel type parameter.
+    @raise ConversionException if the rabbit type cannot be converted to a channel type parameter *)
+val convert_rabbit_ty_to_chan_ty_param : Input.rabbit_ty -> Context.chan_ty_param
+
+(** Convert a rabbit type to a security type parameter.
+    @raise ConversionException if the rabbit type cannot be converted to a security type parameter *)
+val convert_rabbit_ty_to_security_ty_param : Input.rabbit_ty -> Context.security_ty_param
 
 val load_just_parse : string -> int

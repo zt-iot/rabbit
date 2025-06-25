@@ -40,10 +40,6 @@ type env_value_ty =
 
 
 
-
-
-
-
 let rec typeof_expr e env = match e with 
   | Syntax.Variable(x, _) -> 
     begin 

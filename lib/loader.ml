@@ -614,7 +614,7 @@ let rec process_decl ctx pol def sys ps ({Location.data=c; Location.loc=loc} : I
             pol, 
             Context.def_add_ext_syscall def (f, typed_args, c), sys, fst ps)
 
-   | Input.DeclExtAttack(f, t, typed_args, c) ->      
+   | Input.DeclActiveAttack(f, t, typed_args, c) ->      
       (if Context.check_used ctx f then error ~loc (AlreadyDefined f) else ());
       (if not (Context.ctx_check_ext_syscall ctx t) then error ~loc (UnknownIdentifier t) else ());
       let args_ty = Context.ctx_get_ext_syscall_arity ~loc ctx t in
@@ -904,8 +904,7 @@ let rec process_decl_as_context decl env = match decl.Location.data with
 
 let rec load_just_parse fn =
    let decls, parser_state = Lexer.read_file Parser.file fn in
-   
-   let _ = print_endline (Input.show_decl (List.hd decls)) in
+
    let _ = List.fold_left (fun acc decl -> 
          let _ = print_endline (Input.show_decl decl) in
          acc 
@@ -913,12 +912,189 @@ let rec load_just_parse fn =
    0
 
 
-let rec process_global_context decls = 
+let rec initialize_global_context decls = 
    let env = List.fold_left (fun acc decl -> 
       let newenv = process_decl_as_context decl acc in 
       newenv 
       ) Maps.StringMap.empty decls in 
    env
+
+
+   
+(* ---------------------*)
+(* CLAUDE OUTPUT *)
+(* ---------------------*)
+
+
+(* Helper functions you'll likely need to implement *)
+
+let rec convert_rabbit_ty_to_simple_ty_param (rabbit_ty : Input.rabbit_ty) : Context.simple_ty_param =
+   match rabbit_ty with 
+   | Input.RabbitTyp(PlainTyp(ty_param_name, tys), None) ->
+      Context.SimpleTypeParam(ty_param_name, List.map convert_rabbit_ty_to_simple_ty_param tys)
+   | Input.RabbitTyp(PolyTyp(name), None) -> 
+      Context.SimpleTypePolyTyp(name)
+   | Input.RabbitTyp(ProdTyp(t1, t2), None) ->
+      Context.SimpleTypeProdType(
+         (convert_rabbit_ty_to_simple_ty_param t1), 
+         (convert_rabbit_ty_to_simple_ty_param t2)
+         )
+   | invalid_ty ->
+      raise (ConversionException ("Cannot convert rabbit_ty: " ^ Input.show_rabbit_ty invalid_ty))
+
+let rec convert_rabbit_ty_to_chan_ty_param (rabbit_ty : Input.rabbit_ty) : Context.chan_ty_param = 
+   match rabbit_ty with 
+   | RabbitTyp(PlainTyp(name, ty_params), None) -> ChTypeParam(name, List.map convert_rabbit_ty_to_chan_ty_param ty_params)
+   | RabbitTyp(ProdTyp(ty1, ty2), None) -> ChProdTypeParam(convert_rabbit_ty_to_chan_ty_param(ty1), convert_rabbit_ty_to_chan_ty_param(ty2))
+   | invalid_ty -> raise (ConversionException ("Cannot convert this rabbit_ty to chan_ty_param: " ^ (Input.show_rabbit_ty invalid_ty)))
+
+let rec convert_rabbit_ty_to_security_ty_param (rabbit_ty : Input.rabbit_ty) : Context.security_ty_param =
+   match rabbit_ty with 
+   | RabbitTyp(PlainTyp(name, ty_params), None) -> SecSimpleType(name, List.map convert_rabbit_ty_to_security_ty_param ty_params)
+   | RabbitTyp(ProdTyp(t1, t2), None) -> SecProdType(convert_rabbit_ty_to_security_ty_param t1, convert_rabbit_ty_to_security_ty_param t2)
+   | invalid_ty -> raise (ConversionException ("Cannot convert this rabbit_ty to sec_ty_param: " ^ (Input.show_rabbit_ty invalid_ty)))
+
+let initialize_global_context (input_decls : Input.decl list) : Context.decl list * Context.env =
+  let process_decl_as_context (acc_context_decls, acc_env) decl =
+    match decl.Location.data with
+    
+    (* Simple types get added to environment *)
+    | Input.DeclSimpleTyp(RabbitTyp(PlainTyp(simple_typ_name, tys), None)) ->
+        let simple_ty_params = List.map convert_rabbit_ty_to_simple_ty_param tys in 
+        let updated_env = Maps.StringMap.add simple_typ_name (Context.CtxSimpleType(simple_ty_params)) acc_env in
+        (acc_context_decls, updated_env)
+        
+    (* Process and file types get added to environment *)
+    | Input.DeclProcType proc_name ->
+        let updated_env = Maps.StringMap.add proc_name Context.CtxProcType acc_env in
+        (acc_context_decls, updated_env)
+    | Input.DeclFileType file_name ->
+        let updated_env = Maps.StringMap.add file_name Context.CtxFileType acc_env in
+        (acc_context_decls, updated_env)
+        
+    (* User-defined types get added to environment *)
+    | Input.DeclTyp (type_name, rabbit_ty) ->
+        
+        (* convert the rabbit_ty to the corresponding context_ty *)
+        let ctx_ty = match rabbit_ty with
+          (* user-defined type is a channel type *)
+          | Input.RabbitTyp(ChannelTyp(tys), None) -> 
+              let converted_tys = List.map convert_rabbit_ty_to_chan_ty_param tys in
+              Context.CtxChannelType(converted_tys)
+          (* we are assuming that user-defined type is a security type *)
+          | Input.RabbitTyp(PlainTyp(simple_type_name, tys), None) -> 
+              let converted_tys = List.map convert_rabbit_ty_to_security_ty_param tys in 
+              Context.CtxSecurityType(converted_tys)
+          | _ -> raise (ConversionException ("Cannot convert this rabbit_ty to a ctx_ty: " ^ (Input.show_rabbit_ty rabbit_ty)))
+        in
+        let updated_env = Maps.StringMap.add type_name ctx_ty acc_env in
+        (acc_context_decls, updated_env)
+
+    (* Equational theory functions *)
+    | Input.DeclEqThyFunc (func_name, desc) ->
+        let updated_env = Maps.StringMap.add func_name (Context.CtxEqThyFunc desc) acc_env in
+        (acc_context_decls, updated_env)
+        
+    (* Equational theory equations *)
+    | Input.DeclEqThyEquation (expr1, expr2) ->
+        let context_decl = Location.{
+         data = Context.DeclEqThyEquation(expr1, expr2); 
+         loc = decl.loc
+        } in 
+        (context_decl :: acc_context_decls, acc_env)
+        
+    (* External syscalls *)
+    | Input.DeclExtSyscall (syscall_name, desc, cmd) ->
+        let updated_env = Maps.StringMap.add syscall_name (Context.CtxSyscall (desc, cmd) ) acc_env in
+        (acc_context_decls, updated_env)
+        
+    (* Active attacks *)
+    | Input.DeclActiveAttack (attack_name, syscall_name, args, cmd) ->
+        let updated_env = Maps.StringMap.add attack_name (Context.CtxActiveAttack (syscall_name, args, cmd)) acc_env in
+        (acc_context_decls, updated_env)
+        
+    (* Constants *)
+    | Input.DeclConst (const_name, const_desc, rabbit_ty_opt) ->
+        let updated_env = Maps.StringMap.add const_name (Context.CtxGlobalConst (const_desc, rabbit_ty_opt)) acc_env in
+        (acc_context_decls, updated_env)
+        
+    (* Channel instantiations *)
+    | Input.DeclChanInstantiation (Input.ChanParam {id; param; typ}) ->
+        let updated_env = Maps.StringMap.add id ( Context.CtxInstantiatedChannel(param, typ)) acc_env in
+        (acc_context_decls, updated_env)
+
+    (* Access declarations - pass through to Context.decl *)
+    | Input.DeclAccess (proc_name, resources, syscalls_opt) ->
+        let context_decl = Location.{
+          data = Context.DeclAccess (proc_name, resources, syscalls_opt);
+          loc = decl.loc
+        } in
+        (context_decl :: acc_context_decls, acc_env)
+        
+    (* Allow attack declarations - pass through to Context.decl *)
+    | Input.DeclAllowAttack (attacks, processes) ->
+        let context_decl = Location.{
+          data = Context.DeclAllowAttack (attacks, processes);
+          loc = decl.loc
+        } in
+        (context_decl :: acc_context_decls, acc_env)
+        
+    (* Process declarations - pass through to Context.decl *)
+    | Input.DeclProc proc_record ->
+        (* Boilerplate code for transforming an Input.decl' to a Context.decl' *)
+        let context_proc_record = 
+         Context.DeclProc {
+            id = proc_record.id;
+            is_process_parametric = proc_record.is_process_parametric;
+            params = proc_record.params;
+            proc_typ = proc_record.proc_typ;
+            file_stmts = proc_record.file_stmts;
+            let_stmts = proc_record.let_stmts;
+            funcs = proc_record.funcs;
+            main_func = proc_record.main_func;
+         }
+        in
+        let context_decl = Location.{
+          data = context_proc_record; 
+          loc = decl.loc
+        } in
+        (context_decl :: acc_context_decls, acc_env)
+        
+    (* System declarations - pass through to Context.decl *)
+    | Input.DeclSys (procs, lemmas) ->
+        let context_decl = Location.{
+          data = Context.DeclSys (procs, lemmas);
+          loc = decl.loc
+        } in
+        (context_decl :: acc_context_decls, acc_env)
+        
+    (* Load declarations - pass through to Context.decl *)
+    | Input.DeclLoad filename ->
+        let context_decl = Location.{
+          data = Context.DeclLoad filename;
+          loc = decl.loc
+        } in
+        (context_decl :: acc_context_decls, acc_env)
+
+    | _ -> failwith "TODO"
+  in
+  
+  let (context_decls, env) = List.fold_left process_decl_as_context ([], Maps.StringMap.empty) input_decls in
+  (* List.fold_left reverses the order of the input declarations, 
+  so we reverse again in the end to get the original order *)
+  (List.rev context_decls, env)
+
+
+let determine_type_category (rabbit_ty : Input.rabbit_ty) : [`Simple | `Channel | `Security] =
+  (* TODO: Analyze rabbit_ty to determine what kind of type it represents *)
+  match rabbit_ty with
+  | Input.RabbitTyp (Input.ChannelTyp _, _) -> `Channel
+  | Input.RabbitTyp (_, Some _) -> `Security  (* Has security level *)
+  | _ -> `Simple
+
+(* ---------------------*)
+(* CLAUDE OUTPUT END *)
+(* ---------------------*)
 
 
 

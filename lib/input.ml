@@ -10,10 +10,13 @@ type operator = string [@@deriving show]
 - A Rabbit channel type
 - A product of any Rabbit types
 *)
+
+
+
 type plain_ty = 
   | Unit                                                (* used for syscalls that do not have a return type *)
   | PlainTyp of Name.ident * rabbit_ty list
-  | PolyType of Name.ident                              (* 'a, 'b, 'k etc.*)
+  | PolyTyp of Name.ident                              (* 'a, 'b, 'k etc.*)
   | ChannelTyp of rabbit_ty list                        (* channel[t_1 + ... + t_n] *)
   | ProdTyp of rabbit_ty * rabbit_ty
 [@@deriving show]
@@ -147,7 +150,7 @@ type proc =
 
 
 (* system instantiation *)
-type prop = prop' Location.located
+type prop = prop' Location.located [@@deriving show]
 and prop' =
   | PlainString of string
   | Reachability of fact list
@@ -158,25 +161,24 @@ and prop' =
 
 
 (* system instantiation *)
-type lemma = lemma' Location.located
+type lemma = lemma' Location.located [@@deriving show]
 and lemma' =
   | Lemma of Name.ident * prop 
 [@@deriving show]
 
   
 
-(* let print_hello = 
-  print_endline "hello" *)
 
-
+(* Used for signature of equational theory function *)
 type eq_thy_func_desc = 
   | Arity of int (* when types are not given *)
   | TypeSig of rabbit_ty list (* when types are given *)
 [@@deriving show]
 
-type fun_signature = 
-  | UntypedSig of Name.ident list 
-  | TypedSig of Name.ident list * rabbit_ty list * rabbit_ty
+(* Used for signature of syscalls and member function *)
+type syscall_member_fun_desc = 
+  | UntypedSig of Name.ident list  (* when types are not given *)
+  | TypedSig of Name.ident list * rabbit_ty list * rabbit_ty (* when types are given *)
 [@@deriving show]
 
 type const_desc = 
@@ -187,7 +189,7 @@ type const_desc =
 [@@deriving show]
 
 
-type chan_param = ChanParam of { id : Name.ident; param : unit option; typ : rabbit_ty} [@@deriving show]
+type chan_param = ChanParam of { id : Name.ident; param : unit option; typ : rabbit_ty } [@@deriving show]
 
 
 type decl = decl' Location.located [@@deriving show]
@@ -202,11 +204,11 @@ and decl' =
   | DeclEqThyFunc of Name.ident * eq_thy_func_desc
   | DeclEqThyEquation of expr * expr
   
-
-  | DeclExtSyscall of Name.ident * fun_signature * cmd
+  (* used both for syscalls and passive attacks *)
+  | DeclExtSyscall of Name.ident * syscall_member_fun_desc * cmd 
   
-  (* attack <attack_name> on <syscall_name> (<syscall_arg>* )  *)
-  | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
+  (* attack <attack_name> on <syscall_name> (<syscall_arg>* ) { <cmd> } *)
+  | DeclActiveAttack of Name.ident * Name.ident * Name.ident list * cmd
 
   (* process "Name.ident" is allowed access to resources of "Name.ident list" with system calls of "Name.ident list option" *)
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
@@ -240,7 +242,7 @@ and decl' =
       ; proc_typ : Name.ident 
       ; file_stmts : (expr * Name.ident * expr) list
       ; let_stmts : (Name.ident * expr * rabbit_ty option) list
-      ; funcs : (Name.ident * fun_signature * cmd) list
+      ; funcs : (Name.ident * syscall_member_fun_desc * cmd) list
       ; main_func : cmd
     }
 

@@ -1,29 +1,105 @@
-open Maps
 
 
+type operator = string [@@deriving show]
+
+
+(* well-formed *binding* of a simple type *)
 type simple_ty_param = 
   | SimpleTypeParam of Name.ident * simple_ty_param list
-  | PolyType of Name.ident
-  | ChannelTyp of simple_ty_param list
-  | ProdTyp of simple_ty_param * simple_ty_param
+  | SimpleTypePolyTyp of Name.ident
+  | SimpleTypeProdType of simple_ty_param * simple_ty_param
+[@@deriving show]
+
+
+
+(* well-formed *binding* of a channel type *)
+type chan_ty_param = 
+  | ChTypeParam of Name.ident * chan_ty_param list
+  | ChProdTypeParam of chan_ty_param * chan_ty_param
+[@@deriving show]
+
+
+
+(* well-formed *binding* of a security type *)
+type security_ty_param = 
+  | SecSimpleType of Name.ident * security_ty_param list
+  | SecProdType of security_ty_param * security_ty_param
+[@@deriving show]
+
+
+
+
+
+(* Re-use the types from input.ml which do not change in this file *)
+type expr = Input.expr [@@deriving show]
+type rabbit_ty = Input.rabbit_ty [@@deriving show]
+type eq_thy_func_desc = Input.eq_thy_func_desc [@@deriving show]
+type syscall_member_fun_desc = Input.syscall_member_fun_desc [@@deriving show]
+type chan_param = Input.chan_param [@@deriving show]
+type cmd = Input.cmd [@@deriving show]
+type proc = Input.proc [@@deriving show]
+type lemma = Input.lemma [@@deriving show]
+type const_desc = Input.const_desc [@@deriving show]
+
 
 type ctx_ty = 
-  | CtxSimpleType of simple_ty_param list 
+  | CtxSimpleType of simple_ty_param list
   | CtxFileType
   | CtxProcType
-  | CtxSecurityType of unit
-  | CtxChannelType of unit
+  | CtxChannelType of chan_ty_param list
+
   
-  | CtxEqThyFunc of unit
-  | CtxEqThyEquation of unit 
+  | CtxSecurityType of security_ty_param list
+  
 
-  | CtxSyscall of unit 
-  | CtxPassiveAttack of unit
-  | CtxActiveAttack of unit 
-  | CtxGlobalConst of Name.ident
+  | CtxEqThyFunc of eq_thy_func_desc
+
+  (* used both for syscalls and passive attacks *)
+  | CtxSyscall of syscall_member_fun_desc * cmd
+
+  (* attack on <name>(<name>+) { <cmd> } *)
+  | CtxActiveAttack of Name.ident * Name.ident list * cmd 
+
+  | CtxInstantiatedChannel of unit option * rabbit_ty
+  
+  | CtxGlobalConst of const_desc * rabbit_ty option
+[@@deriving show]
+
+  
+(* our typing environment is a mapping from Name.ident to ctx_ty *)
+type env = ctx_ty Maps.string_map [@@deriving show]
 
 
-type env = ctx_ty string_map
+(* reduced decl language *)
+type decl = decl' Location.located [@@deriving show]
+and decl' = 
+  (* process "Name.ident" is allowed access to resources of "Name.ident list" with system calls of "Name.ident list option" *)
+  | DeclEqThyEquation of expr * expr
+
+  | DeclAccess of Name.ident * Name.ident list * Name.ident list option
+
+  | DeclAllowAttack of Name.ident list * Name.ident list
+
+  | DeclProc of 
+    {
+      id : Name.ident
+      ; is_process_parametric : Name.ident option (* Whether process is a parameterized process or not *)
+      ; params : chan_param list (* Parameters (ch_1 : ty_1, ch_2<> : ty_2 ..., ch_n : ty_n) of a process*)
+      ; proc_typ : Name.ident 
+      ; file_stmts : (expr * Name.ident * expr) list
+      ; let_stmts : (Name.ident * expr * rabbit_ty option) list
+      ; funcs : (Name.ident * syscall_member_fun_desc * cmd) list
+      ; main_func : cmd
+    }
+
+  | DeclSys of  proc list * lemma list 
+
+  | DeclLoad of string
+[@@deriving show]
+
+
+
+
 
 
 (* 

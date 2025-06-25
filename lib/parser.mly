@@ -124,7 +124,7 @@ plain_decl:
   | CONST c=NAME LT const_param=NAME GT EQ e=expr { DeclConst(c, Value_with_param(e, const_param), None) }
    
   (* TODO parse arguments as a suitable AST node instead of "NAME" *)
-  | ATTACK f=NAME ON t=NAME LPAREN arg=separated_list(COMMA, NAME) RPAREN LBRACE c=cmd RBRACE { DeclExtAttack (f, t, arg, c) }
+  | ATTACK f=NAME ON t=NAME LPAREN arg=separated_list(COMMA, NAME) RPAREN LBRACE c=cmd RBRACE { DeclActiveAttack (f, t, arg, c) }
 
   | external_syscall { $1 }
 
@@ -274,7 +274,7 @@ plain_ty:
   (* Then the situation in which there are no type parameters... *)
   | t=NAME { PlainTyp(t, []) }
 
-  | APOSTROPHE t=NAME { PolyType(t) }
+  | APOSTROPHE t=NAME { PolyTyp(t) }
   | CHANNEL LBRACKET typs=separated_nonempty_list(PLUS, rabbit_ty) RBRACKET { ChannelTyp(typs) }
   | t1=rabbit_ty STAR t2=rabbit_ty { ProdTyp(t1, t2) }
 
