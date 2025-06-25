@@ -37,13 +37,13 @@ rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[
 
 
 
-rule Alice_merged___0___0_0_1_25[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_send')]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_)]->[State_Alice(<'rab___0_0_1', param, %v_>, 'rab_', 'rab_', <'1', 'rab_chan'>, 'rab_'), Store('rab_chan', '1')] 
+rule Alice_scall_intro_put___0___0_0_1_25[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_send')]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_)]->[State_Alice(<'rab___0_0_1', param, %v_>, 'rab_', 'rab_', <'1', 'rab_chan'>, 'rab_'), Store('rab_chan', '1')] 
 
-rule Alice_merged___0_0_1___3_0_0_24[role="Alice"] : [State_Alice(<'rab___0_0_1', param, %v_>, return_var_2, 'rab_', <l_0_2, l_1_2>, 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___0_0_1', %v_), Sent()]->[State_Alice(<'rab___3_0_0', param, %v_>, 'rab_', 'rab_', <'rab_chan', 'rab_'>, 'rab_')] 
+rule Alice_scall_out_event_let_intro_scall_intro___0_0_1___3_0_0_24[role="Alice"] : [State_Alice(<'rab___0_0_1', param, %v_>, return_var_2, 'rab_', <l_0_2, l_1_2>, 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___0_0_1', %v_), Sent()]->[State_Alice(<'rab___3_0_0', param, %v_>, 'rab_', 'rab_', <'rab_chan', 'rab_'>, 'rab_')] 
 
-rule Alice_merged___3_0_0___5_21[role="Alice"] : [State_Alice(<'rab___3_0_0', param, %v_>, return_var_6, 'rab_', <l_0_6, l_1_6>, 'rab_'), !ACP_(<'rab_Alice', param>, l_0_6, 'rab_recv'), Store(l_0_6, n_0_6)]--[Transition_(<'rab_Alice', param>, 'rab___3_0_0', %v_), Received()]->[State_Alice(<'rab___5', param, %v_>, 'rab_', 'rab_', n_0_6, 'rab_')] 
+rule Alice_guarded_return_case_out_scall_out_event___3_0_0___5_21[role="Alice"] : [State_Alice(<'rab___3_0_0', param, %v_>, return_var_6, 'rab_', <l_0_6, l_1_6>, 'rab_'), !ACP_(<'rab_Alice', param>, l_0_6, 'rab_recv'), Store(l_0_6, n_0_6)]--[Transition_(<'rab_Alice', param>, 'rab___3_0_0', %v_), Received()]->[State_Alice(<'rab___5', param, %v_>, 'rab_', 'rab_', n_0_6, 'rab_')] 
 
-rule Alice_merged___5___7_17[role="Alice"] : [State_Alice(<'rab___5', param, %v_>, return_var_11, 'rab_', l_0_11, 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___5', %v_), Valid(), Eq_(l_0_11, '1')]->[State_Alice(<'rab___7', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Alice_guarded_event_case_out_let_out___5___7_17[role="Alice"] : [State_Alice(<'rab___5', param, %v_>, return_var_11, 'rab_', l_0_11, 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___5', %v_), Valid(), Eq_(l_0_11, '1')]->[State_Alice(<'rab___7', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
