@@ -30,11 +30,13 @@ val error : loc:Location.t -> desugar_error -> 'a
 val print_error : desugar_error -> Format.formatter -> unit
 
 
-val rabbit_ty_to_simple_ty_params : Input.rabbit_ty -> Context.simple_ty_param list
+
+val throw_already_defined : string -> Context.ctx_ty -> unit 
+
 
 (* val process_decl_as_context : Input.decl -> Context.env -> Context.env *)
 
-val initialize_global_context : Input.decl list -> Context.decl list * Context.env
+val initialize_global_context : Input.decl list -> Context.env -> Context.decl list * Context.env
 
 (** Convert a rabbit type to a simple type parameter.
     @raise ConversionException if the rabbit type cannot be converted to a simple type parameter *)

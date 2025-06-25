@@ -2,6 +2,11 @@ open Printf
 
 
 exception ConversionException of string
+exception AlreadyDefinedException of Name.ident 
+
+
+let throw_already_defined ident ctx_ty =
+   raise (AlreadyDefinedException ("The identifier " ^ ident ^ " is already bound to " ^ (Context.show_ctx_ty ctx_ty)))
 
 
 
@@ -889,18 +894,7 @@ let process_init = (Context.ctx_init, Context.pol_init, Context.def_init, [], ([
 
 *)
 
-let rec rabbit_ty_to_simple_ty_params rtyps = failwith "TODO"
 
-
-
-
-let rec process_decl_as_context decl env = match decl.Location.data with 
-   | Input.DeclSimpleTyp(RabbitTyp(PlainTyp(id, tys), None)) -> 
-     let new_entry = (id, Context.CtxSimpleType(rabbit_ty_to_simple_ty_params tys)) in 
-     env
-   | Input.DeclSimpleTyp(RabbitTyp(_, Some s)) -> 
-      raise (ConversionException "Cannot supply a security level when declaring a simple type")   
-   | _ -> raise (ConversionException "")
 
 let rec load_just_parse fn =
    let decls, parser_state = Lexer.read_file Parser.file fn in
@@ -910,14 +904,6 @@ let rec load_just_parse fn =
          acc 
       ) () decls in
    0
-
-
-let rec initialize_global_context decls = 
-   let env = List.fold_left (fun acc decl -> 
-      let newenv = process_decl_as_context decl acc in 
-      newenv 
-      ) Maps.StringMap.empty decls in 
-   env
 
 
    
@@ -954,7 +940,9 @@ let rec convert_rabbit_ty_to_security_ty_param (rabbit_ty : Input.rabbit_ty) : C
    | RabbitTyp(ProdTyp(t1, t2), None) -> SecProdType(convert_rabbit_ty_to_security_ty_param t1, convert_rabbit_ty_to_security_ty_param t2)
    | invalid_ty -> raise (ConversionException ("Cannot convert this rabbit_ty to sec_ty_param: " ^ (Input.show_rabbit_ty invalid_ty)))
 
-let initialize_global_context (input_decls : Input.decl list) : Context.decl list * Context.env =
+
+   
+let rec initialize_global_context (input_decls : Input.decl list) (initial_env : Context.env) : Context.decl list * Context.env =
   let process_decl_as_context (acc_context_decls, acc_env) decl =
     match decl.Location.data with
     
@@ -1070,16 +1058,17 @@ let initialize_global_context (input_decls : Input.decl list) : Context.decl lis
         
     (* Load declarations - pass through to Context.decl *)
     | Input.DeclLoad filename ->
-        let context_decl = Location.{
-          data = Context.DeclLoad filename;
-          loc = decl.loc
-        } in
-        (context_decl :: acc_context_decls, acc_env)
+        let filename_input_decls, _ = Lexer.read_file Parser.file filename in 
+        let (filename_ctx_decls, updated_env) = initialize_global_context filename_input_decls acc_env in
+        
+        (* this means all filename_ctx_decls appear before declarations processed later *)
+        (* (the list is reversed in the end ) *)
+        (filename_ctx_decls @ acc_context_decls, updated_env)
 
     | _ -> failwith "TODO"
   in
   
-  let (context_decls, env) = List.fold_left process_decl_as_context ([], Maps.StringMap.empty) input_decls in
+  let (context_decls, env) = List.fold_left process_decl_as_context ([], initial_env) input_decls in
   (* List.fold_left reverses the order of the input declarations, 
   so we reverse again in the end to get the original order *)
   (List.rev context_decls, env)

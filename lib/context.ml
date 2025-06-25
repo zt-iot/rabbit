@@ -93,8 +93,6 @@ and decl' =
     }
 
   | DeclSys of  proc list * lemma list 
-
-  | DeclLoad of string
 [@@deriving show]
 
 
