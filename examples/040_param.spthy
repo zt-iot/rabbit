@@ -37,9 +37,9 @@ rule Init_system[role="system"] : []--[Init_('rab_system')]->[State_Client(<'rab
 
 
 
-rule Client_merged___0___7_25[role="Client"] : [State_Client(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), !Const_('rab_privkey', privkey_1), !Const_('rab_pubkey', pubkey_2), Fr(n_0_0)]--[Transition_(<'rab_Client', param>, 'rab___0', %v_), Invalid(), Eq_(verify(sign(n_0_0, privkey_1), n_0_0, pubkey_2), false())]->[State_Client(<'rab___7', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Client_new_intro_let_intro_let_intro_guarded_event_case_out_let_out_let_out_new_out___0___7_25[role="Client"] : [State_Client(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), !Const_('rab_privkey', privkey_1), !Const_('rab_pubkey', pubkey_2), Fr(n_0_0)]--[Transition_(<'rab_Client', param>, 'rab___0', %v_), Invalid(), Eq_(verify(sign(n_0_0, privkey_1), n_0_0, pubkey_2), false())]->[State_Client(<'rab___7', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
-rule Client_merged___0___7_24[role="Client"] : [State_Client(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), !Const_('rab_privkey', privkey_1), !Const_('rab_pubkey', pubkey_2), Fr(n_0_0)]--[Transition_(<'rab_Client', param>, 'rab___0', %v_), Valid(), Eq_(verify(sign(n_0_0, privkey_1), n_0_0, pubkey_2), true())]->[State_Client(<'rab___7', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Client_new_intro_let_intro_let_intro_guarded_event_case_out_let_out_let_out_new_out___0___7_24[role="Client"] : [State_Client(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), !Const_('rab_privkey', privkey_1), !Const_('rab_pubkey', pubkey_2), Fr(n_0_0)]--[Transition_(<'rab_Client', param>, 'rab___0', %v_), Valid(), Eq_(verify(sign(n_0_0, privkey_1), n_0_0, pubkey_2), true())]->[State_Client(<'rab___7', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
