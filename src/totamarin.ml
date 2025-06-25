@@ -191,6 +191,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = pre
           ; transition_post = []
+          ; transition_action = Some [ActionReturn e]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionReturn e) st.state_vars
           ; transition_label = []
@@ -211,6 +212,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = []
           ; transition_post = []
+          ; transition_action = Some [ActionReturn Unit]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionReturn Unit) st.state_vars
           ; transition_label = []
@@ -239,6 +241,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = pre @ pre'
           ; transition_post = post
+          ; transition_action = Some [ActionReturn Unit]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionReturn Unit) st.state_vars
           ; transition_label = []
@@ -260,6 +263,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = pre
           ; transition_post = []
+          ; transition_action = Some [ActionIntro [e]]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionIntro [ e ]) st.state_vars
           ; transition_label = []
@@ -279,6 +283,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = []
           ; transition_post = []
+          ; transition_action = Some [ActionPopLoc 1]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionPopLoc 1) st.state_vars
           ; transition_label = []
@@ -300,6 +305,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = pre
           ; transition_post = []
+          ; transition_action = Some [ActionAssign (di, e)]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionAssign (di, e)) st.state_vars
           ; transition_label = []
@@ -323,6 +329,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = pre
           ; transition_post = []
+          ; transition_action = Some [ActionIntro es]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionIntro es) st.state_vars
           ; transition_label = []
@@ -335,6 +342,13 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       in
       let mo = add_state mo st_f in
       let mo =
+        let action =
+          match ov with
+          | None -> ActionPopLoc (List.length es)
+          | Some (_, v) ->
+              ActionSeq
+                (ActionPopLoc (List.length es), ActionAssign (v, return_var))
+        in
         add_transition
           mo
           { transition_id = List.length mo.model_transitions
@@ -344,14 +358,9 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = []
           ; transition_post = []
+          ; transition_action = Some [action]
           ; transition_state_transition =
-              mk_state_transition_from_action
-                (match ov with
-                 | None -> ActionPopLoc (List.length es)
-                 | Some (_, v) ->
-                     ActionSeq
-                       (ActionPopLoc (List.length es), ActionAssign (v, return_var)))
-                st.state_vars
+              mk_state_transition_from_action action st.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
           }
@@ -375,6 +384,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_i
           ; transition_pre = pre
           ; transition_post = []
+          ; transition_action = Some [ActionIntro es]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionIntro es) st.state_vars
           ; transition_label = []
@@ -384,6 +394,13 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       let mo, st_m = translate_cmd mo st_i funs syscalls attacks None o pol cmd in
       let st_f = next_state st None in
       let mo = add_state mo st_f in
+      let action =
+        match ov with
+        | None -> ActionPopLoc (List.length es)
+        | Some (_, v) ->
+            ActionSeq
+              (ActionPopLoc (List.length es), ActionAssign (v, return_var))
+      in
       let mo =
         add_transition
           mo
@@ -394,14 +411,9 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = []
           ; transition_post = []
+          ; transition_action = Some [action]
           ; transition_state_transition =
-              mk_state_transition_from_action
-                (match ov with
-                 | None -> ActionPopLoc (List.length es)
-                 | Some (_, v) ->
-                     ActionSeq
-                       (ActionPopLoc (List.length es), ActionAssign (v, return_var)))
-                st_m.state_vars
+              mk_state_transition_from_action action st_m.state_vars
           ; transition_label = []
           ; transition_is_loop_back = false
           }
@@ -438,6 +450,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
                       ; transition_to = st_i2
                       ; transition_pre = pre
                       ; transition_post = []
+                      ; transition_action = Some [ActionIntro es]
                       ; transition_state_transition =
                           mk_state_transition_from_action (ActionIntro es) st.state_vars
                       ; transition_label = []
@@ -446,6 +459,14 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
                   in
                   let mo, st_m =
                     translate_cmd mo st_i2 funs syscalls attacks None o pol c
+                  in
+                  let action =
+                    match ov with
+                    | None -> ActionPopLoc (List.length es)
+                    | Some (_, v) ->
+                        ActionSeq
+                          ( ActionPopLoc (List.length es)
+                          , ActionAssign (v, return_var) )
                   in
                   add_transition
                     mo
@@ -456,15 +477,9 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
                     ; transition_to = st_f
                     ; transition_pre = []
                     ; transition_post = []
+                    ; transition_action = Some [action]
                     ; transition_state_transition =
-                        mk_state_transition_from_action
-                          (match ov with
-                           | None -> ActionPopLoc (List.length es)
-                           | Some (_, v) ->
-                               ActionSeq
-                                 ( ActionPopLoc (List.length es)
-                                 , ActionAssign (v, return_var) ))
-                          st_m.state_vars
+                        mk_state_transition_from_action action st_m.state_vars
                     ; transition_label = []
                     ; transition_is_loop_back = false
                     })
@@ -506,6 +521,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
                ; transition_to = st_f
                ; transition_pre = []
                ; transition_post = []
+               ; transition_action = Some [ActionPopMeta (List.length vl)]
                ; transition_state_transition =
                    mk_state_transition_from_action
                      (ActionPopMeta (List.length vl))
@@ -532,6 +548,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_i
           ; transition_pre = []
           ; transition_post = []
+          ; transition_action = Some [ActionReturn Unit]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionReturn Unit) st.state_vars
           ; transition_label = [ LoopFact (mo.model_name, mindex, 0) ]
@@ -573,6 +590,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
                ; transition_to = st
                ; transition_pre = []
                ; transition_post = []
+               ; transition_action = Some [ActionPopMeta (List.length vl)]
                ; transition_state_transition =
                    mk_state_transition_from_action
                      (ActionPopMeta (List.length vl))
@@ -609,6 +627,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
                ; transition_to = st_f
                ; transition_pre = []
                ; transition_post = []
+               ; transition_action = Some [ActionPopMeta (List.length vl)]
                ; transition_state_transition =
                    mk_state_transition_from_action
                      (ActionPopMeta (List.length vl))
@@ -635,6 +654,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = pre
           ; transition_post = []
+          ; transition_action = Some [ActionReturn Unit]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionReturn Unit) st.state_vars
           ; transition_label = label
@@ -660,6 +680,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
               (if fid = ""
                then []
                else [ InjectiveFact (fid, mo.model_name, MetaNewVar 0, List el) ])
+          ; transition_action = Some [ActionAddMeta 1]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionAddMeta 1) st.state_vars
           ; transition_label = []
@@ -679,6 +700,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = []
           ; transition_post = []
+          ; transition_action = Some [ActionPopMeta 1]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionPopMeta 1) st.state_vars
           ; transition_label = []
@@ -715,6 +737,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
                   , List (List.map (fun i -> MetaNewVar i) (int_to_list (List.length vl)))
                   )
               ]
+          ; transition_action = Some [ActionAddMeta (List.length vl)]
           ; transition_state_transition =
               mk_state_transition_from_action
                 (ActionAddMeta (List.length vl))
@@ -738,6 +761,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = []
           ; transition_post = []
+          ; transition_action = Some [ActionPopMeta (List.length vl)]
           ; transition_state_transition =
               mk_state_transition_from_action
                 (ActionPopMeta (List.length vl))
@@ -761,6 +785,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_to = st_f
           ; transition_pre = [ InjectiveFact (fid, mo.model_name, e, MetaNewVar 0) ] @ pre
           ; transition_post = []
+          ; transition_action = Some [ActionReturn Unit]
           ; transition_state_transition =
               mk_state_transition_from_action (ActionReturn Unit) st.state_vars
           ; transition_label = []
@@ -787,6 +812,7 @@ and translate_guarded_cmd mo st funs syscalls attacks scope syscall pol (vl, fl,
       ; transition_to = st_f
       ; transition_pre = fl @ gv @ acps
       ; transition_post = []
+      ; transition_action = Some [ActionAddMeta (List.length vl)]
       ; transition_state_transition =
           mk_state_transition_from_action (ActionAddMeta (List.length vl)) st.state_vars
       ; transition_label = []
@@ -856,6 +882,7 @@ let translate_process
                       pol.Context.pol_access_all
                   then [ AccessFact (mo.model_name, Param, path, "") ]
                   else [])
+             ; transition_action = Some [ActionReturn Unit]
              ; transition_state_transition =
                  mk_state_transition_from_action (ActionReturn Unit) st.state_vars
              ; transition_label = []
@@ -889,6 +916,7 @@ let translate_process
              ; transition_to = st_f
              ; transition_pre = gv
              ; transition_post = []
+             ; transition_action = Some [ActionLetTop [e]]
              ; transition_state_transition =
                  mk_state_transition_from_action (ActionLetTop [ e ]) st.state_vars
              ; transition_label = []

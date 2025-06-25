@@ -290,6 +290,10 @@ let rec optimize_at (m : model) (st : state) =
                 transition_to = st_f;
                 transition_pre = tr1.transition_pre @ pre2;
                 transition_post = post1 @ post2;
+                transition_action =
+                  (match tr1.transition_action, tr2.transition_action with
+                   | None, _ | _, None -> None
+                   | Some a1, Some a2 -> Some (a1 @ a2));
                 transition_state_transition =
                   fst tr1.transition_state_transition,
                     { ret= expr_subst_vars ret substs;

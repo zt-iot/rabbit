@@ -7,6 +7,8 @@ type variable_desc =
   | MetaNew of int (** pattern variables in cases and free variables in lemmas *)
   | Param (** parameter variable *)
 
+val string_of_variable_desc : variable_desc -> string
+
 type expr = expr' Location.located
 
 and expr' =

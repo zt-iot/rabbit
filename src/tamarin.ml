@@ -356,6 +356,7 @@ type transition =
   ; transition_to : state
   ; transition_pre : fact list
   ; transition_post : fact list
+  ; transition_action : action list option
   ; transition_state_transition : state_desc * state_desc
   ; transition_label : fact list
   ; transition_is_loop_back : bool
@@ -394,6 +395,16 @@ let rec print_expr e =
   | MetaNewVar i -> "new" ^ !separator ^ string_of_int i
   | Param -> !fresh_param
 ;;
+
+let rec string_of_action = function
+  | ActionReturn e -> Printf.sprintf "return %s" (print_expr e)
+  | ActionAssign (vd, e) -> Printf.sprintf "%s = %s" (Syntax.string_of_variable_desc vd) (print_expr e)
+  | ActionSeq (a1, a2) -> string_of_action a1 ^ "; " ^ string_of_action a2
+  | ActionAddMeta n -> Printf.sprintf "addMeta %d" n
+  | ActionIntro es -> Printf.sprintf "intro [%s]" (String.concat "; " (List.map print_expr es))
+  | ActionPopLoc n -> Printf.sprintf "popLoc %d" n
+  | ActionPopMeta n -> Printf.sprintf "popMeta %d" n
+  | ActionLetTop es -> Printf.sprintf "letTop [%s]" (String.concat "; " (List.map print_expr es))
 
 let mk_state_fact ?param st desc transition : fact =
   StateFact { param; state = st; state_desc = desc; transition }

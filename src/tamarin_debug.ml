@@ -17,6 +17,7 @@ module E = struct
     ; transition_to = { state_namespace = "Invalid"; state_index= Mindex.zero; state_vars = { meta= -1; loc= -1; top= -1 } }
     ; transition_pre = []
     ; transition_post = []
+    ; transition_action = None
     ; transition_state_transition = empty_state_desc, empty_state_desc
     ; transition_label = []
     ; transition_is_loop_back = false
@@ -44,12 +45,17 @@ module G' = struct
       String.concat ";\n"
       @@ t.transition_name
          :: ("PRE:"^String.concat "; " (List.map string_of_fact t.transition_pre))
-         :: (state_desc (fst t.transition_state_transition)
-             ^ " => "
-             ^ state_desc (snd t.transition_state_transition))
-         :: (match t.transition_label with
+         :: (match t.transition_action with
+             | None -> []
+             | Some acs ->
+                 ["ACTION:" ^ String.concat "; " (List.map string_of_action acs)]
+           )
+         @ [ state_desc (fst t.transition_state_transition)
+              ^ " => "
+              ^ state_desc (snd t.transition_state_transition) ]
+         @ (match t.transition_label with
              | [] -> []
-             | fs -> [ "Event:"
+             | fs -> [ "Label:"
                        ^ String.concat "," (List.map string_of_fact fs)])
          @ ["POST:"^String.concat "; " (List.map string_of_fact t.transition_post)]
 
