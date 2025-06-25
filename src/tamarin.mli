@@ -114,6 +114,8 @@ type action =
   | ActionPopMeta of int
   | ActionLetTop of expr list
 
+val string_of_action : action -> string
+
 type transition =
   { transition_id : int
   ; transition_namespace : string
@@ -122,6 +124,7 @@ type transition =
   ; transition_to : state
   ; transition_pre : fact list
   ; transition_post : fact list
+  ; transition_action : action list option (** for debugging information *)
   ; transition_state_transition : state_desc * state_desc
   ; transition_label : fact list
   ; transition_is_loop_back : bool

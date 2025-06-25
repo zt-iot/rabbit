@@ -7,6 +7,13 @@ type variable_desc =
   | MetaNew of int
   | Param
 
+let string_of_variable_desc = function
+  | Top i -> Printf.sprintf "Top %d" i
+  | Loc i -> Printf.sprintf "Loc %d" i
+  | Meta i -> Printf.sprintf "Meta %d" i
+  | MetaNew i -> Printf.sprintf "MetaNew %d" i
+  | Param -> "Param"
+
 type expr = expr' Location.located
 and expr' =
   | Const of Name.ident * expr option
