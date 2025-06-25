@@ -23,6 +23,18 @@ and expr' =
   | Tuple of expr list
   | Unit
 
+let rec string_of_expr (e : expr) =
+  match e.desc with
+  | Ident { id; param= None; _ } -> Ident.to_string id
+  | Ident { id; param= Some p; _ } -> Printf.sprintf "%s<%s>" (Ident.to_string id) (string_of_expr p)
+  | Apply (f, es) -> Printf.sprintf "%s(%s)" (Ident.to_string f) (String.concat ", " @@ List.map string_of_expr es)
+  | Tuple es -> Printf.sprintf "(%s)" @@ String.concat ", " @@ List.map string_of_expr es
+  | String s -> Printf.sprintf "%S" s
+  | Integer i -> string_of_int i
+  | Float f -> f
+  | Boolean b -> string_of_bool b
+  | Unit -> "()"
+
 type loop_mode =
   | In
   | Back

@@ -26,6 +26,8 @@ and expr' =
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Unit
 
+val string_of_expr : expr -> string
+
 type loop_mode =
   | In
   | Back
