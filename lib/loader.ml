@@ -906,14 +906,6 @@ let rec load_just_parse fn =
    0
 
 
-   
-(* ---------------------*)
-(* CLAUDE OUTPUT *)
-(* ---------------------*)
-
-
-(* Helper functions you'll likely need to implement *)
-
 let rec convert_rabbit_ty_to_simple_ty_param (rabbit_ty : Input.rabbit_ty) : Context.simple_ty_param =
    match rabbit_ty with 
    | Input.RabbitTyp(PlainTyp(ty_param_name, tys), None) ->
@@ -1072,19 +1064,6 @@ let rec initialize_global_context (input_decls : Input.decl list) (initial_env :
   (* List.fold_left reverses the order of the input declarations, 
   so we reverse again in the end to get the original order *)
   (List.rev context_decls, env)
-
-
-let determine_type_category (rabbit_ty : Input.rabbit_ty) : [`Simple | `Channel | `Security] =
-  (* TODO: Analyze rabbit_ty to determine what kind of type it represents *)
-  match rabbit_ty with
-  | Input.RabbitTyp (Input.ChannelTyp _, _) -> `Channel
-  | Input.RabbitTyp (_, Some _) -> `Security  (* Has security level *)
-  | _ -> `Simple
-
-(* ---------------------*)
-(* CLAUDE OUTPUT END *)
-(* ---------------------*)
-
 
 
 (* let rec load fn ctx pol def sys =

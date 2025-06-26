@@ -12,7 +12,7 @@ type simple_ty_param =
 
 
 
-(* well-formed *binding* of a channel type *)
+(* well-formed *binding* of a channel type *)             
 type chan_ty_param = 
   | ChTypeParam of Name.ident * chan_ty_param list
   | ChProdTypeParam of chan_ty_param * chan_ty_param

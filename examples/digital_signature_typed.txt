@@ -27,7 +27,8 @@ type udp_t 	  : channel[client_msg * client_sig]
 
 (* security primitives *)
 function vk : sigkey[client_msg]@('s, 'i) -> verkey@(Public, 'i)
-function sign : client_msg -> sigkey[client_msg]@('s, 'i) -> signature@(S(client_msg), 'i)
+function sign : signature@('s1, 'i1) -> sigkey[client_msg]@('s, 'i) -> 
+  signature@(S(signature@('s1, 'i1)), 'i)
 function fst : 'a * 'b -> 'a
 function snd : 'a * 'b -> 'b
 equation fst ((x, y)) = x
@@ -43,7 +44,7 @@ equation verify (sign(d, k), d, vk(k)) = true
 load "udp_rpc_typed.rab"
 
 (* syscall that returns some fresh globally known message *)
-syscall gen_message () {
+syscall gen_message () : client_msg {
   new v : client_msg in 
   v
 }
@@ -122,7 +123,7 @@ channel udp : udp_t (* Only a single UDP channel for now *)
 
 process alice(ch_net : udp_t) : alice_t
 {
-    var priv_key_alice : sign_key_alice = secret_key_alice
+    var priv_key_alice = secret_key_alice
 
   	main 
   	{
