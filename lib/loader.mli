@@ -51,3 +51,5 @@ val convert_rabbit_ty_to_chan_ty_param : Input.rabbit_ty -> Context.chan_ty_para
 val convert_rabbit_ty_to_security_ty_param : Input.rabbit_ty -> Context.security_ty_param
 
 val load_just_parse : string -> int
+
+val load : (string * bool) list -> Context.decl list * Context.env

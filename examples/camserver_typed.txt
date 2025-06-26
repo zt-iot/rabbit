@@ -50,7 +50,7 @@ type ver_key_server : key[Ver]
 
 
 (* load syscalls on channels *)
-load "camserver_typed_eq_theory.rab"
+load "camserver_typed_eq_theory_and_syscalls.rab"
 
 (* picture *)
 syscall get_picture () : client_img {

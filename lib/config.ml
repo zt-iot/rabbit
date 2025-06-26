@@ -27,3 +27,5 @@ let tag_transition = ref false
 
 let parse_only = ref false
 
+let type_check = ref false
+

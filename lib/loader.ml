@@ -1048,7 +1048,7 @@ let rec initialize_global_context (input_decls : Input.decl list) (initial_env :
         } in
         (context_decl :: acc_context_decls, acc_env)
         
-    (* Load declarations - pass through to Context.decl *)
+    (* Load declarations *)
     | Input.DeclLoad filename ->
         let filename_input_decls, _ = Lexer.read_file Parser.file filename in 
         let (filename_ctx_decls, updated_env) = initialize_global_context filename_input_decls acc_env in
@@ -1064,6 +1064,17 @@ let rec initialize_global_context (input_decls : Input.decl list) (initial_env :
   (* List.fold_left reverses the order of the input declarations, 
   so we reverse again in the end to get the original order *)
   (List.rev context_decls, env)
+
+
+
+let load (files : (string * bool) list) : Context.decl list * Context.env = 
+    List.fold_left (fun (acc_context_decls, acc_env) (fn, quiet) ->
+      let file_input_decls, _ = Lexer.read_file Parser.file fn in 
+
+      let (file_ctx_decls, updated_env) = initialize_global_context file_input_decls acc_env in 
+      (file_ctx_decls @ acc_context_decls, updated_env)
+   ) ([], Maps.StringMap.empty) files
+
 
 
 (* let rec load fn ctx pol def sys =

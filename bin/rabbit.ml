@@ -70,6 +70,16 @@ let main_just_parse () =
   | Ulexbuf.Error {Location.data=err; Location.loc} ->
     Print.message ~loc "Parsing error" "%t" (Ulexbuf.print_error err)
 
+
+let main_typecheck () = 
+  try
+    let (ctx_decls, ctx_env) = Loader.load !files in 
+    
+    ()
+  with
+  | Ulexbuf.Error {Location.data=err; Location.loc} ->
+    Print.message ~loc "Parsing error" "%t" (Ulexbuf.print_error err)
+
 (** Main program *)
 
 let _main =
@@ -93,6 +103,10 @@ let _main =
 
   if !Config.parse_only then
     main_just_parse ()
+  else if !Config.type_check then 
+    main_typecheck ()
+  
+
 
   (* try
       let (ctx, pol, def, sys, x) = 
