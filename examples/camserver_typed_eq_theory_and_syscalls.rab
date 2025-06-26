@@ -71,3 +71,21 @@ syscall send_recv_rpc_loop (ch_rpc : rpc_t) : unit {
   | [ch_rpc::exit()] → skip 
   end;
 }
+
+
+syscall recv_verify_loop(ch_net : udp_t, pubkey : ver_key_server) : unit {
+  repeat 
+  | [] →
+    var sig_img_pair : signature * image = recv(ch_net) in
+    var res : bool = verify(fst(p), snd(p), pubkey) in 
+    case 
+    | [res =  true] →
+      event [::ImgRecvValid(snd(p))]
+
+    | [res <> true] →  
+      event [::ImgRecvInvalid(snd(p))]
+    end
+  until
+  | [::False()] →  skip 
+  end 	
+}

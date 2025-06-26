@@ -25,22 +25,9 @@ type sign_key_alice : sigkey[client_msg] (* signing key for client_msg type of d
 
 type udp_t 	  : channel[client_msg * client_sig]
 
-(* security primitives *)
-function vk : sign_key_alice -> verkey[message]
-function sign : client_msg -> sign_key_alice -> client_sig
-function fst : 'a * 'b -> 'a
-function snd : 'a * 'b -> 'b
-equation fst ((x, y)) = x
-equation snd ((x, y)) = y
-function true : bool
-
-(* type bool is a simple type, thus it has TSP security level (Public, Untrusted) *)
-function verify : signature -> message -> verkey[message] -> bool
-equation verify (sign(d, k), d, vk(k)) = true
-
 
 (* load some primitive syscalls, incl. send and recv *)
-load "udp_rpc_typed.rab"
+load "digital_signature_typed_eq_theory_and_syscalls.rab"
 
 (* syscall that returns some fresh globally known message *)
 syscall gen_message () : client_msg {
