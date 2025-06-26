@@ -16,21 +16,16 @@ builtins: natural-numbers
 
 
 
-// Global Constants:
+// Constants:
 
 
 
-// Parametric global Constants:
+// Add model inits: P
 
 
-
-// Access control:
-
-
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[State_P(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), !ACP_GEN_('rab_system_', 'rab_rab')] 
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab'), State_P(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 // Model:  P
-
 
 
 rule P_event___1___2_1[role="P"] : [State_P(<'rab___1', param, %v_>, return_var_1, 'rab_', 'rab_', 'rab_')]--[Transition_(<'rab_P', param>, 'rab___1', %v_), Event2()]->[State_P(<'rab___2', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 

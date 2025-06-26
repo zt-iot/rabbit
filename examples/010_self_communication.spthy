@@ -16,25 +16,32 @@ builtins: natural-numbers
 
 
 
-// Global Constants:
+// Constants:
 
 
 
-// Parametric global Constants:
+// Add model inits: Alice
+
+
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab'), State_Alice(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+
+// Access control of Alice:chan
 
 
 
-// Access control:
+// Fact: !ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_recv')
 
-
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[State_Alice(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), !ACP_GEN_('rab_system_', 'rab_rab')] 
 
 rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_0')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_recv')] 
+
+
+// Fact: !ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_send')
+
 
 rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_1')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_send')] 
 
 // Model:  Alice
-
 
 
 rule Alice_scall_intro_put___0___0_0_1_25[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_send')]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_)]->[State_Alice(<'rab___0_0_1', param, %v_>, 'rab_', 'rab_', <'1', 'rab_chan'>, 'rab_'), Store('rab_chan', '1')] 

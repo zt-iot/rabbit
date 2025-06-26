@@ -16,25 +16,36 @@ builtins: natural-numbers
 
 
 
-// Global Constants:
+// Constants:
 
 
 
-// Parametric global Constants:
+// Add model inits: Alice,Bob
+
+
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab'), State_Alice(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), State_Bob(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+
+
+// Access control of Alice:chan
 
 
 
-// Access control:
+// Fact: !ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_')
 
 
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[State_Alice(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), State_Bob(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), !ACP_GEN_('rab_system_', 'rab_rab')] 
+rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_0')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_')] 
 
-rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_0')]->[!ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan', 'rab_')] 
 
-rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_1')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_')] 
+// Access control of Bob:chan
+
+
+
+// Fact: !ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan', 'rab_')
+
+
+rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_1')]->[!ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan', 'rab_')] 
 
 // Model:  Alice
-
 
 
 rule Alice_repeat_in_guarded___0___1_0_0_14[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_), Loop_Start(<'rab_Alice', param>, 'rab___0')]->[State_Alice(<'rab___1_0_0', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
@@ -51,7 +62,6 @@ rule Alice_repeat_in___0___1_0[role="Alice"] : [State_Alice(<'rab___0', param, %
 
 
 // Model:  Bob
-
 
 
 rule Bob_guarded_new_intro_event___1___1_0_2_25[role="Bob"] : [State_Bob(<'rab___1', param, %v_>, return_var_1, 'rab_', 'rab_', 'rab_'), Fr(n_0_2)]--[Transition_(<'rab_Bob', param>, 'rab___1', %v_), Ping(n_0_2)]->[State_Bob(<'rab___1_0_2', param, %v_>, 'rab_', n_0_2, 'rab_', 'rab_')] 

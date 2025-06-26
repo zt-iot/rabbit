@@ -102,8 +102,6 @@ type fact =
       ; transition : expr option
       }
 
-val mk_constant_fact : string -> fact
-
 type action =
   | ActionReturn of expr
   | ActionAssign of Syntax.variable_desc * expr
@@ -133,6 +131,9 @@ type transition =
 val mk_state_transition_from_action : action -> var_nums -> state_desc * state_desc
 val state_index_to_string_aux : state -> string
 
+(**
+   rule name[role=<role>] : [pre]--[label]->[post]
+*)
 type 'fact rule_ =
   { name : string
   ; role : string
@@ -162,9 +163,18 @@ val add_transition : model -> transition -> model
 val add_state : model -> state -> model
 
 type lemma =
-  | PlainLemma of string * string
-  | ReachabilityLemma of string * fact list * fact list
-  | CorrespondenceLemma of string * string list * (fact list * fact) * (fact list * fact)
+  | PlainLemma of { name : string; desc : string }
+  | ReachabilityLemma of
+      { name : string
+      ; global_variables : fact list
+      ; facts : fact list
+      }
+  | CorrespondenceLemma of
+      { name : string
+      ; fresh_variables : string list
+      ; premise : (fact list * fact)
+      ; conclusion : (fact list * fact)
+      }
 
 type tamarin =
   { signature : signature
