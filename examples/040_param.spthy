@@ -8,33 +8,36 @@ builtins: natural-numbers
 
 
 
-functions: false/0, true/0, verify/3, sign/2, pk/1, snd/1, fst/1
-equations: verify(sign(loc_1, loc_0), loc_1, pk(loc_0))=true(), snd(<loc_1, loc_0>)=loc_0, fst(<loc_1, loc_0>)=loc_1
+functions: true/0, false/0, fst/1, snd/1, pk/1, sign/2, verify/3
+equations: fst(<loc_1, loc_0>)=loc_1, snd(<loc_1, loc_0>)=loc_0, verify(sign(loc_1, loc_0), loc_1, pk(loc_0))=true()
 
 // Initializing the gloval constants and access policy rules:
 
 
 
 
-// Global Constants:
+// Constants:
 
 
-rule Const_privkey : [Fr(privkey)]--[Init_('rab_Const_privkey'), Init_(<'rab_Const_privkey', privkey>), !Const_('rab_privkey', privkey)]->[!Const_('rab_privkey', privkey)] 
+
+// const fresh privkey
+
+
+rule Const_privkey : [Fr(privkey)]--[Init_('rab_Const_privkey'), !Const_('rab_privkey', privkey)]->[!Const_('rab_privkey', privkey)] 
+
+
+// const pubkey = e
+
 
 rule Const_pubkey : [!Const_('rab_privkey', privkey)]--[!Const_('rab_pubkey', pk(privkey))]->[!Const_('rab_pubkey', pk(privkey))] 
 
 
-// Parametric global Constants:
+// Add model inits: Client
 
 
-
-// Access control:
-
-
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[State_Client(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), !ACP_GEN_('rab_system_', 'rab_rab')] 
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab'), State_Client(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 // Model:  Client
-
 
 
 rule Client_new_intro_let_intro_let_intro_guarded_event_case_out_let_out_let_out_new_out___0___7_25[role="Client"] : [State_Client(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), !Const_('rab_privkey', privkey_1), !Const_('rab_pubkey', pubkey_2), Fr(n_0_0)]--[Transition_(<'rab_Client', param>, 'rab___0', %v_), Invalid(), Eq_(verify(sign(n_0_0, privkey_1), n_0_0, pubkey_2), false())]->[State_Client(<'rab___7', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 

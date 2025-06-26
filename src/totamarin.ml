@@ -32,15 +32,19 @@ let rec translate_expr ?(ch = false) (e : Syntax.expr) : expr =
   | Syntax.Channel (c, Some e) -> expr_pair (String c) (translate_expr ~ch e)
 ;;
 
-(* ConstantFact (String s, Var s) *)
+(* Constants in [e] are extracted as facts
+
+   - If fresh:   ConstantFact (String id, Var id)
+   - If with a definition e:  ConstantFact (List [String id, <e>], Var id_num)
+*)
 let rec translate_expr2 ?(ch = false) ?(num = 0) e : expr * fact list * int =
   match e.Location.data with
   | Syntax.ExtConst s -> Apply (s, []), [], num
   | Syntax.Const (s, None) -> Var s, [ ConstantFact (String s, Var s) ], num
   | Syntax.Const (cid, Some e) ->
-      let e', fs, n = translate_expr2 ~ch ~num:(num + 1) e in
       let var_name = cid ^ !separator ^ string_of_int num in
-      Var var_name, ConstantFact (expr_pair (String cid) e', Var var_name) :: fs, n
+      let e', fs, num = translate_expr2 ~ch ~num:(num + 1) e in
+      Var var_name, ConstantFact (expr_pair (String cid) e', Var var_name) :: fs, num
   | Syntax.Variable (_v, Top i) -> TopVar i, [], num
   | Syntax.Variable (_v, Loc i) -> LocVar i, [], num
   | Syntax.Variable (_v, Meta i) -> MetaVar i, [], num
@@ -159,19 +163,8 @@ let _fact_shift_meta shift f =
   | _ -> assert false
 ;;
 
-let rec tamarin_expr_shift_meta shift e =
-  match e with
-  | MetaVar i -> MetaVar (i + shift)
-  | Apply (s, el) -> Apply (s, List.map (tamarin_expr_shift_meta shift) el)
-  | List el -> List (List.map (tamarin_expr_shift_meta shift) el)
-  | _ -> e
-;;
-
-(* xxx not used *)
-let _ = tamarin_expr_shift_meta
-
 (*
-   given a model, the current state that is promised to be already in the model,
+  given a model, the current state that is promised to be already in the model,
   this function returns an extended model
 *)
 let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c =
@@ -823,18 +816,18 @@ and translate_guarded_cmd mo st funs syscalls attacks scope syscall pol (vl, fl,
 
 
 let translate_process
-      { Context.proc_pid = k
-      ; Context.proc_name = s
-      ; Context.proc_type = proc_type
-      ; Context.proc_filesys = fls
-      ; Context.proc_variable = vars
-      ; Context.proc_function = fns
-      ; Context.proc_main = m
-      ; Context.proc_channels = _channels
-      }
-      syscalls
-      attacks
-      pol
+    { Context.proc_pid = k
+    ; Context.proc_name = s
+    ; Context.proc_type = proc_type
+    ; Context.proc_filesys = fls
+    ; Context.proc_variable = vars
+    ; Context.proc_function = fns
+    ; Context.proc_main = m
+    ; Context.proc_channels = _channels
+    }
+    syscalls
+    attacks
+    pol
   =
   let namespace = String.capitalize_ascii (s ^ if k = 0 then "" else string_of_int k) in
   (* this must be unique *)
@@ -842,9 +835,6 @@ let translate_process
   let mo = initial_model ~namespace ~typ:proc_type in
   let st = mo.model_init_state in
   (* installed channels: *)
-  (* let (mo, st) = List.fold_left (fun (mo, st) c ->
-
-  ) (mo, st) channels in *)
 
   (* initialize file system *)
   let mo, st =
@@ -893,11 +883,6 @@ let translate_process
       (mo, st)
       fls
   in
-  (* initialize rule *)
-  (* let mo = add_rule mo (name, "",
-  [],
-  [InitFact([String namespace; String path])],
-  [FileFact(namespace, path, e)]) in *)
 
   (* initialize memory *)
   let mo, st =
@@ -945,15 +930,136 @@ let get_fact_names ctx =
       ctx.Context.ctx_proctmpl
 ;;
 
+let translate_lemma l =
+  match l.Location.data with
+  | Syntax.PlainLemma { name; desc } -> PlainLemma { name; desc }
+  | Syntax.ReachabilityLemma { name; facts; _ } ->
+      let facts, global_variables, _, _ = translate_facts "" facts in
+      ReachabilityLemma { name; global_variables; facts }
+  | Syntax.CorrespondenceLemma {name; fresh_variables; premise; conclusion } ->
+      let premise =
+        match translate_facts "" [ premise ] with
+        | [ a ], gva, _, _ -> gva, a
+        | _ -> assert false
+      in
+      let conclusion =
+        match translate_facts "" [ conclusion ] with
+        | [ b ], gvb, _, _ -> gvb, b
+        | _ -> assert false
+      in
+      CorrespondenceLemma {name; fresh_variables; premise; conclusion }
+
+let translate_lemmas t lemmas =
+  List.fold_left (fun t l -> add_lemma t @@ translate_lemma l) t lemmas
+
+(* global constants
+
+   const fresh v:
+
+     rule Const_v :
+       [ Fr(v) ] -- [ Init_('rab_Const_v'),
+                      Init_(<'rab_Const_v', v>),  <-------------- XXX Is this required?
+                      !Const_('rab_v', v)]      ->  [!Const_('rab_v', v)]
+
+   const v = e, when gv is the variable used in e
+
+     rule Const_v :
+       [!Const_('rab_gv', gv)] -- [!Const_('rab_v', e)] -> [!Const_('rab_v', e)]
+
+
+   global constants with parameters
+
+   const fresh v<>:
+
+     rule Const_v :
+       [ Fr(v) ] -- [ Init_(<'rab_v', param>),
+                      !Const_(<'rab_v', param>, v)]  ->  [!Const_(<'rab_v', param>, v)]
+
+   const v<p> = e, when gv is the variable used in e
+
+     rule Const_v :
+       [!Const_(<'rab_v', param>, gv_0)] -- [Init_(<'rab_v', param>),
+                                             !Const_(<'rab_v', param>, e]
+       ->  [!Const_(<'rab_v', param>, e)]
+*)
+let translate_global_constant ~sep t v = function
+  | Either.Left None ->
+      (* no parameter, when v is fresh *)
+      let name = "Const" ^ sep ^ v in
+      let const = ConstantFact (String v, Var v) in
+      let t = add_comment t @@ Printf.sprintf "const fresh %s" v in
+      add_rule
+        t
+        { name
+        ; role = ""
+        ; pre = [ FreshFact' (Var v) ]
+        ; label =
+            [ InitFact [ String name ]
+            ; InitFact [ List [ String name; Var v ] ] (* XXX Probably not required *)
+            ; const
+            ]
+        ; post = [ const ]
+        }
+  | Left (Some e) ->
+      (* no parameter, when v is defined *)
+      let e, gv, _ = translate_expr2 e in
+      let const = ConstantFact (String v, e) in
+      let t = add_comment t @@ Printf.sprintf "const %s = e" v in
+      add_rule
+        t
+        { name = "Const" ^ sep ^ v
+        ; role = ""
+        ; pre = gv
+        ; label = [ const ]
+        ; post = [ const ]
+        }
+  | Right None ->
+      (* w/ parameter, when v is fresh *)
+      let const = ConstantFact (List [String v; Param], Var v) in
+      let t = add_comment t @@ Printf.sprintf "const fresh %s<>" v in
+      add_rule
+        t
+        { name = "Const" ^ sep ^ v
+        ; role = ""
+        ; pre = [ FreshFact' (Var v) ]
+        ; label = [ InitFact [ List [String v; Param] ]; const ]
+        ; post = [ const ]
+        }
+  | Right (Some (p, e)) ->
+      (* w/ parameter, when v is defined *)
+      let e, gv, _ = translate_expr2 e in
+      let const = ConstantFact (List [String v; Param], e) in
+      let t = add_comment t @@ Printf.sprintf "const fresh %s<%s> = e" v p in
+      add_rule
+        t
+        { name = "Const" ^ sep ^ v
+        ; role = ""
+        ; pre = gv
+        ; label = [ InitFact [ List [String v; Param] ]; const ]
+        ; post = [ const ]
+        }
+
+let translate_global_constants ~sep t def =
+  let t = add_comment t "Constants:" in
+  let t =
+    List.fold_left (fun t (v, eo) -> translate_global_constant ~sep t v (Left eo))
+      t (List.rev def.Context.def_const)
+  in
+  let t =
+    List.fold_left (fun t (v, veo) -> translate_global_constant ~sep t v (Right veo))
+      t (List.rev def.Context.def_param_const)
+  in
+  t
+
 let translate_sys
-      { Context.sys_ctx = ctx
-      ; Context.sys_def = def
-      ; Context.sys_pol = pol
-      ; Context.sys_proc = proc
-      ; Context.sys_param_proc = param_proc
-      ; Context.sys_lemma = lem
-      }
-      (used_idents, used_string)
+    { Context.sys_ctx = ctx
+    ; Context.sys_def = def
+    ; Context.sys_pol = pol
+    ; Context.sys_proc = proc
+    ; Context.sys_param_proc = param_proc
+    ; Context.sys_lemma = lem
+    }
+    (used_idents, used_string)
   =
   (separator
    := let names = get_fact_names ctx in
@@ -971,448 +1077,197 @@ let translate_sys
    := let rec f s = if List.exists (fun u -> u = s) used_string then f (s ^ "_") else s in
       f "param");
   let sep = !separator in
+  let (!!) = String.concat !separator in
+
   let t : tamarin = empty_tamarin in
   (* process signature *)
-  let t =
-    List.fold_left
-      (fun t (f, arity) -> add_fun t (f, arity))
-      t
-      (List.rev ctx.Context.ctx_ext_func)
-  in
-  let t =
-    List.fold_left (fun t c -> add_const t c) t (List.rev ctx.Context.ctx_ext_const)
-  in
+  let t = List.fold_left add_fun t ctx.Context.ctx_ext_func in
+  let t = List.fold_left add_const t ctx.Context.ctx_ext_const in
   let t =
     List.fold_left
       (fun t (_, e1, e2) -> add_eqn t (translate_expr e1, translate_expr e2))
       t
-      (List.rev def.Context.def_ext_eq)
+      def.Context.def_ext_eq
   in
   (* global constants *)
-  let t = add_comment t "Global Constants:" in
-  let t =
-    List.fold_left
-      (fun t (v, e) ->
-         match e with
-         | None ->
-             (* when v is fresh *)
-             let name = "Const" ^ sep ^ v in
-             add_rule
-               t
-               { name
-               ; role = ""
-               ; pre = [ FreshFact' (Var v) ]
-               ; label =
-                   [ InitFact [ String name ]
-                   ; InitFact [ List [ String name; Var v ] ]
-                   ; mk_constant_fact v
-                   ]
-               ; post = [ mk_constant_fact v ]
-               }
-         | Some e ->
-             (* when v is defined *)
-             let e, gv, _ = translate_expr2 e in
-             add_rule
-               t
-               { name = "Const" ^ sep ^ v
-               ; role = ""
-               ; pre = gv
-               ; label = [ ConstantFact (String v, e) ]
-               ; post = [ ConstantFact (String v, e) ]
-               })
-      t
-      (List.rev def.Context.def_const)
+  let t = translate_global_constants ~sep t def in
+
+  let param_expr n_opt =
+    match n_opt with
+    | None -> String !fresh_string (* rab *)
+    | Some _ -> Param (* param *)
   in
-  let t = add_comment t "Parametric global Constants:" in
-  let t =
-    List.fold_left
-      (fun t (v, e) ->
-         match e with
-         | None ->
-             (* when v is fresh *)
-             add_rule
-               t
-               { name = "Const" ^ sep ^ v
-               ; role = ""
-               ; pre = [ FreshFact' (Var v) ]
-               ; label =
-                   [ InitFact [ expr_pair (String v) Param ]
-                   ; ConstantFact (expr_pair (String v) Param, Var v)
-                   ]
-               ; post = [ ConstantFact (expr_pair (String v) Param, Var v) ]
-               }
-         | Some (_p, e) ->
-             (* when v is defined *)
-             let e, gv, _ = translate_expr2 e in
-             add_rule
-               t
-               { name = "Const" ^ sep ^ v
-               ; role = ""
-               ; pre = gv
-               ; label =
-                   [ InitFact [ expr_pair (String v) Param ]
-                   ; ConstantFact (expr_pair (String v) Param, e)
-                   ]
-               ; post = [ ConstantFact (expr_pair (String v) Param, e) ]
-               })
-      t
-      (List.rev def.Context.def_param_const)
+
+  let system n_opt =
+    match n_opt with
+    | None -> "system"
+    | Some n -> "system" ^ string_of_int n
   in
-  let mos =
-    List.map (fun p ->
-        translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack pol) proc
-  in
-  (* access control *)
-  let t = add_comment t "Access control:" in
-  let facts_gv_list : (bool * fact list * fact list) list =
-    List.fold_left
-      (fun facts_gv_list p ->
-         let namespace =
-           String.capitalize_ascii
-             (p.Context.proc_name
-              ^ if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid)
-         in
-         let new_pol =
-           pol.Context.pol_access
-           @ List.map (fun (a, b) -> a, b, "") pol.Context.pol_access_all
-         in
-         let facts_gv_list' =
-           List.fold_left
-             (fun facts_gv_list c ->
-                (* List.fold_left  *)
-                (match c with
-                 | Syntax.ChanArg { id = cname; typ = cty; param = None } ->
-                     ( false
-                     , List.map
-                         (fun (_, _, scall) ->
-                            AccessFact
-                              (namespace, String !fresh_string, String cname, scall))
-                         (List.filter
-                            (fun (pty, tyl, _scall) ->
-                               pty = p.Context.proc_type
-                               && List.exists (fun v -> v = cty) tyl)
-                            new_pol)
-                     , [] )
-                 | Syntax.ChanArg { id = cname; typ = cty; param = Some None } ->
-                     ( true
-                     , List.map
-                         (fun (_, _, scall) ->
-                            AccessFact
-                              ( namespace
-                              , String !fresh_string
-                              , List [ String cname; Var !fresh_ident ]
-                              , scall ))
-                         (List.filter
-                            (fun (pty, tyl, _scall) ->
-                               pty = p.Context.proc_type
-                               && List.exists (fun v -> v = cty) tyl)
-                            new_pol)
-                     , [] )
-                 | Syntax.ChanArg { id = cname; typ = cty; param = Some (Some e) } ->
-                     let e, gv', _ = translate_expr2 e in
-                     ( false
-                     , List.map
-                         (fun (_, _, scall) ->
-                            AccessFact
-                              ( namespace
-                              , String !fresh_string
-                              , List [ String cname; e ]
-                              , scall ))
-                         (List.filter
-                            (fun (pty, tyl, _scall) ->
-                               pty = p.Context.proc_type
-                               && List.exists (fun v -> v = cty) tyl)
-                            new_pol)
-                     , gv' ))
-                :: facts_gv_list)
-             []
-             p.Context.proc_channels
-         in
-         facts_gv_list @ facts_gv_list')
-      []
-      (List.rev proc)
-  in
-  let t =
+
+  let add_model_inits n_opt t models =
+    let pre =
+      match n_opt with
+      | None -> []
+      | Some _ -> [ FreshFact' Param ]
+    in
+    let label =
+      match n_opt with
+      | None -> [ InitFact [ String (system n_opt) ] ]
+      | Some _ -> [ InitFact [ List [ String (system n_opt); Param ] ] ]
+    in
+    let param_string =
+      match n_opt with
+      | None -> Some !fresh_string (* rab *)
+      | Some _ -> None
+    in
+    let t = add_comment t ("Add model inits: "
+                           ^ String.concat "," (List.map (fun m -> m.model_name) models))
+    in
     add_rule
       t
-      { name = "Init" ^ !separator ^ "system"
-      ; role = "system"
-      ; pre = []
-      ; label = [ InitFact [ String "system" ] ]
+      { name = !!["Init" ; system n_opt] (* Init_systemn *)
+      ; role = system n_opt
+      ; pre
+      ; label
       ; post =
-          (* initializing tokens..  *)
-          List.map
+          AccessGenFact (!![system n_opt; ""] (* systemn_ *)
+                        , param_expr n_opt)
+          :: List.map
             (fun m ->
                let st = m.model_init_state in
                if !Config.tag_transition
                then
                  mk_state_fact
-                   ~param:!fresh_string
+                   ?param:param_string
                    st
                    empty_state_desc
                    (Some (mk_transition_expr `Initial))
                else mk_state_fact ~param:!fresh_string st empty_state_desc None)
-            mos
-          @ [ AccessGenFact ("system" ^ !separator, String !fresh_string) ]
+            models
       }
   in
-  let t, _ =
+
+  let get_access_control proc param :
+    ((string (* namespace *) * Name.ident (* channel *))
+     * (bool (* parameter *)
+        * fact list (* facts *)
+        * fact list (* global vars *))) list =
+
+    let pol' =
+      List.map (fun (i, is, i') -> i, is, Some i') pol.Context.pol_access
+      @ List.map (fun (i, is) -> i, is, None) pol.Context.pol_access_all
+    in
+
+    let filter_pol' ~chan_ty ~proc_ty =
+      List.filter
+        (fun (pty, tyl, _scall) ->
+           pty = proc_ty
+           && List.exists (fun v -> v = chan_ty) tyl)
+        pol'
+    in
+
+    let chan p namespace = function
+      | Syntax.ChanArg { id = cname; typ = cty; param = None } ->
+          ( false
+          , List.map
+              (fun (_, _, scall_opt) ->
+                 AccessFact (namespace, param, String cname, Option.value scall_opt ~default:""))
+              (filter_pol' ~chan_ty:cty ~proc_ty: p.Context.proc_type)
+          , [] )
+      | Syntax.ChanArg { id = cname; typ = cty; param = Some None } ->
+          ( true
+          , List.map
+              (fun (_, _, scall_opt) ->
+                 AccessFact
+                   ( namespace, param, List [ String cname; Var !fresh_ident ], Option.value scall_opt ~default:""))
+              (filter_pol' ~chan_ty:cty ~proc_ty: p.Context.proc_type)
+          , [] )
+      | Syntax.ChanArg { id = cname; typ = cty; param = Some (Some e) }
+        ->
+          let e, gv', _ = translate_expr2 e in
+          ( false
+          , List.map
+              (fun (_, _, scall_opt) ->
+                 AccessFact
+                   (namespace, param, List [ String cname; e ], Option.value scall_opt ~default:""))
+              (filter_pol' ~chan_ty:cty ~proc_ty: p.Context.proc_type)
+          , gv' )
+    in
+
+    List.concat_map (fun p ->
+        let namespace =
+          String.capitalize_ascii
+            (p.Context.proc_name
+             ^ if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid)
+        in
+        List.map (fun (Syntax.ChanArg {id; _} as c) ->
+            (namespace, id), chan p namespace c) p.Context.proc_channels
+      ) proc
+  in
+
+  let add_access_control n_opt t facts_gv_list =
+    let add_fact n_opt t m with_param fact gv =
+      let m = string_of_int m in
+      let system_acp_m = String (!![system n_opt; "ACP"; m]) (* 'rab_systemn_ACP_m' *) in
+      let init_fact =
+        match n_opt, with_param with
+        | None, false ->
+            (* 'rab_system_ACP_m' *)
+            system_acp_m
+        | None, true ->
+            (* '<rab_system_ACP_m, rab>' *)
+            List [ system_acp_m; Var !fresh_ident ]
+        | Some _, false ->
+            (* <'rab_systemn_ACP_m', param> *)
+            List [ system_acp_m; Param ]
+        | Some _, true ->
+            (* '<rab_systemn_ACP_m, param, rab>' *)
+            List [ system_acp_m; Param; Var !fresh_ident ]
+      in
+      let t = add_comment t ("Fact: " ^ string_of_fact fact) in
+      add_rule
+        t
+        { name = !!["Init"; system n_opt; "ACP"; m] (* 'Init_systemn_ACP_m' *)
+        ; role = system n_opt
+        ; pre = gv @ [ AccessGenFact (!![system n_opt; ""], param_expr n_opt) ]
+        ; label = [ InitFact [ init_fact ] ]
+        ; post = [ fact ]
+        }
+    in
+    fst @@
     List.fold_left
-      (fun (t, n) (b, (facts : fact list), gv) ->
+      (fun (t, m) (name, (b, facts, gv)) ->
+         let t = add_comment t (Printf.sprintf "Access control of %s:%s" (fst name) (snd name)) in
          List.fold_left
-           (fun (t, n) (fact : fact) ->
-              ( add_rule
-                  t
-                  { name =
-                      "Init"
-                      ^ !separator
-                      ^ "system"
-                      ^ !separator
-                      ^ "ACP"
-                      ^ !separator
-                      ^ string_of_int n
-                  ; role = "system"
-                  ; pre =
-                      gv @ [ AccessGenFact ("system" ^ !separator, String !fresh_string) ]
-                  ; label =
-                      [ (if b
-                         then
-                           InitFact
-                             [ List
-                                 [ String
-                                     ("system"
-                                      ^ !separator
-                                      ^ "ACP"
-                                      ^ !separator
-                                      ^ string_of_int n)
-                                 ; Var !fresh_ident
-                                 ]
-                             ]
-                         else
-                           InitFact
-                             [ String
-                                 ("system"
-                                  ^ !separator
-                                  ^ "ACP"
-                                  ^ !separator
-                                  ^ string_of_int n)
-                             ])
-                      ]
-                  ; post = [ fact ]
-                  }
-              , n + 1 ))
-           (t, n)
+           (fun (t, m) fact ->
+              add_fact n_opt t m b fact gv, m + 1)
+           (t, m)
            facts)
       (t, 0)
       facts_gv_list
   in
-  let t = List.fold_left add_model t mos in
-  let t, _ =
-    List.fold_left
-      (fun (t, n) pl ->
-         let mos =
-           List.fold_left
-             (fun mos p ->
-                translate_process
-                  p
-                  def.Context.def_ext_syscall
-                  def.Context.def_ext_attack
-                  pol
-                :: mos)
-             []
-             (List.rev pl)
-         in
-         let facts_gv_list =
-           List.fold_left
-             (fun facts_gv_list p ->
-                let namespace =
-                  String.capitalize_ascii
-                    (p.Context.proc_name
-                     ^
-                     if p.Context.proc_pid = 0
-                     then ""
-                     else string_of_int p.Context.proc_pid)
-                in
-                (* print_string namespace; *)
-                let new_pol =
-                  pol.Context.pol_access
-                  @ List.map (fun (a, b) -> a, b, "") pol.Context.pol_access_all
-                in
-                let facts_gv_list' =
-                  List.fold_left
-                    (fun facts_gv_list c ->
-                       (match c with
-                        | Syntax.ChanArg { id = cname; typ = cty; param = None } ->
-                            ( false
-                            , List.map
-                                (fun (_, _, scall) ->
-                                   AccessFact (namespace, Param, String cname, scall))
-                                (List.filter
-                                   (fun (pty, tyl, _scall) ->
-                                      pty = p.Context.proc_type
-                                      && List.exists (fun v -> v = cty) tyl)
-                                   new_pol)
-                            , [] )
-                        | Syntax.ChanArg { id = cname; typ = cty; param = Some None } ->
-                            ( true
-                            , List.map
-                                (fun (_, _, scall) ->
-                                   AccessFact
-                                     ( namespace
-                                     , Param
-                                     , List [ String cname; Var !fresh_ident ]
-                                     , scall ))
-                                (List.filter
-                                   (fun (pty, tyl, _scall) ->
-                                      pty = p.Context.proc_type
-                                      && List.exists (fun v -> v = cty) tyl)
-                                   new_pol)
-                            , [] )
-                        | Syntax.ChanArg { id = cname; typ = cty; param = Some (Some e) }
-                          ->
-                            let e, gv', _ = translate_expr2 e in
-                            ( false
-                            , List.map
-                                (fun (_, _, scall) ->
-                                   AccessFact
-                                     (namespace, Param, List [ String cname; e ], scall))
-                                (List.filter
-                                   (fun (pty, tyl, _scall) ->
-                                      pty = p.Context.proc_type
-                                      && List.exists (fun v -> v = cty) tyl)
-                                   new_pol)
-                            , gv' ))
-                       :: facts_gv_list)
-                    []
-                    p.Context.proc_channels
-                in
-                facts_gv_list @ facts_gv_list')
-             []
-             (List.rev pl)
-         in
-         let t =
-           add_rule
-             t
-             { name = "Init" ^ !separator ^ "system" ^ string_of_int n
-             ; role = "system" ^ string_of_int n
-             ; pre =
-                 [ FreshFact' Param ]
-                 (* XXX This produce the same compilation but not sure it is semantically correct *)
-             ; label =
-                 [ InitFact [ List [ String ("system" ^ string_of_int n); Param ] ] ]
-             ; post =
-                 [ AccessGenFact ("system" ^ string_of_int n ^ !separator, Param) ]
-                 @ List.map
-                     (fun m ->
-                        let st = m.model_init_state in
-                        if !Config.tag_transition
-                        then
-                          mk_state_fact
-                            st
-                            empty_state_desc
-                            (Some (mk_transition_expr `Initial))
-                        else mk_state_fact st empty_state_desc None)
-                     mos
-             }
-         in
-         let t, _ =
-           List.fold_left
-             (fun (t, m) (b, facts, gv) ->
-                List.fold_left
-                  (fun (t, m) (fact : fact) ->
-                     ( add_rule
-                         t
-                         { name =
-                             "Init"
-                             ^ !separator
-                             ^ "system"
-                             ^ string_of_int n
-                             ^ !separator
-                             ^ "ACP"
-                             ^ !separator
-                             ^ string_of_int m
-                         ; role = "system" ^ string_of_int n
-                         ; pre =
-                             gv
-                             @ [ AccessGenFact
-                                   ("system" ^ string_of_int n ^ !separator, Param)
-                               ]
-                         ; label =
-                             [ (if b
-                                then
-                                  InitFact
-                                    [ List
-                                        [ String
-                                            ("system"
-                                             ^ string_of_int n
-                                             ^ !separator
-                                             ^ "ACP"
-                                             ^ !separator
-                                             ^ string_of_int m)
-                                        ; Param
-                                        ; Var !fresh_ident
-                                        ]
-                                    ]
-                                else
-                                  InitFact
-                                    [ List
-                                        [ String
-                                            ("system"
-                                             ^ string_of_int n
-                                             ^ !separator
-                                             ^ "ACP"
-                                             ^ !separator
-                                             ^ string_of_int m)
-                                        ; Param
-                                        ]
-                                    ])
-                             ]
-                         ; post = [ fact ]
-                         }
-                     , m + 1 ))
-                  (t, m)
-                  facts)
-             (t, 0)
-             facts_gv_list
-         in
-         let t = List.fold_left (fun t m -> add_model t m) t mos in
-         t, n + 1)
+
+  let translate_processes n_opt procs t =
+    let models =
+      List.map (fun p ->
+          translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack pol) procs
+    in
+    let t = add_model_inits n_opt t models in
+    let t = add_access_control n_opt t @@ get_access_control procs (param_expr n_opt) in
+    let t = List.fold_left add_model t models in
+    t
+  in
+
+  let t = translate_processes None proc t in
+
+  let t =
+    fst @@ List.fold_left
+      (fun (t, n) procs -> translate_processes (Some n) procs t, n+1)
       (t, 1)
       (List.rev param_proc)
   in
+
   (* translating lemmas now *)
-  let t =
-    List.fold_left
-      (fun t l ->
-         let l =
-           match l.Location.data with
-           | Syntax.PlainLemma { name=l; desc= p } -> PlainLemma (l, p)
-           | Syntax.ReachabilityLemma { name= l; facts= fs; _ } ->
-               let fs, gv, _, _ = translate_facts "" fs in
-               ReachabilityLemma (l, gv, fs)
-           | Syntax.CorrespondenceLemma {name= l; fresh_variables= vl; premise= a; conclusion= b } ->
-               let a, gva =
-                 match translate_facts "" [ a ] with
-                 | [ a ], gva, _, _ -> a, gva
-                 | _ -> assert false
-               in
-               let b, gvb =
-                 match translate_facts "" [ b ] with
-                 | [ b ], gvb, _, _ -> b, gvb
-                 | _ -> assert false
-               in
-               CorrespondenceLemma (l, vl, (gva, a), (gvb, b))
-           (* | Syntax.CorrespondenceLemma (l, vars, e1, e2) ->
-        CorrespondenceLemma (l, vars,
-            (match e1.Location.data with
-            | Syntax.Event (id, el) -> (mk_fact_name id, List.map (translate_expr ~ch:false) el)),
-            (match e2.Location.data with
-            | Syntax.Event (id, el) -> (mk_fact_name id, List.map (translate_expr ~ch:false) el)))
-           *)
-         in
-         add_lemma t l)
-      t
-      lem
-  in
+  let t = translate_lemmas t lem in
   t
 ;;

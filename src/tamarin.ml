@@ -300,8 +300,6 @@ let compile_fact (f : fact) : fact' =
       compile_state_fact param state state_desc transition
 ;;
 
-let mk_constant_fact s = ConstantFact (String s, Var s)
-
 (* state consists of its identifier and numbers of variables.
     How to read: *)
 type action =
@@ -453,11 +451,6 @@ let _add_rule (mo : model) (a, b, c, d, e) =
   }
 ;;
 
-let _add_comment (mo : model) r =
-  { mo with model_init_rules = Comment r :: mo.model_init_rules }
-;;
-
-let _add_comment t s = Comment s :: t
 let add_state m s = { m with model_states = s :: m.model_states }
 
 let initial_state ~namespace =
@@ -515,9 +508,18 @@ let add_transition m t =
 
 (* tamarin lemma *)
 type lemma =
-  | PlainLemma of string * string
-  | ReachabilityLemma of string * fact list * fact list
-  | CorrespondenceLemma of string * string list * (fact list * fact) * (fact list * fact)
+  | PlainLemma of { name : string; desc : string }
+  | ReachabilityLemma of
+      { name : string
+      ; global_variables : fact list
+      ; facts : fact list
+      }
+  | CorrespondenceLemma of
+      { name : string
+      ; fresh_variables : string list
+      ; premise : (fact list * fact)
+      ; conclusion : (fact list * fact)
+      }
 
 type tamarin =
   { signature : signature
@@ -550,7 +552,6 @@ let add_eqn tamarin eq =
 let add_model t m = { t with models = m :: t.models }
 let add_rule t (r : _ rule_) = { t with rules = Rule r :: t.rules }
 
-(* let add_rule' t r = { t with rules = Rule r :: t.rules } *)
 let add_comment t s = { t with rules = Comment s :: t.rules }
 let add_lemma t lem = { t with lemmas = lem :: t.lemmas }
 
@@ -574,31 +575,22 @@ let print_signature { functions = fns; equations = eqns } =
   print_functions fns ^ print_equations eqns
 ;;
 
-let _print_fact_plain (f, el) =
-  f ^ "(" ^ String.concat ", " (List.map print_expr el) ^ ")"
-;;
-
-let print_fact { name; args; config } =
-  (if config.is_persist then "!" else "")
-  ^ name
-  ^ "("
-  ^ String.concat ", " (List.map print_expr args)
-  ^ ")"
-  ^
-  match config.priority with
-  | 0 -> "[-,no_precomp]"
-  | 1 -> "[-]"
-  | 2 -> ""
-  | 3 -> "[+]"
-  | _ -> assert false
-;;
-
 let print_fact2 { name; args; config } =
   (if config.is_persist then "!" else "")
   ^ name
   ^ "("
   ^ String.concat ", " (List.map print_expr args)
   ^ ")"
+;;
+
+let print_fact fact =
+  print_fact2 fact ^
+  match fact.config.priority with
+  | 0 -> "[-,no_precomp]"
+  | 1 -> "[-]"
+  | 2 -> ""
+  | 3 -> "[+]"
+  | _ -> assert false
 ;;
 
 let transition_to_rule (tr : transition) : rule =
@@ -705,9 +697,9 @@ let print_transition (tr : transition) ~dev =
 
 let print_model m ~dev =
   (* initialization rule  *)
-  (List.map (fun r -> print_rule r ~dev) m.model_init_rules |> String.concat "\n")
-  ^ "\n"
-  ^ (List.map (fun t -> print_transition t ~dev) m.model_transitions |> String.concat "\n")
+  String.concat "\n"
+  @@ List.map (fun r -> print_rule r ~dev) m.model_init_rules
+    @ List.map (fun t -> print_transition t ~dev) m.model_transitions
 ;;
 
 let print_transition_transition_rule (tr : transition) ~dev =
@@ -717,16 +709,15 @@ let print_transition_transition_rule (tr : transition) ~dev =
 
 let print_model_transition_rule m ~dev =
   (* initialization rule  *)
-  (List.map (fun r -> print_rule r ~dev) m.model_init_rules |> String.concat "\n")
-  ^ "\n"
-  ^ (List.map (fun t -> print_transition_transition_rule t ~dev) m.model_transitions
-     |> String.concat "\n")
+  String.concat "\n"
+  @@ List.map (fun r -> print_rule r ~dev) m.model_init_rules
+     @ List.map (fun t -> print_transition_transition_rule t ~dev) m.model_transitions
 ;;
 
 let print_lemma lemma =
   match lemma with
-  | PlainLemma (l, p) -> "\nlemma " ^ l ^ " : " ^ p
-  | ReachabilityLemma (l, gv, facts) ->
+  | PlainLemma {name; desc} -> "\nlemma " ^ name ^ " : " ^ desc
+  | ReachabilityLemma {name= l; global_variables= gv; facts} ->
       let var1 = List.concat_map global_fact_collect_vars facts in
       let var2 = List.concat_map global_fact_collect_vars gv in
       let var =
@@ -782,7 +773,7 @@ let print_lemma lemma =
                 ([], 0)
                 facts))
       ^ " \""
-  | CorrespondenceLemma (l, _vl, (gva, a), (gvb, b)) ->
+  | CorrespondenceLemma {name=l; fresh_variables= _vl; premise= (gva, a); conclusion= (gvb, b)} ->
       let var1 = List.flatten (List.map global_fact_collect_vars [ a ]) in
       let var2 = List.flatten (List.map global_fact_collect_vars gva) in
       let vara =

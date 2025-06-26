@@ -16,21 +16,16 @@ functions: succ/1
 
 
 
-// Global Constants:
+// Constants:
 
 
 
-// Parametric global Constants:
+// Add model inits: Alice
 
 
-
-// Access control:
-
-
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[State_Alice(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), !ACP_GEN_('rab_system_', 'rab_rab')] 
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab'), State_Alice(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 // Model:  Alice
-
 
 
 rule Alice_new_intro_event_let_intro_attack_intro_return_attack_out___0___4_33[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), Fr(n_0_0)]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_), Send(n_0_0)]->[State_Alice(<'rab___4', param, %v_>, 'rab_', n_0_0, succ(n_0_0), 'rab_')] 
