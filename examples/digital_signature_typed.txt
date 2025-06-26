@@ -26,9 +26,8 @@ type sign_key_alice : sigkey[client_msg] (* signing key for client_msg type of d
 type udp_t 	  : channel[client_msg * client_sig]
 
 (* security primitives *)
-function vk : sigkey[client_msg]@('s, 'i) -> verkey@(Public, 'i)
-function sign : signature@('s1, 'i1) -> sigkey[client_msg]@('s, 'i) -> 
-  signature@(S(signature@('s1, 'i1)), 'i)
+function vk : sign_key_alice -> verkey[message]
+function sign : client_msg -> sign_key_alice -> client_sig
 function fst : 'a * 'b -> 'a
 function snd : 'a * 'b -> 'b
 equation fst ((x, y)) = x
@@ -36,7 +35,7 @@ equation snd ((x, y)) = y
 function true : bool
 
 (* type bool is a simple type, thus it has TSP security level (Public, Untrusted) *)
-function verify : signature@('s, 'i) -> message@('s, 'i) -> verkey[message]@('s1, 'i1) -> bool
+function verify : signature -> message -> verkey[message] -> bool
 equation verify (sign(d, k), d, vk(k)) = true
 
 
@@ -127,10 +126,10 @@ process alice(ch_net : udp_t) : alice_t
 
   	main 
   	{
-      var msg : client_msg = gen_message() in
+      var msg = gen_message() in
       _ := eaves_mem(msg);
 
-      var sig : client_sig = sign(msg, priv_key_alice) in
+      var sig = sign(msg, priv_key_alice) in
       _ := eaves_mem(sig);
 
 
@@ -145,14 +144,14 @@ process alice(ch_net : udp_t) : alice_t
 process bob(ch_net : udp_t) : bob_t
 {
   (* Use public key of Alice to verify message *)
-  var pub_key_alice : verkey[message] = vk(priv_key_alice)
+  var pub_key_alice = vk(priv_key_alice)
 
   main 
   {
     
-    var msg_with_sig : message * signature = recv(ch_net) in
+    var msg_with_sig = recv(ch_net) in
 
-    var res : bool = verify(snd(msg_with_sig), fst(msg_with_sig), pub_key_alice) in
+    var res = verify(snd(msg_with_sig), fst(msg_with_sig), pub_key_alice) in
 
     case 
     | [res = true] ->
