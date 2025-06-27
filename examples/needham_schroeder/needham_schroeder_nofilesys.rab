@@ -200,6 +200,25 @@ system
 |   alice(udp, key_chan)
 |   bob(udp)
 requires [
+
+  lemma agreement_A : 
+  reachable ::SecretNonceAlice(x);
+
+  lemma agreement_B : 
+    reachable ::SecretNonceBob(x); 
+
+  lemma secret_nonce_A_broken : 
+    reachable ::K(nonce_a);
+
+  lemma secret_nonce_B_broken : 
+    reachable ::K(nonce_b);
+
+  lemma secret_nonce_A_broken_upon_agreement : 
+    reachable ::K(x), ::SecretNonceAlice(x);
+
+  lemma secret_nonce_B_broken_upon_agreement : 
+    reachable ::K(x), ::SecretNonceBob(x)
+
     (*
     lemma BobOpenReachable : 
       reachable ::BobOpen() ;
@@ -219,7 +238,7 @@ requires [
       reachable ::SecretNonceAlice(nonce_a) ;
     lemma SecrecyCanBeEstablishedB : 
       reachable ::SecretNonceBob(nonce_b) ; 
-    *)
+    
 
     lemma NonceSecrecyA : 
       all-traces "All na #i . SecretNonceAlice(na) @ i ==> not(Ex #l . K(na) @ l)" ;
@@ -249,10 +268,6 @@ requires [
     lemma SecrecyCanBeEstablishedB_tmrn : 
       exists-trace "Ex nb #j . SecretNonceBob(nb) @ j" ; 
 
-    lemma secret_nonce_A_upon_agreement : 
-      reachable ::K(x), ::SecretNonceAlice(x);
 
-    lemma secret_nonce_B_upon_agreement : 
-      reachable ::K(x), ::SecretNonceBob(x)
-      
+    *)
 ]
