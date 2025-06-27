@@ -107,13 +107,13 @@ let _main =
                   prerr_endline "TyperSuccess";
                   res
               | Error exn, Error (Typer.Error e) ->
-                  Format.eprintf "TyperFail: %t@." (Typer.print_error e.data);
+                  Format.eprintf "TyperFail: %t: %t@." (Location.print e.loc) (Typer.print_error e.data);
                   raise exn
               | Error exn, Error exn' ->
                   Format.eprintf "TyperFail: %s@." (Printexc.to_string exn');
                   raise exn
               | Ok res, Error (Typer.Error e) ->
-                  Format.eprintf "TyperFail: %t@." (Typer.print_error e.data); res
+                  Format.eprintf "TyperFail: %t: %t@." (Location.print e.loc) (Typer.print_error e.data); res
               | Ok res, Error exn ->
                   Format.eprintf "TyperFail: %s@." (Printexc.to_string exn); res
               | Error exn, Ok _ ->
