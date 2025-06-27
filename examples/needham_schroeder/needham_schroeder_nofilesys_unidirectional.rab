@@ -201,25 +201,23 @@ system
 |   alice(udpab, udpba, key_chan)
 |   bob(udpba, udpab)
 requires [
-  lemma secret_nonce_A : 
-    reachable ::K(nonce_a);
 
   lemma agreement_A : 
     reachable ::SecretNonceAlice(x);
 
-  lemma secret_nonce_B : 
+  lemma agreement_B : 
+    reachable ::SecretNonceBob(x); 
+
+  lemma secret_nonce_A_broken : 
+    reachable ::K(nonce_a);
+
+  lemma secret_nonce_B_broken : 
     reachable ::K(nonce_b);
 
-  lemma secret_nonce_A_upon_agreement : 
+  lemma secret_nonce_A_broken_upon_agreement : 
     reachable ::K(x), ::SecretNonceAlice(x);
 
-  lemma secret_nonce_B_upon_agreement : 
-    reachable ::K(x), ::SecretNonceBob(x);
-  
-  lemma agreement_B : 
-    reachable ::SecretNonceBob(x)
-
-
-
+  lemma secret_nonce_B_broken_upon_agreement : 
+    reachable ::K(x), ::SecretNonceBob(x)
 
 ]
