@@ -98,7 +98,7 @@ let _main =
               with
               | (Typer.Error _ as exn) -> Error exn
               | exn ->
-                  Format.eprintf "Unexpected exception: %s@." (Printexc.to_string exn);
+                  Format.eprintf "Typer unexpected exception: %s@." (Printexc.to_string exn);
                   Error exn
             in
             let res =
@@ -113,13 +113,14 @@ let _main =
                   Format.eprintf "TyperFail: %s@." (Printexc.to_string exn');
                   raise exn
               | Ok res, Error (Typer.Error e) ->
-                  Format.eprintf "TyperFail: %t: %t@." (Location.print e.loc) (Typer.print_error e.data); res
+                  Format.eprintf "Unexpected TyperFail: %t: %t@." (Location.print e.loc) (Typer.print_error e.data); res
               | Ok res, Error exn ->
-                  Format.eprintf "TyperFail: %s@." (Printexc.to_string exn); res
+                  Format.eprintf "Unexpected TyperFail: %s@." (Printexc.to_string exn); res
               | Error exn, Ok _ ->
-                  prerr_endline "TyperSuccess";
+                  prerr_endline "Unexpected TyperSuccess";
                   raise exn
             in
+            (* Semantics test *)
             (match typer_result with
              | Error _ -> ()
              | Ok decls ->
