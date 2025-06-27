@@ -105,6 +105,8 @@ process alice(ch_net : udp_t) : client_t
   	{
       var pub_key_bob_fd = fopen("/secret/pub_bob") in (* this is tampered by attacker to point to attacker's public key *)
       var pub_key_bob = fread(pub_key_bob_fd) in 
+      
+      _ := eaves_mem(pub_key_bob); (* attacker needs to know pub_key_bob as part of the attack *)
       var c_txt1 = enc((loc_nonce_a, "Alice"), pub_key_bob) in (* pub_key_bob is tampered, therefore, loc_nonce_a is readable by the attacker *)
 
       _ := eaves_mem(c_txt1);
@@ -174,6 +176,27 @@ system
     alice(udp)
 |   bob(udp)
 requires [
+
+  lemma agreement_A : 
+    reachable ::SecretNonceAlice(x);
+
+  lemma agreement_B : 
+    reachable ::SecretNonceBob(x); 
+
+  lemma secret_nonce_A_broken : 
+    reachable ::K(nonce_a);
+
+  lemma secret_nonce_B_broken : 
+    reachable ::K(nonce_b);
+
+  lemma secret_nonce_A_broken_upon_agreement : 
+    reachable ::K(x), ::SecretNonceAlice(x);
+
+  lemma secret_nonce_B_broken_upon_agreement : 
+    reachable ::K(x), ::SecretNonceBob(x)
+  
+    (*
+
     lemma tautology :
       all-traces "All #j  . BobClose() @ #j ==> BobClose() @ #j" ;
       
@@ -220,6 +243,8 @@ requires [
     (* it cannot be that nb is established as a secret and attacker knows it *)
     lemma NonceSecrecyB_tmrn : 
       all-traces "not(Ex nb #i #j . SecretNonceBob(nb) @ i & K(nb) @ j)"
+
+    *)
 
 
 ]
