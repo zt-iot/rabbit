@@ -628,7 +628,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       (* [channel n : ty] *)
       (* [channel n<> : ty] *)
       let chty = Env.find_desc ~loc env chty (Type CChan) in
-      let env', id = Env.add_global ~loc env name (Channel (false, chty)) in
+      let env', id = Env.add_global ~loc env name (Channel (param <> None, chty)) in
       env', [{ env; loc; desc = Channel { id; param; typ = chty } }]
   | DeclProc { id; param; args; typ; files; vars; funcs; main } ->
       let env', decl = type_process ~loc env id param args typ files vars funcs main in
@@ -670,16 +670,11 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
               let pid = Env.find_desc ~loc env pname Process in
               let chan_args = List.map (type_chan_arg ~loc env) chan_args in
               { id = pid; parameter = None; args = chan_args }
-          | ParamProc (pname, e, chan_args), Some p ->
+          | ParamProc (pname, e, chan_args), Some _p ->
               (* [pname <e> (chargs,..,chargs)] *)
               let pid = Env.find_desc ~loc env pname Process in
               let e = type_expr env e in
-              (match e.desc with
-               | Ident { id; _ } ->
-                   if id = p then ()
-                   else misc_errorf ~loc "Process must be parameterized with the quantification %t" (Ident.print p)
-               | _ -> assert false
-              );
+              (* ??? check [p] is in [e] *)
               let chan_args = List.map (type_chan_arg ~loc env) chan_args in
               { id = pid; parameter = Some e; args = chan_args }
           | Proc _, Some p ->
