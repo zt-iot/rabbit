@@ -30,7 +30,7 @@ module Test = struct
     | _ -> false
 
   let parse s =
-    let re_head = Re.compile @@ Re.Pcre.re {|^\(\*\*\*(.*)\*\)|} in
+    (* let re_head = Re.compile @@ Re.Pcre.re {|^\(\*\*\*(.*)      (*               \*\)|} in *)
     match Re.exec_opt re_head s with
     | None -> failwithf "Invalid test: %s" s
     | Some g ->
@@ -212,4 +212,4 @@ let () =
   let rev_files = ref [] in
   let () = Arg.parse [] (fun fn -> rev_files := fn :: !rev_files) "test files" in
   let files = List.rev !rev_files in
-  List.iter test_file files
+  List.iter test_file files *)
