@@ -1,3 +1,5 @@
+open Ppxlib
+
 let failwithf fmt = Printf.ksprintf failwith fmt
 
 let re_boundary = Re.compile @@ Re.Pcre.re {|^\(\*\*\*|}
@@ -11,7 +13,7 @@ let re_typersuccess = Re.compile @@ Re.Pcre.re {|TyperSuccess|}
 module Camlon = struct
   let parse str =
     Lexer.init ();
-    Parser.parse_expression Lexer.token (Lexing.from_string str)
+    Parse.expression (Lexing.from_string str)
 end
 
 module Test = struct

@@ -18,4 +18,5 @@
     menhirLib
     sedlex
     re
+    (ppxlib (>= 0.33.0))
   ))
