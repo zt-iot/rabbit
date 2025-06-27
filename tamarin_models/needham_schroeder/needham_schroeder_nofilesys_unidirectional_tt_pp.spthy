@@ -1,0 +1,142 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+functions: true/0, verify/3, snd/1, fst/1, adec/2, sign/2, aenc/2, pk/1
+equations: verify(sign(loc__1, loc__0), loc__1, pk(loc__0))=true(), adec(aenc(loc__1, pk(loc__0)), loc__0)=loc__1, snd(<loc__1, loc__0>)=loc__0, fst(<loc__1, loc__0>)=loc__1
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Global Constants:
+
+
+rule Const__nonce_a : [Fr(nonce_a)]--[Init__('rab__Const__nonce_a'), Init__(<'rab__Const__nonce_a', nonce_a>), !Const__('rab__nonce_a', nonce_a)]->[!Const__('rab__nonce_a', nonce_a)] 
+
+rule Const__nonce_b : [Fr(nonce_b)]--[Init__('rab__Const__nonce_b'), Init__(<'rab__Const__nonce_b', nonce_b>), !Const__('rab__nonce_b', nonce_b)]->[!Const__('rab__nonce_b', nonce_b)] 
+
+rule Const__priv_key_alice : [Fr(priv_key_alice)]--[Init__('rab__Const__priv_key_alice'), Init__(<'rab__Const__priv_key_alice', priv_key_alice>), !Const__('rab__priv_key_alice', priv_key_alice)]->[!Const__('rab__priv_key_alice', priv_key_alice)] 
+
+rule Const__priv_key_bob : [Fr(priv_key_bob)]--[Init__('rab__Const__priv_key_bob'), Init__(<'rab__Const__priv_key_bob', priv_key_bob>), !Const__('rab__priv_key_bob', priv_key_bob)]->[!Const__('rab__priv_key_bob', priv_key_bob)] 
+
+
+// Parametric global Constants:
+
+
+
+// Access control:
+
+
+rule Init__system[role="system"] : []--[Init__('rab__system')]->[State__Keyprovider(<'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__', 'rab__'), State__Alice(<'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__', 'rab__'), State__Bob(<'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__', 'rab__'), !ACP__GEN__('rab__system__', 'rab__rab')] 
+
+rule Init__system__ACP__0[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__0')]->[!ACP__(<'rab__Bob', 'rab__rab'>, 'rab__udpba', 'rab__recv')] 
+
+rule Init__system__ACP__1[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__1')]->[!ACP__(<'rab__Bob', 'rab__rab'>, 'rab__udpba', 'rab__send')] 
+
+rule Init__system__ACP__2[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__2')]->[!ACP__(<'rab__Bob', 'rab__rab'>, 'rab__udpab', 'rab__recv')] 
+
+rule Init__system__ACP__3[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__3')]->[!ACP__(<'rab__Bob', 'rab__rab'>, 'rab__udpab', 'rab__send')] 
+
+rule Init__system__ACP__4[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__4')]->[!ACP__(<'rab__Alice', 'rab__rab'>, 'rab__udpab', 'rab__recv')] 
+
+rule Init__system__ACP__5[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__5')]->[!ACP__(<'rab__Alice', 'rab__rab'>, 'rab__udpab', 'rab__send')] 
+
+rule Init__system__ACP__6[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__6')]->[!ACP__(<'rab__Alice', 'rab__rab'>, 'rab__udpba', 'rab__recv')] 
+
+rule Init__system__ACP__7[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__7')]->[!ACP__(<'rab__Alice', 'rab__rab'>, 'rab__udpba', 'rab__send')] 
+
+rule Init__system__ACP__8[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__8')]->[!ACP__(<'rab__Alice', 'rab__rab'>, 'rab__key_chan', 'rab__recv')] 
+
+rule Init__system__ACP__9[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__9')]->[!ACP__(<'rab__Alice', 'rab__rab'>, 'rab__key_chan', 'rab__send')] 
+
+rule Init__system__ACP__10[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__10')]->[!ACP__(<'rab__Keyprovider', 'rab__rab'>, 'rab__key_chan', 'rab__recv')] 
+
+rule Init__system__ACP__11[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__11')]->[!ACP__(<'rab__Keyprovider', 'rab__rab'>, 'rab__key_chan', 'rab__send')] 
+
+// Model:  Keyprovider
+
+
+
+rule Keyprovider__merged_____0_____3__12[role="Keyprovider"] : [State__Keyprovider(<'rab_____0', param, %v__>, return__var__0, 'rab__', 'rab__', 'rab__'), !Const__('rab__priv_key_bob', priv_key_bob__0), !ACP__(<'rab__Keyprovider', param>, 'rab__key_chan', 'rab__send')]--[Transition__(<'rab__Keyprovider', param>, 'rab_____0', %v__)]->[State__Keyprovider(<'rab_____3', param, %v__>, 'rab__', 'rab__', 'rab__', pk(priv_key_bob__0)), Out(pk(priv_key_bob__0)), Store('rab__key_chan', pk(priv_key_bob__0))] 
+
+
+// Model:  Alice
+
+
+
+rule Alice__merged_____0_____1__0_0__98[role="Alice"] : [State__Alice(<'rab_____0', param, %v__>, return__var__0, 'rab__', 'rab__', 'rab__')]--[Transition__(<'rab__Alice', param>, 'rab_____0', %v__)]->[State__Alice(<'rab_____1__0_0', param, %v__>, 'rab__', 'rab__', <'rab__key_chan', 'rab__'>, 'rab__')] 
+
+rule Alice__merged_____0_____1__1_0__97[role="Alice"] : [State__Alice(<'rab_____0', param, %v__>, return__var__0, 'rab__', 'rab__', 'rab__')]--[Transition__(<'rab__Alice', param>, 'rab_____0', %v__)]->[State__Alice(<'rab_____1__1_0', param, %v__>, 'rab__', 'rab__', <'rab__key_chan', 'rab__'>, 'rab__')] 
+
+rule Alice__merged_____1__0_0_____4__0_1__96[role="Alice"] : [State__Alice(<'rab_____1__0_0', param, %v__>, return__var__2, 'rab__', <l__0__2, l__1__2>, 'rab__'), Store(l__0__2, n__0__2), !ACP__(<'rab__Alice', param>, l__0__2, 'rab__recv'), !Const__('rab__nonce_a', nonce_a__11), !ACP__(<'rab__Alice', param>, 'rab__udpab', 'rab__send')]--[Transition__(<'rab__Alice', param>, 'rab_____1__0_0', %v__)]->[State__Alice(<'rab_____4__0_1', param, %v__>, 'rab__', 'rab__', <aenc(<nonce_a__11, 'rab__Alice'>, n__0__2), 'rab__udpab', aenc(<nonce_a__11, 'rab__Alice'>, n__0__2), n__0__2>, 'rab__'), Out(aenc(<nonce_a__11, 'rab__Alice'>, n__0__2)), Store('rab__udpab', aenc(<nonce_a__11, 'rab__Alice'>, n__0__2))] 
+
+rule Alice__merged_____1__1_0_____4__0_1__92[role="Alice"] : [State__Alice(<'rab_____1__1_0', param, %v__>, return__var__7, 'rab__', <l__0__7, l__1__7>, 'rab__'), Store(l__0__7, n__0__7), In(n__1__7), !ACP__(<'rab__Alice', param>, l__0__7, 'rab__recv'), !Const__('rab__nonce_a', nonce_a__11), !ACP__(<'rab__Alice', param>, 'rab__udpab', 'rab__send')]--[Transition__(<'rab__Alice', param>, 'rab_____1__1_0', %v__)]->[State__Alice(<'rab_____4__0_1', param, %v__>, 'rab__', 'rab__', <aenc(<nonce_a__11, 'rab__Alice'>, n__1__7), 'rab__udpab', aenc(<nonce_a__11, 'rab__Alice'>, n__1__7), n__1__7>, 'rab__'), Out(aenc(<nonce_a__11, 'rab__Alice'>, n__1__7)), Store('rab__udpab', aenc(<nonce_a__11, 'rab__Alice'>, n__1__7))] 
+
+rule Alice__merged_____4__0_1_____7__0_0__83[role="Alice"] : [State__Alice(<'rab_____4__0_1', param, %v__>, return__var__17, 'rab__', <l__0__17, l__1__17, l__2__17, l__3__17>, 'rab__'), !Const__('rab__nonce_a', nonce_a__18)]--[Transition__(<'rab__Alice', param>, 'rab_____4__0_1', %v__), AliceSendNonceATag(nonce_a__18)]->[State__Alice(<'rab_____7__0_0', param, %v__>, 'rab__', 'rab__', <'rab__udpba', 'rab__', l__2__17, l__3__17>, 'rab__')] 
+
+rule Alice__merged_____4__0_1_____7__1_0__82[role="Alice"] : [State__Alice(<'rab_____4__0_1', param, %v__>, return__var__17, 'rab__', <l__0__17, l__1__17, l__2__17, l__3__17>, 'rab__'), !Const__('rab__nonce_a', nonce_a__18)]--[Transition__(<'rab__Alice', param>, 'rab_____4__0_1', %v__), AliceSendNonceATag(nonce_a__18)]->[State__Alice(<'rab_____7__1_0', param, %v__>, 'rab__', 'rab__', <'rab__udpba', 'rab__', l__2__17, l__3__17>, 'rab__')] 
+
+rule Alice__merged_____7__0_0_____11__0_1__77[role="Alice"] : [State__Alice(<'rab_____7__0_0', param, %v__>, return__var__21, 'rab__', <l__0__21, l__1__21, l__2__21, l__3__21>, 'rab__'), Store(l__0__21, n__0__21), !ACP__(<'rab__Alice', param>, l__0__21, 'rab__recv'), !Const__('rab__priv_key_alice', priv_key_alice__30), !Const__('rab__nonce_a', nonce_a__34), !Const__('rab__nonce_a', nonce_a__33), !Eq__(fst(adec(n__0__21, priv_key_alice__30)), nonce_a__33)]--[Transition__(<'rab__Alice', param>, 'rab_____7__0_0', %v__), SecretNonceAlice(nonce_a__34)]->[State__Alice(<'rab_____11__0_1', param, %v__>, 'rab__', 'rab__', <snd(adec(n__0__21, priv_key_alice__30)), fst(adec(n__0__21, priv_key_alice__30)), adec(n__0__21, priv_key_alice__30), n__0__21, l__2__21, l__3__21>, 'rab__')] 
+
+rule Alice__merged_____7__1_0_____11__0_1__73[role="Alice"] : [State__Alice(<'rab_____7__1_0', param, %v__>, return__var__26, 'rab__', <l__0__26, l__1__26, l__2__26, l__3__26>, 'rab__'), Store(l__0__26, n__0__26), In(n__1__26), !ACP__(<'rab__Alice', param>, l__0__26, 'rab__recv'), !Const__('rab__priv_key_alice', priv_key_alice__30), !Const__('rab__nonce_a', nonce_a__34), !Const__('rab__nonce_a', nonce_a__33), !Eq__(fst(adec(n__1__26, priv_key_alice__30)), nonce_a__33)]--[Transition__(<'rab__Alice', param>, 'rab_____7__1_0', %v__), SecretNonceAlice(nonce_a__34)]->[State__Alice(<'rab_____11__0_1', param, %v__>, 'rab__', 'rab__', <snd(adec(n__1__26, priv_key_alice__30)), fst(adec(n__1__26, priv_key_alice__30)), adec(n__1__26, priv_key_alice__30), n__1__26, l__2__26, l__3__26>, 'rab__')] 
+
+rule Alice__merged_____11__0_1_____11__0_3__0_1__65[role="Alice"] : [State__Alice(<'rab_____11__0_1', param, %v__>, return__var__35, 'rab__', <l__0__35, l__1__35, l__2__35, l__3__35, l__4__35, l__5__35>, 'rab__'), !ACP__(<'rab__Alice', param>, 'rab__udpab', 'rab__send')]--[Transition__(<'rab__Alice', param>, 'rab_____11__0_1', %v__)]->[State__Alice(<'rab_____11__0_3__0_1', param, %v__>, 'rab__', 'rab__', <aenc(l__0__35, l__5__35), 'rab__udpab', aenc(l__0__35, l__5__35), l__0__35, l__1__35, l__2__35, l__3__35, l__4__35, l__5__35>, 'rab__'), Out(aenc(l__0__35, l__5__35)), Store('rab__udpab', aenc(l__0__35, l__5__35))] 
+
+rule Alice__merged_____11__0_3__0_1_____11__0_5__60[role="Alice"] : [State__Alice(<'rab_____11__0_3__0_1', param, %v__>, return__var__41, 'rab__', <l__0__41, l__1__41, l__2__41, l__3__41, l__4__41, l__5__41, l__6__41, l__7__41, l__8__41>, 'rab__')]--[Transition__(<'rab__Alice', param>, 'rab_____11__0_3__0_1', %v__), AliceSendNonceBTag(l__3__41)]->[State__Alice(<'rab_____11__0_5', param, %v__>, 'rab__', 'rab__', <l__2__41, l__3__41, l__4__41, l__5__41, l__6__41, l__7__41, l__8__41>, 'rab__')] 
+
+rule Alice__merged_____11__0_5_____19__59[role="Alice"] : [State__Alice(<'rab_____11__0_5', param, %v__>, return__var__43, 'rab__', <l__0__43, l__1__43, l__2__43, l__3__43, l__4__43, l__5__43, l__6__43>, 'rab__')]--[Transition__(<'rab__Alice', param>, 'rab_____11__0_5', %v__), AliceClose()]->[State__Alice(<'rab_____19', param, %v__>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+
+// Model:  Bob
+
+
+
+rule Bob__merged_____0_____2__1_0__81[role="Bob"] : [State__Bob(<'rab_____0', param, %v__>, return__var__0, 'rab__', 'rab__', 'rab__')]--[Transition__(<'rab__Bob', param>, 'rab_____0', %v__), BobOpen()]->[State__Bob(<'rab_____2__1_0', param, %v__>, 'rab__', 'rab__', <'rab__udpab', 'rab__'>, 'rab__')] 
+
+rule Bob__merged_____0_____2__0_0__80[role="Bob"] : [State__Bob(<'rab_____0', param, %v__>, return__var__0, 'rab__', 'rab__', 'rab__')]--[Transition__(<'rab__Bob', param>, 'rab_____0', %v__), BobOpen()]->[State__Bob(<'rab_____2__0_0', param, %v__>, 'rab__', 'rab__', <'rab__udpab', 'rab__'>, 'rab__')] 
+
+rule Bob__merged_____2__0_0_____6__0_1__77[role="Bob"] : [State__Bob(<'rab_____2__0_0', param, %v__>, return__var__3, 'rab__', <l__0__3, l__1__3>, 'rab__'), Store(l__0__3, n__0__3), !ACP__(<'rab__Bob', param>, l__0__3, 'rab__recv'), !Const__('rab__priv_key_bob', priv_key_bob__12), !ACP__(<'rab__Bob', param>, 'rab__udpba', 'rab__send'), !Const__('rab__priv_key_alice', priv_key_alice__13), !Const__('rab__nonce_b', nonce_b__13)]--[Transition__(<'rab__Bob', param>, 'rab_____2__0_0', %v__)]->[State__Bob(<'rab_____6__0_1', param, %v__>, 'rab__', 'rab__', <aenc(<fst(adec(n__0__3, priv_key_bob__12)), nonce_b__13>, pk(priv_key_alice__13)), 'rab__udpba', aenc(<fst(adec(n__0__3, priv_key_bob__12)), nonce_b__13>, pk(priv_key_alice__13)), fst(adec(n__0__3, priv_key_bob__12)), n__0__3>, 'rab__'), Out(aenc(<fst(adec(n__0__3, priv_key_bob__12)), nonce_b__13>, pk(priv_key_alice__13))), Store('rab__udpba', aenc(<fst(adec(n__0__3, priv_key_bob__12)), nonce_b__13>, pk(priv_key_alice__13)))] 
+
+rule Bob__merged_____2__1_0_____6__0_1__73[role="Bob"] : [State__Bob(<'rab_____2__1_0', param, %v__>, return__var__8, 'rab__', <l__0__8, l__1__8>, 'rab__'), Store(l__0__8, n__0__8), In(n__1__8), !ACP__(<'rab__Bob', param>, l__0__8, 'rab__recv'), !Const__('rab__priv_key_bob', priv_key_bob__12), !ACP__(<'rab__Bob', param>, 'rab__udpba', 'rab__send'), !Const__('rab__priv_key_alice', priv_key_alice__13), !Const__('rab__nonce_b', nonce_b__13)]--[Transition__(<'rab__Bob', param>, 'rab_____2__1_0', %v__)]->[State__Bob(<'rab_____6__0_1', param, %v__>, 'rab__', 'rab__', <aenc(<fst(adec(n__1__8, priv_key_bob__12)), nonce_b__13>, pk(priv_key_alice__13)), 'rab__udpba', aenc(<fst(adec(n__1__8, priv_key_bob__12)), nonce_b__13>, pk(priv_key_alice__13)), fst(adec(n__1__8, priv_key_bob__12)), n__1__8>, 'rab__'), Out(aenc(<fst(adec(n__1__8, priv_key_bob__12)), nonce_b__13>, pk(priv_key_alice__13))), Store('rab__udpba', aenc(<fst(adec(n__1__8, priv_key_bob__12)), nonce_b__13>, pk(priv_key_alice__13)))] 
+
+rule Bob__merged_____6__0_1_____9__0_0__63[role="Bob"] : [State__Bob(<'rab_____6__0_1', param, %v__>, return__var__19, 'rab__', <l__0__19, l__1__19, l__2__19, l__3__19, l__4__19>, 'rab__'), !Const__('rab__nonce_b', nonce_b__20)]--[Transition__(<'rab__Bob', param>, 'rab_____6__0_1', %v__), BobSendNonceBTag(nonce_b__20)]->[State__Bob(<'rab_____9__0_0', param, %v__>, 'rab__', 'rab__', <'rab__udpab', 'rab__', l__2__19, l__3__19, l__4__19>, 'rab__')] 
+
+rule Bob__merged_____6__0_1_____9__1_0__62[role="Bob"] : [State__Bob(<'rab_____6__0_1', param, %v__>, return__var__19, 'rab__', <l__0__19, l__1__19, l__2__19, l__3__19, l__4__19>, 'rab__'), !Const__('rab__nonce_b', nonce_b__20)]--[Transition__(<'rab__Bob', param>, 'rab_____6__0_1', %v__), BobSendNonceBTag(nonce_b__20)]->[State__Bob(<'rab_____9__1_0', param, %v__>, 'rab__', 'rab__', <'rab__udpab', 'rab__', l__2__19, l__3__19, l__4__19>, 'rab__')] 
+
+rule Bob__merged_____9__0_0_____11__0_1__57[role="Bob"] : [State__Bob(<'rab_____9__0_0', param, %v__>, return__var__23, 'rab__', <l__0__23, l__1__23, l__2__23, l__3__23, l__4__23>, 'rab__'), Store(l__0__23, n__0__23), !ACP__(<'rab__Bob', param>, l__0__23, 'rab__recv'), !Const__('rab__priv_key_bob', priv_key_bob__32), !Const__('rab__nonce_b', nonce_b__34), !Const__('rab__nonce_b', nonce_b__33), !Eq__(adec(n__0__23, priv_key_bob__32), nonce_b__33)]--[Transition__(<'rab__Bob', param>, 'rab_____9__0_0', %v__), SecretNonceBob(nonce_b__34)]->[State__Bob(<'rab_____11__0_1', param, %v__>, 'rab__', 'rab__', <adec(n__0__23, priv_key_bob__32), n__0__23, l__2__23, l__3__23, l__4__23>, 'rab__')] 
+
+rule Bob__merged_____9__1_0_____11__0_1__53[role="Bob"] : [State__Bob(<'rab_____9__1_0', param, %v__>, return__var__28, 'rab__', <l__0__28, l__1__28, l__2__28, l__3__28, l__4__28>, 'rab__'), Store(l__0__28, n__0__28), In(n__1__28), !ACP__(<'rab__Bob', param>, l__0__28, 'rab__recv'), !Const__('rab__priv_key_bob', priv_key_bob__32), !Const__('rab__nonce_b', nonce_b__34), !Const__('rab__nonce_b', nonce_b__33), !Eq__(adec(n__1__28, priv_key_bob__32), nonce_b__33)]--[Transition__(<'rab__Bob', param>, 'rab_____9__1_0', %v__), SecretNonceBob(nonce_b__34)]->[State__Bob(<'rab_____11__0_1', param, %v__>, 'rab__', 'rab__', <adec(n__1__28, priv_key_bob__32), n__1__28, l__2__28, l__3__28, l__4__28>, 'rab__')] 
+
+rule Bob__merged_____11__0_1_____18__47[role="Bob"] : [State__Bob(<'rab_____11__0_1', param, %v__>, return__var__35, 'rab__', <l__0__35, l__1__35, l__2__35, l__3__35, l__4__35>, 'rab__')]--[Transition__(<'rab__Bob', param>, 'rab_____11__0_1', %v__), BobClose()]->[State__Bob(<'rab_____18', param, %v__>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+restriction Init__ : " All x #i #j . Init__(x) @ #i & Init__(x) @ #j ==> #i = #j "
+rule Equality_gen: [] --> [!Eq__(x,x)]
+rule NEquality_gen: [] --[NEq___(x,y)]-> [!NEq__(x,y)]
+restriction NEquality_rule: "All x #i. NEq___(x,x) @ #i ==> F"
+lemma AlwaysStarts__[reuse,use_induction]:
+
+      "All x p #i. Loop__Back(x, p) @i ==> Ex #j. Loop__Start(x, p) @j & j < i"
+lemma AlwaysStartsWhenEnds__[reuse,use_induction]:
+
+      "All x p #i. Loop__Finish(x, p) @i ==> Ex #j. Loop__Start(x, p) @j & j < i"
+lemma TransitionOnce__[reuse,use_induction]:
+
+      "All x p %i #j #k . Transition__(x, p, %i) @#j &
+        Transition__(x, p, %i) @ #k ==> #j = #k"
+
+lemma secret_nonce_B_broken_upon_agreement : exists-trace "Ex new__0 #time__1  #time__0 . SecretNonceBob(new__0)@#time__1 & K(new__0)@#time__0 "
+lemma secret_nonce_A_broken_upon_agreement : exists-trace "Ex new__0 #time__1  #time__0 . SecretNonceAlice(new__0)@#time__1 & K(new__0)@#time__0 "
+lemma secret_nonce_B_broken : exists-trace "Ex nonce_b #time__0 #label_time__0 . !Const__('rab__nonce_b', nonce_b)@#label_time__0 & K(nonce_b)@#time__0 "
+lemma secret_nonce_A_broken : exists-trace "Ex nonce_a #time__0 #label_time__0 . !Const__('rab__nonce_a', nonce_a)@#label_time__0 & K(nonce_a)@#time__0 "
+lemma agreement_B : exists-trace "Ex new__0 #time__0 . SecretNonceBob(new__0)@#time__0 "
+lemma agreement_A : exists-trace "Ex new__0 #time__0 . SecretNonceAlice(new__0)@#time__0 "
+end
+

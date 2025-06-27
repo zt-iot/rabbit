@@ -1,0 +1,38 @@
+(** asynchronous channels *)
+syscall send(c, v) {
+  put [c::store(v)]
+}
+
+syscall recv(c) {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+(** synchronous rpc channel *)
+syscall connect_rpc (c) {
+  put [c::req()];
+  case 
+  | [c::ack()] →
+    new x = chid(c) in 
+    put [c::conn()]; 
+    x
+  end
+} 
+
+syscall invoke_rpc (cid, f, arg1, arg2) {
+  let c = cid.chid in
+  put [c::invoke(f, arg1, arg2)]; 
+  case [c:: Returned(v)] → v end
+}
+
+syscall close_rpc (cid){
+  let c = cid.chid in
+  delete cid.chid;
+  put[c::exit()]
+}
+
+syscall accept_rpc (c){
+  case [c::req()] → put [c::ack()] end
+}
+
