@@ -68,11 +68,11 @@ let test_file rab =
 
   (* Compare the spthys *)
   if Sys.file_exists spthy then
-    let res, output = runf "diff %s %s" spthy out_spthy in
+    let res, output = runf "diff -c %s %s" spthy out_spthy in
     (match res with
      | 0 -> ()
      | _ ->
-         Format.printf "%s: different from %s@." out_spthy spthy;
+         Format.printf "%s: different from the expected output %s@." out_spthy spthy;
          List.iter print_endline output;
          exit 2);
   else
