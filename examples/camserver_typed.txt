@@ -8,8 +8,10 @@ data filedescr
 data list['a] (* if we want to declare a type with a polymorphic type parameter, we do it like this *)
               (* these "'a, 'b" etc. can be inferred whenever they are used *)
 
-data keykind      (* we can think of keykind as a set with 5 elements: keykind := {Sym, Enc, Dec, Sig, Ver} *)
-data key[keykind] (* declare a simple type which takes an element of another type as a parameter *)
+
+data symkey['a]
+data sigkey['a]
+data verkey['a]
 
 data hash   (* assign this type to the result of a hash computation *)
 
@@ -28,23 +30,29 @@ type client_ta_t  : process
 
 
 type udp_t 	  : channel[image * signature] (* image and signature are exposed to attacker on udp_t channel *)
-type rpc_t 	  : channel[client_img + client_ta_sig] (* channel accepts a sum of types `client_img, client_ta_sig` as write type *) 
+
+(* channel accepts a sum of types *)
+type rpc_t 	  : channel[
+                  unit
+                  + string * client_img * string 
+                  + client_ta_sig
+                  ]               
 (* the attacker cannot tamper or eavesdrop on the rpc_t channel *)
 
 (***********)
 (* SECURITY TYPES *)
 
-type Sig : keykind
-type Ver : keykind
+
 
 type client_img : image
 type client_ta_sig : signature
 
-type symkey_client_ta : key[Sym] (* We have not specified the type of data which the key performs on *)
-type sigkey_client_ta : key[Sig]
+type sigkey_client_ta : sigkey[client_img]
+type symkey_client_ta : symkey[cipher[sigkey_client_ta]] 
+
 
 type conn_client : connection
-type ver_key_server : key[Ver]
+type ver_key_server : verkey[image]
 
 
 
