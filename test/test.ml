@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 open Ppxlib
 
-=======
->>>>>>> 2d5ef5b (Revert "Comments out all of test/test.ml because it is causing compilation errors")
 let failwithf fmt = Printf.ksprintf failwith fmt
 
 let re_boundary = Re.compile @@ Re.Pcre.re {|^\(\*\*\*|}
