@@ -1,0 +1,225 @@
+(* security primitives *)
+function pk:1
+function aenc:2
+function sign:2
+function adec:2
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+function true:0
+function verify:3
+equation adec(aenc(x, pk(d)), d) = x
+equation verify (sign(d, k), d, pk(k)) = true
+
+
+(* load some primitive syscalls, incl. send and recv *)
+load "udp_rpc.rab"
+
+
+syscall fopen (p) {
+  case [p.x] ->
+    new y = Fd(x) in 
+    put [p.x]; y
+  end
+}
+
+syscall fread (y) {
+  let x = y.Fd in
+  x
+}
+
+syscall fclose (y) {
+  delete y.Fd
+}
+
+
+(***********)
+(** declare types with their classes *)
+type readonly_t   : filesys
+
+type client_t 	  : process
+
+type udp_t 	  : channel
+
+
+
+(***********)
+(** access control *)
+allow client_t udp_t [send, recv]
+allow client_t readonly_t  [fopen, fread, fclose]
+
+
+
+
+(** declare passive and active attacks *)
+
+passive attack eaves_mem (v) {
+  put [::Out(v)]
+}
+
+attack tamper_channel on recv (c) {
+  case [c::store(j), ::In(w)] ->
+    w
+  end
+}
+
+attack tamper_file on fopen (p) {
+  case [p.x, ::In(w)] -> 
+    new y = Fd(w) in 
+    put [p.w]; y
+  end
+}
+
+(***********)
+(** attacker model *)
+
+(* UNCOMMENT FOLLOWING LINE TO TURN ON PASSIVE ATTACKS *)
+ 
+allow client_t [eaves_mem]
+
+
+(* UNCOMMENT FOLLOWING TWO LINES TO TURN ON ACTIVE ATTACKS *)
+
+allow attack client_t [tamper_channel]
+(* allow attack client_t [tamper_file] *)
+
+
+(***********)
+(** global constants *)
+const fresh nonce_a
+const fresh nonce_b
+const fresh priv_key_alice
+const fresh priv_key_bob
+
+
+(***********)
+(** installed channels and filesystems *)
+
+channel udpab : udp_t 
+channel udpba : udp_t 
+channel key_chan : udp_t
+
+
+(***********)
+(** process templates *)
+
+process keyprovider(ch_key_net : udp_t) : client_t {
+  var pub_key_bob_mem = pk(priv_key_bob)
+
+  (* the only thing that keyprovider does is putting public key of bob to ch_key_net *)
+  main {
+    _ := eaves_mem(pub_key_bob_mem);
+    _ := send(ch_key_net, pub_key_bob_mem)
+  }
+}
+
+process alice(ch_send : udp_t, ch_recv : udp_t, ch_key_net : udp_t) : client_t
+{
+    (* UNCOMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
+    (* file "/secret/pub_bob" : readonly_t = pk(priv_key_bob) *)
+
+    (* var loc_nonce_a = nonce_a *)
+
+  	main 
+  	{
+      (* UNCOMMENT TO TURN ON FILESYSTEM *)
+      (*
+      var pub_key_bob_fd = fopen("/secret/pub_bob") in
+      var pub_key_bob = fread(pub_key_bob_fd) in 
+      *)
+      
+      (* COMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
+      var pub_key_bob = recv(ch_key_net) in 
+
+      var c_txt1 = aenc((nonce_a, "Alice"), pub_key_bob) in (* pub_key_bob is tampered, therefore, nonce_a is readable by the attacker *)
+
+      _ := eaves_mem(c_txt1);
+      _ := send(ch_send, c_txt1);
+
+      event [::AliceSendNonceATag(nonce_a)];
+
+      var c_txt2 = recv(ch_recv) in
+      var p_txt2 = adec(c_txt2, priv_key_alice) in
+
+      var echo_nonce_a = fst(p_txt2) in 
+      var loc_nonce_b = snd(p_txt2) in 
+
+      (* In principle, Alice should only send the final message if nonce_a == echo_nonce_a *)
+      case 
+      | [echo_nonce_a = nonce_a] →
+        event [::SecretNonceAlice(nonce_a)]; (* declares that `nonce_a` has been established as a shared secret *)
+
+        var c_txt3 = aenc(loc_nonce_b, pub_key_bob) in (* pub_key_bob is tampered, therefore, loc_nonce_b is readable by the attacker *)
+        _ := eaves_mem(c_txt3);
+        _ := send(ch_send, c_txt3);
+        event [::AliceSendNonceBTag(loc_nonce_b)]
+        
+      end;
+      
+      (* UNCOMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
+      (* _ := fclose(pub_key_bob_fd); *)
+
+      event [::AliceClose()]
+  	}
+}
+
+process bob(ch_send : udp_t, ch_recv : udp_t) : client_t
+{
+  (* var loc_nonce_b = nonce_b *)
+
+  main 
+  {
+    event [::BobOpen ()];
+
+    var c_txt1 = recv(ch_recv) in 
+
+    var loc_nonce_a = fst(adec(c_txt1, priv_key_bob)) in 
+    var c_txt2 = aenc((loc_nonce_a, nonce_b), pk(priv_key_alice)) in 
+
+    _ := eaves_mem(c_txt2);
+    _ := send(ch_send, c_txt2); 
+
+    event [::BobSendNonceBTag(nonce_b)];
+
+    var c_txt3 = recv(ch_recv) in 
+    var echo_nonce_b = adec(c_txt3, priv_key_bob) in 
+
+    (* output SecretNonceBob event if the nonce that Bob receives equals the one he sent *)
+    case 
+    | [echo_nonce_b = nonce_b] →
+      event [::SecretNonceBob(nonce_b)] (* declares that `echo_loc_nonce_b` has been established as a shared secret *)
+    end;
+
+    event [::BobClose()]
+  }
+}
+
+
+system 
+    keyprovider(key_chan)
+|   alice(udpab, udpba, key_chan)
+|   bob(udpba, udpab)
+requires [
+  lemma secret_nonce_A : 
+    reachable ::K(nonce_a);
+
+  lemma agreement_A : 
+    reachable ::SecretNonceAlice(x);
+
+  lemma secret_nonce_B : 
+    reachable ::K(nonce_b);
+
+  lemma secret_nonce_A_upon_agreement : 
+    reachable ::K(x), ::SecretNonceAlice(x);
+
+  lemma secret_nonce_B_upon_agreement : 
+    reachable ::K(x), ::SecretNonceBob(x);
+  
+  lemma agreement_B : 
+    reachable ::SecretNonceBob(x)
+
+
+
+
+]
