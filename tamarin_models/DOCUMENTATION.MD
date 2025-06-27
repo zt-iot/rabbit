@@ -1,0 +1,2 @@
+- Any model inside of `tamarin_models/` must have the same filename as the original .rab model in `examples/`
+- If a filename ends with "_tt_pp.spthy", this means the `.rab` file was compiled with Rabbit command-line options "--tag-transition" and "--post-process"
