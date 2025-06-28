@@ -142,7 +142,7 @@ and decl' =
       }
   | Type of
       { id : ident
-      ; typclass : Input.type_class
+      ; typclass : Input.rabbit_typ
       }
   | Allow of
       { process_typ : ident

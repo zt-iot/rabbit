@@ -44,9 +44,11 @@ let kind_of_desc = function
   | Attack -> "attack"
   | Type CProc -> "process type"
   | Type CFsys -> "filesys type"
-  | Type CChan -> "channel type"
+  | Type CChan _ -> "channel type"
   | Function _ -> "function"
   | Process -> "process"
+
+  | _ -> failwith "TODO"
 ;;
 
 (** Print error description. *)
@@ -407,7 +409,8 @@ let type_process
       List.fold_left
         (fun (env, rev_args) (Input.ChanParam { id = chanid; param; typ = chanty }) ->
            let with_param = param <> None in
-           let chanty = Env.find_desc ~loc env chanty (Type CChan) in
+           (* XXX not clear what happens when we have (Type (CChan <non_empty_list> )) *)
+           let chanty = Env.find_desc ~loc env chanty (Type (CChan [])) in
            let chanid = Ident.local chanid in
            ( Env.add env chanid (Channel (with_param, chanty))
            , Typed.{ channel=chanid; param; typ= chanty } :: rev_args ))
@@ -561,16 +564,16 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       in
       let env', id = Env.add_global ~loc env name Attack in
       env', [{ env; loc; desc = Attack { id; syscall; args; cmd } }]
-  | DeclType (name, tclass) ->
-      let env', id = Env.add_global ~loc env name (Type tclass) in
-      env', [{ env; loc; desc = Type { id; typclass = tclass } }]
+  | DeclType (name, typ) ->
+      let env', id = Env.add_global ~loc env name (Type typ) in
+      env', [{ env; loc; desc = Type { id; typclass = typ } }]
   | DeclAccess (proc_ty, tys, syscalls_opt) ->
       let proc_ty = Env.find_desc ~loc env proc_ty (Type CProc) in
       let tys =
         List.map
           (fun ty ->
              match Env.find ~loc env ty with
-             | id, Type (CChan | CFsys) -> id
+             | id, (Type CChan _ | Type CFsys) -> id
              | _ -> misc_errorf ~loc "%s must be a channel or filesys type" ty)
           tys
       in
@@ -631,7 +634,9 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   | DeclChan (ChanParam { id = name; param; typ = chty }) ->
       (* [channel n : ty] *)
       (* [channel n<> : ty] *)
-      let chty = Env.find_desc ~loc env chty (Type CChan) in
+      
+      (* XXX not clear what happens when we have (Type (CChan <non_empty_list> )) *)
+      let chty = Env.find_desc ~loc env chty (Type (CChan [])) in
       let env', id = Env.add_global ~loc env name (Channel (param <> None, chty)) in
       env', [{ env; loc; desc = Channel { id; param; typ = chty } }]
   | DeclProc { id; param; args; typ; files; vars; funcs; main } ->

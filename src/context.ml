@@ -49,7 +49,7 @@ type context =
   ; ctx_ext_func : (Name.ident * int) list
   ; ctx_ext_syscall : (Name.ident * Name.ident list) list
   ; ctx_ext_attack : (Name.ident * Name.ident * Name.ident list) list
-  ; ctx_ty : (Name.ident * Input.type_class) list
+  ; ctx_ty : (Name.ident * Input.rabbit_typ) list
   ; ctx_const : Name.ident list
   ; ctx_fsys : (Name.ident * Name.ident * Name.ident) list
   ; ctx_ch : (Name.ident * Name.ident) list
@@ -180,7 +180,7 @@ let ctx_check_ty_ch ctx ty =
        if s = ty
        then (
          match t with
-         | Input.CChan -> true
+         | Input.CChan _ -> true
          | _ -> false)
        else false)
     ctx.ctx_ty

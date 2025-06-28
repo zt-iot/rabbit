@@ -39,6 +39,7 @@
 (* Precedence and fixity of infix operators *)
 %nonassoc IN
 %right    SEMICOLON
+%left     STAR
 
 %left     INFIXOP0
 %right    INFIXOP1
@@ -65,14 +66,16 @@ plain_decl:
 
 
   | FUNC id=NAME COLON arity=NUMERAL { DeclEqThyFunc(id, Arity(arity)) }
-  | FUNC id=NAME COLON params=separated_nonempty_list(ARROW, rabbit_ty) { DeclEqThyFunc(id, TypeSig(params)) }
+  | FUNC id=NAME COLON params=separated_nonempty_list(ARROW, typ) { DeclEqThyFunc(id, TypeSig(params)) }
 
 
 
   | EQUATION x=expr EQ y=expr { DeclEqThyEquation(x, y) }
 
-  | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
 
+
+  | TYPE id=NAME COLON t=typ    { DeclType(id, t) }
+  
   | ALLOW ATTACK t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAttack(t,a)}
   | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t, Some a)}
   | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)}
@@ -212,46 +215,37 @@ plain_fpath: *)
 
 
 
-
+(* XXX these are not used at the moment, but might be used in the future for function parametertypes if necessary *)
 func_param_secrecy_lvl:
   | PUBLIC { Public }
   | APOSTROPHE s=NAME { SecPoly(s) }
-  | Ssecrecy LPAREN p=rabbit_ty RPAREN { S(p) }
+  | Ssecrecy LPAREN p=typ RPAREN { S(p) }
 
 func_param_integrity_lvl:
   | UNTRUSTED { Untrusted }
   | APOSTROPHE i=NAME { IntegPoly(i) }
-  | Iintegrity LPAREN p=rabbit_ty RPAREN { I(p) }
-  
-
-plain_ty:
-  | UNIT { Unit }
-  (* First parse the situation where there are type parameters... *)
-  | t=NAME LBRACKET type_params=separated_nonempty_list(COMMA, rabbit_ty) RBRACKET { PlainTyp(t, type_params) }
-  (* Then the situation in which there are no type parameters... *)
-  | t=NAME { PlainTyp(t, []) }
-
-  | APOSTROPHE t=NAME { PolyTyp(t) }
-  | CHANNEL LBRACKET typs=separated_nonempty_list(PLUS, rabbit_ty) RBRACKET { ChannelTyp(typs) }
-  | t1=rabbit_ty STAR t2=rabbit_ty { ProdTyp(t1, t2) }
-
-rabbit_ty:
-  (* situation where there is an explicit security level *)
-  | pt=plain_ty AT LPAREN s=func_param_secrecy_lvl COMMA i=func_param_integrity_lvl RPAREN { RabbitTyp(pt, Some(s, i)) }
-  (* Situation where there is no explicit security level *)
-  | pt=plain_ty { RabbitTyp(pt, None) }
+  | Iintegrity LPAREN p=typ RPAREN { I(p) }
 
 
 
+opt_channel_params:
+  | LBRACKET ps=separated_nonempty_list(PLUS, typ) RBRACKET { ps }
+  | /* empty */                                         { [] }
 
+opt_simpletype_params:
+  | LBRACKET ps=separated_nonempty_list(COMMA, typ) RBRACKET { ps }
+  | /* empty */                                         { [] }
 
-
-
-
-type_c:
-  | FILESYS { CFsys }
+typ:
   | PROCESS { CProc }
-  | CHANNEL { CChan }
+  | FILESYS { CFsys }
+
+  | APOSTROPHE t=NAME { CPoly(t) }
+  | t1=typ STAR t2=typ { CProd(t1, t2) }
+
+  | CHANNEL opt_params=opt_channel_params { CChan(opt_params) }
+  | t=NAME opt_params=opt_simpletype_params { CSimple(t, opt_params) }
+
 
 expr : mark_location(plain_expr) { $1 }
 plain_expr:

@@ -21,7 +21,7 @@ type desc =
   | Const of bool (* with param or not *)
   | Channel of bool (* with param or not *) * Ident.t (* channel type *)
   | Attack
-  | Type of Input.type_class
+  | Type of Input.rabbit_typ
   | Function of int (** function with definition and arity *)
   | Process
 

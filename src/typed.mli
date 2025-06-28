@@ -153,7 +153,7 @@ and decl' =
       } (** [attack id on syscall (a1,..,an) { c }] *)
   | Type of
       { id : ident
-      ; typclass : Input.type_class
+      ; typclass : Input.rabbit_typ
       } (** type declaration, [type t : filesys/process/channel] *)
   | Allow of
       { process_typ : ident

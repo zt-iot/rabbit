@@ -88,7 +88,7 @@ and decl' =
   | DeclEqThyEquation of expr * expr
   | DeclExtSyscall of Name.ident * Name.ident list * cmd
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
-  | DeclType of Name.ident * Input.type_class
+  | DeclType of Name.ident * Input.rabbit_typ
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   | DeclAttack of Name.ident list * Name.ident list
   | DeclInit of Name.ident * init_desc

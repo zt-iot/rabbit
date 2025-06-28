@@ -27,7 +27,7 @@ type context =
     (** ext system calls, by [DeclExtSyscall], [syscall f(args) {c}] or [passive attack f(args) {c} *)
   ; ctx_ext_attack : (Name.ident * Name.ident * Name.ident list) list
     (** attacks, by [DeclExtAttack], [attack f on name (args) { c }] *)
-  ; ctx_ty : (Name.ident * Input.type_class) list
+  ; ctx_ty : (Name.ident * Input.rabbit_typ) list
     (** type names and their classes, by [DeclType], [type t : tyclass] *)
   ; ctx_const : Name.ident list
     (** consts, by [DeclInit], [const n = e] or [const fresh n] *)
@@ -129,11 +129,11 @@ val ctx_get_ext_syscall_arity
 
 val ctx_get_inj_fact_arity : loc:Location.t -> context -> Name.ident -> int
 val ctx_get_proctmpl : context -> Name.ident -> ctx_process_template
-val ctx_get_ty : loc:Location.t -> context -> Name.ident -> Input.type_class
+val ctx_get_ty : loc:Location.t -> context -> Name.ident -> Input.rabbit_typ
 val ctx_check_ty_ch : context -> Name.ident -> bool
 val ctx_add_ext_func : context -> Name.ident * int -> context
 val ctx_add_ext_const : context -> Name.ident -> context
-val ctx_add_ty : context -> Name.ident * Input.type_class -> context
+val ctx_add_ty : context -> Name.ident * Input.rabbit_typ -> context
 val ctx_add_const : context -> Name.ident -> context
 val ctx_add_param_const : context -> Name.ident -> context
 val ctx_add_fsys : context -> Name.ident * Name.ident * Name.ident -> context

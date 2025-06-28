@@ -1,9 +1,9 @@
 (* XXX not used at all *)
-let print_type_class c =
+(* let print_type_class c =
    match c with
    | Input.CProc -> "Proc"
    | Input.CFsys -> "Fsys"
-   | Input.CChan -> "Chan"
+   | Input.CChan -> "Chan" *)
 (*
 let print_attack_class a =
    match a with

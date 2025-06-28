@@ -1,5 +1,5 @@
 (* XXX not used for now *)
-val print_type_class : Input.type_class -> string
+(* val print_type_class : Input.rabbit_typ -> string *)
 val pprint_iv : (string * int * int * int) Sig.printer
 val pprint_expr : Syntax.expr Sig.printer
 val pprint_event : Syntax.cmd Sig.printer

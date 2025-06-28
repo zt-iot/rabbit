@@ -123,7 +123,7 @@ and decl' =
   *)
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
   (** [attack name on syscall (args) { c }] *)
-  | DeclType of Name.ident * Input.type_class
+  | DeclType of Name.ident * Input.rabbit_typ
   (** type declaration, [type t : filesys/process/channel] *)
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   (** [allow proc_ty target_ty1 .. target_tyn [syscall1, .., syscallm]]

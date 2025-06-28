@@ -675,7 +675,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       ; definition = Context.def_add_ext_attack env.definition (f, t, args, c)
       }
   | Input.DeclType (id, tc) ->
-      (* [type t : tyclass] *)
+      (* [type t : typ] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       { env with context = Context.ctx_add_ty env.context (id, tc) }
   | Input.DeclAccess (s, tys, Some syscalls) ->
@@ -686,7 +686,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         if not @@ Context.ctx_check_ext_syscall env.context syscall
         then error ~loc (UnknownIdentifier ("system call", syscall));
         (match tc, tycs with
-         | Input.CProc, [ Input.CChan ] | Input.CProc, [ Input.CFsys ] | Input.CProc, []
+         | Input.CProc, [ Input.CChan _ ] | Input.CProc, [ Input.CFsys ] | Input.CProc, []
            -> ()
          | _ -> error ~loc WrongInputType);
         Context.pol_add_access pol (s, tys, syscall)
@@ -697,7 +697,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       let tc = Context.ctx_get_ty ~loc env.context s in
       let tycs = List.map (Context.ctx_get_ty ~loc env.context) tys in
       (match tc, tycs with
-       | Input.CProc, [ Input.CChan ] | Input.CProc, [ Input.CFsys ] -> ()
+       | Input.CProc, [ Input.CChan _ ] | Input.CProc, [ Input.CFsys ] -> ()
        | _ -> error ~loc WrongInputType);
       let pol = Context.pol_add_access_all env.access_policy (s, tys) in
       { env with access_policy = pol }

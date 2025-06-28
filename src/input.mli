@@ -1,39 +1,34 @@
 type operator = string
 
-type type_class =
+type rabbit_typ =
   | CProc (** [process] *)
   | CFsys (** [filesys] *)
-  | CChan (** [channel] *)
+  | CChan of rabbit_typ list (** [channel] *)
+  | CSimple of Name.ident * rabbit_typ list   (* data name[t_1, ..., t_n] *)
+  | CProd of rabbit_typ * rabbit_typ          (* ty_1 * ty_2 *)
+  | CPoly of Name.ident                       (* 'a or 'b  or 'c etc. *)
 
 
 
 
-type plain_ty = 
-  | Unit                                                (* used for syscalls that do not have a return type *)
-  | PlainTyp of Name.ident * rabbit_ty list
-  | PolyTyp of Name.ident                              (* 'a, 'b, 'k etc.*)
-  | ChannelTyp of rabbit_ty list                        (* channel[t_1 + ... + t_n] *)
-  | ProdTyp of rabbit_ty * rabbit_ty
-[@@deriving show]
+
 
 and func_param_secrecy_lvl = 
   | Public
   | SecPoly of Name.ident (* non-concrete secrecy level *)
-  | S of rabbit_ty
+  | S of rabbit_typ
 [@@deriving show]
 
 
 and func_param_integrity_lvl = 
   | Untrusted 
   | IntegPoly of Name.ident (* non-concrete integrity level *)
-  | I of rabbit_ty
+  | I of rabbit_typ
 [@@deriving show]
 
 and security_lvl = func_param_secrecy_lvl * func_param_integrity_lvl [@@deriving show]
 
-and rabbit_ty = 
-  | RabbitTyp of plain_ty * security_lvl option 
-[@@deriving show]
+
 
 
 
@@ -130,7 +125,7 @@ and lemma' = Lemma of Name.ident * prop (** lemma [Name : prop] *)
 (* Used for signature of equational theory function *)
 type eq_thy_func_desc = 
   | Arity of int (* when types are not given *)
-  | TypeSig of rabbit_ty list (* when types are given *)
+  | TypeSig of rabbit_typ list (* when types are given *)
 [@@deriving show]
 
 
@@ -155,7 +150,7 @@ and decl' =
   *)
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
   (** [attack f on name (ty1 a1,..,tyn an) { c }] *)
-  | DeclType of Name.ident * type_class
+  | DeclType of Name.ident * rabbit_typ
   (** type declaration, [type t : filesys/process/channel] *)
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   (** [allow s t1 .. tn [f1, .., fm]]

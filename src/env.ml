@@ -25,7 +25,7 @@ type desc =
   | Const of bool
   | Channel of bool * Ident.t
   | Attack
-  | Type of Input.type_class
+  | Type of Input.rabbit_typ
   | Function of int
   | Process
 
@@ -45,9 +45,11 @@ let print_desc desc ppf =
   | Attack -> f ppf "Attack"
   | Type CProc -> f ppf "ty process"
   | Type CFsys -> f ppf "ty filesys"
-  | Type CChan -> f ppf "ty channel"
+  | Type CChan _ -> f ppf "ty channel"
   | Function i -> f ppf "Function (arity=%d)" i
   | Process -> f ppf "Process"
+
+  | _ -> failwith "TODO"
 
 type t = {
   vars : (Ident.t * desc) list;
