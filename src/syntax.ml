@@ -80,10 +80,12 @@ type init_desc =
   | Value_with_param of expr * Name.ident
   | Fresh_with_param
 
+
+
 type decl = decl' Location.located
 and decl' =
-  | DeclExtFun of Name.ident * int
-  | DeclExtEq of expr * expr
+  | DeclEqThyFunc of Name.ident * int
+  | DeclEqThyEquation of expr * expr
   | DeclExtSyscall of Name.ident * Name.ident list * cmd
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
   | DeclType of Name.ident * Input.type_class

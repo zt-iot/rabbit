@@ -20,9 +20,9 @@ type def_process_template =
 
 (* ctx : context refers to the external specification of the system *)
 type context =
-  { ctx_ext_const : Name.ident list (** ext consts, by [DeclExtFun(_,0)], [ExtConst id] *)
+  { ctx_ext_const : Name.ident list (** ext consts, by [DeclEqThyFunc(_,Arity(0))], [ExtConst id] *)
   ; ctx_ext_func : (Name.ident * int) list
-    (** ext funcs with arities, by [DeclExtFun(_,a)] where a > 0 *)
+    (** ext funcs with arities, by [DeclEqThyFunc(_,Arity(a))] where a > 0 *)
   ; ctx_ext_syscall : (Name.ident * Name.ident list) list
     (** ext system calls, by [DeclExtSyscall], [syscall f(args) {c}] or [passive attack f(args) {c} *)
   ; ctx_ext_attack : (Name.ident * Name.ident * Name.ident list) list

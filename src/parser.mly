@@ -13,19 +13,25 @@
 %token <string> QUOTED_STRING
 
 (* Parentheses & punctuations *)
-%token LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
+%token LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE 
 %token COLONEQ EQ NEQ
-%token COMMA SEMICOLON COLON
+%token COMMA SEMICOLON COLON APOSTROPHE PLUS STAR
 %token BBAR
 %token UNDERSCORE
 
 (* constant tokens for rabbit *)
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
-%token CHANNEL PROCESS PATH DATA FILESYS FILE
+%token CHANNEL PROCESS PATH DATA FILESYS FILE UNIT
 %token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LTGT
 %token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL
 
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
+
+(* Secrecy and integrity levels within function typing signature *)
+%token Ssecrecy Iintegrity
+
+(* Public and Untrusted for use in eqational theory typing signature *)
+%token PUBLIC UNTRUSTED
 
 (* End of input token *)
 %token EOF
@@ -56,9 +62,14 @@ decls:
 
 decl: mark_location(plain_decl) { $1 }
 plain_decl:
-  | FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
-  | CONSTANT id=NAME  { DeclExtFun(id, 0) }
-  | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
+
+
+  | FUNC id=NAME COLON arity=NUMERAL { DeclEqThyFunc(id, Arity(arity)) }
+  | FUNC id=NAME COLON params=separated_nonempty_list(ARROW, rabbit_ty) { DeclEqThyFunc(id, TypeSig(params)) }
+
+
+
+  | EQUATION x=expr EQ y=expr { DeclEqThyEquation(x, y) }
 
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
 
@@ -197,6 +208,45 @@ fpath:
 
 (* mark_location(plain_fpath) { $1 }
 plain_fpath: *)
+
+
+
+
+
+func_param_secrecy_lvl:
+  | PUBLIC { Public }
+  | APOSTROPHE s=NAME { SecPoly(s) }
+  | Ssecrecy LPAREN p=rabbit_ty RPAREN { S(p) }
+
+func_param_integrity_lvl:
+  | UNTRUSTED { Untrusted }
+  | APOSTROPHE i=NAME { IntegPoly(i) }
+  | Iintegrity LPAREN p=rabbit_ty RPAREN { I(p) }
+  
+
+plain_ty:
+  | UNIT { Unit }
+  (* First parse the situation where there are type parameters... *)
+  | t=NAME LBRACKET type_params=separated_nonempty_list(COMMA, rabbit_ty) RBRACKET { PlainTyp(t, type_params) }
+  (* Then the situation in which there are no type parameters... *)
+  | t=NAME { PlainTyp(t, []) }
+
+  | APOSTROPHE t=NAME { PolyTyp(t) }
+  | CHANNEL LBRACKET typs=separated_nonempty_list(PLUS, rabbit_ty) RBRACKET { ChannelTyp(typs) }
+  | t1=rabbit_ty STAR t2=rabbit_ty { ProdTyp(t1, t2) }
+
+rabbit_ty:
+  (* situation where there is an explicit security level *)
+  | pt=plain_ty AT LPAREN s=func_param_secrecy_lvl COMMA i=func_param_integrity_lvl RPAREN { RabbitTyp(pt, Some(s, i)) }
+  (* Situation where there is no explicit security level *)
+  | pt=plain_ty { RabbitTyp(pt, None) }
+
+
+
+
+
+
+
 
 type_c:
   | FILESYS { CFsys }

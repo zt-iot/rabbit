@@ -616,7 +616,11 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       (* [load "xxx.rab"] *)
       let fn' = Filename.dirname fn ^ "/" ^ fn' in
       load fn' env
-  | Input.DeclExtFun (f, arity) ->
+  
+  | Input.DeclEqThyFunc (f, fun_desc) -> 
+      let arity = match fun_desc with 
+        | Input.Arity(n) -> n
+        | Input.TypeSig(typ_list) -> List.length typ_list in
       (* [function f:2] *)
       if Context.check_used env.context f then error ~loc (AlreadyDefined f);
       let ctx' =
@@ -626,7 +630,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         else Context.ctx_add_ext_func env.context (f, arity)
       in
       { env with context = ctx' }
-  | Input.DeclExtEq (e1, e2) ->
+  | Input.DeclEqThyEquation (e1, e2) ->
       (* [equation e1 = e2] *)
       let rec collect_vars e lctx =
         try

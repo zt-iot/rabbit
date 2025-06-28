@@ -5,6 +5,44 @@ type type_class =
   | CFsys
   | CChan
 
+
+
+
+type plain_ty = 
+  | Unit                                                (* used for syscalls that do not have a return type *)
+  | PlainTyp of Name.ident * rabbit_ty list
+  | PolyTyp of Name.ident                              (* 'a, 'b, 'k etc.*)
+  | ChannelTyp of rabbit_ty list                        (* channel[t_1 + ... + t_n] *)
+  | ProdTyp of rabbit_ty * rabbit_ty
+[@@deriving show]
+
+and func_param_secrecy_lvl = 
+  | Public
+  | SecPoly of Name.ident (* non-concrete secrecy level *)
+  | S of rabbit_ty
+[@@deriving show]
+
+
+and func_param_integrity_lvl = 
+  | Untrusted 
+  | IntegPoly of Name.ident (* non-concrete integrity level *)
+  | I of rabbit_ty
+[@@deriving show]
+
+and security_lvl = func_param_secrecy_lvl * func_param_integrity_lvl [@@deriving show]
+
+and rabbit_ty = 
+  | RabbitTyp of plain_ty * security_lvl option 
+[@@deriving show]
+
+
+
+
+
+
+
+
+
 type expr = expr' Location.located
 
 and expr' =
@@ -104,17 +142,30 @@ and prop' =
 type lemma = lemma' Location.located
 and lemma' = Lemma of Name.ident * prop
 
+
+
+(* Used for signature of equational theory function *)
+type eq_thy_func_desc = 
+  | Arity of int (* when types are not given *)
+  | TypeSig of rabbit_ty list (* when types are given *)
+[@@deriving show]
+
+
+
+
 type init_desc =
   | Fresh
   | Value of expr
   | Value_with_param of expr * Name.ident
   | Fresh_with_param
+  
 
 type decl = decl' Location.located
 
 and decl' =
-  | DeclExtFun of Name.ident * int
-  | DeclExtEq of expr * expr
+  
+  | DeclEqThyFunc of Name.ident * eq_thy_func_desc
+  | DeclEqThyEquation of expr * expr
   | DeclExtSyscall of Name.ident * Name.ident list * cmd
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
   | DeclType of Name.ident * type_class

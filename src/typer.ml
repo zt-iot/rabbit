@@ -514,13 +514,17 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       (* [load "xxx.rab"] *)
       let fn = Filename.dirname base_fn ^ "/" ^ fn in
       load env fn
-  | DeclExtFun (name, 0) ->
+  | DeclEqThyFunc(name, fun_desc) -> 
+    let arity = match fun_desc with 
+      | Input.Arity(n) -> n
+      | Input.TypeSig(typ_list) -> List.length typ_list in
+    if arity == 0 then
       let env', id = Env.add_global ~loc env name ExtConst in
       env', [{ env; loc; desc = Function { id; arity= 0 } }]
-  | DeclExtFun (name, arity) ->
+    else
       let env', id = Env.add_global ~loc env name (ExtFun arity) in
       env', [{ env; loc; desc = Function { id; arity } }]
-  | DeclExtEq (e1, e2) ->
+  | DeclEqThyEquation (e1, e2) ->
       let vars = Name.Set.union (Input.vars_of_expr e1) (Input.vars_of_expr e2) in
       let fresh =
         Name.Set.elements (Name.Set.filter (fun v -> not (Env.mem env v)) vars)

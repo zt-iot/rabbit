@@ -112,9 +112,9 @@ type init_desc =
 
 type decl = decl' Location.located
 and decl' =
-  | DeclExtFun of Name.ident * int
+  | DeclEqThyFunc of Name.ident * int
   (** external function, [function id : arity] *)
-  | DeclExtEq of expr * expr
+  | DeclEqThyEquation of expr * expr
   (** external equation, [equation e1 = e2] *)
   | DeclExtSyscall of Name.ident * Name.ident list * cmd
   (** system call, [syscall name(args) { c }]

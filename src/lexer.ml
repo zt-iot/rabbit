@@ -43,7 +43,12 @@ let reserved = [
   ("delete", DEL) ;
   ("get", GET) ;
   ("by", BY) ;
-  ("on", ON)
+  ("on", ON) ; 
+  ("S", Ssecrecy) ;
+  ("I", Iintegrity) ; 
+  ("Public", PUBLIC) ;
+  ("Untrusted", UNTRUSTED) ; 
+  ("unit", UNIT) 
   ]
 
 let name =
@@ -137,6 +142,9 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | "::"                     -> f (); DCOLON
   | ':'                      -> f (); COLON
   | ';'                      -> f (); SEMICOLON
+  | '\''                     -> f (); APOSTROPHE
+  | '+'                      -> f (); PLUS
+  | '*'                      -> f (); STAR
   (* We record the location of operators here because menhir cannot handle %infix and
      mark_location simultaneously, it seems. *)
   | prefixop                 -> f (); PREFIXOP (Ulexbuf.lexeme lexbuf, loc_of lexbuf)

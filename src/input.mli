@@ -5,6 +5,45 @@ type type_class =
   | CFsys (** [filesys] *)
   | CChan (** [channel] *)
 
+
+
+
+type plain_ty = 
+  | Unit                                                (* used for syscalls that do not have a return type *)
+  | PlainTyp of Name.ident * rabbit_ty list
+  | PolyTyp of Name.ident                              (* 'a, 'b, 'k etc.*)
+  | ChannelTyp of rabbit_ty list                        (* channel[t_1 + ... + t_n] *)
+  | ProdTyp of rabbit_ty * rabbit_ty
+[@@deriving show]
+
+and func_param_secrecy_lvl = 
+  | Public
+  | SecPoly of Name.ident (* non-concrete secrecy level *)
+  | S of rabbit_ty
+[@@deriving show]
+
+
+and func_param_integrity_lvl = 
+  | Untrusted 
+  | IntegPoly of Name.ident (* non-concrete integrity level *)
+  | I of rabbit_ty
+[@@deriving show]
+
+and security_lvl = func_param_secrecy_lvl * func_param_integrity_lvl [@@deriving show]
+
+and rabbit_ty = 
+  | RabbitTyp of plain_ty * security_lvl option 
+[@@deriving show]
+
+
+
+
+
+
+
+
+
+
 type expr = expr' Location.located
 
 and expr' =
@@ -87,6 +126,17 @@ and prop' =
 type lemma = lemma' Location.located
 and lemma' = Lemma of Name.ident * prop (** lemma [Name : prop] *)
 
+
+(* Used for signature of equational theory function *)
+type eq_thy_func_desc = 
+  | Arity of int (* when types are not given *)
+  | TypeSig of rabbit_ty list (* when types are given *)
+[@@deriving show]
+
+
+
+
+
 type init_desc =
   | Fresh
   | Value of expr
@@ -96,8 +146,8 @@ type init_desc =
 type decl = decl' Location.located
 
 and decl' =
-  | DeclExtFun of Name.ident * int (** external function, [function id : arity] *)
-  | DeclExtEq of expr * expr (** external equation, [equation e1 = e2] *)
+  | DeclEqThyFunc of Name.ident * eq_thy_func_desc (** external function, [function id : arity] *)
+  | DeclEqThyEquation of expr * expr (** external equation, [equation e1 = e2] *)
   | DeclExtSyscall of Name.ident * Name.ident list * cmd
   (** system call, [syscall f(ty1 a1,..,tyn an) { c }]
                    [passive attack f(ty1 a1,..,tyn an) { c }]
