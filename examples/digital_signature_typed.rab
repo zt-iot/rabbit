@@ -1,0 +1,163 @@
+
+data message 
+data signature
+
+data sigkey['a] (* a key with polymorphic type on which it operates *)
+data verkey['a]
+
+
+(***********)
+(** declare types with their classes *)
+type readonly_t   : filesys
+type alice_t      : process
+type bob_t        : process
+
+
+(** declare kinds, which are values which do not have any security information *)
+
+
+
+(** declare security types *)
+
+type client_msg : message
+type client_sig : signature
+type sign_key_alice : sigkey[client_msg] (* signing key for client_msg type of data *)
+
+type udp_t 	  : channel[client_msg * client_sig]
+
+
+(* load some primitive syscalls, incl. send and recv *)
+load "digital_signature_typed_eq_theory_and_syscalls.rab"
+
+(* syscall that returns some fresh globally known message *)
+syscall gen_message () : client_msg {
+  new v : client_msg in 
+  v
+}
+
+
+(***********)
+(** attacker model *)
+
+(* declare active attacks *)
+
+(* tamper message *)
+attack tamper_channel on recv (c) {
+  case [c::store(j), ::In(w)] ->
+    w
+  end
+}
+
+allow attack alice_t [tamper_channel] 
+allow attack bob_t [tamper_channel] 
+
+passive attack eaves_mem (v) {
+  put [::Out(v)]
+}
+
+
+allow alice_t [eaves_mem]
+allow bob_t [eaves_mem]
+
+
+
+
+
+
+(***********)
+(** access control for TAMARIN translation *)
+
+(* clients can both send and receive messages on udp_t channels *)
+allow alice_t udp_t [send, recv]
+allow bob_t udp_t [send, recv]
+
+(** clients are allowed to generate fresh messages *)
+allow alice_t [gen_message]
+allow bob_t [gen_message]
+
+
+
+(** access control necessary for defining security lattice of TYPE SYSTEM *)
+allow alice_t client_msg [gen_message, send, recv]
+allow alice_t client_sig [send]
+allow alice_t client_sig [.]  (* able to create signatures using `sign` equational theory function *)
+allow alice_t sign_key_alice [.] (* able to instantiate terms of sign_key_alice in memory instantiation *)
+
+allow bob_t client_msg [gen_message, send, recv]
+allow bob_t client_sig [send]
+allow bob_t client_sig [.]  (* able to create signatures using `sign` equational theory function *)
+
+
+allow attacker_ty client_msg [read, provide]
+allow attacker_ty client_sig [read, provide]
+
+
+
+
+(***********)
+(** global constants *)
+const fresh secret_key_alice : sign_key_alice
+
+(***********)
+(** installed channels and filesystems *)
+
+channel udp : udp_t (* Only a single UDP channel for now *)
+
+
+(***********)
+(** process templates *)
+
+process alice(ch_net : udp_t) : alice_t
+{
+    var priv_key_alice = secret_key_alice
+
+  	main 
+  	{
+      var msg = gen_message() in
+      _ := eaves_mem(msg);
+
+      var sig = sign(msg, priv_key_alice) in
+      _ := eaves_mem(sig);
+
+
+      (* Send msg appended with signature to Bob *)
+       event [::MsgSend(msg)];
+      _ := send(ch_net, (msg, sig));
+
+      event [::AliceClose ()]
+  	}
+}
+
+process bob(ch_net : udp_t) : bob_t
+{
+  (* Use public key of Alice to verify message *)
+  var pub_key_alice = vk(priv_key_alice)
+
+  main 
+  {
+    
+    var msg_with_sig = recv(ch_net) in
+
+    var res = verify(snd(msg_with_sig), fst(msg_with_sig), pub_key_alice) in
+
+    case 
+    | [res = true] ->
+        event [::IntegritySuccess(fst(msg_with_sig))]
+    | [res != true] ->
+        event [::IntegrityFail(fst(msg_with_sig))]
+    end;
+    event [::BobClose ()]
+  }
+}
+
+
+system
+   alice(udp) | bob(udp)
+requires  [
+    lemma Reachable : 
+      exists-trace "Ex #i #j . AliceClose () @ #i & BobClose() @ #j";
+  
+    lemma Correspondence :
+    	all-traces "All msg #j  . IntegritySuccess(msg) @ #j ==> Ex #i . MsgSend (msg) @ i & i < j" 
+
+  ]
