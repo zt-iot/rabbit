@@ -85,12 +85,12 @@ plain_decl:
   | CHANNEL id=NAME COLON n=NAME { DeclChan (ChanParam {id; param= None; typ= n}) }
 
   | PROCESS id=NAME LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME
-    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE {
+    LBRACE fl=file_stmts l=let_stmts f=member_fun_decls m=main_stmt RBRACE {
       DeclProc{ id=id; param= None; args= parems; typ= ty; files= fl; vars= l; funcs= f; main= m }
     }
 
   | PROCESS id=NAME LT p=NAME GT LPAREN parems=separated_list(COMMA, colon_name_pair) RPAREN COLON ty=NAME
-    LBRACE fl=file_stmts l=let_stmts f=fun_decls m=main_stmt RBRACE {
+    LBRACE fl=file_stmts l=let_stmts f=member_fun_decls m=main_stmt RBRACE {
       DeclProc{ id=id; param= Some p; args= parems; typ= ty; files= fl; vars= l; funcs= f; main= m }
     }
 
@@ -217,13 +217,13 @@ let_stmt:
   | VAR id=NAME COLON t=typ EQ e=expr { (id, Some t, e) }
   | VAR id=NAME EQ e=expr { (id, None, e) }
 
-fun_decls:
+member_fun_decls:
   | { [] }
-  | f = fun_decl fs=fun_decls { f :: fs }
+  | f = member_fun_decl fs=member_fun_decls { f :: fs }
 
-fun_decl:
-  | FUNC id=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN
-    LBRACE c=cmd RBRACE { (id, parems, c) }
+member_fun_decl:
+  | FUNC id=NAME signature=fun_signature
+    LBRACE c=cmd RBRACE { (id, signature, c) }
 
 main_stmt:
   | MAIN LBRACE c=cmd RBRACE { c }

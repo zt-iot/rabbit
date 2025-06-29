@@ -805,6 +805,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           (lctx, Context.ldef_init)
           vars_simplified
       in
+      let fs_simplified = List.map (fun (f, param_desc, cmd) -> (f, Input.syscall_member_fun_desc_to_ident_list param_desc, cmd)) fs in
       (* load functions *)
       let ctx, lctx, ldef =
         List.fold_left
@@ -821,7 +822,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
              , Context.lctx_add_new_func ~loc lctx'' (fid, List.length args)
              , Context.ldef_add_new_func ldef'' (fid, args, cs') ))
           (ctx, lctx, ldef)
-          fs
+          fs_simplified
       in
       (* load main function [main ...] *)
       let ctx, _, m' = process_cmd ctx lctx m in
@@ -885,6 +886,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           cl_simplified
       in
       (* load functions [function ...] *)
+      let fs_simplified = List.map (fun (f, param_desc, cmd) -> (f, Input.syscall_member_fun_desc_to_ident_list param_desc, cmd)) fs in 
       let ctx, lctx, ldef =
         List.fold_left
           (fun (ctx'', lctx'', ldef'') (fid, args, cs) ->
@@ -900,7 +902,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
              , Context.lctx_add_new_func ~loc lctx'' (fid, List.length args)
              , Context.ldef_add_new_func ldef'' (fid, args, cs') ))
           (ctx, lctx, ldef)
-          fs
+          fs_simplified
       in
       (* load main function [main ...] *)
       let ctx, _, m' = process_cmd ctx lctx m in

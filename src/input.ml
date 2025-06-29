@@ -181,7 +181,7 @@ and decl' =
       ; typ : Name.ident
       ; files : (expr * Name.ident * expr) list
       ; vars : (Name.ident * rabbit_typ option * expr) list
-      ; funcs : (Name.ident * Name.ident list * cmd) list
+      ; funcs : (Name.ident * syscall_member_fun_desc * cmd) list
       ; main : cmd
       }
   | DeclSys of proc list * lemma list

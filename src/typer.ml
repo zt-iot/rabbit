@@ -652,7 +652,8 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       env', [{ env; loc; desc = Channel { id; param; typ = chty } }]
   | DeclProc { id; param; args; typ; files; vars; funcs; main } ->
       let vars_simplified = List.map (fun (s, _, e) -> (s, e)) vars in
-      let env', decl = type_process ~loc env id param args typ files vars_simplified funcs main in
+      let funcs_simplified = List.map (fun (f, param_desc, cmd) -> (f, Input.syscall_member_fun_desc_to_ident_list param_desc, cmd)) funcs in
+      let env', decl = type_process ~loc env id param args typ files vars_simplified funcs_simplified main in
       env', [decl]
   | DeclSys (procs, lemmas) ->
       (* [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
