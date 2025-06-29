@@ -549,7 +549,8 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let e2 = type_expr env' e2 in
       ( env
       , [{ env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *) }] )
-  | DeclExtSyscall (name, args, c) ->
+  | DeclExtSyscall (name, signature, c) ->
+      let args = Input.syscall_member_fun_desc_to_ident_list signature in 
       let args, cmd =
         let env', args = extend_with_args env args @@ fun id -> Var (Loc (snd id)) in
         let c = type_cmd env' c in

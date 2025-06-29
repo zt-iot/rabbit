@@ -142,6 +142,16 @@ type eq_thy_func_desc =
 [@@deriving show]
 
 
+(* Used for signature of syscalls and member function *)
+type syscall_member_fun_desc = 
+  | UntypedSig of Name.ident list  (* when types are not given *)
+  | TypedSig of Name.ident list * rabbit_typ list * rabbit_typ (* when types are given *)
+[@@deriving show]
+
+
+let syscall_member_fun_desc_to_ident_list signature = match signature with 
+  | UntypedSig(ids) -> ids
+  | TypedSig(ids, _, _) -> ids
 
 
 type init_desc =
@@ -157,7 +167,7 @@ and decl' =
   
   | DeclEqThyFunc of Name.ident * eq_thy_func_desc
   | DeclEqThyEquation of expr * expr
-  | DeclExtSyscall of Name.ident * Name.ident list * cmd
+  | DeclExtSyscall of Name.ident * syscall_member_fun_desc * cmd
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
   | DeclType of Name.ident * rabbit_typ
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option

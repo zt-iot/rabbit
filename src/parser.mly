@@ -129,9 +129,25 @@ colon_name_pair :
   | a=NAME LT GT COLON b=NAME { ChanParam {id=a; param= Some (); typ=b} }
   | a=NAME LTGT COLON b=NAME { ChanParam {id=a; param= Some (); typ=b} }
 
+
+name_ty_param_pair : 
+  | n=NAME COLON p=typ { (n, p) }
+
+
+(* function signature for syscalls and member functions *)
+fun_signature:
+  (* the case where there are zero parameters in between the (...) is handled separately 
+  because otherwise this causes a Menhir reduce/reduce conflict *)
+  | LPAREN RPAREN COLON retty=typ { TypedSig([], [], retty) }
+  | LPAREN RPAREN { UntypedSig([]) }
+
+  | LPAREN names_and_types=separated_nonempty_list(COMMA, name_ty_param_pair) RPAREN 
+      COLON retty=typ { TypedSig(List.map fst names_and_types, List.map snd names_and_types, retty) }
+  | LPAREN names=separated_nonempty_list(COMMA, NAME) RPAREN { UntypedSig(names) }
+
 external_syscall:
-  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN
-      LBRACE c=cmd RBRACE { DeclExtSyscall(f, parems, c) }
+  |  syscall_tk f=NAME signature=fun_signature
+      LBRACE c=cmd RBRACE { DeclExtSyscall(f, signature, c) }
 
 syscall_tk:
   | SYSCALL {()}

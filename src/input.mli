@@ -129,7 +129,14 @@ type eq_thy_func_desc =
 [@@deriving show]
 
 
+(* Used for signature of syscalls and member function *)
+type syscall_member_fun_desc = 
+  | UntypedSig of Name.ident list  (* when types are not given *)
+  | TypedSig of Name.ident list * rabbit_typ list * rabbit_typ (* when types are given *)
+[@@deriving show]
 
+
+val syscall_member_fun_desc_to_ident_list : syscall_member_fun_desc -> Name.ident list
 
 
 type init_desc =
@@ -143,7 +150,7 @@ type decl = decl' Location.located
 and decl' =
   | DeclEqThyFunc of Name.ident * eq_thy_func_desc (** external function, [function id : arity] *)
   | DeclEqThyEquation of expr * expr (** external equation, [equation e1 = e2] *)
-  | DeclExtSyscall of Name.ident * Name.ident list * cmd
+  | DeclExtSyscall of Name.ident * syscall_member_fun_desc * cmd
   (** system call, [syscall f(ty1 a1,..,tyn an) { c }]
                    [passive attack f(ty1 a1,..,tyn an) { c }]
       XXX what is passive attack for?  It is not distinguishable from syscall in Input.
