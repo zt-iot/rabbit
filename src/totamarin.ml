@@ -12,7 +12,7 @@ let next_state ?(shift_meta=0) ?(shift_loc=0) ?(shift_top=0) st scope =
   }
 ;;
 
-let rec translate_expr ?(ch = false) (e : Syntax.expr) : expr =
+let rec translate_expr (e : Syntax.expr) : expr =
   match e.Location.data with
   | Syntax.ExtConst s -> Apply (s, [])
   | Syntax.Const (_s, None) -> assert false
@@ -26,10 +26,10 @@ let rec translate_expr ?(ch = false) (e : Syntax.expr) : expr =
   | Syntax.String s -> String s
   | Syntax.Integer _z -> assert false
   | Syntax.Float _f -> assert false
-  | Syntax.Apply (o, el) -> Apply (o, List.map (translate_expr ~ch) el)
-  | Syntax.Tuple el -> List (List.map (translate_expr ~ch) el)
-  | Syntax.Channel (c, None) -> if ch then Var c else String c
-  | Syntax.Channel (c, Some e) -> expr_pair (String c) (translate_expr ~ch e)
+  | Syntax.Apply (o, el) -> Apply (o, List.map translate_expr el)
+  | Syntax.Tuple el -> List (List.map translate_expr el)
+  | Syntax.Channel (c, None) -> String c
+  | Syntax.Channel (c, Some e) -> expr_pair (String c) (translate_expr e)
 ;;
 
 (* Constants in [e] are extracted as facts
@@ -37,13 +37,13 @@ let rec translate_expr ?(ch = false) (e : Syntax.expr) : expr =
    - If fresh:   ConstantFact (String id, Var id)
    - If with a definition e:  ConstantFact (List [String id, <e>], Var id_num)
 *)
-let rec translate_expr2 ?(ch = false) ?(num = 0) e : expr * fact list * int =
+let rec translate_expr2 ?(num = 0) e : expr * fact list * int =
   match e.Location.data with
   | Syntax.ExtConst s -> Apply (s, []), [], num
   | Syntax.Const (s, None) -> Var s, [ ConstantFact (String s, Var s) ], num
   | Syntax.Const (cid, Some e) ->
       let var_name = cid ^ !separator ^ string_of_int num in
-      let e', fs, num = translate_expr2 ~ch ~num:(num + 1) e in
+      let e', fs, num = translate_expr2 ~num:(num + 1) e in
       Var var_name, ConstantFact (expr_pair (String cid) e', Var var_name) :: fs, num
   | Syntax.Variable (_v, Top i) -> TopVar i, [], num
   | Syntax.Variable (_v, Loc i) -> LocVar i, [], num
@@ -58,7 +58,7 @@ let rec translate_expr2 ?(ch = false) ?(num = 0) e : expr * fact list * int =
       let es, fs, n =
         List.fold_left
           (fun (es, fs, n) e ->
-             let e, fs', n = translate_expr2 ~ch ~num:n e in
+             let e, fs', n = translate_expr2 ~num:n e in
              es @ [ e ], fs @ fs', n)
           ([], [], num)
           el
@@ -68,15 +68,15 @@ let rec translate_expr2 ?(ch = false) ?(num = 0) e : expr * fact list * int =
       let el, fs, n =
         List.fold_left
           (fun (es, fs, n) e ->
-             let e, fs', n = translate_expr2 ~ch ~num:n e in
+             let e, fs', n = translate_expr2 ~num:n e in
              es @ [ e ], fs @ fs', n)
           ([], [], num)
           el
       in
       List el, fs, n
-  | Syntax.Channel (c, None) -> if ch then Var c, [], num else String c, [], num
+  | Syntax.Channel (c, None) -> String c, [], num
   | Syntax.Channel (c, Some e) ->
-      let e', fs, n = translate_expr2 ~ch ~num e in
+      let e', fs, n = translate_expr2 ~num e in
       (* let var_name = (cid ^ !separator ^ string_of_int num) in *)
       expr_pair (String c) e', fs, n
 ;;
@@ -1004,7 +1004,7 @@ let translate_global_constant ~sep t v = function
       (* no parameter, when v is defined *)
       let e, gv, _ = translate_expr2 e in
       let const = ConstantFact (String v, e) in
-      let t = add_comment t @@ Printf.sprintf "const %s = e" v in
+      let t = add_comment t @@ Printf.sprintf "const %s = ..." v in
       add_rule
         t
         { name = "Const" ^ sep ^ v
@@ -1029,7 +1029,7 @@ let translate_global_constant ~sep t v = function
       (* w/ parameter, when v is defined *)
       let e, gv, _ = translate_expr2 e in
       let const = ConstantFact (List [String v; Param], e) in
-      let t = add_comment t @@ Printf.sprintf "const fresh %s<%s> = e" v p in
+      let t = add_comment t @@ Printf.sprintf "const fresh %s<%s> = ..." v p in
       add_rule
         t
         { name = "Const" ^ sep ^ v
@@ -1069,10 +1069,10 @@ let translate_sys
       f "_");
   (fresh_ident
    := let rec f s = if List.exists (fun u -> u = s) used_idents then f (s ^ "_") else s in
-      f "rab");
+      f "rab_ident");
   (fresh_string
    := let rec f s = if List.exists (fun u -> u = s) used_string then f (s ^ "_") else s in
-      f "rab");
+      f "rab_str");
   (fresh_param
    := let rec f s = if List.exists (fun u -> u = s) used_string then f (s ^ "_") else s in
       f "param");
