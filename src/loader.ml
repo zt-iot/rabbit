@@ -720,14 +720,14 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           tl
       in
       { env with access_policy = p }
-  | Input.DeclInit (id, Fresh) ->
+  | Input.DeclInit (id, _, Fresh) ->
       (* [const fresh n] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       { env with
         context = Context.ctx_add_const env.context id
       ; definition = Context.def_add_const env.definition (id, None)
       }
-  | Input.DeclInit (id, Value e) ->
+  | Input.DeclInit (id, _, Value e) ->
       (* [const n = e] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       let e' = process_expr env.context Context.lctx_init e in
@@ -735,14 +735,14 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         context = Context.ctx_add_const env.context id
       ; definition = Context.def_add_const env.definition (id, Some e')
       }
-  | Input.DeclInit (id, Fresh_with_param) ->
+  | Input.DeclInit (id, _, Fresh_with_param) ->
       (* [const fresh n<>] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       { env with
         context = Context.ctx_add_param_const env.context id
       ; definition = Context.def_add_param_const env.definition (id, None)
       }
-  | Input.DeclInit (id, Value_with_param (e, p)) ->
+  | Input.DeclInit (id, _, Value_with_param (e, p)) ->
       (* [const n<p> = e] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       let e' = process_expr ~param:p env.context Context.lctx_init e in
@@ -794,6 +794,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
              process_expr ctx lctx path, ty, process_expr ctx lctx data)
           fls
       in
+      let vars_simplified = List.map (fun (s, _, e) -> (s, e)) vars in
       (* load top-level variables [var ...] *)
       let lctx, ldef =
         List.fold_left
@@ -801,7 +802,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
              ( Context.lctx_add_new_top_var ~loc lctx' vid
              , Context.ldef_add_new_var ldef' (vid, process_expr ctx lctx' e) ))
           (lctx, Context.ldef_init)
-          vars
+          vars_simplified
       in
       (* load functions *)
       let ctx, lctx, ldef =
@@ -873,13 +874,14 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           fls
       in
       (* load top-level variables [var ...] *)
+      let cl_simplified = List.map (fun (s, _, e) -> (s, e)) cl in
       let lctx, ldef =
         List.fold_left
           (fun (lctx', ldef') (vid, e) ->
              ( Context.lctx_add_new_top_var ~loc lctx' vid
              , Context.ldef_add_new_var ldef' (vid, process_expr ctx lctx' e) ))
           (lctx, Context.ldef_init)
-          cl
+          cl_simplified
       in
       (* load functions [function ...] *)
       let ctx, lctx, ldef =

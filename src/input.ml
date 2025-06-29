@@ -162,7 +162,7 @@ and decl' =
   | DeclType of Name.ident * rabbit_typ
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   | DeclAttack of Name.ident list * Name.ident list
-  | DeclInit of Name.ident * init_desc
+  | DeclInit of Name.ident * rabbit_typ option * init_desc
   | DeclChan of chan_param
   | DeclProc of
       { id : Name.ident
@@ -170,7 +170,7 @@ and decl' =
       ; args : chan_param list
       ; typ : Name.ident
       ; files : (expr * Name.ident * expr) list
-      ; vars : (Name.ident * expr) list
+      ; vars : (Name.ident * rabbit_typ option * expr) list
       ; funcs : (Name.ident * Name.ident list * cmd) list
       ; main : cmd
       }

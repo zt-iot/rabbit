@@ -618,20 +618,20 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         List.map (fun attack -> Env.find_desc ~loc env attack Attack) attacks
       in
       env, [{ env; loc; desc = AllowAttack { process_typs = proc_tys; attacks } }]
-  | DeclInit (name, Fresh) ->
+  | DeclInit (name, _, Fresh) ->
       (* [const fresh n] *)
       let env', id = Env.add_global ~loc env name (Const false) in
       env', [{ env; loc; desc = Init { id; desc = Fresh } }]
-  | DeclInit (name, Value e) ->
+  | DeclInit (name, _, Value e) ->
       (* [const n = e] *)
       let e = type_expr env e in
       let env', id = Env.add_global ~loc env name (Const false) in
       env', [{ env; loc; desc = Init { id; desc = Value e } }]
-  | DeclInit (name, Fresh_with_param) ->
+  | DeclInit (name, _, Fresh_with_param) ->
       (* [const fresh n<>] *)
       let env', id = Env.add_global ~loc env name (Const true) in
       env', [{ env; loc; desc = Init { id; desc = Fresh_with_param } }]
-  | DeclInit (name, Value_with_param (e, p)) ->
+  | DeclInit (name, _, Value_with_param (e, p)) ->
       (* [const n<p> = e] *)
       let p = Ident.local p in
       let env' = Env.add env p (Var Param) in
@@ -650,7 +650,8 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let env', id = Env.add_global ~loc env name (Channel (param <> None, chty)) in
       env', [{ env; loc; desc = Channel { id; param; typ = chty } }]
   | DeclProc { id; param; args; typ; files; vars; funcs; main } ->
-      let env', decl = type_process ~loc env id param args typ files vars funcs main in
+      let vars_simplified = List.map (fun (s, _, e) -> (s, e)) vars in
+      let env', decl = type_process ~loc env id param args typ files vars_simplified funcs main in
       env', [decl]
   | DeclSys (procs, lemmas) ->
       (* [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)

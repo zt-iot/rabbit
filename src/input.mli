@@ -160,7 +160,7 @@ and decl' =
   *)
   | DeclAttack of Name.ident list * Name.ident list
   (** [allow attack t1 .. tn [f1, .., fm]] *)
-  | DeclInit of Name.ident * init_desc
+  | DeclInit of Name.ident * rabbit_typ option * init_desc
   (** [const n = e]
       [const fresh n]
       [const n<p> = e]
@@ -172,7 +172,7 @@ and decl' =
       ; args : chan_param list
       ; typ : Name.ident
       ; files : (expr * Name.ident * expr) list
-      ; vars : (Name.ident * expr) list
+      ; vars : (Name.ident * rabbit_typ option * expr) list
       ; funcs : (Name.ident * Name.ident list * cmd) list
       ; main : cmd
       }

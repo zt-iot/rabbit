@@ -97,9 +97,11 @@ plain_decl:
 
   | LOAD fn=QUOTED_STRING { DeclLoad(fn) }
 
-  | CONST t=NAME EQ e=expr { DeclInit(t, Value e) }
+  | CONST t=NAME COLON typ=typ EQ e=expr { DeclInit(t, Some typ, Value e) }
+  | CONST t=NAME EQ e=expr { DeclInit(t, None, Value e) }
 
-  | CONST FRESH t=NAME { DeclInit(t, Fresh) }
+  | CONST FRESH COLON typ=typ t=NAME { DeclInit(t, Some typ, Fresh) }
+  | CONST FRESH t=NAME { DeclInit(t, None, Fresh) }
 
   | ATTACK f=NAME ON t=NAME LPAREN arg=separated_list(COMMA, NAME) RPAREN LBRACE c=cmd RBRACE { DeclExtAttack (f, t, arg, c) }
 
@@ -111,10 +113,14 @@ plain_decl:
   | CHANNEL id=NAME LTGT COLON n=NAME { DeclChan (ChanParam {id; param= Some (); typ= n}) }
 
 
-  | CONST t=NAME LT p=NAME GT EQ e=expr { DeclInit(t, Value_with_param (e, p)) }
+  | CONST t=NAME LT p=NAME GT COLON typ=typ EQ e=expr { DeclInit(t, Some typ, Value_with_param (e, p)) }
+  | CONST t=NAME LT p=NAME GT EQ e=expr { DeclInit(t, None, Value_with_param (e, p)) }
 
-  | CONST FRESH t=NAME LT GT { DeclInit(t, Fresh_with_param) }
-  | CONST FRESH t=NAME LTGT { DeclInit(t, Fresh_with_param) }
+  | CONST FRESH t=NAME LT GT COLON typ=typ { DeclInit(t, Some typ, Fresh_with_param) }
+  | CONST FRESH t=NAME LT GT { DeclInit(t, None, Fresh_with_param) }
+
+  | CONST FRESH t=NAME LTGT COLON typ=typ { DeclInit(t, Some typ, Fresh_with_param) }
+  | CONST FRESH t=NAME LTGT { DeclInit(t, None, Fresh_with_param) }
 
 
 
@@ -192,7 +198,8 @@ let_stmts:
   | l=let_stmt ls=let_stmts { l :: ls }
 
 let_stmt:
-  | VAR id=NAME EQ e=expr { (id, e) }
+  | VAR id=NAME COLON t=typ EQ e=expr { (id, Some t, e) }
+  | VAR id=NAME EQ e=expr { (id, None, e) }
 
 fun_decls:
   | { [] }
