@@ -321,7 +321,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         let facts = type_facts env facts in
         Event facts
     | Return e -> Return (type_expr env e)
-    | New (name, str_es_opt, cmd) ->
+    | New (name, _, str_es_opt, cmd) ->
         (* allocation, [new x := S(e1,..,en) in c] or [new x in c] *)
         let str_es_opt =
           Option.map
@@ -405,6 +405,8 @@ let type_process
           let id = Ident.local name in
           Env.add env id (Var Param), Some id
     in
+
+    (* add channel paramters to local environment *)
     let env', rev_args =
       List.fold_left
         (fun (env, rev_args) (Input.ChanParam { id = chanid; param; typ = chanty }) ->
@@ -418,12 +420,16 @@ let type_process
         args
     in
     let args = List.rev rev_args in
+
+    (* check if proc_ty is a valid type *)
     let proc_ty =
       match Env.find ~loc env proc_ty with
       | proc_ty, Type CProc -> proc_ty
       | id, desc ->
           error ~loc @@ InvalidVariable { ident = id; def = desc; use = Type CProc }
     in
+
+    (* check if file types exist *)
     let files =
       List.map
         (fun (path, filety, contents) ->
@@ -433,6 +439,7 @@ let type_process
            path, filety, contents)
         files
     in
+    (* add contens of process memory to local  environment *)
     let env', rev_vars =
       List.fold_left
         (fun (env, rev_vars) (name, e) ->
@@ -444,6 +451,8 @@ let type_process
         vars
     in
     let vars = List.rev rev_vars in
+
+    (* add member functions of process to local environment *)
     let env', rev_funcs =
       List.fold_left
         (fun (env', rev_funcs) (fname, args, c) ->
@@ -458,6 +467,7 @@ let type_process
     let main = type_cmd env' main in
     param_opt, args, proc_ty, files, vars, funcs, main
   in
+  (* add process name to environment *)
   let env', id = Env.add_global ~loc env name Process in
   let decl : Typed.decl =
     { env
@@ -634,7 +644,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   | DeclChan (ChanParam { id = name; param; typ = chty }) ->
       (* [channel n : ty] *)
       (* [channel n<> : ty] *)
-      
+
       (* XXX not clear what happens when we have (Type (CChan <non_empty_list> )) *)
       let chty = Env.find_desc ~loc env chty (Type (CChan [])) in
       let env', id = Env.add_global ~loc env name (Channel (param <> None, chty)) in

@@ -7,7 +7,7 @@ type rabbit_typ =
   | CSimple of Name.ident * rabbit_typ list   (* data name[t_1, ..., t_n] *)
   | CProd of rabbit_typ * rabbit_typ          (* ty_1 * ty_2 *)
   | CPoly of Name.ident                       (* 'a or 'b  or 'c etc. *)
-  (* maybe add | CSecurity of Name.ident *)  
+  (* maybe add | CSecurity of Name.ident, I'm not sure if it belongs here *)  
 
 
 
@@ -101,7 +101,7 @@ and cmd' =
   | While of cmd case list * cmd case list
   | Event of fact list
   | Return of expr
-  | New of Name.ident * (Name.ident * expr list) option * cmd
+  | New of Name.ident * rabbit_typ option * (Name.ident * expr list) option * cmd
   | Get of Name.ident list * expr * Name.ident * cmd
   | Del of expr * Name.ident
 

@@ -297,8 +297,20 @@ plain_cmd:
   | EVENT LBRACKET a=separated_list(COMMA, fact) RBRACKET           { Event(a) }
 
   | LET ids=separated_list(COMMA, NAME) EQ e=expr DOT fid=NAME IN c=cmd { Get (ids, e, fid, c) }
-  | NEW id=NAME EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd { New (id, Some(fid, args), c) }
-  | NEW id=NAME IN c=cmd { New (id, None, c) }
+
+  (* new structure declaration with type *)
+  | NEW id=NAME COLON typ=typ EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd { 
+      New (id, Some typ, Some(fid, args), c) 
+    }
+  (* new structure declaration without type *)
+  | NEW id=NAME EQ fid=NAME LPAREN args=separated_list(COMMA, expr) RPAREN IN c=cmd { 
+      New (id, None, Some(fid, args), c) 
+    }
+  (* new name generation with type *)
+  | NEW id=NAME COLON typ=typ IN c=cmd { New (id, Some typ, None, c) }
+  (* new name generation without type *)
+  | NEW id=NAME IN c=cmd { New (id, None, None, c) }
+
   | DEL e=expr DOT fid=NAME { Del (e, fid) }
 
   | e=expr { Return e }

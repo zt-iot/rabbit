@@ -368,7 +368,7 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
         let ctx, fl = process_facts_closed [] ctx lctx fl in
         ctx, lctx, Syntax.Event fl
     | Input.Return e -> ctx, lctx, Syntax.Return (process_expr ctx lctx e)
-    | Input.New (v, fid_el_opt, c) ->
+    | Input.New (v, _, fid_el_opt, c) ->
         (* [new x := S(e1,..,en) in c] *)
         if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ();
         let ctx =
