@@ -1,0 +1,91 @@
+(* security primitives *)
+function vk : key[Sig]@('s, 'i) -> key[Ver]@(Public, 'i)
+
+function senc : 'a -> key[Sym, 'a]@(Public, 'i) -> cipher['a]@(Public, 'i)
+function sdec : cipher['a] -> key[Sym, 'a] -> 'a
+equation sdec(enc(x, y), y) = x
+
+function sign : 'a -> key[Sig, 'a]@('s, 'i) -> signature@(S('a), 'i) (* signature@('a, i) will match any "signature security type", E.G.*)
+
+function fst : 'a * 'b -> 'a
+function snd : 'a * 'b -> 'b
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+function true : bool                                        (* A 0-argument function, aka a constant, which is of type bool *)
+function verify : signature@('s1, 'i1) -> 'a@('s1, 'i1) -> key[Ver, 'a]@('s, 'i) -> bool
+
+equation verify (sign(d, k), d, vk(k)) = true
+
+
+(** asynchronous channels *)
+syscall send(c : channel['a], v : 'a) : unit {
+  put [c::store(v)]
+}
+
+syscall recv(c : channel['a]) : 'a {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+(** synchronous rpc channel *)
+syscall connect_rpc (c : channel['a]) : conn_client {
+  put [c::req()];
+  case 
+  | [c::ack()] →
+    new x = chid(c) in 
+    put [c::conn()]; 
+    x
+  end
+} 
+
+syscall invoke_rpc (cid : conn_client, f : string, arg1 : 'a, arg2 : 'b) : 'c {
+  let c : rpc_t = cid.chid in 
+  put [c::invoke(f, arg1, arg2)]; 
+  case [c:: Returned(v)] → v end
+}
+
+syscall close_rpc (cid : conn_client) {
+  let c = cid.chid in
+  delete cid.chid;
+  put[c::exit()]
+}
+
+syscall accept_rpc (c : channel['a]) : unit {
+  case [c::req()] → put [c::ack()] end
+}
+
+(* we specifically require ch_rpc to be of rpc_t type, which has the write types that we expect *)
+syscall send_recv_rpc_loop (ch_rpc : rpc_t) : unit {
+  repeat
+  | [ch_rpc::invoke(fname, image, priv_path)] →
+    case
+    | [fname = "sign_image"] →
+      var signed : client_ta_sig = sign_image(image, priv_path) in 
+      put[ch_rpc:: Returned(signed)]		
+
+    | [fname <> "sign_image"] →
+      event [InValidName(fname)]
+    end 
+  until
+  | [ch_rpc::exit()] → skip 
+  end;
+}
+
+
+syscall recv_verify_loop(ch_net : udp_t, pubkey : ver_key_server) : unit {
+  repeat 
+  | [] →
+    var sig_img_pair : signature * image = recv(ch_net) in
+    var res : bool = verify(fst(p), snd(p), pubkey) in 
+    case 
+    | [res =  true] →
+      event [::ImgRecvValid(snd(p))]
+
+    | [res <> true] →  
+      event [::ImgRecvInvalid(snd(p))]
+    end
+  until
+  | [::False()] →  skip 
+  end 	
+}
