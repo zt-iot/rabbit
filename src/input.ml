@@ -4,7 +4,7 @@ type rabbit_typ =
   | CProc                                     (* process *)
   | CFsys                                     (* filesys *)
   | CChan of rabbit_typ list                  (* channel[t_1 + ... + t_n] *)
-  | CSimple of Name.ident * rabbit_typ list   (* data name[t_1, ..., t_n] *)
+  | CSimpleOrSecurity of Name.ident * rabbit_typ list   (* data name[t_1, ..., t_n] *)
   | CProd of rabbit_typ * rabbit_typ          (* ty_1 * ty_2 *)
   | CPoly of Name.ident                       (* 'a or 'b  or 'c etc. *)
   (* maybe add | CSecurity of Name.ident, I'm not sure if it belongs here *)  
@@ -26,11 +26,6 @@ and func_param_integrity_lvl =
 [@@deriving show]
 
 and security_lvl = func_param_secrecy_lvl * func_param_integrity_lvl [@@deriving show]
-
-
-
-
-
 
 
 
@@ -164,7 +159,7 @@ type init_desc =
 type decl = decl' Location.located
 
 and decl' =
-  
+  | DeclSimpleTyp of rabbit_typ
   | DeclEqThyFunc of Name.ident * eq_thy_func_desc
   | DeclEqThyEquation of expr * expr
   | DeclExtSyscall of Name.ident * syscall_member_fun_desc * cmd

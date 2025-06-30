@@ -9,6 +9,8 @@ type 'desc loc_env =
 
 type expr = expr' loc_env
 
+
+
 and expr' =
   | Ident of
       { id : ident
@@ -155,6 +157,10 @@ and decl' =
       { id : ident
       ; typclass : Input.rabbit_typ
       } (** type declaration, [type t : filesys/process/channel] *)
+
+
+
+
   | Allow of
       { process_typ : ident
       ; target_typs : ident list

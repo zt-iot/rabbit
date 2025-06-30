@@ -4,7 +4,7 @@ type rabbit_typ =
   | CProc (** [process] *)
   | CFsys (** [filesys] *)
   | CChan of rabbit_typ list (** [channel] *)
-  | CSimple of Name.ident * rabbit_typ list   (* data name[t_1, ..., t_n] *)
+  | CSimpleOrSecurity of Name.ident * rabbit_typ list   (* data name[t_1, ..., t_n] *)
   | CProd of rabbit_typ * rabbit_typ          (* ty_1 * ty_2 *)
   | CPoly of Name.ident                       (* 'a or 'b  or 'c etc. *)
 
@@ -148,6 +148,7 @@ type init_desc =
 type decl = decl' Location.located
 
 and decl' =
+  | DeclSimpleTyp of rabbit_typ
   | DeclEqThyFunc of Name.ident * eq_thy_func_desc (** external function, [function id : arity] *)
   | DeclEqThyEquation of expr * expr (** external equation, [equation e1 = e2] *)
   | DeclExtSyscall of Name.ident * syscall_member_fun_desc * cmd

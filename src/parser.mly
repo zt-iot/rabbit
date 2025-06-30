@@ -63,7 +63,7 @@ decls:
 
 decl: mark_location(plain_decl) { $1 }
 plain_decl:
-
+  | DATA t=typ { DeclSimpleTyp(t) } 
 
   | FUNC id=NAME COLON arity=NUMERAL { DeclEqThyFunc(id, Arity(arity)) }
   | FUNC id=NAME COLON params=separated_nonempty_list(ARROW, typ) { DeclEqThyFunc(id, TypeSig(params)) }
@@ -263,11 +263,11 @@ typ:
   | PROCESS { CProc }
   | FILESYS { CFsys }
 
-  | APOSTROPHE t=NAME { CPoly(t) }
+  | APOSTROPHE t=NAME { CPoly("'" ^ t) }
   | t1=typ STAR t2=typ { CProd(t1, t2) }
 
   | CHANNEL opt_params=opt_channel_params { CChan(opt_params) }
-  | t=NAME opt_params=opt_simpletype_params { CSimple(t, opt_params) }
+  | t=NAME opt_params=opt_simpletype_params { CSimpleOrSecurity(t, opt_params) }
 
 
 expr : mark_location(plain_expr) { $1 }

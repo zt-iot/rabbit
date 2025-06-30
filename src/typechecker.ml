@@ -1,13 +1,28 @@
+open Sets
+
+type core_type = 
+  | TChan of core_type list
+  | TSimple of Name.ident * core_type list
+  | TProd of core_type * core_type
 
 
+type secrecy_lvl = 
+  | Public 
+  | SNode of proc_set 
+
+type integrity_lvl = 
+  | Untrusted
+  | INode of proc_set
+
+type core_security_type = core_type * (secrecy_lvl * integrity_lvl)
 
 
+type function_param_type = 
+  | CParamCore of core_security_type
+  | CParamPoly of Name.ident
 
-
-
-(* let rec typeof_expr e env = match e with 
-  | Typed.
-  | _ failwith "TODO" *)
+let rec typecheck_cmd cmd env = match cmd.desc with 
+  | _ -> failwith "TODO"
 
 
 let rec typecheck_decl decl env = match decl.desc with 

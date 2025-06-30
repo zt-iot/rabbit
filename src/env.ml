@@ -17,7 +17,14 @@ let string_of_named_fact_desc = function
   | Plain -> "plain"
   | Global -> "global"
 
+
+type ty_param = 
+  | TyParamSimple of Name.ident * ty_param list
+  | TyParamSecurity of Name.ident
+  | TyParamProduct of ty_param * ty_param
+
 type desc =
+  | SimpleTypeDef of Name.ident list
   | Var of var_desc
   | ExtFun of int
   | ExtConst
@@ -25,7 +32,12 @@ type desc =
   | Const of bool
   | Channel of bool * Ident.t
   | Attack
-  | Type of Input.rabbit_typ
+  
+  | ProcTypeDef
+  | FilesysTypeDef 
+  | ChanTypeDef of ty_param list
+  | SecurityTypeDef of Name.ident * ty_param list
+
   | Function of int
   | Process
 
@@ -43,9 +55,9 @@ let print_desc desc ppf =
   | Const b -> f ppf "Const (param=%b)" b
   | Channel (b, id) -> f ppf "Channel (param=%b) : %t" b (Ident.print id)
   | Attack -> f ppf "Attack"
-  | Type CProc -> f ppf "ty process"
-  | Type CFsys -> f ppf "ty filesys"
-  | Type CChan _ -> f ppf "ty channel"
+  | ProcTypeDef -> f ppf "ty process"
+  | FilesysTypeDef -> f ppf "ty filesys"
+  | ChanTypeDef _ -> f ppf "ty channel"
   | Function i -> f ppf "Function (arity=%d)" i
   | Process -> f ppf "Process"
 

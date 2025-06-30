@@ -22,6 +22,8 @@ type error =
   | InvalidVariableAtAssign of Ident.t * Env.desc
   | UnboundFact of Name.ident
   | NonCallableInExpression of Ident.t * Env.desc
+  | InvalidSimpleType of Input.rabbit_typ
+  (* | InvalidEnvTyParam of Input.rabbit_typ *)
 
 exception Error of error Location.located
 
@@ -42,9 +44,9 @@ let kind_of_desc = function
   | Const _ -> "constant"
   | Channel _ -> "channel"
   | Attack -> "attack"
-  | Type CProc -> "process type"
-  | Type CFsys -> "filesys type"
-  | Type CChan _ -> "channel type"
+  | ProcTypeDef -> "process type"
+  | FilesysTypeDef -> "filesys type"
+  | ChanTypeDef _ -> "channel type"
   | Function _ -> "function"
   | Process -> "process"
 
@@ -99,6 +101,8 @@ let print_error err ppf =
         (String.capitalize_ascii (kind_of_desc desc))
         (Ident.print id)
   | UnboundFact id -> Format.fprintf ppf "Unbound fact %s" id
+  | InvalidSimpleType(_) -> Format.fprintf ppf "Invalid simple type: simple types can only contain polymorphic type parameters"
+  (* | InvalidEnvTyParam(_) -> Format.fprintf ppf "This Rabbit type cannot be conveted to a Env.ty_param" *)
 ;;
 
 module Env : sig
@@ -126,6 +130,8 @@ end = struct
     | Some id_desc -> id_desc
   ;;
 
+  (* check if (find ~loc env name) = desc *)
+  (* if so, return corresponding Ident.t *)
   let find_desc ~loc env name desc =
     let id, desc' = find ~loc env name in
     if desc <> desc'
@@ -158,6 +164,24 @@ end
 let check_arity ~loc ~arity ~use =
   if arity <> use then error ~loc @@ ArityMismatch { arity; use }
 ;;
+
+
+(* let rabbit_ty_to_env_ty_param ~loc (rty : Input.rabbit_typ) (env : Env.t) : Env.ty_param = 
+  match rty with
+  | CProc -> error ~loc @@ rty
+  | CFsys -> error ~loc @@ rty
+  | CChan _ -> error ~loc @@ rty
+  | CSimpleOrSecurity (simpletyp_name, _) -> 
+    let _, desc = Env.find ~loc env simpletyp_name in 
+    match desc with 
+      | Env.SimpleTypeDef _ -> 
+          failwith "TODO"
+      | Env.SecurityTypeDef _, _ -> 
+          failwith "TODO"
+      | _ -> misc_errorf ~loc "Invalid security type declaration"
+
+  | CProd (t1, t2) -> failwith "TODO"
+  | CPoly id -> failwith "TODO" *)
 
 let rec type_expr env (e : Input.expr) : Typed.expr =
   let loc = e.loc in
@@ -411,8 +435,8 @@ let type_process
       List.fold_left
         (fun (env, rev_args) (Input.ChanParam { id = chanid; param; typ = chanty }) ->
            let with_param = param <> None in
-           (* XXX not clear what happens when we have (Type (CChan <non_empty_list> )) *)
-           let chanty = Env.find_desc ~loc env chanty (Type (CChan [])) in
+           (* XXX not clear what happens when we have (ChanTypeDef <non_empty_list> )) *)
+           let chanty = Env.find_desc ~loc env chanty (ChanTypeDef []) in
            let chanid = Ident.local chanid in
            ( Env.add env chanid (Channel (with_param, chanty))
            , Typed.{ channel=chanid; param; typ= chanty } :: rev_args ))
@@ -424,9 +448,9 @@ let type_process
     (* check if proc_ty is a valid type *)
     let proc_ty =
       match Env.find ~loc env proc_ty with
-      | proc_ty, Type CProc -> proc_ty
+      | proc_ty, ProcTypeDef -> proc_ty
       | id, desc ->
-          error ~loc @@ InvalidVariable { ident = id; def = desc; use = Type CProc }
+          error ~loc @@ InvalidVariable { ident = id; def = desc; use = ProcTypeDef }
     in
 
     (* check if file types exist *)
@@ -434,7 +458,7 @@ let type_process
       List.map
         (fun (path, filety, contents) ->
            let path = type_expr env' path in
-           let filety = Env.find_desc ~loc env' filety (Type CFsys) in
+           let filety = Env.find_desc ~loc env' filety (FilesysTypeDef) in
            let contents = type_expr env' contents in
            path, filety, contents)
         files
@@ -523,6 +547,17 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
 let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   let loc = d.loc in
   match d.data with
+  | DeclSimpleTyp t -> begin match t with 
+    | Input.CSimpleOrSecurity(name, ty_params) ->
+        let ty_params_str = List.map (fun ty_param -> begin match ty_param with 
+          | Input.CPoly(id) -> id
+          | _ -> error ~loc @@ InvalidSimpleType(t)
+        end
+        ) ty_params in 
+        let env', _ = Env.add_global ~loc env name (Env.SimpleTypeDef (ty_params_str)) in 
+        env', [] (* no need to produce a Typed.decl for a simple type *)
+    | _ -> error ~loc @@ InvalidSimpleType(t)
+    end
   | DeclLoad fn ->
       (* [load "xxx.rab"] *)
       let fn = Filename.dirname base_fn ^ "/" ^ fn in
@@ -576,15 +611,39 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let env', id = Env.add_global ~loc env name Attack in
       env', [{ env; loc; desc = Attack { id; syscall; args; cmd } }]
   | DeclType (name, typ) ->
-      let env', id = Env.add_global ~loc env name (Type typ) in
-      env', [{ env; loc; desc = Type { id; typclass = typ } }]
+      let converted_to_env_desc = begin match typ with 
+        | Input.CProc -> Env.ProcTypeDef 
+        | Input.CFsys -> Env.FilesysTypeDef
+        | Input.CChan(_) -> failwith "TODO" 
+        | _ -> failwith "TODO"
+      end in
+      let env', _ = Env.add_global ~loc env name converted_to_env_desc in
+
+      (* TODO get rid of this boilerplate code once it is clear 
+        whether it is actually required for TAMARIN *)
+      let typclass_opt = match converted_to_env_desc with
+        | Env.ProcTypeDef -> Some (Input.CProc)
+        | Env.FilesysTypeDef -> Some (Input.CFsys)
+        | Env.ChanTypeDef _ -> Some (Input.CChan [])
+        | _ -> None
+      in
+      let res = match typclass_opt with 
+        | Some _ -> 
+          (* 
+          TODO I seriously don't understand why the below line is causing "Unbound record field desc"
+          *)
+          (* (env', [{ desc = Typed.Type { id = id'; typclass = ty_class } ; loc = loc; env = env} ]) *)
+          (env' , [])
+        | None ->
+          (env', []) in 
+      res
   | DeclAccess (proc_ty, tys, syscalls_opt) ->
-      let proc_ty = Env.find_desc ~loc env proc_ty (Type CProc) in
+      let proc_ty = Env.find_desc ~loc env proc_ty (ProcTypeDef) in
       let tys =
         List.map
           (fun ty ->
              match Env.find ~loc env ty with
-             | id, (Type CChan _ | Type CFsys) -> id
+             | id, (ChanTypeDef _ | FilesysTypeDef) -> id
              | _ -> misc_errorf ~loc "%s must be a channel or filesys type" ty)
           tys
       in
@@ -613,7 +672,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   | DeclAttack (proc_tys, attacks) ->
       (* [allow attack proc_ty1 .. proc_tyn [attack1, .., attackn]] *)
       let proc_tys =
-        List.map (fun ty -> Env.find_desc ~loc env ty (Type CProc)) proc_tys
+        List.map (fun ty -> Env.find_desc ~loc env ty (ProcTypeDef)) proc_tys
       in
       let attacks =
         List.map (fun attack -> Env.find_desc ~loc env attack Attack) attacks
@@ -646,8 +705,8 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       (* [channel n : ty] *)
       (* [channel n<> : ty] *)
 
-      (* XXX not clear what happens when we have (Type (CChan <non_empty_list> )) *)
-      let chty = Env.find_desc ~loc env chty (Type (CChan [])) in
+      (* XXX not clear what happens when we have (ChanTypeDef <non_empty_list> )) *)
+      let chty = Env.find_desc ~loc env chty (ChanTypeDef []) in
       let env', id = Env.add_global ~loc env name (Channel (param <> None, chty)) in
       env', [{ env; loc; desc = Channel { id; param; typ = chty } }]
   | DeclProc { id; param; args; typ; files; vars; funcs; main } ->
@@ -730,9 +789,11 @@ and load env fn : Env.t * Typed.decl list =
   let decls, (_used_idents, _used_strings) = Lexer.read_file Parser.file fn in
   let env, rev_decls =
     List.fold_left
-      (fun (env, rev_decls) decl ->
-         let env, decl = type_decl fn env decl in
-         env, List.rev_append decl rev_decls)
+      (fun (acc_env, acc_decls) decl ->
+         let env', new_decls = type_decl fn acc_env decl in
+         
+         (* first reverses new_decls, then prepends it to acc_decls *)
+         env', List.rev_append new_decls acc_decls)
       (env, [])
       decls
   in

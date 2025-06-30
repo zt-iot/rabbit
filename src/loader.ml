@@ -612,6 +612,8 @@ let local_context_of_arguments ~loc args =
 
 let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
   match c with
+  | Input.DeclSimpleTyp (_) ->
+    env
   | Input.DeclLoad fn' ->
       (* [load "xxx.rab"] *)
       let fn' = Filename.dirname fn ^ "/" ^ fn' in

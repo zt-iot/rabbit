@@ -13,7 +13,19 @@ type named_fact_desc =
 
 val string_of_named_fact_desc : named_fact_desc -> string
 
+
+
+
+
+(* represents stuff within [, ] brackets *)
+type ty_param = 
+  | TyParamSimple of Name.ident * ty_param list
+  | TyParamSecurity of Name.ident
+  | TyParamProduct of ty_param * ty_param
+
 type desc =
+
+  | SimpleTypeDef of Name.ident list (* simple type declaration *)
   | Var of var_desc
   | ExtFun of int (** external function with arity *)
   | ExtConst (** external function with arity = 0, ex.  function true 0 *)
@@ -21,9 +33,16 @@ type desc =
   | Const of bool (* with param or not *)
   | Channel of bool (* with param or not *) * Ident.t (* channel type *)
   | Attack
-  | Type of Input.rabbit_typ
+
+  (* all these four constructors represents the <y> in `type <x> : <y>` *)
+  | ProcTypeDef
+  | FilesysTypeDef 
+  | ChanTypeDef of ty_param list
+  | SecurityTypeDef of Name.ident * ty_param list
+  
+
   | Function of int (** function with definition and arity *)
-  | Process
+  | Process (* a process template, not to be confused with a process type (ProcessTypeDef) *)
 
 val print_desc : desc -> Format.formatter -> unit
 
