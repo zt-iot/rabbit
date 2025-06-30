@@ -617,7 +617,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         | Input.CChan(_) -> failwith "TODO" 
         | _ -> failwith "TODO"
       end in
-      let env', _ = Env.add_global ~loc env name converted_to_env_desc in
+      let env', id' = Env.add_global ~loc env name converted_to_env_desc in
 
       (* TODO get rid of this boilerplate code once it is clear 
         whether it is actually required for TAMARIN *)
@@ -628,12 +628,9 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         | _ -> None
       in
       let res = match typclass_opt with 
-        | Some _ -> 
-          (* 
-          TODO I seriously don't understand why the below line is causing "Unbound record field desc"
-          *)
-          (* (env', [{ desc = Typed.Type { id = id'; typclass = ty_class } ; loc = loc; env = env} ]) *)
-          (env' , [])
+        | Some ty_class -> 
+          let typed_decl_desc = Typed.Type {id = id' ; typclass = ty_class } in 
+          (env', [{ Typed.desc = typed_decl_desc ; Typed.loc = loc; Typed.env = env} ])
         | None ->
           (env', []) in 
       res
