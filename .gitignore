@@ -11,3 +11,8 @@ _*/
 node_modules/
 examples/_*
 examples/*.log
+examples/*.viz
+examples/*.svg
+examples/*.svg2
+
+
