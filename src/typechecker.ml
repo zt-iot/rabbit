@@ -1,5 +1,9 @@
 open Sets
 
+
+exception TypeException of string
+
+
 type core_type = 
   | TChan of core_type list
   | TSimple of Name.ident * core_type list
@@ -21,11 +25,13 @@ type function_param_type =
   | CParamCore of core_security_type
   | CParamPoly of Name.ident
 
-let rec typecheck_cmd cmd env = match cmd.desc with 
+
+let rec typeof_cmd cmd env = match cmd.desc with 
   | _ -> failwith "TODO"
 
 
 let rec typecheck_decl decl env = match decl.desc with 
+  (* we should only need to typecheck the Process decl *)
   | Typed.Process{ id; param; args; typ; files; vars; funcs; main } -> 
     failwith "TODO"
   | _ -> failwith "TODO"

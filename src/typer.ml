@@ -23,6 +23,8 @@ type error =
   | UnboundFact of Name.ident
   | NonCallableInExpression of Ident.t * Env.desc
   | InvalidSimpleType of Input.rabbit_typ
+  | InvalidSecurityTypeDeclaration of Name.ident
+  | InvalidTypeParam of string
   (* | InvalidEnvTyParam of Input.rabbit_typ *)
 
 exception Error of error Location.located
@@ -102,6 +104,8 @@ let print_error err ppf =
         (Ident.print id)
   | UnboundFact id -> Format.fprintf ppf "Unbound fact %s" id
   | InvalidSimpleType(_) -> Format.fprintf ppf "Invalid simple type: simple types can only contain polymorphic type parameters"
+  | InvalidSecurityTypeDeclaration(decl_type) -> Format.fprintf ppf "%s is not a valid security type" decl_type
+  | InvalidTypeParam(ty_param) -> Format.fprintf ppf "%s is a security type and therefore cannot have type parameters" ty_param
   (* | InvalidEnvTyParam(_) -> Format.fprintf ppf "This Rabbit type cannot be conveted to a Env.ty_param" *)
 ;;
 
@@ -166,22 +170,33 @@ let check_arity ~loc ~arity ~use =
 ;;
 
 
-(* let rabbit_ty_to_env_ty_param ~loc (rty : Input.rabbit_typ) (env : Env.t) : Env.ty_param = 
+let rec input_ty_param_to_env_typ_param ~loc (env : Env.t) (rty : Input.rabbit_typ) : Env.ty_param = 
   match rty with
-  | CProc -> error ~loc @@ rty
-  | CFsys -> error ~loc @@ rty
-  | CChan _ -> error ~loc @@ rty
-  | CSimpleOrSecurity (simpletyp_name, _) -> 
-    let _, desc = Env.find ~loc env simpletyp_name in 
-    match desc with 
-      | Env.SimpleTypeDef _ -> 
-          failwith "TODO"
-      | Env.SecurityTypeDef _, _ -> 
-          failwith "TODO"
-      | _ -> misc_errorf ~loc "Invalid security type declaration"
-
-  | CProd (t1, t2) -> failwith "TODO"
-  | CPoly id -> failwith "TODO" *)
+  | CProc -> error ~loc @@ InvalidSimpleType(rty)
+  | CFsys -> error ~loc @@ InvalidSimpleType(rty)
+  | CChan _ -> error ~loc @@ InvalidSimpleType(rty)
+  | CSimpleOrSecurity (typ_name, input_ty_params) -> 
+      let _, desc = Env.find ~loc env typ_name in 
+      begin match desc with 
+        | Env.SimpleTypeDef def_ty_params -> 
+            let expected_arity = List.length def_ty_params in 
+            let actual_arity = List.length input_ty_params in 
+            check_arity ~loc ~arity:expected_arity ~use:actual_arity;
+            let env_ty_params = List.map (input_ty_param_to_env_typ_param ~loc env) input_ty_params in 
+            TyParamSimple(typ_name, env_ty_params)
+        | Env.SecurityTypeDef (_, _) -> 
+            (* we need to check that there are no additional input_ty_params given *)
+            if input_ty_params = [] then 
+              TyParamSecurity(typ_name)
+            else
+              error ~loc (InvalidTypeParam typ_name)
+        | _ -> error ~loc (Misc "Invalid security type declaration")
+      end
+  | CProd (t1, t2) -> 
+      let param1 = input_ty_param_to_env_typ_param ~loc env t1 in 
+      let param2 = input_ty_param_to_env_typ_param ~loc env t2 in 
+      TyParamProduct(param1, param2)
+  | CPoly _ -> error ~loc (Misc "A polymorphic type is not expected here")
 
 let rec type_expr env (e : Input.expr) : Typed.expr =
   let loc = e.loc in
@@ -614,8 +629,29 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let converted_to_env_desc = begin match typ with 
         | Input.CProc -> Env.ProcTypeDef 
         | Input.CFsys -> Env.FilesysTypeDef
-        | Input.CChan(_) -> failwith "TODO" 
-        | _ -> failwith "TODO"
+        | Input.CChan(input_ty_params) -> 
+          (* every ty_param \in input_ty_param must be *)
+          (* - Simple *)
+          (* - Security, or *)
+          (* - Product*)
+          let env_ty_params = List.map (input_ty_param_to_env_typ_param ~loc env) input_ty_params in
+          ChanTypeDef(env_ty_params)
+        | Input.CSimpleOrSecurity(typ_name, input_ty_params) -> 
+            (* typ_name must be a known simple type *)
+            begin match Env.find ~loc env typ_name with 
+              | _, SimpleTypeDef def_ty_params -> 
+                  let expected_arity = List.length def_ty_params in 
+                  let actual_arity = List.length input_ty_params in 
+                  check_arity ~loc ~arity:expected_arity ~use:actual_arity;
+                  let env_ty_params = List.map (input_ty_param_to_env_typ_param ~loc env) input_ty_params in 
+                  SecurityTypeDef(typ_name, env_ty_params)
+              | _, _ -> 
+                  let error_msg = Printf.sprintf " %s is not a declared simple type" typ_name in 
+                  error ~loc (Misc (error_msg))
+              end
+        (* disallow security types declared on products for now *)
+        | _ -> error ~loc (InvalidSecurityTypeDeclaration name)
+
       end in
       let env', id' = Env.add_global ~loc env name converted_to_env_desc in
 
