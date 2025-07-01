@@ -17,11 +17,35 @@ val string_of_named_fact_desc : named_fact_desc -> string
 
 
 
-(* represents stuff within [, ] brackets *)
+(* represents type terms within square brackets '[` and `]` *)
 type ty_param = 
   | TyParamSimple of Name.ident * ty_param list
   | TyParamSecurity of Name.ident
   | TyParamProduct of ty_param * ty_param
+
+
+(* an instantiated_ty is used to type expression terms in Rabbit *)
+type instantiated_ty = 
+  | TySecurity of Name.ident
+  | TySimple of Name.ident * ty_param list
+  | TyProduct of instantiated_ty * instantiated_ty
+  | TyChan of ty_param list
+  
+
+type f_param_ty_param = 
+  | FParamTyParamSecurity of Name.ident
+  | FParamTyParamSimple of Name.ident * f_param_ty_param list
+  | FParamTyParamProduct of f_param_ty_param * f_param_ty_param
+  | FParamTyParamPoly of Name.ident
+
+
+type function_param = 
+  | FParamSecurity of Name.ident
+  | FParamSimple of Name.ident * f_param_ty_param list
+  | FParamProduct of function_param * function_param
+  | FParamPoly of Name.ident
+  | FParamChannel of f_param_ty_param list
+  
 
 type desc =
 
@@ -36,7 +60,8 @@ type desc =
 
   (* all these four constructors represents the <y> in `type <x> : <y>` *)
   | ProcTypeDef
-  | FilesysTypeDef 
+  | FilesysTypeDef
+
   | ChanTypeDef of ty_param list
   | SecurityTypeDef of Name.ident * ty_param list
   

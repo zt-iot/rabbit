@@ -170,7 +170,7 @@ let check_arity ~loc ~arity ~use =
 ;;
 
 
-let rec input_ty_param_to_env_typ_param ~loc (env : Env.t) (rty : Input.rabbit_typ) : Env.ty_param = 
+let rec convert_rabbit_ty_to_env_typ_param ~loc (env : Env.t) (rty : Input.rabbit_typ) : Env.ty_param = 
   match rty with
   | CProc -> error ~loc @@ InvalidSimpleType(rty)
   | CFsys -> error ~loc @@ InvalidSimpleType(rty)
@@ -182,7 +182,7 @@ let rec input_ty_param_to_env_typ_param ~loc (env : Env.t) (rty : Input.rabbit_t
             let expected_arity = List.length def_ty_params in 
             let actual_arity = List.length input_ty_params in 
             check_arity ~loc ~arity:expected_arity ~use:actual_arity;
-            let env_ty_params = List.map (input_ty_param_to_env_typ_param ~loc env) input_ty_params in 
+            let env_ty_params = List.map (convert_rabbit_ty_to_env_typ_param ~loc env) input_ty_params in 
             TyParamSimple(typ_name, env_ty_params)
         | Env.SecurityTypeDef (_, _) -> 
             (* we need to check that there are no additional input_ty_params given *)
@@ -193,10 +193,118 @@ let rec input_ty_param_to_env_typ_param ~loc (env : Env.t) (rty : Input.rabbit_t
         | _ -> error ~loc (Misc "Invalid security type declaration")
       end
   | CProd (t1, t2) -> 
-      let param1 = input_ty_param_to_env_typ_param ~loc env t1 in 
-      let param2 = input_ty_param_to_env_typ_param ~loc env t2 in 
+      let param1 = convert_rabbit_ty_to_env_typ_param ~loc env t1 in 
+      let param2 = convert_rabbit_ty_to_env_typ_param ~loc env t2 in 
       TyParamProduct(param1, param2)
   | CPoly _ -> error ~loc (Misc "A polymorphic type is not expected here")
+
+
+
+(* let rec convert_rabbit_typ_to_f_param_ty_param ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.f_param_ty_param =
+  match ty with
+  | CProc | CFsys ->
+      error ~loc (Misc "process and filesys cannot be used as a function parameter type parameter")
+
+  (* a channel is not valid as a type parameter for a function parameter *)
+  | CChan _ ->
+      error ~loc (Misc "channel cannot be used as a function parameter type parameter")
+
+  | CSimpleOrSecurity (typ_name, input_ty_params) ->
+    let _, desc = Env.find ~loc env typ_name in 
+      begin match desc with 
+        | Env.SimpleTypeDef def_ty_params -> 
+            let expected_arity = List.length def_ty_params in 
+            let actual_arity = List.length input_ty_params in 
+            check_arity ~loc ~arity:expected_arity ~use:actual_arity;
+            let env_ty_params = List.map (convert_rabbit_typ_to_f_param_ty_param ~loc env) input_ty_params in 
+            FParamTyParamSimple(typ_name, env_ty_params)
+        | Env.SecurityTypeDef (_, _) -> 
+            (* we need to check that there are no additional input_ty_params given *)
+            if input_ty_params = [] then 
+              FParamTyParamSecurity(typ_name)
+            else
+              error ~loc (InvalidTypeParam typ_name)
+        | _ -> error ~loc (Misc "Invalid security type declaration")
+      end
+
+  | CProd (t1, t2) ->
+      let param1 = convert_rabbit_typ_to_f_param_ty_param ~loc env t1 in 
+      let param2 = convert_rabbit_typ_to_f_param_ty_param ~loc env t2 in 
+      FParamTyParamProduct(param1, param2)
+
+  | CPoly ident -> Env.FParamTyParamPoly(ident) *)
+    
+
+(* let rec convert_rabbit_typ_to_instantiated_ty ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.instantiated_ty =
+  match ty with
+  | CProc | CFsys ->
+      error ~loc (Misc "process and filesys cannot be used as a instantiated type")
+
+  | CChan input_ty_params ->
+      TyChan(List.map (convert_rabbit_ty_to_env_typ_param ~loc env) input_ty_params)
+
+  | CSimpleOrSecurity (typ_name, input_ty_params) ->
+      let _, desc = Env.find ~loc env typ_name in 
+      begin match desc with 
+        | Env.SimpleTypeDef def_ty_params -> 
+            let expected_arity = List.length def_ty_params in 
+            let actual_arity = List.length input_ty_params in 
+            check_arity ~loc ~arity:expected_arity ~use:actual_arity;
+            let env_ty_params = List.map (convert_rabbit_ty_to_env_typ_param ~loc env) input_ty_params in 
+            TySimple(typ_name, env_ty_params)
+        | Env.SecurityTypeDef (_, _) -> 
+            (* we need to check that there are no additional input_ty_params given *)
+            if input_ty_params = [] then 
+              TySecurity(typ_name)
+            else
+              error ~loc (InvalidTypeParam typ_name)
+        | _ -> error ~loc (Misc "Invalid security type declaration")
+      end
+
+  | CProd (t1, t2) ->
+      let param1 = convert_rabbit_typ_to_instantiated_ty ~loc env t1 in 
+      let param2 = convert_rabbit_typ_to_instantiated_ty ~loc env t2 in 
+      TyProduct(param1, param2)
+
+  | CPoly _ ->
+      error ~loc (Misc "A polymorphic type cannot be used as an instantiated type") *)
+
+
+(* let rec convert_rabbit_typ_to_env_function_param ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.function_param =
+  match ty with
+  (* a channel is valid as a function parameter *)
+  | CChan input_ty_params ->
+      FParamChannel (List.map (convert_rabbit_typ_to_f_param_ty_param ~loc env) input_ty_params)
+  | CSimpleOrSecurity (typ_name, input_ty_params) ->
+      let _, desc = Env.find ~loc env typ_name in 
+      begin match desc with 
+        | Env.SimpleTypeDef def_ty_params -> 
+            let expected_arity = List.length def_ty_params in 
+            let actual_arity = List.length input_ty_params in 
+            check_arity ~loc ~arity:expected_arity ~use:actual_arity;
+            let env_ty_params = List.map (convert_rabbit_typ_to_f_param_ty_param ~loc env) input_ty_params in 
+            FParamSimple(typ_name, env_ty_params)
+        | Env.SecurityTypeDef (_, _) -> 
+            (* we need to check that there are no additional input_ty_params given *)
+            if input_ty_params = [] then 
+              FParamSecurity(typ_name)
+            else
+              error ~loc (InvalidTypeParam typ_name)
+        | _ -> error ~loc (Misc "Invalid security type declaration")
+      end
+  | CProd (t1, t2) ->
+      let param1 = convert_rabbit_typ_to_env_function_param ~loc env t1 in 
+      let param2 = convert_rabbit_typ_to_env_function_param ~loc env t2 in 
+      FParamProduct(param1, param2)
+
+  | CPoly ident ->
+      FParamPoly ident
+
+  | CProc | CFsys ->
+      error ~loc (Misc "process and filesys cannot be used as a function parameter") *)
+
+
+
 
 let rec type_expr env (e : Input.expr) : Typed.expr =
   let loc = e.loc in
@@ -634,7 +742,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
           (* - Simple *)
           (* - Security, or *)
           (* - Product*)
-          let env_ty_params = List.map (input_ty_param_to_env_typ_param ~loc env) input_ty_params in
+          let env_ty_params = List.map (convert_rabbit_ty_to_env_typ_param ~loc env) input_ty_params in
           ChanTypeDef(env_ty_params)
         | Input.CSimpleOrSecurity(typ_name, input_ty_params) -> 
             (* typ_name must be a known simple type *)
@@ -643,7 +751,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
                   let expected_arity = List.length def_ty_params in 
                   let actual_arity = List.length input_ty_params in 
                   check_arity ~loc ~arity:expected_arity ~use:actual_arity;
-                  let env_ty_params = List.map (input_ty_param_to_env_typ_param ~loc env) input_ty_params in 
+                  let env_ty_params = List.map (convert_rabbit_ty_to_env_typ_param ~loc env) input_ty_params in 
                   SecurityTypeDef(typ_name, env_ty_params)
               | _, _ -> 
                   let error_msg = Printf.sprintf " %s is not a declared simple type" typ_name in 
@@ -655,7 +763,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       end in
       let env', id' = Env.add_global ~loc env name converted_to_env_desc in
 
-      (* TODO get rid of this boilerplate code once it is clear 
+      (* TODO maybe get rid of this boilerplate code once it is clear 
         whether it is actually required for TAMARIN *)
       let typclass_opt = match converted_to_env_desc with
         | Env.ProcTypeDef -> Some (Input.CProc)

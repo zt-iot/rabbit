@@ -23,6 +23,28 @@ type ty_param =
   | TyParamSecurity of Name.ident
   | TyParamProduct of ty_param * ty_param
 
+(* an instantiated_ty is used to type expression terms in Rabbit *)
+type instantiated_ty = 
+  | TySecurity of Name.ident
+  | TySimple of Name.ident * ty_param list
+  | TyProduct of instantiated_ty * instantiated_ty
+  | TyChan of ty_param list
+
+
+type f_param_ty_param = 
+  | FParamTyParamSecurity of Name.ident
+  | FParamTyParamSimple of Name.ident * f_param_ty_param list
+  | FParamTyParamProduct of f_param_ty_param * f_param_ty_param
+  | FParamTyParamPoly of Name.ident
+
+type function_param = 
+  | FParamSecurity of Name.ident
+  | FParamSimple of Name.ident * f_param_ty_param list
+  | FParamProduct of function_param * function_param
+  | FParamPoly of Name.ident 
+  | FParamChannel of f_param_ty_param list
+
+
 type desc =
   | SimpleTypeDef of Name.ident list
   | Var of var_desc
