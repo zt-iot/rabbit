@@ -26,7 +26,7 @@ equations: fst(<loc_1, loc_0>)=loc_1, snd(<loc_1, loc_0>)=loc_0, verify(sign(loc
 rule Const_privkey : [Fr(privkey)]--[Init_('rab_Const_privkey'), Init_(<'rab_Const_privkey', privkey>), !Const_('rab_privkey', privkey)]->[!Const_('rab_privkey', privkey)] 
 
 
-// const pubkey = e
+// const pubkey = ...
 
 
 rule Const_pubkey : [!Const_('rab_privkey', privkey)]--[!Const_('rab_pubkey', pk(privkey))]->[!Const_('rab_pubkey', pk(privkey))] 
@@ -35,27 +35,27 @@ rule Const_pubkey : [!Const_('rab_privkey', privkey)]--[!Const_('rab_pubkey', pk
 // Add model inits: Server,Client
 
 
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab'), State_Server(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), State_Client(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Server(<'rab___0', 'rab_rab_str', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), State_Client(<'rab___0', 'rab_rab_str', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 
 // Access control of Server:chan
 
 
 
-// Fact: !ACP_(<'rab_Server', 'rab_rab'>, 'rab_chan', 'rab_')
+// Fact: !ACP_(<'rab_Server', 'rab_rab_str'>, 'rab_chan', 'rab_')
 
 
-rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_0')]->[!ACP_(<'rab_Server', 'rab_rab'>, 'rab_chan', 'rab_')] 
+rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_('rab_system_ACP_0')]->[!ACP_(<'rab_Server', 'rab_rab_str'>, 'rab_chan', 'rab_')] 
 
 
 // Access control of Client:chan
 
 
 
-// Fact: !ACP_(<'rab_Client', 'rab_rab'>, 'rab_chan', 'rab_')
+// Fact: !ACP_(<'rab_Client', 'rab_rab_str'>, 'rab_chan', 'rab_')
 
 
-rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_1')]->[!ACP_(<'rab_Client', 'rab_rab'>, 'rab_chan', 'rab_')] 
+rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_('rab_system_ACP_1')]->[!ACP_(<'rab_Client', 'rab_rab_str'>, 'rab_chan', 'rab_')] 
 
 // Model:  Server
 

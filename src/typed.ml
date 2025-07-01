@@ -35,6 +35,15 @@ let rec string_of_expr (e : expr) =
   | Boolean b -> string_of_bool b
   | Unit -> "()"
 
+let rec constants (e : expr) =
+  match e.desc with
+  | Ident { id= _; desc= Const false; param= None } -> [e]
+  | Ident { id= _; desc= Const true; param= Some e' } -> e :: constants e'
+  | Ident { id= _; desc= Const _; param= _ } -> assert false
+  | Ident _ -> []
+  | Boolean _ | String _ | Integer _ | Float _ | Unit -> []
+  | Apply (_, es) | Tuple es -> List.concat_map constants es
+
 type loop_mode =
   | In
   | Back
@@ -153,7 +162,7 @@ and decl' =
       { process_typs : ident list
       ; attacks : ident list
       }
-  | Init of
+  | Init of (* naming... Const is better? *)
       { id : ident
       ; desc : init_desc
       }

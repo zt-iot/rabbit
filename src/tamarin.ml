@@ -4,8 +4,8 @@
    it only contains reserved facts.
 *)
 let separator = ref "_"
-let fresh_ident = ref "rab"
-let fresh_string = ref "rab"
+let fresh_ident = ref "rab_ident"
+let fresh_string = ref "rab_str"
 let fresh_param = ref "param"
 
 let rec replace_nth lst i new_val =

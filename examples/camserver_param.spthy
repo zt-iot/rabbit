@@ -32,7 +32,7 @@ rule Const__sym_k : [Fr(sym_k)]--[Init__(<'rab__sym_k', param>), !Const__(<'rab_
 rule Const__priv_k : [Fr(priv_k)]--[Init__(<'rab__priv_k', param>), !Const__(<'rab__priv_k', param>, priv_k)]->[!Const__(<'rab__priv_k', param>, priv_k)] 
 
 
-// const fresh pubkey<k> = e
+// const fresh pubkey<k> = ...
 
 
 rule Const__pubkey : [!Const__(<'rab__priv_k', param>, priv_k__0)]--[Init__(<'rab__pubkey', param>), !Const__(<'rab__pubkey', param>, pk(priv_k__0))]->[!Const__(<'rab__pubkey', param>, pk(priv_k__0))] 
@@ -41,23 +41,23 @@ rule Const__pubkey : [!Const__(<'rab__priv_k', param>, priv_k__0)]--[Init__(<'ra
 // Add model inits: Server
 
 
-rule Init__system[role="system"] : []--[Init__('rab__system')]->[!ACP__GEN__('rab__system__', 'rab__rab'), State__Server(<'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+rule Init__system[role="system"] : []--[Init__('rab__system')]->[!ACP__GEN__('rab__system__', 'rab__rab_str'), State__Server(<'rab_____0', 'rab__rab_str', %1>, 'rab__', 'rab__', 'rab__', 'rab__')] 
 
 
 // Access control of Server:udp
 
 
 
-// Fact: !ACP__(<'rab__Server', 'rab__rab'>, <'rab__udp', rab>, 'rab__recv')
+// Fact: !ACP__(<'rab__Server', 'rab__rab_str'>, <'rab__udp', rab_ident>, 'rab__recv')
 
 
-rule Init__system__ACP__0[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__(<'rab__system__ACP__0', rab>)]->[!ACP__(<'rab__Server', 'rab__rab'>, <'rab__udp', rab>, 'rab__recv')] 
+rule Init__system__ACP__0[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__(<'rab__system__ACP__0', rab_ident>)]->[!ACP__(<'rab__Server', 'rab__rab_str'>, <'rab__udp', rab_ident>, 'rab__recv')] 
 
 
-// Fact: !ACP__(<'rab__Server', 'rab__rab'>, <'rab__udp', rab>, 'rab__')
+// Fact: !ACP__(<'rab__Server', 'rab__rab_str'>, <'rab__udp', rab_ident>, 'rab__')
 
 
-rule Init__system__ACP__1[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__(<'rab__system__ACP__1', rab>)]->[!ACP__(<'rab__Server', 'rab__rab'>, <'rab__udp', rab>, 'rab__')] 
+rule Init__system__ACP__1[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__(<'rab__system__ACP__1', rab_ident>)]->[!ACP__(<'rab__Server', 'rab__rab_str'>, <'rab__udp', rab_ident>, 'rab__')] 
 
 
 // Add model inits: Client_ta,Client

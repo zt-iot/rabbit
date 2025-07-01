@@ -36,7 +36,7 @@ module G' = struct
     let get_subgraph _v = None
     let default_edge_attributes _g = []
 
-    let edge_label t =
+    let edge_label (t : Sem.edge) =
       String.concat ";\n"
       @@ Ident.to_string t.id
          :: ("PRE:"^String.concat "; " (List.map string_of_fact t.pre))
@@ -52,16 +52,16 @@ end
 
 module Viz = Graph.Graphviz.Dot(G')
 
-let viz_of_graphs gs =
-  List.fold_left (fun viz (id, es) ->
+let viz_of_models ms =
+  List.fold_left (fun viz m ->
       List.fold_left (fun viz e ->
-          G'.add_edge_e viz ((id,e.source), e, (id,e.target))) viz es) G'.empty gs
+          G'.add_edge_e viz ((m.id,e.source), e, (m.id,e.target))) viz m.edges) G'.empty ms
 
-let write_graphs_svg fn_svg gs =
+let write_models_svg fn_svg ms =
   let fn_viz = fn_svg ^ ".viz" in
   let () =
     Out_channel.with_open_text fn_viz @@ fun oc ->
-    Viz.output_graph oc @@ viz_of_graphs gs
+    Viz.output_graph oc @@ viz_of_models ms
   in
   ignore @@ Utils.runf "dot -Tsvg \"%s\" -o \"%s\"" fn_viz fn_svg
 

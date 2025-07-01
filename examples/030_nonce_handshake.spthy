@@ -29,71 +29,71 @@ rule Const_sym_k : [Fr(sym_k)]--[Init_('rab_Const_sym_k'), Init_(<'rab_Const_sym
 // Add model inits: Alice,Bob
 
 
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab'), State_Alice(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), State_Bob(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), State_Bob(<'rab___0', 'rab_rab_str', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 
 // Access control of Alice:chan2
 
 
 
-// Fact: !ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan2', 'rab_recv')
+// Fact: !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan2', 'rab_recv')
 
 
-rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_0')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan2', 'rab_recv')] 
+rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_('rab_system_ACP_0')]->[!ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan2', 'rab_recv')] 
 
 
-// Fact: !ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan2', 'rab_send')
+// Fact: !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan2', 'rab_send')
 
 
-rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_1')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan2', 'rab_send')] 
+rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_('rab_system_ACP_1')]->[!ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan2', 'rab_send')] 
 
 
 // Access control of Alice:chan
 
 
 
-// Fact: !ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_recv')
+// Fact: !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_recv')
 
 
-rule Init_system_ACP_2[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_2')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_recv')] 
+rule Init_system_ACP_2[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_('rab_system_ACP_2')]->[!ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_recv')] 
 
 
-// Fact: !ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_send')
+// Fact: !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_send')
 
 
-rule Init_system_ACP_3[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_3')]->[!ACP_(<'rab_Alice', 'rab_rab'>, 'rab_chan', 'rab_send')] 
+rule Init_system_ACP_3[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_('rab_system_ACP_3')]->[!ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_send')] 
 
 
 // Access control of Bob:chan2
 
 
 
-// Fact: !ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan2', 'rab_recv')
+// Fact: !ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan2', 'rab_recv')
 
 
-rule Init_system_ACP_4[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_4')]->[!ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan2', 'rab_recv')] 
+rule Init_system_ACP_4[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_('rab_system_ACP_4')]->[!ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan2', 'rab_recv')] 
 
 
-// Fact: !ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan2', 'rab_send')
+// Fact: !ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan2', 'rab_send')
 
 
-rule Init_system_ACP_5[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_5')]->[!ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan2', 'rab_send')] 
+rule Init_system_ACP_5[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_('rab_system_ACP_5')]->[!ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan2', 'rab_send')] 
 
 
 // Access control of Bob:chan
 
 
 
-// Fact: !ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan', 'rab_recv')
+// Fact: !ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan', 'rab_recv')
 
 
-rule Init_system_ACP_6[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_6')]->[!ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan', 'rab_recv')] 
+rule Init_system_ACP_6[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_('rab_system_ACP_6')]->[!ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan', 'rab_recv')] 
 
 
-// Fact: !ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan', 'rab_send')
+// Fact: !ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan', 'rab_send')
 
 
-rule Init_system_ACP_7[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_('rab_system_ACP_7')]->[!ACP_(<'rab_Bob', 'rab_rab'>, 'rab_chan', 'rab_send')] 
+rule Init_system_ACP_7[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_('rab_system_ACP_7')]->[!ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan', 'rab_send')] 
 
 // Model:  Alice
 

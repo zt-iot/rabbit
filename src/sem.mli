@@ -53,9 +53,22 @@ val check_edge_invariants : edge -> unit
 
 type graph = edge list
 
-val graph_cmd : (Ident.t -> Ident.t list * Typed.cmd) -> process:Ident.t -> Index.t -> Typed.cmd -> graph * Index.t * Env.t
+type signature =
+  { functions : (Ident.t * int) list
+  ; equations : (Typed.expr * Typed.expr) list
+  }
+type model =
+  { id : Ident.t
+  ; edges : edge list }
 
-val graphs_system : Typed.decl list -> Typed.decl (* system *) -> (Ident.t * graph) list
+type tamarin =
+  { signature : signature
+  ; models : model list
+  ; constants : (Ident.t * Typed.init_desc) list
+  ; lemmas : (Ident.t * Typed.lemma) list
+  }
+
+val models_system : Typed.decl list -> Typed.decl (* system *) -> model list
 
 type rule =
   { name : string
@@ -68,3 +81,5 @@ type rule =
 val const_rules : Typed.decl list -> rule list
 
 val check_edges : graph -> (Ident.t * bool * Env.t) Index.Map.t
+
+val tamarin_of_decls : Typed.decl list -> tamarin

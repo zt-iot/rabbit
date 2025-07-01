@@ -41,71 +41,71 @@ rule Const__init_data : [Fr(init_data)]--[Init__('rab__Const__init_data'), Init_
 // Add model inits: Client,Server,Client_ta
 
 
-rule Init__system[role="system"] : []--[Init__('rab__system')]->[!ACP__GEN__('rab__system__', 'rab__rab'), State__Client(<'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__', 'rab__'), State__Server(<'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__', 'rab__'), State__Client_ta(<'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+rule Init__system[role="system"] : []--[Init__('rab__system')]->[!ACP__GEN__('rab__system__', 'rab__rab_str'), State__Client(<'rab_____0', 'rab__rab_str', %1>, 'rab__', 'rab__', 'rab__', 'rab__'), State__Server(<'rab_____0', 'rab__rab_str', %1>, 'rab__', 'rab__', 'rab__', 'rab__'), State__Client_ta(<'rab_____0', 'rab__rab_str', %1>, 'rab__', 'rab__', 'rab__', 'rab__')] 
 
 
 // Access control of Client:rpc
 
 
 
-// Fact: !ACP__(<'rab__Client', 'rab__rab'>, 'rab__rpc', 'rab__close_rpc')
+// Fact: !ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__close_rpc')
 
 
-rule Init__system__ACP__0[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__0')]->[!ACP__(<'rab__Client', 'rab__rab'>, 'rab__rpc', 'rab__close_rpc')] 
+rule Init__system__ACP__0[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__0')]->[!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__close_rpc')] 
 
 
-// Fact: !ACP__(<'rab__Client', 'rab__rab'>, 'rab__rpc', 'rab__invoke_rpc')
+// Fact: !ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__invoke_rpc')
 
 
-rule Init__system__ACP__1[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__1')]->[!ACP__(<'rab__Client', 'rab__rab'>, 'rab__rpc', 'rab__invoke_rpc')] 
+rule Init__system__ACP__1[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__1')]->[!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__invoke_rpc')] 
 
 
-// Fact: !ACP__(<'rab__Client', 'rab__rab'>, 'rab__rpc', 'rab__connect_rpc')
+// Fact: !ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__connect_rpc')
 
 
-rule Init__system__ACP__2[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__2')]->[!ACP__(<'rab__Client', 'rab__rab'>, 'rab__rpc', 'rab__connect_rpc')] 
+rule Init__system__ACP__2[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__2')]->[!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__connect_rpc')] 
 
 
-// Fact: !ACP__(<'rab__Client', 'rab__rab'>, 'rab__rpc', 'rab__')
+// Fact: !ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__')
 
 
-rule Init__system__ACP__3[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__3')]->[!ACP__(<'rab__Client', 'rab__rab'>, 'rab__rpc', 'rab__')] 
+rule Init__system__ACP__3[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__3')]->[!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__')] 
 
 
 // Access control of Client:udp
 
 
 
-// Fact: !ACP__(<'rab__Client', 'rab__rab'>, 'rab__udp', 'rab__send')
+// Fact: !ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__udp', 'rab__send')
 
 
-rule Init__system__ACP__4[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__4')]->[!ACP__(<'rab__Client', 'rab__rab'>, 'rab__udp', 'rab__send')] 
+rule Init__system__ACP__4[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__4')]->[!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__udp', 'rab__send')] 
 
 
 // Access control of Server:udp
 
 
 
-// Fact: !ACP__(<'rab__Server', 'rab__rab'>, 'rab__udp', 'rab__recv')
+// Fact: !ACP__(<'rab__Server', 'rab__rab_str'>, 'rab__udp', 'rab__recv')
 
 
-rule Init__system__ACP__5[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__5')]->[!ACP__(<'rab__Server', 'rab__rab'>, 'rab__udp', 'rab__recv')] 
+rule Init__system__ACP__5[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__5')]->[!ACP__(<'rab__Server', 'rab__rab_str'>, 'rab__udp', 'rab__recv')] 
 
 
 // Access control of Client_ta:rpc
 
 
 
-// Fact: !ACP__(<'rab__Client_ta', 'rab__rab'>, 'rab__rpc', 'rab__accept_rpc')
+// Fact: !ACP__(<'rab__Client_ta', 'rab__rab_str'>, 'rab__rpc', 'rab__accept_rpc')
 
 
-rule Init__system__ACP__6[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__6')]->[!ACP__(<'rab__Client_ta', 'rab__rab'>, 'rab__rpc', 'rab__accept_rpc')] 
+rule Init__system__ACP__6[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__6')]->[!ACP__(<'rab__Client_ta', 'rab__rab_str'>, 'rab__rpc', 'rab__accept_rpc')] 
 
 
-// Fact: !ACP__(<'rab__Client_ta', 'rab__rab'>, 'rab__rpc', 'rab__')
+// Fact: !ACP__(<'rab__Client_ta', 'rab__rab_str'>, 'rab__rpc', 'rab__')
 
 
-rule Init__system__ACP__7[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__7')]->[!ACP__(<'rab__Client_ta', 'rab__rab'>, 'rab__rpc', 'rab__')] 
+rule Init__system__ACP__7[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__7')]->[!ACP__(<'rab__Client_ta', 'rab__rab_str'>, 'rab__rpc', 'rab__')] 
 
 // Model:  Client
 

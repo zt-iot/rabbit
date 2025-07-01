@@ -26,7 +26,7 @@ equations: fst(<loc_1, loc_0>)=loc_1, snd(<loc_1, loc_0>)=loc_0, verify(sign(loc
 rule Const_privkey : [Fr(privkey)]--[Init_('rab_Const_privkey'), Init_(<'rab_Const_privkey', privkey>), !Const_('rab_privkey', privkey)]->[!Const_('rab_privkey', privkey)] 
 
 
-// const pubkey = e
+// const pubkey = ...
 
 
 rule Const_pubkey : [!Const_('rab_privkey', privkey)]--[!Const_('rab_pubkey', pk(privkey))]->[!Const_('rab_pubkey', pk(privkey))] 
@@ -35,7 +35,7 @@ rule Const_pubkey : [!Const_('rab_privkey', privkey)]--[!Const_('rab_pubkey', pk
 // Add model inits: Client
 
 
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab'), State_Client(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Client(<'rab___0', 'rab_rab_str', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 // Model:  Client
 

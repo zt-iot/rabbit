@@ -28,6 +28,8 @@ and expr' =
 
 val string_of_expr : expr -> string
 
+val constants : expr -> expr list
+
 type loop_mode =
   | In
   | Back

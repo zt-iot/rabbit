@@ -12,7 +12,7 @@ let next_state ?(shift_meta=0) ?(shift_loc=0) ?(shift_top=0) st scope =
   }
 ;;
 
-let rec translate_expr (e : Syntax.expr) : expr =
+let rec translate_expr_for_eqn (e : Syntax.expr) : expr =
   match e.Location.data with
   | Syntax.ExtConst s -> Apply (s, [])
   | Syntax.Const (_s, None) -> assert false
@@ -26,10 +26,10 @@ let rec translate_expr (e : Syntax.expr) : expr =
   | Syntax.String s -> String s
   | Syntax.Integer _z -> assert false
   | Syntax.Float _f -> assert false
-  | Syntax.Apply (o, el) -> Apply (o, List.map translate_expr el)
-  | Syntax.Tuple el -> List (List.map translate_expr el)
+  | Syntax.Apply (o, el) -> Apply (o, List.map translate_expr_for_eqn el)
+  | Syntax.Tuple el -> List (List.map translate_expr_for_eqn el)
   | Syntax.Channel (c, None) -> String c
-  | Syntax.Channel (c, Some e) -> expr_pair (String c) (translate_expr e)
+  | Syntax.Channel (c, Some e) -> expr_pair (String c) (translate_expr_for_eqn e)
 ;;
 
 (* Constants in [e] are extracted as facts
@@ -1085,7 +1085,7 @@ let translate_sys
   let t = List.fold_left add_const t ctx.Context.ctx_ext_const in
   let t =
     List.fold_left
-      (fun t (_, e1, e2) -> add_eqn t (translate_expr e1, translate_expr e2))
+      (fun t (_, e1, e2) -> add_eqn t (translate_expr_for_eqn e1, translate_expr_for_eqn e2))
       t
       def.Context.def_ext_eq
   in

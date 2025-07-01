@@ -132,11 +132,11 @@ let _main =
                  in
                  match sys with
                  | Some sys ->
-                     let gs = Sem.graphs_system decls sys in
+                     let ms = Sem.models_system decls sys in
                      (match !svg2_file with
                       | None -> ()
                       | Some fn ->
-                          Sem_debug.write_graphs_svg fn gs);
+                          Sem_debug.write_models_svg fn ms);
                      prerr_endline "graph checked"
                  | None -> prerr_endline "no system"
             );

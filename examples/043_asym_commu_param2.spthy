@@ -26,7 +26,7 @@ equations: fst(<loc_1, loc_0>)=loc_1, snd(<loc_1, loc_0>)=loc_0, verify(sign(loc
 rule Const_privkey : [Fr(privkey)]--[Init_(<'rab_privkey', param>), !Const_(<'rab_privkey', param>, privkey)]->[!Const_(<'rab_privkey', param>, privkey)] 
 
 
-// const fresh pubkey<k> = e
+// const fresh pubkey<k> = ...
 
 
 rule Const_pubkey : [!Const_(<'rab_privkey', param>, privkey_0)]--[Init_(<'rab_pubkey', param>), !Const_(<'rab_pubkey', param>, pk(privkey_0))]->[!Const_(<'rab_pubkey', param>, pk(privkey_0))] 
@@ -35,17 +35,17 @@ rule Const_pubkey : [!Const_(<'rab_privkey', param>, privkey_0)]--[Init_(<'rab_p
 // Add model inits: Server
 
 
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab'), State_Server(<'rab___0', 'rab_rab', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Server(<'rab___0', 'rab_rab_str', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
 
 
 // Access control of Server:chan
 
 
 
-// Fact: !ACP_(<'rab_Server', 'rab_rab'>, <'rab_chan', rab>, 'rab_')
+// Fact: !ACP_(<'rab_Server', 'rab_rab_str'>, <'rab_chan', rab_ident>, 'rab_')
 
 
-rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab')]--[Init_(<'rab_system_ACP_0', rab>)]->[!ACP_(<'rab_Server', 'rab_rab'>, <'rab_chan', rab>, 'rab_')] 
+rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_(<'rab_system_ACP_0', rab_ident>)]->[!ACP_(<'rab_Server', 'rab_rab_str'>, <'rab_chan', rab_ident>, 'rab_')] 
 
 
 // Add model inits: Client
