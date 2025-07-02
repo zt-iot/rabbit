@@ -167,7 +167,7 @@ let _fact_shift_meta shift f =
   given a model, the current state that is promised to be already in the model,
   this function returns an extended model
 *)
-let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c =
+let rec translate_cmd mo (st : state) funs syscalls attacks scope ~syscall pol c =
   let return_var = get_return_var () in
   match c.Location.data with
   | Syntax.Return e ->
@@ -214,8 +214,8 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
       in
       mo, st_f
   | Syntax.Sequence (c1, c2) ->
-      let mo, st = translate_cmd mo st funs syscalls attacks scope syscall pol c1 in
-      let mo, st = translate_cmd mo st funs syscalls attacks None syscall pol c2 in
+      let mo, st = translate_cmd mo st funs syscalls attacks scope ~syscall pol c1 in
+      let mo, st = translate_cmd mo st funs syscalls attacks None ~syscall pol c2 in
       mo, st
   | Syntax.Put fl ->
       let post, pre, es, _ = translate_facts mo.model_name fl in
@@ -263,7 +263,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_is_loop_back = false
           }
       in
-      let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol c in
+      let mo, st = translate_cmd mo st_f funs syscalls attacks None ~syscall pol c in
       let st_f = next_state ~shift_loc:(-1) st scope in
       let mo = add_state mo st_f in
       let mo =
@@ -329,7 +329,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_is_loop_back = false
           }
       in
-      let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol cmd in
+      let mo, st = translate_cmd mo st_f funs syscalls attacks None ~syscall pol cmd in
       let st_f =
         next_state ~shift_loc:(-List.length es) st scope
       in
@@ -384,7 +384,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_is_loop_back = false
           }
       in
-      let mo, st_m = translate_cmd mo st_i funs syscalls attacks None o pol cmd in
+      let mo, st_m = translate_cmd mo st_i funs syscalls attacks None ~syscall:(Some o) pol cmd in
       let st_f = next_state st None in
       let mo = add_state mo st_f in
       let action =
@@ -451,7 +451,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
                       }
                   in
                   let mo, st_m =
-                    translate_cmd mo st_i2 funs syscalls attacks None o pol c
+                    translate_cmd mo st_i2 funs syscalls attacks None ~syscall:(Some o) pol c
                   in
                   let action =
                     match ov with
@@ -680,7 +680,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_is_loop_back = false
           }
       in
-      let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol c in
+      let mo, st = translate_cmd mo st_f funs syscalls attacks None ~syscall pol c in
       let st_f = next_state ~shift_meta:(-1) st scope in
       let mo = add_state mo st_f in
       let mo =
@@ -739,7 +739,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope syscall pol c 
           ; transition_is_loop_back = false
           }
       in
-      let mo, st = translate_cmd mo st_f funs syscalls attacks None syscall pol c in
+      let mo, st = translate_cmd mo st_f funs syscalls attacks None ~syscall pol c in
       let st_f =
         next_state ~shift_meta:(-List.length vl) st scope
       in
@@ -812,7 +812,7 @@ and translate_guarded_cmd mo st funs syscalls attacks scope syscall pol (vl, fl,
       ; transition_is_loop_back = false
       }
   in
-  translate_cmd mo st_f funs syscalls attacks None syscall pol c
+  translate_cmd mo st_f funs syscalls attacks None ~syscall pol c
 
 
 let translate_process
@@ -859,7 +859,7 @@ let translate_process
                  ([ FileFact (namespace, path, e) ]
                   @ List.map
                       (fun (_, _, scall) ->
-                         AccessFact (mo.model_name, Param, path, scall))
+                         AccessFact (mo.model_name, Param, path, Some scall))
                       (List.filter
                          (fun (pty, tyl, _) ->
                             pty = proc_type && List.exists (fun s -> s = ty) tyl)
@@ -870,7 +870,7 @@ let translate_process
                       (fun (pty, tyl) ->
                          pty = proc_type && List.exists (fun s -> s = ty) tyl)
                       pol.Context.pol_access_all
-                  then [ AccessFact (mo.model_name, Param, path, "") ]
+                  then [ AccessFact (mo.model_name, Param, path, None) ]
                   else [])
              ; transition_action = Some [ActionReturn Unit]
              ; transition_state_transition =
@@ -913,7 +913,7 @@ let translate_process
       (List.rev vars)
   in
   (* translate the main function *)
-  let mo, _st = translate_cmd mo st fns syscalls attacks None "" pol m in
+  let mo, _st = translate_cmd mo st fns syscalls attacks None ~syscall:None pol m in
   mo
 ;;
 
@@ -1171,7 +1171,7 @@ let translate_sys
           ( false
           , List.map
               (fun (_, _, scall_opt) ->
-                 AccessFact (namespace, param, String cname, Option.value scall_opt ~default:""))
+                 AccessFact (namespace, param, String cname, scall_opt))
               (filter_pol' ~chan_ty:cty ~proc_ty: p.Context.proc_type)
           , [] )
       | Syntax.ChanArg { id = cname; typ = cty; param = Some None } ->
@@ -1179,7 +1179,7 @@ let translate_sys
           , List.map
               (fun (_, _, scall_opt) ->
                  AccessFact
-                   ( namespace, param, List [ String cname; Var !fresh_ident ], Option.value scall_opt ~default:""))
+                   ( namespace, param, List [ String cname; Var !fresh_ident ], scall_opt))
               (filter_pol' ~chan_ty:cty ~proc_ty: p.Context.proc_type)
           , [] )
       | Syntax.ChanArg { id = cname; typ = cty; param = Some (Some e) }
@@ -1189,7 +1189,7 @@ let translate_sys
           , List.map
               (fun (_, _, scall_opt) ->
                  AccessFact
-                   (namespace, param, List [ String cname; e ], Option.value scall_opt ~default:""))
+                   (namespace, param, List [ String cname; e ], scall_opt))
               (filter_pol' ~chan_ty:cty ~proc_ty: p.Context.proc_type)
           , gv' )
     in

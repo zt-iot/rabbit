@@ -84,7 +84,7 @@ type fact =
   | ProcessFact of string * expr * expr list
   | EqFact of expr * expr
   | NeqFact of expr * expr
-  | AccessFact of string * expr * expr * string
+  | AccessFact of string * expr * expr * string option
   | AttackFact of string * expr
   | FileFact of string * expr * expr
   | InitFact of expr list

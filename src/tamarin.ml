@@ -157,7 +157,7 @@ type fact =
   | ProcessFact of string * expr * expr list
   | EqFact of expr * expr
   | NeqFact of expr * expr
-  | AccessFact of string * expr * expr * string
+  | AccessFact of string * expr * expr * string option
   | AttackFact of string * expr
   | FileFact of string * expr * expr
   | InitFact of expr list
@@ -257,7 +257,7 @@ let compile_fact (f : fact) : fact' =
       { name = "NEq" ^ !separator; args = [ e1; e2 ]; config = config_linear }
   | AccessFact (nsp, param, target, syscall) ->
       { name = "ACP" ^ !separator
-      ; args = [ List [ String nsp; param ]; target; String syscall ]
+      ; args = [ List [ String nsp; param ]; target; String (Option.value ~default:"" syscall) ]
       ; config = config_persist
       }
   | AttackFact (attack, target) ->
