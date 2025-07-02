@@ -1,0 +1,41 @@
+syscall fopen (p) {
+  case [p.x] ->
+    new y = Fd(x) in 
+    put [p.x]; y
+  end
+}
+
+syscall fread (y){
+  let x = y.Fd in
+  x
+}
+
+syscall fclose (y) {
+  delete y.Fd
+}
+
+type server_t 	  : process
+type readonly_t   : filesys
+(* allow server_t readonly_t [fopen, fread, fclose] *)
+allow server_t readonly_t [fopen]
+
+process server() : server_t 
+{
+  file "/secret/pub" : readonly_t = "hello"
+
+  main 
+  {
+    var pubkey_fd = fopen("/secret/pub") in 
+    var pubkey = fread(pubkey_fd) in 
+    _ := fclose(pubkey_fd);
+    event[::Valid()]
+  }
+}
+
+system
+  server()
+requires  
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid()
+]

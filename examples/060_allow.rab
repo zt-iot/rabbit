@@ -1,0 +1,42 @@
+syscall send_one(c) {
+   (*
+     rule Alice__scall_intro_put_____0_____0__0_1__5[role="Alice"]
+       : [State__Alice(<'rab_____0', param, %v__>, return__var__0, 'rab__', 'rab__', 'rab__'),
+          !ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_one')] <-------- !!!!!!!!!!
+       --[Transition__(<'rab__Alice', param>, 'rab_____0', %v__)]
+       ->[State__Alice(<'rab_____0__0_1', param, %v__>, 'rab__', 'rab__', 'rab__chan', 'rab__'),
+          Send('rab__chan', '1')] 
+   *)
+   put[c::send(1)]
+}
+
+type person_t : process
+type chan_t : channel
+
+process alice(ch : chan_t) : person_t 
+{
+    main {
+        _ := send_one(ch);
+        event[::Valid()]
+    }
+}
+
+allow person_t chan_t [send_one]
+
+(* Fact: !ACP__(<'rab__Alice', 'rab__rab_str'>, 'rab__chan', 'rab__send_one')
+
+rule Init__system__ACP__0[role="system"]
+  : [!ACP__GEN__('rab__system__', 'rab__rab_str')]
+  --[Init__('rab__system__ACP__0')]
+  ->[!ACP__(<'rab__Alice', 'rab__rab_str'>, 'rab__chan', 'rab__send_one')]  <--------- !!!!!!!!!!
+*)
+
+channel chan : chan_t
+
+system
+  alice(chan)
+requires
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid()
+]
