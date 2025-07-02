@@ -73,8 +73,11 @@ and fact' =
       ; process : ident
       ; index : name
       }
-  | Access of { pid: ident; target: expr; syscall: ident option }
-  | AccessX of { pid: ident; target: ident; parameter: expr option option; syscall: ident option }
+  | Access of
+      { pid: ident (** process id *)
+      ; target: expr (** channel or file *)
+      ; syscall: ident option (** system call performs this access *)
+      }
 
 let string_of_fact f =
   match f.desc with
@@ -120,19 +123,6 @@ let string_of_fact f =
         | Some syscall -> Ident.to_string syscall
       in
       Printf.sprintf "Access(%s, %s, %s)" (Ident.to_string pid) (string_of_expr target) syscall
-  | AccessX { pid; target; parameter; syscall } ->
-      let parameter =
-        match parameter with
-        | None -> "None"
-        | Some None -> "Some (None)"
-        | Some (Some parameter) -> string_of_expr parameter
-      in
-      let syscall =
-        match syscall with
-        | None -> "."
-        | Some syscall -> Ident.to_string syscall
-      in
-      Printf.sprintf "AccessX(%s, %s, %s, %s)" (Ident.to_string pid) (Ident.to_string target) parameter syscall
 
 let fact_of_typed (f : Typed.fact) : fact =
   let desc : fact' =
@@ -212,8 +202,14 @@ let evar env id =
     }
 ;;
 
+let channel_access ~process:(process : Typed.Subst.instantiated_process) ~syscaller (f : Typed.fact) =
+  match f.desc with
+  | Channel { channel; _ } ->
+      Some { f with desc= Access { pid= process.id; target= channel; syscall= syscaller } }
+  | _ -> None
+
 (* <\Gamma |- c>i *)
-let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) find_def decls i (c : cmd) : graph * Index.t * Env.t =
+let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) ~syscaller find_def decls i (c : cmd) : graph * Index.t * Env.t =
   let env = c.env in
   let update_unit =
     { register = Some { env; loc = Location.nowhere; desc = Unit }
@@ -241,17 +237,18 @@ let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) find_def
       , i_1, env )
   | Sequence (c1, c2) ->
       (* i =c1=> j =c2=> k *)
-      let g1, j, _ = graph_cmd ~process find_def decls i c1 in
-      let g2, k, env_k = graph_cmd ~process find_def decls j c2 in
+      let g1, j, _ = graph_cmd ~process ~syscaller find_def decls i c1 in
+      let g2, k, env_k = graph_cmd ~process ~syscaller find_def decls j c2 in
       g1 @ g2, k, env_k
   | Put fs ->
       (* i =put=> i+1 *)
       (* XXX requires access policy check *)
       let i_1 = Index.add i 1 in
+      let pre = List.filter_map (channel_access ~process ~syscaller) fs in
       ( [ { id = Ident.local "put"
           ; source = i
           ; source_env = env
-          ; pre = []
+          ; pre
           ; update = update_unit
           ; tag = []
           ; post = List.map fact_of_typed fs
@@ -263,9 +260,9 @@ let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) find_def
   | Let (x, ({ desc= Apply _; _ } as app), c) ->
       (* var x := f(e) in c *)
       (* i =f(e)=> j =let_def=> j+1 =c=> k =let_exit=> k+1 *)
-      let g, j, env_j = graph_application ~process find_def decls i app in
+      let g, j, env_j = graph_application ~process ~syscaller find_def decls i app in
       let j_1 = Index.add j 1 in
-      let g', k, env_k = graph_cmd ~process find_def decls j_1 c in
+      let g', k, env_k = graph_cmd ~process ~syscaller find_def decls j_1 c in
       let k_1 = Index.add k 1 in
       ( { id = Ident.local ("let_def_" ^ fst x)
         ; source = j
@@ -293,7 +290,7 @@ let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) find_def
       (* var x := e in c *)
       (* i =let_def=> i+1 =c=> j =let_exit=> j+1 *)
       let i_1 = Index.add i 1 in
-      let g, j, env_j = graph_cmd ~process find_def decls i_1 c in
+      let g, j, env_j = graph_cmd ~process ~syscaller find_def decls i_1 c in
       let j_1 = Index.add j 1 in
       ( { id = Ident.local ("let_def_" ^ fst x)
         ; source = i
@@ -320,7 +317,7 @@ let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) find_def
   | Assign (Some x, ({ desc= Apply _; _ } as app)) ->
       (* i =f(e)=> j =assign_call=> j+1 *)
       (* x := f(e) *)
-      let g, j, env_j = graph_application ~process find_def decls i app in
+      let g, j, env_j = graph_application ~process ~syscaller find_def decls i app in
       let j_1 = Index.add j 1 in
       (  { id = Ident.local "assign_call"
          ; source = j
@@ -337,7 +334,7 @@ let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) find_def
   | Assign (None, ({ desc= Apply _; _ } as app)) ->
       (* i =f(e)=> j =call=> j+1 *)
       (* _ := f(e) *)
-      let g, j, env_j = graph_application ~process find_def decls i app in
+      let g, j, env_j = graph_application ~process ~syscaller find_def decls i app in
       let j_1 = Index.add j 1 in
       (  { id = Ident.local "call"
          ; source = j
@@ -419,7 +416,7 @@ let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) find_def
       (* new x in c *)
       (* new x = e in c *)
       let i_1 = Index.add i 1 in
-      let g, j, env_j = graph_cmd ~process find_def decls i_1 c in
+      let g, j, env_j = graph_cmd ~process ~syscaller find_def decls i_1 c in
       let j_1 = Index.add j 1 in
       ( { id = Ident.local "new_intro"
         ; source = i
@@ -454,7 +451,7 @@ let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) find_def
       (* i =get_intro=> i+1 =c=> j =get_out=> j+1 *)
       (* [let x1,..,xn := e.S in c] *)
       let i_1 = Index.add i 1 in
-      let g, j, env_j = graph_cmd ~process find_def decls i_1 c in
+      let g, j, env_j = graph_cmd ~process ~syscaller find_def decls i_1 c in
       let j_1 = Index.add j 1 in
       let pre_and_post : fact list =
         [ fact env
@@ -522,12 +519,14 @@ let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) find_def
              (fun j (case : case) ->
                 (* XXX case.cmd.env == case.fresh @ env *)
                 let ij = Index.push i j in
-                let gj, bj (* bold j *), env_bj = graph_cmd ~process find_def decls ij case.cmd in
+                let gj, bj (* bold j *), env_bj = graph_cmd ~process ~syscaller find_def decls ij case.cmd in
                 (* XXX requires access policy check *)
                 { id= Ident.local "case_in"
                 ; source = i
                 ; source_env = env
-                ; pre = List.map fact_of_typed case.facts
+                ; pre =
+                    List.map fact_of_typed case.facts
+                    @ List.filter_map (channel_access ~process ~syscaller) case.facts
                 ; update = update_unit
                 ; tag = []
                 ; post = []
@@ -571,12 +570,14 @@ let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) find_def
                  (fun j (case : case) ->
                     (* XXX case.cmd.env == case.fresh @ env *)
                     let i_1j = Index.push i_1 j in
-                    let gj, bj (* bold j *), env_bj = graph_cmd ~process find_def decls i_1j case.cmd in
+                    let gj, bj (* bold j *), env_bj = graph_cmd ~process ~syscaller find_def decls i_1j case.cmd in
                     (* XXX requires access policy check *)
                     { id= Ident.local "case_in"
                     ; source = i_1
                     ; source_env = env
-                    ; pre = List.map fact_of_typed case.facts
+                    ; pre =
+                        List.map fact_of_typed case.facts
+                        @ List.filter_map (channel_access ~process ~syscaller) case.facts
                     ; update = update_unit
                     ; tag = []
                     ; post = []
@@ -603,12 +604,14 @@ let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) find_def
                (fun j (case : case) ->
                   (* XXX case.cmd.env == case.fresh @ env *)
                   let i_1jn = Index.push i_1 (j + n) in
-                  let gj, bj (* bold j *), env_bj = graph_cmd ~process find_def decls i_1jn case.cmd in
+                  let gj, bj (* bold j *), env_bj = graph_cmd ~process ~syscaller find_def decls i_1jn case.cmd in
                   (* XXX requires access policy check *)
                   { id= Ident.local "until_in"
                   ; source = i_1
                   ; source_env = env
-                  ; pre = List.map fact_of_typed case.facts
+                  ; pre =
+                      List.map fact_of_typed case.facts
+                      @ List.filter_map (channel_access ~process ~syscaller) case.facts
                   ; update = update_unit
                   ; tag = []
                   ; post = []
@@ -633,7 +636,7 @@ let rec graph_cmd ~process:(process : Typed.Subst.instantiated_process) find_def
       in
       es, i_2, env
 
-and graph_application ~process find_def (decls : decl list) i (app : expr) : graph * Index.t * Env.t =
+and graph_application ~process ~syscaller find_def (decls : decl list) i (app : expr) : graph * Index.t * Env.t =
   match app.desc with
   | Apply (f, es) ->
       (match Env.find_opt_by_id app.env f with
@@ -661,6 +664,7 @@ and graph_application ~process find_def (decls : decl list) i (app : expr) : gra
              match desc with
              | ExtSyscall _ ->
                  (* Inefficiency: all the decls are scanned for each system call *)
+                 let syscaller = Some f in
                  let attacks =
                    let possible_attacks = List.concat_map (fun d ->
                        match d.desc with
@@ -680,7 +684,8 @@ and graph_application ~process find_def (decls : decl list) i (app : expr) : gra
                      (* i => ik => ... => j => i_1 *)
                      let ik = Index.push i k in
                      (* XXX dupe: same as the normal applications *)
-                     let g', j, env_j = graph_cmd ~process find_def decls ik cmd in
+                     (* XXX Attacker is restricted by the syscaller?  Yes in Totamarin *)
+                     let g', j, env_j = graph_cmd ~process ~syscaller find_def decls ik cmd in
                      (* XXX should check env_j = app.env *)
                      { id= Ident.local ((Ident.to_string attack_id) ^ "_attack_in")
                      ; source = i
@@ -715,7 +720,7 @@ and graph_application ~process find_def (decls : decl list) i (app : expr) : gra
            let args, cmd = find_def f in
            (* i => i0 => ... => j => i_1 *)
            let i0 = Index.push i 0 in
-           let g, j, env_j = graph_cmd ~process find_def decls i0 cmd in
+           let g, j, env_j = graph_cmd ~process ~syscaller find_def decls i0 cmd in
            { id= Ident.local (Ident.to_string f ^ "_app_in")
            ; source = i
            ; source_env = app.env
@@ -819,7 +824,7 @@ let model_process ~loc env decls syscalls (proc : Subst.instantiated_process) =
   let funcs = List.map (fun (f, args, cmd) -> f, (args, cmd)) proc.Subst.funcs in
   let find_def n = List.assoc n (syscalls @ funcs) in
   let g, i = graph_files_and_vars ~loc env decls proc Index.zero in
-  let g', _j, _env = graph_cmd ~process:proc find_def decls i proc.main in
+  let g', _j, _env = graph_cmd ~process:proc ~syscaller:None find_def decls i proc.main in
   let g = g @ g' in
   ignore (check_edges g);
   Format.eprintf "%t: %d edges@." (Ident.print proc.id) (List.length g);
@@ -884,6 +889,7 @@ let const_rules decls =
       | _ -> None) decls
 
 
+(*
 let _ppp
     decls
     env
@@ -906,6 +912,7 @@ let _ppp
                     syscalls
                 else []
             | _ -> []) decls )) chan_args
+*)
 
 
 let models_system (decls : decl list) (sys : decl) : model list =
