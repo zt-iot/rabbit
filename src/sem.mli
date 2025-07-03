@@ -30,9 +30,9 @@ val fact_of_typed : Typed.fact -> fact
     - [mutable_overrides] only list the updated fields:
 *)
 type update =
-  { register : Typed.expr option
-  ; mutable_overrides : (Ident.t * Typed.expr option) list
-  ; drops : Ident.t list
+  { register : Typed.expr option (** Return or register value. [None] for $\rho$ *)
+  ; mutable_overrides : (Ident.t * Typed.expr option) list (** [None for $\rho$ *)
+  ; drops : Ident.t list (** Ids to be dropped from the environment *)
   }
 
 val string_of_update : update -> string
