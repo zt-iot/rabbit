@@ -1,0 +1,36 @@
+type proc_t 	  : process
+
+process p() : proc_t
+{
+  main 
+  {
+    skip
+  }
+}
+
+(*
+// Add model inits: P
+
+rule Init_system[role="system"]
+  : []
+  --[Init_('rab_system')]
+  ->[!ACP_GEN_('rab_system_', 'rab_rab_str'),
+     State_P(<'rab___0',      <--------- state index
+              'rab_rab_str',  <--------- parameter (if no parameter, 'rab_rab_str')
+               %1             <--------- transition (It exists only when --tag-transition is given)
+             >,		      
+             'rab_',          <--------- return
+	     'rab_',          <--------- metas
+	     'rab_',          <--------- locs
+	     'rab_'           <--------- tops
+	    )
+    ] 
+*)
+
+system 
+  p()
+requires  
+[
+  lemma Reachable : (* falsified *)
+    reachable ::Dummy()
+]

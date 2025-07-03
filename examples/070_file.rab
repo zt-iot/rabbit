@@ -19,6 +19,15 @@ type readonly_t   : filesys
 (* allow server_t readonly_t [fopen, fread, fclose] *)
 allow server_t readonly_t [fopen]
 
+(*
+rule Server_init_filesys___0___1_0[role="Server"]
+  : [State_Server(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_')]
+  --[Transition_(<'rab_Server', param>, 'rab___0', %v_)]
+  ->[State_Server(<'rab___1', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_'),
+     File_Server(param, 'rab__secret_pub', 'rab_hello'),
+     !ACP_(<'rab_Server', param>, 'rab__secret_pub', 'rab_fopen')]  <------------- !!!!!!!!!!!!!
+*)
+
 process server() : server_t 
 {
   file "/secret/pub" : readonly_t = "hello"
@@ -28,6 +37,21 @@ process server() : server_t
     var pubkey_fd = fopen("/secret/pub") in 
     var pubkey = fread(pubkey_fd) in 
     _ := fclose(pubkey_fd);
+
+    (* rule Server_let_intro_scall_intro_guarded_new_intro_put_return_new_out_case_out_scall_out_let_intro_scall_intro_get_intro_return_get_out_scall_out_scall_intro_del_scall_out_event_let_out_let_out___1___9_41[role="Server"]
+        : [State_Server(<'rab___1', param, %v_>, return_var_1, 'rab_', 'rab_', 'rab_'),
+           Fr(n_0_4),
+           !ACP_(<'rab_Server', param>, 'rab__secret_pub', 'rab_fopen'),  <--------- !!!!!!!!!!!
+           !ACP_(<'rab_Server', param>, 'rab__secret_pub', 'rab_fopen'),  <--------- !!!!!!!!!!!
+           File_Server(param, loc_0, n_0_3)]
+         --[Transition_(<'rab_Server', param>, 'rab___1', %v_),
+            Valid(),
+            Eq_(n_0_12, n_0_17),
+            Eq_(n_0_3, n_0_12)]
+         ->[State_Server(<'rab___9', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_'),
+            File_Server(param, loc_0, n_0_3)] 
+    *)
+
     event[::Valid()]
   }
 }

@@ -1,0 +1,50 @@
+type proc_t 	  : process
+
+process server<p>() : proc_t
+{
+  main 
+  {
+    skip
+
+    (* rule Server_skip___0___1_0[role="Server"]
+        : [State_Server(<'rab___0', param, %v_>,   <------- param and transition tag are bound
+                        return_var_0,              <------- register value bound
+                        'rab_',                    <----------- metas: empty
+                        'rab_',                    <----------- locs: empty
+                        'rab_'                     <----------- tops: empty
+                       )]
+        --[Transition_(<'rab_Server', param>, 'rab___0', %v_)]
+        ->[State_Server(<'rab___1', param, %v_>,    <---------- the next state #1, keep param and the transition tag
+                         'rab_',                   <-------- return : Unit
+			 'rab_',                   <------------ metas: empty
+                         'rab_',                   <------------ locs empty
+                         'rab_'                    <------------ tops: empty
+                       )] 
+    *)
+  }
+}
+
+(*
+// Add model inits: P
+
+rule Init_system1[role="system1"]
+  : [Fr(param)]                       <--------- introduce param
+  --[Init_(<'rab_system1', param>)]   <--------- system with param
+  ->[!ACP_GEN_('rab_system1_', param), 
+     State_Server(<'rab___0',  <--------- state index
+                   param,      <--------- parameter variable
+                   %1>,        <--------- transition (It exists only when --tag-transition is given)
+                  'rab_',      <--------- return
+                  'rab_',      <--------- metas
+                  'rab_',      <--------- locs
+                  'rab_')      <--------- tops
+    ] 
+*)
+
+system 
+  !p.server<p>()
+requires  
+[
+  lemma Reachable : (* falsified *)
+    reachable ::Dummy()
+]
