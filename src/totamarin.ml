@@ -995,7 +995,6 @@ let translate_global_constant ~sep t v = function
         ; pre = [ FreshFact' (Var v) ]
         ; label =
             [ InitFact [ String name ]
-            ; InitFact [ List [ String name; Var v ] ] (* XXX Probably not required *)
             ; const
             ]
         ; post = [ const ]
@@ -1004,13 +1003,13 @@ let translate_global_constant ~sep t v = function
       (* no parameter, when v is defined *)
       let e, gv, _ = translate_expr2 e in
       let const = ConstantFact (String v, e) in
-      let t = add_comment t @@ Printf.sprintf "const %s = ..." v in
+      let t = add_comment t @@ Printf.sprintf "const %s = %s" v (Tamarin.print_expr e) in
       add_rule
         t
         { name = "Const" ^ sep ^ v
         ; role = ""
         ; pre = gv
-        ; label = [ const ]
+        ; label = [ const ] (* XXX It must be InitFact *)
         ; post = [ const ]
         }
   | Right None ->
@@ -1029,7 +1028,7 @@ let translate_global_constant ~sep t v = function
       (* w/ parameter, when v is defined *)
       let e, gv, _ = translate_expr2 e in
       let const = ConstantFact (List [String v; Param], e) in
-      let t = add_comment t @@ Printf.sprintf "const fresh %s<%s> = ..." v p in
+      let t = add_comment t @@ Printf.sprintf "const fresh %s<%s> = %s" v p (Tamarin.print_expr e) in
       add_rule
         t
         { name = "Const" ^ sep ^ v
