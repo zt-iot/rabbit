@@ -124,21 +124,12 @@ let _main =
             (match typer_result with
              | Error _ -> ()
              | Ok decls ->
-                 let sys =
-                   List.find_opt (fun decl ->
-                       match decl.Typed.desc with
-                       | Typed.System _ -> true
-                       | _ -> false) decls
-                 in
-                 match sys with
-                 | Some sys ->
-                     let ms = Sem.models_system decls sys in
-                     (match !svg2_file with
-                      | None -> ()
-                      | Some fn ->
-                          Sem_debug.write_models_svg fn ms);
-                     prerr_endline "graph checked"
-                 | None -> prerr_endline "no system"
+                 let semantics = Sem.t_of_decls decls in
+                 (match !svg2_file with
+                  | None -> ()
+                  | Some fn ->
+                      Sem_debug.write_models_svg fn semantics.models);
+                 prerr_endline "graph checked"
             );
             res
           )

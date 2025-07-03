@@ -49,37 +49,20 @@ type edge =
   ; target_env : Env.t
   }
 
-val check_edge_invariants : edge -> unit
-
-type graph = edge list
-
 type signature =
   { functions : (Ident.t * int) list
   ; equations : (Typed.expr * Typed.expr) list
   }
+
 type model =
   { id : Ident.t
   ; edges : edge list }
 
-type tamarin =
+type t =
   { signature : signature
   ; models : model list
   ; constants : (Ident.t * Typed.init_desc) list
   ; lemmas : (Ident.t * Typed.lemma) list
   }
 
-val models_system : Typed.decl list -> Typed.decl (* system *) -> model list
-
-type rule =
-  { name : string
-  ; role : string
-  ; pre : fact list
-  ; label : fact list
-  ; post : fact list
-  }
-
-val const_rules : Typed.decl list -> rule list
-
-val check_edges : graph -> (Ident.t * bool * Env.t) Index.Map.t
-
-val tamarin_of_decls : Typed.decl list -> tamarin
+val t_of_decls : Typed.decl list -> t

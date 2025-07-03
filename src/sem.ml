@@ -58,10 +58,11 @@ and fact' =
       { path : expr
       ; contents : expr
       } (** File fact [path.contents] *)
-  | Fresh of ident
-  | Constant of ident * ident option * expr
-  | Init of string
   | Global of string * expr list
+
+  (* New additions at Sem level *)
+
+  | Fresh of ident
   | Structure of
       { name : name
       ; process : ident
@@ -78,6 +79,18 @@ and fact' =
       ; target: expr (** channel or file *)
       ; syscall: ident option (** system call performs this access *)
       }
+(*
+  | Constant of ident * ident option * expr
+  | Init of string
+  | AccessGen of string * Ident.t option (* at the system init *)
+  | State of { pid : Ident.t
+             ; index : Index.t
+             ; param : Ident.t option
+             (* ; transition : ... XXX todo *)
+             ; return : expr
+             ; vars : (Ident.t * expr) list
+             }
+*)
 
 let string_of_fact f =
   match f.desc with
@@ -103,9 +116,6 @@ let string_of_fact f =
       in
       path ^ "." ^ contents
   | Fresh id -> "Fr " ^ Ident.to_string id
-  | Constant (id, None, e) -> Printf.sprintf "Const(%s, %s)" (Ident.to_string id) (string_of_expr e)
-  | Constant (id, Some p, e) -> Printf.sprintf "Const(%s<%s>, %s)" (Ident.to_string id) (Ident.to_string p) (string_of_expr e)
-  | Init s -> Printf.sprintf "Init %s" s
   | Global (s, args) -> Printf.sprintf "::%s(%s)" s (String.concat ", " @@ List.map string_of_expr args)
   | Structure { name; process; address; args } ->
       Printf.sprintf "Structure(%s, %s, %s, %s)" name (Ident.to_string process) (string_of_expr address) (String.concat "," (List.map string_of_expr args))
@@ -123,6 +133,18 @@ let string_of_fact f =
         | Some syscall -> Ident.to_string syscall
       in
       Printf.sprintf "Access(%s, %s, %s)" (Ident.to_string pid) (string_of_expr target) syscall
+(*
+  | Constant (id, None, e) -> Printf.sprintf "Const(%s, %s)" (Ident.to_string id) (string_of_expr e)
+  | Constant (id, Some p, e) -> Printf.sprintf "Const(%s<%s>, %s)" (Ident.to_string id) (Ident.to_string p) (string_of_expr e)
+  | Init s -> Printf.sprintf "Init %s" s
+  | State { pid; index; param; return; vars } ->
+      Printf.sprintf "State(%s,%s,param=%s,return=%s,vars={%s})"
+        (Ident.to_string pid)
+        (Index.to_string index)
+        (match param with None -> "noparam" | Some p -> Ident.to_string p)
+        (string_of_expr return)
+        (String.concat "; " (List.map (fun (id,e) -> Printf.sprintf "%s= %s" (Ident.to_string id) (string_of_expr e)) vars))
+*)
 
 let fact_of_typed (f : Typed.fact) : fact =
   let desc : fact' =
@@ -833,88 +855,6 @@ let model_process ~loc env decls syscalls (proc : Subst.instantiated_process) =
     ) g;
   { id= proc.id; edges= g }
 
-type rule =
-  { name : string
-  ; role : string
-  ; pre : fact list
-  ; label : fact list
-  ; post : fact list
-  }
-
-let const_rules decls =
-  List.filter_map (fun (decl : Typed.decl) ->
-      let fact desc = { env= decl.env; loc=Location.nowhere; desc } in
-      match decl.desc with
-      | Init { id; desc } ->
-          (match desc with
-          | Value e -> (* [const n = e] *)
-              let name = Printf.sprintf "Const_%s" (Ident.to_string id) in
-              Some { name
-              ; role = ""
-              ; pre = []
-              ; label = [ fact @@ Constant (id, None, e) ]
-              ; post = [ fact @@ Constant (id, None, e) ]
-              }
-          | Value_with_param (p, e) -> (* [const n<p> = e] *)
-              let name = Printf.sprintf "Const_%s" (Ident.to_string id) in
-              Some { name
-                   ; role = ""
-                   ; pre = []
-                   ; label = [ fact @@ Constant (id, Some p, e) ]
-                   ; post = [ fact @@ Constant (id, Some p, e) ]
-                   }
-          | Fresh -> (* [const fresh n] *)
-              let name = Printf.sprintf "Const_%s" (Ident.to_string id) in
-              Some { name
-              ; role = ""
-              ; pre = [ fact @@ Fresh id ]
-              ; label = [ fact @@ Init name ]
-(*
-                   [ InitFact [ String ("Const" ^ sep ^ v) ]
-                   ; InitFact [ List [ String ("Const" ^ sep ^ v); Var v ] ]
-                   ; mk_constant_fact v
-                   ]
-*)
-              ; post = [ fact @@ Constant (id, None, evar decl.env id) ]
-              }
-          | Fresh_with_param -> (* [const fresh n<>] *)
-              let name = Printf.sprintf "Const_%s" (Ident.to_string id) in
-              Some { name
-              ; role = ""
-              ; pre = [ fact @@ Fresh id ]
-              ; label = [ fact @@ Init name ]
-              ; post = [ fact @@ Constant (id, None, evar decl.env id) ]
-              }
-          )
-      | _ -> None) decls
-
-
-(*
-let _ppp
-    decls
-    env
-    (chan_args : Typed.chan_arg list)
-    (p : Typed.Subst.instantiated_process) =
-  let fact desc = { env; loc=Location.nowhere; desc } in
-  List.map (fun { channel; parameter; typ } ->
-      ( parameter = Some None
-      , List.concat_map (fun decl ->
-            match decl.desc with
-            | Allow { process_typ; target_typs; syscalls } ->
-                if p.typ = process_typ && List.mem typ target_typs then
-                  let syscalls =
-                    match syscalls with
-                    | None -> [None]
-                    | Some syscalls -> List.map Option.some syscalls
-                  in
-                  List.map (fun syscall ->
-                      fact @@ AccessX { pid= p.id; target= channel; parameter; syscall })
-                    syscalls
-                else []
-            | _ -> []) decls )) chan_args
-*)
-
-
 let models_system (decls : decl list) (sys : decl) : model list =
   let syscalls =
     List.filter_map (fun decl ->
@@ -960,103 +900,20 @@ let signature_of_decls (decls : decl list) =
   ; equations = equations_of_decls decls
   }
 
-type tamarin =
-  { signature : signature
-  ; models : model list
-  ; constants : (ident * Typed.init_desc) list
-  ; lemmas : (Ident.t * lemma) list
-  }
-
-(*
-let rec translate_expr (e : Typed.expr) : Tamarin2.expr * (Ident.t * Tamarin2.expr option) list =
-  match e.desc with
-  | Ident { id; desc= Var _; param= None } -> Ident id, []
-  | Ident { id; desc= Const false; param= None } -> Ident id, [ (id, None) ]
-  | Ident { id; desc= Const true; param= Some e } ->
-      let e, cs = translate_expr e in
-      Ident id, (id, Some e) :: cs
-  | Ident { id; desc= ExtConst; param= None } -> Apply (id, []), []
-  | Ident { id; desc= Channel (false, _cty); param= None } ->
-      String (Ident.to_string id), []
-  | Ident { id; desc= Channel (true, _cty); param= Some e } ->
-      let e, cs = translate_expr e in
-      List [String (Ident.to_string id); e], cs
-  | String s -> String s, []
-  | Integer i -> Integer i, []
-  | Boolean _b -> assert false
-  | Float _f -> assert false
-  | Apply (f, es) ->
-      let rev_es, cs =
-        List.fold_left (fun (rev_es, cs) e ->
-            let e, cs' = translate_expr e  in
-            e :: rev_es, cs @ cs') ([], []) es
-      in
-      Apply (f, List.rev rev_es), cs
-  | Tuple es ->
-      let rev_es, cs =
-        List.fold_left (fun (rev_es, cs) e ->
-            let e, cs' = translate_expr e  in
-            e :: rev_es, cs @ cs') ([], []) es
-      in
-      List (List.rev rev_es), cs
-  | _ -> assert false
-*)
-
 let get_constants (decls : decl list) : (Typed.ident * Typed.init_desc) list =
   List.filter_map (fun (d : decl) ->
       match d.desc with
       | Init { id; desc } -> Some (id, desc)
       | _ -> None) decls
 
-(*
-let add_model_inits n_opt t models =
-  let pre =
-    match n_opt with
-    | None -> []
-    | Some _ -> [ FreshFact' Param ]
-  in
-  let label =
-    match n_opt with
-    | None -> [ InitFact [ String (system n_opt) ] ]
-    | Some _ -> [ InitFact [ List [ String (system n_opt); Param ] ] ]
-  in
-  let param_string =
-    match n_opt with
-    | None -> Some !fresh_string (* rab *)
-    | Some _ -> None
-  in
-    let t = add_comment t ("Add model inits: "
-                         ^ String.concat "," (List.map (fun m -> m.model_name) models))
-  in
-  add_rule
-    t
-    { name = !!["Init" ; system n_opt] (* Init_systemn *)
-    ; role = system n_opt
-    ; pre
-    ; label
-    ; post =
-        AccessGenFact (!![system n_opt; ""] (* systemn_ *)
-                      , param_expr n_opt)
-        :: List.map
-          (fun m ->
-             let st = m.model_init_state in
-             if !Config.tag_transition
-             then
-               mk_state_fact
-                 ?param:param_string
-                 st
-                 empty_state_desc
-                 (Some (mk_transition_expr `Initial))
-             else mk_state_fact ~param:!fresh_string st empty_state_desc None)
-          models
-    }
-*)
+type t =
+  { signature : signature
+  ; models : model list
+  ; constants : (ident * Typed.init_desc) list
+  ; lemmas : (Ident.t * lemma) list
+  }
 
-
-let tamarin_of_decls (decls : decl list) =
-  (* functions *)
-  (* equations *)
-  (* constants *)
+let t_of_decls (decls : decl list) =
   (* for each process:
      - model inits
      - access control
@@ -1078,198 +935,3 @@ let tamarin_of_decls (decls : decl list) =
   let constants = get_constants decls in
   let lemmas = lemmas_system sys in
   { signature; models; constants; lemmas }
-
-(*
-let translate_sys
-    { Context.sys_ctx = ctx
-    ; Context.sys_def = def
-    ; Context.sys_pol = pol
-    ; Context.sys_proc = proc
-    ; Context.sys_param_proc = param_proc
-    ; Context.sys_lemma = lem
-    }
-    (used_idents, used_string)
-  =
-  (* global constants *)
-  let t = translate_global_constants ~sep t def in
-
-  let param_expr n_opt =
-    match n_opt with
-    | None -> String !fresh_string (* rab *)
-    | Some _ -> Param (* param *)
-  in
-
-  let system n_opt =
-    match n_opt with
-    | None -> "system"
-    | Some n -> "system" ^ string_of_int n
-  in
-
-  let add_model_inits n_opt t models =
-    let pre =
-      match n_opt with
-      | None -> []
-      | Some _ -> [ FreshFact' Param ]
-    in
-    let label =
-      match n_opt with
-      | None -> [ InitFact [ String (system n_opt) ] ]
-      | Some _ -> [ InitFact [ List [ String (system n_opt); Param ] ] ]
-    in
-    let param_string =
-      match n_opt with
-      | None -> Some !fresh_string (* rab *)
-      | Some _ -> None
-    in
-    let t = add_comment t ("Add model inits: "
-                           ^ String.concat "," (List.map (fun m -> m.model_name) models))
-    in
-    add_rule
-      t
-      { name = !!["Init" ; system n_opt] (* Init_systemn *)
-      ; role = system n_opt
-      ; pre
-      ; label
-      ; post =
-          AccessGenFact (!![system n_opt; ""] (* systemn_ *)
-                        , param_expr n_opt)
-          :: List.map
-            (fun m ->
-               let st = m.model_init_state in
-               if !Config.tag_transition
-               then
-                 mk_state_fact
-                   ?param:param_string
-v                   st
-                   empty_state_desc
-                   (Some (mk_transition_expr `Initial))
-               else mk_state_fact ~param:!fresh_string st empty_state_desc None)
-            models
-      }
-  in
-
-  let get_access_control proc param :
-    ((string (* namespace *) * Name.ident (* channel *))
-     * (bool (* parameter *)
-        * fact list (* facts *)
-        * fact list (* global vars *))) list =
-
-    let pol' =
-      List.map (fun (i, is, i') -> i, is, Some i') pol.Context.pol_access
-      @ List.map (fun (i, is) -> i, is, None) pol.Context.pol_access_all
-    in
-
-    let filter_pol' ~chan_ty ~proc_ty =
-      List.filter
-        (fun (pty, tyl, _scall) ->
-           pty = proc_ty
-           && List.exists (fun v -> v = chan_ty) tyl)
-        pol'
-    in
-
-    let chan p namespace = function
-      | Syntax.ChanArg { id = cname; typ = cty; param = None } ->
-          ( false
-          , List.map
-              (fun (_, _, scall_opt) ->
-                 AccessFact (namespace, param, String cname, Option.value scall_opt ~default:""))
-              (filter_pol' ~chan_ty:cty ~proc_ty: p.Context.proc_type)
-          , [] )
-      | Syntax.ChanArg { id = cname; typ = cty; param = Some None } ->
-          ( true
-          , List.map
-              (fun (_, _, scall_opt) ->
-                 AccessFact
-                   ( namespace, param, List [ String cname; Var !fresh_ident ], Option.value scall_opt ~default:""))
-              (filter_pol' ~chan_ty:cty ~proc_ty: p.Context.proc_type)
-          , [] )
-      | Syntax.ChanArg { id = cname; typ = cty; param = Some (Some e) }
-        ->
-          let e, gv', _ = translate_expr2 e in
-          ( false
-          , List.map
-              (fun (_, _, scall_opt) ->
-                 AccessFact
-                   (namespace, param, List [ String cname; e ], Option.value scall_opt ~default:""))
-              (filter_pol' ~chan_ty:cty ~proc_ty: p.Context.proc_type)
-          , gv' )
-    in
-
-    List.concat_map (fun p ->
-        let namespace =
-          String.capitalize_ascii
-            (p.Context.proc_name
-             ^ if p.Context.proc_pid = 0 then "" else string_of_int p.Context.proc_pid)
-        in
-        List.map (fun (Syntax.ChanArg {id; _} as c) ->
-            (namespace, id), chan p namespace c) p.Context.proc_channels
-      ) proc
-  in
-
-  let add_access_control n_opt t facts_gv_list =
-    let add_fact n_opt t m with_param fact gv =
-      let m = string_of_int m in
-      let system_acp_m = String (!![system n_opt; "ACP"; m]) (* 'rab_systemn_ACP_m' *) in
-      let init_fact =
-        match n_opt, with_param with
-        | None, false ->
-            (* 'rab_system_ACP_m' *)
-            system_acp_m
-        | None, true ->
-            (* '<rab_system_ACP_m, rab>' *)
-            List [ system_acp_m; Var !fresh_ident ]
-        | Some _, false ->
-            (* <'rab_systemn_ACP_m', param> *)
-            List [ system_acp_m; Param ]
-        | Some _, true ->
-            (* '<rab_systemn_ACP_m, param, rab>' *)
-            List [ system_acp_m; Param; Var !fresh_ident ]
-      in
-      let t = add_comment t ("Fact: " ^ string_of_fact fact) in
-      add_rule
-        t
-        { name = !!["Init"; system n_opt; "ACP"; m] (* 'Init_systemn_ACP_m' *)
-        ; role = system n_opt
-        ; pre = gv @ [ AccessGenFact (!![system n_opt; ""], param_expr n_opt) ]
-        ; label = [ InitFact [ init_fact ] ]
-        ; post = [ fact ]
-        }
-    in
-    fst @@
-    List.fold_left
-      (fun (t, m) (name, (b, facts, gv)) ->
-         let t = add_comment t (Printf.sprintf "Access control of %s:%s" (fst name) (snd name)) in
-         List.fold_left
-           (fun (t, m) fact ->
-              add_fact n_opt t m b fact gv, m + 1)
-           (t, m)
-           facts)
-      (t, 0)
-      facts_gv_list
-  in
-
-  let translate_processes n_opt procs t =
-    let models =
-      List.map (fun p ->
-          translate_process p def.Context.def_ext_syscall def.Context.def_ext_attack pol) procs
-    in
-    let t = add_model_inits n_opt t models in
-    let t = add_access_control n_opt t @@ get_access_control procs (param_expr n_opt) in
-    let t = List.fold_left add_model t models in
-    t
-  in
-
-  let t = translate_processes None proc t in
-
-  let t =
-    fst @@ List.fold_left
-      (fun (t, n) procs -> translate_processes (Some n) procs t, n+1)
-      (t, 1)
-      (List.rev param_proc)
-  in
-
-  (* translating lemmas now *)
-  let t = translate_lemmas t lem in
-  t
-;;
-*)
