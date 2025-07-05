@@ -1,0 +1,1183 @@
+{ desc = (Typed.System (
+            [(Typed.Unbounded
+                { Typed.id = ("client", 0); parameter = None;
+                  args =
+                  [{ Typed.channel = ("udp", 0); parameter = None;
+                     typ = ("udp_t", 0) };
+                    { Typed.channel = ("rpc", 0); parameter = None;
+                      typ = ("rpc_t", 0) }
+                    ]
+                  });
+              (Typed.Unbounded
+                 { Typed.id = ("server", 0); parameter = None;
+                   args =
+                   [{ Typed.channel = ("udp", 0); parameter = None;
+                      typ = ("udp_t", 0) }
+                     ]
+                   });
+              (Typed.Unbounded
+                 { Typed.id = ("client_ta", 0); parameter = None;
+                   args =
+                   [{ Typed.channel = ("rpc", 0); parameter = None;
+                      typ = ("rpc_t", 0) }
+                     ]
+                   })
+              ],
+            [(("Reachable", 0),
+              { desc = Typed.Reachability {fresh = [("x", 62)];
+                         facts =
+                         [{ desc = (Typed.Global ("ClientClose", [])); env = 
+                           { Env.vars =
+                             [(("x", 62), (Env.Var (Syntax.Meta 62)));
+                               (("server", 0), Env.Process);
+                               (("client_ta", 0), Env.Process);
+                               (("client", 0), Env.Process);
+                               (("rpc", 0),
+                                (Env.Channel (false, ("rpc_t", 0))));
+                               (("udp", 0),
+                                (Env.Channel (false, ("udp_t", 0))));
+                               (("init_data", 0), (Env.Const false));
+                               (("sym_k", 0), (Env.Const false));
+                               (("priv_k", 0), (Env.Const false));
+                               (("eaves_mem", 0), (Env.ExtSyscall 1));
+                               (("tamper_channel", 0), Env.Attack);
+                               (("rpc_t", 0), (Env.ChanTypeDef []));
+                               (("udp_t", 0), (Env.ChanTypeDef []));
+                               (("client_ta_t", 0), Env.ProcTypeDef);
+                               (("client_t", 0), Env.ProcTypeDef);
+                               (("server_t", 0), Env.ProcTypeDef);
+                               (("readonly_t", 0), Env.FilesysTypeDef);
+                               (("fclose", 0), (Env.ExtSyscall 1));
+                               (("fread", 0), (Env.ExtSyscall 1));
+                               (("fopen", 0), (Env.ExtSyscall 1));
+                               (("h", 0), (Env.ExtFun 1));
+                               (("get_picture", 0), (Env.ExtSyscall 0));
+                               (("accept_rpc", 0), (Env.ExtSyscall 1));
+                               (("close_rpc", 0), (Env.ExtSyscall 1));
+                               (("invoke_rpc", 0), (Env.ExtSyscall 4));
+                               (("connect_rpc", 0), (Env.ExtSyscall 1));
+                               (("recv", 0), (Env.ExtSyscall 1));
+                               (("send", 0), (Env.ExtSyscall 2));
+                               (("verify", 0), (Env.ExtFun 3));
+                               (("true", 0), Env.ExtConst);
+                               (("snd", 0), (Env.ExtFun 1));
+                               (("fst", 0), (Env.ExtFun 1));
+                               (("dec", 0), (Env.ExtFun 2));
+                               (("sign", 0), (Env.ExtFun 2));
+                               (("enc", 0), (Env.ExtFun 2));
+                               (("pk", 0), (Env.ExtFun 1))];
+                             facts =
+                             ref ([("False", (Env.Global, (Some 0)));
+                                    ("ImgRecvInvalid", (Env.Global, (Some 1)));
+                                    ("ImgRecvValid", (Env.Global, (Some 1)));
+                                    ("ClientTAClose", (Env.Global, (Some 0)));
+                                    ("InValidName", (Env.Plain, (Some 1)));
+                                    ("ClientClose", (Env.Global, (Some 0)));
+                                    ("ImgSend", (Env.Global, (Some 1)));
+                                    ("Out", (Env.Global, (Some 1)));
+                                    ("In", (Env.Global, (Some 1)));
+                                    ("Fd", (Env.Structure, (Some 1)));
+                                    ("exit", (Env.Channel, (Some 0)));
+                                    ("Returned", (Env.Channel, (Some 1)));
+                                    ("invoke", (Env.Channel, (Some 3)));
+                                    ("conn", (Env.Channel, (Some 0)));
+                                    ("chid", (Env.Structure, (Some 1)));
+                                    ("ack", (Env.Channel, (Some 0)));
+                                    ("req", (Env.Channel, (Some 0)));
+                                    ("store", (Env.Channel, (Some 1)))])
+                             } };
+                           { desc = (Typed.Global ("ClientTAClose", [])); env = 
+                           { Env.vars =
+                             [(("x", 62), (Env.Var (Syntax.Meta 62)));
+                               (("server", 0), Env.Process);
+                               (("client_ta", 0), Env.Process);
+                               (("client", 0), Env.Process);
+                               (("rpc", 0),
+                                (Env.Channel (false, ("rpc_t", 0))));
+                               (("udp", 0),
+                                (Env.Channel (false, ("udp_t", 0))));
+                               (("init_data", 0), (Env.Const false));
+                               (("sym_k", 0), (Env.Const false));
+                               (("priv_k", 0), (Env.Const false));
+                               (("eaves_mem", 0), (Env.ExtSyscall 1));
+                               (("tamper_channel", 0), Env.Attack);
+                               (("rpc_t", 0), (Env.ChanTypeDef []));
+                               (("udp_t", 0), (Env.ChanTypeDef []));
+                               (("client_ta_t", 0), Env.ProcTypeDef);
+                               (("client_t", 0), Env.ProcTypeDef);
+                               (("server_t", 0), Env.ProcTypeDef);
+                               (("readonly_t", 0), Env.FilesysTypeDef);
+                               (("fclose", 0), (Env.ExtSyscall 1));
+                               (("fread", 0), (Env.ExtSyscall 1));
+                               (("fopen", 0), (Env.ExtSyscall 1));
+                               (("h", 0), (Env.ExtFun 1));
+                               (("get_picture", 0), (Env.ExtSyscall 0));
+                               (("accept_rpc", 0), (Env.ExtSyscall 1));
+                               (("close_rpc", 0), (Env.ExtSyscall 1));
+                               (("invoke_rpc", 0), (Env.ExtSyscall 4));
+                               (("connect_rpc", 0), (Env.ExtSyscall 1));
+                               (("recv", 0), (Env.ExtSyscall 1));
+                               (("send", 0), (Env.ExtSyscall 2));
+                               (("verify", 0), (Env.ExtFun 3));
+                               (("true", 0), Env.ExtConst);
+                               (("snd", 0), (Env.ExtFun 1));
+                               (("fst", 0), (Env.ExtFun 1));
+                               (("dec", 0), (Env.ExtFun 2));
+                               (("sign", 0), (Env.ExtFun 2));
+                               (("enc", 0), (Env.ExtFun 2));
+                               (("pk", 0), (Env.ExtFun 1))];
+                             facts =
+                             ref ([("False", (Env.Global, (Some 0)));
+                                    ("ImgRecvInvalid", (Env.Global, (Some 1)));
+                                    ("ImgRecvValid", (Env.Global, (Some 1)));
+                                    ("ClientTAClose", (Env.Global, (Some 0)));
+                                    ("InValidName", (Env.Plain, (Some 1)));
+                                    ("ClientClose", (Env.Global, (Some 0)));
+                                    ("ImgSend", (Env.Global, (Some 1)));
+                                    ("Out", (Env.Global, (Some 1)));
+                                    ("In", (Env.Global, (Some 1)));
+                                    ("Fd", (Env.Structure, (Some 1)));
+                                    ("exit", (Env.Channel, (Some 0)));
+                                    ("Returned", (Env.Channel, (Some 1)));
+                                    ("invoke", (Env.Channel, (Some 3)));
+                                    ("conn", (Env.Channel, (Some 0)));
+                                    ("chid", (Env.Structure, (Some 1)));
+                                    ("ack", (Env.Channel, (Some 0)));
+                                    ("req", (Env.Channel, (Some 0)));
+                                    ("store", (Env.Channel, (Some 1)))])
+                             } };
+                           { desc = (Typed.Global ("ImgRecvValid",
+                                       [{ desc = Typed.Ident {id = ("x", 62);
+                                                   desc =
+                                                   (Env.Var (Syntax.Meta 62));
+                                                   param = None}; env = 
+                                         { Env.vars =
+                                           [(("x", 62),
+                                             (Env.Var (Syntax.Meta 62)));
+                                             (("server", 0), Env.Process);
+                                             (("client_ta", 0), Env.Process);
+                                             (("client", 0), Env.Process);
+                                             (("rpc", 0),
+                                              (Env.Channel (false,
+                                                 ("rpc_t", 0))));
+                                             (("udp", 0),
+                                              (Env.Channel (false,
+                                                 ("udp_t", 0))));
+                                             (("init_data", 0),
+                                              (Env.Const false));
+                                             (("sym_k", 0), (Env.Const false));
+                                             (("priv_k", 0),
+                                              (Env.Const false));
+                                             (("eaves_mem", 0),
+                                              (Env.ExtSyscall 1));
+                                             (("tamper_channel", 0),
+                                              Env.Attack);
+                                             (("rpc_t", 0),
+                                              (Env.ChanTypeDef []));
+                                             (("udp_t", 0),
+                                              (Env.ChanTypeDef []));
+                                             (("client_ta_t", 0),
+                                              Env.ProcTypeDef);
+                                             (("client_t", 0),
+                                              Env.ProcTypeDef);
+                                             (("server_t", 0),
+                                              Env.ProcTypeDef);
+                                             (("readonly_t", 0),
+                                              Env.FilesysTypeDef);
+                                             (("fclose", 0),
+                                              (Env.ExtSyscall 1));
+                                             (("fread", 0),
+                                              (Env.ExtSyscall 1));
+                                             (("fopen", 0),
+                                              (Env.ExtSyscall 1));
+                                             (("h", 0), (Env.ExtFun 1));
+                                             (("get_picture", 0),
+                                              (Env.ExtSyscall 0));
+                                             (("accept_rpc", 0),
+                                              (Env.ExtSyscall 1));
+                                             (("close_rpc", 0),
+                                              (Env.ExtSyscall 1));
+                                             (("invoke_rpc", 0),
+                                              (Env.ExtSyscall 4));
+                                             (("connect_rpc", 0),
+                                              (Env.ExtSyscall 1));
+                                             (("recv", 0), (Env.ExtSyscall 1));
+                                             (("send", 0), (Env.ExtSyscall 2));
+                                             (("verify", 0), (Env.ExtFun 3));
+                                             (("true", 0), Env.ExtConst);
+                                             (("snd", 0), (Env.ExtFun 1));
+                                             (("fst", 0), (Env.ExtFun 1));
+                                             (("dec", 0), (Env.ExtFun 2));
+                                             (("sign", 0), (Env.ExtFun 2));
+                                             (("enc", 0), (Env.ExtFun 2));
+                                             (("pk", 0), (Env.ExtFun 1))];
+                                           facts =
+                                           ref ([("False",
+                                                  (Env.Global, (Some 0)));
+                                                  ("ImgRecvInvalid",
+                                                   (Env.Global, (Some 1)));
+                                                  ("ImgRecvValid",
+                                                   (Env.Global, (Some 1)));
+                                                  ("ClientTAClose",
+                                                   (Env.Global, (Some 0)));
+                                                  ("InValidName",
+                                                   (Env.Plain, (Some 1)));
+                                                  ("ClientClose",
+                                                   (Env.Global, (Some 0)));
+                                                  ("ImgSend",
+                                                   (Env.Global, (Some 1)));
+                                                  ("Out",
+                                                   (Env.Global, (Some 1)));
+                                                  ("In",
+                                                   (Env.Global, (Some 1)));
+                                                  ("Fd",
+                                                   (Env.Structure, (Some 1)));
+                                                  ("exit",
+                                                   (Env.Channel, (Some 0)));
+                                                  ("Returned",
+                                                   (Env.Channel, (Some 1)));
+                                                  ("invoke",
+                                                   (Env.Channel, (Some 3)));
+                                                  ("conn",
+                                                   (Env.Channel, (Some 0)));
+                                                  ("chid",
+                                                   (Env.Structure, (Some 1)));
+                                                  ("ack",
+                                                   (Env.Channel, (Some 0)));
+                                                  ("req",
+                                                   (Env.Channel, (Some 0)));
+                                                  ("store",
+                                                   (Env.Channel, (Some 1)))
+                                                  ])
+                                           } }
+                                         ]
+                                       )); env = { Env.vars =
+                                                   [(("x", 62),
+                                                     (Env.Var
+                                                        (Syntax.Meta 62)));
+                                                     (("server", 0),
+                                                      Env.Process);
+                                                     (("client_ta", 0),
+                                                      Env.Process);
+                                                     (("client", 0),
+                                                      Env.Process);
+                                                     (("rpc", 0),
+                                                      (Env.Channel (false,
+                                                         ("rpc_t", 0))));
+                                                     (("udp", 0),
+                                                      (Env.Channel (false,
+                                                         ("udp_t", 0))));
+                                                     (("init_data", 0),
+                                                      (Env.Const false));
+                                                     (("sym_k", 0),
+                                                      (Env.Const false));
+                                                     (("priv_k", 0),
+                                                      (Env.Const false));
+                                                     (("eaves_mem", 0),
+                                                      (Env.ExtSyscall 1));
+                                                     (("tamper_channel", 0),
+                                                      Env.Attack);
+                                                     (("rpc_t", 0),
+                                                      (Env.ChanTypeDef []));
+                                                     (("udp_t", 0),
+                                                      (Env.ChanTypeDef []));
+                                                     (("client_ta_t", 0),
+                                                      Env.ProcTypeDef);
+                                                     (("client_t", 0),
+                                                      Env.ProcTypeDef);
+                                                     (("server_t", 0),
+                                                      Env.ProcTypeDef);
+                                                     (("readonly_t", 0),
+                                                      Env.FilesysTypeDef);
+                                                     (("fclose", 0),
+                                                      (Env.ExtSyscall 1));
+                                                     (("fread", 0),
+                                                      (Env.ExtSyscall 1));
+                                                     (("fopen", 0),
+                                                      (Env.ExtSyscall 1));
+                                                     (("h", 0),
+                                                      (Env.ExtFun 1));
+                                                     (("get_picture", 0),
+                                                      (Env.ExtSyscall 0));
+                                                     (("accept_rpc", 0),
+                                                      (Env.ExtSyscall 1));
+                                                     (("close_rpc", 0),
+                                                      (Env.ExtSyscall 1));
+                                                     (("invoke_rpc", 0),
+                                                      (Env.ExtSyscall 4));
+                                                     (("connect_rpc", 0),
+                                                      (Env.ExtSyscall 1));
+                                                     (("recv", 0),
+                                                      (Env.ExtSyscall 1));
+                                                     (("send", 0),
+                                                      (Env.ExtSyscall 2));
+                                                     (("verify", 0),
+                                                      (Env.ExtFun 3));
+                                                     (("true", 0),
+                                                      Env.ExtConst);
+                                                     (("snd", 0),
+                                                      (Env.ExtFun 1));
+                                                     (("fst", 0),
+                                                      (Env.ExtFun 1));
+                                                     (("dec", 0),
+                                                      (Env.ExtFun 2));
+                                                     (("sign", 0),
+                                                      (Env.ExtFun 2));
+                                                     (("enc", 0),
+                                                      (Env.ExtFun 2));
+                                                     (("pk", 0),
+                                                      (Env.ExtFun 1))
+                                                     ];
+                                                   facts =
+                                                   ref ([("False",
+                                                          (Env.Global,
+                                                           (Some 0)));
+                                                          ("ImgRecvInvalid",
+                                                           (Env.Global,
+                                                            (Some 1)));
+                                                          ("ImgRecvValid",
+                                                           (Env.Global,
+                                                            (Some 1)));
+                                                          ("ClientTAClose",
+                                                           (Env.Global,
+                                                            (Some 0)));
+                                                          ("InValidName",
+                                                           (Env.Plain,
+                                                            (Some 1)));
+                                                          ("ClientClose",
+                                                           (Env.Global,
+                                                            (Some 0)));
+                                                          ("ImgSend",
+                                                           (Env.Global,
+                                                            (Some 1)));
+                                                          ("Out",
+                                                           (Env.Global,
+                                                            (Some 1)));
+                                                          ("In",
+                                                           (Env.Global,
+                                                            (Some 1)));
+                                                          ("Fd",
+                                                           (Env.Structure,
+                                                            (Some 1)));
+                                                          ("exit",
+                                                           (Env.Channel,
+                                                            (Some 0)));
+                                                          ("Returned",
+                                                           (Env.Channel,
+                                                            (Some 1)));
+                                                          ("invoke",
+                                                           (Env.Channel,
+                                                            (Some 3)));
+                                                          ("conn",
+                                                           (Env.Channel,
+                                                            (Some 0)));
+                                                          ("chid",
+                                                           (Env.Structure,
+                                                            (Some 1)));
+                                                          ("ack",
+                                                           (Env.Channel,
+                                                            (Some 0)));
+                                                          ("req",
+                                                           (Env.Channel,
+                                                            (Some 0)));
+                                                          ("store",
+                                                           (Env.Channel,
+                                                            (Some 1)))
+                                                          ])
+                                                   } }
+                           ]}; env = { Env.vars =
+                                       [(("server", 0), Env.Process);
+                                         (("client_ta", 0), Env.Process);
+                                         (("client", 0), Env.Process);
+                                         (("rpc", 0),
+                                          (Env.Channel (false, ("rpc_t", 0))));
+                                         (("udp", 0),
+                                          (Env.Channel (false, ("udp_t", 0))));
+                                         (("init_data", 0), (Env.Const false));
+                                         (("sym_k", 0), (Env.Const false));
+                                         (("priv_k", 0), (Env.Const false));
+                                         (("eaves_mem", 0),
+                                          (Env.ExtSyscall 1));
+                                         (("tamper_channel", 0), Env.Attack);
+                                         (("rpc_t", 0), (Env.ChanTypeDef []));
+                                         (("udp_t", 0), (Env.ChanTypeDef []));
+                                         (("client_ta_t", 0), Env.ProcTypeDef);
+                                         (("client_t", 0), Env.ProcTypeDef);
+                                         (("server_t", 0), Env.ProcTypeDef);
+                                         (("readonly_t", 0),
+                                          Env.FilesysTypeDef);
+                                         (("fclose", 0), (Env.ExtSyscall 1));
+                                         (("fread", 0), (Env.ExtSyscall 1));
+                                         (("fopen", 0), (Env.ExtSyscall 1));
+                                         (("h", 0), (Env.ExtFun 1));
+                                         (("get_picture", 0),
+                                          (Env.ExtSyscall 0));
+                                         (("accept_rpc", 0),
+                                          (Env.ExtSyscall 1));
+                                         (("close_rpc", 0),
+                                          (Env.ExtSyscall 1));
+                                         (("invoke_rpc", 0),
+                                          (Env.ExtSyscall 4));
+                                         (("connect_rpc", 0),
+                                          (Env.ExtSyscall 1));
+                                         (("recv", 0), (Env.ExtSyscall 1));
+                                         (("send", 0), (Env.ExtSyscall 2));
+                                         (("verify", 0), (Env.ExtFun 3));
+                                         (("true", 0), Env.ExtConst);
+                                         (("snd", 0), (Env.ExtFun 1));
+                                         (("fst", 0), (Env.ExtFun 1));
+                                         (("dec", 0), (Env.ExtFun 2));
+                                         (("sign", 0), (Env.ExtFun 2));
+                                         (("enc", 0), (Env.ExtFun 2));
+                                         (("pk", 0), (Env.ExtFun 1))];
+                                       facts =
+                                       ref ([("False", (Env.Global, (Some 0)));
+                                              ("ImgRecvInvalid",
+                                               (Env.Global, (Some 1)));
+                                              ("ImgRecvValid",
+                                               (Env.Global, (Some 1)));
+                                              ("ClientTAClose",
+                                               (Env.Global, (Some 0)));
+                                              ("InValidName",
+                                               (Env.Plain, (Some 1)));
+                                              ("ClientClose",
+                                               (Env.Global, (Some 0)));
+                                              ("ImgSend",
+                                               (Env.Global, (Some 1)));
+                                              ("Out", (Env.Global, (Some 1)));
+                                              ("In", (Env.Global, (Some 1)));
+                                              ("Fd",
+                                               (Env.Structure, (Some 1)));
+                                              ("exit",
+                                               (Env.Channel, (Some 0)));
+                                              ("Returned",
+                                               (Env.Channel, (Some 1)));
+                                              ("invoke",
+                                               (Env.Channel, (Some 3)));
+                                              ("conn",
+                                               (Env.Channel, (Some 0)));
+                                              ("chid",
+                                               (Env.Structure, (Some 1)));
+                                              ("ack", (Env.Channel, (Some 0)));
+                                              ("req", (Env.Channel, (Some 0)));
+                                              ("store",
+                                               (Env.Channel, (Some 1)))
+                                              ])
+                                       } });
+              (("Correspondence", 0),
+               { desc = Typed.Correspondence {fresh = [("x", 63)];
+                          from =
+                          { desc = (Typed.Global ("ImgRecvValid",
+                                      [{ desc = Typed.Ident {id = ("x", 63);
+                                                  desc =
+                                                  (Env.Var (Syntax.Meta 63));
+                                                  param = None}; env = 
+                                        { Env.vars =
+                                          [(("x", 63),
+                                            (Env.Var (Syntax.Meta 63)));
+                                            (("Reachable", 0), Env.Process);
+                                            (("server", 0), Env.Process);
+                                            (("client_ta", 0), Env.Process);
+                                            (("client", 0), Env.Process);
+                                            (("rpc", 0),
+                                             (Env.Channel (false,
+                                                ("rpc_t", 0))));
+                                            (("udp", 0),
+                                             (Env.Channel (false,
+                                                ("udp_t", 0))));
+                                            (("init_data", 0),
+                                             (Env.Const false));
+                                            (("sym_k", 0), (Env.Const false));
+                                            (("priv_k", 0), (Env.Const false));
+                                            (("eaves_mem", 0),
+                                             (Env.ExtSyscall 1));
+                                            (("tamper_channel", 0),
+                                             Env.Attack);
+                                            (("rpc_t", 0),
+                                             (Env.ChanTypeDef []));
+                                            (("udp_t", 0),
+                                             (Env.ChanTypeDef []));
+                                            (("client_ta_t", 0),
+                                             Env.ProcTypeDef);
+                                            (("client_t", 0), Env.ProcTypeDef);
+                                            (("server_t", 0), Env.ProcTypeDef);
+                                            (("readonly_t", 0),
+                                             Env.FilesysTypeDef);
+                                            (("fclose", 0),
+                                             (Env.ExtSyscall 1));
+                                            (("fread", 0), (Env.ExtSyscall 1));
+                                            (("fopen", 0), (Env.ExtSyscall 1));
+                                            (("h", 0), (Env.ExtFun 1));
+                                            (("get_picture", 0),
+                                             (Env.ExtSyscall 0));
+                                            (("accept_rpc", 0),
+                                             (Env.ExtSyscall 1));
+                                            (("close_rpc", 0),
+                                             (Env.ExtSyscall 1));
+                                            (("invoke_rpc", 0),
+                                             (Env.ExtSyscall 4));
+                                            (("connect_rpc", 0),
+                                             (Env.ExtSyscall 1));
+                                            (("recv", 0), (Env.ExtSyscall 1));
+                                            (("send", 0), (Env.ExtSyscall 2));
+                                            (("verify", 0), (Env.ExtFun 3));
+                                            (("true", 0), Env.ExtConst);
+                                            (("snd", 0), (Env.ExtFun 1));
+                                            (("fst", 0), (Env.ExtFun 1));
+                                            (("dec", 0), (Env.ExtFun 2));
+                                            (("sign", 0), (Env.ExtFun 2));
+                                            (("enc", 0), (Env.ExtFun 2));
+                                            (("pk", 0), (Env.ExtFun 1))];
+                                          facts =
+                                          ref ([("False",
+                                                 (Env.Global, (Some 0)));
+                                                 ("ImgRecvInvalid",
+                                                  (Env.Global, (Some 1)));
+                                                 ("ImgRecvValid",
+                                                  (Env.Global, (Some 1)));
+                                                 ("ClientTAClose",
+                                                  (Env.Global, (Some 0)));
+                                                 ("InValidName",
+                                                  (Env.Plain, (Some 1)));
+                                                 ("ClientClose",
+                                                  (Env.Global, (Some 0)));
+                                                 ("ImgSend",
+                                                  (Env.Global, (Some 1)));
+                                                 ("Out",
+                                                  (Env.Global, (Some 1)));
+                                                 ("In",
+                                                  (Env.Global, (Some 1)));
+                                                 ("Fd",
+                                                  (Env.Structure, (Some 1)));
+                                                 ("exit",
+                                                  (Env.Channel, (Some 0)));
+                                                 ("Returned",
+                                                  (Env.Channel, (Some 1)));
+                                                 ("invoke",
+                                                  (Env.Channel, (Some 3)));
+                                                 ("conn",
+                                                  (Env.Channel, (Some 0)));
+                                                 ("chid",
+                                                  (Env.Structure, (Some 1)));
+                                                 ("ack",
+                                                  (Env.Channel, (Some 0)));
+                                                 ("req",
+                                                  (Env.Channel, (Some 0)));
+                                                 ("store",
+                                                  (Env.Channel, (Some 1)))
+                                                 ])
+                                          } }
+                                        ]
+                                      )); env = { Env.vars =
+                                                  [(("x", 63),
+                                                    (Env.Var (Syntax.Meta 63)));
+                                                    (("Reachable", 0),
+                                                     Env.Process);
+                                                    (("server", 0),
+                                                     Env.Process);
+                                                    (("client_ta", 0),
+                                                     Env.Process);
+                                                    (("client", 0),
+                                                     Env.Process);
+                                                    (("rpc", 0),
+                                                     (Env.Channel (false,
+                                                        ("rpc_t", 0))));
+                                                    (("udp", 0),
+                                                     (Env.Channel (false,
+                                                        ("udp_t", 0))));
+                                                    (("init_data", 0),
+                                                     (Env.Const false));
+                                                    (("sym_k", 0),
+                                                     (Env.Const false));
+                                                    (("priv_k", 0),
+                                                     (Env.Const false));
+                                                    (("eaves_mem", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("tamper_channel", 0),
+                                                     Env.Attack);
+                                                    (("rpc_t", 0),
+                                                     (Env.ChanTypeDef []));
+                                                    (("udp_t", 0),
+                                                     (Env.ChanTypeDef []));
+                                                    (("client_ta_t", 0),
+                                                     Env.ProcTypeDef);
+                                                    (("client_t", 0),
+                                                     Env.ProcTypeDef);
+                                                    (("server_t", 0),
+                                                     Env.ProcTypeDef);
+                                                    (("readonly_t", 0),
+                                                     Env.FilesysTypeDef);
+                                                    (("fclose", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("fread", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("fopen", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("h", 0), (Env.ExtFun 1));
+                                                    (("get_picture", 0),
+                                                     (Env.ExtSyscall 0));
+                                                    (("accept_rpc", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("close_rpc", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("invoke_rpc", 0),
+                                                     (Env.ExtSyscall 4));
+                                                    (("connect_rpc", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("recv", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("send", 0),
+                                                     (Env.ExtSyscall 2));
+                                                    (("verify", 0),
+                                                     (Env.ExtFun 3));
+                                                    (("true", 0),
+                                                     Env.ExtConst);
+                                                    (("snd", 0),
+                                                     (Env.ExtFun 1));
+                                                    (("fst", 0),
+                                                     (Env.ExtFun 1));
+                                                    (("dec", 0),
+                                                     (Env.ExtFun 2));
+                                                    (("sign", 0),
+                                                     (Env.ExtFun 2));
+                                                    (("enc", 0),
+                                                     (Env.ExtFun 2));
+                                                    (("pk", 0),
+                                                     (Env.ExtFun 1))
+                                                    ];
+                                                  facts =
+                                                  ref ([("False",
+                                                         (Env.Global,
+                                                          (Some 0)));
+                                                         ("ImgRecvInvalid",
+                                                          (Env.Global,
+                                                           (Some 1)));
+                                                         ("ImgRecvValid",
+                                                          (Env.Global,
+                                                           (Some 1)));
+                                                         ("ClientTAClose",
+                                                          (Env.Global,
+                                                           (Some 0)));
+                                                         ("InValidName",
+                                                          (Env.Plain,
+                                                           (Some 1)));
+                                                         ("ClientClose",
+                                                          (Env.Global,
+                                                           (Some 0)));
+                                                         ("ImgSend",
+                                                          (Env.Global,
+                                                           (Some 1)));
+                                                         ("Out",
+                                                          (Env.Global,
+                                                           (Some 1)));
+                                                         ("In",
+                                                          (Env.Global,
+                                                           (Some 1)));
+                                                         ("Fd",
+                                                          (Env.Structure,
+                                                           (Some 1)));
+                                                         ("exit",
+                                                          (Env.Channel,
+                                                           (Some 0)));
+                                                         ("Returned",
+                                                          (Env.Channel,
+                                                           (Some 1)));
+                                                         ("invoke",
+                                                          (Env.Channel,
+                                                           (Some 3)));
+                                                         ("conn",
+                                                          (Env.Channel,
+                                                           (Some 0)));
+                                                         ("chid",
+                                                          (Env.Structure,
+                                                           (Some 1)));
+                                                         ("ack",
+                                                          (Env.Channel,
+                                                           (Some 0)));
+                                                         ("req",
+                                                          (Env.Channel,
+                                                           (Some 0)));
+                                                         ("store",
+                                                          (Env.Channel,
+                                                           (Some 1)))
+                                                         ])
+                                                  } };
+                          to_ =
+                          { desc = (Typed.Global ("ImgSend",
+                                      [{ desc = Typed.Ident {id = ("x", 63);
+                                                  desc =
+                                                  (Env.Var (Syntax.Meta 63));
+                                                  param = None}; env = 
+                                        { Env.vars =
+                                          [(("x", 63),
+                                            (Env.Var (Syntax.Meta 63)));
+                                            (("Reachable", 0), Env.Process);
+                                            (("server", 0), Env.Process);
+                                            (("client_ta", 0), Env.Process);
+                                            (("client", 0), Env.Process);
+                                            (("rpc", 0),
+                                             (Env.Channel (false,
+                                                ("rpc_t", 0))));
+                                            (("udp", 0),
+                                             (Env.Channel (false,
+                                                ("udp_t", 0))));
+                                            (("init_data", 0),
+                                             (Env.Const false));
+                                            (("sym_k", 0), (Env.Const false));
+                                            (("priv_k", 0), (Env.Const false));
+                                            (("eaves_mem", 0),
+                                             (Env.ExtSyscall 1));
+                                            (("tamper_channel", 0),
+                                             Env.Attack);
+                                            (("rpc_t", 0),
+                                             (Env.ChanTypeDef []));
+                                            (("udp_t", 0),
+                                             (Env.ChanTypeDef []));
+                                            (("client_ta_t", 0),
+                                             Env.ProcTypeDef);
+                                            (("client_t", 0), Env.ProcTypeDef);
+                                            (("server_t", 0), Env.ProcTypeDef);
+                                            (("readonly_t", 0),
+                                             Env.FilesysTypeDef);
+                                            (("fclose", 0),
+                                             (Env.ExtSyscall 1));
+                                            (("fread", 0), (Env.ExtSyscall 1));
+                                            (("fopen", 0), (Env.ExtSyscall 1));
+                                            (("h", 0), (Env.ExtFun 1));
+                                            (("get_picture", 0),
+                                             (Env.ExtSyscall 0));
+                                            (("accept_rpc", 0),
+                                             (Env.ExtSyscall 1));
+                                            (("close_rpc", 0),
+                                             (Env.ExtSyscall 1));
+                                            (("invoke_rpc", 0),
+                                             (Env.ExtSyscall 4));
+                                            (("connect_rpc", 0),
+                                             (Env.ExtSyscall 1));
+                                            (("recv", 0), (Env.ExtSyscall 1));
+                                            (("send", 0), (Env.ExtSyscall 2));
+                                            (("verify", 0), (Env.ExtFun 3));
+                                            (("true", 0), Env.ExtConst);
+                                            (("snd", 0), (Env.ExtFun 1));
+                                            (("fst", 0), (Env.ExtFun 1));
+                                            (("dec", 0), (Env.ExtFun 2));
+                                            (("sign", 0), (Env.ExtFun 2));
+                                            (("enc", 0), (Env.ExtFun 2));
+                                            (("pk", 0), (Env.ExtFun 1))];
+                                          facts =
+                                          ref ([("False",
+                                                 (Env.Global, (Some 0)));
+                                                 ("ImgRecvInvalid",
+                                                  (Env.Global, (Some 1)));
+                                                 ("ImgRecvValid",
+                                                  (Env.Global, (Some 1)));
+                                                 ("ClientTAClose",
+                                                  (Env.Global, (Some 0)));
+                                                 ("InValidName",
+                                                  (Env.Plain, (Some 1)));
+                                                 ("ClientClose",
+                                                  (Env.Global, (Some 0)));
+                                                 ("ImgSend",
+                                                  (Env.Global, (Some 1)));
+                                                 ("Out",
+                                                  (Env.Global, (Some 1)));
+                                                 ("In",
+                                                  (Env.Global, (Some 1)));
+                                                 ("Fd",
+                                                  (Env.Structure, (Some 1)));
+                                                 ("exit",
+                                                  (Env.Channel, (Some 0)));
+                                                 ("Returned",
+                                                  (Env.Channel, (Some 1)));
+                                                 ("invoke",
+                                                  (Env.Channel, (Some 3)));
+                                                 ("conn",
+                                                  (Env.Channel, (Some 0)));
+                                                 ("chid",
+                                                  (Env.Structure, (Some 1)));
+                                                 ("ack",
+                                                  (Env.Channel, (Some 0)));
+                                                 ("req",
+                                                  (Env.Channel, (Some 0)));
+                                                 ("store",
+                                                  (Env.Channel, (Some 1)))
+                                                 ])
+                                          } }
+                                        ]
+                                      )); env = { Env.vars =
+                                                  [(("x", 63),
+                                                    (Env.Var (Syntax.Meta 63)));
+                                                    (("Reachable", 0),
+                                                     Env.Process);
+                                                    (("server", 0),
+                                                     Env.Process);
+                                                    (("client_ta", 0),
+                                                     Env.Process);
+                                                    (("client", 0),
+                                                     Env.Process);
+                                                    (("rpc", 0),
+                                                     (Env.Channel (false,
+                                                        ("rpc_t", 0))));
+                                                    (("udp", 0),
+                                                     (Env.Channel (false,
+                                                        ("udp_t", 0))));
+                                                    (("init_data", 0),
+                                                     (Env.Const false));
+                                                    (("sym_k", 0),
+                                                     (Env.Const false));
+                                                    (("priv_k", 0),
+                                                     (Env.Const false));
+                                                    (("eaves_mem", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("tamper_channel", 0),
+                                                     Env.Attack);
+                                                    (("rpc_t", 0),
+                                                     (Env.ChanTypeDef []));
+                                                    (("udp_t", 0),
+                                                     (Env.ChanTypeDef []));
+                                                    (("client_ta_t", 0),
+                                                     Env.ProcTypeDef);
+                                                    (("client_t", 0),
+                                                     Env.ProcTypeDef);
+                                                    (("server_t", 0),
+                                                     Env.ProcTypeDef);
+                                                    (("readonly_t", 0),
+                                                     Env.FilesysTypeDef);
+                                                    (("fclose", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("fread", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("fopen", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("h", 0), (Env.ExtFun 1));
+                                                    (("get_picture", 0),
+                                                     (Env.ExtSyscall 0));
+                                                    (("accept_rpc", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("close_rpc", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("invoke_rpc", 0),
+                                                     (Env.ExtSyscall 4));
+                                                    (("connect_rpc", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("recv", 0),
+                                                     (Env.ExtSyscall 1));
+                                                    (("send", 0),
+                                                     (Env.ExtSyscall 2));
+                                                    (("verify", 0),
+                                                     (Env.ExtFun 3));
+                                                    (("true", 0),
+                                                     Env.ExtConst);
+                                                    (("snd", 0),
+                                                     (Env.ExtFun 1));
+                                                    (("fst", 0),
+                                                     (Env.ExtFun 1));
+                                                    (("dec", 0),
+                                                     (Env.ExtFun 2));
+                                                    (("sign", 0),
+                                                     (Env.ExtFun 2));
+                                                    (("enc", 0),
+                                                     (Env.ExtFun 2));
+                                                    (("pk", 0),
+                                                     (Env.ExtFun 1))
+                                                    ];
+                                                  facts =
+                                                  ref ([("False",
+                                                         (Env.Global,
+                                                          (Some 0)));
+                                                         ("ImgRecvInvalid",
+                                                          (Env.Global,
+                                                           (Some 1)));
+                                                         ("ImgRecvValid",
+                                                          (Env.Global,
+                                                           (Some 1)));
+                                                         ("ClientTAClose",
+                                                          (Env.Global,
+                                                           (Some 0)));
+                                                         ("InValidName",
+                                                          (Env.Plain,
+                                                           (Some 1)));
+                                                         ("ClientClose",
+                                                          (Env.Global,
+                                                           (Some 0)));
+                                                         ("ImgSend",
+                                                          (Env.Global,
+                                                           (Some 1)));
+                                                         ("Out",
+                                                          (Env.Global,
+                                                           (Some 1)));
+                                                         ("In",
+                                                          (Env.Global,
+                                                           (Some 1)));
+                                                         ("Fd",
+                                                          (Env.Structure,
+                                                           (Some 1)));
+                                                         ("exit",
+                                                          (Env.Channel,
+                                                           (Some 0)));
+                                                         ("Returned",
+                                                          (Env.Channel,
+                                                           (Some 1)));
+                                                         ("invoke",
+                                                          (Env.Channel,
+                                                           (Some 3)));
+                                                         ("conn",
+                                                          (Env.Channel,
+                                                           (Some 0)));
+                                                         ("chid",
+                                                          (Env.Structure,
+                                                           (Some 1)));
+                                                         ("ack",
+                                                          (Env.Channel,
+                                                           (Some 0)));
+                                                         ("req",
+                                                          (Env.Channel,
+                                                           (Some 0)));
+                                                         ("store",
+                                                          (Env.Channel,
+                                                           (Some 1)))
+                                                         ])
+                                                  } }}; env = { Env.vars =
+                                                                [(("Reachable",
+                                                                   0),
+                                                                  Env.Process);
+                                                                  (("server",
+                                                                    0),
+                                                                   Env.Process);
+                                                                  (("client_ta",
+                                                                    0),
+                                                                   Env.Process);
+                                                                  (("client",
+                                                                    0),
+                                                                   Env.Process);
+                                                                  (("rpc", 0),
+                                                                   (Env.Channel (
+                                                                    false,
+                                                                    ("rpc_t",
+                                                                    0))));
+                                                                  (("udp", 0),
+                                                                   (Env.Channel (
+                                                                    false,
+                                                                    ("udp_t",
+                                                                    0))));
+                                                                  (("init_data",
+                                                                    0),
+                                                                   (Env.Const
+                                                                    false));
+                                                                  (("sym_k",
+                                                                    0),
+                                                                   (Env.Const
+                                                                    false));
+                                                                  (("priv_k",
+                                                                    0),
+                                                                   (Env.Const
+                                                                    false));
+                                                                  (("eaves_mem",
+                                                                    0),
+                                                                   (Env.ExtSyscall
+                                                                    1));
+                                                                  (("tamper_channel",
+                                                                    0),
+                                                                   Env.Attack);
+                                                                  (("rpc_t",
+                                                                    0),
+                                                                   (Env.ChanTypeDef
+                                                                    []));
+                                                                  (("udp_t",
+                                                                    0),
+                                                                   (Env.ChanTypeDef
+                                                                    []));
+                                                                  (("client_ta_t",
+                                                                    0),
+                                                                   Env.ProcTypeDef);
+                                                                  (("client_t",
+                                                                    0),
+                                                                   Env.ProcTypeDef);
+                                                                  (("server_t",
+                                                                    0),
+                                                                   Env.ProcTypeDef);
+                                                                  (("readonly_t",
+                                                                    0),
+                                                                   Env.FilesysTypeDef);
+                                                                  (("fclose",
+                                                                    0),
+                                                                   (Env.ExtSyscall
+                                                                    1));
+                                                                  (("fread",
+                                                                    0),
+                                                                   (Env.ExtSyscall
+                                                                    1));
+                                                                  (("fopen",
+                                                                    0),
+                                                                   (Env.ExtSyscall
+                                                                    1));
+                                                                  (("h", 0),
+                                                                   (Env.ExtFun
+                                                                    1));
+                                                                  (("get_picture",
+                                                                    0),
+                                                                   (Env.ExtSyscall
+                                                                    0));
+                                                                  (("accept_rpc",
+                                                                    0),
+                                                                   (Env.ExtSyscall
+                                                                    1));
+                                                                  (("close_rpc",
+                                                                    0),
+                                                                   (Env.ExtSyscall
+                                                                    1));
+                                                                  (("invoke_rpc",
+                                                                    0),
+                                                                   (Env.ExtSyscall
+                                                                    4));
+                                                                  (("connect_rpc",
+                                                                    0),
+                                                                   (Env.ExtSyscall
+                                                                    1));
+                                                                  (("recv", 0),
+                                                                   (Env.ExtSyscall
+                                                                    1));
+                                                                  (("send", 0),
+                                                                   (Env.ExtSyscall
+                                                                    2));
+                                                                  (("verify",
+                                                                    0),
+                                                                   (Env.ExtFun
+                                                                    3));
+                                                                  (("true", 0),
+                                                                   Env.ExtConst);
+                                                                  (("snd", 0),
+                                                                   (Env.ExtFun
+                                                                    1));
+                                                                  (("fst", 0),
+                                                                   (Env.ExtFun
+                                                                    1));
+                                                                  (("dec", 0),
+                                                                   (Env.ExtFun
+                                                                    2));
+                                                                  (("sign", 0),
+                                                                   (Env.ExtFun
+                                                                    2));
+                                                                  (("enc", 0),
+                                                                   (Env.ExtFun
+                                                                    2));
+                                                                  (("pk", 0),
+                                                                   (Env.ExtFun
+                                                                    1))
+                                                                  ];
+                                                                facts =
+                                                                ref (
+                                                                [("False",
+                                                                  (Env.Global,
+                                                                   (Some 0)));
+                                                                  ("ImgRecvInvalid",
+                                                                   (Env.Global,
+                                                                    (Some 1)));
+                                                                  ("ImgRecvValid",
+                                                                   (Env.Global,
+                                                                    (Some 1)));
+                                                                  ("ClientTAClose",
+                                                                   (Env.Global,
+                                                                    (Some 0)));
+                                                                  ("InValidName",
+                                                                   (Env.Plain,
+                                                                    (Some 1)));
+                                                                  ("ClientClose",
+                                                                   (Env.Global,
+                                                                    (Some 0)));
+                                                                  ("ImgSend",
+                                                                   (Env.Global,
+                                                                    (Some 1)));
+                                                                  ("Out",
+                                                                   (Env.Global,
+                                                                    (Some 1)));
+                                                                  ("In",
+                                                                   (Env.Global,
+                                                                    (Some 1)));
+                                                                  ("Fd",
+                                                                   (Env.Structure,
+                                                                    (Some 1)));
+                                                                  ("exit",
+                                                                   (Env.Channel,
+                                                                    (Some 0)));
+                                                                  ("Returned",
+                                                                   (Env.Channel,
+                                                                    (Some 1)));
+                                                                  ("invoke",
+                                                                   (Env.Channel,
+                                                                    (Some 3)));
+                                                                  ("conn",
+                                                                   (Env.Channel,
+                                                                    (Some 0)));
+                                                                  ("chid",
+                                                                   (Env.Structure,
+                                                                    (Some 1)));
+                                                                  ("ack",
+                                                                   (Env.Channel,
+                                                                    (Some 0)));
+                                                                  ("req",
+                                                                   (Env.Channel,
+                                                                    (Some 0)));
+                                                                  ("store",
+                                                                   (Env.Channel,
+                                                                    (Some 1)))
+                                                                  ])
+                                                                } })
+              ]
+            )); env = { Env.vars =
+                        [(("server", 0), Env.Process);
+                          (("client_ta", 0), Env.Process);
+                          (("client", 0), Env.Process);
+                          (("rpc", 0), (Env.Channel (false, ("rpc_t", 0))));
+                          (("udp", 0), (Env.Channel (false, ("udp_t", 0))));
+                          (("init_data", 0), (Env.Const false));
+                          (("sym_k", 0), (Env.Const false));
+                          (("priv_k", 0), (Env.Const false));
+                          (("eaves_mem", 0), (Env.ExtSyscall 1));
+                          (("tamper_channel", 0), Env.Attack);
+                          (("rpc_t", 0), (Env.ChanTypeDef []));
+                          (("udp_t", 0), (Env.ChanTypeDef []));
+                          (("client_ta_t", 0), Env.ProcTypeDef);
+                          (("client_t", 0), Env.ProcTypeDef);
+                          (("server_t", 0), Env.ProcTypeDef);
+                          (("readonly_t", 0), Env.FilesysTypeDef);
+                          (("fclose", 0), (Env.ExtSyscall 1));
+                          (("fread", 0), (Env.ExtSyscall 1));
+                          (("fopen", 0), (Env.ExtSyscall 1));
+                          (("h", 0), (Env.ExtFun 1));
+                          (("get_picture", 0), (Env.ExtSyscall 0));
+                          (("accept_rpc", 0), (Env.ExtSyscall 1));
+                          (("close_rpc", 0), (Env.ExtSyscall 1));
+                          (("invoke_rpc", 0), (Env.ExtSyscall 4));
+                          (("connect_rpc", 0), (Env.ExtSyscall 1));
+                          (("recv", 0), (Env.ExtSyscall 1));
+                          (("send", 0), (Env.ExtSyscall 2));
+                          (("verify", 0), (Env.ExtFun 3));
+                          (("true", 0), Env.ExtConst);
+                          (("snd", 0), (Env.ExtFun 1));
+                          (("fst", 0), (Env.ExtFun 1));
+                          (("dec", 0), (Env.ExtFun 2));
+                          (("sign", 0), (Env.ExtFun 2));
+                          (("enc", 0), (Env.ExtFun 2));
+                          (("pk", 0), (Env.ExtFun 1))];
+                        facts =
+                        ref ([("False", (Env.Global, (Some 0)));
+                               ("ImgRecvInvalid", (Env.Global, (Some 1)));
+                               ("ImgRecvValid", (Env.Global, (Some 1)));
+                               ("ClientTAClose", (Env.Global, (Some 0)));
+                               ("InValidName", (Env.Plain, (Some 1)));
+                               ("ClientClose", (Env.Global, (Some 0)));
+                               ("ImgSend", (Env.Global, (Some 1)));
+                               ("Out", (Env.Global, (Some 1)));
+                               ("In", (Env.Global, (Some 1)));
+                               ("Fd", (Env.Structure, (Some 1)));
+                               ("exit", (Env.Channel, (Some 0)));
+                               ("Returned", (Env.Channel, (Some 1)));
+                               ("invoke", (Env.Channel, (Some 3)));
+                               ("conn", (Env.Channel, (Some 0)));
+                               ("chid", (Env.Structure, (Some 1)));
+                               ("ack", (Env.Channel, (Some 0)));
+                               ("req", (Env.Channel, (Some 0)));
+                               ("store", (Env.Channel, (Some 1)))])
+                        } }
+Loading complete..

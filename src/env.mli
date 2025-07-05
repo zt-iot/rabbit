@@ -60,7 +60,8 @@ type desc =
   | ExtFun of int (** external function with arity *)
   | ExtConst (** external function with arity = 0, ex.  function true 0 *)
   | ExtSyscall of int (** external system call with arity *)
-  | Const of bool (* with param or not *)
+  (* with param or not *)
+  | Const of bool * instantiated_ty option
   | Channel of bool (* with param or not *) * Ident.t (* channel type *)
   | Attack
 

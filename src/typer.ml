@@ -200,7 +200,7 @@ let rec convert_rabbit_ty_to_env_typ_param ~loc (env : Env.t) (rty : Input.rabbi
 
 
 
-(* let rec convert_rabbit_typ_to_f_param_ty_param ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.f_param_ty_param =
+let rec convert_rabbit_typ_to_f_param_ty_param ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.f_param_ty_param =
   match ty with
   | CProc | CFsys ->
       error ~loc (Misc "process and filesys cannot be used as a function parameter type parameter")
@@ -232,10 +232,10 @@ let rec convert_rabbit_ty_to_env_typ_param ~loc (env : Env.t) (rty : Input.rabbi
       let param2 = convert_rabbit_typ_to_f_param_ty_param ~loc env t2 in 
       FParamTyParamProduct(param1, param2)
 
-  | CPoly ident -> Env.FParamTyParamPoly(ident) *)
+  | CPoly ident -> Env.FParamTyParamPoly(ident)
     
 
-(* let rec convert_rabbit_typ_to_instantiated_ty ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.instantiated_ty =
+let rec convert_rabbit_typ_to_instantiated_ty ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.instantiated_ty =
   match ty with
   | CProc | CFsys ->
       error ~loc (Misc "process and filesys cannot be used as a instantiated type")
@@ -267,10 +267,10 @@ let rec convert_rabbit_ty_to_env_typ_param ~loc (env : Env.t) (rty : Input.rabbi
       TyProduct(param1, param2)
 
   | CPoly _ ->
-      error ~loc (Misc "A polymorphic type cannot be used as an instantiated type") *)
+      error ~loc (Misc "A polymorphic type cannot be used as an instantiated type")
 
 
-(* let rec convert_rabbit_typ_to_env_function_param ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.function_param =
+let rec convert_rabbit_typ_to_env_function_param ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.function_param =
   match ty with
   (* a channel is valid as a function parameter *)
   | CChan input_ty_params ->
@@ -301,7 +301,7 @@ let rec convert_rabbit_ty_to_env_typ_param ~loc (env : Env.t) (rty : Input.rabbi
       FParamPoly ident
 
   | CProc | CFsys ->
-      error ~loc (Misc "process and filesys cannot be used as a function parameter") *)
+      error ~loc (Misc "process and filesys cannot be used as a function parameter")
 
 
 
@@ -745,7 +745,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
           let env_ty_params = List.map (convert_rabbit_ty_to_env_typ_param ~loc env) input_ty_params in
           ChanTypeDef(env_ty_params)
         | Input.CSimpleOrSecurity(typ_name, input_ty_params) -> 
-            (* typ_name must be a known simple type *)
+            (* this AST node is always a security type: therefore, typ_name must be a known simple type *)
             begin match Env.find ~loc env typ_name with 
               | _, SimpleTypeDef def_ty_params -> 
                   let expected_arity = List.length def_ty_params in 
@@ -819,18 +819,22 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         List.map (fun attack -> Env.find_desc ~loc env attack Attack) attacks
       in
       env, [{ env; loc; desc = AllowAttack { process_typs = proc_tys; attacks } }]
-  | DeclInit (name, _, Fresh) ->
+  | DeclInit (name, rabbit_typ_opt, Fresh) ->
+      let converted_ty_opt = Option.map (fun rtyp -> convert_rabbit_typ_to_instantiated_ty ~loc env rtyp) rabbit_typ_opt in 
       (* [const fresh n] *)
-      let env', id = Env.add_global ~loc env name (Const false) in
+      let env', id = Env.add_global ~loc env name (Const (false, converted_ty_opt)) in
       env', [{ env; loc; desc = Init { id; desc = Fresh } }]
   | DeclInit (name, _, Value e) ->
       (* [const n = e] *)
       let e = type_expr env e in
-      let env', id = Env.add_global ~loc env name (Const false) in
+      (* TODO add correct type annotation when registering Const in environment *)
+      let env', id = Env.add_global ~loc env name (Const (false, None)) in
       env', [{ env; loc; desc = Init { id; desc = Value e } }]
-  | DeclInit (name, _, Fresh_with_param) ->
+  | DeclInit (name, rabbit_typ_opt, Fresh_with_param) ->
       (* [const fresh n<>] *)
-      let env', id = Env.add_global ~loc env name (Const true) in
+      let converted_ty_opt = Option.map (fun rtyp -> convert_rabbit_typ_to_instantiated_ty ~loc env rtyp) rabbit_typ_opt in 
+      let env', id = Env.add_global ~loc env name (Const (true, converted_ty_opt)) in
+      
       env', [{ env; loc; desc = Init { id; desc = Fresh_with_param } }]
   | DeclInit (name, _, Value_with_param (e, p)) ->
       (* [const n<p> = e] *)
@@ -838,7 +842,8 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let env' = Env.add env p (Var Param) in
       let e = type_expr env' e in
       let env', id =
-        Env.add_global ~loc env name (Const true)
+        (* TODO add correct type annotation when registering Const in environment *)
+        Env.add_global ~loc env name (Const (true, None))
         (* no info of param? *)
       in
       env', [{ env; loc; desc = Init { id; desc = Value_with_param (p, e) } }]
@@ -939,6 +944,10 @@ and load env fn : Env.t * Typed.decl list =
       decls
   in
   let (env, decls) = env, List.rev rev_decls in 
+  let _ = List.map (fun decl -> match decl.Typed.desc with 
+    (* | Typed.System(_, _) -> print_endline (Typed.show_decl decl) *)
+    | _ ->  print_endline (Typed.show_decl decl)
+  ) decls in 
   (* let _ = print_endline (Typed.show_decl (List.hd decls)) in  *)
   (env, decls)
 ;;

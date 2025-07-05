@@ -1,14 +1,13 @@
-(* type ident = Ident.t
-type name = Name.t
+open Sets
+
+type ident = Ident.t [@@deriving show]
+type name = Name.t [@@deriving show]
 
 
 
-type var_desc = Syntax.variable_desc =
-  | Top of int
-  | Loc of int
-  | Meta of int
-  | MetaNew of int
-  | Param
+type var_desc = Env.var_desc [@@deriving show]
+type named_fact_desc = Env.named_fact_desc [@@deriving show]
+
 
 
 
@@ -17,22 +16,26 @@ type core_type =
   | TChan of core_type list
   | TSimple of name * core_type list
   | TProd of core_type * core_type
+[@@deriving show]
 
 
 type secrecy_lvl = 
   | Public 
   | SNode of proc_set 
+[@@deriving show]
 
 type integrity_lvl = 
-  | Untrusted
+  | Untrusted 
   | INode of proc_set
+[@@deriving show]
 
-type core_security_type = core_type * (secrecy_lvl * integrity_lvl)
+type core_security_type = core_type * (secrecy_lvl * integrity_lvl) [@@deriving show]
 
 
 type function_param_type = 
   | CParamCore of core_security_type
   | CParamPoly of name
+[@@deriving show]
 
 
 
@@ -57,6 +60,7 @@ type desc =
 
   | Function of int (** function with definition and arity *)
   | Process (* a process template, not to be confused with a process type (ProcessTypeDef) *)
+[@@deriving show]
 
 
 
@@ -68,4 +72,4 @@ type t = {
       if [delete e.S] first appear than [new x := S(args) in c]
       and [let xi := e.S in c]
   *)
-} *)
+} [@@deriving show]

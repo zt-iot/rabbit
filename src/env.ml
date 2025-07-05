@@ -57,7 +57,7 @@ type desc =
   | ExtFun of int
   | ExtConst
   | ExtSyscall of int
-  | Const of bool
+  | Const of bool * instantiated_ty option
   | Channel of bool * Ident.t
   | Attack
   
@@ -81,7 +81,7 @@ let print_desc desc ppf =
   | ExtFun i -> f ppf "ExtFun (arity=%d)" i
   | ExtConst -> f ppf "ExtConst"
   | ExtSyscall i -> f ppf "ExtSyscall (arity=%d)" i
-  | Const b -> f ppf "Const (param=%b)" b
+  | Const (b, _) -> f ppf "Const (param=%b)" b
   | Channel (b, id) -> f ppf "Channel (param=%b) : %t" b (Ident.print id)
   | Attack -> f ppf "Attack"
   | ProcTypeDef -> f ppf "ty process"

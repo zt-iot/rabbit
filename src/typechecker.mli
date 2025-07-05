@@ -2,11 +2,11 @@
 
 
 
-val typeof_expr : Cst_syntax.expr -> Env.t -> Cst_env.core_security_type
+val typeof_expr : Cst_syntax.expr -> Cst_env.t -> Cst_env.core_security_type
 
 
 
-val typeof_cmd : Cst_syntax.cmd -> Env.t -> Cst_env.core_security_type 
+val typeof_cmd : Cst_syntax.cmd -> Cst_env.t -> Cst_env.core_security_type 
 
 
 (* TODO fill in typing signature once it is clear which type this function should return *)
