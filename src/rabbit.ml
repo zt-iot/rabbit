@@ -94,6 +94,7 @@ let _main =
             let typer_result =
               try
                 let _, decls = Typer.load (Env.empty ()) fn in
+                
                 Ok decls
               with
               | (Typer.Error _ as exn) -> Error exn

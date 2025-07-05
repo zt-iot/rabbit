@@ -1,4 +1,4 @@
-type t = string * int
+type t = string * int [@@deriving show]
 
 val global : string -> t
 

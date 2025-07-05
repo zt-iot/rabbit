@@ -2,9 +2,12 @@
 
 
 
-val typecheck_expr : Typed.expr -> Env.t 
+val typeof_expr : Cst_syntax.expr -> Env.t -> Cst_env.core_security_type
 
-val typecheck_cmd : Typed.cmd -> Env.t -> unit
+
+
+val typeof_cmd : Cst_syntax.cmd -> Env.t -> Cst_env.core_security_type 
+
 
 (* TODO fill in typing signature once it is clear which type this function should return *)
-val typecheck_decl : Typed.decl -> Env.t -> unit
+val typecheck_decl : Cst_syntax.decl -> Cst_env.t -> unit

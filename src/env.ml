@@ -4,12 +4,14 @@ type var_desc = Syntax.variable_desc =
   | Meta of int
   | MetaNew of int
   | Param
+[@@deriving show]
 
 type named_fact_desc =
   | Channel
   | Structure
   | Plain
   | Global
+[@@deriving show]
 
 let string_of_named_fact_desc = function
   | Channel -> "channel"
@@ -22,6 +24,7 @@ type ty_param =
   | TyParamSimple of Name.ident * ty_param list
   | TyParamSecurity of Name.ident
   | TyParamProduct of ty_param * ty_param
+[@@deriving show]
 
 (* an instantiated_ty is used to type expression terms in Rabbit *)
 type instantiated_ty = 
@@ -29,6 +32,7 @@ type instantiated_ty =
   | TySimple of Name.ident * ty_param list
   | TyProduct of instantiated_ty * instantiated_ty
   | TyChan of ty_param list
+[@@deriving show]
 
 
 type f_param_ty_param = 
@@ -36,6 +40,7 @@ type f_param_ty_param =
   | FParamTyParamSimple of Name.ident * f_param_ty_param list
   | FParamTyParamProduct of f_param_ty_param * f_param_ty_param
   | FParamTyParamPoly of Name.ident
+[@@deriving show]
 
 type function_param = 
   | FParamSecurity of Name.ident
@@ -43,6 +48,7 @@ type function_param =
   | FParamProduct of function_param * function_param
   | FParamPoly of Name.ident 
   | FParamChannel of f_param_ty_param list
+[@@deriving show]
 
 
 type desc =
@@ -62,6 +68,7 @@ type desc =
 
   | Function of int
   | Process
+[@@deriving show]
 
 let print_desc desc ppf =
   let f = Format.fprintf in
@@ -89,7 +96,7 @@ type t = {
   vars : (Ident.t * desc) list;
   facts : (Name.ident * (named_fact_desc * int option)) list ref
   (* The fact environment is global therefore implemented as mutable *)
-}
+} [@@deriving show]
 
 let empty () = { vars= []; facts= ref [] }
 

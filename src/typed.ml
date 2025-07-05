@@ -1,5 +1,5 @@
-type name = Name.t
-type ident = Ident.t
+type name = Name.t [@@deriving show]
+type ident = Ident.t [@@deriving show]
 
 type 'desc loc_env =
   { desc : 'desc
@@ -7,7 +7,18 @@ type 'desc loc_env =
   ; env : Env.t
   }
 
-type expr = expr' loc_env
+let pp_loc_env pp_desc fmt { desc; loc = _; env } =
+  Format.fprintf fmt "{ desc = %a; env = %a }"
+    pp_desc desc
+    Env.pp env
+
+(* let show_loc_env show_desc { desc; loc = _; env } =
+  Printf.sprintf "{ desc = %s; env = %s }"
+    (show_desc desc)
+    (Env.show env) *)
+
+
+type expr = expr' loc_env [@@deriving show]
 
 and expr' =
   | Ident of
@@ -22,6 +33,7 @@ and expr' =
   | Apply of ident * expr list
   | Tuple of expr list
   | Unit
+[@@deriving show]
 
 let rec string_of_expr (e : expr) =
   match e.desc with
@@ -40,7 +52,7 @@ type loop_mode =
   | Back
   | Out
 
-type fact = fact' loc_env
+type fact = fact' loc_env [@@deriving show]
 
 and fact' =
   | Channel of
@@ -59,13 +71,13 @@ and fact' =
       }
   | Global of string * expr list
 
-type cmd = cmd' loc_env
+type cmd = cmd' loc_env [@@deriving show]
 
 and case =
   { fresh : ident list
   ; facts : fact list
   ; cmd : cmd
-  }
+  } [@@deriving show]
 
 and cmd' =
   | Skip
@@ -80,28 +92,30 @@ and cmd' =
   | New of ident * (name * expr list) option * cmd
   | Get of ident list * expr * name * cmd
   | Del of expr * name
+[@@deriving show]
 
-type chan_param = { channel : ident; param : unit option; typ : ident }
+type chan_param = { channel : ident; param : unit option; typ : ident } [@@deriving show]
 
 type chan_arg =
   { channel : ident
   ; parameter : expr option option
   ; typ : ident
-  }
+  } [@@deriving show]
 
-type pproc = pproc' Location.located
+type pproc = pproc' Location.located [@@deriving show]
 
 and pproc' =
   { id : ident
   ; parameter : expr option
   ; args : chan_arg list
-  }
+  } [@@deriving show]
 
 type proc =
   | Unbounded of pproc
   | Bounded of ident * pproc list
+[@@deriving show]
 
-type lemma = lemma' loc_env
+type lemma = lemma' loc_env [@@deriving show]
 
 and lemma' =
   | Plain of string
@@ -120,8 +134,9 @@ type init_desc =
   | Value_with_param of ident * expr
   | Fresh
   | Fresh_with_param
+[@@deriving show]
 
-type decl = decl' loc_env
+type decl = decl' loc_env [@@deriving show]
 
 and decl' =
   | Function of
@@ -174,6 +189,7 @@ and decl' =
       }
   | System of proc list * (Ident.t * lemma) list
   | Load of string * decl list
+[@@deriving show]
 
 module Subst = struct
   type t =

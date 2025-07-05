@@ -4,12 +4,14 @@ type var_desc = Syntax.variable_desc =
   | Meta of int
   | MetaNew of int
   | Param
+[@@deriving show]
 
 type named_fact_desc =
   | Channel
   | Structure
   | Plain
   | Global
+[@@deriving show]
 
 val string_of_named_fact_desc : named_fact_desc -> string
 
@@ -22,6 +24,7 @@ type ty_param =
   | TyParamSimple of Name.ident * ty_param list
   | TyParamSecurity of Name.ident
   | TyParamProduct of ty_param * ty_param
+[@@deriving show]
 
 
 (* an instantiated_ty is used to type expression terms in Rabbit *)
@@ -30,6 +33,7 @@ type instantiated_ty =
   | TySimple of Name.ident * ty_param list
   | TyProduct of instantiated_ty * instantiated_ty
   | TyChan of ty_param list
+[@@deriving show]
   
 
 type f_param_ty_param = 
@@ -37,6 +41,7 @@ type f_param_ty_param =
   | FParamTyParamSimple of Name.ident * f_param_ty_param list
   | FParamTyParamProduct of f_param_ty_param * f_param_ty_param
   | FParamTyParamPoly of Name.ident
+[@@deriving show]
 
 
 type function_param = 
@@ -45,6 +50,7 @@ type function_param =
   | FParamProduct of function_param * function_param
   | FParamPoly of Name.ident
   | FParamChannel of f_param_ty_param list
+[@@deriving show]
   
 
 type desc =
@@ -68,6 +74,7 @@ type desc =
 
   | Function of int (** function with definition and arity *)
   | Process (* a process template, not to be confused with a process type (ProcessTypeDef) *)
+[@@deriving show]
 
 val print_desc : desc -> Format.formatter -> unit
 
@@ -78,7 +85,7 @@ type t = {
       if [delete e.S] first appear than [new x := S(args) in c]
       and [let xi := e.S in c]
   *)
-}
+} [@@deriving show]
 
 val empty : unit -> t
 

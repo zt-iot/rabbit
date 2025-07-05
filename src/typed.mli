@@ -129,8 +129,9 @@ type init_desc =
   | Value_with_param of ident * expr (** [const n<p> = e] *)
   | Fresh (** [const fresh n] *)
   | Fresh_with_param (** [const fresh n<>] *)
+[@@deriving show]
 
-type decl = decl' loc_env
+type decl = decl' loc_env [@@deriving show]
 
 and decl' =
   | Function of

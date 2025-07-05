@@ -6,6 +6,15 @@ type t =
 (** A datum tagged with a source code location *)
 type 'a located =  { data : 'a ; loc : t }
 
+
+val pp_t : Format.formatter -> t -> unit
+val show_t : t -> string
+
+
+val pp_located : ('a -> 'b -> 'c) -> 'a -> 'b located -> 'c
+
+val show_located : (Format.formatter -> 'a -> unit) -> 'a located -> string
+
 (** Tag a datum with an (optional) location. *)
 val locate : ?loc:t -> 'a -> 'a located
 

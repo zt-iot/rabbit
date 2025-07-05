@@ -938,5 +938,7 @@ and load env fn : Env.t * Typed.decl list =
       (env, [])
       decls
   in
-  env, List.rev rev_decls
+  let (env, decls) = env, List.rev rev_decls in 
+  (* let _ = print_endline (Typed.show_decl (List.hd decls)) in  *)
+  (env, decls)
 ;;

@@ -4,6 +4,18 @@ type t =
 
 type 'a located = { data : 'a ; loc : t }
 
+let pp_t _fmt _ = ()
+let show_t _ = ""
+  
+
+let pp_located pp fmt x =
+  pp fmt x.data
+
+let show_located pp x =
+  Format.asprintf "%a" pp x.data
+
+  
+
 let nowhere = Nowhere
 
 let make loc1 loc2 = Location (loc1, loc2)

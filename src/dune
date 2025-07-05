@@ -2,8 +2,8 @@
   (name "rabbit")
   (public_name "rabbit")
   (flags -w +a-4-40-41-42-70 -warn-error +a-4-40-42-70)
-  (libraries sedlex menhirLib str ocamlgraph unix)
-  (preprocess (pps sedlex.ppx)))
+  (libraries sedlex menhirLib str ocamlgraph unix ppx_deriving)
+  (preprocess (pps ppx_deriving.show ppx_deriving.eq sedlex.ppx)))
 
 (menhir
   (modules parser)
