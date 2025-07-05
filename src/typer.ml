@@ -306,7 +306,7 @@ let rec convert_rabbit_typ_to_env_function_param ~loc (env : Env.t) (ty : Input.
 
 
 
-let rec type_expr env (e : Input.expr) : Typed.expr =
+let rec desugar_expr env (e : Input.expr) : Typed.expr =
   let loc = e.loc in
   let desc =
     match e.data with
@@ -319,9 +319,9 @@ let rec type_expr env (e : Input.expr) : Typed.expr =
         Ident { id; desc; param = None }
     | Tuple es ->
         assert (List.length es > 0);
-        Tuple (List.map (type_expr env) es)
+        Tuple (List.map (desugar_expr env) es)
     | Apply (f, es) ->
-        let es = List.map (type_expr env) es in
+        let es = List.map (desugar_expr env) es in
         let use = List.length es in
         (match Env.find ~loc env f with
          | id, (ExtFun arity | ExtSyscall arity | Function arity) ->
@@ -332,7 +332,7 @@ let rec type_expr env (e : Input.expr) : Typed.expr =
     | Param (f, e) (* [f<e>] *) ->
         (match Env.find ~loc env f with
          | id, ((Const _ | Channel _) as desc) ->
-             let e = type_expr env e in
+             let e = desugar_expr env e in
              Ident { id; desc; param= Some e }
          | id, desc -> error ~loc @@ NonParameterizableIdentifier (id, desc))
   in
@@ -359,8 +359,8 @@ let check_apps e =
   in
   aux e
 
-let type_expr ?(at_assignment=false) env (e : Input.expr) : Typed.expr =
-  let e = type_expr env e in
+let desugar_expr ?(at_assignment=false) env (e : Input.expr) : Typed.expr =
+  let e = desugar_expr env e in
   if not at_assignment then check_apps e;
   e
 
@@ -369,18 +369,18 @@ let type_fact env (fact : Input.fact) : Typed.fact =
   let desc : Typed.fact' =
     match fact.data with
     | ProcessFact _ -> assert false (* XXX ??? *)
-    | Fact ("In", [ e ]) -> In (type_expr env e)
-    | Fact ("Out", [ e ]) -> Out (type_expr env e)
+    | Fact ("In", [ e ]) -> In (desugar_expr env e)
+    | Fact ("Out", [ e ]) -> Out (desugar_expr env e)
     | Fact (name, es) ->
         (* Which fact? For strucure? *)
         let nes = List.length es in
         (match Env.find_fact_opt env name with
          | None ->
              Env.add_fact ~loc env name (Plain, Some nes);
-             Typed.Plain (name, List.map (type_expr env) es)
+             Typed.Plain (name, List.map (desugar_expr env) es)
          | Some (Plain, Some arity) ->
              check_arity ~loc ~arity ~use:nes;
-             Plain (name, List.map (type_expr env) es)
+             Plain (name, List.map (desugar_expr env) es)
          | Some (Plain, None) -> assert false
          | Some (desc, _) ->
              error ~loc @@ InvalidFact { name; def= desc; use= Plain }
@@ -388,24 +388,24 @@ let type_fact env (fact : Input.fact) : Typed.fact =
     | GlobalFact (name, es) ->
         let nes = List.length es in
         Env.add_fact ~loc env name (Global, Some nes);
-        Global (name, List.map (type_expr env) es)
+        Global (name, List.map (desugar_expr env) es)
     | ChannelFact (e, name, es) ->
-        let e = type_expr env e in
-        let es = List.map (type_expr env) es in
+        let e = desugar_expr env e in
+        let es = List.map (desugar_expr env) es in
         let nes = List.length es in
         Env.add_fact ~loc env name (Channel, Some nes);
         Channel { channel = e; name; args = es }
     | EqFact (e1, e2) ->
-        let e1 = type_expr env e1 in
-        let e2 = type_expr env e2 in
+        let e1 = desugar_expr env e1 in
+        let e2 = desugar_expr env e2 in
         Eq (e1, e2)
     | NeqFact (e1, e2) ->
-        let e1 = type_expr env e1 in
-        let e2 = type_expr env e2 in
+        let e1 = desugar_expr env e1 in
+        let e2 = desugar_expr env e2 in
         Neq (e1, e2)
     | FileFact (e1, e2) ->
-        let e1 = type_expr env e1 in
-        let e2 = type_expr env e2 in
+        let e1 = desugar_expr env e1 in
+        let e2 = desugar_expr env e2 in
         File { path = e1; contents = e2 }
   in
   { env; loc; desc }
@@ -444,20 +444,20 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         let facts = type_facts env facts in
         Put facts
     | Let (name, e, cmd) ->
-        let e = type_expr ~at_assignment:true env e in
+        let e = desugar_expr ~at_assignment:true env e in
         let id = Ident.local name in
         let env' = Env.add env id (Var (Loc (snd id))) in
         let cmd = type_cmd env' cmd in
         Let (id, e, cmd)
     | Assign (None, e) ->
-        let e = type_expr ~at_assignment:true env e in
+        let e = desugar_expr ~at_assignment:true env e in
         Assign (None, e)
     | Assign (Some name, e) ->
         let id, vdesc = Env.find ~loc env name in
         (match vdesc with
          | Var (Top _ | Loc _ | Meta _) -> ()
          | desc -> error ~loc @@ InvalidVariableAtAssign (id, desc));
-        let e = type_expr env ~at_assignment:true e in
+        let e = desugar_expr env ~at_assignment:true e in
         Assign (Some id, e)
     | Case cases -> Case (type_cases env cases)
     | While (cases1, cases2) ->
@@ -467,7 +467,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
     | Event facts ->
         let facts = type_facts env facts in
         Event facts
-    | Return e -> Return (type_expr env e)
+    | Return e -> Return (desugar_expr env e)
     | New (name, _, str_es_opt, cmd) ->
         (* allocation, [new x := S(e1,..,en) in c] or [new x in c] *)
         let str_es_opt =
@@ -475,7 +475,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
             (fun (str, es) ->
                (* [str] must be a structure fact *)
                type_structure_fact ~loc env str es;
-               str, List.map (type_expr env) es)
+               str, List.map (desugar_expr env) es)
             str_es_opt
         in
         let id = Ident.local name in
@@ -484,7 +484,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         New (id, str_es_opt, cmd)
     | Get (names, e, str, cmd) ->
         (* fetch, [let x1,...,xn := e.S in c] *)
-        let e = type_expr env e in
+        let e = desugar_expr env e in
         type_structure_fact ~loc env str names;
         let ids = List.map Ident.local names in
         let env' =
@@ -494,7 +494,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         Get (ids, e, str, cmd)
     | Del (e, str) ->
         (* deletion, [delete e.S] *)
-        let e = type_expr env e in
+        let e = desugar_expr env e in
         (match Env.find_fact_opt env str with
          | Some (Structure, _arity) -> ()
          | Some (desc, _) ->
@@ -580,9 +580,9 @@ let type_process
     let files =
       List.map
         (fun (path, filety, contents) ->
-           let path = type_expr env' path in
+           let path = desugar_expr env' path in
            let filety = Env.find_desc ~loc env' filety (FilesysTypeDef) in
-           let contents = type_expr env' contents in
+           let contents = desugar_expr env' contents in
            path, filety, contents)
         files
     in
@@ -590,7 +590,7 @@ let type_process
     let env', rev_vars =
       List.fold_left
         (fun (env, rev_vars) (name, e) ->
-           let e = type_expr env e in
+           let e = desugar_expr env e in
            let id = Ident.local name in
            let env' = Env.add env id (Var (Loc (snd id))) in
            env', (id, e) :: rev_vars)
@@ -703,8 +703,8 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let env', _fresh_ids (* XXX should be in the tree *) =
         extend_with_args env fresh @@ fun id -> Var (Meta (snd id))
       in
-      let e1 = type_expr env' e1 in
-      let e2 = type_expr env' e2 in
+      let e1 = desugar_expr env' e1 in
+      let e2 = desugar_expr env' e2 in
       ( env
       , [{ env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *) }] )
   | DeclExtSyscall (name, signature, c) ->
@@ -826,7 +826,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       env', [{ env; loc; desc = Init { id; desc = Fresh } }]
   | DeclInit (name, _, Value e) ->
       (* [const n = e] *)
-      let e = type_expr env e in
+      let e = desugar_expr env e in
       (* TODO add correct type annotation when registering Const in environment *)
       let env', id = Env.add_global ~loc env name (Const (false, None)) in
       env', [{ env; loc; desc = Init { id; desc = Value e } }]
@@ -840,7 +840,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       (* [const n<p> = e] *)
       let p = Ident.local p in
       let env' = Env.add env p (Var Param) in
-      let e = type_expr env' e in
+      let e = desugar_expr env' e in
       let env', id =
         (* TODO add correct type annotation when registering Const in environment *)
         Env.add_global ~loc env name (Const (true, None))
@@ -881,7 +881,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
                  misc_errorf ~loc "%t is not a channel with a parameter" (Ident.print id))
         | ChanArgParamInst (name, e) ->
             (* [id<e>] *)
-            let e = type_expr env e in
+            let e = desugar_expr env e in
             (match Env.find ~loc env name with
              | id, Channel (true, chty) ->
                  { channel= id; parameter= Some (Some e); typ= chty }
@@ -900,7 +900,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
           | ParamProc (pname, e, chan_args), Some _p ->
               (* [pname <e> (chargs,..,chargs)] *)
               let pid = Env.find_desc ~loc env pname Process in
-              let e = type_expr env e in
+              let e = desugar_expr env e in
               (* ??? check [p] is in [e] *)
               let chan_args = List.map (type_chan_arg ~loc env) chan_args in
               { id = pid; parameter = Some e; args = chan_args }

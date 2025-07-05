@@ -35,3 +35,17 @@ let rec typecheck_decl decl env = match decl.desc with
   | Typed.Process{ id; param; args; typ; files; vars; funcs; main } -> 
     failwith "TODO"
   | _ -> failwith "TODO"
+
+
+let rec typecheck_sys decls sys = match sys with 
+  | Cst_syntax.System(procs) ->
+    let proc_names = List.fold_left (fun (proc, acc_names) -> 
+        let new_names = begin match proc with 
+          | Unbounded(pproc_located) -> 
+            [fst pproc_located.data.id]
+          | Bounded(_, pproc_located_list) ->
+            List.map (fun pproc_located -> fst pproc_located.data.id) pproc_located_list
+          end in 
+        new_names @@ acc_names
+      ) [] procs in assert false
+  | _ -> assert false
