@@ -120,8 +120,8 @@ and lemma' =
       } (** [reachable f1,..,fn] *)
   | Correspondence of
       { fresh : ident list
-      ; from : fact
-      ; to_ : fact
+      ; premise : fact
+      ; conclusion : fact
       } (** [corresponds fa ~> fb] *)
 
 type init_desc =

@@ -120,8 +120,8 @@ and lemma' =
       }
   | Correspondence of
       { fresh : ident list
-      ; from : fact
-      ; to_ : fact
+      ; premise : fact
+      ; conclusion : fact
       }
 
 type init_desc =

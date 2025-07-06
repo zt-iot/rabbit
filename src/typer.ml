@@ -500,7 +500,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         in
         let f1 = type_fact env' f1 in
         let f2 = type_fact env' f2 in
-        Correspondence { fresh = fresh_ids; from = f1; to_ = f2 }
+        Correspondence { fresh = fresh_ids; premise = f1; conclusion = f2 }
   in
   let lemma : Typed.lemma = { env; loc; desc } in
   let env, id = Env.add_global ~loc env name Process in
