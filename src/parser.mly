@@ -100,7 +100,7 @@ plain_decl:
   | CONST t=NAME COLON typ=typ EQ e=expr { DeclInit(t, Some typ, Value e) }
   | CONST t=NAME EQ e=expr { DeclInit(t, None, Value e) }
 
-  | CONST FRESH COLON typ=typ t=NAME { DeclInit(t, Some typ, Fresh) }
+  | CONST FRESH t=NAME COLON typ=typ { DeclInit(t, Some typ, Fresh) }
   | CONST FRESH t=NAME { DeclInit(t, None, Fresh) }
 
   | ATTACK f=NAME ON t=NAME LPAREN arg=separated_list(COMMA, NAME) RPAREN LBRACE c=cmd RBRACE { DeclExtAttack (f, t, arg, c) }
@@ -310,7 +310,11 @@ plain_cmd:
   | SKIP { Skip }
   | c1=cmd SEMICOLON c2=cmd { Sequence(c1, c2) }
   | PUT LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { Put (postcond) }
+
+  (* do nothing with the typing annotation of a var-statement for now *)
+  | VAR id=NAME COLON typ EQ e=expr IN c=cmd { Let (id, e, c) }
   | VAR id=NAME EQ e=expr IN c=cmd { Let (id, e, c) }
+
   | id=uname COLONEQ e=expr { Assign (id, e) }
   | CASE
     BAR? guarded_cmds=separated_nonempty_list(BAR, guarded_cmd) END { Case(guarded_cmds) }

@@ -32,11 +32,9 @@ type client_ta_t  : process
 type udp_t 	  : channel[image * signature] (* image and signature are exposed to attacker on udp_t channel *)
 
 (* channel accepts a sum of types *)
-type rpc_t 	  : channel[
-                  unit
-                  + string * client_img * string 
-                  + client_ta_sig
-                  ]               
+(* type rpc_t 	  : channel[unit + string * client_img * string + client_ta_sig] *)
+
+type rpc_t 	  : channel[string * client_img * string + client_ta_sig]               
 (* the attacker cannot tamper or eavesdrop on the rpc_t channel *)
 
 (***********)
@@ -179,7 +177,8 @@ process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
   main 
   {
 
-    var conn : conn_client = connect_rpc(ch_rpc) in 
+    (* Have non-explicitly typed var statements for now *)
+    var conn = connect_rpc(ch_rpc) in  
     repeat 
     | [] ->
       var image : client_img = get_picture() in

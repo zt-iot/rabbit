@@ -47,8 +47,7 @@ let reserved = [
   ("S", Ssecrecy) ;
   ("I", Iintegrity) ; 
   ("Public", PUBLIC) ;
-  ("Untrusted", UNTRUSTED) ; 
-  ("unit", UNIT) 
+  ("Untrusted", UNTRUSTED) 
   ]
 
 let name =

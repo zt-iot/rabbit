@@ -40,13 +40,5 @@ let rec typecheck_decl decl env = match decl.desc with
 let rec typecheck_sys (decls : Cst_syntax.decl list) 
   (sys : Cst_syntax.decl) = match sys with 
   | Cst_syntax.System(procs) ->
-    let proc_names = List.fold_left (fun (proc, acc_names) -> 
-        let new_names = begin match proc with 
-          | Unbounded(pproc_located) -> 
-            [fst pproc_located.data.id]
-          | Bounded(_, pproc_located_list) ->
-            List.map (fun pproc_located -> fst pproc_located.data.id) pproc_located_list
-          end in 
-        new_names @@ acc_names
-      ) [] procs in failwith "TODO"
+    failwith "TODO"
   | _ -> assert false
