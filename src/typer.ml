@@ -468,7 +468,8 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         let facts = type_facts env facts in
         Event facts
     | Return e -> Return (desugar_expr env e)
-    | New (name, _, str_es_opt, cmd) ->
+    | New (name, input_ty_opt, str_es_opt, cmd) ->
+        let desugared_ty_opt = Option.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_opt in 
         (* allocation, [new x := S(e1,..,en) in c] or [new x in c] *)
         let str_es_opt =
           Option.map
@@ -481,7 +482,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         let id = Ident.local name in
         let env' = Env.add env id (Var (Loc (snd id))) in
         let cmd = type_cmd env' cmd in
-        New (id, str_es_opt, cmd)
+        New (id, desugared_ty_opt, str_es_opt, cmd)
     | Get (names, e, str, cmd) ->
         (* fetch, [let x1,...,xn := e.S in c] *)
         let e = desugar_expr env e in
@@ -685,16 +686,20 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       (* [load "xxx.rab"] *)
       let fn = Filename.dirname base_fn ^ "/" ^ fn in
       load env fn
-  | DeclEqThyFunc(name, fun_desc) -> 
-    let arity = match fun_desc with 
-      | Input.Arity(n) -> n
-      | Input.TypeSig(typ_list) -> List.length typ_list in
+  | DeclEqThyFunc(name, fun_desc) ->
+    let converted_fun_desc, arity = begin match fun_desc with 
+      | Input.Arity(n) -> Typed.DesugaredArity(n), n
+      | Input.TypeSig(typs) -> 
+          Typed.DesugaredTypeSig(List.map 
+            (convert_rabbit_typ_to_env_function_param ~loc env) 
+            typs), (List.length typs)
+      end in
     if arity == 0 then
       let env', id = Env.add_global ~loc env name ExtConst in
-      env', [{ env; loc; desc = Function { id; arity= 0 } }]
+      env', [{ env; loc; desc = Typed.EqThyFunc { id; fun_desc = converted_fun_desc } }]
     else
       let env', id = Env.add_global ~loc env name (ExtFun arity) in
-      env', [{ env; loc; desc = Function { id; arity } }]
+      env', [{ env; loc; desc = Typed.EqThyFunc { id; fun_desc = converted_fun_desc } }]
   | DeclEqThyEquation (e1, e2) ->
       let vars = Name.Set.union (Input.vars_of_expr e1) (Input.vars_of_expr e2) in
       let fresh =

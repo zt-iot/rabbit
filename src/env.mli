@@ -58,7 +58,7 @@ type desc =
   | SimpleTypeDef of Name.ident list (* simple type declaration *)
   | Var of var_desc
   | ExtFun of int (** external function with arity *)
-  | ExtConst (** external function with arity = 0, ex.  function true 0 *)
+  | ExtConst   (** external function with arity=0 *)
   | ExtSyscall of int (** external system call with arity *)
   (* with param or not *)
   | Const of bool * instantiated_ty option

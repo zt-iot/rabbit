@@ -32,7 +32,7 @@ type integrity_lvl =
 type core_security_type = core_type * (secrecy_lvl * integrity_lvl) [@@deriving show]
 
 
-type function_param_type = 
+type core_function_param_type = 
   | CParamCore of core_security_type
   | CParamPoly of name
 [@@deriving show]
@@ -41,11 +41,11 @@ type function_param_type =
 
 type desc =
   | SimpleTypeDef of name list (* simple type declaration *)
-  | Var of var_desc
-  | ExtFun of function_param_type list (* equational theory function with 0 or more function parameters *)
-  | ExtSyscall of function_param_type list (** system call with 0 ore mor function parameters *)
-  | MemberFunc of function_param_type list (** member function of a process *)
-  | Const of bool (* with param or not *) * core_security_type (* conversion fails if type is not given *)
+  | Var of var_desc * core_security_type
+  | ExtFun of core_function_param_type list (* equational theory function with 0 or more function parameters *)
+  | ExtSyscall of core_function_param_type list (** system call with 0 ore mor function parameters *)
+  | MemberFunc of core_function_param_type list (** member function of a process *)
+  | Const of bool (* with param or not *) * core_security_type (* conversion from Env.Const fails if type is not given *)
   | Channel of bool (* with param or not *) * ident (* channel type *)
   | Attack
 

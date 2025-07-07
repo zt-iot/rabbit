@@ -89,7 +89,7 @@ and cmd' =
   | While of case list * case list
   | Event of fact list
   | Return of expr
-  | New of ident * (name * expr list) option * cmd
+  | New of ident * Env.instantiated_ty option * (name * expr list) option * cmd
   | Get of ident list * expr * name * cmd
   | Del of expr * name
 [@@deriving show]
@@ -136,12 +136,23 @@ type init_desc =
   | Fresh_with_param
 [@@deriving show]
 
+
+
+(* Used for signature of equational theory function *)
+type eq_thy_func_desc = 
+  | DesugaredArity of int (* when types are not given *)
+  | DesugaredTypeSig of Env.function_param list (* when types are given *)
+[@@deriving show]
+
+
+
+
 type decl = decl' loc_env [@@deriving show]
 
 and decl' =
-  | Function of
+  | EqThyFunc of
       { id : ident
-      ; arity : int
+      ; fun_desc : eq_thy_func_desc
       }
   | Equation of expr * expr
   | Syscall of
@@ -243,7 +254,7 @@ module Subst = struct
       | While (cases, cases') -> While (List.map (case s) cases, List.map (case s) cases')
       | Event fs -> Event (List.map (fact s) fs)
       | Return e -> Return (expr s e)
-      | New (id, neso, c) -> New (id, Option.map (fun (n, es) -> n, List.map (expr s) es) neso, cmd s c)
+      | New (id, ty_opt, neso, c) -> New (id, ty_opt, Option.map (fun (n, es) -> n, List.map (expr s) es) neso, cmd s c)
       | Get (ids, e, n, c) -> Get (ids, expr s e, n, cmd s c)
       | Del (e, n) -> Del (expr s e, n)
     in

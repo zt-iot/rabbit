@@ -368,7 +368,7 @@ let rec graph_cmd find_def ~process i (c : cmd) : graph * Index.t * Env.t =
           }
         ]
       , i_1, env )
-  | New (x, eopt, c) ->
+  | New (x, _, eopt, c) ->
       let i_1 = Index.add i 1 in
       let g, j, env_j = graph_cmd find_def ~process i_1 c in
       let j_1 = Index.add j 1 in

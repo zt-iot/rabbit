@@ -77,7 +77,7 @@ and cmd' =
   *)
   | Event of fact list (** tag, event[T] *)
   | Return of expr (** return *)
-  | New of ident * (name * expr list) option * cmd
+  | New of ident * Env.instantiated_ty option * (name * expr list) option * cmd
   (** allocation, new x := S(e1,..en) in c *)
   | Get of ident list * expr * name * cmd (** fetch, let x1,..,xn := e.S in c *)
   | Del of expr * name (** deletion , delete e.S *)
@@ -131,13 +131,19 @@ type init_desc =
   | Fresh_with_param (** [const fresh n<>] *)
 [@@deriving show]
 
+
+(* Used for signature of equational theory function *)
+type eq_thy_func_desc = 
+  | DesugaredArity of int (* when types are not given *)
+  | DesugaredTypeSig of Env.function_param list (* when types are given *)
+
 type decl = decl' loc_env [@@deriving show]
 
 and decl' =
-  | Function of
+  | EqThyFunc of
       { id : ident
-      ; arity : int
-      } (** external function, [function id : arity] *)
+      ; fun_desc : eq_thy_func_desc
+      } (* external function *)
   | Equation of expr * expr (** external equation, [equation e1 = e2] *)
   | Syscall of
       { id : ident

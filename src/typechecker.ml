@@ -37,7 +37,8 @@ let rec typecheck_decl decl env = match decl.desc with
   | _ -> failwith "TODO"
 
 
-let rec typecheck_sys decls sys = match sys with 
+let rec typecheck_sys (decls : Cst_syntax.decl list) 
+  (sys : Cst_syntax.decl) = match sys with 
   | Cst_syntax.System(procs) ->
     let proc_names = List.fold_left (fun (proc, acc_names) -> 
         let new_names = begin match proc with 
