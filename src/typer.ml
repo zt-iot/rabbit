@@ -663,8 +663,8 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         Correspondence { fresh = fresh_ids; from = f1; to_ = f2 }
   in
   let lemma : Typed.lemma = { env; loc; desc } in
-  let env, id = Env.add_global ~loc env name Process in
-  env, (id, lemma)
+  let env', id = Env.add_global ~loc env name Process in
+  env', (id, lemma)
 ;;
 
 let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
