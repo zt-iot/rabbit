@@ -145,6 +145,15 @@ type eq_thy_func_desc =
 [@@deriving show]
 
 
+(* Used for signature of syscalls and member function *)
+type syscall_member_fun_sig = 
+  | DesugaredSyscallUntyped of ident list  (* when types are not given *)
+  | DesugaredSyscallTyped of ident list * Env.function_param list * Env.function_param (* when types are given *)
+[@@deriving show]
+
+let syscall_member_fun_desc_to_ident_list signature = match signature with 
+  | DesugaredSyscallUntyped(ids) -> ids
+  | DesugaredSyscallTyped(ids, _, _) -> ids
 
 
 type decl = decl' loc_env [@@deriving show]
@@ -157,7 +166,7 @@ and decl' =
   | Equation of expr * expr
   | Syscall of
       { id : ident
-      ; args : ident list
+      ; fun_sig : syscall_member_fun_sig
       ; cmd : cmd
       }
   | Attack of

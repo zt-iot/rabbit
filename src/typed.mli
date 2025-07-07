@@ -137,6 +137,14 @@ type eq_thy_func_desc =
   | DesugaredArity of int (* when types are not given *)
   | DesugaredTypeSig of Env.function_param list (* when types are given *)
 
+(* Used for signature of syscalls and member function *)
+type syscall_member_fun_sig = 
+  | DesugaredSyscallUntyped of ident list  (* when types are not given *)
+  | DesugaredSyscallTyped of ident list * Env.function_param list * Env.function_param (* when types are given *)
+[@@deriving show]
+
+val syscall_member_fun_desc_to_ident_list : syscall_member_fun_sig -> ident list
+
 type decl = decl' loc_env [@@deriving show]
 
 and decl' =
@@ -147,7 +155,7 @@ and decl' =
   | Equation of expr * expr (** external equation, [equation e1 = e2] *)
   | Syscall of
       { id : ident
-      ; args : ident list
+      ; fun_sig : syscall_member_fun_sig
       ; cmd : cmd
       }
   (** system call, [syscall f(a1,..,an) { c }]

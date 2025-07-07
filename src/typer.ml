@@ -712,15 +712,25 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let e2 = desugar_expr env' e2 in
       ( env
       , [{ env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *) }] )
-  | DeclExtSyscall (name, signature, c) ->
-      let args = Input.syscall_member_fun_desc_to_ident_list signature in 
+  | DeclExtSyscall (name, syscall_desc_input, c) ->
+
+      
+      let args = Input.syscall_member_fun_desc_to_ident_list syscall_desc_input in 
       let args, cmd =
         let env', args = extend_with_args env args @@ fun id -> Var (Loc (snd id)) in
         let c = type_cmd env' c in
         args, c
       in
+      let converted_syscall_sig = begin match syscall_desc_input with 
+        | Input.UntypedSig(_) -> Typed.DesugaredSyscallUntyped(args)
+        | Input.TypedSig(_, fun_params, ret_ty) -> 
+            let converted_fun_params = List.map 
+              (convert_rabbit_typ_to_env_function_param ~loc env) fun_params in 
+            let converted_ret_ty = convert_rabbit_typ_to_env_function_param ~loc env ret_ty in 
+            Typed.DesugaredSyscallTyped(args, converted_fun_params, converted_ret_ty)
+      end in 
       let env', id = Env.add_global ~loc env name (ExtSyscall (List.length args)) in
-      env', [{ env; loc; desc = Syscall { id; args; cmd } }]
+      env', [{ env; loc; desc = Typed.Syscall { id; fun_sig = converted_syscall_sig; cmd } }]
   | DeclExtAttack (name, syscall, args, c) ->
       (* [attack id on syscall (a1,..,an) { c }] *)
       let syscall =
