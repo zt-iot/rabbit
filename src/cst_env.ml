@@ -40,25 +40,21 @@ type function_param_type =
 
 
 type desc =
-
   | SimpleTypeDef of name list (* simple type declaration *)
   | Var of var_desc
-  | ExtFun of int (** external function with arity *)
-  | ExtConst (** external function with arity = 0, ex.  function true 0 *)
-  | ExtSyscall of int (** external system call with arity *)
-  | Const of bool (* with param or not *)
+  | ExtFun of function_param_type list (* equational theory function with 0 or more function parameters *)
+  | ExtSyscall of function_param_type list (** system call with 0 ore mor function parameters *)
+  | MemberFunc of function_param_type list (** member function of a process *)
+  | Const of bool (* with param or not *) * core_security_type (* conversion fails if type is not given *)
   | Channel of bool (* with param or not *) * ident (* channel type *)
   | Attack
 
   (* all these four constructors represents the <y> in `type <x> : <y>` *)
   | ProcTypeDef
   | FilesysTypeDef
-
   | ChanTypeDef of core_security_type list
   | SecurityTypeDef of name * core_security_type list
   
-
-  | Function of int (** function with definition and arity *)
   | Process (* a process template, not to be confused with a process type (ProcessTypeDef) *)
 [@@deriving show]
 

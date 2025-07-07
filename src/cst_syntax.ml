@@ -23,7 +23,7 @@ and expr' =
       { id : ident
       ; desc : Cst_env.desc
       ; param : expr option
-       (** [param= Some _] iff [desc= Const true] *)
+       (** [param= Some _] iff [desc= Const true _] *)
       }
   (** [id] or [id<e>].
       [id<e>] is only possible either for [id] of [Channel {param=true}] or [Const {param=true}] *)
@@ -132,7 +132,7 @@ type init_desc =
 type decl = decl' loc_env [@@deriving show]
 
 and decl' =
-  | Function of
+  | EqThyFunc of
       { id : ident
       ; arity : int
       } (** external function, [function id : arity] *)
@@ -152,32 +152,6 @@ and decl' =
       ; args : ident list
       ; cmd : cmd
       } (** [attack id on syscall (a1,..,an) { c }] *)
-  | Type of
-      { id : ident
-      ; typclass : Input.rabbit_typ
-      } (** type declaration, [type t : filesys/process/channel] *)
-
-
-
-
-  | Allow of
-      { process_typ : ident
-      ; target_typs : ident list
-      ; syscalls : ident list option
-      }
-  (** [allow s t1 .. tn [f1, .., fm]]
-      [allow s t1 .. tn [.]]  for the direct accesses via [put] and [case], [repeat]
-
-      XXX the list [ti] is either empty or singleton.  Should use option type?
-  *)
-  | AllowAttack of
-      { process_typs : ident list
-      ; attacks : ident list
-      } (** [allow attack t1 .. tn [f1, .., fm]] *)
-  | Init of
-      { id : ident
-      ; desc : init_desc
-      } (** [const n = e], [const fresh n], [const n<p> = e], [const fresh n<>] *)
   | Process of
       { id : ident
       ; param : ident option

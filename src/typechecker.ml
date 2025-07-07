@@ -47,5 +47,5 @@ let rec typecheck_sys decls sys = match sys with
             List.map (fun pproc_located -> fst pproc_located.data.id) pproc_located_list
           end in 
         new_names @@ acc_names
-      ) [] procs in assert false
+      ) [] procs in failwith "TODO"
   | _ -> assert false
