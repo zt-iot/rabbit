@@ -852,18 +852,22 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let converted_ty_opt = Option.map (fun rtyp -> convert_rabbit_typ_to_instantiated_ty ~loc env rtyp) rabbit_typ_opt in 
       (* [const fresh n] *)
       let env', id = Env.add_global ~loc env name (Const (false, converted_ty_opt)) in
+
+      (* We only return a declaration for compatibility with sem.ml *)
       env', [{ env; loc; desc = Init { id; desc = Fresh } }]
   | DeclInit (name, _, Value e) ->
       (* [const n = e] *)
       let e = desugar_expr env e in
-      (* TODO add correct type annotation when registering Const in environment *)
       let env', id = Env.add_global ~loc env name (Const (false, None)) in
+
+      (* We only return a declaration for compatibility with sem.ml *)
       env', [{ env; loc; desc = Init { id; desc = Value e } }]
   | DeclInit (name, rabbit_typ_opt, Fresh_with_param) ->
       (* [const fresh n<>] *)
       let converted_ty_opt = Option.map (fun rtyp -> convert_rabbit_typ_to_instantiated_ty ~loc env rtyp) rabbit_typ_opt in 
       let env', id = Env.add_global ~loc env name (Const (true, converted_ty_opt)) in
       
+      (* We only return a declaration for compatibility with sem.ml *)
       env', [{ env; loc; desc = Init { id; desc = Fresh_with_param } }]
   | DeclInit (name, _, Value_with_param (e, p)) ->
       (* [const n<p> = e] *)
@@ -871,10 +875,11 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let env' = Env.add env p (Var Param) in
       let e = desugar_expr env' e in
       let env', id =
-        (* TODO add correct type annotation when registering Const in environment *)
         Env.add_global ~loc env name (Const (true, None))
         (* no info of param? *)
       in
+
+      (* We only return a declaration for compatibility with sem.ml *)
       env', [{ env; loc; desc = Init { id; desc = Value_with_param (p, e) } }]
   | DeclChan (ChanParam { id = name; param; typ = chty }) ->
       (* [channel n : ty] *)
