@@ -147,13 +147,13 @@ type eq_thy_func_desc =
 
 (* Used for signature of syscalls and member function *)
 type syscall_member_fun_sig = 
-  | DesugaredSyscallUntyped of ident list  (* when types are not given *)
-  | DesugaredSyscallTyped of ident list * Env.function_param list * Env.function_param (* when types are given *)
+  | DesSMFunUntyped of ident list  (* when types are not given *)
+  | DesSMFunTyped of ident list * Env.function_param list * Env.function_param (* when types are given *)
 [@@deriving show]
 
 let syscall_member_fun_desc_to_ident_list signature = match signature with 
-  | DesugaredSyscallUntyped(ids) -> ids
-  | DesugaredSyscallTyped(ids, _, _) -> ids
+  | DesSMFunUntyped(ids) -> ids
+  | DesSMFunTyped(ids, _, _) -> ids
 
 
 type decl = decl' loc_env [@@deriving show]
@@ -203,8 +203,8 @@ and decl' =
       ; args : chan_param list
       ; typ : ident
       ; files : (expr * ident * expr) list
-      ; vars : (ident * expr) list
-      ; funcs : (ident * ident list * cmd) list
+      ; vars : (ident * Env.instantiated_ty option * expr) list
+      ; funcs : (ident * syscall_member_fun_sig * cmd) list
       ; main : cmd
       }
   | System of proc list * (Ident.t * lemma) list
@@ -344,7 +344,9 @@ module Subst = struct
           in
           { parameters; channels }
         in
-        instantiate_process s ~id ~typ ~files ~vars ~funcs ~main
+        let vars_simplified = List.map (fun (s, _, e) -> (s, e)) vars in
+        let funcs_simplified = List.map (fun (f, param_desc, cmd) -> (f, syscall_member_fun_desc_to_ident_list param_desc, cmd)) funcs in
+        instantiate_process s ~id ~typ ~files ~vars:vars_simplified ~funcs:funcs_simplified ~main
     | None -> assert false
     | Some _ -> assert false
 

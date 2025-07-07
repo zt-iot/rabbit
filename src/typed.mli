@@ -139,8 +139,8 @@ type eq_thy_func_desc =
 
 (* Used for signature of syscalls and member function *)
 type syscall_member_fun_sig = 
-  | DesugaredSyscallUntyped of ident list  (* when types are not given *)
-  | DesugaredSyscallTyped of ident list * Env.function_param list * Env.function_param (* when types are given *)
+  | DesSMFunUntyped of ident list  (* when types are not given *)
+  | DesSMFunTyped of ident list * Env.function_param list * Env.function_param (* when types are given *)
 [@@deriving show]
 
 val syscall_member_fun_desc_to_ident_list : syscall_member_fun_sig -> ident list
@@ -205,8 +205,8 @@ and decl' =
       ; args : chan_param list
       ; typ : ident
       ; files : (expr * ident * expr) list
-      ; vars : (ident * expr) list
-      ; funcs : (ident * ident list * cmd) list
+      ; vars : (ident * Env.instantiated_ty option * expr) list
+      ; funcs : (ident * syscall_member_fun_sig * cmd) list
       ; main : cmd
       }
   (** [process id<p>(x1 : ty1, .., xn : tyn) : ty { file ... var ... function ... main ... }] *)

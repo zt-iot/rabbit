@@ -533,8 +533,8 @@ let type_process
       args
       proc_ty
       files
-      vars
-      funcs
+      (vars : (Name.ident * Input.rabbit_typ option * Input.expr) list)
+      (funcs : (Name.ident * Input.syscall_member_fun_desc * Input.cmd) list)
       main
   : Env.t * Typed.decl
   =
@@ -590,11 +590,13 @@ let type_process
     (* add contens of process memory to local  environment *)
     let env', rev_vars =
       List.fold_left
-        (fun (env, rev_vars) (name, e) ->
-           let e = desugar_expr env e in
-           let id = Ident.local name in
-           let env' = Env.add env id (Var (Loc (snd id))) in
-           env', (id, e) :: rev_vars)
+        (fun (env, rev_vars) (name, ty_opt, e) ->
+            let id = Ident.local name in
+            let converted_ty_opt = Option.map
+              (convert_rabbit_typ_to_instantiated_ty ~loc env) ty_opt in 
+            let e = desugar_expr env e in
+            let env' = Env.add env id (Var (Loc (snd id))) in
+            env', (id, converted_ty_opt, e) :: rev_vars)
         (env', [])
         vars
     in
@@ -603,11 +605,23 @@ let type_process
     (* add member functions of process to local environment *)
     let env', rev_funcs =
       List.fold_left
-        (fun (env', rev_funcs) (fname, args, c) ->
+        (fun (env', rev_funcs) (fname, input_member_fun_desc, c) ->
+           let args = Input.syscall_member_fun_desc_to_ident_list input_member_fun_desc in 
            let env'', args = extend_with_args env' args @@ fun id -> Var (Loc (snd id)) in
+
+           let converted_fun_desc = begin match input_member_fun_desc with 
+            | Input.UntypedSig(_) -> Typed.DesSMFunUntyped(args)
+            | Input.TypedSig(_, fun_params, ret_ty) -> 
+              let converted_fun_params = List.map 
+                (convert_rabbit_typ_to_env_function_param ~loc env) fun_params in 
+              let converted_ret_ty = convert_rabbit_typ_to_env_function_param ~loc env ret_ty in                 
+                Typed.DesSMFunTyped(args, converted_fun_params, converted_ret_ty)
+           end in 
+
            let c = type_cmd env'' c in
            let fid = Ident.local fname in
-           Env.add env' fid (Function (List.length args)), (fid, args, c) :: rev_funcs)
+           let env''' = Env.add env' fid (Function (List.length args)) in 
+           env''', (fid, converted_fun_desc, c) :: rev_funcs)
         (env', [])
         funcs
     in
@@ -722,12 +736,12 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         args, c
       in
       let converted_syscall_sig = begin match syscall_desc_input with 
-        | Input.UntypedSig(_) -> Typed.DesugaredSyscallUntyped(args)
+        | Input.UntypedSig(_) -> Typed.DesSMFunUntyped(args)
         | Input.TypedSig(_, fun_params, ret_ty) -> 
             let converted_fun_params = List.map 
               (convert_rabbit_typ_to_env_function_param ~loc env) fun_params in 
             let converted_ret_ty = convert_rabbit_typ_to_env_function_param ~loc env ret_ty in 
-            Typed.DesugaredSyscallTyped(args, converted_fun_params, converted_ret_ty)
+            Typed.DesSMFunTyped(args, converted_fun_params, converted_ret_ty)
       end in 
       let env', id = Env.add_global ~loc env name (ExtSyscall (List.length args)) in
       env', [{ env; loc; desc = Typed.Syscall { id; fun_sig = converted_syscall_sig; cmd } }]
@@ -871,9 +885,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let env', id = Env.add_global ~loc env name (Channel (param <> None, chty)) in
       env', [{ env; loc; desc = Channel { id; param; typ = chty } }]
   | DeclProc { id; param; args; typ; files; vars; funcs; main } ->
-      let vars_simplified = List.map (fun (s, _, e) -> (s, e)) vars in
-      let funcs_simplified = List.map (fun (f, param_desc, cmd) -> (f, Input.syscall_member_fun_desc_to_ident_list param_desc, cmd)) funcs in
-      let env', decl = type_process ~loc env id param args typ files vars_simplified funcs_simplified main in
+      let env', decl = type_process ~loc env id param args typ files vars funcs main in
       env', [decl]
   | DeclSys (procs, lemmas) ->
       (* [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
