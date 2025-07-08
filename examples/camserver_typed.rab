@@ -68,12 +68,11 @@ syscall get_picture () : client_img {
 function h : 'a -> hash (* this function has to be built-in to Rabbit somehow *)
 function hash_kdf : 'a -> keykind -> key[keykind] (* this function also has to be built-in to Rabbit somehow *)
 
+
 syscall fopen (p : string) : filedescr['a] {
-  (* p.File(x) indicates that x is stored in p. This is a Rabbit reserved fact *)
-  (* It gets created when the filesys declarations get interpreted *)
-  case [p.File(x)] ->
+  case [p.x] ->
     new y = Fd(x) in (* TODO don't know how to type y in this case *)
-    put [p.File(x)]; y
+    put [p.x]; y
   end
 }
 
@@ -227,7 +226,19 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
   {
     _ := accept_rpc(ch_rpc);
 
-    _ := send_recv_rpc_loop(ch_rpc);
+    repeat
+    | [ch_rpc::invoke(fname, image, priv_path)] →
+      case
+      | [fname = "sign_image"] →
+        var signed = sign_image(image, priv_path) in
+        put[ch_rpc:: Returned(signed)]		
+
+      | [fname != "sign_image"] →
+        event [InValidName(fname)]
+      end 
+    until
+    | [ch_rpc::exit()] → skip 
+    end;
 
     event [::ClientTAClose ()]
   }

@@ -66,7 +66,7 @@ plain_decl:
   | DATA t=typ { DeclSimpleTyp(t) } 
 
   | FUNC id=NAME COLON arity=NUMERAL { DeclEqThyFunc(id, Arity(arity)) }
-  | FUNC id=NAME COLON params=separated_nonempty_list(ARROW, typ) { DeclEqThyFunc(id, TypeSig(params)) }
+  | FUNC id=NAME COLON params=separated_nonempty_list(ARROW, func_param) { DeclEqThyFunc(id, TypeSig(params)) }
 
 
 
@@ -146,7 +146,7 @@ fun_signature:
   | LPAREN names=separated_nonempty_list(COMMA, NAME) RPAREN { UntypedSig(names) }
 
 external_syscall:
-  |  syscall_tk f=NAME signature=fun_signature
+  | syscall_tk f=NAME signature=fun_signature
       LBRACE c=cmd RBRACE { DeclExtSyscall(f, signature, c) }
 
 syscall_tk:
@@ -270,6 +270,11 @@ typ:
   | t=NAME opt_params=opt_simpletype_params { CSimpleOrSecurity(t, opt_params) }
 
 
+func_param:
+  | t=typ { t }
+  (* do nothing with annotated secrecy and integrity levels for now *)
+  | t=typ AT LPAREN func_param_secrecy_lvl COMMA func_param_integrity_lvl RPAREN { t }
+
 expr : mark_location(plain_expr) { $1 }
 plain_expr:
   | id=NAME                    { Var (id)  }
@@ -323,6 +328,8 @@ plain_cmd:
     END                                                             { While(c1, c2) }
   | EVENT LBRACKET a=separated_list(COMMA, fact) RBRACKET           { Event(a) }
 
+  (* do nothing with annotated type for now *)
+  | LET ids=separated_list(COMMA, NAME) COLON typ EQ e=expr DOT fid=NAME IN c=cmd { Get (ids, e, fid, c) }
   | LET ids=separated_list(COMMA, NAME) EQ e=expr DOT fid=NAME IN c=cmd { Get (ids, e, fid, c) }
 
   (* new structure declaration with type *)
