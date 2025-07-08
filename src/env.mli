@@ -62,7 +62,7 @@ type desc =
   | ExtSyscall of int (** external system call with arity *)
   (* with param or not *)
   | Const of bool * instantiated_ty option
-  | Channel of bool (* with param or not *) * Ident.t (* channel type *)
+  | ChannelDecl of bool (* with param or not *) * Ident.t (* channel type *)
   | Attack
 
   (* all these four constructors represents the <y> in `type <x> : <y>` *)

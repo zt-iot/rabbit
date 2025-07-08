@@ -145,13 +145,13 @@ fun_signature:
       COLON retty=typ { TypedSig(List.map fst names_and_types, List.map snd names_and_types, retty) }
   | LPAREN names=separated_nonempty_list(COMMA, NAME) RPAREN { UntypedSig(names) }
 
-external_syscall:
-  | syscall_tk f=NAME signature=fun_signature
-      LBRACE c=cmd RBRACE { DeclExtSyscall(f, signature, c) }
-
 syscall_tk:
   | SYSCALL {()}
   | PASSIVE ATTACK {()}
+
+external_syscall:
+  | syscall_tk f=NAME signature=fun_signature c=cmd { DeclExtSyscall(f, signature, c) }
+
 
 fact : mark_location(plain_fact) { $1 }
 plain_fact:

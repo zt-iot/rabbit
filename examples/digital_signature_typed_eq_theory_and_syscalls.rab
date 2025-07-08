@@ -1,4 +1,4 @@
-(* security primitives *)
+
 function vk : sign_key_alice -> verkey[message]
 function sign : client_msg -> sign_key_alice -> client_sig
 function fst : 'a * 'b -> 'a

@@ -1,7 +1,7 @@
-module ProcSet : Set.S with type elt = string
+module ProcTySet : Set.S with type elt = string
 
-type proc_set = ProcSet.t
+type proc_ty_set = ProcTySet.t
 
-val pp_proc_set : Format.formatter -> proc_set -> unit
+val pp_proc_ty_set : Format.formatter -> proc_ty_set -> unit
 
-val equal_proc_set : proc_set -> proc_set -> bool
+val equal_proc_ty_set : proc_ty_set -> proc_ty_set -> bool

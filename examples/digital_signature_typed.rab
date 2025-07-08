@@ -1,6 +1,11 @@
+data string
+data bool
+data unit
+data connection
 
 data message 
 data signature
+
 
 data sigkey['a] (* a key with polymorphic type on which it operates *)
 data verkey['a]
@@ -11,6 +16,9 @@ data verkey['a]
 type readonly_t   : filesys
 type alice_t      : process
 type bob_t        : process
+
+(* temporary solution *)
+type attacker_ty : process
 
 
 (** declare kinds, which are values which do not have any security information *)
@@ -23,18 +31,97 @@ type client_msg : message
 type client_sig : signature
 type sign_key_alice : sigkey[client_msg] (* signing key for client_msg type of data *)
 
+type conn_client : connection
 
-type udp_t 	  : channel[client_msg * clieft_sig]
 
 
-(* load some primitive syscalls, incl. send and recv *)
-load "digital_signature_typed_eq_theory_and_syscalls.rab"
+
+type udp_t 	  : channel[client_msg * client_sig]
+
+
+
+function vk : sign_key_alice -> verkey[message]
+function sign : client_msg -> sign_key_alice -> client_sig
+function fst : 'a * 'b -> 'a
+function snd : 'a * 'b -> 'b
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+function true : bool
+
+(* type bool is a simple type, thus it has CST security level (Public, Untrusted) *)
+function verify : signature -> message -> verkey[message] -> bool
+equation verify (sign(d, k), d, vk(k)) = true
+
+
+
+
+(** asynchronous channels *)
+syscall send(c : channel['a], v : 'a) : unit {
+  put [c::store(v)]
+}
+
+syscall recv(c : channel['a]) : 'a {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+(** synchronous rpc channel *)
+syscall connect_rpc (c : channel['a]) : conn_client {
+  put [c::req()];
+  case 
+  | [c::ack()] →
+    new x = chid(c) in 
+    put [c::conn()]; 
+    x
+  end
+} 
+
+syscall invoke_rpc (cid : conn_client, f : string, arg1 : 'a, arg2 : 'b) : 'c {
+  let c : rpc_t = cid.chid in 
+  put [c::invoke(f, arg1, arg2)]; 
+  case [c:: Returned(v)] → v end
+}
+
+
+
+syscall close_rpc (cid : conn_client) : unit {
+  let c = cid.chid in
+  delete cid.chid;
+  put[c::exit()]
+}
+
+
+
+
+
+syscall accept_rpc (c : channel['a]) : unit {
+  case [c::req()] → put [c::ack()] end
+}
+
+
+
+
+
 
 (* syscall that returns some fresh globally known message *)
 syscall gen_message () : client_msg {
   new v : client_msg in 
   v
 }
+
+
+(** Temporary solution *)
+syscall read () {
+  skip
+}
+
+syscall provide () {
+  skip
+}
+(** Temporary solution *)
+
+
 
 
 (***********)
@@ -132,7 +219,7 @@ process alice(ch_net : udp_t) : alice_t
 process bob(ch_net : udp_t) : bob_t
 {
   (* Use public key of Alice to verify message *)
-  var pub_key_alice = vk(priv_key_alice)
+  var pub_key_alice = vk(secret_key_alice)
 
   main 
   {

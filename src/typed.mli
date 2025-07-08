@@ -194,7 +194,7 @@ and decl' =
       { id : ident
       ; desc : init_desc
       } (** [const n = e], [const fresh n], [const n<p> = e], [const fresh n<>] *)
-  | Channel of
+  | ChannelDecl of
       { id : ident
       ; param : unit option
       ; typ : ident

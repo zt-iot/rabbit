@@ -44,11 +44,14 @@ let kind_of_desc = function
   | ExtConst -> "external constant"
   | ExtSyscall _ -> "system call"
   | Const _ -> "constant"
-  | Channel _ -> "channel"
+  | ChannelDecl _ -> "channel instantiation declaration"
   | Attack -> "attack"
+
   | ProcTypeDef -> "process type"
   | FilesysTypeDef -> "filesys type"
-  | ChanTypeDef _ -> "channel type"
+  | ChanTypeDef _ -> "channel type definition"
+  | SecurityTypeDef _ -> "security type"
+
   | Function _ -> "function"
   | Process -> "process"
 
@@ -331,7 +334,7 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
              error ~loc @@ NonCallableIdentifier (id, desc))
     | Param (f, e) (* [f<e>] *) ->
         (match Env.find ~loc env f with
-         | id, ((Const _ | Channel _) as desc) ->
+         | id, ((Const _ | ChannelDecl _) as desc) ->
              let e = desugar_expr env e in
              Ident { id; desc; param= Some e }
          | id, desc -> error ~loc @@ NonParameterizableIdentifier (id, desc))
@@ -559,10 +562,14 @@ let type_process
       List.fold_left
         (fun (env, rev_args) (Input.ChanParam { id = chanid; param; typ = chanty }) ->
            let with_param = param <> None in
-           (* XXX not clear what happens when we have (ChanTypeDef <non_empty_list> )) *)
-           let chanty = Env.find_desc ~loc env chanty (ChanTypeDef []) in
+          
+           let chanty = begin match Env.find ~loc env chanty with 
+           | id, Env.ChanTypeDef(_) -> id
+           | _ -> error ~loc @@ Misc("Use a channel type definition instead")
+           end in 
+
            let chanid = Ident.local chanid in
-           ( Env.add env chanid (Channel (with_param, chanty))
+           ( Env.add env chanid (ChannelDecl (with_param, chanty))
            , Typed.{ channel=chanid; param; typ= chanty } :: rev_args ))
         (env', [])
         args
@@ -706,7 +713,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       | Input.TypeSig(typs) -> 
           Typed.DesugaredTypeSig(List.map 
             (convert_rabbit_typ_to_env_function_param ~loc env) 
-            typs), (List.length typs)
+            typs), (List.length typs) - 1
       end in
     if arity == 0 then
       let env', id = Env.add_global ~loc env name ExtConst in
@@ -813,8 +820,8 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         List.map
           (fun ty ->
              match Env.find ~loc env ty with
-             | id, (ChanTypeDef _ | FilesysTypeDef) -> id
-             | _ -> misc_errorf ~loc "%s must be a channel or filesys type" ty)
+             | id, (SecurityTypeDef _ | ChanTypeDef _ | FilesysTypeDef) -> id
+             | _ -> misc_errorf ~loc "%s must be a security, channel or filesys type" ty)
           tys
       in
       (match tys with
@@ -885,10 +892,13 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       (* [channel n : ty] *)
       (* [channel n<> : ty] *)
 
-      (* XXX not clear what happens when we have (ChanTypeDef <non_empty_list> )) *)
-      let chty = Env.find_desc ~loc env chty (ChanTypeDef []) in
-      let env', id = Env.add_global ~loc env name (Channel (param <> None, chty)) in
-      env', [{ env; loc; desc = Channel { id; param; typ = chty } }]
+      
+      let chty = begin match Env.find ~loc env chty with 
+        | id, Env.ChanTypeDef(_) -> id
+        | _ -> error ~loc @@ Misc("Use a channel type definition instead")
+        end in 
+      let env', id = Env.add_global ~loc env name (ChannelDecl (param <> None, chty)) in
+      env', [{ env; loc; desc = ChannelDecl { id; param; typ = chty } }]
   | DeclProc { id; param; args; typ; files; vars; funcs; main } ->
       let env', decl = type_process ~loc env id param args typ files vars funcs main in
       env', [decl]
@@ -898,7 +908,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         | Input.ChanArgPlain name ->
             (* [id] *)
             (match Env.find ~loc env name with
-             | id, Channel (false, chty) -> { channel = id; parameter = None; typ = chty }
+             | id, ChannelDecl (false, chty) -> { channel = id; parameter = None; typ = chty }
              | id, _ ->
                  misc_errorf
                    ~loc
@@ -907,7 +917,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         | ChanArgParam name ->
             (* [id<>] *)
             (match Env.find ~loc env name with
-             | id, Channel (true, chty) ->
+             | id, ChannelDecl (true, chty) ->
                  { channel = id; parameter = Some None; typ = chty }
              | id, _ ->
                  misc_errorf ~loc "%t is not a channel with a parameter" (Ident.print id))
@@ -915,7 +925,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
             (* [id<e>] *)
             let e = desugar_expr env e in
             (match Env.find ~loc env name with
-             | id, Channel (true, chty) ->
+             | id, ChannelDecl (true, chty) ->
                  { channel= id; parameter= Some (Some e); typ= chty }
              | id, _ ->
                  misc_errorf ~loc "%t is not a channel with a parameter" (Ident.print id))

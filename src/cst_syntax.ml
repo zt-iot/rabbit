@@ -1,6 +1,6 @@
 
-type name = Name.t
-type ident = Ident.t
+type name = Name.t [@@deriving show]
+type ident = Ident.t [@@deriving show]
 
 
 type 'desc loc_env =
@@ -13,7 +13,7 @@ type 'desc loc_env =
 let pp_loc_env pp_desc fmt { desc; loc = _; env } =
   Format.fprintf fmt "{ desc = %a; env = %a }"
     pp_desc desc
-    Env.pp env
+    Cst_env.pp env
 
 
 type expr = expr' loc_env [@@deriving show]

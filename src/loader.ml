@@ -622,7 +622,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
   | Input.DeclEqThyFunc (f, fun_desc) -> 
       let arity = match fun_desc with 
         | Input.Arity(n) -> n
-        | Input.TypeSig(typ_list) -> List.length typ_list in
+        | Input.TypeSig(typ_list) -> (List.length typ_list) - 1 in
       (* [function f:2] *)
       if Context.check_used env.context f then error ~loc (AlreadyDefined f);
       let ctx' =

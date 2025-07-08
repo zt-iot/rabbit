@@ -192,7 +192,7 @@ and decl' =
       { id : ident
       ; desc : init_desc
       }
-  | Channel of
+  | ChannelDecl of
       { id : ident
       ; param : unit option
       ; typ : ident
@@ -222,7 +222,7 @@ module Subst = struct
     | Boolean _ | String _ | Integer _ | Float _ | Unit -> e
     | Tuple es -> { e with desc= Tuple (List.map (expr s) es) }
     | Apply (f, es) -> { e with desc= Apply (f, List.map (expr s) es) }
-    | Ident ({ id; desc= Channel _; param; _ } as i) ->
+    | Ident ({ id; desc= ChannelDecl _; param; _ } as i) ->
         let id = Option.value ~default:id @@ List.assoc_opt id s.channels in
         let param = Option.map (expr s) param in
         { e with desc= Ident { i with id; param } }

@@ -121,6 +121,24 @@ let _main =
                   prerr_endline "Unexpected TyperSuccess";
                   raise exn
             in
+
+            (* Typechecking test with security type system *)
+            (match typer_result with
+             | Error _ -> ()
+             | Ok decls ->
+                let cst_decls = Cst_converter.convert(decls) in 
+                let sys =
+                   List.find_opt (fun decl ->
+                       match decl.Cst_syntax.desc with
+                       | Cst_syntax.System _ -> true
+                       | _ -> false) cst_decls
+                 in
+                 match sys with 
+                 | Some sys -> 
+                   Typechecker.typecheck_sys cst_decls sys
+                 | None -> prerr_endline "no system"
+            );
+
             (* Semantics test *)
             (match typer_result with
              | Error _ -> ()

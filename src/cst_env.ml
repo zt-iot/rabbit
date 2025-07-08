@@ -21,12 +21,12 @@ type core_type =
 
 type secrecy_lvl = 
   | Public 
-  | SNode of proc_set 
+  | SNode of proc_ty_set 
 [@@deriving show]
 
 type integrity_lvl = 
   | Untrusted 
-  | INode of proc_set
+  | INode of proc_ty_set
 [@@deriving show]
 
 type core_security_type = core_type * (secrecy_lvl * integrity_lvl) [@@deriving show]
@@ -46,7 +46,7 @@ type desc =
   | ExtSyscall of core_function_param_type list (** system call with 0 ore mor function parameters *)
   | MemberFunc of core_function_param_type list (** member function of a process *)
   | Const of bool (* with param or not *) * core_security_type (* conversion from Env.Const fails if type is not given *)
-  | Channel of bool (* with param or not *) * ident (* channel type *)
+  | ChannelDecl of bool (* with param or not *) * ident (* channel type *)
   | Attack
 
   (* all these four constructors represents the <y> in `type <x> : <y>` *)
