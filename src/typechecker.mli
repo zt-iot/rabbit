@@ -1,29 +1,12 @@
 
 
-open Sets
 
 exception TypeException of string
 
-type core_type = 
-  | TChan of core_type list
-  | TSimple of Name.ident * core_type list
-  | TProd of core_type * core_type
 
-type secrecy_lvl = 
-  | Public 
-  | SNode of proc_ty_set 
+val typeof_expr : Cst_syntax.expr -> Cst_env.core_security_type
 
-type integrity_lvl = 
-  | Untrusted
-  | INode of proc_ty_set
-
-type core_security_type = core_type * (secrecy_lvl * integrity_lvl)
-
-type function_param_type = 
-  | CParamCore of core_security_type
-  | CParamPoly of Name.ident
-
-val typeof_cmd : Cst_syntax.cmd -> unit
+val typeof_cmd : Cst_syntax.cmd -> Cst_env.core_security_type
 
 val typecheck_decl : Cst_syntax.decl -> unit
 

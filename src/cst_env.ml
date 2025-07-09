@@ -11,30 +11,29 @@ type named_fact_desc = Env.named_fact_desc [@@deriving show]
 
 
 
-
-type core_type = 
-  | TChan of core_type list
-  | TSimple of name * core_type list
-  | TProd of core_type * core_type
-[@@deriving show]
-
-
 type secrecy_lvl = 
   | Public 
   | SNode of proc_ty_set 
 [@@deriving show]
 
 type integrity_lvl = 
-  | Untrusted 
+  | Untrusted
   | INode of proc_ty_set
 [@@deriving show]
 
-type core_security_type = core_type * (secrecy_lvl * integrity_lvl) [@@deriving show]
 
+type core_type = 
+  | TChan of core_security_type list
+  | TSimple of Name.ident * core_security_type list
+  | TProd of core_security_type * core_security_type
+[@@deriving show]
+
+
+and core_security_type = core_type * (secrecy_lvl * integrity_lvl) [@@deriving show]
 
 type core_function_param_type = 
   | CParamCore of core_security_type
-  | CParamPoly of name
+  | CParamPoly of Name.ident
 [@@deriving show]
 
 
