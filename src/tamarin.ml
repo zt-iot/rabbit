@@ -382,14 +382,15 @@ let rec print_expr e =
   | String s -> "\'rab" ^ !separator ^ replace_string '/' !separator s ^ "\'"
   | Integer i -> "\'" ^ string_of_int i ^ "\'"
   | List el ->
+      (* < .. > is not a list but a tuple *)
       (match el with
-       | [] -> "\'rab" ^ !separator ^ "\'"
-       | [ e ] -> print_expr e
+       | [] -> "\'rab" ^ !separator ^ "empty\'"
+       | [ e ] -> print_expr e (* XXX Why?!?! *)
        | _ -> "<" ^ String.concat ", " (List.map print_expr el) ^ ">")
   | One -> "%1"
   | Int v -> "%" ^ v
   | AddOne e -> print_expr e ^ " %+ %1"
-  | Unit -> "\'rab" ^ !separator ^ "\'"
+  | Unit -> "\'rab" ^ !separator ^ "unit\'"
   | MetaNewVar i -> "new" ^ !separator ^ string_of_int i
   | Param -> !fresh_param
 ;;
@@ -666,7 +667,7 @@ let transition_to_transition_rule (tr : transition) : rule =
     }
 ;;
 
-let print_rule_aux { name; role; pre; label; post } dev =
+let print_rule_aux { name; role; pre; label; post } ~dev =
   "rule "
   ^ name
   ^ (if role = "" || not dev then "" else "[role=\"" ^ role ^ "\"]")
@@ -686,7 +687,7 @@ let print_comment s = "\n// " ^ s ^ "\n\n"
 
 let print_rule r ~dev =
   match r with
-  | Rule r -> print_rule_aux (compile_rule_ r) dev
+  | Rule r -> print_rule_aux (compile_rule_ r) ~dev
   | Comment s -> print_comment s
 ;;
 
@@ -720,12 +721,7 @@ let print_lemma lemma =
   | ReachabilityLemma {name= l; global_variables= gv; facts} ->
       let var1 = List.concat_map global_fact_collect_vars facts in
       let var2 = List.concat_map global_fact_collect_vars gv in
-      let var =
-        List.fold_left
-          (fun var v -> if List.exists (fun w -> w = v) var then var else v :: var)
-          []
-          (var1 @ var2)
-      in
+      let var = List.sort_uniq compare (var1 @ var2) in
       "\nlemma "
       ^ l
       ^ " : exists-trace \"Ex "
@@ -776,21 +772,10 @@ let print_lemma lemma =
   | CorrespondenceLemma {name=l; fresh_variables= _vl; premise= (gva, a); conclusion= (gvb, b)} ->
       let var1 = List.flatten (List.map global_fact_collect_vars [ a ]) in
       let var2 = List.flatten (List.map global_fact_collect_vars gva) in
-      let vara =
-        List.fold_left
-          (fun var v -> if List.exists (fun w -> w = v) var then var else v :: var)
-          []
-          (var1 @ var2)
-      in
+      let vara = List.sort_uniq compare (var1 @ var2) in
       let var1 = List.flatten (List.map global_fact_collect_vars [ b ]) in
       let var2 = List.flatten (List.map global_fact_collect_vars gvb) in
-      let varb =
-        List.fold_left
-          (fun var v ->
-             if List.exists (fun w -> w = v) (var @ vara) then var else v :: var)
-          []
-          (var1 @ var2)
-      in
+      let varb = List.filter (fun v -> not @@ List.mem v vara) @@ List.sort_uniq compare (var1 @ var2) in
       "\nlemma "
       ^ l
       ^ " : all-traces \"All "

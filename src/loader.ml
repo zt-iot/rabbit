@@ -427,6 +427,7 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
   let pid, files, vl, fl, m, cargs, chans, ptype =
     match proc.Location.data with
     | Input.ParamProc (pid, param', chans) ->
+        (* pid<param'>(chan,..,chan) *)
         if not (Context.ctx_check_proctmpl ctx pid)
         then error ~loc (UnknownIdentifier ("process", pid));
         let Context.
@@ -468,6 +469,7 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
         let m = Substitute.cmd_param m realparam in
         pid, files, vl, fl, m, cargs, chans, ptype
     | Input.Proc (pid, chans) ->
+        (* pid(chan,..,chan) *)
         (* XXX Dupe with ParamProc *)
         if not (Context.ctx_check_proctmpl ctx pid)
         then error ~loc (UnknownIdentifier ("process", pid));
