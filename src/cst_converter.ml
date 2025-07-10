@@ -45,7 +45,7 @@ let update_access_map map target_typs proc_ty =
 
 
 
-
+(* Create read access map and provide access map from a list of `Typed.Allow` declarations *)
 let create_access_maps (decls : Typed.decl list) : access_map * access_map =
   List.fold_left (fun (acc_read_access, acc_provide_access) decl -> match decl.Typed.desc with 
     | Typed.Allow{process_typ = proc_ty; target_typs; syscalls} ->
@@ -93,32 +93,28 @@ let create_access_maps (decls : Typed.decl list) : access_map * access_map =
 
 
 
-(* Extract ident name as string *)
-let ident_name (id : Ident.t) = fst id
 
-(* Get all process identifiers from procs *)
-let extract_proc_ids procs =
-  let extract_pproc_id (pproc : Typed.pproc) = match pproc.Location.data with 
-  | {id; _} -> id
+
+(* Get all process strings from procs *)
+let extract_proc_strings procs =
+  let extract_pproc_str (pproc : Typed.pproc) = match pproc.Location.data with 
+  | {id; _} -> Ident.string_part id
   in 
   let extract = function
-    | Typed.Unbounded p -> [extract_pproc_id p]
-    | Typed.Bounded (_, ps) -> List.map extract_pproc_id ps
+    | Typed.Unbounded p -> [extract_pproc_str p]
+    | Typed.Bounded (_, ps) -> List.map extract_pproc_str ps
   in
   List.flatten (List.map extract procs)
 
 
-
-
-(* Find the corresponding Process decl and return its .typ *)
-let find_process_typ decls proc_id =
-  let name = ident_name proc_id in
+(* Find the corresponding Process decl and return its type *)
+let find_process_typ decls name =
   let is_matching_process_decl = function
-    | Typed.Process { id; _ } when ident_name id = name -> true
+    | Typed.Process { id; _ } when (Ident.string_part id) = name -> true
     | _ -> false
   in
   match List.find_opt is_matching_process_decl decls with
-  | Some Process { typ; _ } -> Some typ
+  | Some Process { typ; _ } -> Some (Ident.string_part typ)
   | _ -> None
 
 
@@ -126,8 +122,16 @@ let find_process_typ decls proc_id =
 
 (* Main function: from procs and decls, return list of all found typ fields *)
 let extract_process_typs_from_decls procs decls =
-  extract_proc_ids procs
-  |> List.filter_map (find_process_typ decls)
+  let proc_strs = extract_proc_strings procs in 
+  let add_typ_to_set acc proc_str = 
+   let typ_opt = find_process_typ decls proc_str in 
+   match typ_opt with 
+     | Some typ_str -> ProcTySet.add typ_str acc 
+     | None -> acc 
+  in
+  (* return a set of all unique process types *)
+  List.fold_left add_typ_to_set ProcTySet.empty proc_strs
+  
 
 
 (* Supplying an environment is not necessary: 

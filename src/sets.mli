@@ -1,4 +1,6 @@
+module StringSet : Set.S with type elt = string
 module ProcTySet : Set.S with type elt = string
+
 
 type proc_ty_set = ProcTySet.t
 
