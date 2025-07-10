@@ -134,6 +134,27 @@ let extract_process_typs_from_decls procs decls =
   
 
 
+
+
+(* returns a map from SecurityType to secrecy lvl *)
+let read_access_map_to_secrecy_lvls_map read_access_map all_process_typs = 
+  SecurityTypeMap.map (fun set -> 
+    if all_process_typs = set then 
+      Cst_env.Public 
+    else 
+      Cst_env.SNode set
+    ) read_access_map
+
+
+let provide_access_map_to_integrity_lvls_map provide_access_map all_process_typs = 
+  SecurityTypeMap.map (fun set -> 
+    if all_process_typs = set then 
+      Cst_env.Untrusted
+    else 
+      Cst_env.INode set
+    ) provide_access_map
+
+
 (* Supplying an environment is not necessary: 
 the global environment is 
 simply the environment from the Cst_syntax.decl.System declaration
@@ -142,11 +163,17 @@ let rec convert (decls : Typed.decl list) : (Cst_syntax.decl list) =
   
   let (read_access_map, provide_access_map) = create_access_maps decls in 
 
+
   let decls' = List.map (fun decl -> decl.Typed.desc) decls in 
   match List.rev decls' with
   | [] ->
       failwith "Expected a System declaration at the end, but the list is empty"
   | Typed.System(procs, _) :: decls_rev ->
     let all_process_typs = extract_process_typs_from_decls procs decls_rev in
+
+    let security_type_to_secrecy_lvl = read_access_map_to_secrecy_lvls_map read_access_map all_process_typs in 
+    let security_type_to_integrity_lvl = provide_access_map_to_integrity_lvls_map provide_access_map all_process_typs in 
+    
+
     failwith "TODO"
   | _ -> failwith "TODO"
