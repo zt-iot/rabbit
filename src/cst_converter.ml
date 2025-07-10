@@ -11,6 +11,9 @@ type syscall_effect =
 
 type syscall_effect_map = (syscall_effect) string_map 
 
+type cst_access_policy = ((proc_ty_set * proc_ty_set) * bool) list
+
+
 let syscall_effect_map = 
   StringMap.empty
   |> StringMap.add "recv" Read 
@@ -147,19 +150,64 @@ let read_access_map_to_secrecy_lvls_map read_access_map all_process_typs =
 
 
 let provide_access_map_to_integrity_lvls_map provide_access_map all_process_typs = 
-  SecurityTypeMap.map (fun set -> 
-    if all_process_typs = set then 
+  SecurityTypeMap.map (fun proc_ty_set -> 
+    if all_process_typs = proc_ty_set then 
       Cst_env.Untrusted
     else 
-      Cst_env.INode set
+      Cst_env.INode proc_ty_set
     ) provide_access_map
 
 
-(* Supplying an environment is not necessary: 
-the global environment is 
-simply the environment from the Cst_syntax.decl.System declaration
+
+
+
+
+
+(* Takes an access_map : access_map and proc_ty : string and returns the set of security types that include the given proc_ty *)
+
+let accessing_labels (access_map : access_map) (proc_ty : string) : SecurityTypeSet.t =
+  (* 1. Find the set of security labels that allow access to a given process type *)
+  SecurityTypeMap.fold (fun key allowed_set acc ->
+    if ProcTySet.mem proc_ty allowed_set then
+      SecurityTypeSet.add key acc
+    else
+      acc
+  ) access_map SecurityTypeSet.empty
+
+(* 2. Define a >= b based on access coverage *)
+let proc_ty_set_geq (access_map : access_map)
+                    (a : proc_ty_set)
+                    (b : proc_ty_set) : bool =
+  ProcTySet.for_all (fun a_ty ->
+    ProcTySet.for_all (fun b_ty ->
+      let a_labels = accessing_labels access_map a_ty in
+      let b_labels = accessing_labels access_map b_ty in
+      SecurityTypeSet.subset b_labels a_labels
+    ) b
+  ) a
+
+(* 3. Iterate over all ordered pairs (a, b) of proc_sets and evaluate whether a >= b *)
+let compute_access_relation (access_map : access_map)
+                            (proc_sets : proc_ty_set list) : cst_access_policy =
+  List.flatten (
+    List.map (fun a ->
+      List.map (fun b ->
+        let geq = proc_ty_set_geq access_map a b in
+        ((a, b), geq)
+      ) proc_sets
+    ) proc_sets
+  )
+
+
+
+
+(* return: 
+- A list of Cst_syntax.decl : core syntax with annotated core security types
+- A cst_access_policy for secrecy levels a, b
+- A cst_access_policy for integrity levels a, b
 *)
-let rec convert (decls : Typed.decl list) : (Cst_syntax.decl list) = 
+let rec convert (decls : Typed.decl list) 
+  : (Cst_syntax.decl list) * cst_access_policy * cst_access_policy = 
   
   let (read_access_map, provide_access_map) = create_access_maps decls in 
 
@@ -173,7 +221,7 @@ let rec convert (decls : Typed.decl list) : (Cst_syntax.decl list) =
 
     let security_type_to_secrecy_lvl = read_access_map_to_secrecy_lvls_map read_access_map all_process_typs in 
     let security_type_to_integrity_lvl = provide_access_map_to_integrity_lvls_map provide_access_map all_process_typs in 
-    
 
+    
     failwith "TODO"
   | _ -> failwith "TODO"
