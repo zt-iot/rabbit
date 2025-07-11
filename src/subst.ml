@@ -159,7 +159,8 @@ let instantiate_proc_group decls (proc_group : Typed.proc) =
       { id= Ident.local ("PG_" ^ fst pproc.data.id)
       ; desc= Unbounded (instantiate_proc [] ~param:None decls (pproc : pproc)) }
   | Bounded (id, pprocs) ->
-      let new_id = Ident.local ("PG_" ^ fst id) in
+      let new_id = Ident.local (fst id) in
+      let proc_id = Ident.prefix "PG_" new_id in
       let e = { desc= Ident { id= new_id
                             ; desc= Var Param
                             ; param= None }
@@ -168,5 +169,5 @@ let instantiate_proc_group decls (proc_group : Typed.proc) =
               }
       in
       (* Use the instantiated parameter for the process id *)
-      { id= new_id
+      { id= proc_id
       ; desc= Bounded (new_id, List.map (instantiate_proc [id, e] ~param:(Some new_id) decls) pprocs) }

@@ -43,7 +43,10 @@ type signature =
 
 (*
 functions: true/0, pk/1, enc/2, sign/2, dec/2, fst/1, snd/1, verify/3, h/1
-equations: fst(<loc__1, loc__0>)=loc__1, snd(<loc__1, loc__0>)=loc__0, dec(enc(loc__1, loc__0), loc__0)=loc__1, verify(sign(loc__1, loc__0), loc__1, pk(loc__0))=true()
+equations: fst(<loc__1, loc__0>)=loc__1,
+           snd(<loc__1, loc__0>)=loc__0,
+           dec(enc(loc__1, loc__0), loc__0)=loc__1,
+           verify(sign(loc__1, loc__0), loc__1, pk(loc__0))=true()
 *)
 let print_signature ppf signature =
   let open Format in
@@ -137,10 +140,10 @@ let fact' f : fact' =
     | None -> []
     | Some p -> [Ident (p :> Ident.t)]
   in
-  let pid (id : Subst.proc_id) (param : Sem.param_id option) =
+  let pid x (param : Sem.param_id option) =
     match param with
-    | None -> String (Ident.to_string (id :> Ident.t))
-    | Some p -> Tuple [String (Ident.to_string (id :> Ident.t)); Ident (p :> Ident.t)]
+    | None -> x
+    | Some p -> Tuple [x; Ident (p :> Ident.t)]
   in
   match f with
   | Channel { channel; name; args } ->
@@ -170,17 +173,20 @@ let fact' f : fact' =
       ; config = config_linear }
   | Loop { mode; proc; param; index } ->
       { name = "Loop_" ^ Typed.string_of_loop_mode mode
-      ; args = [ pid proc param; Index index ]
+      ; args = [ pid (String (Ident.to_string (proc :> Ident.t))) param; Index index ]
       ; config = config_linear
       }
-  | Const { id=_; param; value } ->
+  | Const { id; param; value } ->
       { name= "Const"
-      ; args = (match param with None -> [value] | Some p -> [ p; value ])
+      ; args =
+          (match param with
+           | None -> [String (Ident.to_string id); value]
+           | Some p -> [ Tuple [String (Ident.to_string id); p]; value ])
       ; config = config_persist
       }
   | Const_initializing { id; param } ->
       { name= "Initializing_const"
-      ; args= Ident (id :> Ident.t) :: with_param param
+      ; args= String (Ident.to_string id) :: with_param param
       ; config= config_linear }
   | Proc_group_initializing id ->
       { name= "Initializing_proc_group"
@@ -197,7 +203,7 @@ let fact' f : fact' =
   | Access { id; param; channel; syscall } ->
       { name= "ACP"
       ; args= [
-          pid id param;
+          pid (String (Ident.to_string (id :> Ident.t))) param;
           channel;
           String (match syscall with None -> "" | Some id -> Ident.to_string id)
         ]
@@ -214,7 +220,7 @@ let fact' f : fact' =
       }
   | Transition { proc_id; param; source; target } ->
       { name= "Transition"
-      ; args = [ pid proc_id param; Index source; Index target ]
+      ; args = [ pid (String (Ident.to_string (proc_id :> Ident.t))) param; Index source; Index target ]
       ; config = config_linear }
 
 let string_of_fact' { name; args; config } =
@@ -559,7 +565,7 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       ; pre= [Fresh id]
       ; label= [Const_initializing {id; param= None}; const]
       ; post= [const]
-      ; comment = None
+      ; comment = Some (Printf.sprintf "const fresh %s" (Ident.to_string id))
       }
   | Value e -> (* const c = e *)
       let const = Const { id; param= None; value= compile_expr e } in
@@ -569,17 +575,22 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       ; pre= Fresh id :: const_deps
       ; label= [Const_initializing {id; param= None}; const]
       ; post= [const]
-      ; comment = None
+      ; comment = Some (Printf.sprintf "const %s = %s" (Ident.to_string id) (Typed.string_of_expr e))
       }
   | Fresh_with_param -> (* const fresh c<> *)
+      (* rule Const_c
+          : [Fr(c)]
+            --[Init_(<'rab_c', param>), !Const_(<'rab_c', param>, c)]->
+            [!Const_(<'rab_c', param>, c)]
+      *)
       let p = Sem.param_id @@ Ident.local "param" in
-      let const = Const { id; param= Some (Ident (p :> Ident.t)); value= Ident (p :> Ident.t) } in
+      let const = Const { id; param= Some (Ident (p :> Ident.t)); value= Ident id } in
       { id= rule_id
       ; role= None
-      ; pre= [Fresh (p :> Ident.t)]
+      ; pre= [Fresh (id :> Ident.t)]
       ; label= [Const_initializing {id; param= Some p}; const]
       ; post= [const]
-      ; comment = None
+      ; comment = Some (Printf.sprintf "const fresh %s<>" (Ident.to_string id))
       }
   | Value_with_param (p, e) -> (* const c<p> = e *)
       let const = Const { id; param= Some (Ident p); value= compile_expr e } in
@@ -589,7 +600,7 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       ; pre = const_deps
       ; label= [Const_initializing {id; param= Some (Sem.param_id p)}; const]
       ; post= [const]
-      ; comment = None
+      ; comment = Some (Printf.sprintf "const %s<%s> = %s" (Ident.to_string id) (Ident.to_string p) (Typed.string_of_expr e))
       }
 
 let compile_access_controls
@@ -653,19 +664,19 @@ let print_midamble ppf =
   Format.pp_print_string ppf
     {|//// Midamble
 
-restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
-restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
-restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
+restriction Init : " All x #i #j . Init(x) @ #i & Init(x) @ #j ==> #i = #j "
+restriction Equality_rule: "All x y #i. Eq(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq(x,x) @ #i ==> F"
 
-lemma AlwaysStarts_[reuse,use_induction]:
-      "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+lemma AlwaysStarts[reuse,use_induction]:
+      "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_In(x, p) @j & j < i"
 
 lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
-      "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+      "All x p #i. Loop_Out(x, p) @i ==> Ex #j. Loop_In(x, p) @j & j < i"
 
-lemma TransitionOnce_[reuse,use_induction]:
-      "All x p %i #j #k . Transition_(x, p, %i) @#j &
-        Transition_(x, p, %i) @ #k ==> #j = #k"
+lemma TransitionOnce[reuse,use_induction]:
+      "All x p %i #j #k . Transition(x, p, %i) @#j &
+        Transition(x, p, %i) @ #k ==> #j = #k"
 |}
 
 let print ppf t =
