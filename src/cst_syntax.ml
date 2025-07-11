@@ -132,11 +132,6 @@ type init_desc =
 type decl = decl' loc_env [@@deriving show]
 
 and decl' =
-  | EqThyFunc of
-      { id : ident
-      ; arity : int
-      } (** external function, [function id : arity] *)
-  | Equation of expr * expr (** external equation, [equation e1 = e2] *)
   | Syscall of
       { id : ident
       ; args : ident list

@@ -137,8 +137,6 @@ let extract_process_typs_from_decls procs decls =
   
 
 
-
-
 (* returns a map from SecurityType to secrecy lvl *)
 let read_access_map_to_secrecy_lvls_map read_access_map all_process_typs = 
   SecurityTypeMap.map (fun set -> 
@@ -158,11 +156,6 @@ let provide_access_map_to_integrity_lvls_map provide_access_map all_process_typs
     ) provide_access_map
 
 
-
-
-
-
-
 (* Takes an access_map : access_map and proc_ty : string and returns the set of security types that include the given proc_ty *)
 
 let accessing_labels (access_map : access_map) (proc_ty : string) : SecurityTypeSet.t =
@@ -174,8 +167,8 @@ let accessing_labels (access_map : access_map) (proc_ty : string) : SecurityType
       acc
   ) access_map SecurityTypeSet.empty
 
-(* 2. Define a >= b based on access coverage *)
-let proc_ty_set_geq (access_map : access_map)
+(* 2. Define "a × b" based on access coverage *)
+let proc_ty_set_rel (access_map : access_map)
                     (a : proc_ty_set)
                     (b : proc_ty_set) : bool =
   ProcTySet.for_all (fun a_ty ->
@@ -186,17 +179,21 @@ let proc_ty_set_geq (access_map : access_map)
     ) b
   ) a
 
-(* 3. Iterate over all ordered pairs (a, b) of proc_sets and evaluate whether a >= b *)
-let compute_access_relation (access_map : access_map)
-                            (proc_sets : proc_ty_set list) : cst_access_policy =
+(* 3. Iterate over all ordered pairs (a, b) of proc_ty_sets and evaluate whether "a × b" *)
+let compute_access_relation (access_map : access_map) : cst_access_policy =
+  (* first get the list of unique proc_ty_sets in access_map values *)
+  let proc_ty_sets = SecurityTypeMap.bindings access_map |> List.map snd |> List.sort_uniq ProcTySet.compare in 
   List.flatten (
     List.map (fun a ->
       List.map (fun b ->
-        let geq = proc_ty_set_geq access_map a b in
+        let geq = proc_ty_set_rel access_map a b in
         ((a, b), geq)
-      ) proc_sets
-    ) proc_sets
+      ) proc_ty_sets
+    ) proc_ty_sets
   )
+
+
+
 
 
 
@@ -206,22 +203,28 @@ let compute_access_relation (access_map : access_map)
 - A cst_access_policy for secrecy levels a, b
 - A cst_access_policy for integrity levels a, b
 *)
-let rec convert (decls : Typed.decl list) 
+let convert (decls : Typed.decl list) 
   : (Cst_syntax.decl list) * cst_access_policy * cst_access_policy = 
   
-  let (read_access_map, provide_access_map) = create_access_maps decls in 
+  
 
 
   let decls' = List.map (fun decl -> decl.Typed.desc) decls in 
   match List.rev decls' with
   | [] ->
       failwith "Expected a System declaration at the end, but the list is empty"
-  | Typed.System(procs, _) :: decls_rev ->
+  (* | Typed.System(procs, _) :: decls_rev ->
+
+
+    let (read_access_map, provide_access_map) = create_access_maps decls in 
     let all_process_typs = extract_process_typs_from_decls procs decls_rev in
 
-    let security_type_to_secrecy_lvl = read_access_map_to_secrecy_lvls_map read_access_map all_process_typs in 
-    let security_type_to_integrity_lvl = provide_access_map_to_integrity_lvls_map provide_access_map all_process_typs in 
+    (* The method to compute the relation is the same for both reading/providing *)
+    let secrecy_lattice = compute_access_relation read_access_map in (* the relation is '>=' *)
+    let integrity_lattice = compute_access_relation provide_access_map in (* the relation is '<=' *)
 
+    let security_type_to_secrecy_lvl = read_access_map_to_secrecy_lvls_map read_access_map all_process_typs in 
+    let security_type_to_integrity_lvl = provide_access_map_to_integrity_lvls_map provide_access_map all_process_typs in
     
-    failwith "TODO"
+    failwith "TODO" *)
   | _ -> failwith "TODO"

@@ -42,6 +42,7 @@ type f_param_ty_param =
   | FParamTyParamPoly of Name.ident
 [@@deriving show]
 
+(* a function_param is used to type equational theory functions/syscalls/member functions *)
 type function_param = 
   | FParamSecurity of Name.ident
   | FParamSimple of Name.ident * f_param_ty_param list

@@ -48,7 +48,7 @@ type desc =
   | ChannelDecl of bool (* with param or not *) * ident (* channel type *)
   | Attack
 
-  (* all these four constructors represents the <y> in `type <x> : <y>` *)
+  (* all these four constructors represent the <y> in `type <x> : <y>` *)
   | ProcTypeDef
   | FilesysTypeDef
   | ChanTypeDef of core_security_type list

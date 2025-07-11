@@ -126,7 +126,8 @@ let _main =
             (match typer_result with
              | Error _ -> ()
              | Ok decls ->
-                let cst_decls = Cst_converter.convert(decls) in 
+                let cst_decls, secrecy_lattice, integrity_lattice = 
+                  To_cst.convert(decls) in 
                 let sys =
                    List.find_opt (fun decl ->
                        match decl.Cst_syntax.desc with
@@ -135,7 +136,7 @@ let _main =
                  in
                  match sys with 
                  | Some sys -> 
-                   Typechecker.typecheck_sys cst_decls sys
+                   Typechecker.typecheck_sys cst_decls sys secrecy_lattice integrity_lattice
                  | None -> prerr_endline "no system"
             );
 
