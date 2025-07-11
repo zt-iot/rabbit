@@ -1,6 +1,7 @@
 rm -f examples/_camserver.spthy
 
 if ! dune exec src/rabbit.exe -- examples/camserver.rab -o examples/_camserver.spthy --post-process --tag-transition > /dev/null 2>&1; then
+    echo "exit 2"
     exit 2
 fi
 
