@@ -23,7 +23,7 @@ builtins: natural-numbers
 // Add model inits: Alice
 
 
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
 
 // Access control of Alice:chan
@@ -38,9 +38,9 @@ rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')
 // Model:  Alice
 
 
-rule Alice_event___1___2_1[role="Alice"] : [State_Alice(<'rab___1', param, %v_>, return_var_1, 'rab_', 'rab_', 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___1', %v_), Valid()]->[State_Alice(<'rab___2', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Alice_event___1___2_1[role="Alice"] : [State_Alice(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty')]--[Transition_(<'rab_Alice', param>, 'rab___1', %v_), Valid()]->[State_Alice(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
-rule Alice_put___0___1_0[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_)]->[State_Alice(<'rab___1', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_'), Send('rab_chan', '1')] 
+rule Alice_put___0___1_0[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_)]->[State_Alice(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), Send('rab_chan', '1')] 
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"

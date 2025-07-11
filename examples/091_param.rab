@@ -1,0 +1,20 @@
+const fresh c<>
+
+type proc_t 	  : process
+
+process server<p>() : proc_t
+{
+  main 
+  {
+    event [::Valid()];
+    (p, c<p>)
+  }
+}
+
+system 
+  !p.server<p>()
+requires  
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid()
+]

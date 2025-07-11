@@ -1,0 +1,716 @@
+type expr =
+  | Unit
+  | String of string
+  | Integer of int
+  | Ident of Ident.t
+  | Tuple of expr list
+  | Apply of Ident.t * expr list
+  | Index of Sem.Index.t
+
+let rec vars_of_expr e =
+  match e with
+  | Unit | String _ | Integer _ | Index _ -> Ident.Set.empty
+  | Ident id -> Ident.Set.singleton id
+  | Tuple es | Apply (_, es) -> List.fold_left Ident.Set.union Ident.Set.empty @@ List.map vars_of_expr es
+
+let rec string_of_expr = function
+  | Unit -> "'unit'"
+  | String s -> "'" ^ s ^ "'"
+  | Integer i -> "\'" ^ string_of_int i ^ "\'"
+  | Ident id -> Ident.to_string id
+  | Tuple [] -> assert false
+  | Tuple [_] -> assert false
+  | Tuple es -> "<" ^ String.concat ", " (List.map string_of_expr es) ^ ">"
+  | Apply (s, el) -> Ident.to_string s ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
+  | Index i -> "'index:" ^ Sem.Index.to_string i ^ "'"
+
+let rec compile_expr (e : Typed.expr) : expr =
+  match e.desc with
+  | Boolean _ -> assert false
+  | Float _ -> assert false
+  | Integer z -> Integer z
+  | Ident { id; param= None; _ } -> Ident id
+  | Ident { id; param= Some _p; _ } -> Ident (Ident.prefix "???"  id)
+  | String s -> String ("str:" ^ s)
+  | Apply (f, es) -> Apply (f, List.map compile_expr es)
+  | Tuple es -> Tuple (List.map compile_expr es)
+  | Unit -> Unit
+
+type signature =
+  { functions : (Ident.t * int) list
+  ; equations : (expr * expr) list
+  }
+
+(*
+functions: true/0, pk/1, enc/2, sign/2, dec/2, fst/1, snd/1, verify/3, h/1
+equations: fst(<loc__1, loc__0>)=loc__1, snd(<loc__1, loc__0>)=loc__0, dec(enc(loc__1, loc__0), loc__0)=loc__1, verify(sign(loc__1, loc__0), loc__1, pk(loc__0))=true()
+*)
+let print_signature ppf signature =
+  let open Format in
+  if signature.functions <> [] then
+    fprintf ppf "functions: %a@."
+      (pp_print_list
+         ~pp_sep:(fun ppf () -> fprintf ppf ", ")
+         (fun ppf (id, arity) -> fprintf ppf "%s/%d" (Ident.to_string id) arity))
+      signature.functions;
+  if signature.equations <> [] then
+    fprintf ppf "equations: %a@."
+      (pp_print_list
+         ~pp_sep:(fun ppf () -> fprintf ppf ", ")
+         (fun ppf (e1, e2) -> fprintf ppf "%s=%s" (string_of_expr e1) (string_of_expr e2)))
+      signature.equations
+
+let compile_signature (sg : Sem.signature) =
+  { functions = sg.functions
+  ; equations = List.map (fun (e1,e2) -> compile_expr e1, compile_expr e2) sg.equations
+  }
+
+type fact =
+  | Channel of
+      { channel : expr
+      ; name : Name.t
+      ; args : expr list
+      } (** Channel fact [ch :: name(args)] *)
+  | Out of expr (** Attacker fact: Out *)
+  | In of expr (** Attacker fact: In *)
+  | Plain of Name.t * expr list
+  | Eq of expr * expr
+  | Neq of expr * expr
+  | File of
+      { path : expr
+      ; contents : expr
+      } (** File fact [path.contents] *)
+  | Global of Name.t * expr list
+
+  (* New additions at Sem level *)
+
+  | Fresh of Ident.t
+  | Structure of
+      { name : Name.t
+      ; proc : Subst.proc_id
+      ; address : expr
+      ; args : expr list
+      } (** Structure fact [name(process, address, args)] *)
+  | Loop of
+      { mode : Typed.loop_mode
+      ; proc : Subst.proc_id
+      ; param : Sem.param_id option
+      ; index : Sem.Index.t
+      }
+  | Access of
+      { id: Subst.proc_id
+      ; param : Sem.param_id option
+      ; channel: expr (** channel or file *)
+      ; syscall: Ident.t option (** system call performs this access *)
+      }
+
+  (* New additions at Spthy level *)
+  | Const of { id : Ident.t; param : expr option; value : expr }
+  | Const_initializing of { id : Ident.t; param : Sem.param_id option }
+  | Proc_group_initializing of Subst.proc_group_id
+  | Proc_group_initialized of Subst.proc_group_id * Sem.param_id option (* to bind param *)
+  | Proc_access_initializing of { proc_id : Subst.proc_id; param: Sem.param_id option }
+  | State of { proc_id : Subst.proc_id; index : Sem.Index.t; mapping : (Ident.t * expr) list }
+  | Transition of
+      { proc_id : Subst.proc_id
+      ; param: Sem.param_id option
+      ; source : Sem.Index.t
+      ; target : Sem.Index.t }
+
+type fact_config =
+  { persist : bool
+  (* ; priority : int *)
+  }
+
+let config_persist = { persist= true }
+let config_linear = { persist= false }
+
+type fact' =
+  { name : string
+  ; args : expr list
+  ; config : fact_config
+  }
+
+let fact' f : fact' =
+  let with_param (param : Sem.param_id option) =
+    match param with
+    | None -> []
+    | Some p -> [Ident (p :> Ident.t)]
+  in
+  let pid (id : Subst.proc_id) (param : Sem.param_id option) =
+    match param with
+    | None -> String (Ident.to_string (id :> Ident.t))
+    | Some p -> Tuple [String (Ident.to_string (id :> Ident.t)); Ident (p :> Ident.t)]
+  in
+  match f with
+  | Channel { channel; name; args } ->
+      { name; args= channel :: args; config= config_linear }
+  | Out e ->
+      { name= "Out"; args= [e]; config= config_linear }
+  | In e ->
+      { name= "In"; args= [e]; config= config_linear }
+  | Plain (name, args) ->
+      { name; args; config= config_linear }
+  | Eq (e1, e2) ->
+      (* linear because we will move this to tag and it wont be used as facts *)
+      { name = "Eq"; args = [ e1; e2 ]; config = config_linear }
+  | Neq (e1, e2) ->
+      (* linear because we will move this to tag and it wont be used as facts *)
+      { name = "NEq"; args = [ e1; e2 ]; config = config_linear }
+  | File { path; contents } ->
+      { name = "File" (* namespace? *); args= [ (* param?; *) path; contents ]; config = config_linear }
+
+  | Global (name, args) ->
+      { name; args; config = config_linear }
+  | Fresh id ->
+      { name= "Fr"; args= [Ident id]; config= config_linear }
+  | Structure { name; proc; address; args } ->
+      { name= "Structure_" ^ Ident.to_string (proc :> Ident.t) ^ "_" ^ name
+      ; args = address :: args (* Param? *)
+      ; config = config_linear }
+  | Loop { mode; proc; param; index } ->
+      { name = "Loop_" ^ Typed.string_of_loop_mode mode
+      ; args = [ pid proc param; Index index ]
+      ; config = config_linear
+      }
+  | Const { id=_; param; value } ->
+      { name= "Const"
+      ; args = (match param with None -> [value] | Some p -> [ p; value ])
+      ; config = config_persist
+      }
+  | Const_initializing { id; param } ->
+      { name= "Initializing_const"
+      ; args= Ident (id :> Ident.t) :: with_param param
+      ; config= config_linear }
+  | Proc_group_initializing id ->
+      { name= "Initializing_proc_group"
+      ; args= [String (Ident.to_string (id :> Ident.t))]
+      ; config= config_linear }
+  | Proc_group_initialized (id, param) ->
+      { name= "Initialized_proc_group"
+      ; args= String (Ident.to_string (id :> Ident.t)) :: with_param param
+      ; config= config_persist }
+  | Proc_access_initializing { proc_id; param } ->
+      { name= "Initializing_proc_access"
+      ; args= String (Ident.to_string (proc_id :> Ident.t)) :: with_param param
+      ; config= config_linear }
+  | Access { id; param; channel; syscall } ->
+      { name= "ACP"
+      ; args= [
+          pid id param;
+          channel;
+          String (match syscall with None -> "" | Some id -> Ident.to_string id)
+        ]
+      ; config= config_persist
+      }
+  | State { proc_id; index; mapping } ->
+      { name = "State_" ^ Ident.to_string (proc_id :> Ident.t)
+      ; args = [ Index index (* Tuple [Index index; param ] ??? *);
+                 match mapping with
+                 | [] -> assert false
+                 | [_id, e] -> e
+                 | _ -> Tuple (List.map (fun (_id,e) -> e) mapping)]
+      ; config = config_linear
+      }
+  | Transition { proc_id; param; source; target } ->
+      { name= "Transition"
+      ; args = [ pid proc_id param; Index source; Index target ]
+      ; config = config_linear }
+
+let string_of_fact' { name; args; config } =
+  (if config.persist then "!" else "")
+  ^ name
+  ^ "("
+  ^ String.concat ", " (List.map string_of_expr args)
+  ^ ")"
+
+let string_of_fact f = string_of_fact' @@ fact' f
+
+(* ???
+let print_fact fact =
+  print_fact2 fact ^
+  match fact.config.priority with
+  | 0 -> "[-,no_precomp]"
+  | 1 -> "[-]"
+  | 2 -> ""
+  | 3 -> "[+]"
+  | _ -> assert false
+*)
+
+let constant_dependencies e =
+  let dep_consts = Typed.constants e in
+  List.map (fun (e : Typed.expr) ->
+      match e.desc with
+      | Ident { id; desc= Const false; param= None } ->
+          Const { id; param= None; value= Ident id }
+      | Ident { id; desc= Const true; param= Some p } ->
+          Const { id; param= Some (compile_expr p); value= Ident id }  (* no parameter in value *)
+      | Ident { id= _; desc= Const _; param= _ } -> assert false
+      | _ -> assert false
+    ) dep_consts
+
+let compile_fact_ (f : Sem.fact) : fact =
+  match f.desc with
+  | Channel { channel; name; args } ->
+      Channel { channel= compile_expr channel;
+                name;
+                args= List.map compile_expr args }
+  | Out e -> Out (compile_expr e)
+  | In e -> In (compile_expr e)
+  | Plain (n, es) -> Plain (n, List.map compile_expr es)
+  | Eq (e1, e2) -> Eq (compile_expr e1, compile_expr e2)
+  | Neq (e1, e2) -> Neq (compile_expr e1, compile_expr e2)
+  | File { path; contents } -> File { path= compile_expr path; contents=  compile_expr contents }
+  | Global (n, es) -> Global (n, List.map compile_expr es)
+  | Fresh id -> Fresh id
+  | Structure { name; proc; address; args } ->
+      Structure { name; proc; address= compile_expr address; args= List.map compile_expr args }
+  | Loop { mode; proc; param; index } -> Loop { mode; proc; param; index }
+  | Access { id; param; channel; syscall } ->
+      Access { id; param; channel= compile_expr channel; syscall }
+
+let fact_constant_dependencies (f : Sem.fact) =
+  match f.desc with
+  | Channel { channel; name=_; args } ->
+      constant_dependencies channel @ List.concat_map constant_dependencies args
+  | Out e | In e -> constant_dependencies e
+  | Plain (_, es) | Global (_, es) -> List.concat_map constant_dependencies es
+  | Eq (e1, e2)
+  | Neq (e1, e2) -> constant_dependencies e1 @ constant_dependencies e2
+  | File { path; contents } -> constant_dependencies path @ constant_dependencies contents
+  | Fresh _id -> []
+  | Structure { name=_; proc=_; address; args } ->
+      constant_dependencies address @ List.concat_map constant_dependencies args
+  | Loop _ -> []
+  | Access { id=_; param=_; channel; syscall=_ } -> constant_dependencies channel
+
+let compile_fact (f : Sem.fact) : fact * fact list =
+  compile_fact_ f, fact_constant_dependencies f
+
+let compile_facts (fs : Sem.fact list) : fact list * fact list =
+  let rev_facts, rev_deps = List.fold_left (fun (rev_fs, rev_deps) f ->
+      let f, deps = compile_fact f in
+      f :: rev_fs, List.rev_append deps rev_deps) ([], []) fs
+  in
+  List.rev rev_facts, List.rev rev_deps
+
+type correspondence_unit =
+  { global_variables : fact list
+  ; fact : fact }
+
+type lemma =
+  | Plain of string
+  | Reachability of
+      { global_variables : fact list
+      ; facts : fact list
+      }
+  | Correspondence of
+      { premise : correspondence_unit
+      ; conclusion : correspondence_unit
+      }
+
+
+let vars_of_global_fact = function
+  | Global (_name, es) ->
+      List.fold_left Ident.Set.union Ident.Set.empty @@ List.map vars_of_expr es
+  | Const { id; param; value } ->
+      Ident.Set.add id
+      @@ Ident.Set.union
+        (Option.value ~default:Ident.Set.empty @@ Option.map vars_of_expr param)
+        (vars_of_expr value)
+  | _ -> assert false
+
+let print_lemma ppf (id, lemma) =
+  let open Format in
+  match lemma with
+  | Plain desc ->
+      fprintf ppf "lemma %s :@.  %s@." (Ident.to_string id) desc
+  | Reachability {global_variables= gv; facts} ->
+      let vars = List.fold_left Ident.Set.union Ident.Set.empty @@ List.map vars_of_global_fact (gv @ facts) in
+      fprintf ppf "lemma %s :@." (Ident.to_string id);
+      fprintf ppf "  exists-trace@.    \"Ex ";
+      fprintf ppf "%s" @@ String.concat " " (List.map Ident.to_string (Ident.Set.elements vars));
+      fprintf ppf "%s" @@ String.concat " "
+        (List.mapi (fun n _ -> " #time_" ^ string_of_int n) facts);
+      fprintf ppf "%s" @@ String.concat " "
+        (List.mapi (fun n _ -> " #label_time_" ^ string_of_int n) gv);
+      fprintf ppf " . ";
+      fprintf ppf "%s" @@ String.concat " & "
+        (List.mapi (fun n g -> string_of_fact g ^ "@#label_time_" ^ string_of_int n) gv
+         @ List.mapi (fun n fact -> string_of_fact fact ^ "@#time_" ^ string_of_int n) facts);
+      fprintf ppf " \"@.@."
+
+  | Correspondence {premise; conclusion} ->
+      let vars_of_correspondnce_unit c =
+        List.fold_left Ident.Set.union Ident.Set.empty
+        @@ List.map vars_of_global_fact
+        @@ c.fact :: c.global_variables
+      in
+      let vara = vars_of_correspondnce_unit premise in
+      let varb = Ident.Set.diff (vars_of_correspondnce_unit conclusion) vara in
+      fprintf ppf "lemma %s :@." (Ident.to_string id);
+      fprintf ppf "  all-traces@.    \"All ";
+      fprintf ppf "%s" @@ String.concat " " (List.map Ident.to_string (Ident.Set.elements vara));
+      fprintf ppf "%s" @@ String.concat " "
+        (List.mapi (fun n _ -> " #label_time_" ^ string_of_int n) premise.global_variables);
+      fprintf ppf " #time_1 . ";
+      fprintf ppf "%s" @@ String.concat " & "
+        (List.mapi (fun n g ->
+             string_of_fact g
+             ^ "@#label_time_" ^ string_of_int n) premise.global_variables);
+      if premise.global_variables <> [] then fprintf ppf " & ";
+      fprintf ppf "%s" @@ string_of_fact premise.fact;
+      fprintf ppf "@@#time_1 ==> Ex ";
+      fprintf ppf "%s" @@ String.concat " " (List.map Ident.to_string (Ident.Set.elements varb));
+      fprintf ppf "%s" @@ String.concat " "
+        (List.mapi (fun n _ -> " #label_time_" ^ string_of_int n) conclusion.global_variables);
+      fprintf ppf " #time_2 . ";
+      fprintf ppf "%s" @@ String.concat " & "
+        (List.mapi (fun n g ->
+             string_of_fact g
+             ^ "@#label_time_" ^ string_of_int n) conclusion.global_variables);
+      if conclusion.global_variables <> [] then fprintf ppf " & ";
+      fprintf ppf "%s" @@ string_of_fact conclusion.fact;
+      fprintf ppf "@@#time_2 & #time_2 < #time_1 \"@."
+
+
+let compile_lemma (lem : Typed.lemma) : lemma =
+  match lem.desc with
+  | Plain s -> Plain s
+  | Reachability { fresh=_; facts } ->
+      let facts = List.map Sem.fact_of_typed facts in
+      let facts, deps = compile_facts facts in
+      Reachability { global_variables= deps; facts }
+  | Correspondence { fresh=_; premise; conclusion } ->
+      let premise = Sem.fact_of_typed premise in
+      let conclusion = Sem.fact_of_typed conclusion in
+      let premise, premise_deps = compile_fact premise in
+      let conclusion, conclusion_deps = compile_fact conclusion in
+      Correspondence { premise= { global_variables = premise_deps
+                                ; fact= premise }
+                     ; conclusion = { global_variables = conclusion_deps
+                                    ; fact= conclusion }
+                     }
+
+type rule =
+  { id : Ident.t
+  ; role : Ident.t option (* proc_id or proc_id or both? *)
+  ; pre : fact list
+  ; label : fact list
+  ; post : fact list
+  ; comment : string option
+  }
+
+let print_rule ppf rule =
+  let open Format in
+  Option.iter (fprintf ppf "// %s@.") rule.comment;
+  fprintf ppf "rule %s%s@.  : [%s]@.    --[%s]->@.    [%s]"
+    (Ident.to_string rule.id)
+    (match rule.role with None -> "" | Some id -> Printf.sprintf "[role=\"%s\"]" (Ident.to_string id))
+    (String.concat ", " (List.map (fun f -> string_of_fact' (fact' f)) rule.pre))
+    (String.concat ", " (List.map (fun f -> string_of_fact' (fact' f)) rule.label))
+    (String.concat ", " (List.map (fun f -> string_of_fact' (fact' f)) rule.post))
+
+(*
+rule Client_ta__guarded_guarded_...._____4_____4__0_1__90[role="Client_ta"]
+  : [State__Client_ta(<'rab_____4', param, %v__>,
+                      return__var__8,
+                      'rab__', 'rab__', t__0__8),
+     !ACP__(<'rab__Client_ta', param>, 'rab__rpc', 'rab__'),
+     Fr(n__0__15),
+     ...]
+  --[Transition__(<'rab__Client_ta', param>, 'rab_____4', %v__),
+     Eq__(n__0__23, n__0__30),
+     ...]
+  ->[State__Client_ta(<'rab_____4__0_1', param, %v__>,
+                      'rab__',
+                      <n__0__8, n__1__8, n__2__8>,
+                      'rab__',
+                      t__0__8),
+     File__Client_ta(param, loc__0, n__0__14),
+     Returned('rab__rpc', sign(n__1__8, dec(n__0__23, t__0__8)))
+    ]
+*)
+let rule_of_edge (proc_id : Subst.proc_id) param (edge : Sem.edge) =
+  let role = Some (proc_id :> Ident.t) in
+  let rho = Ident.local "rho" in
+  let state_pre : fact =
+    let vars =
+      List.filter_map (fun (id, desc) ->
+          match desc with
+          | Env.Var _ -> Some id
+          | _ -> None (* the others are not mutable *)) edge.source_env.vars
+    in
+    let vars = rho :: vars in
+    let mapping = List.map (fun id -> id, Ident id) vars in
+    State { proc_id; index= edge.source; mapping }
+  in
+  let state_post : fact =
+    let mapping =
+      List.filter_map (fun (id, desc) ->
+          match desc with
+          | Env.Var _ ->
+              Some (id,
+                    match List.assoc_opt id edge.update.mutable_overrides with
+                    | None -> Ident id (* no change *)
+                    | Some (Some e) -> compile_expr e
+                    | Some None -> Ident rho (* $\rho$ *))
+          | _ -> None (* the others are not mutable *)) edge.target_env.vars
+    in
+    let mapping =
+      let rho_expr =
+        match edge.update.register with
+        | None -> Ident rho
+        | Some e -> compile_expr e
+      in
+      (rho, rho_expr) :: mapping
+    in
+    State { proc_id; index= edge.target; mapping }
+  in
+  let post_consts =
+    List.filter_map (fun (id, (desc : Env.desc)) ->
+        match desc with
+        | Const false -> Some (Const { id; param= None; value= Ident id })
+        | Const true -> Some (Const { id; param= Some (Ident (Ident.local "PARAM")); value= Ident id })
+        | _ -> None) edge.target_env.vars
+  in
+  let pre, pre_deps = compile_facts edge.pre in
+  let post, post_deps = compile_facts edge.post in
+  let label, label_deps = compile_facts edge.tag in
+  let label = Transition { proc_id; param; source=edge.source; target=edge.target } :: label in
+  let pre = state_pre :: pre @ pre_deps @ post_deps @ post_consts @ label_deps in
+  let post = state_post :: post in
+  let comment =
+    Some (Printf.sprintf
+            "Edge %s/%s : %s"
+            (Ident.to_string (proc_id :> Ident.t))
+            (Ident.to_string (edge.id :> Ident.t))
+            (Sem.string_of_update edge.update)
+         )
+  in
+  { id= (edge.id :> Ident.t); role; pre; label; post; comment }
+
+(* rule Init__system[role="system"]
+    : []
+    --[Init__('rab__system')]
+    ->[!ACP__GEN__('rab__system__', 'rab__rab_str'),
+       State__Server(<'rab_____0', 'rab__rab_str', %1>,
+                     'rab__unit',                         <--- return
+                     'rab__empty', 'rab__empty', 'rab__empty'  <-- mutable vars
+                    )]
+
+   # Processes quantified together must be initialized together
+   rule Init__system1[role="system1"]
+    : [Fr(param)]
+    --[Init__(<'rab__system1', param>)]
+    ->[!ACP__GEN__('rab__system1__', param),
+       State__Client_ta(<'rab_____0', param, %1>,
+                        'rab__unit',         <--- return
+                        'rab__empty', 'rab__empty', 'rab__empty'), <-- mutable vars
+       State__Client(<'rab_____0', param, %1>,
+                     'rab__unit',
+                     'rab__empty', 'rab__empty', 'rab__empty')]
+*)
+
+let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.modeled_proc_group_desc)) =
+  let comment = Some (Printf.sprintf "Proc group initialization %s" (Ident.to_string (proc_group_id :> Ident.t))) in
+  match p with
+  | Unbounded model ->
+      assert (model.param = None);
+      let pre = [] in
+      let label = [ Proc_group_initializing proc_group_id ] in
+      let rho = Ident.local "rho" in
+      (* XXX if !Config.tag_transition *)
+      let state = State { proc_id= model.id; index= Sem.Index.zero (* ? *); mapping= [ rho, Unit ] } in
+      let post = [ Proc_group_initialized (proc_group_id, None); state ] in
+      { id = Ident.prefix "Init_" (proc_group_id :> Ident.t)
+      ; role = Some (proc_group_id :> Ident.t)
+      ; pre
+      ; label
+      ; post
+      ; comment
+      }
+  | Bounded (param, models) ->
+      let pre = [ Fresh (param :> Ident.t) ] in
+      let label = [ Proc_group_initializing proc_group_id ] in
+      let states =
+        (* XXX if !Config.tag_transition *)
+        List.map (fun (model : Sem.model) ->
+            assert (model.param <> None);
+            let rho = Ident.local "rho" in
+            State { proc_id= model.id; index= Sem.Index.zero (* ? *); mapping = [ rho, Unit; (param :> Ident.t), Ident (param :> Ident.t) ] }) models
+      in
+      let post = Proc_group_initialized (proc_group_id, Some param) :: states in
+      { id = Ident.prefix "Init_" (proc_group_id :> Ident.t)
+      ; role = Some (proc_group_id :> Ident.t)
+      ; pre
+      ; label
+      ; post
+      ; comment
+      }
+
+let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
+  let rule_id = Ident.prefix "Const_" id in
+  match init_desc with
+  | Fresh -> (* const fresh c *)
+      let const = Const { id; param= None; value= Ident id } in
+      { id= rule_id
+      ; role= None
+      ; pre= [Fresh id]
+      ; label= [Const_initializing {id; param= None}; const]
+      ; post= [const]
+      ; comment = None
+      }
+  | Value e -> (* const c = e *)
+      let const = Const { id; param= None; value= compile_expr e } in
+      let const_deps = constant_dependencies e in
+      { id= rule_id
+      ; role= None
+      ; pre= Fresh id :: const_deps
+      ; label= [Const_initializing {id; param= None}; const]
+      ; post= [const]
+      ; comment = None
+      }
+  | Fresh_with_param -> (* const fresh c<> *)
+      let p = Sem.param_id @@ Ident.local "param" in
+      let const = Const { id; param= Some (Ident (p :> Ident.t)); value= Ident (p :> Ident.t) } in
+      { id= rule_id
+      ; role= None
+      ; pre= [Fresh (p :> Ident.t)]
+      ; label= [Const_initializing {id; param= Some p}; const]
+      ; post= [const]
+      ; comment = None
+      }
+  | Value_with_param (p, e) -> (* const c<p> = e *)
+      let const = Const { id; param= Some (Ident p); value= compile_expr e } in
+      let const_deps = constant_dependencies e in
+      { id= rule_id
+      ; role = None
+      ; pre = const_deps
+      ; label= [Const_initializing {id; param= Some (Sem.param_id p)}; const]
+      ; post= [const]
+      ; comment = None
+      }
+
+let compile_access_controls
+    (proc_group_id : Subst.proc_group_id)
+    (proc_group : Sem.modeled_proc_group_desc)
+    proc_id_elems_list =
+  let param =
+    match proc_group with
+    | Unbounded _ -> None
+    | Bounded (param, _) -> Some param
+  in
+  let compile_proc_id_elems ((proc_id : Subst.proc_id), elems) =
+    if elems = [] then None
+    else
+      let rule_id = Ident.prefix "Access_" (proc_id :> Ident.t) in
+      let comment =
+        Some (Printf.sprintf "Access control for proc %s of group %s"
+                (Ident.to_string (proc_id :> Ident.t))
+                (Ident.to_string (proc_group_id :> Ident.t)))
+      in
+      let pre = [ Proc_group_initialized (proc_group_id, param) ] in
+      let label = [ Proc_access_initializing { proc_id; param } ] in
+      let post =
+        List.filter_map (function
+            | `Channel ((chan_arg : Typed.chan_arg), syscall_opt) ->
+                (* XXX channel should take just a Ident.t ? *)
+                Some (Access {
+                    id=proc_id;
+                    param;
+                    channel= String (Ident.to_string chan_arg.channel);
+                    syscall= syscall_opt
+                  })
+            | `Attacks _ -> None (* attack is not handled here *)
+          ) elems
+      in
+      match post with
+      | [] -> None
+      | _ ->
+          Some { id= rule_id
+               ; role = Some (proc_id :> Ident.t)
+               ; pre
+               ; label
+               ; post
+               ; comment
+               }
+  in
+  match List.filter_map compile_proc_id_elems proc_id_elems_list with
+  | [] -> None
+  | rules -> Some rules
+
+type t =
+  { signature : signature
+  ; constants : rule list
+  ; proc_group_inits : rule list
+  ; access_controls : rule list
+  ; models : (Subst.proc_id * rule list) list
+  ; lemmas : (Ident.t * lemma) list
+  }
+
+let print_midamble ppf =
+  Format.pp_print_string ppf
+    {|//// Midamble
+
+restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
+
+lemma AlwaysStarts_[reuse,use_induction]:
+      "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+
+lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
+      "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+
+lemma TransitionOnce_[reuse,use_induction]:
+      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+        Transition_(x, p, %i) @ #k ==> #j = #k"
+|}
+
+let print ppf t =
+  let open Format in
+  fprintf ppf "theory rabbit@.";
+  fprintf ppf "begin@.";
+  fprintf ppf "builtins: natural-numbers@.";
+
+  fprintf ppf "@.//// Signature@.@.";
+  print_signature ppf t.signature;
+
+  fprintf ppf "@.//// Constants@.@.";
+  List.iter (fprintf ppf "%a@." print_rule) t.constants;
+
+  fprintf ppf "@.//// Proc group initialization@.@.";
+  List.iter (fprintf ppf "%a@." print_rule) t.proc_group_inits;
+
+  fprintf ppf "@.//// Access control@.@.";
+  List.iter (fprintf ppf "%a@.@." print_rule) t.access_controls;
+
+  fprintf ppf "//// Proc models@.@.";
+  List.iter (fun ((proc_id : Subst.proc_id), rules) ->
+      fprintf ppf "// Model of proc %s@.@." (Ident.to_string (proc_id :> Ident.t));
+      List.iter (fprintf ppf "%a@.@." print_rule) rules) t.models;
+
+  print_midamble ppf;
+
+  fprintf ppf "@.//// Lemmas@.@.";
+  List.iter (print_lemma ppf) t.lemmas;
+
+  fprintf ppf "@.end@."
+
+
+let compile_sem ({ signature; proc_groups; constants; lemmas; access_controls } : Sem.t) =
+  let signature = compile_signature signature in
+  let constants = List.map (fun (id, init_desc) -> rule_of_const id init_desc) constants in
+  let models =
+    List.map (fun ({ id; edges; param } : Sem.model) -> (id, List.map (rule_of_edge id param) edges))
+    @@ List.concat_map (function
+        | _procid, Sem.Unbounded m -> [m]
+        | _procid, Bounded (_, ms) -> ms) proc_groups
+  in
+  let proc_group_inits = List.map proc_group_init proc_groups in
+  let lemmas = List.map (fun (id, l) -> id, compile_lemma l) lemmas in
+  let access_controls = List.concat @@ List.filter_map (fun (proc_group_id, ac) ->
+      compile_access_controls proc_group_id (List.assoc proc_group_id proc_groups) ac) access_controls
+  in
+  { signature; constants; models; proc_group_inits; lemmas; access_controls }

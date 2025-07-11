@@ -1,0 +1,31 @@
+syscall send_one(c) {
+   put[c::send(1)]
+}
+
+syscall send_two(c) {
+   put[c::send(2)]
+}
+
+type person_t : process
+type chan_t : channel
+
+process alice<p>(ch : chan_t) : person_t 
+{
+    main {
+        _ := send_one(ch);
+        _ := send_two(ch);
+        event[::Valid()]
+    }
+}
+
+allow person_t chan_t [send_one, send_two]
+
+channel chan : chan_t
+
+system
+  !p.alice<p>(chan)
+requires
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid()
+]

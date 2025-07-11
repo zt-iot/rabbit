@@ -128,8 +128,18 @@ let _main =
                  (match !svg2_file with
                   | None -> ()
                   | Some fn ->
-                      Sem_debug.write_models_svg fn semantics.models);
-                 prerr_endline "graph checked"
+                      Sem_debug.write_models_svg fn
+                      @@ List.concat_map (function
+                          | _id, Sem.Unbounded model -> [model]
+                          | _id, Bounded (_p, models) -> models) semantics.proc_groups);
+                 prerr_endline "graph checked";
+
+                 let sem = Sem.t_of_decls decls in
+                 let spthy = Spthy.compile_sem sem in
+
+                 Out_channel.with_open_text "out.spthy2" @@ fun oc ->
+                 let ppf = Format.formatter_of_out_channel oc in
+                 Format.fprintf ppf "%a@." Spthy.print spthy
             );
             res
           )

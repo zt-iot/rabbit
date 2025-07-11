@@ -23,7 +23,7 @@ builtins: natural-numbers
 // Add model inits: Alice,Bob
 
 
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), State_Bob(<'rab___0', 'rab_rab_str', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), State_Bob(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
 
 // Access control of Alice:chan
@@ -60,19 +60,19 @@ rule Init_system_ACP_3[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')
 // Model:  Alice
 
 
-rule Alice_scall_intro_put_scall_out___1___2_5[role="Alice"] : [State_Alice(<'rab___1', param, %v_>, return_var_1, 'rab_', 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_send')]--[Transition_(<'rab_Alice', param>, 'rab___1', %v_)]->[State_Alice(<'rab___2', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_'), Store('rab_chan', '1')] 
+rule Alice_scall_intro_put_scall_out___1___2_5[role="Alice"] : [State_Alice(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_send')]--[Transition_(<'rab_Alice', param>, 'rab___1', %v_)]->[State_Alice(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), Store('rab_chan', '1')] 
 
-rule Alice_event___0___1_0[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_), Sent()]->[State_Alice(<'rab___1', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Alice_event___0___1_0[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty')]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_), Sent()]->[State_Alice(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
 
 // Model:  Bob
 
 
-rule Bob_let_intro_scall_intro___0___1_0_0_18[role="Bob"] : [State_Bob(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___0', %v_)]->[State_Bob(<'rab___1_0_0', param, %v_>, 'rab_', 'rab_', <'rab_chan', 'rab_'>, 'rab_')] 
+rule Bob_let_intro_scall_intro___0___1_0_0_18[role="Bob"] : [State_Bob(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty')]--[Transition_(<'rab_Bob', param>, 'rab___0', %v_)]->[State_Bob(<'rab___1_0_0', param, %v_>, 'rab_unit', 'rab_empty', <'rab_chan', 'rab_'>, 'rab_empty')] 
 
-rule Bob_guarded_return_case_out_scall_out_event___1_0_0___3_17[role="Bob"] : [State_Bob(<'rab___1_0_0', param, %v_>, return_var_2, 'rab_', <l_0_2, l_1_2>, 'rab_'), !ACP_(<'rab_Bob', param>, l_0_2, 'rab_recv'), Store(l_0_2, n_0_2)]--[Transition_(<'rab_Bob', param>, 'rab___1_0_0', %v_), Received()]->[State_Bob(<'rab___3', param, %v_>, 'rab_', 'rab_', n_0_2, 'rab_')] 
+rule Bob_guarded_return_case_out_scall_out_event___1_0_0___3_17[role="Bob"] : [State_Bob(<'rab___1_0_0', param, %v_>, return_var_2, 'rab_empty', <l_0_2, l_1_2>, 'rab_empty'), !ACP_(<'rab_Bob', param>, l_0_2, 'rab_recv'), Store(l_0_2, n_0_2)]--[Transition_(<'rab_Bob', param>, 'rab___1_0_0', %v_), Received()]->[State_Bob(<'rab___3', param, %v_>, 'rab_unit', 'rab_empty', n_0_2, 'rab_empty')] 
 
-rule Bob_guarded_event_case_out_let_out___3___5_13[role="Bob"] : [State_Bob(<'rab___3', param, %v_>, return_var_7, 'rab_', l_0_7, 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___3', %v_), Valid(), Eq_(l_0_7, '1')]->[State_Bob(<'rab___5', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Bob_guarded_event_case_out_let_out___3___5_13[role="Bob"] : [State_Bob(<'rab___3', param, %v_>, return_var_7, 'rab_empty', l_0_7, 'rab_empty')]--[Transition_(<'rab_Bob', param>, 'rab___3', %v_), Valid(), Eq_(l_0_7, '1')]->[State_Bob(<'rab___5', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"

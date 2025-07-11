@@ -23,7 +23,7 @@ builtins: natural-numbers
 // Add model inits: Alice,Bob
 
 
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_', 'rab_', 'rab_', 'rab_'), State_Bob(<'rab___0', 'rab_rab_str', %1>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), State_Bob(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
 
 // Access control of Alice:chan
@@ -48,21 +48,21 @@ rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')
 // Model:  Alice
 
 
-rule Alice_guarded_event___0___0_0_1_5[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_'), Ping('rab_chan', n_0_0)]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_), Pong(n_0_0)]->[State_Alice(<'rab___0_0_1', param, %v_>, 'rab_', n_0_0, 'rab_', 'rab_')] 
+rule Alice_guarded_event___0___0_0_1_5[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_'), Ping('rab_chan', n_0_0)]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_), Pong(n_0_0)]->[State_Alice(<'rab___0_0_1', param, %v_>, 'rab_unit', n_0_0, 'rab_empty', 'rab_empty')] 
 
-rule Alice_put_case_out___0_0_1___1_4[role="Alice"] : [State_Alice(<'rab___0_0_1', param, %v_>, return_var_2, m_0_2, 'rab_', 'rab_'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___0_0_1', %v_)]->[State_Alice(<'rab___1', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_'), Pong('rab_chan', m_0_2)] 
+rule Alice_put_case_out___0_0_1___1_4[role="Alice"] : [State_Alice(<'rab___0_0_1', param, %v_>, return_var_2, m_0_2, 'rab_empty', 'rab_empty'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Alice', param>, 'rab___0_0_1', %v_)]->[State_Alice(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), Pong('rab_chan', m_0_2)] 
 
 
 // Model:  Bob
 
 
-rule Bob_new_intro_event___0___2_16[role="Bob"] : [State_Bob(<'rab___0', param, %v_>, return_var_0, 'rab_', 'rab_', 'rab_'), Fr(n_0_0)]--[Transition_(<'rab_Bob', param>, 'rab___0', %v_), Ping(n_0_0)]->[State_Bob(<'rab___2', param, %v_>, 'rab_', n_0_0, 'rab_', 'rab_')] 
+rule Bob_new_intro_event___0___2_16[role="Bob"] : [State_Bob(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), Fr(n_0_0)]--[Transition_(<'rab_Bob', param>, 'rab___0', %v_), Ping(n_0_0)]->[State_Bob(<'rab___2', param, %v_>, 'rab_unit', n_0_0, 'rab_empty', 'rab_empty')] 
 
-rule Bob_guarded_event_case_out_new_out___3___5_15[role="Bob"] : [State_Bob(<'rab___3', param, %v_>, return_var_3, m_0_3, 'rab_', 'rab_'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_'), Pong('rab_chan', m_0_3)]--[Transition_(<'rab_Bob', param>, 'rab___3', %v_), Valid(m_0_3)]->[State_Bob(<'rab___5', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Bob_guarded_event_case_out_new_out___3___5_15[role="Bob"] : [State_Bob(<'rab___3', param, %v_>, return_var_3, m_0_3, 'rab_empty', 'rab_empty'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_'), Pong('rab_chan', m_0_3)]--[Transition_(<'rab_Bob', param>, 'rab___3', %v_), Valid(m_0_3)]->[State_Bob(<'rab___5', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
-rule Bob_guarded_event_case_out_new_out___3___5_14[role="Bob"] : [State_Bob(<'rab___3', param, %v_>, return_var_6, m_0_6, 'rab_', 'rab_'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_'), Pong('rab_chan', n_0_6)]--[Transition_(<'rab_Bob', param>, 'rab___3', %v_), Invalid(m_0_6, n_0_6), NEq_(m_0_6, n_0_6)]->[State_Bob(<'rab___5', param, %v_>, 'rab_', 'rab_', 'rab_', 'rab_')] 
+rule Bob_guarded_event_case_out_new_out___3___5_14[role="Bob"] : [State_Bob(<'rab___3', param, %v_>, return_var_6, m_0_6, 'rab_empty', 'rab_empty'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_'), Pong('rab_chan', n_0_6)]--[Transition_(<'rab_Bob', param>, 'rab___3', %v_), Invalid(m_0_6, n_0_6), NEq_(m_0_6, n_0_6)]->[State_Bob(<'rab___5', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
-rule Bob_put___2___3_2[role="Bob"] : [State_Bob(<'rab___2', param, %v_>, return_var_2, m_0_2, 'rab_', 'rab_'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___2', %v_)]->[State_Bob(<'rab___3', param, %v_>, 'rab_', m_0_2, 'rab_', 'rab_'), Ping('rab_chan', m_0_2)] 
+rule Bob_put___2___3_2[role="Bob"] : [State_Bob(<'rab___2', param, %v_>, return_var_2, m_0_2, 'rab_empty', 'rab_empty'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_')]--[Transition_(<'rab_Bob', param>, 'rab___2', %v_)]->[State_Bob(<'rab___3', param, %v_>, 'rab_unit', m_0_2, 'rab_empty', 'rab_empty'), Ping('rab_chan', m_0_2)] 
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"

@@ -1,7 +1,7 @@
 open Sem
 
 module V = struct
-  type t = Ident.t * Index.t
+  type t = Subst.proc_id * Index.t
   let compare = compare
   let hash = Hashtbl.hash
   let equal = (=)
@@ -11,7 +11,7 @@ module E = struct
   type t = edge
   let compare = compare
   let default =
-    { id = Ident.global "dummy"
+    { id = Sem.edge_id @@ Ident.global "dummy"
     ; source = Index.zero
     ; source_env = Env.empty ()
     ; pre = []
@@ -38,7 +38,7 @@ module G' = struct
 
     let edge_label (t : Sem.edge) =
       String.concat ";\n"
-      @@ Ident.to_string t.id
+      @@ Ident.to_string (t.id :> Ident.t)
          :: ("PRE:"^String.concat "; " (List.map string_of_fact t.pre))
          :: string_of_update t.update
          :: (match t.tag with
@@ -55,7 +55,7 @@ module Viz = Graph.Graphviz.Dot(G')
 let viz_of_models ms =
   List.fold_left (fun viz m ->
       List.fold_left (fun viz e ->
-          G'.add_edge_e viz ((m.id,e.source), e, (m.id,e.target))) viz m.edges) G'.empty ms
+          G'.add_edge_e viz ((m.id, e.source), e, (m.id, e.target))) viz m.edges) G'.empty ms
 
 let write_models_svg fn_svg ms =
   let fn_viz = fn_svg ^ ".viz" in

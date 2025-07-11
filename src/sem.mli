@@ -16,9 +16,51 @@ module Index : sig
   module Map : Map.S with type key = t
 end
 
+type param_id = private Ident.t
+
+val param_id : Ident.t -> param_id
+
 type fact = fact' Typed.loc_env
 
-and fact'
+(* Typed.fact' + internal facts *)
+and fact' =
+  | Channel of
+      { channel : Typed.expr
+      ; name : Name.t
+      ; args : Typed.expr list
+      } (** Channel fact [ch :: name(args)] *)
+  | Out of Typed.expr (** Attacker fact: Out *)
+  | In of Typed.expr (** Attacker fact: In *)
+  | Plain of Name.t * Typed.expr list
+  | Eq of Typed.expr * Typed.expr
+  | Neq of Typed.expr * Typed.expr
+  | File of
+      { path : Typed.expr
+      ; contents : Typed.expr
+      } (** File fact [path.contents] *)
+  | Global of Name.t * Typed.expr list
+
+  (* New additions at Sem level *)
+
+  | Fresh of Ident.t
+  | Structure of
+      { name : Name.t
+      ; proc : Subst.proc_id
+      ; address : Typed.expr
+      ; args : Typed.expr list
+      } (** Structure fact [name(process, address, args)] *)
+  | Loop of
+      { mode : Typed.loop_mode
+      ; proc : Subst.proc_id
+      ; param : param_id option
+      ; index : Index.t
+      }
+  | Access of
+      { id: Subst.proc_id (** process id *)
+      ; param : param_id option
+      ; channel: Typed.expr (** channel or file *)
+      ; syscall: Ident.t option (** system call performs this access *)
+      }
 
 val string_of_fact : fact -> string
 
@@ -37,8 +79,12 @@ type update =
 
 val string_of_update : update -> string
 
+type edge_id = private Ident.t
+
+val edge_id : Ident.t -> edge_id
+
 type edge =
-  { id : Ident.t
+  { id : edge_id
   ; source : Index.t
   ; source_env : Env.t
   ; pre : fact list
@@ -55,12 +101,22 @@ type signature =
   }
 
 type model =
-  { id : Ident.t
+  { id : Subst.proc_id
+  ; param : param_id option
   ; edges : edge list }
+
+type modeled_proc_group_desc =
+  | Unbounded of model
+  | Bounded of param_id * model list
 
 type t =
   { signature : signature
-  ; models : model list
+  ; proc_groups : (Subst.proc_group_id * modeled_proc_group_desc) list
+  ; access_controls :
+      (Subst.proc_group_id
+       * (Subst.proc_id
+          * [ `Attacks of Ident.t list
+            | `Channel of Typed.chan_arg * Ident.t option ] list) list) list
   ; constants : (Ident.t * Typed.init_desc) list
   ; lemmas : (Ident.t * Typed.lemma) list
   }

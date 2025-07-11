@@ -8,10 +8,21 @@ let local s =
   incr cntr;
   s, !cntr
 
+let is_global id = snd id = 0
+
 let name (s, i) =
   if i = 0 then s
   else Printf.sprintf "%s__%d" s i
 
 let print id ppf = Format.fprintf ppf "%s" (fst id)
 
-let to_string id = fst id ^ "__" ^ string_of_int (snd id)
+let to_string = name
+
+let prefix s (name, idx) =
+  assert (s <> "");
+  s ^ name, idx
+
+module Set = Set.Make(struct
+    type nonrec t = t
+    let compare = compare
+  end)

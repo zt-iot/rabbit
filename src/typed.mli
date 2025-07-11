@@ -35,6 +35,8 @@ type loop_mode =
   | Back
   | Out
 
+val string_of_loop_mode : loop_mode -> string
+
 type fact = fact' loc_env
 
 and fact' =
@@ -194,25 +196,3 @@ and decl' =
   | System of proc list * (Ident.t * lemma) list
   (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
   | Load of string * decl list (** [load "fn"] *)
-
-module Subst : sig
-  type t =
-    { channels : (ident * ident) list
-    ; parameters : (ident * expr) list
-    }
-
-  val expr : t -> expr -> expr
-  val fact : t -> fact -> fact
-  val cmd : t -> cmd -> cmd
-
-  type instantiated_process =
-    { id : Ident.t
-    ; typ : ident
-    ; files : (expr * ident * expr) list
-    ; vars : (ident * expr) list
-    ; funcs : (ident * ident list * cmd) list
-    ; main : cmd
-    }
-
-  val instantiate_proc : decl list -> proc -> instantiated_process list
-end
