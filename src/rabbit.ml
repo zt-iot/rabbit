@@ -123,7 +123,7 @@ let _main =
             in
 
             (* Typechecking test with security type system *)
-            (* (match typer_result with
+            (match typer_result with
              | Error _ -> ()
              | Ok decls ->
                 let cst_decls, secrecy_lattice, integrity_lattice = 
@@ -138,7 +138,7 @@ let _main =
                  | Some sys -> 
                    Typechecker.typecheck_sys cst_decls sys secrecy_lattice integrity_lattice
                  | None -> prerr_endline "no system"
-            ); *)
+            );
 
             (* Semantics test *)
             (match typer_result with

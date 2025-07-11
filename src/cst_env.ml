@@ -40,7 +40,7 @@ type core_function_param_type =
 
 type desc =
   | SimpleTypeDef of name list (* simple type declaration *)
-  | Var of var_desc * core_security_type
+  | Var of var_desc
   | ExtFun of core_function_param_type list (* equational theory function with 0 or more function parameters *)
   | ExtSyscall of core_function_param_type list (** system call with 0 ore mor function parameters *)
   | MemberFunc of core_function_param_type list (** member function of a process *)

@@ -41,7 +41,6 @@ let kind_of_desc = function
   | Var (MetaNew _) -> "metanew"
   | Var Param -> "parameter"
   | ExtFun _ -> "external function"
-  | ExtConst -> "external constant"
   | ExtSyscall _ -> "system call"
   | Const _ -> "constant"
   | ChannelDecl _ -> "channel instantiation declaration"
@@ -327,7 +326,14 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
         let es = List.map (desugar_expr env) es in
         let use = List.length es in
         (match Env.find ~loc env f with
-         | id, (ExtFun arity | ExtSyscall arity | Function arity) ->
+         | id, (ExtFun (DesugaredArity arity)) -> 
+             check_arity ~loc ~arity ~use;
+             Apply (id, es)
+         | id, (ExtFun (DesugaredTypeSig ps)) -> 
+            let arity = List.length ps - 1 in (* return type is not considered part of the input arity *)
+            check_arity ~loc ~arity ~use;
+             Apply (id, es)
+         | id, (ExtSyscall arity | Function arity) ->
              check_arity ~loc ~arity ~use;
              Apply (id, es)
          | id, desc ->
@@ -707,20 +713,16 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       (* [load "xxx.rab"] *)
       let fn = Filename.dirname base_fn ^ "/" ^ fn in
       load env fn
-  | DeclEqThyFunc(name, fun_desc) ->
-    let converted_fun_desc, arity = begin match fun_desc with 
-      | Input.Arity(n) -> Typed.DesugaredArity(n), n
+  | DeclEqThyFunc(name, fun_desc) -> 
+    let converted_fun_desc = begin match fun_desc with 
+      | Input.Arity(n) -> Env.DesugaredArity(n)
       | Input.TypeSig(typs) -> 
-          Typed.DesugaredTypeSig(List.map 
+          Env.DesugaredTypeSig(List.map 
             (convert_rabbit_typ_to_env_function_param ~loc env) 
-            typs), (List.length typs) - 1
+            typs)
       end in
-    if arity == 0 then
-      let env', id = Env.add_global ~loc env name ExtConst in
-      env', [{ env; loc; desc = Typed.EqThyFunc { id; fun_desc = converted_fun_desc } }]
-    else
-      let env', id = Env.add_global ~loc env name (ExtFun arity) in
-      env', [{ env; loc; desc = Typed.EqThyFunc { id; fun_desc = converted_fun_desc } }]
+    let env', _ = Env.add_global ~loc env name (ExtFun converted_fun_desc) in
+    env', []
   | DeclEqThyEquation (e1, e2) ->
       let vars = Name.Set.union (Input.vars_of_expr e1) (Input.vars_of_expr e2) in
       let fresh =

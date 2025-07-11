@@ -52,11 +52,18 @@ type function_param =
 [@@deriving show]
 
 
+(* Used for signature of equational theory function *)
+type eq_thy_func_desc = 
+  | DesugaredArity of int (* when types are not given *)
+  | DesugaredTypeSig of function_param list (* when types are given *)
+[@@deriving show]
+
+
+
 type desc =
   | SimpleTypeDef of Name.ident list
   | Var of var_desc
-  | ExtFun of int
-  | ExtConst
+  | ExtFun of eq_thy_func_desc
   | ExtSyscall of int
   | Const of bool * instantiated_ty option
   | ChannelDecl of bool * Ident.t
@@ -79,8 +86,7 @@ let print_desc desc ppf =
   | Var (Meta i) -> f ppf "Meta %d" i
   | Var (MetaNew i) -> f ppf "MetaNew %d" i
   | Var Param -> f ppf "Param"
-  | ExtFun i -> f ppf "ExtFun (arity=%d)" i
-  | ExtConst -> f ppf "ExtConst"
+  | ExtFun _ -> f ppf "ExtFun"
   | ExtSyscall i -> f ppf "ExtSyscall (arity=%d)" i
   | Const (b, _) -> f ppf "Const (param=%b)" b
   | ChannelDecl (b, id) -> f ppf "Channel declaration (param=%b) : %t" b (Ident.print id)

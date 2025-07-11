@@ -138,13 +138,6 @@ type init_desc =
 
 
 
-(* Used for signature of equational theory function *)
-type eq_thy_func_desc = 
-  | DesugaredArity of int (* when types are not given *)
-  | DesugaredTypeSig of Env.function_param list (* when types are given *)
-[@@deriving show]
-
-
 (* Used for signature of syscalls and member function *)
 type syscall_member_fun_sig = 
   | DesSMFunUntyped of ident list  (* when types are not given *)
@@ -159,10 +152,6 @@ let syscall_member_fun_desc_to_ident_list signature = match signature with
 type decl = decl' loc_env [@@deriving show]
 
 and decl' =
-  | EqThyFunc of
-      { id : ident
-      ; fun_desc : eq_thy_func_desc
-      }
   | Equation of expr * expr
   | Syscall of
       { id : ident

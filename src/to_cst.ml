@@ -213,7 +213,7 @@ let convert (decls : Typed.decl list)
   match List.rev decls' with
   | [] ->
       failwith "Expected a System declaration at the end, but the list is empty"
-  (* | Typed.System(procs, _) :: decls_rev ->
+  | Typed.System(procs, _) :: decls_rev ->
 
 
     let (read_access_map, provide_access_map) = create_access_maps decls in 
@@ -226,5 +226,5 @@ let convert (decls : Typed.decl list)
     let security_type_to_secrecy_lvl = read_access_map_to_secrecy_lvls_map read_access_map all_process_typs in 
     let security_type_to_integrity_lvl = provide_access_map_to_integrity_lvls_map provide_access_map all_process_typs in
     
-    failwith "TODO" *)
+    failwith "TODO"
   | _ -> failwith "TODO"

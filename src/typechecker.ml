@@ -24,4 +24,4 @@ let typecheck_sys (_ : Cst_syntax.decl list)
   (_ : To_cst.cst_access_policy) = match sys.Cst_syntax.desc with 
   (* | Cst_syntax.System(procs) ->
     failwith "TODO" *)
-  | _ -> assert false
+  | _ -> assert true
