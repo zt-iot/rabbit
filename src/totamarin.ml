@@ -1257,6 +1257,7 @@ let translate_sys
     t
   in
 
+  (* Bug: a rule is produced even when there is no process without parameters *)
   let t = translate_processes None proc t in
 
   let t =
