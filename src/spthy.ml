@@ -107,32 +107,32 @@ type fact =
   | Loop of
       { mode : Typed.loop_mode
       ; proc : Subst.proc_id
-      ; param : Sem.param_id option
+      ; param : Subst.param_id option
       ; index : Sem.Index.t
       }
   | Access of
       { id: Subst.proc_id
-      ; param : Sem.param_id option
+      ; param : Subst.param_id option
       ; channel: expr (** channel or file *)
       ; syscall: Ident.t option (** system call performs this access *)
       }
 
   (* New additions at Spthy level *)
   | Const of { id : Ident.t; param : expr option; value : expr }
-  | Const_initializing of { id : Ident.t; param : Sem.param_id option }
+  | Const_initializing of { id : Ident.t; param : Subst.param_id option }
   | Proc_group_initializing of Subst.proc_group_id
-  | Proc_group_initialized of Subst.proc_group_id * Sem.param_id option (* to bind param *)
-  | Proc_access_initializing of { proc_id : Subst.proc_id; param: Sem.param_id option }
+  | Proc_group_initialized of Subst.proc_group_id * Subst.param_id option (* to bind param *)
+  | Proc_access_initializing of { proc_id : Subst.proc_id; param: Subst.param_id option }
   | State of
       { proc_id : Subst.proc_id
-      ; param : Sem.param_id option
+      ; param : Subst.param_id option
       ; index : Sem.Index.t
       ; mapping : (Ident.t * expr) list
       ; transition : transition option
       }
   | Transition of
       { proc_id : Subst.proc_id
-      ; param: Sem.param_id option
+      ; param: Subst.param_id option
       ; source : Sem.Index.t
       ; transition : transition option }
 
@@ -151,12 +151,12 @@ type fact' =
   }
 
 let fact' f : fact' =
-  let with_param (param : Sem.param_id option) =
+  let with_param (param : Subst.param_id option) =
     match param with
     | None -> []
     | Some p -> [Ident (p :> Ident.t)]
   in
-  let pid x (param : Sem.param_id option) =
+  let pid x (param : Subst.param_id option) =
     match param with
     | None -> x
     | Some p -> Tuple [x; Ident (p :> Ident.t)]
@@ -229,7 +229,7 @@ let fact' f : fact' =
       { name = "State_" ^ Ident.to_string (proc_id :> Ident.t)
       ; args = [ (match
                    Index index
-                   :: Option.to_list (Option.map (fun p -> Ident (p : Sem.param_id :> Ident.t)) param)
+                   :: Option.to_list (Option.map (fun p -> Ident (p : Subst.param_id :> Ident.t)) param)
                    @ Option.to_list (Option.map (fun x -> (Transition x : expr)) transition)
                   with
                   | [] -> assert false
@@ -463,7 +463,7 @@ rule Client_ta__guarded_guarded_...._____4_____4__0_1__90[role="Client_ta"]
      Returned('rab__rpc', sign(n__1__8, dec(n__0__23, t__0__8)))
     ]
 *)
-let rule_of_edge (proc_id : Subst.proc_id) (param : Sem.param_id option) (edge : Sem.edge) =
+let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge : Sem.edge) =
   let role = Some (proc_id :> Ident.t) in
   let rho = Ident.local "rho" in
   let state_pre : fact =
@@ -639,7 +639,7 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
             --[Init_(<'rab_c', param>), !Const_(<'rab_c', param>, c)]->
             [!Const_(<'rab_c', param>, c)]
       *)
-      let p = Sem.param_id @@ Ident.local "param" in
+      let p = Subst.param_id @@ Ident.local "param" in
       let const = Const { id; param= Some (Ident (p :> Ident.t)); value= Ident id } in
       { id= rule_id
       ; role= None
@@ -654,7 +654,7 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       { id= rule_id
       ; role = None
       ; pre = const_deps
-      ; label= [Const_initializing {id; param= Some (Sem.param_id p)}; const]
+      ; label= [Const_initializing {id; param= Some (Subst.param_id p)}; const]
       ; post= [const]
       ; comment = Some (Printf.sprintf "const %s<%s> = %s" (Ident.to_string id) (Ident.to_string p) (Typed.string_of_expr e))
       }

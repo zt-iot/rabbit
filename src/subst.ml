@@ -59,10 +59,13 @@ let rec cmd s (c : cmd) : cmd =
 
 type proc_group_id = Ident.t
 type proc_id = Ident.t
+type param_id = Ident.t
+
+let param_id = Fun.id
 
 type instantiated_proc =
   { id : proc_id
-  ; param : ident option
+  ; param : param_id option
   ; typ : ident
   ; files : (expr * ident * expr) list
   ; vars : (ident * expr) list
@@ -144,7 +147,7 @@ let instantiate_proc
 
 type instantiated_proc_group_desc =
   | Unbounded of instantiated_proc
-  | Bounded of Ident.t * instantiated_proc list
+  | Bounded of param_id * instantiated_proc list
 
 type instantiated_proc_group =
   { id : proc_group_id

@@ -14,10 +14,13 @@ val cmd : t -> cmd -> cmd
 (* These "process ids" are so confusing without types *)
 type proc_group_id = private Ident.t
 type proc_id = private Ident.t
+type param_id = private Ident.t
+
+val param_id : Ident.t -> param_id
 
 type instantiated_proc =
   { id : proc_id
-  ; param : ident option
+  ; param : param_id option
   ; typ : ident
   ; files : (expr * ident * expr) list
   ; vars : (ident * expr) list
@@ -29,7 +32,7 @@ type instantiated_proc =
 
 type instantiated_proc_group_desc =
   | Unbounded of instantiated_proc
-  | Bounded of Ident.t * instantiated_proc list
+  | Bounded of param_id * instantiated_proc list
 
 type instantiated_proc_group =
   { id : proc_group_id

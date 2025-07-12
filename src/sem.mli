@@ -16,10 +16,6 @@ module Index : sig
   module Map : Map.S with type key = t
 end
 
-type param_id = private Ident.t
-
-val param_id : Ident.t -> param_id
-
 type fact = fact' Typed.loc_env
 
 (* Typed.fact' + internal facts *)
@@ -52,12 +48,12 @@ and fact' =
   | Loop of
       { mode : Typed.loop_mode
       ; proc : Subst.proc_id
-      ; param : param_id option
+      ; param : Subst.param_id option
       ; index : Index.t
       }
   | Access of
       { id: Subst.proc_id (** process id *)
-      ; param : param_id option
+      ; param : Subst.param_id option
       ; channel: Typed.expr (** channel or file *)
       ; syscall: Ident.t option (** system call performs this access *)
       }
@@ -103,12 +99,12 @@ type signature =
 
 type model =
   { id : Subst.proc_id
-  ; param : param_id option
+  ; param : Subst.param_id option
   ; edges : edge list }
 
 type modeled_proc_group_desc =
   | Unbounded of model
-  | Bounded of param_id * model list
+  | Bounded of Subst.param_id * model list
 
 type t =
   { signature : signature

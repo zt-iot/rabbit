@@ -40,10 +40,6 @@ end = struct
     end)
 end
 
-type param_id = Ident.t
-
-let param_id = Fun.id
-
 type fact = fact' Typed.loc_env
 
 (* Typed.fact' + internal facts *)
@@ -76,12 +72,12 @@ and fact' =
   | Loop of
       { mode : loop_mode
       ; proc : Subst.proc_id
-      ; param : param_id option
+      ; param : Subst.param_id option
       ; index : Index.t
       }
   | Access of
       { id: Subst.proc_id
-      ; param : param_id option
+      ; param : Subst.param_id option
       ; channel: expr
       ; syscall: ident option
       }
@@ -872,7 +868,7 @@ let graph_files_and_vars
 
 type model =
   { id : Subst.proc_id
-  ; param : param_id option
+  ; param : Subst.param_id option
   ; edges : edge list
   }
 
@@ -897,7 +893,7 @@ let instantiate_proc_groups (decls : decl list) (sys : decl) =
 
 type modeled_proc_group_desc =
   | Unbounded of model
-  | Bounded of Ident.t * model list
+  | Bounded of Subst.param_id * model list
 
 let model_proc_groups (decls : decl list) (sys : decl) (proc_groups : Subst.instantiated_proc_group list)
   : (Subst.proc_group_id * modeled_proc_group_desc) list =
