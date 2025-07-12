@@ -52,16 +52,16 @@ and fact' =
       { channel : expr
       ; name : name
       ; args : expr list
-      } (** Channel fact [ch :: name(args)] *)
-  | Out of expr (** Attacker fact: Out *)
-  | In of expr (** Attacker fact: In *)
+      }
+  | Out of expr
+  | In of expr
   | Plain of name * expr list
   | Eq of expr * expr
   | Neq of expr * expr
   | File of
       { path : expr
       ; contents : expr
-      } (** File fact [path.contents] *)
+      }
   | Global of string * expr list
 
   (* New additions at Sem level *)
@@ -72,7 +72,7 @@ and fact' =
       ; proc : Subst.proc_id
       ; address : expr
       ; args : expr list
-      } (** Structure fact [name(process, address, args)] *)
+      }
   | Loop of
       { mode : loop_mode
       ; proc : Subst.proc_id
@@ -80,10 +80,10 @@ and fact' =
       ; index : Index.t
       }
   | Access of
-      { id: Subst.proc_id (** process id *)
+      { id: Subst.proc_id
       ; param : param_id option
-      ; channel: expr (** channel or file *)
-      ; syscall: ident option (** system call performs this access *)
+      ; channel: expr
+      ; syscall: ident option
       }
 
 let string_of_fact f =
@@ -261,7 +261,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       g1 @ g2, k, env_k
   | Put fs ->
       (* i =put=> i+1 *)
-      (* XXX requires access policy check *)
+      (* XXX ??? requires access policy check *)
       let i_1 = Index.add i 1 in
       let pre = List.filter_map (channel_access ~proc ~syscaller) fs in
       ( [ { id = Ident.local "put"
@@ -520,17 +520,17 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       let arity =
         match Env.find_fact_opt env s with
         | Some (Structure, Some arity) -> arity
-        | _ -> assert false (* XXX *)
+        | _ -> assert false
       in
       let xs =
         List.init arity
         @@ fun i ->
         let id = Ident.local (Printf.sprintf "x%d" i) in
 
-          { env (* XXX vars are not defied in env *)
-          ; loc = Location.nowhere
-          ; desc = Ident { id; desc = Var (Loc (snd id)); param = None }
-          }
+        { env (* XXX id is not defied in env, which may cause problems later invariant check... *)
+        ; loc = Location.nowhere
+        ; desc = Ident { id; desc = Var (Loc (snd id)); param = None }
+        }
       in
       ( [ { id = Ident.local "del"
           ; source = i
@@ -552,10 +552,9 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
         List.concat
         @@ List.mapi
              (fun j (case : case) ->
-                (* XXX case.cmd.env == case.fresh @ env *)
                 let ij = Index.push i j in
                 let gj, bj (* bold j *), env_bj = graph_cmd ~proc ~syscaller find_def decls ij case.cmd in
-                (* XXX requires access policy check *)
+                (* XXX ??? requires access policy check *)
                 ( List.concat [
                       [ { id= Ident.local "case_in"
                         ; source = i
@@ -567,7 +566,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
                         ; tag = []
                         ; post = []
                         ; target = ij
-                        ; target_env = case.cmd.env (* XXX == case.fresh @ env *)
+                        ; target_env = case.cmd.env
                         ; loop_back = false
                         } ];
                       gj;
@@ -608,10 +607,9 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
          :: List.concat
               (List.mapi
                  (fun j (case : case) ->
-                    (* XXX case.cmd.env == case.fresh @ env *)
                     let i_1j = Index.push i_1 j in
                     let gj, bj (* bold j *), env_bj = graph_cmd ~proc ~syscaller find_def decls i_1j case.cmd in
-                    (* XXX requires access policy check *)
+                    (* XXX ??? requires access policy check *)
                     List.concat [
                       [ { id= Ident.local "case_in"
                         ; source = i_1
@@ -623,7 +621,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
                         ; tag = []
                         ; post = []
                         ; target = i_1j
-                        ; target_env = case.cmd.env (* XXX == case.fresh @ env *)
+                        ; target_env = case.cmd.env
                         ; loop_back = false
                         } ];
                       gj;
@@ -646,10 +644,9 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
         @ List.concat
             (List.mapi
                (fun j (case : case) ->
-                  (* XXX case.cmd.env == case.fresh @ env *)
                   let i_1jn = Index.push i_1 (j + n) in
                   let gj, bj (* bold j *), env_bj = graph_cmd ~proc ~syscaller find_def decls i_1jn case.cmd in
-                  (* XXX requires access policy check *)
+                  (* XXX ??? requires access policy check *)
                   List.concat [
                     [ { id= Ident.local "until_in"
                       ; source = i_1
@@ -661,7 +658,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
                       ; tag = []
                       ; post = []
                       ; target = i_1jn
-                      ; target_env = case.cmd.env (* XXX == case.fresh @ env *)
+                      ; target_env = case.cmd.env
                       ; loop_back = false
                       } ];
                     gj;
@@ -734,9 +731,8 @@ and graph_application ~proc ~syscaller find_def (decls : decl list) i (app : exp
                      (* i => ik => ... => j => i_1 *)
                      let ik = Index.push i k in
                      (* XXX dupe: same as the normal applications *)
-                     (* XXX Attacker is restricted by the syscaller?  Yes in Totamarin *)
+                     (* XXX Attacker is restricted by the syscaller?  Yes in Totamarin. So do we here. *)
                      let g', j, env_j = graph_cmd ~proc ~syscaller find_def decls ik cmd in
-                     (* XXX should check env_j = app.env *)
                      List.concat [
                        g;
                        [ { id= Ident.local ((Ident.to_string attack_id) ^ "_attack_in")
