@@ -23,7 +23,7 @@ equations: fst(<loc_1, loc_0>)=loc_1, snd(<loc_1, loc_0>)=loc_0, dec(enc(loc_1, 
 // const fresh sym_k
 
 
-rule Const_sym_k : [Fr(sym_k)]--[Init_('rab_Const_sym_k'), Init_(<'rab_Const_sym_k', sym_k>), !Const_('rab_sym_k', sym_k)]->[!Const_('rab_sym_k', sym_k)] 
+rule Const_sym_k : [Fr(sym_k)]--[Init_('rab_Const_sym_k'), !Const_('rab_sym_k', sym_k)]->[!Const_('rab_sym_k', sym_k)] 
 
 
 // Add model inits: Alice,Bob

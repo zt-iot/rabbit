@@ -137,9 +137,13 @@ let _main =
                  let sem = Sem.t_of_decls decls in
                  let spthy = Spthy.compile_sem sem in
 
-                 Out_channel.with_open_text "out.spthy2" @@ fun oc ->
-                 let ppf = Format.formatter_of_out_channel oc in
-                 Format.fprintf ppf "%a@." Spthy.print spthy
+                 match fst !ofile with
+                 | "" -> ()
+                 | ofile ->
+                     let ofile = ofile ^ ".2" in
+                     Out_channel.with_open_text ofile @@ fun oc ->
+                     let ppf = Format.formatter_of_out_channel oc in
+                     Format.fprintf ppf "%a@." Spthy.print spthy
             );
             res
           )

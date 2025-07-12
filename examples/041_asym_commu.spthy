@@ -23,10 +23,10 @@ equations: fst(<loc_1, loc_0>)=loc_1, snd(<loc_1, loc_0>)=loc_0, verify(sign(loc
 // const fresh privkey
 
 
-rule Const_privkey : [Fr(privkey)]--[Init_('rab_Const_privkey'), Init_(<'rab_Const_privkey', privkey>), !Const_('rab_privkey', privkey)]->[!Const_('rab_privkey', privkey)] 
+rule Const_privkey : [Fr(privkey)]--[Init_('rab_Const_privkey'), !Const_('rab_privkey', privkey)]->[!Const_('rab_privkey', privkey)] 
 
 
-// const pubkey = ...
+// const pubkey = pk(privkey)
 
 
 rule Const_pubkey : [!Const_('rab_privkey', privkey)]--[!Const_('rab_pubkey', pk(privkey))]->[!Const_('rab_pubkey', pk(privkey))] 

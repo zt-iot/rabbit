@@ -20,6 +20,7 @@ module E = struct
     ; post = []
     ; target = Index.zero
     ; target_env = Env.empty ()
+    ; loop_back = false
     }
 end
 module G = Graph.Persistent.Digraph.ConcreteLabeled(V)(E)

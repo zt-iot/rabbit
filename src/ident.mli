@@ -1,6 +1,7 @@
 type t = string * int
 
 val global : string -> t
+(** Make a global variable.  Note: no check of name collisions *)
 
 val local : string -> t
 

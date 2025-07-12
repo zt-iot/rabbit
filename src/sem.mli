@@ -93,6 +93,7 @@ type edge =
   ; post : fact list
   ; target : Index.t
   ; target_env : Env.t
+  ; loop_back : bool (** Loops back and triggers an increment of transition counter if [true] *)
   }
 
 type signature =

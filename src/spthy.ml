@@ -1,3 +1,10 @@
+type transition = One | Var | Inc
+
+let string_of_transition = function
+  | One -> "%1"
+  | Var -> "%v"
+  | Inc -> "%v %+ %1"
+
 type expr =
   | Unit
   | String of string
@@ -6,12 +13,14 @@ type expr =
   | Tuple of expr list
   | Apply of Ident.t * expr list
   | Index of Sem.Index.t
+  | Transition of transition
 
 let rec vars_of_expr e =
   match e with
   | Unit | String _ | Integer _ | Index _ -> Ident.Set.empty
   | Ident id -> Ident.Set.singleton id
   | Tuple es | Apply (_, es) -> List.fold_left Ident.Set.union Ident.Set.empty @@ List.map vars_of_expr es
+  | Transition _ -> Ident.Set.empty
 
 let rec string_of_expr = function
   | Unit -> "'unit'"
@@ -23,6 +32,7 @@ let rec string_of_expr = function
   | Tuple es -> "<" ^ String.concat ", " (List.map string_of_expr es) ^ ">"
   | Apply (s, el) -> Ident.to_string s ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
   | Index i -> "'index:" ^ Sem.Index.to_string i ^ "'"
+  | Transition tr -> string_of_transition tr
 
 let rec compile_expr (e : Typed.expr) : expr =
   match e.desc with
@@ -30,7 +40,7 @@ let rec compile_expr (e : Typed.expr) : expr =
   | Float _ -> assert false
   | Integer z -> Integer z
   | Ident { id; param= None; _ } -> Ident id
-  | Ident { id; param= Some _p; _ } -> Ident (Ident.prefix "???"  id)
+  | Ident { id; param= Some _p; _ } -> Ident id
   | String s -> String ("str:" ^ s)
   | Apply (f, es) -> Apply (f, List.map compile_expr es)
   | Tuple es -> Tuple (List.map compile_expr es)
@@ -113,12 +123,18 @@ type fact =
   | Proc_group_initializing of Subst.proc_group_id
   | Proc_group_initialized of Subst.proc_group_id * Sem.param_id option (* to bind param *)
   | Proc_access_initializing of { proc_id : Subst.proc_id; param: Sem.param_id option }
-  | State of { proc_id : Subst.proc_id; index : Sem.Index.t; mapping : (Ident.t * expr) list }
+  | State of
+      { proc_id : Subst.proc_id
+      ; param : Sem.param_id option
+      ; index : Sem.Index.t
+      ; mapping : (Ident.t * expr) list
+      ; transition : transition option
+      }
   | Transition of
       { proc_id : Subst.proc_id
       ; param: Sem.param_id option
       ; source : Sem.Index.t
-      ; target : Sem.Index.t }
+      ; transition : transition option }
 
 type fact_config =
   { persist : bool
@@ -209,18 +225,28 @@ let fact' f : fact' =
         ]
       ; config= config_persist
       }
-  | State { proc_id; index; mapping } ->
+  | State { proc_id; param; index; mapping; transition } ->
       { name = "State_" ^ Ident.to_string (proc_id :> Ident.t)
-      ; args = [ Index index (* Tuple [Index index; param ] ??? *);
+      ; args = [ (match
+                   Index index
+                   :: Option.to_list (Option.map (fun p -> Ident (p : Sem.param_id :> Ident.t)) param)
+                   @ Option.to_list (Option.map (fun x -> (Transition x : expr)) transition)
+                  with
+                  | [] -> assert false
+                  | [x] -> x
+                  | xs -> Tuple xs
+                 );
                  match mapping with
                  | [] -> assert false
                  | [_id, e] -> e
                  | _ -> Tuple (List.map (fun (_id,e) -> e) mapping)]
       ; config = config_linear
       }
-  | Transition { proc_id; param; source; target } ->
+  | Transition { proc_id; param; source; transition } ->
       { name= "Transition"
-      ; args = [ pid (String (Ident.to_string (proc_id :> Ident.t))) param; Index source; Index target ]
+      ; args = [ pid (String (Ident.to_string (proc_id :> Ident.t))) param
+               ; Index source ]
+               @ Option.to_list (Option.map (fun t -> (Transition t : expr)) transition)
       ; config = config_linear }
 
 let string_of_fact' { name; args; config } =
@@ -437,7 +463,7 @@ rule Client_ta__guarded_guarded_...._____4_____4__0_1__90[role="Client_ta"]
      Returned('rab__rpc', sign(n__1__8, dec(n__0__23, t__0__8)))
     ]
 *)
-let rule_of_edge (proc_id : Subst.proc_id) param (edge : Sem.edge) =
+let rule_of_edge (proc_id : Subst.proc_id) (param : Sem.param_id option) (edge : Sem.edge) =
   let role = Some (proc_id :> Ident.t) in
   let rho = Ident.local "rho" in
   let state_pre : fact =
@@ -449,7 +475,8 @@ let rule_of_edge (proc_id : Subst.proc_id) param (edge : Sem.edge) =
     in
     let vars = rho :: vars in
     let mapping = List.map (fun id -> id, Ident id) vars in
-    State { proc_id; index= edge.source; mapping }
+    let transition = if !Config.tag_transition then Some Var else None in
+    State { proc_id; param; index= edge.source; mapping; transition }
   in
   let state_post : fact =
     let mapping =
@@ -471,19 +498,36 @@ let rule_of_edge (proc_id : Subst.proc_id) param (edge : Sem.edge) =
       in
       (rho, rho_expr) :: mapping
     in
-    State { proc_id; index= edge.target; mapping }
+    let transition =
+      if !Config.tag_transition then
+        if edge.loop_back then Some Inc
+        else Some Var
+      else None in
+    State { proc_id; param; index= edge.target; mapping; transition }
   in
   let post_consts =
-    List.filter_map (fun (id, (desc : Env.desc)) ->
-        match desc with
-        | Const false -> Some (Const { id; param= None; value= Ident id })
-        | Const true -> Some (Const { id; param= Some (Ident (Ident.local "PARAM")); value= Ident id })
-        | _ -> None) edge.target_env.vars
+    List.filter_map (fun (c : Typed.expr) ->
+        match c.desc with
+        | Ident { id; desc= Const false; param= None } ->
+            Some (Const { id; param= None; value= Ident id })
+        | Ident { id; desc= Const true; param= Some p } ->
+            Some (Const { id; param= Some (compile_expr p); value= Ident id })
+        | Ident { id= _; desc= Const _; param= _ } -> assert false
+        | Ident _ -> None
+        | _ -> None)
+    @@
+    List.concat_map Typed.constants
+      (Option.to_list edge.update.register
+       @ List.filter_map (fun (_, eo) -> eo) edge.update.mutable_overrides)
   in
   let pre, pre_deps = compile_facts edge.pre in
   let post, post_deps = compile_facts edge.post in
   let label, label_deps = compile_facts edge.tag in
-  let label = Transition { proc_id; param; source=edge.source; target=edge.target } :: label in
+  let label =
+    if !Config.tag_transition then
+      Transition { proc_id; param; source=edge.source; transition= Some Var } :: label
+    else label
+  in
   let pre = state_pre :: pre @ pre_deps @ post_deps @ post_consts @ label_deps in
   let post = state_post :: post in
   let comment =
@@ -526,8 +570,14 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.modeled_pro
       let pre = [] in
       let label = [ Proc_group_initializing proc_group_id ] in
       let rho = Ident.local "rho" in
-      (* XXX if !Config.tag_transition *)
-      let state = State { proc_id= model.id; index= Sem.Index.zero (* ? *); mapping= [ rho, Unit ] } in
+      let state = State
+          { proc_id= model.id
+          ; param= None
+          ; index= Sem.Index.zero (* ? *)
+          ; mapping= [ rho, Unit ]
+          ; transition= if !Config.tag_transition then Some One else None
+          }
+      in
       let post = [ Proc_group_initialized (proc_group_id, None); state ] in
       { id = Ident.prefix "Init_" (proc_group_id :> Ident.t)
       ; role = Some (proc_group_id :> Ident.t)
@@ -540,11 +590,17 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.modeled_pro
       let pre = [ Fresh (param :> Ident.t) ] in
       let label = [ Proc_group_initializing proc_group_id ] in
       let states =
-        (* XXX if !Config.tag_transition *)
         List.map (fun (model : Sem.model) ->
             assert (model.param <> None);
             let rho = Ident.local "rho" in
-            State { proc_id= model.id; index= Sem.Index.zero (* ? *); mapping = [ rho, Unit; (param :> Ident.t), Ident (param :> Ident.t) ] }) models
+            State
+              { proc_id= model.id
+              ; param= Some param
+              ; index= Sem.Index.zero (* ? *)
+              ; mapping = [ rho, Unit; (param :> Ident.t), Ident (param :> Ident.t) ]
+              ; transition= if !Config.tag_transition then Some One else None
+              }
+          ) models
       in
       let post = Proc_group_initialized (proc_group_id, Some param) :: states in
       { id = Ident.prefix "Init_" (proc_group_id :> Ident.t)
@@ -626,7 +682,6 @@ let compile_access_controls
       let post =
         List.filter_map (function
             | `Channel ((chan_arg : Typed.chan_arg), syscall_opt) ->
-                (* XXX channel should take just a Ident.t ? *)
                 Some (Access {
                     id=proc_id;
                     param;
@@ -671,7 +726,7 @@ restriction NEquality_rule: "All x #i. NEq(x,x) @ #i ==> F"
 lemma AlwaysStarts[reuse,use_induction]:
       "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_In(x, p) @j & j < i"
 
-lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
+lemma AlwaysStartsWhenEnds[reuse,use_induction]:
       "All x p #i. Loop_Out(x, p) @i ==> Ex #j. Loop_In(x, p) @j & j < i"
 
 lemma TransitionOnce[reuse,use_induction]:
@@ -689,7 +744,7 @@ let print ppf t =
   print_signature ppf t.signature;
 
   fprintf ppf "@.//// Constants@.@.";
-  List.iter (fprintf ppf "%a@." print_rule) t.constants;
+  List.iter (fprintf ppf "%a@.@." print_rule) t.constants;
 
   fprintf ppf "@.//// Proc group initialization@.@.";
   List.iter (fprintf ppf "%a@." print_rule) t.proc_group_inits;
@@ -702,7 +757,7 @@ let print ppf t =
       fprintf ppf "// Model of proc %s@.@." (Ident.to_string (proc_id :> Ident.t));
       List.iter (fprintf ppf "%a@.@." print_rule) rules) t.models;
 
-  print_midamble ppf;
+  if !Config.tag_transition then print_midamble ppf;
 
   fprintf ppf "@.//// Lemmas@.@.";
   List.iter (print_lemma ppf) t.lemmas;

@@ -26,7 +26,7 @@ equations: fst(<loc_1, loc_0>)=loc_1, snd(<loc_1, loc_0>)=loc_0, verify(sign(loc
 rule Const_privkey : [Fr(privkey)]--[Init_(<'rab_privkey', param>), !Const_(<'rab_privkey', param>, privkey)]->[!Const_(<'rab_privkey', param>, privkey)] 
 
 
-// const fresh pubkey<k> = ...
+// const fresh pubkey<k> = pk(privkey_0)
 
 
 rule Const_pubkey : [!Const_(<'rab_privkey', param>, privkey_0)]--[Init_(<'rab_pubkey', param>), !Const_(<'rab_pubkey', param>, pk(privkey_0))]->[!Const_(<'rab_pubkey', param>, pk(privkey_0))] 
