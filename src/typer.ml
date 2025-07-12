@@ -22,6 +22,7 @@ type error =
   | InvalidVariableAtAssign of Ident.t * Env.desc
   | UnboundFact of Name.ident
   | NonCallableInExpression of Ident.t * Env.desc
+  | InvalidAnonymousAssignment
 
 exception Error of error Location.located
 
@@ -97,6 +98,8 @@ let print_error err ppf =
         (String.capitalize_ascii (kind_of_desc desc))
         (Ident.print id)
   | UnboundFact id -> Format.fprintf ppf "Unbound fact %s" id
+  | InvalidAnonymousAssignment ->
+      Format.pp_print_string ppf "Pure expression is used at _ := e, which has no effect"
 ;;
 
 module Env : sig
@@ -302,7 +305,12 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         Let (id, e, cmd)
     | Assign (None, e) ->
         let e = type_expr ~at_assignment:true env e in
-        Assign (None, e)
+        (match e.desc with
+         | Apply _ -> Assign (None, e)
+         | _ ->
+             (* _ := e  where e is not an application *)
+             error ~loc @@ InvalidAnonymousAssignment
+        )
     | Assign (Some name, e) ->
         let id, vdesc = Env.find ~loc env name in
         (match vdesc with

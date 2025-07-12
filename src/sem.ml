@@ -402,23 +402,8 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
         ]
       , i_1, env)
   | Assign (None, _e) ->
-      (* XXX e is lost... Should be rejected *)
-      (* i =ignore=> i+1 *)
-      (* _ := e *)
-      let i_1 = Index.add i 1 in
-      ( [ { id = Ident.local "ignore"
-          ; source = i
-          ; source_env = env
-          ; pre = []
-          ; update = update_unit
-          ; tag = []
-          ; post = []
-          ; target = i_1
-          ; target_env = env
-          ; loop_back = false
-          }
-        ]
-      , i_1, env )
+      (* _ := e, e is pure *)
+      assert false
   | Event facts ->
       (* i =event=> i+1 *)
       let i_1 = Index.add i 1 in
