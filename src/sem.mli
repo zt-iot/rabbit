@@ -41,18 +41,18 @@ and fact' =
   | Fresh of Ident.t
   | Structure of
       { name : Name.t
-      ; proc : Subst.proc_id
+      ; proc_id : Subst.proc_id
       ; address : Typed.expr
       ; args : Typed.expr list
       } (** Structure fact [name(process, address, args)] *)
   | Loop of
       { mode : Typed.loop_mode
-      ; proc : Subst.proc_id
+      ; proc_id : Subst.proc_id
       ; param : Subst.param_id option
       ; index : Index.t
       }
   | Access of
-      { id: Subst.proc_id (** process id *)
+      { proc_id: Subst.proc_id (** process id *)
       ; param : Subst.param_id option
       ; channel: Typed.expr (** channel or file *)
       ; syscall: Ident.t option (** system call performs this access *)

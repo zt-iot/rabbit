@@ -65,18 +65,18 @@ and fact' =
   | Fresh of ident
   | Structure of
       { name : name
-      ; proc : Subst.proc_id
+      ; proc_id : Subst.proc_id
       ; address : expr
       ; args : expr list
       }
   | Loop of
       { mode : loop_mode
-      ; proc : Subst.proc_id
+      ; proc_id : Subst.proc_id
       ; param : Subst.param_id option
       ; index : Index.t
       }
   | Access of
-      { id: Subst.proc_id
+      { proc_id: Subst.proc_id
       ; param : Subst.param_id option
       ; channel: expr
       ; syscall: ident option
@@ -107,18 +107,18 @@ let string_of_fact f =
       path ^ "." ^ contents
   | Fresh id -> "Fr " ^ Ident.to_string id
   | Global (s, args) -> Printf.sprintf "::%s(%s)" s (String.concat ", " @@ List.map string_of_expr args)
-  | Structure { name; proc; address; args } ->
+  | Structure { name; proc_id; address; args } ->
       Printf.sprintf "Structure(%s, %s, %s, %s)"
-        name (Ident.to_string (proc :> Ident.t)) (string_of_expr address) (String.concat "," (List.map string_of_expr args))
-  | Loop { mode; proc; param; index } ->
+        name (Ident.to_string (proc_id :> Ident.t)) (string_of_expr address) (String.concat "," (List.map string_of_expr args))
+  | Loop { mode; proc_id; param; index } ->
       let mode = Typed.string_of_loop_mode mode in
       Printf.sprintf
         "Loop%s(%s, %s, %s)"
         mode
-        (Ident.to_string (proc :> Ident.t))
+        (Ident.to_string (proc_id :> Ident.t))
         (match param with None -> "None" | Some p -> Ident.to_string (p :> Ident.t))
         (Index.to_string index)
-  | Access { id; param; channel; syscall } ->
+  | Access { proc_id; param; channel; syscall } ->
       let syscall =
         match syscall with
         | None -> "."
@@ -126,7 +126,7 @@ let string_of_fact f =
       in
       Printf.sprintf
         "Access(%s, %s, %s, %s)"
-        (Ident.to_string (id :> Ident.t))
+        (Ident.to_string (proc_id :> Ident.t))
         (match param with None -> "None" | Some p -> Ident.to_string (p :> Ident.t))
         (string_of_expr channel)
         syscall
@@ -217,7 +217,7 @@ let evar env id =
 let channel_access ~proc:(proc : Subst.instantiated_proc) ~syscaller (f : Typed.fact) =
   match f.desc with
   | Channel { channel; _ } ->
-      Some { f with desc= Access { id= proc.id; param= proc.param; channel; syscall= syscaller } }
+      Some { f with desc= Access { proc_id= proc.id; param= proc.param; channel; syscall= syscaller } }
   | _ -> None
 
 (* <\Gamma |- c>i *)
@@ -452,7 +452,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
                    | Some (s, es) ->
                        [ fact c.env
                          @@ Structure
-                           { name = s; proc=proc.id; address = evar c.env x; args = es }
+                           { name = s; proc_id=proc.id; address = evar c.env x; args = es }
                        ])
               ; target = i_1
               ; target_env = c.env
@@ -481,7 +481,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       let j_1 = Index.add j 1 in
       let pre_and_post : fact list =
         [ fact env
-          @@ Structure { name = s; proc= proc.id; address = e; args = List.map (evar c.env) xs }
+          @@ Structure { name = s; proc_id= proc.id; address = e; args = List.map (evar c.env) xs }
         ]
       in
       ( List.concat [
@@ -531,7 +531,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       ( [ { id = Ident.local "del"
           ; source = i
           ; source_env = env
-          ; pre = [ fact env @@ Structure { name = s; proc= proc.id; address = e; args = xs } ]
+          ; pre = [ fact env @@ Structure { name = s; proc_id= proc.id; address = e; args = xs } ]
           ; update = update_unit
           ; tag = []
           ; post = []
@@ -594,7 +594,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
          ; source_env = env
          ; pre = []
          ; update = update_unit
-         ; tag = [ fact env @@ Loop { mode = In; proc= proc.id; param= proc.param; index = i } ]
+         ; tag = [ fact env @@ Loop { mode = In; proc_id= proc.id; param= proc.param; index = i } ]
          ; post = []
          ; target = i_1
          ; target_env = env
@@ -628,7 +628,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
                         ; update = { update_unit with drops= case.fresh }
                         ; tag =
                             [ fact case.cmd.env
-                              @@ Loop { mode = Back; proc= proc.id; param= proc.param; index = i }
+                              @@ Loop { mode = Back; proc_id= proc.id; param= proc.param; index = i }
                             ]
                         ; post = []
                         ; target = i_1
@@ -665,7 +665,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
                       ; update = { update_id with drops= case.fresh }
                       ; tag =
                           [ fact case.cmd.env
-                            @@ Loop { mode = Out; proc= proc.id; param= proc.param; index = i }
+                            @@ Loop { mode = Out; proc_id= proc.id; param= proc.param; index = i }
                           ]
                       ; post = []
                       ; target = i_2
@@ -837,12 +837,12 @@ let graph_files_and_vars
               | Allow { process_typ; target_typs; syscalls= Some syscalls } ->
                   if process_typ = proc.typ && List.mem fty target_typs then
                     List.map (fun syscall ->
-                        fact (Access { id= proc.id; param= proc.param; channel= path; syscall= Some syscall })) syscalls
+                        fact (Access { proc_id= proc.id; param= proc.param; channel= path; syscall= Some syscall })) syscalls
                   else
                     []
               | Allow { process_typ; target_typs; syscalls= None } ->
                   if process_typ = proc.typ && List.mem fty target_typs then
-                    [ fact (Access { id= proc.id; param= proc.param; channel= path; syscall= None }) ]
+                    [ fact (Access { proc_id= proc.id; param= proc.param; channel= path; syscall= None }) ]
                   else
                     []
               | _ -> []) decls

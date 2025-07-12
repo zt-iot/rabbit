@@ -100,18 +100,18 @@ type fact =
   | Fresh of Ident.t
   | Structure of
       { name : Name.t
-      ; proc : Subst.proc_id
+      ; proc_id : Subst.proc_id
       ; address : expr
       ; args : expr list
       } (** Structure fact [name(process, address, args)] *)
   | Loop of
       { mode : Typed.loop_mode
-      ; proc : Subst.proc_id
+      ; proc_id : Subst.proc_id
       ; param : Subst.param_id option
       ; index : Sem.Index.t
       }
   | Access of
-      { id: Subst.proc_id
+      { proc_id: Subst.proc_id
       ; param : Subst.param_id option
       ; channel: expr (** channel or file *)
       ; syscall: Ident.t option (** system call performs this access *)
@@ -183,13 +183,13 @@ let fact' f : fact' =
       { name; args; config = config_linear }
   | Fresh id ->
       { name= "Fr"; args= [Ident id]; config= config_linear }
-  | Structure { name; proc; address; args } ->
-      { name= "Structure_" ^ Ident.to_string (proc :> Ident.t) ^ "_" ^ name
+  | Structure { name; proc_id; address; args } ->
+      { name= "Structure_" ^ Ident.to_string (proc_id :> Ident.t) ^ "_" ^ name
       ; args = address :: args (* Param? *)
       ; config = config_linear }
-  | Loop { mode; proc; param; index } ->
+  | Loop { mode; proc_id; param; index } ->
       { name = "Loop_" ^ Typed.string_of_loop_mode mode
-      ; args = [ pid (String (Ident.to_string (proc :> Ident.t))) param; Index index ]
+      ; args = [ pid (String (Ident.to_string (proc_id :> Ident.t))) param; Index index ]
       ; config = config_linear
       }
   | Const { id; param; value } ->
@@ -216,10 +216,10 @@ let fact' f : fact' =
       { name= "Initializing_proc_access"
       ; args= String (Ident.to_string (proc_id :> Ident.t)) :: with_param param
       ; config= config_linear }
-  | Access { id; param; channel; syscall } ->
+  | Access { proc_id; param; channel; syscall } ->
       { name= "ACP"
       ; args= [
-          pid (String (Ident.to_string (id :> Ident.t))) param;
+          pid (String (Ident.to_string (proc_id :> Ident.t))) param;
           channel;
           String (match syscall with None -> "" | Some id -> Ident.to_string id)
         ]
@@ -295,11 +295,11 @@ let compile_fact_ (f : Sem.fact) : fact =
   | File { path; contents } -> File { path= compile_expr path; contents=  compile_expr contents }
   | Global (n, es) -> Global (n, List.map compile_expr es)
   | Fresh id -> Fresh id
-  | Structure { name; proc; address; args } ->
-      Structure { name; proc; address= compile_expr address; args= List.map compile_expr args }
-  | Loop { mode; proc; param; index } -> Loop { mode; proc; param; index }
-  | Access { id; param; channel; syscall } ->
-      Access { id; param; channel= compile_expr channel; syscall }
+  | Structure { name; proc_id; address; args } ->
+      Structure { name; proc_id; address= compile_expr address; args= List.map compile_expr args }
+  | Loop { mode; proc_id; param; index } -> Loop { mode; proc_id; param; index }
+  | Access { proc_id; param; channel; syscall } ->
+      Access { proc_id; param; channel= compile_expr channel; syscall }
 
 let fact_constant_dependencies (f : Sem.fact) =
   match f.desc with
@@ -311,10 +311,10 @@ let fact_constant_dependencies (f : Sem.fact) =
   | Neq (e1, e2) -> constant_dependencies e1 @ constant_dependencies e2
   | File { path; contents } -> constant_dependencies path @ constant_dependencies contents
   | Fresh _id -> []
-  | Structure { name=_; proc=_; address; args } ->
+  | Structure { name=_; proc_id=_; address; args } ->
       constant_dependencies address @ List.concat_map constant_dependencies args
   | Loop _ -> []
-  | Access { id=_; param=_; channel; syscall=_ } -> constant_dependencies channel
+  | Access { proc_id=_; param=_; channel; syscall=_ } -> constant_dependencies channel
 
 let compile_fact (f : Sem.fact) : fact * fact list =
   compile_fact_ f, fact_constant_dependencies f
@@ -683,7 +683,7 @@ let compile_access_controls
         List.filter_map (function
             | `Channel ((chan_arg : Typed.chan_arg), syscall_opt) ->
                 Some (Access {
-                    id=proc_id;
+                    proc_id;
                     param;
                     channel= String (Ident.to_string chan_arg.channel);
                     syscall= syscall_opt
