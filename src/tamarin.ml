@@ -671,14 +671,14 @@ let print_rule_aux { name; role; pre; label; post } ~dev =
   "rule "
   ^ name
   ^ (if role = "" || not dev then "" else "[role=\"" ^ role ^ "\"]")
-  ^ " : "
+  ^ "\n  : "
   ^ "["
   ^ String.concat ", " (List.map print_fact pre)
-  ^ "]"
+  ^ "]\n"
   ^ (match label with
-     | [] -> "-->"
-     | _ -> "--[" ^ String.concat ", " (List.map print_fact2 label) ^ "]->")
-  ^ "["
+     | [] -> "    -->\n"
+     | _ -> "    --[" ^ String.concat ", " (List.map print_fact2 label) ^ "]->\n")
+  ^ "    ["
   ^ String.concat ", " (List.map print_fact2 post)
   ^ "] \n"
 ;;
@@ -876,30 +876,30 @@ let print_tamarin
   ^ !separator
   ^ "(x) @ #j ==> #i = #j \"\n"
   ^ "restriction Equality_rule: \"All x y #i. Eq"^ !separator ^"(x,y) @ #i ==> x = y\"\n"
-  ^ "restriction NEquality_rule: \"All x #i. NEq"^ !separator ^"(x,x) @ #i ==> F\"\n"
+  ^ "restriction NEquality_rule: \"All x #i. NEq"^ !separator ^"(x,x) @ #i ==> F\"\n\n"
   ^ (if !Config.tag_transition
      then
        "lemma AlwaysStarts"
        ^ !separator
-       ^ "[reuse,use_induction]:\n\n      \"All x p #i. Loop"
+       ^ "[reuse,use_induction]:\n      \"All x p #i. Loop"
        ^ !separator
        ^ "Back(x, p) @i ==> Ex #j. Loop"
        ^ !separator
-       ^ "Start(x, p) @j & j < i\"\n"
+       ^ "Start(x, p) @j & j < i\"\n\n"
        ^ "lemma AlwaysStartsWhenEnds"
        ^ !separator
-       ^ "[reuse,use_induction]:\n\n      \"All x p #i. Loop"
+       ^ "[reuse,use_induction]:\n      \"All x p #i. Loop"
        ^ !separator
        ^ "Finish(x, p) @i ==> Ex #j. Loop"
        ^ !separator
-       ^ "Start(x, p) @j & j < i\"\n"
+       ^ "Start(x, p) @j & j < i\"\n\n"
        ^ "lemma TransitionOnce"
        ^ !separator
-       ^ "[reuse,use_induction]:\n\n      \"All x p %i #j #k . Transition"
+       ^ "[reuse,use_induction]:\n      \"All x p %i #j #k . Transition"
        ^ !separator
        ^ "(x, p, %i) @#j &\n        Transition"
        ^ !separator
-       ^ "(x, p, %i) @ #k ==> #j = #k\"\n"
+       ^ "(x, p, %i) @ #k ==> #j = #k\"\n\n"
        (* (String.concat (List.map (fun mo ->
         "lemma transition"^ ! separator ^ mo.model_name ^ "[reuse,use_induction]:\n
         \"All x p %i #j #k . Transition"^ ! separator ^ mo.model_name ^ "(x, %i, p) @#j &
