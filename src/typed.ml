@@ -61,17 +61,17 @@ and fact' =
       { channel : expr
       ; name : name
       ; args : expr list
-      }
-  | Out of expr
-  | In of expr
-  | Plain of name * expr list
-  | Eq of expr * expr
-  | Neq of expr * expr
+      } (** [e :: n(e1,..,en)] *)
+  | Out of expr (** [Out(e1)] *)
+  | In of expr (** [In(e1)] *)
+  | Plain of name * expr list (** [n(e1,..,en)] *)
+  | Eq of expr * expr (** [e1 = e2] *)
+  | Neq of expr * expr (** [e1 != e2] *)
   | File of
       { path : expr
       ; contents : expr
-      }
-  | Global of string * expr list
+      } (** [S.e] *)
+  | Global of string * expr list (** [:: n(e1,..,en)] *)
 
 type cmd = cmd' loc_env
 

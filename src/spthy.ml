@@ -161,15 +161,16 @@ let fact' f : fact' =
     | None -> x
     | Some p -> Tuple [x; Ident (p :> Ident.t)]
   in
+  let fix_name = String.capitalize_ascii in
   match f with
   | Channel { channel; name; args } ->
-      { name; args= channel :: args; config= config_linear }
+      { name= fix_name name; args= channel :: args; config= config_linear }
   | Out e ->
       { name= "Out"; args= [e]; config= config_linear }
   | In e ->
       { name= "In"; args= [e]; config= config_linear }
   | Plain (name, args) ->
-      { name; args; config= config_linear }
+      { name= fix_name name; args; config= config_linear }
   | Eq (e1, e2) ->
       (* linear because we will move this to tag and it wont be used as facts *)
       { name = "Eq"; args = [ e1; e2 ]; config = config_linear }
@@ -180,7 +181,7 @@ let fact' f : fact' =
       { name = "File" (* namespace? *); args= [ (* param?; *) path; contents ]; config = config_linear }
 
   | Global (name, args) ->
-      { name; args; config = config_linear }
+      { name= fix_name name; args; config = config_linear }
   | Fresh id ->
       { name= "Fr"; args= [Ident id]; config= config_linear }
   | Structure { name; proc_id; address; args } ->
@@ -221,7 +222,7 @@ let fact' f : fact' =
       ; args= [
           pid (String (Ident.to_string (proc_id :> Ident.t))) param;
           channel;
-          String (match syscall with None -> "" | Some id -> Ident.to_string id)
+          String (match syscall with None -> "." | Some id -> Ident.to_string id)
         ]
       ; config= config_persist
       }
