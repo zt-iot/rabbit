@@ -16,8 +16,8 @@ let pp_loc_env pp_desc fmt { desc; loc = _; env } =
     Cst_env.pp env
 
 
+(* Cst_syntax.expr = Typed.expr but with an embedded Cst_env.t *)
 type expr = expr' loc_env [@@deriving show]
-
 and expr' =
   | Ident of
       { id : ident
@@ -37,9 +37,8 @@ and expr' =
 [@@deriving show]
 
 
-
+(* Cst_syntax.fact = Typed.fact but with an embedded Cst_env.t *)
 type fact = fact' loc_env [@@deriving show]
-
 and fact' =
   | Channel of
       { channel : expr
@@ -58,8 +57,10 @@ and fact' =
   | Global of string * expr list
 [@@deriving show]
 
+(* Cst_synax.cmd = Typed.cmd but with an embedded Cst_env.t 
+Additionally, the `New` constructor needs a Cst_env.core_security_type
+*)
 type cmd = cmd' loc_env [@@deriving show]
-
 and case =
   { fresh : ident list
   ; facts : fact list
@@ -90,35 +91,10 @@ and cmd' =
 
 
 
-type chan_param = { channel : ident; param : unit option; typ : ident } [@@deriving show]
 
 
-
-type chan_arg =
-  { channel : ident
-  ; parameter : expr option option
-  (** - [None]: Simple channel [id],
-      - [Some None]: Channel with a parameter [id<>],
-      - [Some (Some e)]: Instantiated channel with a parameter [id<e>]
-  *)
-  ; typ : ident
-  } [@@deriving show]
-
-type pproc = pproc' Location.located [@@deriving show]
-
-(** id<parameter>(args) *)
-and pproc' =
-  { id : ident
-  ; parameter : expr option
-  ; args : chan_arg list
-  } [@@deriving show]
-
-type proc =
-  | Unbounded of pproc (** [proc] *)
-  | Bounded of ident * pproc list (** [!name.(pproc1|..|pprocn)] *)
-[@@deriving show]
-
-
+type chan_param = Typed.chan_param [@@deriving show]
+type proc = Typed.proc [@@deriving show]
 
 
 type init_desc =
@@ -130,17 +106,17 @@ type init_desc =
 
 
 
+(* The point of a Cst_syntax.decl is only to register `Cst_syntax.cmd` code *)
+(* as we cannot register that information in the environment *)
 type decl = decl' loc_env [@@deriving show]
-
 and decl' =
   | Syscall of
       { id : ident
-      ; args : ident list
+      ; args : ident list (* typing information is recorded in the environment instead *)
       ; cmd : cmd
       }
   (** system call, [syscall f(a1,..,an) { c }]
                    [passive attack f(ty1 a1,..,tyn an) { c }]
-      XXX what is passive attack for?  It is not distinguishable from syscall in Input.
   *)
   | Attack of
       { id : ident
@@ -154,8 +130,8 @@ and decl' =
       ; args : chan_param list
       ; typ : ident
       ; files : (expr * ident * expr) list
-      ; vars : (ident * expr) list
-      ; funcs : (ident * ident list * cmd) list
+      ; vars : (ident * expr) list (* typing information is not necessary, because we can infer the type from the expression *)
+      ; funcs : (ident * ident list * cmd) list (* typing information is recorded in the environment instead *)
       ; main : cmd
       }
   (** [process id<p>(x1 : ty1, .., xn : tyn) : ty { file ... var ... function ... main ... }] *)

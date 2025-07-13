@@ -20,18 +20,13 @@ let string_of_named_fact_desc = function
   | Global -> "global"
 
 
-type ty_param = 
-  | TyParamSimple of Name.ident * ty_param list
-  | TyParamSecurity of Name.ident
-  | TyParamProduct of ty_param * ty_param
-[@@deriving show]
 
 (* an instantiated_ty is used to type expression terms in Rabbit *)
 type instantiated_ty = 
-  | TySecurity of Name.ident
-  | TySimple of Name.ident * ty_param list
+  | TySecurity of Name.ident (* name of the security type *)
+  | TySimple of Name.ident * instantiated_ty list
   | TyProduct of instantiated_ty * instantiated_ty
-  | TyChan of ty_param list
+  | TyChan of instantiated_ty list
 [@@deriving show]
 
 
@@ -76,8 +71,8 @@ type desc =
   | SimpleTypeDef of Name.ident list
   | Var of var_desc
   | ExtFun of eq_thy_func_desc
-  | ExtSyscall of int
-  | Function of int
+  | ExtSyscall of syscall_member_fun_sig
+  | Function of syscall_member_fun_sig
   | Const of bool * instantiated_ty option
   | ChannelDecl of bool * Ident.t
   | Attack
@@ -85,7 +80,7 @@ type desc =
   | ProcTypeDef
   | FilesysTypeDef 
   | ChanTypeDef of instantiated_ty list
-  | SecurityTypeDef of Name.ident * ty_param list
+  | SecurityTypeDef of Name.ident * instantiated_ty list
   
   | Process
 [@@deriving show]
@@ -99,14 +94,14 @@ let print_desc desc ppf =
   | Var (MetaNew i) -> f ppf "MetaNew %d" i
   | Var Param -> f ppf "Param"
   | ExtFun _ -> f ppf "ExtFun"
-  | ExtSyscall i -> f ppf "ExtSyscall (arity=%d)" i
+  | ExtSyscall _ -> f ppf "ExtSyscall"
   | Const (b, _) -> f ppf "Const (param=%b)" b
   | ChannelDecl (b, id) -> f ppf "Channel declaration (param=%b) : %t" b (Ident.print id)
   | Attack -> f ppf "Attack"
   | ProcTypeDef -> f ppf "ty process"
   | FilesysTypeDef -> f ppf "ty filesys"
   | ChanTypeDef _ -> f ppf "ty channel"
-  | Function i -> f ppf "Function (arity=%d)" i
+  | Function _ -> f ppf "Function"
   | Process -> f ppf "Process"
 
   | _ -> failwith "TODO"

@@ -172,36 +172,6 @@ let check_arity ~loc ~arity ~use =
 ;;
 
 
-let rec convert_rabbit_ty_to_env_typ_param ~loc (env : Env.t) (rty : Input.rabbit_typ) : Env.ty_param = 
-  match rty with
-  | CProc -> error ~loc @@ InvalidSimpleType(rty)
-  | CFsys -> error ~loc @@ InvalidSimpleType(rty)
-  | CChan _ -> error ~loc @@ InvalidSimpleType(rty)
-  | CSimpleOrSecurity (typ_name, input_ty_params) -> 
-      let _, desc = Env.find ~loc env typ_name in 
-      begin match desc with 
-        | Env.SimpleTypeDef def_ty_params -> 
-            let expected_arity = List.length def_ty_params in 
-            let actual_arity = List.length input_ty_params in 
-            check_arity ~loc ~arity:expected_arity ~use:actual_arity;
-            let env_ty_params = List.map (convert_rabbit_ty_to_env_typ_param ~loc env) input_ty_params in 
-            TyParamSimple(typ_name, env_ty_params)
-        | Env.SecurityTypeDef (_, _) -> 
-            (* we need to check that there are no additional input_ty_params given *)
-            if input_ty_params = [] then 
-              TyParamSecurity(typ_name)
-            else
-              error ~loc (InvalidTypeParam typ_name)
-        | _ -> error ~loc (Misc "Invalid security type declaration")
-      end
-  | CProd (t1, t2) -> 
-      let param1 = convert_rabbit_ty_to_env_typ_param ~loc env t1 in 
-      let param2 = convert_rabbit_ty_to_env_typ_param ~loc env t2 in 
-      TyParamProduct(param1, param2)
-  | CPoly _ -> error ~loc (Misc "A polymorphic type is not expected here")
-
-
-
 let rec convert_rabbit_typ_to_f_param_ty_param ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.f_param_ty_param =
   match ty with
   | CProc | CFsys ->
@@ -243,7 +213,7 @@ let rec convert_rabbit_typ_to_instantiated_ty ~loc (env : Env.t) (ty : Input.rab
       error ~loc (Misc "process and filesys cannot be used as a instantiated type")
 
   | CChan input_ty_params ->
-      TyChan(List.map (convert_rabbit_ty_to_env_typ_param ~loc env) input_ty_params)
+      TyChan(List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params)
 
   | CSimpleOrSecurity (typ_name, input_ty_params) ->
       let _, desc = Env.find ~loc env typ_name in 
@@ -252,7 +222,7 @@ let rec convert_rabbit_typ_to_instantiated_ty ~loc (env : Env.t) (ty : Input.rab
             let expected_arity = List.length def_ty_params in 
             let actual_arity = List.length input_ty_params in 
             check_arity ~loc ~arity:expected_arity ~use:actual_arity;
-            let env_ty_params = List.map (convert_rabbit_ty_to_env_typ_param ~loc env) input_ty_params in 
+            let env_ty_params = List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params in 
             TySimple(typ_name, env_ty_params)
         | Env.SecurityTypeDef (_, _) -> 
             (* we need to check that there are no additional input_ty_params given *)
@@ -333,7 +303,11 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
             let arity = List.length ps - 1 in (* return type is not considered part of the input arity *)
             check_arity ~loc ~arity ~use;
              Apply (id, es)
-         | id, (ExtSyscall arity | Function arity) ->
+         | id, (ExtSyscall sig_desc | Function sig_desc) ->
+             let arity = begin match sig_desc with
+             | Env.DesSMFunUntyped(ps) -> List.length ps 
+             | Env.DesSMFunTyped(ids, _, _) -> List.length ids 
+             end in 
              check_arity ~loc ~arity ~use;
              Apply (id, es)
          | id, desc ->
@@ -633,7 +607,7 @@ let type_process
 
            let c = type_cmd env'' c in
            let fid = Ident.local fname in
-           let env''' = Env.add env' fid (Function (List.length args)) in 
+           let env''' = Env.add env' fid (Function converted_fun_desc) in 
            env''', (fid, converted_fun_desc, c) :: rev_funcs)
         (env', [])
         funcs
@@ -752,17 +726,16 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
             let converted_ret_ty = convert_rabbit_typ_to_env_function_param ~loc env ret_ty in 
             Env.DesSMFunTyped(args, converted_fun_params, converted_ret_ty)
       end in 
-      let env', id = Env.add_global ~loc env name (ExtSyscall (List.length args)) in
+      let env', id = Env.add_global ~loc env name (ExtSyscall converted_syscall_sig) in
       env', [{ env; loc; desc = Typed.Syscall { id; fun_sig = converted_syscall_sig; cmd } }]
   | DeclExtAttack (name, syscall, args, c) ->
       (* [attack id on syscall (a1,..,an) { c }] *)
       let syscall =
         match Env.find ~loc env syscall with
         | syscall, ExtSyscall _ -> syscall
-        | id, desc ->
+        | _, _ ->
             error ~loc
-            @@ InvalidVariable
-                 { ident = id; def = desc; use = ExtSyscall (List.length args) }
+            @@ Misc "Incorrect usage of `on`: use an existing syscall with the correct arity"
       in
       let args, cmd =
         let env', args = extend_with_args env args @@ fun id -> Var (Loc (snd id)) in
@@ -789,7 +762,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
                   let expected_arity = List.length def_ty_params in 
                   let actual_arity = List.length input_ty_params in 
                   check_arity ~loc ~arity:expected_arity ~use:actual_arity;
-                  let env_ty_params = List.map (convert_rabbit_ty_to_env_typ_param ~loc env) input_ty_params in 
+                  let env_ty_params = List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params in 
                   SecurityTypeDef(typ_name, env_ty_params)
               | _, _ -> 
                   let error_msg = Printf.sprintf " %s is not a declared simple type" typ_name in 
@@ -836,9 +809,9 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
                (fun syscall ->
                   match Env.find ~loc env syscall with
                   | id, ExtSyscall _ -> id
-                  | id, desc ->
-                      error ~loc
-                      @@ InvalidVariable { ident = id; def = desc; use = ExtSyscall (-1) })
+                  | _, _ ->
+                      error ~loc @@ Misc "Unknown syscall used in allow rule: use a syscall which exists"
+                      )
                syscalls)
           syscalls_opt
       in
