@@ -26,7 +26,7 @@ let run (com : string) : int * string list =
 
 let runf fmt = Printf.ksprintf run fmt
 
-let verify rab specs spthy =
+let verify specs spthy =
 
   (* Verification *)
   let res, output = runf "tamarin-prover %s --prove= 2>&1" spthy in
@@ -76,9 +76,9 @@ let verify rab specs spthy =
       ) specs;
 
     if !fail then (
-      Format.printf "%s: Oops, something went wrong@." rab;
+      Format.printf "%s: Oops, something went wrong@." spthy;
     ) else (
-      Format.printf "%s: Ok, everything went fine@." rab;
+      Format.printf "%s: Ok, everything went fine@." spthy;
     );
     !fail
 
@@ -135,9 +135,9 @@ let test_file rab =
   else
     ignore @@ runf "cp %s %s" out_spthy spthy;
 
-  let res = verify rab specs out_spthy in
-  let _res2 = verify rab specs out_spthy_2 in
-  res
+  let res = verify specs out_spthy in
+  let res2 = verify specs out_spthy_2 in
+  res || res2
 
 
 let () =
