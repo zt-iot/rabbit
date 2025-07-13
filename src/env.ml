@@ -76,3 +76,14 @@ let update_fact env name v =
   env.facts := update [] !(env.facts)
 
 let find_fact_opt env name = List.assoc_opt name !(env.facts)
+
+let merge e1 e2 =
+  assert (e1.facts = e2.facts);
+  let vars =
+    List.filter_map (fun (v, desc) ->
+        match List.assoc_opt v e1.vars with
+        | None -> Some (v, desc)
+        | Some desc' -> assert (desc = desc'); None) e2.vars
+    @ e1.vars
+  in
+  { e1 with vars }
