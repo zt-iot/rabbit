@@ -790,7 +790,7 @@ and graph_application ~base_env ~proc ~syscaller find_def (decls : decl list) i 
                ; loop_back = false
                } ];
              g;
-             [ { id= Ident.local (Ident.to_string f ^ "app_out")
+             [ { id= Ident.local (Ident.to_string f ^ "_app_out")
                ; source = j
                ; source_env = Env.merge base_env env_j
                ; pre = []
