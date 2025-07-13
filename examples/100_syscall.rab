@@ -1,0 +1,24 @@
+type proc_t : process
+
+syscall id(v) {
+  v
+}
+
+process alice() : proc_t 
+{
+    main {
+        var x = id(0) in
+        var y = id(x) in
+	event[::Valid(y)]
+    }
+}
+
+allow proc_t [id]
+
+system
+  alice()
+requires
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid(0)
+]
