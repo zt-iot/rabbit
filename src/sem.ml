@@ -849,22 +849,25 @@ let graph_files_and_vars
         in
         f :: fs) proc.files
   in
-  let i_1 = Index.add i 1 in
-  [{ id= Ident.local "init_process"
-   ; source = i
-   ; source_env = env
-   ; pre = []
-   ; update = { register = Some { env; loc = Location.nowhere; desc = Unit }
-              ; mutable_overrides = List.map (fun (id,e) -> id, Some e) proc.vars
-              ; drops = []
-             }
-   ; tag = []
-   ; post = files
-   ; target = i_1
-   ; target_env = proc.main.env
-   ; loop_back = false
-  }],
-  i_1
+  if files = [] && proc.vars = [] then
+    [], i
+  else
+    let i_1 = Index.add i 1 in
+    [{ id= Ident.local "init_process"
+     ; source = i
+     ; source_env = env
+     ; pre = []
+     ; update = { register = Some { env; loc = Location.nowhere; desc = Unit }
+                ; mutable_overrides = List.map (fun (id,e) -> id, Some e) proc.vars
+                ; drops = []
+                }
+     ; tag = []
+     ; post = files
+     ; target = i_1
+     ; target_env = proc.main.env
+     ; loop_back = false
+     }],
+    i_1
 
 type model =
   { id : Subst.proc_id
