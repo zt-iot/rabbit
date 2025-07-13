@@ -23,28 +23,38 @@ builtins: natural-numbers
 // Add model inits: P
 
 
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab_str'), State_P(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+rule Init_system[role="system"]
+  : []
+    --[Init_('rab_system')]->
+    [!ACP_GEN_('rab_system_', 'rab_rab_str'), State_P(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
 // Model:  P
 
 
-rule P_event___1___2_1[role="P"] : [State_P(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty')]--[Transition_(<'rab_P', param>, 'rab___1', %v_), Event2()]->[State_P(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+rule P_event___1___2_1[role="P"]
+  : [State_P(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty')]
+    --[Transition_(<'rab_P', param>, 'rab___1', %v_), Event2()]->
+    [State_P(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
-rule P_event___0___1_0[role="P"] : [State_P(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty')]--[Transition_(<'rab_P', param>, 'rab___0', %v_), Event()]->[State_P(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+rule P_event___0___1_0[role="P"]
+  : [State_P(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty')]
+    --[Transition_(<'rab_P', param>, 'rab___0', %v_), Event()]->
+    [State_P(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
 restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
+
 lemma AlwaysStarts_[reuse,use_induction]:
-
       "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+
 lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
-
       "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
-lemma TransitionOnce_[reuse,use_induction]:
 
+lemma TransitionOnce_[reuse,use_induction]:
       "All x p %i #j #k . Transition_(x, p, %i) @#j &
         Transition_(x, p, %i) @ #k ==> #j = #k"
+
 
 lemma Correspondence : all-traces "All  #time_1 . Event2()@#time_1 ==> Ex  #time_2 . Event()@#time_2 & #time_2 < #time_1 "
 lemma Reachable : exists-trace "Ex  #time_0 . Event2()@#time_0 "

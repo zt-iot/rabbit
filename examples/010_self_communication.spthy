@@ -23,7 +23,10 @@ builtins: natural-numbers
 // Add model inits: Alice
 
 
-rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+rule Init_system[role="system"]
+  : []
+    --[Init_('rab_system')]->
+    [!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
 
 // Access control of Alice:chan
@@ -33,38 +36,57 @@ rule Init_system[role="system"] : []--[Init_('rab_system')]->[!ACP_GEN_('rab_sys
 // Fact: !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_recv')
 
 
-rule Init_system_ACP_0[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_('rab_system_ACP_0')]->[!ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_recv')] 
+rule Init_system_ACP_0[role="system"]
+  : [!ACP_GEN_('rab_system_', 'rab_rab_str')]
+    --[Init_('rab_system_ACP_0')]->
+    [!ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_recv')] 
 
 
 // Fact: !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_send')
 
 
-rule Init_system_ACP_1[role="system"] : [!ACP_GEN_('rab_system_', 'rab_rab_str')]--[Init_('rab_system_ACP_1')]->[!ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_send')] 
+rule Init_system_ACP_1[role="system"]
+  : [!ACP_GEN_('rab_system_', 'rab_rab_str')]
+    --[Init_('rab_system_ACP_1')]->
+    [!ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_send')] 
 
 // Model:  Alice
 
 
-rule Alice_scall_intro_put___0___0_0_1_25[role="Alice"] : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_send')]--[Transition_(<'rab_Alice', param>, 'rab___0', %v_)]->[State_Alice(<'rab___0_0_1', param, %v_>, 'rab_unit', 'rab_empty', <'1', 'rab_chan'>, 'rab_empty'), Store('rab_chan', '1')] 
+rule Alice_scall_intro_put___0___0_0_1_25[role="Alice"]
+  : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_send')]
+    --[Transition_(<'rab_Alice', param>, 'rab___0', %v_)]->
+    [State_Alice(<'rab___0_0_1', param, %v_>, 'rab_unit', 'rab_empty', <'1', 'rab_chan'>, 'rab_empty'), Store('rab_chan', '1')] 
 
-rule Alice_scall_out_event_let_intro_scall_intro___0_0_1___3_0_0_24[role="Alice"] : [State_Alice(<'rab___0_0_1', param, %v_>, return_var_2, 'rab_empty', <l_0_2, l_1_2>, 'rab_empty')]--[Transition_(<'rab_Alice', param>, 'rab___0_0_1', %v_), Sent()]->[State_Alice(<'rab___3_0_0', param, %v_>, 'rab_unit', 'rab_empty', <'rab_chan', 'rab_'>, 'rab_empty')] 
+rule Alice_scall_out_event_let_intro_scall_intro___0_0_1___3_0_0_24[role="Alice"]
+  : [State_Alice(<'rab___0_0_1', param, %v_>, return_var_2, 'rab_empty', <l_0_2, l_1_2>, 'rab_empty')]
+    --[Transition_(<'rab_Alice', param>, 'rab___0_0_1', %v_), Sent()]->
+    [State_Alice(<'rab___3_0_0', param, %v_>, 'rab_unit', 'rab_empty', <'rab_chan', 'rab_'>, 'rab_empty')] 
 
-rule Alice_guarded_return_case_out_scall_out_event___3_0_0___5_21[role="Alice"] : [State_Alice(<'rab___3_0_0', param, %v_>, return_var_6, 'rab_empty', <l_0_6, l_1_6>, 'rab_empty'), !ACP_(<'rab_Alice', param>, l_0_6, 'rab_recv'), Store(l_0_6, n_0_6)]--[Transition_(<'rab_Alice', param>, 'rab___3_0_0', %v_), Received()]->[State_Alice(<'rab___5', param, %v_>, 'rab_unit', 'rab_empty', n_0_6, 'rab_empty')] 
+rule Alice_guarded_return_case_out_scall_out_event___3_0_0___5_21[role="Alice"]
+  : [State_Alice(<'rab___3_0_0', param, %v_>, return_var_6, 'rab_empty', <l_0_6, l_1_6>, 'rab_empty'), !ACP_(<'rab_Alice', param>, l_0_6, 'rab_recv'), Store(l_0_6, n_0_6)]
+    --[Transition_(<'rab_Alice', param>, 'rab___3_0_0', %v_), Received()]->
+    [State_Alice(<'rab___5', param, %v_>, 'rab_unit', 'rab_empty', n_0_6, 'rab_empty')] 
 
-rule Alice_guarded_event_case_out_let_out___5___7_17[role="Alice"] : [State_Alice(<'rab___5', param, %v_>, return_var_11, 'rab_empty', l_0_11, 'rab_empty')]--[Transition_(<'rab_Alice', param>, 'rab___5', %v_), Valid(), Eq_(l_0_11, '1')]->[State_Alice(<'rab___7', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+rule Alice_guarded_event_case_out_let_out___5___7_17[role="Alice"]
+  : [State_Alice(<'rab___5', param, %v_>, return_var_11, 'rab_empty', l_0_11, 'rab_empty')]
+    --[Transition_(<'rab_Alice', param>, 'rab___5', %v_), Valid(), Eq_(l_0_11, '1')]->
+    [State_Alice(<'rab___7', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
 restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
+
 lemma AlwaysStarts_[reuse,use_induction]:
-
       "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+
 lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
-
       "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
-lemma TransitionOnce_[reuse,use_induction]:
 
+lemma TransitionOnce_[reuse,use_induction]:
       "All x p %i #j #k . Transition_(x, p, %i) @#j &
         Transition_(x, p, %i) @ #k ==> #j = #k"
+
 
 lemma Correspondent : all-traces "All  #time_1 . Received()@#time_1 ==> Ex  #time_2 . Sent()@#time_2 & #time_2 < #time_1 "
 lemma Reachable : exists-trace "Ex  #time_0 . Valid()@#time_0 "

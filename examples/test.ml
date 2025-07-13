@@ -26,6 +26,62 @@ let run (com : string) : int * string list =
 
 let runf fmt = Printf.ksprintf run fmt
 
+let verify rab specs spthy =
+
+  (* Verification *)
+  let res, output = runf "tamarin-prover %s --prove= 2>&1" spthy in
+
+  if res <> 0 then
+    ( Format.printf "tamarin-prover failed with return code %d!@." res;
+      print_endline @@ String.make 78 '=';
+      print_endline @@ String.concat "\n" output;
+      print_endline @@ String.make 78 '=';
+      true
+    )
+  else
+    let rec skip = function
+      | "summary of summaries:" :: ls -> String.make 78 '=' :: ls
+      | _ :: ls -> skip ls
+      | [] -> []
+    in
+    let summary = skip output in
+
+    List.iter print_endline summary;
+
+    let re = Re.compile @@ Re.Pcre.re {|(\w+) \([^)]*\): (\w+)|} in
+    let results = List.filter_map (fun line ->
+        match Re.exec_opt re line with
+        | None -> None
+        | Some g ->
+            let lemma_name = Re.Group.get g 1 in
+            let result = Re.Group.get g 2 in
+            Format.printf "result: %s: %s@." lemma_name result;
+            let result = spec_of_string result in
+            Some (lemma_name, result)) summary
+    in
+
+    let fail = ref false in
+    List.iter (fun (lemma_name, expected) ->
+        match List.assoc_opt lemma_name results with
+        | None ->
+            Format.printf "%s: no result - Oops@." lemma_name;
+            fail := true
+        | Some result ->
+            if result = expected then
+              Format.printf "%s: %s - Ok@." lemma_name (string_of_spec result)
+            else (
+              Format.printf "%s: %s - Oops@." lemma_name (string_of_spec result);
+              fail := true
+            )
+      ) specs;
+
+    if !fail then (
+      Format.printf "%s: Oops, something went wrong@." rab;
+    ) else (
+      Format.printf "%s: Ok, everything went fine@." rab;
+    );
+    !fail
+
 let test_file rab =
   let module_ = Re.replace !!{|\.rab$|} ~f:(fun _ -> "") rab in
   Format.printf "Testing module: %s@." module_;
@@ -46,6 +102,7 @@ let test_file rab =
 
   let spthy = module_ ^ ".spthy" in
   let out_spthy = "_" ^ spthy in
+  let out_spthy_2 = "_" ^ spthy ^ ".2" in
   let log = "_" ^ module_ ^ ".log" in
   let write_log lines =
     let log_oc = open_out log in
@@ -78,52 +135,9 @@ let test_file rab =
   else
     ignore @@ runf "cp %s %s" out_spthy spthy;
 
-  (* Verification *)
-  let _res, output = runf "tamarin-prover %s --prove= 2>&1" spthy in
-  (* Tamarin does not return meaningful exit code. *)
-
-  let rec skip = function
-    | "summary of summaries:" :: ls -> String.make 78 '=' :: ls
-    | _ :: ls -> skip ls
-    | [] -> []
-  in
-  let summary = skip output in
-
-  List.iter print_endline summary;
-
-  let re = Re.compile @@ Re.Pcre.re {|(\w+) \([^)]*\): (\w+)|} in
-  let results = List.filter_map (fun line ->
-      match Re.exec_opt re line with
-      | None -> None
-      | Some g ->
-          let lemma_name = Re.Group.get g 1 in
-          let result = Re.Group.get g 2 in
-          Format.printf "result: %s: %s@." lemma_name result;
-          let result = spec_of_string result in
-          Some (lemma_name, result)) summary
-  in
-
-  let fail = ref false in
-  List.iter (fun (lemma_name, expected) ->
-      match List.assoc_opt lemma_name results with
-      | None ->
-          Format.printf "%s: no result - Oops@." lemma_name;
-          fail := true
-      | Some result ->
-        if result = expected then
-          Format.printf "%s: %s - Ok@." lemma_name (string_of_spec result)
-        else (
-          Format.printf "%s: %s - Oops@." lemma_name (string_of_spec result);
-          fail := true
-        )
-    ) specs;
-
-  if !fail then (
-    Format.printf "%s: Oops, something went wrong@." rab;
-  ) else (
-    Format.printf "%s: Ok, everything went fine@." rab;
-  );
-  !fail
+  let res = verify rab specs out_spthy in
+  let _res2 = verify rab specs out_spthy_2 in
+  res
 
 
 let () =
