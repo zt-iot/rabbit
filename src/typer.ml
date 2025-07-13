@@ -623,12 +623,12 @@ let type_process
            let env'', args = extend_with_args env' args @@ fun id -> Var (Loc (snd id)) in
 
            let converted_fun_desc = begin match input_member_fun_desc with 
-            | Input.UntypedSig(_) -> Typed.DesSMFunUntyped(args)
+            | Input.UntypedSig(_) -> Env.DesSMFunUntyped(args)
             | Input.TypedSig(_, fun_params, ret_ty) -> 
               let converted_fun_params = List.map 
                 (convert_rabbit_typ_to_env_function_param ~loc env) fun_params in 
               let converted_ret_ty = convert_rabbit_typ_to_env_function_param ~loc env ret_ty in                 
-                Typed.DesSMFunTyped(args, converted_fun_params, converted_ret_ty)
+                Env.DesSMFunTyped(args, converted_fun_params, converted_ret_ty)
            end in 
 
            let c = type_cmd env'' c in
@@ -745,12 +745,12 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         args, c
       in
       let converted_syscall_sig = begin match syscall_desc_input with 
-        | Input.UntypedSig(_) -> Typed.DesSMFunUntyped(args)
+        | Input.UntypedSig(_) -> Env.DesSMFunUntyped(args)
         | Input.TypedSig(_, fun_params, ret_ty) -> 
             let converted_fun_params = List.map 
               (convert_rabbit_typ_to_env_function_param ~loc env) fun_params in 
             let converted_ret_ty = convert_rabbit_typ_to_env_function_param ~loc env ret_ty in 
-            Typed.DesSMFunTyped(args, converted_fun_params, converted_ret_ty)
+            Env.DesSMFunTyped(args, converted_fun_params, converted_ret_ty)
       end in 
       let env', id = Env.add_global ~loc env name (ExtSyscall (List.length args)) in
       env', [{ env; loc; desc = Typed.Syscall { id; fun_sig = converted_syscall_sig; cmd } }]
@@ -780,8 +780,8 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
           (* - Simple *)
           (* - Security, or *)
           (* - Product*)
-          let env_ty_params = List.map (convert_rabbit_ty_to_env_typ_param ~loc env) input_ty_params in
-          ChanTypeDef(env_ty_params)
+          let ty_params = List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params in
+          ChanTypeDef(ty_params)
         | Input.CSimpleOrSecurity(typ_name, input_ty_params) -> 
             (* this AST node is always a security type: therefore, typ_name must be a known simple type *)
             begin match Env.find ~loc env typ_name with 

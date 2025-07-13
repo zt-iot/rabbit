@@ -59,22 +59,34 @@ type eq_thy_func_desc =
 [@@deriving show]
 
 
+(* Used for signature of syscalls and member function *)
+type syscall_member_fun_sig = 
+  | DesSMFunUntyped of Ident.t list  (* when types are not given *)
+  | DesSMFunTyped of Ident.t list * function_param list * function_param (* when types are given *)
+[@@deriving show]
+
+let syscall_member_fun_desc_to_ident_list signature = match signature with 
+  (* Description Syscall Member Function *)
+  | DesSMFunUntyped(ids) -> ids
+  | DesSMFunTyped(ids, _, _) -> ids
+
+
 
 type desc =
   | SimpleTypeDef of Name.ident list
   | Var of var_desc
   | ExtFun of eq_thy_func_desc
   | ExtSyscall of int
+  | Function of int
   | Const of bool * instantiated_ty option
   | ChannelDecl of bool * Ident.t
   | Attack
   
   | ProcTypeDef
   | FilesysTypeDef 
-  | ChanTypeDef of ty_param list
+  | ChanTypeDef of instantiated_ty list
   | SecurityTypeDef of Name.ident * ty_param list
-
-  | Function of int
+  
   | Process
 [@@deriving show]
 

@@ -197,6 +197,46 @@ let compute_access_relation (access_map : access_map) : cst_access_policy =
 
 
 
+(* You must implement this function to convert environments *)
+let convert_env (env : Env.t) : Cst_env.t =
+  failwith "convert_env not implemented"
+
+let make_loc_env loc env desc : 'a Cst_syntax.loc_env =
+  { desc; loc; env = convert_env env }
+
+
+let convert_decl (td : Typed.decl) : Cst_syntax.decl list =
+  let { Typed.loc; env; desc } = td in
+  match desc with
+  | Typed.Syscall { id; fun_sig; cmd } ->
+      (* TODO: convert syscall *)
+      [make_loc_env loc env @@
+      failwith "Syscall conversion not implemented"]
+
+  | Typed.Attack { id; syscall; args; cmd } ->
+      (* TODO: convert attack *)
+      [make_loc_env loc env @@
+      failwith "Attack conversion not implemented"]
+
+  | Typed.AllowAttack { process_typs; attacks } ->
+      (* TODO: convert allow-attack rule *)
+      [make_loc_env loc env @@
+      failwith "AllowAttack conversion not implemented"]
+
+  | Typed.Process { id; param; args; typ; files; vars; funcs; main } ->
+      (* TODO: convert process definition *)
+      [make_loc_env loc env @@
+      failwith "Process conversion not implemented"]
+
+  | Typed.System (procs, lemmas) ->
+      (* TODO: convert lemmas if necessary *)
+      [make_loc_env loc env @@
+      failwith "TODO"]
+
+  | _ -> []
+
+
+
 
 (* return: 
 - A list of Cst_syntax.decl : core syntax with annotated core security types
@@ -206,15 +246,12 @@ let compute_access_relation (access_map : access_map) : cst_access_policy =
 let convert (decls : Typed.decl list) 
   : (Cst_syntax.decl list) * cst_access_policy * cst_access_policy = 
   
-  
-
-
   let decls' = List.map (fun decl -> decl.Typed.desc) decls in 
+  (* check that the last declaration is a `Typed.System` declaration *)
   match List.rev decls' with
   | [] ->
       failwith "Expected a System declaration at the end, but the list is empty"
   | Typed.System(procs, _) :: decls_rev ->
-
 
     let (read_access_map, provide_access_map) = create_access_maps decls in 
     let all_process_typs = extract_process_typs_from_decls procs decls_rev in
@@ -223,6 +260,7 @@ let convert (decls : Typed.decl list)
     let secrecy_lattice = compute_access_relation read_access_map in (* the relation is '>=' *)
     let integrity_lattice = compute_access_relation provide_access_map in (* the relation is '<=' *)
 
+    
     let security_type_to_secrecy_lvl = read_access_map_to_secrecy_lvls_map read_access_map all_process_typs in 
     let security_type_to_integrity_lvl = provide_access_map_to_integrity_lvls_map provide_access_map all_process_typs in
     
