@@ -3,6 +3,8 @@ open Sets
 open Maps
 
 
+exception CstConversionException of string
+
 type syscall_effect = 
   | Read 
   | Provide 
@@ -201,18 +203,6 @@ let compute_access_relation (access_map : access_map) : cst_access_policy =
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 let rec convert_instantiated_ty_to_core (read_access_map : access_map) 
   (provide_access_map : access_map) (all_process_typs : proc_ty_set)
   (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy)
@@ -232,7 +222,7 @@ let rec convert_instantiated_ty_to_core (read_access_map : access_map)
         let secrecy_lvl = Cst_env.proc_ty_set_to_secrecy_lvl readers all_process_typs in 
         let integrity_lvl = Cst_env.proc_ty_set_to_integrity_lvl providers all_process_typs in 
 
-        failwith "The information of wihch simple type the security type was created on should be present here, but it isn't"
+        failwith "TODO The information of wihch simple type the security type was created on should be present here, but it isn't"
 
         (* ct, (secrecy_lvl, integrity_lvl) *)
         
@@ -269,7 +259,7 @@ let convert_function_param_to_core (read_access_map : access_map)
     match env_fun_param with 
     | Env.FParamSecurity(sec_ty_name) -> 
 
-        let ct = failwith "The information of which simple type the security type was created on should be present here, but it isn't" in 
+        let ct = failwith "TODO: The information of which simple type the security type was created on should be present here, but it isn't" in 
 
         let readers = SecurityTypeMap.find sec_ty_name read_access_map in 
         let providers = SecurityTypeMap.find sec_ty_name provide_access_map in 
@@ -298,17 +288,17 @@ let convert_env_desc (read_access_map : access_map)
   match env_desc with
   | SimpleTypeDef name_list -> SimpleTypeDef name_list
   | Var var_desc -> Var var_desc
-  | ExtFun (DesugaredArity _) -> failwith "Cannot convert ExtFun without type information to Cst_env.desc"
+  | ExtFun (DesugaredArity _) -> raise (CstConversionException "Cannot convert ExtFun without type information to Cst_env.desc")
   | ExtFun (DesugaredTypeSig function_params) -> 
       ExtFun (List.map convert_function_param_to_core_rec function_params)
-  | ExtSyscall (DesSMFunUntyped _) -> failwith "Cannot convert ExtSyscall without type information to Cst_env.desc"
+  | ExtSyscall (DesSMFunUntyped _) -> raise (CstConversionException "Cannot convert ExtSyscall without type information to Cst_env.desc")
   | ExtSyscall (DesSMFunTyped (_, function_params, _)) ->
       ExtSyscall (List.map convert_function_param_to_core_rec function_params)
-  | Function (DesSMFunUntyped _) -> failwith "Cannot convert ExtSyscall without type information to Cst_env.desc"
+  | Function (DesSMFunUntyped _) -> raise (CstConversionException "Cannot convert ExtSyscall without type information to Cst_env.desc")
   | Function (DesSMFunTyped (_, function_params, _)) ->
       MemberFunc (List.map convert_function_param_to_core_rec function_params)
   | Const (is_param, None) -> 
-      failwith "Cannot convert Const without type information to Cst_env.desc"
+      raise (CstConversionException "Cannot convert Const without type information to Cst_env.desc")
   | Const (is_param, Some instantiated_ty) ->
       Const (is_param, convert_instantiated_ty_to_core_rec instantiated_ty)
   | ChannelDecl (is_param, ident) -> ChannelDecl (is_param, ident)
@@ -349,9 +339,39 @@ let convert_env (read_access_map : access_map)
 
 
 
-let convert_expr (e : Typed.expr) : Cst_syntax.expr = failwith "TODO"
+let rec convert_expr (read_access_map : access_map) 
+    (provide_access_map : access_map) (all_process_typs : proc_ty_set)
+    (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) 
+    (e : Typed.expr) : Cst_syntax.expr = 
+    let convert_expr_rec = convert_expr read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
 
-
+    let converted_desc = match e.desc with
+    | Typed.Ident { id; desc; param } ->
+        let converted_desc = convert_env_desc read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice desc in
+        let converted_param = Option.map convert_expr_rec param in
+        Cst_syntax.Ident { id; desc = converted_desc; param = converted_param }
+    
+    | Typed.Boolean b -> Cst_syntax.Boolean b
+    
+    | Typed.String s -> Cst_syntax.String s
+    
+    | Typed.Integer i -> Cst_syntax.Integer i
+    
+    | Typed.Float f -> Cst_syntax.Float f
+    
+    | Typed.Apply (id, exprs) -> 
+        Cst_syntax.Apply (id, List.map convert_expr_rec exprs)
+    
+    | Typed.Tuple exprs -> 
+        Cst_syntax.Tuple (List.map convert_expr_rec exprs)
+    
+    | Typed.Unit -> Cst_syntax.Unit
+  in
+  
+  { desc = converted_desc
+  ; loc = e.loc
+  ; env = convert_env read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice e.env
+  }
 
 
 let rec convert_cmd (read_access_map : access_map) 
@@ -360,9 +380,11 @@ let rec convert_cmd (read_access_map : access_map)
     (cmd : Typed.cmd) : Cst_syntax.cmd =
   
   (* short-hand for recursion, so we don't have give the entire list of 6 arguments every time *)
-  let convert_expr_rec = convert_expr in
+  let convert_expr_rec = convert_expr read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
   let convert_fact_rec = convert_fact read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
   let convert_cmd_rec = convert_cmd read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
+  
+  let convert_env_rec = convert_env read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in 
   
   (* Helper function to convert case statements inside of a cmd *)
   let convert_case (case : Typed.case) : Cst_syntax.case =
@@ -401,7 +423,7 @@ let rec convert_cmd (read_access_map : access_map)
     
     | Typed.New (id, ty_opt, name_expr_opt, c) -> 
         (match ty_opt with
-         | None -> failwith "New constructor requires a type annotation for CST conversion"
+         | None -> raise (CstConversionException "New constructor requires a type annotation for CST conversion")
          | Some instantiated_ty -> 
 
              let core_security_type = convert_instantiated_ty_to_core 
@@ -423,7 +445,7 @@ let rec convert_cmd (read_access_map : access_map)
   
   { desc = converted_cmd'
   ; loc = cmd.loc
-  ; env = convert_env read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice cmd.env 
+  ; env = convert_env_rec cmd.env 
   }
 
 and convert_fact (read_access_map : access_map) 
@@ -431,7 +453,7 @@ and convert_fact (read_access_map : access_map)
     (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy)
     (fact : Typed.fact) : Cst_syntax.fact =
   
-  let convert_expr_rec = convert_expr in
+  let convert_expr_rec = convert_expr read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
   let convert_env_rec = convert_env read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in 
 
   
@@ -493,10 +515,12 @@ let convert_decl (read_access_map : access_map)
     (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy)
   (td : Typed.decl) : Cst_syntax.decl list =
 
-  let convert_expr_rec = convert_expr in 
+  let convert_expr_rec = convert_expr read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in 
   let convert_cmd_rec = (convert_cmd read_access_map provide_access_map all_process_typs 
           secrecy_lattice integrity_lattice) in 
   let { Typed.loc; env; desc } = td in
+  let make_loc_env_for_decl_rec = 
+    make_loc_env_for_decl read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice loc env in   
   match desc with
   | Typed.Syscall { id; fun_sig; cmd } ->
 
@@ -504,14 +528,14 @@ let convert_decl (read_access_map : access_map)
       let cst_cmd = (convert_cmd_rec cmd) in 
       let cst_decl = Cst_syntax.Syscall{id ; args ; cmd = cst_cmd} in 
 
-      [make_loc_env_for_decl read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice loc env cst_decl]
+      [make_loc_env_for_decl_rec cst_decl]
 
   | Typed.Attack { id; syscall; args; cmd } ->
     
       let cst_cmd = convert_cmd_rec cmd in 
       let cst_decl = Cst_syntax.Attack{id ; syscall ; args ; cmd = cst_cmd} in 
 
-      [make_loc_env_for_decl read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice loc env cst_decl]
+      [make_loc_env_for_decl_rec cst_decl]
 
   | Typed.Process { id; param; args; typ; files; vars; funcs; main } ->
       let converted_args = List.map convert_chan_param args in 
@@ -534,11 +558,11 @@ let convert_decl (read_access_map : access_map)
           ; funcs = converted_funcs
           ; main = converted_main
         } in 
-      [make_loc_env_for_decl read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice loc env cst_decl]
+      [make_loc_env_for_decl_rec cst_decl]
 
-  | Typed.System (procs, lemmas) ->
+  | Typed.System (procs, _) ->
       let cst_decl = Cst_syntax.System(procs) in 
-      [make_loc_env_for_decl read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice loc env cst_decl]
+      [make_loc_env_for_decl_rec cst_decl]
   | _ -> []
 
 
@@ -556,7 +580,7 @@ let convert (decls : Typed.decl list)
   (* check that the last declaration is a `Typed.System` declaration *)
   match List.rev decls' with
   | [] ->
-      failwith "Expected a System declaration at the end, but the list is empty"
+      raise (CstConversionException "Expected a System declaration at the end, but the list is empty")
   | Typed.System(procs, _) :: decls_rev ->
 
     let (read_access_map, provide_access_map) = create_access_maps decls in 
@@ -573,4 +597,4 @@ let convert (decls : Typed.decl list)
       ) [] decls in 
 
     converted_decls, secrecy_lattice, integrity_lattice
-  | _ -> failwith "TODO"
+  | _ -> raise (CstConversionException "Expected a System declaration at the the end, but there is a different declaration")
