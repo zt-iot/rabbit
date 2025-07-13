@@ -731,8 +731,7 @@ lemma AlwaysStartsWhenEnds[reuse,use_induction]:
       "All x p #i. Loop_Out(x, p) @i ==> Ex #j. Loop_In(x, p) @j & j < i"
 
 lemma TransitionOnce[reuse,use_induction]:
-      "All x p %i #j #k . Transition(x, p, %i) @#j &
-        Transition(x, p, %i) @ #k ==> #j = #k"
+      "All x p %i #j #k . Transition(x, p, %i) @#j & Transition(x, p, %i) @#k ==> #j = #k"
 |}
 
 let print ppf t =
