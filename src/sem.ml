@@ -220,18 +220,19 @@ let channel_access ~proc:(proc : Subst.instantiated_proc) ~syscaller (f : Typed.
       Some { f with desc= Access { proc_id= proc.id; param= proc.param; channel; syscall= syscaller } }
   | _ -> None
 
+let update_unit env =
+  { register = Some { env; loc = Location.nowhere; desc = Unit }
+  ; mutable_overrides = []
+  ; drops = []
+  }
+
+let update_id = { register = None; mutable_overrides = []; drops = [] }
+
 (* <\Gamma |- c>i *)
-let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def decls i (c : cmd) : graph * Index.t * Env.t =
+let rec graph_cmd ~base_env ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def decls i (c : cmd) : graph * Index.t * Env.t =
   (* For each edge, we have at most 1 transition variable.
      Therefore, no worry of name crash of transition variables *)
   let env = c.env in
-  let update_unit =
-    { register = Some { env; loc = Location.nowhere; desc = Unit }
-    ; mutable_overrides = []
-    ; drops = []
-    }
-  in
-  let update_id = { register = None; mutable_overrides = []; drops = [] } in
   let fact env desc : fact = { env; desc; loc = Location.nowhere } in
   match c.desc with
   | Skip ->
@@ -239,21 +240,21 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       let i_1 = Index.add i 1 in
       ( [ { id = Ident.local "skip"
           ; source = i (* transition_from *)
-          ; source_env = env
+          ; source_env = Env.merge base_env env
           ; pre = [] (* transition_pre *)
-          ; update = update_unit (* transition_state_transition *)
+          ; update = update_unit env (* transition_state_transition *)
           ; tag = [] (* transition_label *)
           ; post = [] (* transition_post *)
           ; target = i_1 (* transition_to *)
-          ; target_env = env
+          ; target_env = Env.merge base_env env
           ; loop_back = false
           }
         ]
       , i_1, env )
   | Sequence (c1, c2) ->
       (* i =c1=> j =c2=> k *)
-      let g1, j, _ = graph_cmd ~proc ~syscaller find_def decls i c1 in
-      let g2, k, env_k = graph_cmd ~proc ~syscaller find_def decls j c2 in
+      let g1, j, _ = graph_cmd ~base_env ~proc ~syscaller find_def decls i c1 in
+      let g2, k, env_k = graph_cmd ~base_env ~proc ~syscaller find_def decls j c2 in
       g1 @ g2, k, env_k
   | Put fs ->
       (* i =put=> i+1 *)
@@ -262,13 +263,13 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       let pre = List.filter_map (channel_access ~proc ~syscaller) fs in
       ( [ { id = Ident.local "put"
           ; source = i
-          ; source_env = env
+          ; source_env = Env.merge base_env env
           ; pre
-          ; update = update_unit
+          ; update = update_unit env
           ; tag = []
           ; post = List.map fact_of_typed fs
           ; target = i_1
-          ; target_env = env
+          ; target_env = Env.merge base_env env
           ; loop_back = false
           }
         ]
@@ -276,33 +277,33 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
   | Let (x, ({ desc= Apply _; _ } as app), c) ->
       (* var x := f(e) in c *)
       (* i =f(e)=> j =let_def=> j+1 =c=> k =let_exit=> k+1 *)
-      let g, j, env_j = graph_application ~proc ~syscaller find_def decls i app in
+      let g, j, env_j = graph_application ~base_env ~proc ~syscaller find_def decls i app in
       let j_1 = Index.add j 1 in
-      let g', k, env_k = graph_cmd ~proc ~syscaller find_def decls j_1 c in
+      let g', k, env_k = graph_cmd ~base_env ~proc ~syscaller find_def decls j_1 c in
       let k_1 = Index.add k 1 in
       ( List.concat [
             g;
             [ { id = Ident.local ("let_def_" ^ fst x)
               ; source = j
-              ; source_env = env_j
+              ; source_env = Env.merge base_env env_j
               ; pre = []
-              ; update = { update_unit with mutable_overrides = [ x, None (* \rho *) ] }
+              ; update = { (update_unit env_j) with mutable_overrides = [ x, None (* \rho *) ] }
               ; tag = []
               ; post = []
               ; target = j_1
-              ; target_env = c.env
+              ; target_env = Env.merge base_env c.env
               ; loop_back = false
               } ];
             g';
             [ { id = Ident.local ("let_exit_" ^ fst x)
               ; source = k
-              ; source_env = env_k
+              ; source_env = Env.merge base_env env_k
               ; pre = []
               ; update = { update_id with drops= [x] }
               ; tag = []
               ; post = []
               ; target = k_1
-              ; target_env = env
+              ; target_env = Env.merge base_env env
               ; loop_back = false
               } ]
           ]
@@ -311,30 +312,30 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       (* var x := e in c *)
       (* i =let_def=> i+1 =c=> j =let_exit=> j+1 *)
       let i_1 = Index.add i 1 in
-      let g, j, env_j = graph_cmd ~proc ~syscaller find_def decls i_1 c in
+      let g, j, env_j = graph_cmd ~base_env ~proc ~syscaller find_def decls i_1 c in
       let j_1 = Index.add j 1 in
       ( List.concat [
             [ { id = Ident.local ("let_def_" ^ fst x)
               ; source = i
-              ; source_env = env
+              ; source_env = Env.merge base_env env
               ; pre = []
-              ; update = { update_unit with mutable_overrides = [ x, Some e ] }
+              ; update = { (update_unit env) with mutable_overrides = [ x, Some e ] }
               ; tag = []
               ; post = []
               ; target = i_1
-              ; target_env = c.env
+              ; target_env = Env.merge base_env c.env
               ; loop_back = false
               } ];
             g;
             [ { id = Ident.local ("let_exit_" ^ fst x)
               ; source = j
-              ; source_env = env_j
+              ; source_env = Env.merge base_env env_j
               ; pre = []
               ; update = { update_id with drops= [x] }
               ; tag = []
               ; post = []
               ; target = j_1
-              ; target_env = env
+              ; target_env = Env.merge base_env env
               ; loop_back = false
               }
             ]
@@ -343,19 +344,19 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
   | Assign (Some x, ({ desc= Apply _; _ } as app)) ->
       (* i =f(e)=> j =assign_call=> j+1 *)
       (* x := f(e) *)
-      let g, j, env_j = graph_application ~proc ~syscaller find_def decls i app in
+      let g, j, env_j = graph_application ~base_env ~proc ~syscaller find_def decls i app in
       let j_1 = Index.add j 1 in
       ( List.concat [
             g;
             [ { id = Ident.local "assign_call"
               ; source = j
-              ; source_env = env_j
+              ; source_env = Env.merge base_env env_j
               ; pre = []
-              ; update = { update_unit with mutable_overrides = [ x, None (* \rho *) ] }
+              ; update = { (update_unit env_j) with mutable_overrides = [ x, None (* \rho *) ] }
               ; tag = []
               ; post = []
               ; target = j_1
-              ; target_env = env
+              ; target_env = Env.merge base_env env
               ; loop_back = false
               } ]
           ]
@@ -363,19 +364,19 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
   | Assign (None, ({ desc= Apply _; _ } as app)) ->
       (* i =f(e)=> j =call=> j+1 *)
       (* _ := f(e) *)
-      let g, j, env_j = graph_application ~proc ~syscaller find_def decls i app in
+      let g, j, env_j = graph_application ~base_env ~proc ~syscaller find_def decls i app in
       let j_1 = Index.add j 1 in
       ( List.concat [
             g;
             [ { id = Ident.local "call"
               ; source = j
-              ; source_env = env_j
+              ; source_env = Env.merge base_env env_j
               ; pre = []
-              ; update = update_unit
+              ; update = update_unit env_j
               ; tag = []
               ; post = []
               ; target = j_1
-              ; target_env = env
+              ; target_env = Env.merge base_env env
               ; loop_back = false
               } ]
           ]
@@ -386,13 +387,13 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       let i_1 = Index.add i 1 in
       ( [ { id = Ident.local "assign"
           ; source = i
-          ; source_env = env
+          ; source_env = Env.merge base_env env
           ; pre = []
-          ; update = { update_unit with mutable_overrides = [ x, Some e ] }
+          ; update = { (update_unit env) with mutable_overrides = [ x, Some e ] }
           ; tag = []
           ; post = []
           ; target = i_1
-          ; target_env = env
+          ; target_env = Env.merge base_env env
           ; loop_back = false
           }
         ]
@@ -405,13 +406,13 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       let i_1 = Index.add i 1 in
       ( [ { id = Ident.local "event"
           ; source = i
-          ; source_env = env
+          ; source_env = Env.merge base_env env
           ; pre = []
-          ; update = update_unit
+          ; update = update_unit env
           ; tag = List.map fact_of_typed facts
           ; post = []
           ; target = i_1
-          ; target_env = env
+          ; target_env = Env.merge base_env env
           ; loop_back = false
           }
         ]
@@ -421,13 +422,13 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       let i_1 = Index.add i 1 in
       ( [ { id = Ident.local "return"
           ; source = i
-          ; source_env = env
+          ; source_env = Env.merge base_env env
           ; pre = []
-          ; update = { register = Some e; mutable_overrides = []; drops = [] }
+          ; update = { update_id with register = Some e }
           ; tag = []
           ; post = []
           ; target = i_1
-          ; target_env = env
+          ; target_env = Env.merge base_env env
           ; loop_back = false
           }
         ]
@@ -437,14 +438,14 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       (* new x in c *)
       (* new x = e in c *)
       let i_1 = Index.add i 1 in
-      let g, j, env_j = graph_cmd ~proc ~syscaller find_def decls i_1 c in
+      let g, j, env_j = graph_cmd ~base_env ~proc ~syscaller find_def decls i_1 c in
       let j_1 = Index.add j 1 in
       ( List.concat [
             [ { id = Ident.local "new_intro"
               ; source = i
-              ; source_env = env
+              ; source_env = Env.merge base_env env
               ; pre = [ fact c.env @@ Fresh x ]
-              ; update = update_unit
+              ; update = update_unit env
               ; tag = []
               ; post =
                   (match eopt with
@@ -455,19 +456,19 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
                            { name = s; proc_id=proc.id; address = evar c.env x; args = es }
                        ])
               ; target = i_1
-              ; target_env = c.env
+              ; target_env = Env.merge base_env c.env
               ; loop_back = false
               } ];
             g;
             [ { id = Ident.local "new_out"
               ; source = j
-              ; source_env = env_j
+              ; source_env = Env.merge base_env env_j
               ; pre = []
               ; update = { update_id with drops= [x] }
               ; tag = []
               ; post = []
               ; target = j_1
-              ; target_env = env
+              ; target_env = Env.merge base_env env
               ; loop_back = false
               }
             ]
@@ -477,7 +478,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       (* i =get_intro=> i+1 =c=> j =get_out=> j+1 *)
       (* [let x1,..,xn := e.S in c] *)
       let i_1 = Index.add i 1 in
-      let g, j, env_j = graph_cmd ~proc ~syscaller find_def decls i_1 c in
+      let g, j, env_j = graph_cmd ~base_env ~proc ~syscaller find_def decls i_1 c in
       let j_1 = Index.add j 1 in
       let pre_and_post : fact list =
         [ fact env
@@ -487,25 +488,25 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       ( List.concat [
             [ { id = Ident.local "get_intro"
               ; source = i
-              ; source_env = env
+              ; source_env = Env.merge base_env env
               ; pre = pre_and_post
-              ; update = update_unit
+              ; update = update_unit env
               ; tag = []
               ; post = pre_and_post
               ; target = i_1
-              ; target_env = c.env
+              ; target_env = Env.merge base_env c.env
               ; loop_back = false
               } ];
             g;
             [ { id = Ident.local "get_out"
               ; source = j
-              ; source_env = env_j
+              ; source_env = Env.merge base_env env_j
               ; pre = []
               ; update = { update_id with drops= xs }
               ; tag = []
               ; post = []
               ; target = j_1
-              ; target_env = env
+              ; target_env = Env.merge base_env env
               ; loop_back = false
               } ]
           ]
@@ -530,13 +531,13 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       in
       ( [ { id = Ident.local "del"
           ; source = i
-          ; source_env = env
+          ; source_env = Env.merge base_env env
           ; pre = [ fact env @@ Structure { name = s; proc_id= proc.id; address = e; args = xs } ]
-          ; update = update_unit
+          ; update = update_unit env
           ; tag = []
           ; post = []
           ; target = i_1
-          ; target_env = env
+          ; target_env = Env.merge base_env env
           ; loop_back = false
           }
         ]
@@ -549,32 +550,32 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
         @@ List.mapi
              (fun j (case : case) ->
                 let ij = Index.push i j in
-                let gj, bj (* bold j *), env_bj = graph_cmd ~proc ~syscaller find_def decls ij case.cmd in
+                let gj, bj (* bold j *), env_bj = graph_cmd ~base_env ~proc ~syscaller find_def decls ij case.cmd in
                 (* XXX ??? requires access policy check *)
                 ( List.concat [
                       [ { id= Ident.local "case_in"
                         ; source = i
-                        ; source_env = env
+                        ; source_env = Env.merge base_env env
                         ; pre =
                             List.map fact_of_typed case.facts
                             @ List.filter_map (channel_access ~proc ~syscaller) case.facts
-                        ; update = update_unit
+                        ; update = update_unit env
                         ; tag = []
                         ; post = []
                         ; target = ij
-                        ; target_env = case.cmd.env
+                        ; target_env = Env.merge base_env case.cmd.env
                         ; loop_back = false
                         } ];
                       gj;
                       [ { id= Ident.local "case_out"
                         ; source = bj
-                        ; source_env = env_bj
+                        ; source_env = Env.merge base_env env_bj
                         ; pre = []
                         ; update = { update_id with drops= case.fresh }
                         ; tag = []
                         ; post = []
                         ; target = i_1
-                        ; target_env = env
+                        ; target_env = Env.merge base_env env
                         ; loop_back = false
                         } ]
                     ]))
@@ -591,48 +592,48 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       let es =
         ({ id= Ident.local "repeat_in"
          ; source = i
-         ; source_env = env
+         ; source_env = Env.merge base_env env
          ; pre = []
-         ; update = update_unit
+         ; update = update_unit env
          ; tag = [ fact env @@ Loop { mode = In; proc_id= proc.id; param= proc.param; index = i } ]
          ; post = []
          ; target = i_1
-         ; target_env = env
+         ; target_env = Env.merge base_env env
          ; loop_back = false
          }
          :: List.concat
               (List.mapi
                  (fun j (case : case) ->
                     let i_1j = Index.push i_1 j in
-                    let gj, bj (* bold j *), env_bj = graph_cmd ~proc ~syscaller find_def decls i_1j case.cmd in
+                    let gj, bj (* bold j *), env_bj = graph_cmd ~base_env ~proc ~syscaller find_def decls i_1j case.cmd in
                     (* XXX ??? requires access policy check *)
                     List.concat [
                       [ { id= Ident.local "case_in"
                         ; source = i_1
-                        ; source_env = env
+                        ; source_env = Env.merge base_env env
                         ; pre =
                             List.map fact_of_typed case.facts
                             @ List.filter_map (channel_access ~proc ~syscaller) case.facts
-                        ; update = update_unit
+                        ; update = update_unit env
                         ; tag = []
                         ; post = []
                         ; target = i_1j
-                        ; target_env = case.cmd.env
+                        ; target_env = Env.merge base_env case.cmd.env
                         ; loop_back = false
                         } ];
                       gj;
                       [ { id= Ident.local "case_out"
                         ; source = bj
-                        ; source_env = env_bj
+                        ; source_env = Env.merge base_env env_bj
                         ; pre = []
-                        ; update = { update_unit with drops= case.fresh }
+                        ; update = { (update_unit env_bj) with drops= case.fresh }
                         ; tag =
                             [ fact case.cmd.env
                               @@ Loop { mode = Back; proc_id= proc.id; param= proc.param; index = i }
                             ]
                         ; post = []
                         ; target = i_1
-                        ; target_env = env
+                        ; target_env = Env.merge base_env env
                         ; loop_back = false
                         } ]
                     ])
@@ -641,26 +642,26 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
             (List.mapi
                (fun j (case : case) ->
                   let i_1jn = Index.push i_1 (j + n) in
-                  let gj, bj (* bold j *), env_bj = graph_cmd ~proc ~syscaller find_def decls i_1jn case.cmd in
+                  let gj, bj (* bold j *), env_bj = graph_cmd ~base_env ~proc ~syscaller find_def decls i_1jn case.cmd in
                   (* XXX ??? requires access policy check *)
                   List.concat [
                     [ { id= Ident.local "until_in"
                       ; source = i_1
-                      ; source_env = env
+                      ; source_env = Env.merge base_env env
                       ; pre =
                           List.map fact_of_typed case.facts
                           @ List.filter_map (channel_access ~proc ~syscaller) case.facts
-                      ; update = update_unit
+                      ; update = update_unit env
                       ; tag = []
                       ; post = []
                       ; target = i_1jn
-                      ; target_env = case.cmd.env
+                      ; target_env = Env.merge base_env case.cmd.env
                       ; loop_back = false
                       } ];
                     gj;
                     [ { id= Ident.local "until_out"
                       ; source = bj
-                      ; source_env = env_bj
+                      ; source_env = Env.merge base_env env_bj
                       ; pre = []
                       ; update = { update_id with drops= case.fresh }
                       ; tag =
@@ -669,7 +670,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
                           ]
                       ; post = []
                       ; target = i_2
-                      ; target_env = env
+                      ; target_env = Env.merge base_env env
                       ; loop_back = true (* To increment the transition counter *)
                       }
                     ]
@@ -678,7 +679,7 @@ let rec graph_cmd ~proc:(proc : Subst.instantiated_proc) ~syscaller find_def dec
       in
       es, i_2, env
 
-and graph_application ~proc ~syscaller find_def (decls : decl list) i (app : expr) : graph * Index.t * Env.t =
+and graph_application ~base_env ~proc ~syscaller find_def (decls : decl list) i (app : expr) : graph * Index.t * Env.t =
   match app.desc with
   | Apply (f, es) ->
       (match Env.find_opt_by_id app.env f with
@@ -688,13 +689,13 @@ and graph_application ~proc ~syscaller find_def (decls : decl list) i (app : exp
            let i_1 = Index.add i 1 in
            ( [ { id = Ident.local "extfun"
                ; source = i
-               ; source_env = app.env
+               ; source_env = Env.merge base_env app.env
                ; pre = []
-               ; update = { register = Some app; mutable_overrides = []; drops= [] }
+               ; update = { update_id with register = Some app }
                ; tag = []
                ; post = []
                ; target = i_1
-               ; target_env = app.env
+               ; target_env = Env.merge base_env app.env
                ; loop_back = false
                }
              ]
@@ -728,12 +729,14 @@ and graph_application ~proc ~syscaller find_def (decls : decl list) i (app : exp
                      let ik = Index.push i k in
                      (* XXX dupe: same as the normal applications *)
                      (* XXX Attacker is restricted by the syscaller?  Yes in Totamarin. So do we here. *)
-                     let g', j, env_j = graph_cmd ~proc ~syscaller find_def decls ik cmd in
+                     (* base_env must be extended! *)
+                     let base_env = Env.merge base_env app.env in
+                     let g', j, env_j = graph_cmd ~base_env ~proc ~syscaller find_def decls ik cmd in
                      List.concat [
                        g;
                        [ { id= Ident.local ((Ident.to_string attack_id) ^ "_attack_in")
                          ; source = i
-                         ; source_env = app.env
+                         ; source_env = Env.merge base_env app.env
                          ; pre = []
                          ; update = { register = Some { env= app.env; loc = Location.nowhere; desc = Unit }
                                     ; mutable_overrides = List.combine args (List.map Option.some es)
@@ -742,19 +745,19 @@ and graph_application ~proc ~syscaller find_def (decls : decl list) i (app : exp
                          ; tag = []
                          ; post = []
                          ; target = ik
-                         ; target_env = cmd.env
+                         ; target_env = Env.merge base_env cmd.env
                          ; loop_back = false
                          } ];
                        g';
                        [ { id= Ident.local ((Ident.to_string attack_id) ^ "_attack_out")
                          ; source = j
-                         ; source_env = env_j
+                         ; source_env = Env.merge base_env env_j
                          ; pre = []
-                         ; update = { register = None; mutable_overrides = []; drops= args }
+                         ; update = { update_id with drops= args }
                          ; tag = []
                          ; post = []
                          ; target = i_1
-                         ; target_env = app.env
+                         ; target_env = Env.merge base_env app.env
                          ; loop_back = false
                          } ]
                      ])
@@ -766,11 +769,15 @@ and graph_application ~proc ~syscaller find_def (decls : decl list) i (app : exp
            let args, cmd = find_def f in
            (* i => i0 => ... => j => i_1 *)
            let i0 = Index.push i 0 in
-           let g, j, env_j = graph_cmd ~proc ~syscaller find_def decls i0 cmd in
+           let g, j, env_j =
+             (* base_env must be extended! *)
+             let base_env = Env.merge base_env app.env in
+             graph_cmd ~base_env ~proc ~syscaller find_def decls i0 cmd
+           in
            List.concat [
              [ { id= Ident.local (Ident.to_string f ^ "_app_in")
                ; source = i
-               ; source_env = app.env
+               ; source_env = Env.merge base_env app.env
                ; pre = []
                ; update = { register = Some { env= app.env; loc = Location.nowhere; desc = Unit }
                           ; mutable_overrides = List.combine args (List.map Option.some es)
@@ -779,19 +786,19 @@ and graph_application ~proc ~syscaller find_def (decls : decl list) i (app : exp
                ; tag = []
                ; post = []
                ; target = i0
-               ; target_env = cmd.env
+               ; target_env = Env.merge base_env cmd.env
                ; loop_back = false
                } ];
              g;
              [ { id= Ident.local (Ident.to_string f ^ "app_out")
                ; source = j
-               ; source_env = env_j
+               ; source_env = Env.merge base_env env_j
                ; pre = []
-               ; update = { register = None; mutable_overrides = []; drops= args }
+               ; update = { update_id with drops= args }
                ; tag = []
                ; post = []
                ; target = i_1
-               ; target_env = app.env
+               ; target_env = Env.merge base_env app.env
                ; loop_back = false
                } ];
              g_attacks
@@ -800,7 +807,7 @@ and graph_application ~proc ~syscaller find_def (decls : decl list) i (app : exp
   | _ -> assert false
 ;;
 
-let check_edges es =
+let _check_edges es =
   let vs = Index.Map.empty in
   List.fold_left (fun vs (e : edge) ->
       Format.eprintf "Check edge %t@." (Ident.print e.id);
@@ -820,6 +827,8 @@ let check_edges es =
       let vs = check true vs e.source e.source_env in
       let vs = check false vs e.target e.target_env in
       vs) vs es
+
+let check_edges _es = ()
 
 let graph_files_and_vars
   ~loc
@@ -879,7 +888,7 @@ let model_process ~loc env decls syscalls (proc : Subst.instantiated_proc) =
   let funcs = List.map (fun (f, args, cmd) -> f, (args, cmd)) proc.Subst.funcs in
   let find_def n = List.assoc n (syscalls @ funcs) in
   let g, i = graph_files_and_vars ~loc env decls proc Index.zero in
-  let g', _j, _env = graph_cmd ~proc ~syscaller:None find_def decls i proc.main in
+  let g', _j, _env = graph_cmd ~base_env:{ proc.main.env with vars= [] } ~proc ~syscaller:None find_def decls i proc.main in
   let g = g @ g' in
   ignore (check_edges g);
   Format.eprintf "%t: %d edges@." (Ident.print (proc.id :> Ident.t)) (List.length g);
