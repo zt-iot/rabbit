@@ -119,10 +119,10 @@ type fact =
 
   (* New additions at Spthy level *)
   | Const of { id : Ident.t; param : expr option; value : expr }
-  | Const_initializing of { id : Ident.t; param : Subst.param_id option }
-  | Proc_group_initializing of Subst.proc_group_id
-  | Proc_group_initialized of Subst.proc_group_id * Subst.param_id option (* to bind param *)
-  | Proc_access_initializing of { proc_id : Subst.proc_id; param: Subst.param_id option }
+  | Initing_const of { id : Ident.t; param : Subst.param_id option } (* XXX init *)
+  | Initing_proc_group of Subst.proc_group_id (* XXX init *)
+  | Initing_proc_access of { proc_id : Subst.proc_id; param: Subst.param_id option } (* XXX init *)
+  | Inited_proc_group of Subst.proc_group_id * Subst.param_id option (* to bind param *)
   | State of
       { proc_id : Subst.proc_id
       ; param : Subst.param_id option
@@ -201,22 +201,22 @@ let fact' f : fact' =
            | Some p -> [ Tuple [String (Ident.to_string id); p]; value ])
       ; config = config_persist
       }
-  | Const_initializing { id; param } ->
-      { name= "Initializing_const"
-      ; args= String (Ident.to_string id) :: with_param param
+  | Initing_const { id; param } ->
+      { name= "Init"
+      ; args= [ Tuple (String "Const" :: String (Ident.to_string id) :: with_param param) ]
       ; config= config_linear }
-  | Proc_group_initializing id ->
-      { name= "Initializing_proc_group"
-      ; args= [String (Ident.to_string (id :> Ident.t))]
+  | Initing_proc_group id ->
+      { name= "Init"
+      ; args= [ Tuple [String "Proc_group"; String (Ident.to_string (id :> Ident.t))] ]
       ; config= config_linear }
-  | Proc_group_initialized (id, param) ->
-      { name= "Initialized_proc_group"
+  | Initing_proc_access { proc_id; param } ->
+      { name= "Init"
+      ; args= [ Tuple (String "Proc_access" :: String (Ident.to_string (proc_id :> Ident.t)) :: with_param param) ]
+      ; config= config_linear }
+  | Inited_proc_group (id, param) ->
+      { name= "Inited_proc_group"
       ; args= String (Ident.to_string (id :> Ident.t)) :: with_param param
       ; config= config_persist }
-  | Proc_access_initializing { proc_id; param } ->
-      { name= "Initializing_proc_access"
-      ; args= String (Ident.to_string (proc_id :> Ident.t)) :: with_param param
-      ; config= config_linear }
   | Access { proc_id; param; channel; syscall } ->
       { name= "ACP"
       ; args= [
@@ -569,7 +569,7 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.modeled_pro
   | Unbounded model ->
       assert (model.param = None);
       let pre = [] in
-      let label = [ Proc_group_initializing proc_group_id ] in
+      let label = [ Initing_proc_group proc_group_id ] in
       let rho = Ident.local "rho" in
       let state = State
           { proc_id= model.id
@@ -579,7 +579,7 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.modeled_pro
           ; transition= if !Config.tag_transition then Some One else None
           }
       in
-      let post = [ Proc_group_initialized (proc_group_id, None); state ] in
+      let post = [ Inited_proc_group (proc_group_id, None); state ] in
       { id = Ident.prefix "Init_" (proc_group_id :> Ident.t)
       ; role = Some (proc_group_id :> Ident.t)
       ; pre
@@ -589,7 +589,7 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.modeled_pro
       }
   | Bounded (param, models) ->
       let pre = [ Fresh (param :> Ident.t) ] in
-      let label = [ Proc_group_initializing proc_group_id ] in
+      let label = [ Initing_proc_group proc_group_id ] in
       let states =
         List.map (fun (model : Sem.model) ->
             assert (model.param <> None);
@@ -603,7 +603,7 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.modeled_pro
               }
           ) models
       in
-      let post = Proc_group_initialized (proc_group_id, Some param) :: states in
+      let post = Inited_proc_group (proc_group_id, Some param) :: states in
       { id = Ident.prefix "Init_" (proc_group_id :> Ident.t)
       ; role = Some (proc_group_id :> Ident.t)
       ; pre
@@ -620,7 +620,7 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       { id= rule_id
       ; role= None
       ; pre= [Fresh id]
-      ; label= [Const_initializing {id; param= None}; const]
+      ; label= [Initing_const {id; param= None}; const]
       ; post= [const]
       ; comment = Some (Printf.sprintf "const fresh %s" (Ident.to_string id))
       }
@@ -630,7 +630,7 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       { id= rule_id
       ; role= None
       ; pre= Fresh id :: const_deps
-      ; label= [Const_initializing {id; param= None}; const]
+      ; label= [Initing_const {id; param= None}; const]
       ; post= [const]
       ; comment = Some (Printf.sprintf "const %s = %s" (Ident.to_string id) (Typed.string_of_expr e))
       }
@@ -645,7 +645,7 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       { id= rule_id
       ; role= None
       ; pre= [Fresh (id :> Ident.t)]
-      ; label= [Const_initializing {id; param= Some p}; const]
+      ; label= [Initing_const {id; param= Some p}; const]
       ; post= [const]
       ; comment = Some (Printf.sprintf "const fresh %s<>" (Ident.to_string id))
       }
@@ -655,7 +655,7 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       { id= rule_id
       ; role = None
       ; pre = const_deps
-      ; label= [Const_initializing {id; param= Some (Subst.param_id p)}; const]
+      ; label= [Initing_const {id; param= Some (Subst.param_id p)}; const]
       ; post= [const]
       ; comment = Some (Printf.sprintf "const %s<%s> = %s" (Ident.to_string id) (Ident.to_string p) (Typed.string_of_expr e))
       }
@@ -678,8 +678,8 @@ let compile_access_controls
                 (Ident.to_string (proc_id :> Ident.t))
                 (Ident.to_string (proc_group_id :> Ident.t)))
       in
-      let pre = [ Proc_group_initialized (proc_group_id, param) ] in
-      let label = [ Proc_access_initializing { proc_id; param } ] in
+      let pre = [ Inited_proc_group (proc_group_id, param) ] in
+      let label = [ Initing_proc_access { proc_id; param } ] in
       let post =
         List.filter_map (function
             | `Channel ((chan_arg : Typed.chan_arg), syscall_opt) ->
