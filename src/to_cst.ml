@@ -208,6 +208,7 @@ let rec convert_instantiated_ty_to_core (read_access_map : access_map)
   (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy)
   (t : Env.instantiated_ty) 
    : (Cst_env.core_security_type) = 
+
    let convert_instantiated_ty_to_core_rec = (convert_instantiated_ty_to_core 
     read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice)
   
@@ -226,8 +227,6 @@ let rec convert_instantiated_ty_to_core (read_access_map : access_map)
         let integrity_lvl = Cst_env.proc_ty_set_to_integrity_lvl providers all_process_typs in 
 
         ct, (secrecy_lvl, integrity_lvl)
-
-        (* ct, (secrecy_lvl, integrity_lvl) *)
         
     | Env.TySimple (ty_name, param_list) ->
         (* Convert parameter list recursively *)
@@ -241,7 +240,7 @@ let rec convert_instantiated_ty_to_core (read_access_map : access_map)
         let converted_ty1 = convert_instantiated_ty_to_core_rec ty1 in
         let converted_ty2 = convert_instantiated_ty_to_core_rec ty2 in
         (* the secrecy lvl of a product is the greatest lower bound *)
-        let ct = Cst_env.TProd (converted_ty1, converted_ty2) in
+        let _ = Cst_env.TProd (converted_ty1, converted_ty2) in
 
         failwith "TODO: implement proper calculation of secrecy and integrity levels for products"
         
@@ -251,28 +250,63 @@ let rec convert_instantiated_ty_to_core (read_access_map : access_map)
           List.map convert_instantiated_ty_to_core_rec param_list in 
         let ct = Cst_env.TChan converted_params in 
         (* We ignore the security level of a channel type for now *)
-        ct, (Cst_env.Public, Cst_env.Untrusted)
+        ct, (Cst_env.S_Ignore, Cst_env.I_Ignore)
+
+  
 
 
 
-let convert_function_param_to_core (read_access_map : access_map) 
+let rec convert_function_param_to_core (read_access_map : access_map) 
   (provide_access_map : access_map) (all_process_typs : proc_ty_set)
   (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) 
-  (env_fun_param : Env.function_param) : (Cst_env.core_function_param) = 
+  (env_fun_param : Env.function_param) : (Cst_env.core_security_function_param) = 
+  let convert_instantiated_ty_to_core_rec = (convert_instantiated_ty_to_core 
+    read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice) in 
+  let convert_function_param_to_core_rec = (convert_function_param_to_core 
+    read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice) in
     match env_fun_param with 
-    | Env.FParamSecurity(sec_ty_name) -> 
+    | Env.FParamChannel(f_param_ty_params) -> 
+      (* Convert channel parameter list *)
+        let converted_params = 
+          List.map convert_function_param_to_core_rec f_param_ty_params in 
+        let ct = Cst_env.CFP_Chan converted_params in 
+        (* We ignore the security level of a channel type for now *)
+        ct, (Cst_env.S_Ignore, Cst_env.I_Ignore)
+    | Env.FParamSecurity(sec_ty_name, simpletyp_name, simple_ty_instantiated_tys) -> 
 
-        let ct = failwith "TODO: The information of which simple type the security type was created on should be present here, but it isn't" in 
+        let cst_simple_ty_params = List.map convert_instantiated_ty_to_core_rec simple_ty_instantiated_tys in
+        let csfp_simple_ty_params = List.map Cst_env.cst_to_csfp cst_simple_ty_params in 
+        let ct = Cst_env.CFP_Simple (simpletyp_name, csfp_simple_ty_params) in 
 
         let readers = SecurityTypeMap.find sec_ty_name read_access_map in 
         let providers = SecurityTypeMap.find sec_ty_name provide_access_map in 
-        
-        failwith "TODO"
 
-    | Env.FParamSimple(name, f_param_ty_params) -> failwith "TODO"
-    | Env.FParamProduct(f_param1, f_param2) -> failwith "TODO"
-    | Env.FParamChannel(f_param_ty_params) -> failwith "TODO"
-    | Env.FParamPoly(id) -> failwith "TODO"
+        let secrecy_lvl = Cst_env.proc_ty_set_to_secrecy_lvl readers all_process_typs in 
+        let integrity_lvl = Cst_env.proc_ty_set_to_integrity_lvl providers all_process_typs in 
+
+        ct, (secrecy_lvl, integrity_lvl)
+
+    | Env.FParamSimple(simple_ty_name, f_param_ty_params) -> 
+      (* Convert parameter list recursively *)
+        let converted_params = List.map convert_function_param_to_core_rec f_param_ty_params in
+        let ct = Cst_env.CFP_Simple (simple_ty_name, converted_params) in 
+        
+        (* A simple type is always (Public, Untrusted) as every party has read/provide access to it *)
+        ct, (Cst_env.Public, Cst_env.Untrusted)
+
+    | Env.FParamProduct(f_param1, f_param2) -> 
+      
+        let converted_ty1 = convert_function_param_to_core_rec f_param1 in
+        let converted_ty2 = convert_function_param_to_core_rec f_param2 in
+        
+        (* the secrecy lvl of a product is the greatest lower bound *)
+        let ct = Cst_env.CFP_Product (converted_ty1, converted_ty2) in
+
+        let secrecy_lvl, integrity_lvl = failwith "TODO: implement proper calculation of secrecy and integrity levels for products" in 
+
+        ct, (secrecy_lvl, integrity_lvl)
+    | Env.FParamPoly(id) -> 
+        CFP_Poly(id), (Cst_env.S_Ignore, Cst_env.I_Ignore)
 
 
 
@@ -300,7 +334,7 @@ let convert_env_desc (read_access_map : access_map)
   | Function (DesSMFunUntyped _) -> raise (CstConversionException "Cannot convert ExtSyscall without type information to Cst_env.desc")
   | Function (DesSMFunTyped (_, function_params, _)) ->
       MemberFunc (List.map convert_function_param_to_core_rec function_params)
-  | Const (is_param, None) -> 
+  | Const (_, None) -> 
       raise (CstConversionException "Cannot convert Const without type information to Cst_env.desc")
   | Const (is_param, Some instantiated_ty) ->
       Const (is_param, convert_instantiated_ty_to_core_rec instantiated_ty)
@@ -327,15 +361,7 @@ let convert_env (read_access_map : access_map)
   let cst_vars = 
     List.map (fun (id, env_desc) -> (id, (convert_env_desc_rec env_desc))) env.vars in
   let cst_facts = env.facts in 
-  Env.{vars = cst_vars ; facts = cst_facts}
-
-
-
-
-
-
-
-
+  {vars = cst_vars ; facts = cst_facts}
 
 
 

@@ -170,41 +170,6 @@ end
 let check_arity ~loc ~arity ~use =
   if arity <> use then error ~loc @@ ArityMismatch { arity; use }
 ;;
-
-
-let rec convert_rabbit_typ_to_f_param_ty_param ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.f_param_ty_param =
-  match ty with
-  | CProc | CFsys ->
-      error ~loc (Misc "process and filesys cannot be used as a function parameter type parameter")
-
-  (* a channel is not valid as a type parameter for a function parameter *)
-  | CChan _ ->
-      error ~loc (Misc "channel cannot be used as a function parameter type parameter")
-
-  | CSimpleOrSecurity (typ_name, input_ty_params) ->
-    let _, desc = Env.find ~loc env typ_name in 
-      begin match desc with 
-        | Env.SimpleTypeDef def_ty_params -> 
-            let expected_arity = List.length def_ty_params in 
-            let actual_arity = List.length input_ty_params in 
-            check_arity ~loc ~arity:expected_arity ~use:actual_arity;
-            let env_ty_params = List.map (convert_rabbit_typ_to_f_param_ty_param ~loc env) input_ty_params in 
-            FParamTyParamSimple(typ_name, env_ty_params)
-        | Env.SecurityTypeDef (_, _) -> 
-            (* we need to check that there are no additional input_ty_params given *)
-            if input_ty_params = [] then 
-              FParamTyParamSecurity(typ_name)
-            else
-              error ~loc (InvalidTypeParam typ_name)
-        | _ -> error ~loc (Misc "Invalid security type declaration")
-      end
-
-  | CProd (t1, t2) ->
-      let param1 = convert_rabbit_typ_to_f_param_ty_param ~loc env t1 in 
-      let param2 = convert_rabbit_typ_to_f_param_ty_param ~loc env t2 in 
-      FParamTyParamProduct(param1, param2)
-
-  | CPoly ident -> Env.FParamTyParamPoly(ident)
     
 
 let rec convert_rabbit_typ_to_instantiated_ty ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.instantiated_ty =
@@ -255,7 +220,7 @@ let rec convert_rabbit_typ_to_env_function_param ~loc (env : Env.t) (ty : Input.
   match ty with
   (* a channel is valid as a function parameter *)
   | CChan input_ty_params ->
-      FParamChannel (List.map (convert_rabbit_typ_to_f_param_ty_param ~loc env) input_ty_params)
+      FParamChannel (List.map (convert_rabbit_typ_to_env_function_param ~loc env) input_ty_params)
   | CSimpleOrSecurity (typ_name, input_ty_params) ->
       let _, desc = Env.find ~loc env typ_name in 
       begin match desc with 
@@ -263,14 +228,15 @@ let rec convert_rabbit_typ_to_env_function_param ~loc (env : Env.t) (ty : Input.
             let expected_arity = List.length def_ty_params in 
             let actual_arity = List.length input_ty_params in 
             check_arity ~loc ~arity:expected_arity ~use:actual_arity;
-            let env_ty_params = List.map (convert_rabbit_typ_to_f_param_ty_param ~loc env) input_ty_params in 
+            let env_ty_params = List.map (convert_rabbit_typ_to_env_function_param ~loc env) input_ty_params in 
             FParamSimple(typ_name, env_ty_params)
-        | Env.SecurityTypeDef (_, _) -> 
+        | Env.SecurityTypeDef (simpletypname, instantiated_simple_typ_params) -> 
+            
             (* we need to check that there are no additional input_ty_params given, because a security type cannot have any *)
-            if input_ty_params = [] then 
-              FParamSecurity(typ_name)
-            else
-              error ~loc (InvalidTypeParam typ_name)
+            let _ = if input_ty_params = [] then () else error ~loc (InvalidTypeParam typ_name)
+            in
+
+            FParamSecurity(typ_name, simpletypname, instantiated_simple_typ_params)
         | _ -> error ~loc (Misc "Invalid security type declaration")
       end
   | CProd (t1, t2) ->

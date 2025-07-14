@@ -30,20 +30,13 @@ type instantiated_ty =
 [@@deriving show]
 
 
-type f_param_ty_param = 
-  | FParamTyParamSecurity of Name.ident
-  | FParamTyParamSimple of Name.ident * f_param_ty_param list
-  | FParamTyParamProduct of f_param_ty_param * f_param_ty_param
-  | FParamTyParamPoly of Name.ident
-[@@deriving show]
-
 (* a function_param is used to type equational theory functions/syscalls/member functions *)
 type function_param = 
-  | FParamSecurity of Name.ident
-  | FParamSimple of Name.ident * f_param_ty_param list
+  | FParamSecurity of Name.ident (* name of security type *) * Name.ident (* name of simple type *) * instantiated_ty list (* instantiated type parameters of the simple type *)
+  | FParamSimple of Name.ident * function_param list
   | FParamProduct of function_param * function_param
   | FParamPoly of Name.ident 
-  | FParamChannel of f_param_ty_param list
+  | FParamChannel of function_param list
 [@@deriving show]
 
 

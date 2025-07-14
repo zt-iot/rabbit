@@ -12,38 +12,61 @@ type named_fact_desc = Env.named_fact_desc [@@deriving show]
 
 
 type secrecy_lvl = 
+  | S_Ignore (* when the secrecy level of a term will not be considered *)
   | Public 
   | SNode of proc_ty_set 
 [@@deriving show]
 
 type integrity_lvl = 
+  | I_Ignore (* when the integrity level of a term will not be considered *)
   | Untrusted
   | INode of proc_ty_set
 [@@deriving show]
 
-
+(* core type WITHOUT polymorphic types *)
 type core_type = 
   | TChan of core_security_type list
   | TSimple of Name.ident * core_security_type list
   | TProd of core_security_type * core_security_type
 [@@deriving show]
 
-
 and core_security_type = core_type * (secrecy_lvl * integrity_lvl) [@@deriving show]
 
+(* core type POSSIBLY WITH polymorphic types *)
 type core_function_param = 
-  | CParamCore of core_security_type
-  | CParamPoly of Name.ident
+  | CFP_Chan of core_security_function_param list
+  | CFP_Simple of Name.ident (* name of the simple type *) * core_security_function_param list (* core security types of the associated simple type *)
+  | CFP_Product of core_security_function_param * core_security_function_param
+  | CFP_Poly of Name.ident
 [@@deriving show]
+
+(* contructing a CFP_Poly with secrecy and integrity information should be illegal, but there is 
+no way to enforce this with a typing  *)
+and core_security_function_param = core_function_param * (secrecy_lvl * integrity_lvl)
+
+
+(* Boilerplate conversion necesary for `convert_function_param_to_core(Env.FParamSecurity(...)) *)
+let rec cst_to_csfp (cst : core_security_type) : core_security_function_param = 
+  let (core_ty, security_info) = cst in
+  let converted_core_function_param = match core_ty with
+    | TChan core_security_types -> 
+        CFP_Chan (List.map cst_to_csfp core_security_types)
+    | TSimple (name, core_security_types) -> 
+        CFP_Simple (name, List.map cst_to_csfp core_security_types)
+    | TProd (cst1, cst2) -> 
+        CFP_Product (cst_to_csfp cst1, cst_to_csfp cst2)
+  in
+  (converted_core_function_param, security_info)
+
 
 
 
 type desc =
   | SimpleTypeDef of name list (* simple type declaration *)
   | Var of var_desc
-  | ExtFun of core_function_param list (* equational theory function with 0 or more function parameters *)
-  | ExtSyscall of core_function_param list (** system call with 0 ore mor function parameters *)
-  | MemberFunc of core_function_param list (** member function of a process *)
+  | ExtFun of core_security_function_param list (* equational theory function with 0 or more function parameters *)
+  | ExtSyscall of core_security_function_param list (** system call with 0 ore mor function parameters *)
+  | MemberFunc of core_security_function_param list (** member function of a process *)
   | Const of bool (* with param or not *) * core_security_type (* conversion from Env.Const fails if type is not given *)
   | ChannelDecl of bool (* with param or not *) * ident (* channel type *)
   | Attack
