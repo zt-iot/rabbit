@@ -13,7 +13,12 @@ type syscall_effect =
 
 type syscall_effect_map = (syscall_effect) string_map 
 
-type cst_access_policy = ((proc_ty_set * proc_ty_set) * bool) list
+
+type relation = 
+  | LessThanOrEqual
+  | GreaterThanOrEqual
+
+type cst_access_policy = ((proc_ty_set * proc_ty_set) * bool) list * relation
 
 
 let syscall_effect_map = 
@@ -165,6 +170,10 @@ let provide_access_map_to_integrity_lvls_map provide_access_map all_process_typs
 
 (* Takes an access_map : access_map and proc_ty : string and returns the set of security types that include the given proc_ty *)
 
+
+
+(* COMPUTING a <= b FOR EACH PAIR OF ELEMENTS OF `all_process_typs` *)
+
 let accessing_labels (access_map : access_map) (proc_ty : string) : SecurityTypeSet.t =
   (* 1. Find the set of security labels that allow access to a given process type *)
   SecurityTypeMap.fold (fun key allowed_set acc ->
@@ -187,9 +196,10 @@ let proc_ty_set_rel (access_map : access_map)
   ) a
 
 (* 3. Iterate over all ordered pairs (a, b) of proc_ty_sets and evaluate whether "a × b" *)
-let compute_access_relation (access_map : access_map) : cst_access_policy =
+let compute_access_relation (access_map : access_map) : ((proc_ty_set * proc_ty_set) * bool) list =
   (* first get the list of unique proc_ty_sets in access_map values *)
   let proc_ty_sets = SecurityTypeMap.bindings access_map |> List.map snd |> List.sort_uniq ProcTySet.compare in 
+  (* Then compute whether a \rel b for all ordered pairs (a, b) of proc_ty_sets *)
   List.flatten (
     List.map (fun a ->
       List.map (fun b ->
@@ -201,6 +211,125 @@ let compute_access_relation (access_map : access_map) : cst_access_policy =
 
 
 
+
+(* Given an `u : proc_ty_set`, return vs, a set of all `proc_ty_set`s such that for each v \in vs, v <= u *)
+let elements_less_than_or_equal_to_u (pol : cst_access_policy) (u : proc_ty_set) : ProcTySetSet.t =
+  if (snd pol) = LessThanOrEqual then   
+    List.fold_left (fun acc ((v, u'), rel_holds) ->
+      if ProcTySet.equal u u' && rel_holds then
+        ProcTySetSet.add v acc
+      else
+        acc
+    ) ProcTySetSet.empty (fst pol)
+   else
+    List.fold_left (fun acc ((u', v), rel_holds) ->
+      if ProcTySet.equal u u' && rel_holds then
+        ProcTySetSet.add v acc
+      else
+        acc
+    ) ProcTySetSet.empty (fst pol)
+
+
+(* Given an `a : proc_ty_set`, return bs, a set of all `proc_ty_set`s such that for each b \in bs, b >= a *)
+let elements_greater_than_or_equal_to_u (pol : cst_access_policy) (u : proc_ty_set) : ProcTySetSet.t =
+  if (snd pol) = GreaterThanOrEqual then   
+    List.fold_left (fun acc ((v, u'), rel_holds) ->
+      if ProcTySet.equal u u' && rel_holds then
+        ProcTySetSet.add v acc
+      else
+        acc
+    ) ProcTySetSet.empty (fst pol)
+   else
+    List.fold_left (fun acc ((u', v), rel_holds) ->
+      if ProcTySet.equal u u' && rel_holds then
+        ProcTySetSet.add v acc
+      else
+        acc
+    ) ProcTySetSet.empty (fst pol)
+
+
+
+
+let find_extremum_in_intersect
+    ~(find_max : bool)
+    (pol : cst_access_policy)
+    (intersect : ProcTySetSet.t) : proc_ty_set option =
+
+  let (rel, relation_kind) = pol in
+
+  let rel_holds a b =
+    List.exists (fun ((x, y), holds) ->
+       ProcTySet.equal x a && ProcTySet.equal y b && holds
+    ) rel
+  in
+
+  let is_extremum candidate =
+    (* check if candidate is _relation_ for all `other \in intersect` *)
+    ProcTySetSet.for_all (fun other ->
+      (* the relation always holds on the candidate itself *)
+      if ProcTySet.equal candidate other then true
+
+      (* otherwise, check if `rel` holds depending on `relation_kind` *)
+      else match (find_max, relation_kind) with
+        | (true, LessThanOrEqual) -> rel_holds other candidate  (* other <= candidate <-> candidate is max *)
+        | (false, LessThanOrEqual) -> rel_holds candidate other  (* candidate <= other <-> candidate is min *)
+        | (true, GreaterThanOrEqual) -> rel_holds candidate other (* candidate >= other <-> candidate is max *)
+        | (false, GreaterThanOrEqual) -> rel_holds other candidate (* other >= candidate <-> candidate is min *)
+    ) intersect
+  in
+
+  let extremums = Seq.filter is_extremum (ProcTySetSet.to_seq intersect) in 
+  let extremum_opt = Seq.uncons extremums in
+  match extremum_opt with
+  | Some (proc_ty_set, _) -> Some proc_ty_set
+  | None -> None 
+
+
+(* Given a, b, find the least upper bound between a and b *)
+let join (pol : cst_access_policy) (a : proc_ty_set) (b : proc_ty_set) : proc_ty_set option = 
+  let elements_greater_than_a = elements_greater_than_or_equal_to_u pol a in 
+  let elements_greater_than_b = elements_greater_than_or_equal_to_u pol b in 
+  (* find the maximum element in the set of elements greater than both a and b *)
+  let intersect = ProcTySetSet.inter elements_greater_than_a elements_greater_than_b in 
+
+  find_extremum_in_intersect ~find_max:true pol intersect 
+  
+
+
+
+let meet (pol : cst_access_policy) (a : proc_ty_set) (b : proc_ty_set) : proc_ty_set option = 
+  let elements_less_than_or_equal_to_a = elements_less_than_or_equal_to_u pol a in 
+  let elements_less_than_or_equal_to_b = elements_less_than_or_equal_to_u pol b in 
+
+  (* find the minimum element in the set of elements less than both a and b *)
+  let intersect = ProcTySetSet.inter elements_less_than_or_equal_to_a elements_less_than_or_equal_to_b in 
+
+  find_extremum_in_intersect ~find_max:false pol intersect
+
+
+
+
+
+let join_of_secrecy_lvls (pol : cst_access_policy) (a : Cst_env.secrecy_lvl) (b : Cst_env.secrecy_lvl) : Cst_env.secrecy_lvl option = 
+  match (a, b) with
+  | Cst_env.S_Ignore, _ -> None 
+  | _, Cst_env.S_Ignore -> None 
+  | Cst_env.Public, _ -> Some b 
+  | _, Cst_env.Public -> Some a 
+  | Cst_env.SNode(a_set), Cst_env.SNode(b_set) -> match join pol a_set b_set with 
+    | Some candidate -> Some (SNode candidate)
+    | None -> None
+
+
+let meet_of_integrity_lvls (pol : cst_access_policy) (a : Cst_env.integrity_lvl) (b : Cst_env.integrity_lvl) : Cst_env.integrity_lvl option = 
+  match (a, b) with 
+  | Cst_env.I_Ignore, _ -> None
+  | _, Cst_env.I_Ignore -> None
+  | Cst_env.Untrusted, _ -> Some b
+  | _, Cst_env.Untrusted -> Some a 
+  | Cst_env.INode(a_set), Cst_env.INode(b_set) -> match meet pol a_set b_set with 
+    | Some candidate -> Some (INode candidate)
+    | None -> None 
 
 
 let rec convert_instantiated_ty_to_core (read_access_map : access_map) 
@@ -239,17 +368,29 @@ let rec convert_instantiated_ty_to_core (read_access_map : access_map)
     | Env.TyProduct (ty1, ty2) ->
         let converted_ty1 = convert_instantiated_ty_to_core_rec ty1 in
         let converted_ty2 = convert_instantiated_ty_to_core_rec ty2 in
-        (* the secrecy lvl of a product is the greatest lower bound *)
-        let _ = Cst_env.TProd (converted_ty1, converted_ty2) in
+        let ct = Cst_env.TProd (converted_ty1, converted_ty2) in
 
-        failwith "TODO: implement proper calculation of secrecy and integrity levels for products"
+        (* the secrecy lvl of a product is the greatest lower bound, i.e. the meet of the two secrecy levels *)
+        let (_, (secrecy_lvl1, _)) = converted_ty1 in 
+        let (_, (secrecy_lvl2, _)) = converted_ty2 in 
+        let (_, (_, integrity_lvl1)) = converted_ty1 in 
+        let (_, (_, integrity_lvl2)) = converted_ty2 in 
+
+        let secrecy_lvl = join_of_secrecy_lvls secrecy_lattice secrecy_lvl1 secrecy_lvl2 in 
+        let integrity_lvl = meet_of_integrity_lvls integrity_lattice integrity_lvl1 integrity_lvl2 in 
+
+        begin match (secrecy_lvl, integrity_lvl) with 
+          | (Some s, Some i) -> ct, (s, i)
+          (* XXX : Don't know what to do if there is no join or meet *)
+          | (_, _) -> ct, (secrecy_lvl1, integrity_lvl1)
+        end
         
     | Env.TyChan param_list ->
         (* Convert channel parameter list *)
         let converted_params = 
           List.map convert_instantiated_ty_to_core_rec param_list in 
         let ct = Cst_env.TChan converted_params in 
-        (* We ignore the security level of a channel type for now *)
+        (* We ignore the security level of a channel type for now when typechecking *)
         ct, (Cst_env.S_Ignore, Cst_env.I_Ignore)
 
   
@@ -270,7 +411,7 @@ let rec convert_function_param_to_core (read_access_map : access_map)
         let converted_params = 
           List.map convert_function_param_to_core_rec f_param_ty_params in 
         let ct = Cst_env.CFP_Chan converted_params in 
-        (* We ignore the security level of a channel type for now *)
+        (* We ignore the security level of a channel type for now when type-checking *)
         ct, (Cst_env.S_Ignore, Cst_env.I_Ignore)
     | Env.FParamSecurity(sec_ty_name, simpletyp_name, simple_ty_instantiated_tys) -> 
 
@@ -298,14 +439,27 @@ let rec convert_function_param_to_core (read_access_map : access_map)
       
         let converted_ty1 = convert_function_param_to_core_rec f_param1 in
         let converted_ty2 = convert_function_param_to_core_rec f_param2 in
-        
-        (* the secrecy lvl of a product is the greatest lower bound *)
-        let ct = Cst_env.CFP_Product (converted_ty1, converted_ty2) in
+        let ct = Cst_env.CFP_Product (converted_ty1, converted_ty2) in 
 
-        let secrecy_lvl, integrity_lvl = failwith "TODO: implement proper calculation of secrecy and integrity levels for products" in 
 
-        ct, (secrecy_lvl, integrity_lvl)
+        (* the secrecy lvl of a product is the greatest lower bound, i.e. the meet of the two secrecy levels *)
+        let (_, (secrecy_lvl1, _)) = converted_ty1 in 
+        let (_, (secrecy_lvl2, _)) = converted_ty2 in 
+        let (_, (_, integrity_lvl1)) = converted_ty1 in 
+        let (_, (_, integrity_lvl2)) = converted_ty2 in 
+
+        let secrecy_lvl = join_of_secrecy_lvls secrecy_lattice secrecy_lvl1 secrecy_lvl2 in 
+        let integrity_lvl = meet_of_integrity_lvls integrity_lattice integrity_lvl1 integrity_lvl2 in 
+
+        begin match (secrecy_lvl, integrity_lvl) with 
+          | (Some s, Some i) -> ct, (s, i)
+
+          (* XXX : Don't know what to do if there is no join or meet *)
+          | (_, _) -> ct, (secrecy_lvl1, integrity_lvl1)
+        end 
+
     | Env.FParamPoly(id) -> 
+        (* Ignore this secrecy/integrity level when type-checking *)
         CFP_Poly(id), (Cst_env.S_Ignore, Cst_env.I_Ignore)
 
 
@@ -616,8 +770,8 @@ let convert (decls : Typed.decl list)
     let all_process_typs = extract_process_typs_from_decls procs decls_rev in
 
     (* The method to compute the relation is the same for both reading/providing *)
-    let secrecy_lattice = compute_access_relation read_access_map in (* the relation is '>=' *)
-    let integrity_lattice = compute_access_relation provide_access_map in (* the relation is '<=' *)
+    let secrecy_lattice = (compute_access_relation read_access_map, GreaterThanOrEqual) in (* the relation is '>=' *)
+    let integrity_lattice = (compute_access_relation provide_access_map, LessThanOrEqual) in (* the relation is '<=' *)
 
 
     let converted_decls = List.fold_left (fun acc decl -> 

@@ -12,13 +12,13 @@ type named_fact_desc = Env.named_fact_desc [@@deriving show]
 
 
 type secrecy_lvl = 
-  | S_Ignore (* when the secrecy level of a term will not be considered *)
+  | S_Ignore (* Means: Ignore this secrecy level when type-checking *)
   | Public 
   | SNode of proc_ty_set 
 [@@deriving show]
 
 type integrity_lvl = 
-  | I_Ignore (* when the integrity level of a term will not be considered *)
+  | I_Ignore (* Means: "Ignore this integrity level when type-checking"  *)
   | Untrusted
   | INode of proc_ty_set
 [@@deriving show]

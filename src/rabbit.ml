@@ -122,6 +122,17 @@ let _main =
                   raise exn
             in
 
+            (* Test converter *)
+            (match typer_result with
+              | Error _ -> ()
+              | Ok decls -> 
+                  (* let cst_decls, secrecy_lattice, integrity_lattice = To_cst.convert(decls) in  *)
+                  let _, _, _ = To_cst.convert(decls) in 
+                ()
+            );
+
+
+
             (* Typechecking test with security type system *)
             (match typer_result with
              | Error _ -> ()

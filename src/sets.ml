@@ -2,6 +2,8 @@ module StringSet = Set.Make(String)
 module ProcTySet = Set.Make(String)
 module SecurityTypeSet = Set.Make(String)
 
+module ProcTySetSet = Set.Make(ProcTySet)
+
 type proc_ty_set = ProcTySet.t
 
 
