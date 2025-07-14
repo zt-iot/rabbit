@@ -112,11 +112,11 @@ syscall gen_message () : client_msg {
 
 
 (** Temporary solution *)
-syscall read () {
+syscall read () : unit {
   skip
 }
 
-syscall provide () {
+syscall provide () : unit {
   skip
 }
 (** Temporary solution *)
@@ -139,7 +139,7 @@ attack tamper_channel on recv (c) {
 allow attack alice_t [tamper_channel] 
 allow attack bob_t [tamper_channel] 
 
-passive attack eaves_mem (v) {
+passive attack eaves_mem (v : 'a) : unit {
   put [::Out(v)]
 }
 
@@ -170,10 +170,14 @@ allow alice_t client_msg [gen_message, send, recv]
 allow alice_t client_sig [send]
 allow alice_t client_sig [.]  (* able to create signatures using `sign` equational theory function *)
 allow alice_t sign_key_alice [.] (* able to instantiate terms of sign_key_alice in memory instantiation *)
+allow alice_t conn_client [.]
+
 
 allow bob_t client_msg [gen_message, send, recv]
 allow bob_t client_sig [send]
 allow bob_t client_sig [.]  (* able to create signatures using `sign` equational theory function *)
+allow bob_t conn_client [.]
+
 
 
 allow attacker_ty client_msg [read, provide]

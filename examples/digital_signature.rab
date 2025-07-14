@@ -55,7 +55,7 @@ attack tamper_channel on recv (c) {
 
 allow attack client_t [tamper_channel] 
 
-passive attack eaves_mem (v) {
+passive attack eaves_mem (v : 'a) : unit {
   put [::Out(v)]
 }
 

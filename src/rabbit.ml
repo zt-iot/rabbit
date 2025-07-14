@@ -85,12 +85,12 @@ let _main =
   try
       let Loader.{ system= sys; used_idents; used_strings; _ } =
         List.fold_left (fun (env : Loader.env) (fn, _quiet) ->
-            let loader_result =
+            (* let loader_result =
               try
                 Ok (Loader.load fn env)
               with
               | exn -> Error exn
-            in
+            in *)
             let typer_result =
               try
                 let _, decls = Typer.load (Env.empty ()) fn in
@@ -102,7 +102,7 @@ let _main =
                   Format.eprintf "Typer unexpected exception: %s@." (Printexc.to_string exn);
                   Error exn
             in
-            let res =
+            (* let res =
               match loader_result, typer_result with
               | Ok res, Ok _ ->
                   prerr_endline "TyperSuccess";
@@ -120,7 +120,9 @@ let _main =
               | Error exn, Ok _ ->
                   prerr_endline "Unexpected TyperSuccess";
                   raise exn
-            in
+
+                  
+            in *)
 
             (* Test converter *)
             (match typer_result with
@@ -174,7 +176,11 @@ let _main =
                      prerr_endline "graph checked"
                  | None -> prerr_endline "no system"
             );
-            res
+            (* ORIGINAL RETURN VALUE *)
+            (* res *)
+
+            (* Just return an empty Loader.env for now, because I don't care what this value is *)
+            env
           )
           Loader.process_init !files
       in

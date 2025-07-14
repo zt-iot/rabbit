@@ -82,8 +82,7 @@ and cmd' =
   *)
   | Event of fact list (** tag, event[T] *)
   | Return of expr (** return *)
-  (* conversion will fail if no type is present in Typed.New(...) *)
-  | New of ident * Cst_env.core_security_type * (name * expr list) option * cmd
+  | New of ident * Cst_env.core_security_type option * (name * expr list) option * cmd
   (** allocation, new x := S(e1,..en) in c *)
   | Get of ident list * expr * name * cmd (** fetch, let x1,..,xn := e.S in c *)
   | Del of expr * name (** deletion , delete e.S *)
