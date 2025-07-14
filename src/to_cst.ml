@@ -213,16 +213,19 @@ let rec convert_instantiated_ty_to_core (read_access_map : access_map)
   
    in 
    match t with
-    | Env.TySecurity ty_name -> 
-        let ct = Cst_env.TSimple (ty_name, []) in 
+    | Env.TySecurity (sec_ty_name, simple_ty_name, simple_ty_instantiated_tys) ->
+      
+      
+        let converted_simple_ty_params = List.map convert_instantiated_ty_to_core_rec simple_ty_instantiated_tys in
+        let ct = Cst_env.TSimple (simple_ty_name, converted_simple_ty_params) in 
 
-        let readers = SecurityTypeMap.find ty_name read_access_map in 
-        let providers = SecurityTypeMap.find ty_name provide_access_map in 
+        let readers = SecurityTypeMap.find sec_ty_name read_access_map in 
+        let providers = SecurityTypeMap.find sec_ty_name provide_access_map in 
 
         let secrecy_lvl = Cst_env.proc_ty_set_to_secrecy_lvl readers all_process_typs in 
         let integrity_lvl = Cst_env.proc_ty_set_to_integrity_lvl providers all_process_typs in 
 
-        failwith "TODO The information of wihch simple type the security type was created on should be present here, but it isn't"
+        ct, (secrecy_lvl, integrity_lvl)
 
         (* ct, (secrecy_lvl, integrity_lvl) *)
         

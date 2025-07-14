@@ -23,8 +23,8 @@ let string_of_named_fact_desc = function
 
 (* an instantiated_ty is used to type expression terms in Rabbit *)
 type instantiated_ty = 
-  | TySecurity of Name.ident (* name of the security type *)
-  | TySimple of Name.ident * instantiated_ty list
+  | TySecurity of Name.ident (* name of the security type *) * Name.ident (* name of the corresponding simple type *) * instantiated_ty list (* instantiated type parameters of the simple type *)
+  | TySimple of Name.ident (* name of the corresponding simple type *) * instantiated_ty list (* instantiated type parameters of the simple type *)
   | TyProduct of instantiated_ty * instantiated_ty
   | TyChan of instantiated_ty list
 [@@deriving show]
@@ -68,6 +68,7 @@ let syscall_member_fun_desc_to_ident_list signature = match signature with
 
 
 type desc =
+  (* SimpleTypeDef of <type parameter list of the simple type> *)
   | SimpleTypeDef of Name.ident list
   | Var of var_desc
   | ExtFun of eq_thy_func_desc
@@ -80,6 +81,8 @@ type desc =
   | ProcTypeDef
   | FilesysTypeDef 
   | ChanTypeDef of instantiated_ty list
+
+  (* SecurityTypeDef of <name of the simple type> * <instantiated type parameter list of the simple type> *)
   | SecurityTypeDef of Name.ident * instantiated_ty list
   
   | Process

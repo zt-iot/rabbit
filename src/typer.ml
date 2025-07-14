@@ -216,21 +216,30 @@ let rec convert_rabbit_typ_to_instantiated_ty ~loc (env : Env.t) (ty : Input.rab
       TyChan(List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params)
 
   | CSimpleOrSecurity (typ_name, input_ty_params) ->
+
+
+      let convert_simple_type_params def_ty_params = 
+        let expected_arity = List.length def_ty_params in 
+        let actual_arity = List.length input_ty_params in 
+        check_arity ~loc ~arity:expected_arity ~use:actual_arity;
+        List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params
+      in
+
+      (* lookup if typ_name is a simple type definition or security type definition *)
       let _, desc = Env.find ~loc env typ_name in 
       begin match desc with 
         | Env.SimpleTypeDef def_ty_params -> 
-            let expected_arity = List.length def_ty_params in 
-            let actual_arity = List.length input_ty_params in 
-            check_arity ~loc ~arity:expected_arity ~use:actual_arity;
-            let env_ty_params = List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params in 
-            TySimple(typ_name, env_ty_params)
-        | Env.SecurityTypeDef (_, _) -> 
-            (* we need to check that there are no additional input_ty_params given *)
-            if input_ty_params = [] then 
-              TySecurity(typ_name)
-            else
-              error ~loc (InvalidTypeParam typ_name)
-        | _ -> error ~loc (Misc "Invalid security type declaration")
+            (* if desc is a SimpleTypDef, check that arity is matching *)
+            let converted_st_params = convert_simple_type_params def_ty_params in 
+            TySimple(typ_name, converted_st_params)
+        | Env.SecurityTypeDef (simpletypname, instantiated_simple_typ_params) -> 
+            
+            (* we need to check that there are no additional input_ty_params given, because a security type cannot have any *)
+            let _ = if input_ty_params = [] then () else error ~loc (InvalidTypeParam typ_name)
+            in
+
+            TySecurity(typ_name, simpletypname, instantiated_simple_typ_params)
+        | _ -> error ~loc (Misc (Format.sprintf "Invalid declaration: %s is not a simple type definition or security type definition" typ_name))
       end
 
   | CProd (t1, t2) ->
@@ -257,7 +266,7 @@ let rec convert_rabbit_typ_to_env_function_param ~loc (env : Env.t) (ty : Input.
             let env_ty_params = List.map (convert_rabbit_typ_to_f_param_ty_param ~loc env) input_ty_params in 
             FParamSimple(typ_name, env_ty_params)
         | Env.SecurityTypeDef (_, _) -> 
-            (* we need to check that there are no additional input_ty_params given *)
+            (* we need to check that there are no additional input_ty_params given, because a security type cannot have any *)
             if input_ty_params = [] then 
               FParamSecurity(typ_name)
             else
