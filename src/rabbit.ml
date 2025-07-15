@@ -75,6 +75,8 @@ let _main =
   (* Files were accumulated in the wrong order, so we reverse them *)
   files := List.rev !files ;
 
+  
+
   (* Set the maximum depth of pretty-printing, after which it prints ellipsis. *)
   Format.set_max_boxes !Config.max_boxes ;
   Format.set_margin !Config.columns ;
@@ -93,6 +95,8 @@ let _main =
             in *)
             let typer_result =
               try
+
+                let _ = print_endline (Format.sprintf "Running Typer.load on %s" fn) in 
                 let _, decls = Typer.load (Env.empty ()) fn in
                 
                 Ok decls
@@ -124,10 +128,14 @@ let _main =
                   
             in *)
 
+            let _ = print_endline (Format.sprintf "Tryng to convert %s to CST" fn) in 
+
             (* Test converter *)
             (match typer_result with
-              | Error _ -> ()
+              | Error exn -> 
+                  Format.eprintf "Typer exception: %s@." (Printexc.to_string exn);
               | Ok decls -> 
+                  
                   (* let cst_decls, secrecy_lattice, integrity_lattice = To_cst.convert(decls) in  *)
                   let _, _, _ = To_cst.convert(decls) in 
                 ()
@@ -179,7 +187,7 @@ let _main =
             (* ORIGINAL RETURN VALUE *)
             (* res *)
 
-            (* Just return an empty Loader.env for now, because I don't care what this value is *)
+            (* Just envr now, because I don't care what this value is *)
             env
           )
           Loader.process_init !files

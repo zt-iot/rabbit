@@ -1,0 +1,3 @@
+Running Typer.load on examples/camserver_typed.rab
+Tryng to convert examples/camserver_typed.rab to CST
+Loading complete..
