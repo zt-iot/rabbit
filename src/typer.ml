@@ -29,10 +29,6 @@ type error =
 
 exception Error of error Location.located
 
-(** [error ~loc err] raises the given runtime error. *)
-let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
-
-let misc_errorf ~loc fmt = Format.kasprintf (fun s -> error ~loc (Misc s)) fmt
 
 let kind_of_desc = function
   | Env.Var (Top _) -> "toplevel"
@@ -110,6 +106,17 @@ let print_error err ppf =
   | InvalidTypeParam(ty_param) -> Format.fprintf ppf "%s is a security type and therefore cannot have type parameters" ty_param
   (* | InvalidEnvTyParam(_) -> Format.fprintf ppf "This Rabbit type cannot be conveted to a Env.ty_param" *)
 ;;
+
+(** [error ~loc err] raises the given runtime error. *)
+let error ~loc err = 
+  Format.eprintf "TyperFail: %t: %t@." (Location.print loc) (print_error err);
+  Stdlib.raise (Error (Location.locate ~loc err))
+
+let misc_errorf ~loc fmt = Format.kasprintf (fun s -> error ~loc (Misc s)) fmt
+
+
+
+
 
 module Env : sig
   include module type of struct

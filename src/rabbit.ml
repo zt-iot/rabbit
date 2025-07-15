@@ -132,8 +132,11 @@ let _main =
 
             (* Test converter *)
             (match typer_result with
+              | Error (Typer.Error e) -> 
+                  Format.eprintf "Typer exception: %t@." (Location.print e.loc);
               | Error exn -> 
-                  Format.eprintf "Typer exception: %s@." (Printexc.to_string exn);
+                Format.eprintf "Unexpected TyperFail: %s" (Printexc.to_string exn); 
+                raise exn
               | Ok decls -> 
                   
                   (* let cst_decls, secrecy_lattice, integrity_lattice = To_cst.convert(decls) in  *)

@@ -1,6 +1,8 @@
+data unit 
 data bool
 data string
 data connection
+
 data signature
 data image
 data filedescr
@@ -29,18 +31,8 @@ type client_t 	  : process
 type client_ta_t  : process
 
 
-type udp_t 	  : channel[image * signature] (* image and signature are exposed to attacker on udp_t channel *)
-
-(* channel accepts a sum of types *)
-(* type rpc_t 	  : channel[unit + string * client_img * string + client_ta_sig] *)
-
-type rpc_t 	  : channel[string * client_img * string + client_ta_sig]               
-(* the attacker cannot tamper or eavesdrop on the rpc_t channel *)
-
 (***********)
 (* SECURITY TYPES *)
-
-
 
 type client_img : image
 type client_ta_sig : signature
@@ -51,6 +43,21 @@ type symkey_client_ta : symkey[cipher[sigkey_client_ta]]
 
 type conn_client : connection
 type ver_key_server : verkey[image]
+
+
+
+(***********)
+(* CHANNEL TYPES *)
+
+type udp_t 	  : channel[image * signature] (* image and signature are exposed to attacker on udp_t channel *)
+
+(* channel accepts a sum of types *)
+(* type rpc_t 	  : channel[unit + string * client_img * string + client_ta_sig] *)
+
+type rpc_t 	  : channel[string * client_img * string + client_ta_sig]               
+(* the attacker cannot tamper or eavesdrop on the rpc_t channel *)
+
+
 
 
 
