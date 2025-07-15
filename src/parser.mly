@@ -138,11 +138,11 @@ name_ty_param_pair :
 fun_signature:
   (* the case where there are zero parameters in between the (...) is handled separately 
   because otherwise this causes a Menhir reduce/reduce conflict *)
-  | LPAREN RPAREN COLON retty=typ { TypedSig([], [], retty) }
+  | LPAREN RPAREN COLON retty=typ { TypedSig([], [retty]) }
   | LPAREN RPAREN { UntypedSig([]) }
 
   | LPAREN names_and_types=separated_nonempty_list(COMMA, name_ty_param_pair) RPAREN 
-      COLON retty=typ { TypedSig(List.map fst names_and_types, List.map snd names_and_types, retty) }
+      COLON retty=typ { TypedSig(List.map fst names_and_types, (List.map snd names_and_types) @ [retty]) }
   | LPAREN names=separated_nonempty_list(COMMA, NAME) RPAREN { UntypedSig(names) }
 
 syscall_tk:

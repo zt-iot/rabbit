@@ -40,6 +40,27 @@ type function_param =
 [@@deriving show]
 
 
+(* Boilerplate conversion from instantiated_ty to function_param, which is required by 
+convert_rabbit_typ_to_env_function_param(CSimpleOrSecurity(...)) *)
+let rec instantiated_ty_to_function_param (ty : instantiated_ty) : function_param =
+  match ty with
+  | TySecurity (sec_ty_name, simple_ty_name, params) ->
+      FParamSecurity (sec_ty_name, simple_ty_name, params)
+
+  | TySimple (simple_ty_name, params) ->
+      let param_fparams = List.map instantiated_ty_to_function_param params in
+      FParamSimple (simple_ty_name, param_fparams)
+
+  | TyProduct (ty1, ty2) ->
+      let f1 = instantiated_ty_to_function_param ty1 in
+      let f2 = instantiated_ty_to_function_param ty2 in
+      FParamProduct (f1, f2)
+
+  | TyChan params ->
+      let param_fparams = List.map instantiated_ty_to_function_param params in
+      FParamChannel param_fparams
+
+
 (* Used for signature of equational theory function *)
 type eq_thy_func_desc = 
   | DesugaredArity of int (* when types are not given *)
@@ -50,13 +71,13 @@ type eq_thy_func_desc =
 (* Used for signature of syscalls and member function *)
 type syscall_member_fun_sig = 
   | DesSMFunUntyped of Ident.t list  (* when types are not given *)
-  | DesSMFunTyped of Ident.t list * function_param list * function_param (* when types are given *)
+  | DesSMFunTyped of Ident.t list * function_param list (* when types are given *)
 [@@deriving show]
 
 let syscall_member_fun_desc_to_ident_list signature = match signature with 
   (* Description Syscall Member Function *)
   | DesSMFunUntyped(ids) -> ids
-  | DesSMFunTyped(ids, _, _) -> ids
+  | DesSMFunTyped(ids, _) -> ids
 
 
 
@@ -100,7 +121,8 @@ let print_desc desc ppf =
   | Function _ -> f ppf "Function"
   | Process -> f ppf "Process"
 
-  | _ -> failwith "TODO"
+  | SimpleTypeDef _ -> f ppf "SimpleTypeDef"
+  | SecurityTypeDef (_, _) -> f ppf "SecurityTypeDef"
 
 type t = {
   vars : (Ident.t * desc) list;

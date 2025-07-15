@@ -1,20 +1,30 @@
 
 
 (* security primitives *)
-function vk : key[Sig]@('s, 'i) -> key[Ver]@(Public, 'i)
+function vk : sigkey_client_ta -> ver_key_server
 
-function senc : 'a -> key[Sym, 'a]@(Public, 'i) -> cipher['a]@(Public, 'i)
-function sdec : cipher['a] -> key[Sym, 'a] -> 'a
-equation sdec(enc(x, y), y) = x
 
-function sign : 'a -> key[Sig, 'a]@('s, 'i) -> signature@(S('a), 'i) (* signature@('a, i) will match any "signature security type", E.G.*)
+
+function senc : sigkey_client_ta -> symkey_client_ta -> cipher[sigkey_client_ta]
+
+
+function sdec : cipher[sigkey_client_ta] -> symkey_client_ta -> sigkey_client_ta
+equation sdec(senc(x, y), y) = x
+
+
+function sign : client_img -> sigkey_client_ta -> client_ta_sig
+
+
 
 function fst : 'a * 'b -> 'a
 function snd : 'a * 'b -> 'b
 equation fst ((x, y)) = x
 equation snd ((x, y)) = y
-function true : bool                                        (* A 0-argument function, aka a constant, which is of type bool *)
-function verify : signature@('s1, 'i1) -> 'a@('s1, 'i1) -> key[Ver, 'a]@('s, 'i) -> bool
+
+
+function true : bool    (* A 0-argument function, aka a constant, which is of type bool *)
+
+function verify : signature -> image -> ver_key_server -> bool
 
 equation verify (sign(d, k), d, vk(k)) = true
 
@@ -62,13 +72,13 @@ syscall recv_verify_loop(ch_net : udp_t, pubkey : ver_key_server) : unit {
   repeat 
   | [] →
     var sig_img_pair : signature * image = recv(ch_net) in
-    var res : bool = verify(fst(p), snd(p), pubkey) in 
+    var res : bool = verify(fst(sig_img_pair), snd(sig_img_pair), pubkey) in 
     case 
     | [res =  true] →
-      event [::ImgRecvValid(snd(p))]
+      event [::ImgRecvValid(snd(sig_img_pair))]
 
     | [res != true] →  
-      event [::ImgRecvInvalid(snd(p))]
+      event [::ImgRecvInvalid(snd(sig_img_pair))]
     end
   until
   | [::False()] →  skip 

@@ -211,7 +211,12 @@ let rec convert_rabbit_typ_to_instantiated_ty ~loc (env : Env.t) (ty : Input.rab
             in
 
             TySecurity(typ_name, simpletypname, instantiated_simple_typ_params)
-        | _ -> error ~loc (Misc (Format.sprintf "Invalid declaration: %s is not a simple type definition or security type definition" typ_name))
+
+        | Env.ChanTypeDef (instantiated_tys) -> 
+          TyChan(instantiated_tys)
+          
+        (* we disallow security types based on product types for now *)
+        | _ -> error ~loc (Misc (Format.sprintf "Invalid declaration: %s is not a simple type definition, security type definition or channel type definition" typ_name))
       end
 
   | CProd (t1, t2) ->
@@ -244,7 +249,16 @@ let rec convert_rabbit_typ_to_env_function_param ~loc (env : Env.t) (ty : Input.
             in
 
             FParamSecurity(typ_name, simpletypname, instantiated_simple_typ_params)
-        | _ -> error ~loc (Misc "Invalid security type declaration")
+
+
+        | Env.ChanTypeDef (instantiated_tys) -> 
+          let env_ty_params = List.map Env.instantiated_ty_to_function_param instantiated_tys in 
+          
+          FParamChannel(env_ty_params)
+        (* we disallow security types based on product types for now *)
+        | _ -> 
+          Env.print_desc desc Format.std_formatter;
+          error ~loc (Misc (Format.sprintf "Invalid security type declaration: above description needs to be an Env.SimpleTypeDef or Env.SecurityTypeDef"))
       end
   | CProd (t1, t2) ->
       let param1 = convert_rabbit_typ_to_env_function_param ~loc env t1 in 
@@ -282,13 +296,18 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
              check_arity ~loc ~arity ~use;
              Apply (id, es)
          | id, (ExtFun (DesugaredTypeSig ps)) -> 
-            let arity = List.length ps - 1 in (* return type is not considered part of the input arity *)
+            (* arity = number of arguments that function takes *)
+            let arity = List.length ps - 1 in 
             check_arity ~loc ~arity ~use;
              Apply (id, es)
          | id, (ExtSyscall sig_desc | Function sig_desc) ->
              let arity = begin match sig_desc with
-             | Env.DesSMFunUntyped(ps) -> List.length ps 
-             | Env.DesSMFunTyped(ids, _, _) -> List.length ids 
+             (* arity = number of arguments that function takes *)
+             | Env.DesSMFunUntyped(ps) -> List.length ps - 1
+             | Env.DesSMFunTyped(ids, ps) -> 
+                assert ((List.length ids) = (List.length ps) - 1);
+                (* arity = number of arguments that function takes *)
+                List.length ps - 1
              end in 
              check_arity ~loc ~arity ~use;
              Apply (id, es)
@@ -580,11 +599,10 @@ let type_process
 
            let converted_fun_desc = begin match input_member_fun_desc with 
             | Input.UntypedSig(_) -> Env.DesSMFunUntyped(args)
-            | Input.TypedSig(_, fun_params, ret_ty) -> 
+            | Input.TypedSig(_, fun_params) -> 
               let converted_fun_params = List.map 
                 (convert_rabbit_typ_to_env_function_param ~loc env) fun_params in 
-              let converted_ret_ty = convert_rabbit_typ_to_env_function_param ~loc env ret_ty in                 
-                Env.DesSMFunTyped(args, converted_fun_params, converted_ret_ty)
+                Env.DesSMFunTyped(args, converted_fun_params)
            end in 
 
            let c = type_cmd env'' c in
@@ -702,11 +720,10 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       in
       let converted_syscall_sig = begin match syscall_desc_input with 
         | Input.UntypedSig(_) -> Env.DesSMFunUntyped(args)
-        | Input.TypedSig(_, fun_params, ret_ty) -> 
+        | Input.TypedSig(_, fun_params) -> 
             let converted_fun_params = List.map 
               (convert_rabbit_typ_to_env_function_param ~loc env) fun_params in 
-            let converted_ret_ty = convert_rabbit_typ_to_env_function_param ~loc env ret_ty in 
-            Env.DesSMFunTyped(args, converted_fun_params, converted_ret_ty)
+            Env.DesSMFunTyped(args, converted_fun_params)
       end in 
       let env', id = Env.add_global ~loc env name (ExtSyscall converted_syscall_sig) in
       env', [{ env; loc; desc = Typed.Syscall { id; fun_sig = converted_syscall_sig; cmd } }]

@@ -507,10 +507,10 @@ let convert_env_desc (read_access_map : access_map)
   | ExtFun (DesugaredTypeSig function_params) -> 
       ExtFun (List.map convert_function_param_to_core_rec function_params)
   | ExtSyscall (DesSMFunUntyped _) -> raise (CstConversionException "Cannot convert ExtSyscall without type information to Cst_env.desc")
-  | ExtSyscall (DesSMFunTyped (_, function_params, _)) ->
+  | ExtSyscall (DesSMFunTyped (_, function_params)) ->
       ExtSyscall (List.map convert_function_param_to_core_rec function_params)
   | Function (DesSMFunUntyped _) -> raise (CstConversionException "Cannot convert Function without type information to Cst_env.desc")
-  | Function (DesSMFunTyped (_, function_params, _)) ->
+  | Function (DesSMFunTyped (_, function_params)) ->
       MemberFunc (List.map convert_function_param_to_core_rec function_params)
   | Const (_, None) -> 
       raise (CstConversionException "Cannot convert Const without type information to Cst_env.desc")
