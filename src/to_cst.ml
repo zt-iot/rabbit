@@ -352,8 +352,17 @@ let rec convert_instantiated_ty_to_core (read_access_map : access_map)
         let converted_simple_ty_params = List.map convert_instantiated_ty_to_core_rec simple_ty_instantiated_tys in
         let ct = Cst_env.TSimple (simple_ty_name, converted_simple_ty_params) in 
 
-        let readers = SecurityTypeMap.find sec_ty_name read_access_map in 
-        let providers = SecurityTypeMap.find sec_ty_name provide_access_map in 
+        let readers = begin match SecurityTypeMap.find_opt sec_ty_name read_access_map with 
+          | (Some s) -> s
+          | None -> ProcTySet.empty
+        end in 
+
+
+        let providers = begin match SecurityTypeMap.find_opt sec_ty_name provide_access_map with
+          | (Some s) -> s 
+          | None -> ProcTySet.empty
+        end in 
+
 
         let secrecy_lvl = Cst_env.proc_ty_set_to_secrecy_lvl readers all_process_typs in 
         let integrity_lvl = Cst_env.proc_ty_set_to_integrity_lvl providers all_process_typs in 
@@ -428,13 +437,13 @@ let rec convert_function_param_to_core (read_access_map : access_map)
 
         let readers = begin match SecurityTypeMap.find_opt sec_ty_name read_access_map with 
           | (Some s) -> s
-          | None -> raise (CstConversionException (Format.sprintf "%s is not present in the read_access_map" sec_ty_name))
+          | None -> ProcTySet.empty
         end in 
         
 
         let providers = begin match SecurityTypeMap.find_opt sec_ty_name provide_access_map with
           | (Some s) -> s 
-          | None -> raise (CstConversionException (Format.sprintf "%s is not present in the provide_access_map" sec_ty_name))
+          | None -> ProcTySet.empty
         end in 
 
         
