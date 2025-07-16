@@ -134,7 +134,7 @@ and decl' =
       ; main : cmd
       }
   (** [process id<p>(x1 : ty1, .., xn : tyn) : ty { file ... var ... function ... main ... }] *)
-  | System of proc list
+  | System of string list
   (** [system proc1|..|procn *)
 [@@deriving show]
 

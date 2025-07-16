@@ -99,7 +99,8 @@ let _main =
                 let _ = print_endline (Format.sprintf "Running Typer.load on %s" fn) in 
                 let _, decls = Typer.load (Env.empty ()) fn in
                 
-                Ok decls
+                prerr_endline "TyperSuccess";
+                Ok decls 
               with
               | (Typer.Error _ as exn) -> Error exn
               | exn ->
@@ -127,7 +128,6 @@ let _main =
 
                   
             in *)
-
             let _ = print_endline (Format.sprintf "Trying to convert %s to CST" fn) in 
 
             (* Test converter *)
@@ -162,7 +162,7 @@ let _main =
                  match sys with 
                  | Some sys -> 
                    Typechecker.typecheck_sys cst_decls sys secrecy_lattice integrity_lattice
-                 | None -> prerr_endline "no system"
+                 | None -> prerr_endline "no system declaration was given: cannot do any typechecking"
             );
 
             (* Semantics test *)

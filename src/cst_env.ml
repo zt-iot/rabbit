@@ -41,7 +41,7 @@ type core_function_param =
 [@@deriving show]
 
 (* contructing a CFP_Poly with secrecy and integrity information should be illegal, but there is 
-no way to enforce this with a typing  *)
+no way to enforce this requirement with specific constructors *)
 and core_security_function_param = core_function_param * (secrecy_lvl * integrity_lvl)
 
 

@@ -110,7 +110,7 @@ let create_access_maps (decls : Typed.decl list) : access_map * access_map =
 
 
 
-(* Get all process strings from procs *)
+(* Get all process strings from procs :  *)
 let extract_proc_strings procs =
   let extract_pproc_str (pproc : Typed.pproc) = match pproc.Location.data with 
   | {id; _} -> Ident.string_part id
@@ -135,7 +135,7 @@ let find_process_typ decls name =
 
 
 
-(* Main function: from procs and decls, return list of all found typ fields *)
+(* Return the set of all process types that are present in some given Typed.decl' list *)
 let extract_process_typs_from_decls procs decls =
   let proc_strs = extract_proc_strings procs in 
   let add_typ_to_set acc proc_str = 
@@ -786,7 +786,13 @@ let convert_decl (read_access_map : access_map)
 
   | Typed.System (procs, _) ->
       (* let _ = print_endline (Format.sprintf "convert_decl system") in  *)
-      let cst_decl = Cst_syntax.System(procs) in 
+
+      (* we will only need the process names when typechecking *)
+
+
+      let proc_strs = extract_proc_strings(procs) in 
+
+      let cst_decl = Cst_syntax.System(proc_strs) in 
       [make_loc_env_for_decl_rec cst_decl]
   | _ -> []
 
