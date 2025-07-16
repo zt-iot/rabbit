@@ -1,5 +1,18 @@
 Running Typer.load on examples/camserver_typed.rab
-{ desc = (Typed.Equation (
+Registerd simple type unit with type parameter list: 
+Registerd simple type bool with type parameter list: 
+Registerd simple type string with type parameter list: 
+Registerd simple type connection with type parameter list: 
+Registerd simple type signature with type parameter list: 
+Registerd simple type image with type parameter list: 
+Registerd simple type filedescr with type parameter list: 
+'aRegisterd simple type list with type parameter list: 
+'aRegisterd simple type symkey with type parameter list: 
+'aRegisterd simple type sigkey with type parameter list: 
+'aRegisterd simple type verkey with type parameter list: 
+'aRegisterd simple type hash with type parameter list: 
+Registerd simple type cipher with type parameter list: 
+'a{ desc = (Typed.Equation (
             { desc = (Typed.Apply (("sdec", 0),
                         [{ desc = (Typed.Apply (("senc", 0),
                                      [{ desc = Typed.Ident {id = ("x", 1);
@@ -196,7 +209,7 @@ Running Typer.load on examples/camserver_typed.rab
                                            (("list", 0),
                                             (Env.SimpleTypeDef ["'a"]));
                                            (("filedescr", 0),
-                                            (Env.SimpleTypeDef []));
+                                            (Env.SimpleTypeDef ["'a"]));
                                            (("image", 0),
                                             (Env.SimpleTypeDef []));
                                            (("signature", 0),
@@ -429,7 +442,7 @@ Running Typer.load on examples/camserver_typed.rab
                                            (("list", 0),
                                             (Env.SimpleTypeDef ["'a"]));
                                            (("filedescr", 0),
-                                            (Env.SimpleTypeDef []));
+                                            (Env.SimpleTypeDef ["'a"]));
                                            (("image", 0),
                                             (Env.SimpleTypeDef []));
                                            (("signature", 0),
@@ -671,7 +684,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                    (("list", 0),
                                                     (Env.SimpleTypeDef ["'a"]));
                                                    (("filedescr", 0),
-                                                    (Env.SimpleTypeDef []));
+                                                    (Env.SimpleTypeDef ["'a"]));
                                                    (("image", 0),
                                                     (Env.SimpleTypeDef []));
                                                    (("signature", 0),
@@ -919,7 +932,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                               (("filedescr",
                                                                 0),
                                                                (Env.SimpleTypeDef
-                                                                  []));
+                                                                  ["'a"]));
                                                               (("image", 0),
                                                                (Env.SimpleTypeDef
                                                                   []));
@@ -1159,7 +1172,7 @@ Running Typer.load on examples/camserver_typed.rab
                                       (("list", 0),
                                        (Env.SimpleTypeDef ["'a"]));
                                       (("filedescr", 0),
-                                       (Env.SimpleTypeDef []));
+                                       (Env.SimpleTypeDef ["'a"]));
                                       (("image", 0), (Env.SimpleTypeDef []));
                                       (("signature", 0),
                                        (Env.SimpleTypeDef []));
@@ -1290,7 +1303,7 @@ Running Typer.load on examples/camserver_typed.rab
                 (("sigkey", 0), (Env.SimpleTypeDef ["'a"]));
                 (("symkey", 0), (Env.SimpleTypeDef ["'a"]));
                 (("list", 0), (Env.SimpleTypeDef ["'a"]));
-                (("filedescr", 0), (Env.SimpleTypeDef []));
+                (("filedescr", 0), (Env.SimpleTypeDef ["'a"]));
                 (("image", 0), (Env.SimpleTypeDef []));
                 (("signature", 0), (Env.SimpleTypeDef []));
                 (("connection", 0), (Env.SimpleTypeDef []));
@@ -1443,7 +1456,7 @@ Running Typer.load on examples/camserver_typed.rab
                           (("sigkey", 0), (Env.SimpleTypeDef ["'a"]));
                           (("symkey", 0), (Env.SimpleTypeDef ["'a"]));
                           (("list", 0), (Env.SimpleTypeDef ["'a"]));
-                          (("filedescr", 0), (Env.SimpleTypeDef []));
+                          (("filedescr", 0), (Env.SimpleTypeDef ["'a"]));
                           (("image", 0), (Env.SimpleTypeDef []));
                           (("signature", 0), (Env.SimpleTypeDef []));
                           (("connection", 0), (Env.SimpleTypeDef []));
@@ -1692,7 +1705,7 @@ Running Typer.load on examples/camserver_typed.rab
                                            (("list", 0),
                                             (Env.SimpleTypeDef ["'a"]));
                                            (("filedescr", 0),
-                                            (Env.SimpleTypeDef []));
+                                            (Env.SimpleTypeDef ["'a"]));
                                            (("image", 0),
                                             (Env.SimpleTypeDef []));
                                            (("signature", 0),
@@ -1957,7 +1970,7 @@ Running Typer.load on examples/camserver_typed.rab
                                            (("list", 0),
                                             (Env.SimpleTypeDef ["'a"]));
                                            (("filedescr", 0),
-                                            (Env.SimpleTypeDef []));
+                                            (Env.SimpleTypeDef ["'a"]));
                                            (("image", 0),
                                             (Env.SimpleTypeDef []));
                                            (("signature", 0),
@@ -2250,7 +2263,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                       (Env.SimpleTypeDef
                                                          ["'a"]));
                                                      (("filedescr", 0),
-                                                      (Env.SimpleTypeDef []));
+                                                      (Env.SimpleTypeDef
+                                                         ["'a"]));
                                                      (("image", 0),
                                                       (Env.SimpleTypeDef []));
                                                      (("signature", 0),
@@ -2504,7 +2518,7 @@ Running Typer.load on examples/camserver_typed.rab
                                       (("list", 0),
                                        (Env.SimpleTypeDef ["'a"]));
                                       (("filedescr", 0),
-                                       (Env.SimpleTypeDef []));
+                                       (Env.SimpleTypeDef ["'a"]));
                                       (("image", 0), (Env.SimpleTypeDef []));
                                       (("signature", 0),
                                        (Env.SimpleTypeDef []));
@@ -2656,7 +2670,7 @@ Running Typer.load on examples/camserver_typed.rab
                 (("sigkey", 0), (Env.SimpleTypeDef ["'a"]));
                 (("symkey", 0), (Env.SimpleTypeDef ["'a"]));
                 (("list", 0), (Env.SimpleTypeDef ["'a"]));
-                (("filedescr", 0), (Env.SimpleTypeDef []));
+                (("filedescr", 0), (Env.SimpleTypeDef ["'a"]));
                 (("image", 0), (Env.SimpleTypeDef []));
                 (("signature", 0), (Env.SimpleTypeDef []));
                 (("connection", 0), (Env.SimpleTypeDef []));
@@ -2835,7 +2849,7 @@ Running Typer.load on examples/camserver_typed.rab
                           (("sigkey", 0), (Env.SimpleTypeDef ["'a"]));
                           (("symkey", 0), (Env.SimpleTypeDef ["'a"]));
                           (("list", 0), (Env.SimpleTypeDef ["'a"]));
-                          (("filedescr", 0), (Env.SimpleTypeDef []));
+                          (("filedescr", 0), (Env.SimpleTypeDef ["'a"]));
                           (("image", 0), (Env.SimpleTypeDef []));
                           (("signature", 0), (Env.SimpleTypeDef []));
                           (("connection", 0), (Env.SimpleTypeDef []));
@@ -3084,7 +3098,7 @@ Running Typer.load on examples/camserver_typed.rab
                                            (("list", 0),
                                             (Env.SimpleTypeDef ["'a"]));
                                            (("filedescr", 0),
-                                            (Env.SimpleTypeDef []));
+                                            (Env.SimpleTypeDef ["'a"]));
                                            (("image", 0),
                                             (Env.SimpleTypeDef []));
                                            (("signature", 0),
@@ -3349,7 +3363,7 @@ Running Typer.load on examples/camserver_typed.rab
                                            (("list", 0),
                                             (Env.SimpleTypeDef ["'a"]));
                                            (("filedescr", 0),
-                                            (Env.SimpleTypeDef []));
+                                            (Env.SimpleTypeDef ["'a"]));
                                            (("image", 0),
                                             (Env.SimpleTypeDef []));
                                            (("signature", 0),
@@ -3642,7 +3656,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                       (Env.SimpleTypeDef
                                                          ["'a"]));
                                                      (("filedescr", 0),
-                                                      (Env.SimpleTypeDef []));
+                                                      (Env.SimpleTypeDef
+                                                         ["'a"]));
                                                      (("image", 0),
                                                       (Env.SimpleTypeDef []));
                                                      (("signature", 0),
@@ -3896,7 +3911,7 @@ Running Typer.load on examples/camserver_typed.rab
                                       (("list", 0),
                                        (Env.SimpleTypeDef ["'a"]));
                                       (("filedescr", 0),
-                                       (Env.SimpleTypeDef []));
+                                       (Env.SimpleTypeDef ["'a"]));
                                       (("image", 0), (Env.SimpleTypeDef []));
                                       (("signature", 0),
                                        (Env.SimpleTypeDef []));
@@ -4048,7 +4063,7 @@ Running Typer.load on examples/camserver_typed.rab
                 (("sigkey", 0), (Env.SimpleTypeDef ["'a"]));
                 (("symkey", 0), (Env.SimpleTypeDef ["'a"]));
                 (("list", 0), (Env.SimpleTypeDef ["'a"]));
-                (("filedescr", 0), (Env.SimpleTypeDef []));
+                (("filedescr", 0), (Env.SimpleTypeDef ["'a"]));
                 (("image", 0), (Env.SimpleTypeDef []));
                 (("signature", 0), (Env.SimpleTypeDef []));
                 (("connection", 0), (Env.SimpleTypeDef []));
@@ -4227,7 +4242,7 @@ Running Typer.load on examples/camserver_typed.rab
                           (("sigkey", 0), (Env.SimpleTypeDef ["'a"]));
                           (("symkey", 0), (Env.SimpleTypeDef ["'a"]));
                           (("list", 0), (Env.SimpleTypeDef ["'a"]));
-                          (("filedescr", 0), (Env.SimpleTypeDef []));
+                          (("filedescr", 0), (Env.SimpleTypeDef ["'a"]));
                           (("image", 0), (Env.SimpleTypeDef []));
                           (("signature", 0), (Env.SimpleTypeDef []));
                           (("connection", 0), (Env.SimpleTypeDef []));
@@ -4499,7 +4514,7 @@ Running Typer.load on examples/camserver_typed.rab
                                            (("list", 0),
                                             (Env.SimpleTypeDef ["'a"]));
                                            (("filedescr", 0),
-                                            (Env.SimpleTypeDef []));
+                                            (Env.SimpleTypeDef ["'a"]));
                                            (("image", 0),
                                             (Env.SimpleTypeDef []));
                                            (("signature", 0),
@@ -4787,7 +4802,7 @@ Running Typer.load on examples/camserver_typed.rab
                                            (("list", 0),
                                             (Env.SimpleTypeDef ["'a"]));
                                            (("filedescr", 0),
-                                            (Env.SimpleTypeDef []));
+                                            (Env.SimpleTypeDef ["'a"]));
                                            (("image", 0),
                                             (Env.SimpleTypeDef []));
                                            (("signature", 0),
@@ -5102,7 +5117,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                    (("list", 0),
                                                     (Env.SimpleTypeDef ["'a"]));
                                                    (("filedescr", 0),
-                                                    (Env.SimpleTypeDef []));
+                                                    (Env.SimpleTypeDef ["'a"]));
                                                    (("image", 0),
                                                     (Env.SimpleTypeDef []));
                                                    (("signature", 0),
@@ -5412,7 +5427,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                               (("filedescr",
                                                                 0),
                                                                (Env.SimpleTypeDef
-                                                                  []));
+                                                                  ["'a"]));
                                                               (("image", 0),
                                                                (Env.SimpleTypeDef
                                                                   []));
@@ -5739,7 +5754,7 @@ Running Typer.load on examples/camserver_typed.rab
                                             (("list", 0),
                                              (Env.SimpleTypeDef ["'a"]));
                                             (("filedescr", 0),
-                                             (Env.SimpleTypeDef []));
+                                             (Env.SimpleTypeDef ["'a"]));
                                             (("image", 0),
                                              (Env.SimpleTypeDef []));
                                             (("signature", 0),
@@ -6061,7 +6076,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                      (Env.SimpleTypeDef
                                                         ["'a"]));
                                                     (("filedescr", 0),
-                                                     (Env.SimpleTypeDef []));
+                                                     (Env.SimpleTypeDef
+                                                        ["'a"]));
                                                     (("image", 0),
                                                      (Env.SimpleTypeDef []));
                                                     (("signature", 0),
@@ -6336,7 +6352,7 @@ Running Typer.load on examples/camserver_typed.rab
                                       (("list", 0),
                                        (Env.SimpleTypeDef ["'a"]));
                                       (("filedescr", 0),
-                                       (Env.SimpleTypeDef []));
+                                       (Env.SimpleTypeDef ["'a"]));
                                       (("image", 0), (Env.SimpleTypeDef []));
                                       (("signature", 0),
                                        (Env.SimpleTypeDef []));
@@ -6638,7 +6654,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                 (("list", 0),
                                                  (Env.SimpleTypeDef ["'a"]));
                                                 (("filedescr", 0),
-                                                 (Env.SimpleTypeDef []));
+                                                 (Env.SimpleTypeDef ["'a"]));
                                                 (("image", 0),
                                                  (Env.SimpleTypeDef []));
                                                 (("signature", 0),
@@ -6850,7 +6866,7 @@ Running Typer.load on examples/camserver_typed.rab
                           (("sigkey", 0), (Env.SimpleTypeDef ["'a"]));
                           (("symkey", 0), (Env.SimpleTypeDef ["'a"]));
                           (("list", 0), (Env.SimpleTypeDef ["'a"]));
-                          (("filedescr", 0), (Env.SimpleTypeDef []));
+                          (("filedescr", 0), (Env.SimpleTypeDef ["'a"]));
                           (("image", 0), (Env.SimpleTypeDef []));
                           (("signature", 0), (Env.SimpleTypeDef []));
                           (("connection", 0), (Env.SimpleTypeDef []));
@@ -7175,7 +7191,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -7538,7 +7554,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -7878,7 +7894,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                    (("list", 0),
                                                     (Env.SimpleTypeDef ["'a"]));
                                                    (("filedescr", 0),
-                                                    (Env.SimpleTypeDef []));
+                                                    (Env.SimpleTypeDef ["'a"]));
                                                    (("image", 0),
                                                     (Env.SimpleTypeDef []));
                                                    (("signature", 0),
@@ -8156,7 +8172,7 @@ Running Typer.load on examples/camserver_typed.rab
                                        (("list", 0),
                                         (Env.SimpleTypeDef ["'a"]));
                                        (("filedescr", 0),
-                                        (Env.SimpleTypeDef []));
+                                        (Env.SimpleTypeDef ["'a"]));
                                        (("image", 0), (Env.SimpleTypeDef []));
                                        (("signature", 0),
                                         (Env.SimpleTypeDef []));
@@ -8460,7 +8476,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                       (Env.SimpleTypeDef
                                                          ["'a"]));
                                                      (("filedescr", 0),
-                                                      (Env.SimpleTypeDef []));
+                                                      (Env.SimpleTypeDef
+                                                         ["'a"]));
                                                      (("image", 0),
                                                       (Env.SimpleTypeDef []));
                                                      (("signature", 0),
@@ -8781,7 +8798,7 @@ Running Typer.load on examples/camserver_typed.rab
                                           (("list", 0),
                                            (Env.SimpleTypeDef ["'a"]));
                                           (("filedescr", 0),
-                                           (Env.SimpleTypeDef []));
+                                           (Env.SimpleTypeDef ["'a"]));
                                           (("image", 0),
                                            (Env.SimpleTypeDef []));
                                           (("signature", 0),
@@ -9092,7 +9109,7 @@ Running Typer.load on examples/camserver_typed.rab
                                             (("list", 0),
                                              (Env.SimpleTypeDef ["'a"]));
                                             (("filedescr", 0),
-                                             (Env.SimpleTypeDef []));
+                                             (Env.SimpleTypeDef ["'a"]));
                                             (("image", 0),
                                              (Env.SimpleTypeDef []));
                                             (("signature", 0),
@@ -9422,7 +9439,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                        (Env.SimpleTypeDef
                                                           ["'a"]));
                                                       (("filedescr", 0),
-                                                       (Env.SimpleTypeDef []));
+                                                       (Env.SimpleTypeDef
+                                                          ["'a"]));
                                                       (("image", 0),
                                                        (Env.SimpleTypeDef []));
                                                       (("signature", 0),
@@ -9734,7 +9752,7 @@ Running Typer.load on examples/camserver_typed.rab
                                           (("list", 0),
                                            (Env.SimpleTypeDef ["'a"]));
                                           (("filedescr", 0),
-                                           (Env.SimpleTypeDef []));
+                                           (Env.SimpleTypeDef ["'a"]));
                                           (("image", 0),
                                            (Env.SimpleTypeDef []));
                                           (("signature", 0),
@@ -10057,7 +10075,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                             ["'a"]));
                                                         (("filedescr", 0),
                                                          (Env.SimpleTypeDef
-                                                            []));
+                                                            ["'a"]));
                                                         (("image", 0),
                                                          (Env.SimpleTypeDef
                                                             []));
@@ -10353,7 +10371,7 @@ Running Typer.load on examples/camserver_typed.rab
                                        (("list", 0),
                                         (Env.SimpleTypeDef ["'a"]));
                                        (("filedescr", 0),
-                                        (Env.SimpleTypeDef []));
+                                        (Env.SimpleTypeDef ["'a"]));
                                        (("image", 0), (Env.SimpleTypeDef []));
                                        (("signature", 0),
                                         (Env.SimpleTypeDef []));
@@ -10673,7 +10691,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                       (Env.SimpleTypeDef
                                                          ["'a"]));
                                                      (("filedescr", 0),
-                                                      (Env.SimpleTypeDef []));
+                                                      (Env.SimpleTypeDef
+                                                         ["'a"]));
                                                      (("image", 0),
                                                       (Env.SimpleTypeDef []));
                                                      (("signature", 0),
@@ -11041,7 +11060,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                    (("list", 0),
                                                     (Env.SimpleTypeDef ["'a"]));
                                                    (("filedescr", 0),
-                                                    (Env.SimpleTypeDef []));
+                                                    (Env.SimpleTypeDef ["'a"]));
                                                    (("image", 0),
                                                     (Env.SimpleTypeDef []));
                                                    (("signature", 0),
@@ -11344,7 +11363,7 @@ Running Typer.load on examples/camserver_typed.rab
                                          (("list", 0),
                                           (Env.SimpleTypeDef ["'a"]));
                                          (("filedescr", 0),
-                                          (Env.SimpleTypeDef []));
+                                          (Env.SimpleTypeDef ["'a"]));
                                          (("image", 0),
                                           (Env.SimpleTypeDef []));
                                          (("signature", 0),
@@ -11679,7 +11698,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                    (("list", 0),
                                                     (Env.SimpleTypeDef ["'a"]));
                                                    (("filedescr", 0),
-                                                    (Env.SimpleTypeDef []));
+                                                    (Env.SimpleTypeDef ["'a"]));
                                                    (("image", 0),
                                                     (Env.SimpleTypeDef []));
                                                    (("signature", 0),
@@ -12040,7 +12059,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                        (Env.SimpleTypeDef
                                                           ["'a"]));
                                                       (("filedescr", 0),
-                                                       (Env.SimpleTypeDef []));
+                                                       (Env.SimpleTypeDef
+                                                          ["'a"]));
                                                       (("image", 0),
                                                        (Env.SimpleTypeDef []));
                                                       (("signature", 0),
@@ -12364,7 +12384,7 @@ Running Typer.load on examples/camserver_typed.rab
                                             (("list", 0),
                                              (Env.SimpleTypeDef ["'a"]));
                                             (("filedescr", 0),
-                                             (Env.SimpleTypeDef []));
+                                             (Env.SimpleTypeDef ["'a"]));
                                             (("image", 0),
                                              (Env.SimpleTypeDef []));
                                             (("signature", 0),
@@ -12698,7 +12718,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                (("filedescr",
                                                                  0),
                                                                 (Env.SimpleTypeDef
-                                                                   []));
+                                                                   ["'a"]));
                                                                (("image", 0),
                                                                 (Env.SimpleTypeDef
                                                                    []));
@@ -13115,7 +13135,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -13502,7 +13522,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -13856,7 +13876,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                   (("filedescr",
                                                                     0),
                                                                    (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                   (("image",
                                                                     0),
                                                                    (Env.SimpleTypeDef
@@ -14305,7 +14325,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     0),
                                                                     (
                                                                     Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     (
                                                                     (
                                                                     "image",
@@ -14692,7 +14712,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                   (("filedescr",
                                                                     0),
                                                                    (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                   (("image",
                                                                     0),
                                                                    (Env.SimpleTypeDef
@@ -15057,7 +15077,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                        (Env.SimpleTypeDef
                                                           ["'a"]));
                                                       (("filedescr", 0),
-                                                       (Env.SimpleTypeDef []));
+                                                       (Env.SimpleTypeDef
+                                                          ["'a"]));
                                                       (("image", 0),
                                                        (Env.SimpleTypeDef []));
                                                       (("signature", 0),
@@ -15394,7 +15415,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                 (("filedescr",
                                                                   0),
                                                                  (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                 (("image", 0),
                                                                  (Env.SimpleTypeDef
                                                                     []));
@@ -15754,7 +15775,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                    (("list", 0),
                                                     (Env.SimpleTypeDef ["'a"]));
                                                    (("filedescr", 0),
-                                                    (Env.SimpleTypeDef []));
+                                                    (Env.SimpleTypeDef ["'a"]));
                                                    (("image", 0),
                                                     (Env.SimpleTypeDef []));
                                                    (("signature", 0),
@@ -16035,7 +16056,7 @@ Running Typer.load on examples/camserver_typed.rab
                                       (Env.SimpleTypeDef ["'a"]));
                                      (("list", 0), (Env.SimpleTypeDef ["'a"]));
                                      (("filedescr", 0),
-                                      (Env.SimpleTypeDef []));
+                                      (Env.SimpleTypeDef ["'a"]));
                                      (("image", 0), (Env.SimpleTypeDef []));
                                      (("signature", 0),
                                       (Env.SimpleTypeDef []));
@@ -16358,7 +16379,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                    (("list", 0),
                                                     (Env.SimpleTypeDef ["'a"]));
                                                    (("filedescr", 0),
-                                                    (Env.SimpleTypeDef []));
+                                                    (Env.SimpleTypeDef ["'a"]));
                                                    (("image", 0),
                                                     (Env.SimpleTypeDef []));
                                                    (("signature", 0),
@@ -16736,7 +16757,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                ["'a"]));
                                                            (("filedescr", 0),
                                                             (Env.SimpleTypeDef
-                                                               []));
+                                                               ["'a"]));
                                                            (("image", 0),
                                                             (Env.SimpleTypeDef
                                                                []));
@@ -17117,7 +17138,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                (("filedescr",
                                                                  0),
                                                                 (Env.SimpleTypeDef
-                                                                   []));
+                                                                   ["'a"]));
                                                                (("image", 0),
                                                                 (Env.SimpleTypeDef
                                                                    []));
@@ -17518,7 +17539,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                  (("filedescr",
                                                                    0),
                                                                   (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                  (("image", 0),
                                                                   (Env.SimpleTypeDef
                                                                     []));
@@ -17898,7 +17919,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                  (("filedescr",
                                                                    0),
                                                                   (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                  (("image", 0),
                                                                   (Env.SimpleTypeDef
                                                                     []));
@@ -18278,7 +18299,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                  (("filedescr",
                                                                    0),
                                                                   (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                  (("image", 0),
                                                                   (Env.SimpleTypeDef
                                                                     []));
@@ -18671,7 +18692,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                       (Env.SimpleTypeDef
                                                          ["'a"]));
                                                      (("filedescr", 0),
-                                                      (Env.SimpleTypeDef []));
+                                                      (Env.SimpleTypeDef
+                                                         ["'a"]));
                                                      (("image", 0),
                                                       (Env.SimpleTypeDef []));
                                                      (("signature", 0),
@@ -19030,7 +19052,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                (("filedescr",
                                                                  0),
                                                                 (Env.SimpleTypeDef
-                                                                   []));
+                                                                   ["'a"]));
                                                                (("image", 0),
                                                                 (Env.SimpleTypeDef
                                                                    []));
@@ -19442,7 +19464,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                   (("filedescr",
                                                                     0),
                                                                    (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                   (("image",
                                                                     0),
                                                                    (Env.SimpleTypeDef
@@ -19938,7 +19960,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     0),
                                                                     (
                                                                     Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     (
                                                                     (
                                                                     "image",
@@ -20359,7 +20381,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                             ["'a"]));
                                                         (("filedescr", 0),
                                                          (Env.SimpleTypeDef
-                                                            []));
+                                                            ["'a"]));
                                                         (("image", 0),
                                                          (Env.SimpleTypeDef
                                                             []));
@@ -20746,7 +20768,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                   (("filedescr",
                                                                     0),
                                                                    (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                   (("image",
                                                                     0),
                                                                    (Env.SimpleTypeDef
@@ -21136,7 +21158,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                        (Env.SimpleTypeDef
                                                           ["'a"]));
                                                       (("filedescr", 0),
-                                                       (Env.SimpleTypeDef []));
+                                                       (Env.SimpleTypeDef
+                                                          ["'a"]));
                                                       (("image", 0),
                                                        (Env.SimpleTypeDef []));
                                                       (("signature", 0),
@@ -21496,7 +21519,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                (("filedescr",
                                                                  0),
                                                                 (Env.SimpleTypeDef
-                                                                   []));
+                                                                   ["'a"]));
                                                                (("image", 0),
                                                                 (Env.SimpleTypeDef
                                                                    []));
@@ -21899,7 +21922,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                  (("list", 0),
                                                   (Env.SimpleTypeDef ["'a"]));
                                                  (("filedescr", 0),
-                                                  (Env.SimpleTypeDef []));
+                                                  (Env.SimpleTypeDef ["'a"]));
                                                  (("image", 0),
                                                   (Env.SimpleTypeDef []));
                                                  (("signature", 0),
@@ -22184,7 +22207,7 @@ Running Typer.load on examples/camserver_typed.rab
                                       (Env.SimpleTypeDef ["'a"]));
                                      (("list", 0), (Env.SimpleTypeDef ["'a"]));
                                      (("filedescr", 0),
-                                      (Env.SimpleTypeDef []));
+                                      (Env.SimpleTypeDef ["'a"]));
                                      (("image", 0), (Env.SimpleTypeDef []));
                                      (("signature", 0),
                                       (Env.SimpleTypeDef []));
@@ -22521,7 +22544,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                    (("list", 0),
                                                     (Env.SimpleTypeDef ["'a"]));
                                                    (("filedescr", 0),
-                                                    (Env.SimpleTypeDef []));
+                                                    (Env.SimpleTypeDef ["'a"]));
                                                    (("image", 0),
                                                     (Env.SimpleTypeDef []));
                                                    (("signature", 0),
@@ -22918,7 +22941,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                ["'a"]));
                                                            (("filedescr", 0),
                                                             (Env.SimpleTypeDef
-                                                               []));
+                                                               ["'a"]));
                                                            (("image", 0),
                                                             (Env.SimpleTypeDef
                                                                []));
@@ -23322,7 +23345,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                    (("list", 0),
                                                     (Env.SimpleTypeDef ["'a"]));
                                                    (("filedescr", 0),
-                                                    (Env.SimpleTypeDef []));
+                                                    (Env.SimpleTypeDef ["'a"]));
                                                    (("image", 0),
                                                     (Env.SimpleTypeDef []));
                                                    (("signature", 0),
@@ -23756,7 +23779,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     0),
                                                                     (
                                                                     Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                    ((
                                                                     "image",
                                                                     0),
@@ -24174,7 +24197,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                (("filedescr",
                                                                  0),
                                                                 (Env.SimpleTypeDef
-                                                                   []));
+                                                                   ["'a"]));
                                                                (("image", 0),
                                                                 (Env.SimpleTypeDef
                                                                    []));
@@ -24601,7 +24624,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                       (Env.SimpleTypeDef
                                                          ["'a"]));
                                                      (("filedescr", 0),
-                                                      (Env.SimpleTypeDef []));
+                                                      (Env.SimpleTypeDef
+                                                         ["'a"]));
                                                      (("image", 0),
                                                       (Env.SimpleTypeDef []));
                                                      (("signature", 0),
@@ -24972,7 +24996,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                (("filedescr",
                                                                  0),
                                                                 (Env.SimpleTypeDef
-                                                                   []));
+                                                                   ["'a"]));
                                                                (("image", 0),
                                                                 (Env.SimpleTypeDef
                                                                    []));
@@ -25391,7 +25415,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                  (("list", 0),
                                                   (Env.SimpleTypeDef ["'a"]));
                                                  (("filedescr", 0),
-                                                  (Env.SimpleTypeDef []));
+                                                  (Env.SimpleTypeDef ["'a"]));
                                                  (("image", 0),
                                                   (Env.SimpleTypeDef []));
                                                  (("signature", 0),
@@ -25687,7 +25711,7 @@ Running Typer.load on examples/camserver_typed.rab
                                       (Env.SimpleTypeDef ["'a"]));
                                      (("list", 0), (Env.SimpleTypeDef ["'a"]));
                                      (("filedescr", 0),
-                                      (Env.SimpleTypeDef []));
+                                      (Env.SimpleTypeDef ["'a"]));
                                      (("image", 0), (Env.SimpleTypeDef []));
                                      (("signature", 0),
                                       (Env.SimpleTypeDef []));
@@ -26046,7 +26070,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                    (("list", 0),
                                                     (Env.SimpleTypeDef ["'a"]));
                                                    (("filedescr", 0),
-                                                    (Env.SimpleTypeDef []));
+                                                    (Env.SimpleTypeDef ["'a"]));
                                                    (("image", 0),
                                                     (Env.SimpleTypeDef []));
                                                    (("signature", 0),
@@ -26409,7 +26433,7 @@ Running Typer.load on examples/camserver_typed.rab
                                           (("list", 0),
                                            (Env.SimpleTypeDef ["'a"]));
                                           (("filedescr", 0),
-                                           (Env.SimpleTypeDef []));
+                                           (Env.SimpleTypeDef ["'a"]));
                                           (("image", 0),
                                            (Env.SimpleTypeDef []));
                                           (("signature", 0),
@@ -26676,7 +26700,7 @@ Running Typer.load on examples/camserver_typed.rab
                                 (("sigkey", 0), (Env.SimpleTypeDef ["'a"]));
                                 (("symkey", 0), (Env.SimpleTypeDef ["'a"]));
                                 (("list", 0), (Env.SimpleTypeDef ["'a"]));
-                                (("filedescr", 0), (Env.SimpleTypeDef []));
+                                (("filedescr", 0), (Env.SimpleTypeDef ["'a"]));
                                 (("image", 0), (Env.SimpleTypeDef []));
                                 (("signature", 0), (Env.SimpleTypeDef []));
                                 (("connection", 0), (Env.SimpleTypeDef []));
@@ -27058,7 +27082,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                        (Env.SimpleTypeDef
                                                           ["'a"]));
                                                       (("filedescr", 0),
-                                                       (Env.SimpleTypeDef []));
+                                                       (Env.SimpleTypeDef
+                                                          ["'a"]));
                                                       (("image", 0),
                                                        (Env.SimpleTypeDef []));
                                                       (("signature", 0),
@@ -27423,7 +27448,7 @@ Running Typer.load on examples/camserver_typed.rab
                                             (("list", 0),
                                              (Env.SimpleTypeDef ["'a"]));
                                             (("filedescr", 0),
-                                             (Env.SimpleTypeDef []));
+                                             (Env.SimpleTypeDef ["'a"]));
                                             (("image", 0),
                                              (Env.SimpleTypeDef []));
                                             (("signature", 0),
@@ -27811,7 +27836,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                        (Env.SimpleTypeDef
                                                           ["'a"]));
                                                       (("filedescr", 0),
-                                                       (Env.SimpleTypeDef []));
+                                                       (Env.SimpleTypeDef
+                                                          ["'a"]));
                                                       (("image", 0),
                                                        (Env.SimpleTypeDef []));
                                                       (("signature", 0),
@@ -28142,7 +28168,7 @@ Running Typer.load on examples/camserver_typed.rab
                                        (("list", 0),
                                         (Env.SimpleTypeDef ["'a"]));
                                        (("filedescr", 0),
-                                        (Env.SimpleTypeDef []));
+                                        (Env.SimpleTypeDef ["'a"]));
                                        (("image", 0), (Env.SimpleTypeDef []));
                                        (("signature", 0),
                                         (Env.SimpleTypeDef []));
@@ -28523,7 +28549,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                       (Env.SimpleTypeDef
                                                          ["'a"]));
                                                      (("filedescr", 0),
-                                                      (Env.SimpleTypeDef []));
+                                                      (Env.SimpleTypeDef
+                                                         ["'a"]));
                                                      (("image", 0),
                                                       (Env.SimpleTypeDef []));
                                                      (("signature", 0),
@@ -28955,7 +28982,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                             ["'a"]));
                                                         (("filedescr", 0),
                                                          (Env.SimpleTypeDef
-                                                            []));
+                                                            ["'a"]));
                                                         (("image", 0),
                                                          (Env.SimpleTypeDef
                                                             []));
@@ -29371,7 +29398,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                 (("filedescr",
                                                                   0),
                                                                  (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                 (("image", 0),
                                                                  (Env.SimpleTypeDef
                                                                     []));
@@ -29841,7 +29868,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -30367,7 +30394,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     0),
                                                                     (
                                                                     Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     (
                                                                     (
                                                                     "image",
@@ -30875,7 +30902,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -31401,7 +31428,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     0),
                                                                     (
                                                                     Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     (
                                                                     (
                                                                     "image",
@@ -31971,7 +31998,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     0),
                                                                     (
                                                                     Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     (
                                                                     (
                                                                     "image",
@@ -32440,7 +32467,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                        (Env.SimpleTypeDef
                                                           ["'a"]));
                                                       (("filedescr", 0),
-                                                       (Env.SimpleTypeDef []));
+                                                       (Env.SimpleTypeDef
+                                                          ["'a"]));
                                                       (("image", 0),
                                                        (Env.SimpleTypeDef []));
                                                       (("signature", 0),
@@ -32906,7 +32934,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -33383,7 +33411,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -33846,7 +33874,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -34332,7 +34360,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -34795,7 +34823,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -35258,7 +35286,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -35721,7 +35749,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -36203,7 +36231,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -36680,7 +36708,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -37143,7 +37171,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -37628,7 +37656,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -38091,7 +38119,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -38554,7 +38582,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -39017,7 +39045,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                     "filedescr",
                                                                     0),
                                                                     (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                     ((
                                                                     "image",
                                                                     0),
@@ -39455,7 +39483,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                        (Env.SimpleTypeDef
                                                           ["'a"]));
                                                       (("filedescr", 0),
-                                                       (Env.SimpleTypeDef []));
+                                                       (Env.SimpleTypeDef
+                                                          ["'a"]));
                                                       (("image", 0),
                                                        (Env.SimpleTypeDef []));
                                                       (("signature", 0),
@@ -39871,7 +39900,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                                 (("filedescr",
                                                                   0),
                                                                  (Env.SimpleTypeDef
-                                                                    []));
+                                                                    ["'a"]));
                                                                 (("image", 0),
                                                                  (Env.SimpleTypeDef
                                                                     []));
@@ -40301,7 +40330,8 @@ Running Typer.load on examples/camserver_typed.rab
                                                      (Env.SimpleTypeDef
                                                         ["'a"]));
                                                     (("filedescr", 0),
-                                                     (Env.SimpleTypeDef []));
+                                                     (Env.SimpleTypeDef
+                                                        ["'a"]));
                                                     (("image", 0),
                                                      (Env.SimpleTypeDef []));
                                                     (("signature", 0),
@@ -40591,7 +40621,7 @@ Running Typer.load on examples/camserver_typed.rab
                                 (("sigkey", 0), (Env.SimpleTypeDef ["'a"]));
                                 (("symkey", 0), (Env.SimpleTypeDef ["'a"]));
                                 (("list", 0), (Env.SimpleTypeDef ["'a"]));
-                                (("filedescr", 0), (Env.SimpleTypeDef []));
+                                (("filedescr", 0), (Env.SimpleTypeDef ["'a"]));
                                 (("image", 0), (Env.SimpleTypeDef []));
                                 (("signature", 0), (Env.SimpleTypeDef []));
                                 (("connection", 0), (Env.SimpleTypeDef []));
@@ -40973,7 +41003,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                              ["'a"]));
                                                          (("filedescr", 0),
                                                           (Env.SimpleTypeDef
-                                                             []));
+                                                             ["'a"]));
                                                          (("image", 0),
                                                           (Env.SimpleTypeDef
                                                              []));
@@ -41307,7 +41337,7 @@ Running Typer.load on examples/camserver_typed.rab
                                       (Env.SimpleTypeDef ["'a"]));
                                      (("list", 0), (Env.SimpleTypeDef ["'a"]));
                                      (("filedescr", 0),
-                                      (Env.SimpleTypeDef []));
+                                      (Env.SimpleTypeDef ["'a"]));
                                      (("image", 0), (Env.SimpleTypeDef []));
                                      (("signature", 0),
                                       (Env.SimpleTypeDef []));
@@ -41692,7 +41722,7 @@ Running Typer.load on examples/camserver_typed.rab
                                                    (("list", 0),
                                                     (Env.SimpleTypeDef ["'a"]));
                                                    (("filedescr", 0),
-                                                    (Env.SimpleTypeDef []));
+                                                    (Env.SimpleTypeDef ["'a"]));
                                                    (("image", 0),
                                                     (Env.SimpleTypeDef []));
                                                    (("signature", 0),

@@ -128,7 +128,7 @@ let _main =
                   
             in *)
 
-            let _ = print_endline (Format.sprintf "Tryng to convert %s to CST" fn) in 
+            let _ = print_endline (Format.sprintf "Trying to convert %s to CST" fn) in 
 
             (* Test converter *)
             (match typer_result with

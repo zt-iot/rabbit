@@ -7,7 +7,8 @@ type rabbit_typ =
   | CSimpleOrSecurity of Name.ident * rabbit_typ list   (* data name[t_1, ..., t_n] *)
   | CProd of rabbit_typ * rabbit_typ          (* ty_1 * ty_2 *)
   | CPoly of Name.ident                       (* 'a or 'b  or 'c etc. *)
-  (* maybe add | CSecurity of Name.ident, I'm not sure if it belongs here *)  
+  (* maybe add | CSecurity of Name.ident, I'm not sure if it belongs here *)
+[@@deriving show]
 
 
 
@@ -143,7 +144,7 @@ type syscall_member_fun_desc =
   | TypedSig of Name.ident list * rabbit_typ list (* when types are given *)
 [@@deriving show]
 
-
+(* return the list of identifiers that represent function parameters for a given syscall signature *)
 let syscall_member_fun_desc_to_ident_list signature = match signature with 
   | UntypedSig(ids) -> ids
   | TypedSig(ids, _) -> ids

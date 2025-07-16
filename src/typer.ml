@@ -235,8 +235,17 @@ let rec convert_rabbit_typ_to_env_function_param ~loc (env : Env.t) (ty : Input.
       FParamChannel (List.map (convert_rabbit_typ_to_env_function_param ~loc env) input_ty_params)
   | CSimpleOrSecurity (typ_name, input_ty_params) ->
       let _, desc = Env.find ~loc env typ_name in 
-      begin match desc with 
+      begin match desc with  
         | Env.SimpleTypeDef def_ty_params -> 
+
+            (* let _ = print_endline (Format.sprintf "Simple type name: %s" typ_name) in 
+            let _ = print_endline "with def_ty_params:" in 
+            let _ = List.map (fun s -> print_string s; print_string " ; ") def_ty_params in 
+
+            let _ = print_endline "and given input_ty_params: " in 
+            let _ = List.map (fun t -> print_string (Input.show_rabbit_typ t); print_string " ; ") input_ty_params in  *)
+
+
             let expected_arity = List.length def_ty_params in 
             let actual_arity = List.length input_ty_params in 
             check_arity ~loc ~arity:expected_arity ~use:actual_arity;
@@ -303,7 +312,7 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
          | id, (ExtSyscall sig_desc | Function sig_desc) ->
              let arity = begin match sig_desc with
              (* arity = number of arguments that function takes *)
-             | Env.DesSMFunUntyped(ps) -> List.length ps - 1
+             | Env.DesSMFunUntyped(ids) -> List.length ids
              | Env.DesSMFunTyped(ids, ps) -> 
                 assert ((List.length ids) = (List.length ps) - 1);
                 (* arity = number of arguments that function takes *)
@@ -680,6 +689,11 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         end
         ) ty_params in 
         let env', _ = Env.add_global ~loc env name (Env.SimpleTypeDef (ty_params_str)) in 
+        
+        let _ = print_endline (Format.sprintf "Registerd simple type %s with type parameter list: " name) in 
+        let _ = List.map print_string ty_params_str in 
+        let _ = print_newline in 
+
         env', [] (* no need to produce a Typed.decl for a simple type *)
     | _ -> error ~loc @@ InvalidSimpleType(t)
     end
@@ -720,10 +734,10 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       in
       let converted_syscall_sig = begin match syscall_desc_input with 
         | Input.UntypedSig(_) -> Env.DesSMFunUntyped(args)
-        | Input.TypedSig(_, fun_params) -> 
-            let converted_fun_params = List.map 
-              (convert_rabbit_typ_to_env_function_param ~loc env) fun_params in 
-            Env.DesSMFunTyped(args, converted_fun_params)
+        | Input.TypedSig(_, fun_params_types) -> 
+            let converted_fun_params_types = List.map 
+              (convert_rabbit_typ_to_env_function_param ~loc env) fun_params_types in 
+            Env.DesSMFunTyped(args, converted_fun_params_types)
       end in 
       let env', id = Env.add_global ~loc env name (ExtSyscall converted_syscall_sig) in
       env', [{ env; loc; desc = Typed.Syscall { id; fun_sig = converted_syscall_sig; cmd } }]

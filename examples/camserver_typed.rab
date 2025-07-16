@@ -5,7 +5,7 @@ data connection
 
 data signature
 data image
-data filedescr
+data filedescr['a]
 
 data list['a] (* if we want to declare a type with a polymorphic type parameter, we do it like this *)
               (* these "'a, 'b" etc. can be inferred whenever they are used *)
@@ -29,6 +29,9 @@ type readonly_t   : filesys  (* readonly_t is a specific kind of filesys *)
 type server_t 	  : process
 type client_t 	  : process
 type client_ta_t  : process
+
+(* temporary solution: we do not want the programer to declare any processes of type attacker_ty *)
+type attacker_ty : process
 
 
 (***********)
@@ -72,8 +75,8 @@ syscall get_picture () : client_img {
 }
 
 (* filesys *)
-function h : 'a -> hash (* this function has to be built-in to Rabbit somehow *)
-function hash_kdf : 'a -> keykind -> key[keykind] (* this function also has to be built-in to Rabbit somehow *)
+(* function h : 'a -> hash *) (* this function has to be built-in to Rabbit somehow *)
+(* function hash_kdf : 'a -> keykind -> key[keykind] *) (* this function also has to be built-in to Rabbit somehow *) 
 
 
 syscall fopen (p : string) : filedescr['a] {
@@ -90,6 +93,16 @@ syscall fread (y : filedescr['a]) : 'a {
 
 syscall fclose (y : filedescr['a]) : unit {
   delete y.Fd
+}
+
+(** Temporary solution: we do not want any process to call this syscall *)
+syscall read () : unit {
+  skip
+}
+
+(** Temporary solution: we do not want any process to call this syscall *)
+syscall provide () : unit {
+  skip
 }
 
 
@@ -261,7 +274,7 @@ process server(ch_net : udp_t) : server_t
     var pubkey_fd : filedescr[ver_key_server] = fopen(pubkey_path) in 
     var pubkey : ver_key_server = fread(pubkey_fd) in 
     _ := recv_verify_loop(ch_net, pubkey);
-    fclose(pubkey_fd)
+    _ := fclose(pubkey_fd)
   }
 }
 
