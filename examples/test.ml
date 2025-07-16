@@ -76,9 +76,9 @@ let verify specs spthy =
       ) specs;
 
     if !fail then (
-      Format.printf "%s: Oops, something went wrong@." spthy;
+      Format.printf "%s: Oops, something went wrong@.@." spthy;
     ) else (
-      Format.printf "%s: Ok, everything went fine@." spthy;
+      Format.printf "%s: Ok, everything went fine@.@." spthy;
     );
     !fail
 
