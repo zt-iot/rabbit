@@ -42,6 +42,8 @@ let kind_of_desc = function
   | ChannelDecl _ -> "channel instantiation declaration"
   | Attack -> "attack"
 
+  | SimpleTypeDef _ -> "simple type definition"
+
   | ProcTypeDef -> "process type"
   | FilesysTypeDef -> "filesys type"
   | ChanTypeDef _ -> "channel type definition"
@@ -50,7 +52,6 @@ let kind_of_desc = function
   | Function _ -> "function"
   | Process -> "process"
 
-  | _ -> failwith "TODO"
 ;;
 
 (** Print error description. *)
@@ -690,9 +691,9 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         ) ty_params in 
         let env', _ = Env.add_global ~loc env name (Env.SimpleTypeDef (ty_params_str)) in 
         
-        let _ = print_endline (Format.sprintf "Registerd simple type %s with type parameter list: " name) in 
+        (* let _ = print_endline (Format.sprintf "Registerd simple type %s with type parameter list: " name) in 
         let _ = List.map print_string ty_params_str in 
-        let _ = print_newline in 
+        let _ = print_newline in  *)
 
         env', [] (* no need to produce a Typed.decl for a simple type *)
     | _ -> error ~loc @@ InvalidSimpleType(t)
@@ -976,10 +977,9 @@ and load env fn : Env.t * Typed.decl list =
   
   let (env, decls) = env, List.rev rev_decls in 
 
-  let _ = List.map (fun decl -> match decl.Typed.desc with 
-    (* | Typed.System(_, _) -> print_endline (Typed.show_decl decl) *)
+  (* let _ = List.map (fun decl -> match decl.Typed.desc with 
     | _ ->  print_endline (Typed.show_decl decl)
-  ) decls in 
+  ) decls in  *)
 
   (env, decls)
 ;;

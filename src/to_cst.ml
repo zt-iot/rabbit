@@ -339,7 +339,7 @@ let rec convert_instantiated_ty_to_core (read_access_map : access_map)
    : (Cst_env.core_security_type) = 
 
 
-   let _ = print_endline "Converting instantiated_ty" in
+(*    let _ = print_endline "Converting instantiated_ty" in *)
 
    let convert_instantiated_ty_to_core_rec = (convert_instantiated_ty_to_core 
     read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice)
@@ -413,14 +413,14 @@ let rec convert_function_param_to_core (read_access_map : access_map)
   (provide_access_map : access_map) (all_process_typs : proc_ty_set)
   (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) 
   (env_fun_param : Env.function_param) : (Cst_env.core_security_function_param) = 
-  let _ = print_endline "Converting function_param" in
+(*   let _ = print_endline "Converting function_param" in *)
   let convert_instantiated_ty_to_core_rec = (convert_instantiated_ty_to_core 
     read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice) in 
   let convert_function_param_to_core_rec = (convert_function_param_to_core 
     read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice) in
     match env_fun_param with 
     | Env.FParamChannel(f_param_ty_params) -> 
-      let _ = print_endline "Converting FParamChannel" in
+(*       let _ = print_endline "Converting FParamChannel" in *)
       (* Convert channel parameter list *)
         let converted_params = 
           List.map convert_function_param_to_core_rec f_param_ty_params in 
@@ -429,7 +429,7 @@ let rec convert_function_param_to_core (read_access_map : access_map)
         ct, (Cst_env.S_Ignore, Cst_env.I_Ignore)
     | Env.FParamSecurity(sec_ty_name, simpletyp_name, simple_ty_instantiated_tys) -> 
 
-        let _ = print_endline "Converting FParamSecurity" in
+(*         let _ = print_endline "Converting FParamSecurity" in *)
 
         let cst_simple_ty_params = List.map convert_instantiated_ty_to_core_rec simple_ty_instantiated_tys in
         let csfp_simple_ty_params = List.map Cst_env.cst_to_csfp cst_simple_ty_params in 
@@ -455,7 +455,7 @@ let rec convert_function_param_to_core (read_access_map : access_map)
 
     | Env.FParamSimple(simple_ty_name, f_param_ty_params) -> 
 
-      let _ = print_endline "Converting FParamSimple" in
+(*       let _ = print_endline "Converting FParamSimple" in *)
       (* Convert parameter list recursively *)
         let converted_params = List.map convert_function_param_to_core_rec f_param_ty_params in
         let ct = Cst_env.CFP_Simple (simple_ty_name, converted_params) in 
@@ -465,7 +465,7 @@ let rec convert_function_param_to_core (read_access_map : access_map)
 
     | Env.FParamProduct(f_param1, f_param2) -> 
 
-        let _ = print_endline "Converting FParamProduct" in
+(*         let _ = print_endline "Converting FParamProduct" in *)
       
         let converted_ty1 = convert_function_param_to_core_rec f_param1 in
         let converted_ty2 = convert_function_param_to_core_rec f_param2 in
@@ -489,7 +489,7 @@ let rec convert_function_param_to_core (read_access_map : access_map)
         end 
 
     | Env.FParamPoly(id) -> 
-        let _ = print_endline "Converting FParamPoly" in
+(*         let _ = print_endline "Converting FParamPoly" in *)
         (* Ignore this secrecy/integrity level when type-checking *)
         CFP_Poly(id), (Cst_env.S_Ignore, Cst_env.I_Ignore)
 
@@ -501,7 +501,7 @@ let convert_env_desc (read_access_map : access_map)
   (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) 
   (env_desc : Env.desc) : Cst_env.desc =
 
-  let _ = print_endline "Converting env_desc" in
+(*   let _ = print_endline "Converting env_desc" in *)
   let convert_function_param_to_core_rec = 
     (convert_function_param_to_core read_access_map provide_access_map all_process_typs secrecy_lattice
       integrity_lattice
@@ -545,7 +545,7 @@ let convert_env (read_access_map : access_map)
     (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy)
   (env : Env.t) : Cst_env.t = 
 
-  let _ = print_endline "Converting env" in
+(*   let _ = print_endline "Converting env" in *)
   let convert_env_desc_rec = convert_env_desc read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
   let cst_vars = 
     List.map (fun (id, env_desc) -> (id, (convert_env_desc_rec env_desc))) env.vars in
@@ -563,7 +563,7 @@ let rec convert_expr (read_access_map : access_map)
     (e : Typed.expr) : Cst_syntax.expr = 
     let convert_expr_rec = convert_expr read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
 
-    let _ = print_endline "Converting expr" in
+(*     let _ = print_endline "Converting expr" in *)
 
     let converted_desc = match e.desc with
     | Typed.Ident { id; desc; param } ->
@@ -614,7 +614,7 @@ let rec convert_cmd (read_access_map : access_map)
     }
   in
 
-  let _ = print_endline "Converting cmd" in
+(*   let _ = print_endline "Converting cmd" in *)
   
   let converted_cmd' = match cmd.desc with
     | Typed.Skip -> Cst_syntax.Skip
@@ -675,7 +675,7 @@ and convert_fact (read_access_map : access_map)
   let convert_env_rec = convert_env read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in 
 
 
-  let _ = print_endline "Converting fact" in
+(*   let _ = print_endline "Converting fact" in *)
   
   let converted_desc = match fact.desc with
     | Typed.Channel { channel; name; args } -> 
@@ -744,7 +744,7 @@ let convert_decl (read_access_map : access_map)
   match desc with
   | Typed.Syscall { id; fun_sig; cmd } ->
 
-      let _ = print_endline (Format.sprintf "convert_decl syscall with id: %s" (fst id)) in
+      (* let _ = print_endline (Format.sprintf "convert_decl syscall with id: %s" (fst id)) in *)
 
       let args = Env.syscall_member_fun_desc_to_ident_list fun_sig in 
       let cst_cmd = (convert_cmd_rec cmd) in 
@@ -753,7 +753,7 @@ let convert_decl (read_access_map : access_map)
       [make_loc_env_for_decl_rec cst_decl]
 
   | Typed.Attack { id; syscall; args; cmd } ->
-      let _ = print_endline (Format.sprintf "convert_decl attack with id: %s" (fst id)) in 
+      (* let _ = print_endline (Format.sprintf "convert_decl attack with id: %s" (fst id)) in  *)
     
       let cst_cmd = convert_cmd_rec cmd in 
       let cst_decl = Cst_syntax.Attack{id ; syscall ; args ; cmd = cst_cmd} in 
@@ -761,7 +761,7 @@ let convert_decl (read_access_map : access_map)
       [make_loc_env_for_decl_rec cst_decl]
 
   | Typed.Process { id; param; args; typ; files; vars; funcs; main } ->
-      let _ = print_endline (Format.sprintf "convert_decl process with id: %s" (fst id)) in 
+      (* let _ = print_endline (Format.sprintf "convert_decl process with id: %s" (fst id)) in  *)
       let converted_args = List.map convert_chan_param args in 
       let converted_files = List.map (fun (x, y, z) -> 
         (convert_expr_rec x, y, convert_expr_rec z)) files in 
@@ -785,7 +785,7 @@ let convert_decl (read_access_map : access_map)
       [make_loc_env_for_decl_rec cst_decl]
 
   | Typed.System (procs, _) ->
-      let _ = print_endline (Format.sprintf "convert_decl system") in 
+      (* let _ = print_endline (Format.sprintf "convert_decl system") in  *)
       let cst_decl = Cst_syntax.System(procs) in 
       [make_loc_env_for_decl_rec cst_decl]
   | _ -> []
