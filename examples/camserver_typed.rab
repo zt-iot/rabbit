@@ -30,7 +30,7 @@ type server_t 	  : process
 type client_t 	  : process
 type client_ta_t  : process
 
-(* temporary solution: we do not want the programer to declare any processes of type attacker_ty *)
+(* temporary solution: we do not want the programmer to declare any processes of type attacker_ty *)
 type attacker_ty : process
 
 
@@ -167,7 +167,7 @@ attack tamper_channel on recv (c) {
 allow attack server_t [tamper_channel] 
 
 (* we do not type v as we can choose explicitly to leak any value v to the attacker *)
-passive attack eaves_mem (v) {
+passive attack eaves_mem (v : 'a) : unit {
   put [::Out(v)]
 }
 
