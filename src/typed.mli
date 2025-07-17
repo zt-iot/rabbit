@@ -28,6 +28,8 @@ and expr' =
 
 val string_of_expr : expr -> string
 
+val mutable_vars_of_expr : expr -> Ident.t list
+
 val constants : expr -> expr list
 
 type loop_mode =

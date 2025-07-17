@@ -35,6 +35,19 @@ let rec string_of_expr (e : expr) =
   | Boolean b -> string_of_bool b
   | Unit -> "()"
 
+let mutable_vars_of_expr e =
+  let rec aux e =
+    match e.desc with
+    | Ident { id=_; param= None; desc= Var Param } -> []
+    | Ident { id; param= None; desc= Var _ } -> [id]
+    | Ident { id; param= Some p; desc= Var _ } -> id :: aux p
+    | Ident { id=_; param= Some p; desc= _ } -> aux p
+    | Ident _ -> []
+    | Apply (_, es) | Tuple es -> List.concat_map aux es
+    | String _ | Integer _ | Float _ | Boolean _ | Unit -> []
+  in
+  List.sort_uniq compare @@ aux e
+
 let rec constants (e : expr) =
   match e.desc with
   | Ident { id= _; desc= Const false; param= None } -> [e]
