@@ -977,7 +977,7 @@ let model_process ~loc env decls syscalls (proc : Subst.instantiated_proc) =
   let find_def n = List.assoc n (syscalls @ funcs) in
   let g, i = graph_files_and_vars ~loc env decls proc Index.zero in
   let g', _j, _env =
-    graph_cmd ~vars:[] ~proc ~syscaller:None find_def decls i proc.main in
+    graph_cmd ~vars:(List.map fst proc.vars) ~proc ~syscaller:None find_def decls i proc.main in
   let g = g @ g' in
   ignore (check_edges g);
   Format.eprintf "%t: %d edges@." (Ident.print (proc.id :> Ident.t)) (List.length g);
