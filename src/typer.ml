@@ -383,6 +383,7 @@ and type_case env (facts, cmd) : Typed.case =
   Typed.{ fresh = fresh_ids; facts; cmd }
 ;;
 
+(* XXX global channels must be dropped fro the env *)
 let type_process
       ~loc
       env
