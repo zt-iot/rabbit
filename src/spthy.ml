@@ -155,7 +155,7 @@ type fact =
 
 type fact_config =
   { persist : bool
-  (* ; priority : int *)
+  (* ; priority : int XXX What is this? *)
   }
 
 let config_persist = { persist= true }
@@ -624,7 +624,7 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.modeled_pro
               { proc_id= model.id
               ; param= Some param
               ; index= Sem.Index.zero (* ? *)
-              ; mapping = [ rho, Unit; (param :> Ident.t), Ident (param :> Ident.t) ]
+              ; mapping = [ rho, Unit ] (* no need of param in the mapping since it is not mutable *)
               ; transition= if !Config.tag_transition then Some One else None
               }
           ) models
