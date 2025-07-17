@@ -34,17 +34,34 @@ let rec string_of_expr = function
   | Index i -> "'index:" ^ Sem.Index.to_string i ^ "'"
   | Transition tr -> string_of_transition tr
 
+let expr_of_channel id = String ("chan:" ^ Ident.to_string id)
+
 let rec compile_expr (e : Typed.expr) : expr =
   match e.desc with
   | Boolean _ -> assert false
   | Float _ -> assert false
   | Integer z -> Integer z
-  | Ident { id; param= None; _ } -> Ident id
-  | Ident { id; param= Some _p; _ } -> Ident id
+  | Ident { id; param= None; desc= Var _ | Const false | ExtConst } -> Ident id
+  | Ident { id; param= Some _p; desc= Const true } -> Ident id (* p XXX ??? *)
+  | Ident { id; param= None; desc= Channel (false, _cty) } -> expr_of_channel id
+  | Ident { id; param= Some p; desc= Channel (true, _cty) } ->
+      Tuple [expr_of_channel id; compile_expr p]
+  | Ident { id; param= None; desc } ->
+      Format.eprintf "Error %s : %t@." (Ident.to_string id) (Env.print_desc desc);
+      assert false
+  | Ident { id; param= Some _p; desc } ->
+      Format.eprintf "Error %s : %t@." (Ident.to_string id) (Env.print_desc desc);
+      assert false
   | String s -> String ("str:" ^ s)
   | Apply (f, es) -> Apply (f, List.map compile_expr es)
   | Tuple es -> Tuple (List.map compile_expr es)
   | Unit -> Unit
+
+let expr_of_chan_arg ({ channel; parameter; _ } : Typed.chan_arg) =
+  match parameter with
+  | None -> expr_of_channel channel
+  | Some (Some e) -> Tuple [expr_of_channel channel; compile_expr e]
+  | Some None -> Tuple [expr_of_channel channel; Ident (Ident.local "any")]
 
 type signature =
   { functions : (Ident.t * int) list
@@ -444,6 +461,18 @@ let print_rule ppf rule =
     (String.concat ", " (List.map (fun f -> string_of_fact' (fact' f)) rule.label))
     (String.concat ", " (List.map (fun f -> string_of_fact' (fact' f)) rule.post))
 
+(* move equality and inequality facts from precondition to tags because Tamarin cannot handle
+   (N)Eq fact generation rules correctly for fresh values *)
+let facts_of_edge (e : Sem.edge) =
+  let pre_eq_neq, pre_others =
+    List.partition (function
+        | ({ desc= (Eq _ | Neq _); _ } : Sem.fact) -> true
+        | _ -> false) e.pre
+  in
+  pre_others,
+  e.tag @ pre_eq_neq,
+  e.post
+
 (*
 rule Client_ta__guarded_guarded_...._____4_____4__0_1__90[role="Client_ta"]
   : [State__Client_ta(<'rab_____4', param, %v__>,
@@ -468,28 +497,20 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
   let role = Some (proc_id :> Ident.t) in
   let rho = Ident.local "rho" in
   let state_pre : fact =
-    let vars =
-      List.filter_map (fun (id, desc) ->
-          match desc with
-          | Env.Var _ -> Some id
-          | _ -> None (* the others are not mutable *)) edge.source_env.vars
-    in
-    let vars = rho :: vars in
+    let vars = rho :: edge.source_vars in
     let mapping = List.map (fun id -> id, Ident id) vars in
     let transition = if !Config.tag_transition then Some Var else None in
     State { proc_id; param; index= edge.source; mapping; transition }
   in
   let state_post : fact =
     let mapping =
-      List.filter_map (fun (id, desc) ->
-          match desc with
-          | Env.Var _ ->
-              Some (id,
-                    match List.assoc_opt id edge.update.mutable_overrides with
-                    | None -> Ident id (* no change *)
-                    | Some (Some e) -> compile_expr e
-                    | Some None -> Ident rho (* $\rho$ *))
-          | _ -> None (* the others are not mutable *)) edge.target_env.vars
+      List.map (fun id ->
+          id,
+          match List.assoc_opt id edge.update.items with
+          | None -> Ident id (* no change *)
+          | Some (New (Some e) | Update (Some e)) -> compile_expr e
+          | Some (New None | Update None) -> Ident rho (* $\rho$ *)
+          | Some Drop -> assert false)  edge.target_vars
     in
     let mapping =
       let rho_expr =
@@ -519,11 +540,16 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
     @@
     List.concat_map Typed.constants
       (Option.to_list edge.update.register
-       @ List.filter_map (fun (_, eo) -> eo) edge.update.mutable_overrides)
+       @ List.filter_map (function
+           | (_id, (Sem.New eo | Update eo)) -> eo
+           | (_id, Drop) -> None) edge.update.items)
   in
-  let pre, pre_deps = compile_facts edge.pre in
-  let post, post_deps = compile_facts edge.post in
-  let label, label_deps = compile_facts edge.tag in
+  (* move equality and inequality facts from precondition to tags because Tamarin cannot handle
+     (N)Eq fact generation rules correctly for fresh values *)
+  let pre, label, post = facts_of_edge edge in
+  let pre, pre_deps = compile_facts pre in
+  let label, label_deps = compile_facts label in
+  let post, post_deps = compile_facts post in
   let label =
     if !Config.tag_transition then
       Transition { proc_id; param; source=edge.source; transition= Some Var } :: label
@@ -686,7 +712,7 @@ let compile_access_controls
                 Some (Access {
                     proc_id;
                     param;
-                    channel= String (Ident.to_string chan_arg.channel);
+                    channel= expr_of_chan_arg chan_arg;
                     syscall= syscall_opt
                   })
             | `Attacks _ -> None (* attack is not handled here *)
@@ -747,7 +773,7 @@ let print ppf t =
   List.iter (fprintf ppf "%a@.@." print_rule) t.constants;
 
   fprintf ppf "@.//// Proc group initialization@.@.";
-  List.iter (fprintf ppf "%a@." print_rule) t.proc_group_inits;
+  List.iter (fprintf ppf "%a@.@." print_rule) t.proc_group_inits;
 
   fprintf ppf "@.//// Access control@.@.";
   List.iter (fprintf ppf "%a@.@." print_rule) t.access_controls;

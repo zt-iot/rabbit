@@ -67,11 +67,16 @@ val fact_of_typed : Typed.fact -> fact
     - [None] is for $\rho$: the register value of the last command execution
     - [mutable_overrides] only list the updated fields:
 *)
+type update_desc =
+  | New of Typed.expr option (* None: \rho *)
+  | Update of Typed.expr option (* None: \rho *)
+  | Drop
+
 type update =
-  { register : Typed.expr option (** Return or register value. [None] for $\rho$ *)
-  ; mutable_overrides : (Ident.t * Typed.expr option) list (** [None for $\rho$ *)
-  ; drops : Ident.t list (** Ids to be dropped from the environment *)
+  { register : Typed.expr option (* None: \rho *)
+  ; items : (Ident.t * update_desc) list
   }
+
 
 val string_of_update : update -> string
 
@@ -83,12 +88,14 @@ type edge =
   { id : edge_id
   ; source : Index.t
   ; source_env : Env.t
+  ; source_vars : Ident.t list
   ; pre : fact list
   ; update : update
   ; tag : fact list
   ; post : fact list
   ; target : Index.t
   ; target_env : Env.t
+  ; target_vars : Ident.t list
   ; loop_back : bool (** Loops back and triggers an increment of transition counter if [true] *)
   }
 

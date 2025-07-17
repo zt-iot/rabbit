@@ -14,12 +14,14 @@ module E = struct
     { id = Sem.edge_id @@ Ident.global "dummy"
     ; source = Index.zero
     ; source_env = Env.empty ()
+    ; source_vars = []
     ; pre = []
-    ; update = { register = None; mutable_overrides= []; drops= [] }
+    ; update = { register = None; items= [] }
     ; tag = []
     ; post = []
     ; target = Index.zero
     ; target_env = Env.empty ()
+    ; target_vars = []
     ; loop_back = false
     }
 end

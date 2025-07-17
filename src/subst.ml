@@ -1,7 +1,7 @@
 open Typed
 
 type t =
-  { channels : (ident * ident) list
+  { channels : (ident * (ident * expr option)) list
   ; parameters : (ident * expr) list
   }
 
@@ -10,10 +10,21 @@ let rec expr (s : t) (e : expr) : expr =
   | Boolean _ | String _ | Integer _ | Float _ | Unit -> e
   | Tuple es -> { e with desc= Tuple (List.map (expr s) es) }
   | Apply (f, es) -> { e with desc= Apply (f, List.map (expr s) es) }
-  | Ident ({ id; desc= Channel _; param; _ } as i) ->
-      let id = Option.value ~default:id @@ List.assoc_opt id s.channels in
-      let param = Option.map (expr s) param in
-      { e with desc= Ident { i with id; param } }
+  | Ident { id; desc= Channel (_, cty); param; _ } ->
+      (match param, List.assoc_opt id s.channels with
+       | _, None -> e (* weird *)
+       | None, Some (id, None) ->
+           (* ch => ch'  when  [ch => ch'] *)
+           { e with desc= Ident { id; param= None; desc= Channel (false, cty) } }
+       | Some param, Some (id, None) ->
+           (* ch<p> => ch'<p>  when  [ch => ch'] *)
+           { e with desc= Ident { id; param= Some (expr s param); desc= Channel (true, cty) } }
+       | None, Some (id, Some param) ->
+           (* ch => ch'<p>  when  [ch => ch'<p>] *)
+           { e with desc= Ident { id; param= Some param; desc= Channel (true, cty) } }
+       | Some _, Some (_id, Some _param) ->
+           (* ch<p> => ??? when [ch => ch'<p>] *)
+           assert false (* weird *))
   | Ident { id; desc= Var Param; param= None; _ } ->
       Option.value ~default:e @@ List.assoc_opt id s.parameters
   | Ident { id=_; desc= Var Param; param= Some _; _ } ->
@@ -66,21 +77,25 @@ let param_id = Fun.id
 type instantiated_proc =
   { id : proc_id
   ; param : param_id option
+  ; args : chan_arg list
   ; typ : ident
   ; files : (expr * ident * expr) list
   ; vars : (ident * expr) list
   ; funcs : (ident * ident list * cmd) list
   ; main : cmd
-  ; template : Typed.pproc
   }
 
-let instantiate_proc_aux s ~id ~param ~typ ~files ~vars ~funcs ~main ~template =
+let instantiate_proc_aux s ~id ~param ~args ~typ ~files ~vars ~funcs ~main =
   let id = Ident.local (fst id) in
+  let args =
+    List.map (fun (chan_arg : chan_arg) ->
+        { chan_arg with parameter = Option.map (Option.map (expr s)) chan_arg.parameter }) args
+  in
   let files = List.map (fun (path, id, contents) -> expr s path, id, expr s contents) files in
   let vars = List.map (fun (id, def) -> (id, expr s def)) vars in
   let funcs = List.map (fun (fn, vars, c) -> (fn, vars, cmd s c)) funcs in
   let main = cmd s main in
-  { id; param; typ; files; vars; funcs; main; template }
+  { id; param; args; typ; files; vars; funcs; main }
 
 let instantiate_proc
     s
@@ -123,25 +138,25 @@ let instantiate_proc
           List.map2 (fun chan_param chan_arg ->
               match chan_param, chan_arg with
               | { channel=pid; param= None; _ }, { channel=aid; parameter; typ=_ } ->
-                  let _param =
+                  let param =
                     match parameter with
                     | None -> None
-                    | Some (Some pid) -> Some pid
+                    | Some (Some param) -> Some param
                     | Some None -> assert false
                   in
-                  pid, aid
+                  pid, (aid, param)
               | { channel=pid; param= Some (); _ }, { channel=aid; parameter; typ=_ } ->
-                  let _param =
+                  let param =
                     match parameter with
-                    | Some None -> ()
+                    | Some None -> None
                     | None | Some (Some _) -> assert false
                   in
-                  pid, aid
+                  pid, (aid, param)
             ) chan_params chan_args
         in
         { parameters; channels }
       in
-      instantiate_proc_aux s ~id ~param ~typ ~files ~vars ~funcs ~main ~template:pproc
+      instantiate_proc_aux s ~id ~param ~args:chan_args ~typ ~files ~vars ~funcs ~main
   | None -> assert false
   | Some _ -> assert false
 

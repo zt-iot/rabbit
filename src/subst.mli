@@ -1,7 +1,7 @@
 open Typed
 
 type t =
-  { channels : (ident * ident) list
+  { channels : (ident * (ident * expr option)) list
   ; parameters : (ident * expr) list
   }
 
@@ -21,13 +21,12 @@ val param_id : Ident.t -> param_id
 type instantiated_proc =
   { id : proc_id
   ; param : param_id option
+  ; args : chan_arg list
   ; typ : ident
   ; files : (expr * ident * expr) list
   ; vars : (ident * expr) list
   ; funcs : (ident * ident list * cmd) list
   ; main : cmd
-  ; template : Typed.pproc (** Original pproc *)
-    (* XXX should be removed if possible. Why required? *)
   }
 
 type instantiated_proc_group_desc =
