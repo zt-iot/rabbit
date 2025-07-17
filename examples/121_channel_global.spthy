@@ -1,0 +1,74 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+
+
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Constants:
+
+
+
+// Add model inits: Alice
+
+
+rule Init_system[role="system"]
+  : []
+    --[Init_('rab_system')]->
+    [!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+
+
+// Access control of Alice:chan
+
+
+
+// Fact: !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_')
+
+
+rule Init_system_ACP_0[role="system"]
+  : [!ACP_GEN_('rab_system_', 'rab_rab_str')]
+    --[Init_('rab_system_ACP_0')]->
+    [!ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_')] 
+
+// Model:  Alice
+
+
+rule Alice_guarded_event_case_out___1___2_5[role="Alice"]
+  : [State_Alice(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_'), Store('rab_chan', '1')]
+    --[Transition_(<'rab_Alice', param>, 'rab___1', %v_), Valid()]->
+    [State_Alice(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+
+rule Alice_put___0___1_0[role="Alice"]
+  : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_')]
+    --[Transition_(<'rab_Alice', param>, 'rab___0', %v_)]->
+    [State_Alice(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), Store('rab_chan', '1')] 
+
+restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
+
+lemma AlwaysStarts_[reuse,use_induction]:
+      "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+
+lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
+      "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+
+lemma TransitionOnce_[reuse,use_induction]:
+      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+        Transition_(x, p, %i) @ #k ==> #j = #k"
+
+
+lemma Valid : exists-trace "Ex  #time_0 . Valid()@#time_0 "
+end
+

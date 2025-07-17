@@ -1,0 +1,32 @@
+type person_t : process
+type chan_t : channel
+
+channel chan1 : chan_t
+channel chan2 : chan_t
+
+process alice(chan1 : chan_t, chan2 : chan_t) : person_t 
+{
+    main {
+        put [chan1::store(1), chan2::store(2)] ;
+	case
+	| [chan1::store(1)] -> event[::Valid()]
+	| [chan1::store(2)] -> event[::Invalid()]
+	| [chan2::store(1)] -> event[::Invalid()]
+	| [chan2::store(2)] -> event[::Valid()]
+	end
+    }
+}
+
+allow person_t chan_t [.]
+
+system
+  alice(chan1, chan2)
+requires
+[
+  lemma Valid: (* verified *)
+    reachable ::Valid() ;
+
+  lemma Invalid: (* falsified *)
+    reachable ::Invalid() 
+
+]

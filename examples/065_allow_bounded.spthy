@@ -1,0 +1,128 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+
+
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Constants:
+
+
+
+// Add model inits: 
+
+
+rule Init__system[role="system"]
+  : []
+    --[Init__('rab__system')]->
+    [!ACP__GEN__('rab__system__', 'rab__rab_str')] 
+
+
+// Add model inits: Bob,Alice
+
+
+rule Init__system1[role="system1"]
+  : [Fr(param)]
+    --[Init__(<'rab__system1', param>)]->
+    [!ACP__GEN__('rab__system1__', param), State__Bob(<'rab_____0', param, %1>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty'), State__Alice(<'rab_____0', param, %1>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty')] 
+
+
+// Access control of Bob:chan
+
+
+
+// Fact: !ACP__(<'rab__Bob', param>, 'rab__chan', 'rab__send_two')
+
+
+rule Init__system1__ACP__0[role="system1"]
+  : [!ACP__GEN__('rab__system1__', param)]
+    --[Init__(<'rab__system1__ACP__0', param>)]->
+    [!ACP__(<'rab__Bob', param>, 'rab__chan', 'rab__send_two')] 
+
+
+// Fact: !ACP__(<'rab__Bob', param>, 'rab__chan', 'rab__send_one')
+
+
+rule Init__system1__ACP__1[role="system1"]
+  : [!ACP__GEN__('rab__system1__', param)]
+    --[Init__(<'rab__system1__ACP__1', param>)]->
+    [!ACP__(<'rab__Bob', param>, 'rab__chan', 'rab__send_one')] 
+
+
+// Access control of Alice:chan
+
+
+
+// Fact: !ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_two')
+
+
+rule Init__system1__ACP__2[role="system1"]
+  : [!ACP__GEN__('rab__system1__', param)]
+    --[Init__(<'rab__system1__ACP__2', param>)]->
+    [!ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_two')] 
+
+
+// Fact: !ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_one')
+
+
+rule Init__system1__ACP__3[role="system1"]
+  : [!ACP__GEN__('rab__system1__', param)]
+    --[Init__(<'rab__system1__ACP__3', param>)]->
+    [!ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_one')] 
+
+// Model:  Bob
+
+
+rule Bob__scall_intro_put_scall_out_scall_intro_put_____0_____1__0_1__11[role="Bob"]
+  : [State__Bob(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'), !ACP__(<'rab__Bob', param>, 'rab__chan', 'rab__send_two'), !ACP__(<'rab__Bob', param>, 'rab__chan', 'rab__send_one')]
+    --[Transition__(<'rab__Bob', param>, 'rab_____0', %v__)]->
+    [State__Bob(<'rab_____1__0_1', param, %v__>, 'rab__unit', 'rab__empty', 'rab__chan', 'rab__empty'), Send('rab__chan', '2'), Send('rab__chan', '1')] 
+
+rule Bob__scall_out_event_____1__0_1_____3__7[role="Bob"]
+  : [State__Bob(<'rab_____1__0_1', param, %v__>, return__var__5, 'rab__empty', l__0__5, 'rab__empty')]
+    --[Transition__(<'rab__Bob', param>, 'rab_____1__0_1', %v__), Valid()]->
+    [State__Bob(<'rab_____3', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty')] 
+
+
+// Model:  Alice
+
+
+rule Alice__scall_intro_put_scall_out_scall_intro_put_____0_____1__0_1__11[role="Alice"]
+  : [State__Alice(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'), !ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_one'), !ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_two')]
+    --[Transition__(<'rab__Alice', param>, 'rab_____0', %v__)]->
+    [State__Alice(<'rab_____1__0_1', param, %v__>, 'rab__unit', 'rab__empty', 'rab__chan', 'rab__empty'), Send('rab__chan', '1'), Send('rab__chan', '2')] 
+
+rule Alice__scall_out_event_____1__0_1_____3__7[role="Alice"]
+  : [State__Alice(<'rab_____1__0_1', param, %v__>, return__var__5, 'rab__empty', l__0__5, 'rab__empty')]
+    --[Transition__(<'rab__Alice', param>, 'rab_____1__0_1', %v__), Valid()]->
+    [State__Alice(<'rab_____3', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty')] 
+
+restriction Init__ : " All x #i #j . Init__(x) @ #i & Init__(x) @ #j ==> #i = #j "
+restriction Equality_rule: "All x y #i. Eq__(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq__(x,x) @ #i ==> F"
+
+lemma AlwaysStarts__[reuse,use_induction]:
+      "All x p #i. Loop__Back(x, p) @i ==> Ex #j. Loop__Start(x, p) @j & j < i"
+
+lemma AlwaysStartsWhenEnds__[reuse,use_induction]:
+      "All x p #i. Loop__Finish(x, p) @i ==> Ex #j. Loop__Start(x, p) @j & j < i"
+
+lemma TransitionOnce__[reuse,use_induction]:
+      "All x p %i #j #k . Transition__(x, p, %i) @#j &
+        Transition__(x, p, %i) @ #k ==> #j = #k"
+
+
+lemma Reachable : exists-trace "Ex  #time__0 . Valid()@#time__0 "
+end
+

@@ -42,17 +42,18 @@ rule Const_cp2
 
 type proc_t 	  : process
 
-process p() : proc_t
+process proc<p>() : proc_t
 {
   main 
   {
-    event [::Valid()]
+    event [::Valid()];
+    (c, c2, cp<p>, cp2<(p,p)>)
   }
 }
 
 
 system 
-  p()
+  !p.proc<p>()
 requires  
 [
   lemma Reachable : (* verified *)

@@ -1,0 +1,56 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+
+
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Constants:
+
+
+
+// Add model inits: Alice
+
+
+rule Init_system[role="system"]
+  : []
+    --[Init_('rab_system')]->
+    [!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+
+// Model:  Alice
+
+
+rule Alice_let_intro_scall_intro_return_scall_out_let_intro_scall_intro_return_scall_out_event_let_out_let_out___0___7_20[role="Alice"]
+  : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty')]
+    --[Transition_(<'rab_Alice', param>, 'rab___0', %v_), Valid('0')]->
+    [State_Alice(<'rab___7', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+
+restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
+
+lemma AlwaysStarts_[reuse,use_induction]:
+      "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+
+lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
+      "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+
+lemma TransitionOnce_[reuse,use_induction]:
+      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+        Transition_(x, p, %i) @ #k ==> #j = #k"
+
+
+lemma Reachable : exists-trace "Ex  #time_0 . Valid('0')@#time_0 "
+end
+

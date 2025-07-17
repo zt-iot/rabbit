@@ -1,0 +1,48 @@
+type process_t : process
+type client_t : process
+type chan_t : channel
+
+process server(ch<> : chan_t) : process_t
+{
+    main {
+        case
+        | [ch<k> ::store(k2)] →
+	    case
+	    | [k = k2] ->
+	        event[::Valid(k)]
+	    | [k != k2] ->
+	        event[::Invalid(k)]
+	    end
+        end
+    }
+}
+
+process client<k>(ch : chan_t) : process_t 
+{
+    main {
+            new msg in
+    	    event[::Sent(k)] ;
+            put[ch::store(k)]
+    }
+}
+
+channel chan<> : chan_t
+
+allow process_t chan_t [.]
+
+system
+  server(chan<>) | !k.client<k>(chan<k>)
+requires
+[
+  lemma Reachable: (* verified *)
+    reachable ::Valid(msg) ;
+
+  lemma NotReachable: (* falsified *)
+    reachable ::Invalid(msg) ;
+
+  lemma Corresponds: (* verified *)
+    corresponds ::Valid(msg) ~> ::Sent(msg) ;
+
+  lemma NotCorresponds: (* verified *)
+    corresponds ::Invalid(msg) ~> ::Sent(msg)
+]

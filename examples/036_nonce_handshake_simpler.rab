@@ -1,0 +1,64 @@
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+
+syscall send(c, v) {
+  put [c::store(v)]
+}
+
+syscall recv(c) {
+  case
+  | [c::store(v)] →   v
+  end
+}
+
+type person_t : process
+type chan_t : channel
+
+process alice(ch : chan_t, ch2 : chan_t) : person_t
+{
+    main {
+        var n2 = recv(ch) in
+        new msg2 in
+        event [::Sent(msg2, n2)];
+        _ := send(ch2, (msg2, n2))
+    }
+}
+
+process bob(ch : chan_t, ch2 : chan_t) : person_t
+{
+    main {
+        new n in
+        _ := send(ch, n);
+
+        var pair = recv(ch2) in
+        var msg = fst(pair) in
+        var m = snd(pair) in
+        case
+        | [n = m] ->
+             event [::Valid(msg, n)]
+        | [n != m] ->
+             event [::Invalid()]
+        end
+    }
+}
+
+allow person_t chan_t [send, recv]
+
+channel chan : chan_t
+channel chan2 : chan_t
+
+system
+  alice(chan, chan2) | bob(chan, chan2)
+requires
+[
+  lemma Valid: (* verified *)
+    reachable ::Valid(msg, n) ;
+
+  lemma Invalid: (* falsified *)
+    reachable ::Invalid() ;
+
+  lemma Correspondence : (* verified *)
+    corresponds ::Valid(msg, n) ~> ::Sent(msg, n)
+]

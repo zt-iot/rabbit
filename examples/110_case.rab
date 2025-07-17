@@ -1,0 +1,27 @@
+type person_t : process
+type chan_t : channel
+
+process alice() : person_t 
+{
+    main {
+	var one = 1 in
+	case
+	| [one = 1] ->
+	    event[::Valid()]
+	| [one != 1] ->
+            event[::Invalid()]
+	end
+    }
+}
+
+system
+  alice()
+requires
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid() ;
+
+  lemma NotReachable : (* falsified *)
+    reachable ::Invalid()
+
+]

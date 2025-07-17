@@ -1,0 +1,57 @@
+(** asynchronous channels *)
+syscall send(c, v) {
+  put [c::store(v)]
+}
+
+syscall recv(c) {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+type person_t : process
+type chan_t : channel
+
+process alice(ch : chan_t, ch2 : chan_t) : person_t 
+{
+    main {
+        var n = recv(ch) in
+        new msg in
+        event [::Sent(msg, n)];
+        _ := send(ch2, n)
+    }
+}
+
+process bob(ch : chan_t, ch2 : chan_t) : person_t 
+{
+    main {
+        new n in		      (* new nonce [n] *)
+        _ := send(ch, n);	      (* send the nonce *)
+        var m = recv(ch2) in        (* receive an encrypted data *)
+        case
+        | [n = m] ->		      (* check the nonces are equal *)
+             event [::Valid(n)]  (* successful handshake *)
+        | [n != m] ->
+             event [::Invalid()]      (* something went wrong *)
+        end
+    }
+}
+
+allow person_t chan_t [send, recv]
+
+channel chan : chan_t
+channel chan2 : chan_t
+
+system
+  alice(chan, chan2) | bob(chan, chan2)
+requires
+[
+  lemma Valid: (* verified *)
+    reachable ::Valid(n) ;
+
+  lemma Invalid: (* falsified *)
+    reachable ::Invalid() ;
+
+  lemma Correspondence : (* verified *)
+    corresponds ::Valid(n) ~> ::Sent(msg, n)
+]
