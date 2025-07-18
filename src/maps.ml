@@ -3,6 +3,7 @@
 
 module StringMap = Map.Make(String)
 module SecurityTypeMap = Map.Make(String)
+module IdentMap = Map.Make(Ident.IdentOrd)
 
 type 'a string_map = 'a StringMap.t
 type 'a security_type_map = 'a SecurityTypeMap.t
