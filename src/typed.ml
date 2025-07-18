@@ -25,13 +25,16 @@ and expr' =
       { id : ident
       ; desc : Env.desc
       ; param : expr option
+      (** [param= Some _] iff [desc= Const true] *)
       }
-  | Boolean of bool
-  | String of string
-  | Integer of int
-  | Float of string
-  | Apply of ident * expr list
-  | Tuple of expr list
+  (** [id] or [id<e>].
+      [id<e>] is only possible either for [id] of [Channel {param=true}] or [Const {param=true}] *)
+  | Boolean of bool (** boolean, [true]/[false] *)
+  | String of string (** string, ["hello"] *)
+  | Integer of int (** integer, [42] *)
+  | Float of string (** float, [4.12]. Store the string so we can correctly round later *)
+  | Apply of ident * expr list  (** application, [f(e1,..,en)]   /  [e1 op e2] *)
+  | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Unit
 [@@deriving show]
 

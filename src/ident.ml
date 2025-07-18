@@ -1,3 +1,4 @@
+(* we assign an `int` to each `Ident.t` to ensure that each variable in a Rabbit program has a unique name *)
 type t = string * int [@@deriving show]
 
 let cntr = ref 0
