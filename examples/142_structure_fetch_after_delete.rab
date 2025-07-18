@@ -1,0 +1,31 @@
+type proc_t 	  : process
+
+process p() : proc_t
+{
+  main 
+  {
+    new x = S(1,2,3) in
+    event [::Allocated()];
+    delete x.S;
+    let x1,x2,x3 = x.S in
+    case
+      [x1 = 1, x2 = 2, x3 = 3] -> event [::Valid()]
+    end;
+    event [::Deleted()]
+  }
+}
+
+
+system 
+  p()
+requires  
+[
+  lemma Allocated : (* verified *)
+    reachable ::Allocated() ;
+
+  lemma Deleted : (* falsified *)
+    reachable ::Deleted() ;
+
+  lemma Correspondence : (* verified *)
+    corresponds ::Deleted() ~> ::Allocated()
+]
