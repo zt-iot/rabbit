@@ -41,7 +41,7 @@ let rec compile_expr (e : Typed.expr) : expr =
   | Boolean _ -> assert false
   | Float _ -> assert false
   | Integer z -> Integer z
-  | Ident { id; param= None; desc= Var _ | Const false | ExtConst } -> Ident id
+  | Ident { id; param= None; desc= Var | Const false | ExtConst | Param } -> Ident id
   | Ident { id; param= Some _p; desc= Const true } -> Ident id (* p XXX ??? *)
   | Ident { id; param= None; desc= Channel (false, _cty) } -> expr_of_channel id
   | Ident { id; param= Some p; desc= Channel (true, _cty) } ->
@@ -155,7 +155,7 @@ type fact =
 
 type fact_config =
   { persist : bool
-  (* ; priority : int XXX What is this? *)
+  (* ; priority : int; Currently this is not used in tamarin.ml *)
   }
 
 let config_persist = { persist= true }
@@ -495,9 +495,8 @@ rule Client_ta__guarded_guarded_...._____4_____4__0_1__90[role="Client_ta"]
 *)
 let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge : Sem.edge) =
   let role = Some (proc_id :> Ident.t) in
-  let rho = Ident.local "rho" in
   let state_pre : fact =
-    let vars = rho :: edge.source_vars in
+    let vars = edge.update.rho :: edge.source_vars in
     let mapping = List.map (fun id -> id, Ident id) vars in
     let transition = if !Config.tag_transition then Some Var else None in
     State { proc_id; param; index= edge.source; mapping; transition }
@@ -508,17 +507,12 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
           id,
           match List.assoc_opt id edge.update.items with
           | None -> Ident id (* no change *)
-          | Some (New (Some e) | Update (Some e)) -> compile_expr e
-          | Some (New None | Update None) -> Ident rho (* $\rho$ *)
+          | Some (New e | Update e) -> compile_expr e
           | Some Drop -> assert false)  edge.target_vars
     in
     let mapping =
-      let rho_expr =
-        match edge.update.register with
-        | None -> Ident rho
-        | Some e -> compile_expr e
-      in
-      (rho, rho_expr) :: mapping
+      let rho_expr = compile_expr edge.update.register in
+      (edge.update.rho, rho_expr) :: mapping
     in
     let transition =
       if !Config.tag_transition then
@@ -539,9 +533,9 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
         | _ -> None)
     @@
     List.concat_map Typed.constants
-      (Option.to_list edge.update.register
-       @ List.filter_map (function
-           | (_id, (Sem.New eo | Update eo)) -> eo
+      (edge.update.register
+       :: List.filter_map (function
+           | (_id, (Sem.New e | Update e)) -> Some e
            | (_id, Drop) -> None) edge.update.items)
   in
   (* move equality and inequality facts from precondition to tags because Tamarin cannot handle

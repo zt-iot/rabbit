@@ -25,9 +25,9 @@ let rec expr (s : t) (e : expr) : expr =
        | Some _, Some (_id, Some _param) ->
            (* ch<p> => ??? when [ch => ch'<p>] *)
            assert false (* weird *))
-  | Ident { id; desc= Var Param; param= None; _ } ->
+  | Ident { id; desc= Param; param= None; _ } ->
       Option.value ~default:e @@ List.assoc_opt id s.parameters
-  | Ident { id=_; desc= Var Param; param= Some _; _ } ->
+  | Ident { id=_; desc= Param; param= Some _; _ } ->
       assert false
   | Ident _ -> e
 
@@ -180,10 +180,10 @@ let instantiate_proc_group decls (proc_group : Typed.proc) =
       let new_id = Ident.local (fst id) in
       let proc_id = Ident.prefix "PG_" new_id in
       let e = { desc= Ident { id= new_id
-                            ; desc= Var Param
+                            ; desc= Param
                             ; param= None }
               ; loc= Location.nowhere
-              ; env= Env.add (Env.empty ()) new_id (Var Param)
+              ; env= Env.add (Env.empty ()) new_id Param
               }
       in
       (* Use the instantiated parameter for the process id *)

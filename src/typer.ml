@@ -32,11 +32,8 @@ let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 let misc_errorf ~loc fmt = Format.kasprintf (fun s -> error ~loc (Misc s)) fmt
 
 let kind_of_desc = function
-  | Env.Var (Top _) -> "toplevel"
-  | Var (Loc _) -> "local"
-  | Var (Meta _) -> "meta"
-  | Var (MetaNew _) -> "metanew"
-  | Var Param -> "parameter"
+  | Env.Var -> "mutable variable"
+  | Param -> "parameter"
   | ExtFun _ -> "external function"
   | ExtConst -> "external constant"
   | ExtSyscall _ -> "system call"
@@ -48,6 +45,7 @@ let kind_of_desc = function
   | Type CChan -> "channel type"
   | Function _ -> "function"
   | Process -> "process"
+  | Rho -> "rho"
 ;;
 
 (** Print error description. *)
@@ -300,7 +298,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
     | Let (name, e, cmd) ->
         let e = type_expr ~at_assignment:true env e in
         let id = Ident.local name in
-        let env' = Env.add env id (Var (Loc (snd id))) in
+        let env' = Env.add env id Var in
         let cmd = type_cmd env' cmd in
         Let (id, e, cmd)
     | Assign (None, e) ->
@@ -314,7 +312,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
     | Assign (Some name, e) ->
         let id, vdesc = Env.find ~loc env name in
         (match vdesc with
-         | Var (Top _ | Loc _ | Meta _) -> ()
+         | Var -> ()
          | desc -> error ~loc @@ InvalidVariableAtAssign (id, desc));
         let e = type_expr env ~at_assignment:true e in
         Assign (Some id, e)
@@ -338,7 +336,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
             str_es_opt
         in
         let id = Ident.local name in
-        let env' = Env.add env id (Var (Loc (snd id))) in
+        let env' = Env.add env id Var in
         let cmd = type_cmd env' cmd in
         New (id, str_es_opt, cmd)
     | Get (names, e, str, cmd) ->
@@ -347,7 +345,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         type_structure_fact ~loc env str names;
         let ids = List.map Ident.local names in
         let env' =
-          List.fold_left (fun env' id -> Env.add env' id (Var (Loc (snd id)))) env ids
+          List.fold_left (fun env' id -> Env.add env' id Var) env ids
         in
         let cmd = type_cmd env' cmd in
         Get (ids, e, str, cmd)
@@ -376,7 +374,7 @@ and type_case env (facts, cmd) : Typed.case =
   let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
   let fresh_ids = Name.Set.fold (fun name ids -> Ident.local name :: ids) fresh [] in
   let env' =
-    List.fold_left (fun env id -> Env.add env id (Var (Meta (snd id)))) env fresh_ids
+    List.fold_left (fun env id -> Env.add env id Var) env fresh_ids
   in
   let facts = type_facts env' facts in
   let cmd = type_cmd env' cmd in
@@ -410,7 +408,7 @@ let type_process
       | None -> env, None
       | Some name ->
           let id = Ident.local name in
-          Env.add env id (Var Param), Some id
+          Env.add env id Param, Some id
     in
     let env', rev_args =
       List.fold_left
@@ -444,7 +442,7 @@ let type_process
         (fun (env, rev_vars) (name, e) ->
            let e = type_expr env e in
            let id = Ident.local name in
-           let env' = Env.add env id (Var (Loc (snd id))) in
+           let env' = Env.add env id Var in
            env', (id, e) :: rev_vars)
         (env', [])
         vars
@@ -453,7 +451,7 @@ let type_process
     let env', rev_funcs =
       List.fold_left
         (fun (env', rev_funcs) (fname, args, c) ->
-           let env'', args = extend_with_args env' args @@ fun id -> Var (Loc (snd id)) in
+           let env'', args = extend_with_args env' args @@ fun _id -> Var in
            let c = type_cmd env'' c in
            let fid = Ident.local fname in
            Env.add env' fid (Function (List.length args)), (fid, args, c) :: rev_funcs)
@@ -489,7 +487,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         in
         let env' =
           List.fold_left
-            (fun env id -> Env.add env id (Var (Meta (snd id))))
+            (fun env id -> Env.add env id Var)
             env
             fresh_ids
         in
@@ -503,7 +501,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         in
         let env' =
           List.fold_left
-            (fun env id -> Env.add env id (Var (Meta (snd id))))
+            (fun env id -> Env.add env id Var)
             env
             fresh_ids
         in
@@ -535,7 +533,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         Name.Set.elements (Name.Set.filter (fun v -> not (Env.mem env v)) vars)
       in
       let env', _fresh_ids (* XXX should be in the tree *) =
-        extend_with_args env fresh @@ fun id -> Var (Meta (snd id))
+        extend_with_args env fresh @@ fun _id -> Var
       in
       let e1 = type_expr env' e1 in
       let e2 = type_expr env' e2 in
@@ -543,7 +541,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       , [{ env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *) }] )
   | DeclExtSyscall (name, args, c) ->
       let args, cmd =
-        let env', args = extend_with_args env args @@ fun id -> Var (Loc (snd id)) in
+        let env', args = extend_with_args env args @@ fun _id -> Var in
         let c = type_cmd env' c in
         args, c
       in
@@ -560,7 +558,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
                  { ident = id; def = desc; use = ExtSyscall (List.length args) }
       in
       let args, cmd =
-        let env', args = extend_with_args env args @@ fun id -> Var (Loc (snd id)) in
+        let env', args = extend_with_args env args @@ fun _id -> Var in
         let c = type_cmd env' c in
         args, c
       in
@@ -626,7 +624,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   | DeclInit (name, Value_with_param (e, p)) ->
       (* [const n<p> = e] *)
       let p = Ident.local p in
-      let env' = Env.add env p (Var Param) in
+      let env' = Env.add env p Var in
       let e = type_expr env' e in
       let env', id =
         Env.add_global ~loc env name (Const true)
@@ -697,7 +695,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         | Input.UnboundedProc pproc -> Unbounded (type_pproc env None pproc)
         | BoundedProc (name, pprocs) (* [!name.(pproc1|..|pprocn)] *) ->
             let id = Ident.local name in
-            let env = Env.add env id (Var Param) in
+            let env = Env.add env id Param in
             let pprocs = List.map (type_pproc env (Some id)) pprocs in
             Bounded (id, pprocs)
       in

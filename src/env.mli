@@ -1,10 +1,3 @@
-type var_desc = Syntax.variable_desc =
-  | Top of int
-  | Loc of int
-  | Meta of int
-  | MetaNew of int
-  | Param
-
 type named_fact_desc =
   | Channel
   | Structure
@@ -14,7 +7,8 @@ type named_fact_desc =
 val string_of_named_fact_desc : named_fact_desc -> string
 
 type desc =
-  | Var of var_desc
+  | Var (** mutable variable *)
+  | Param (** parameter *)
   | ExtFun of int (** external function with arity *)
   | ExtConst (** external function with arity = 0, ex.  function true 0 *)
   | ExtSyscall of int (** external system call with arity *)
@@ -24,6 +18,7 @@ type desc =
   | Type of Input.type_class
   | Function of int (** function with definition and arity *)
   | Process
+  | Rho (** $\rho *)
 
 val print_desc : desc -> Format.formatter -> unit
 

@@ -38,9 +38,9 @@ let rec string_of_expr (e : expr) =
 let mutable_vars_of_expr e =
   let rec aux e =
     match e.desc with
-    | Ident { id=_; param= None; desc= Var Param } -> []
-    | Ident { id; param= None; desc= Var _ } -> [id]
-    | Ident { id; param= Some p; desc= Var _ } -> id :: aux p
+    | Ident { id=_; param= None; desc= Param } -> []
+    | Ident { id; param= None; desc= Var } -> [id]
+    | Ident { id; param= Some p; desc= Var } -> id :: aux p
     | Ident { id=_; param= Some p; desc= _ } -> aux p
     | Ident _ -> []
     | Apply (_, es) | Tuple es -> List.concat_map aux es

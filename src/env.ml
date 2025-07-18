@@ -1,10 +1,3 @@
-type var_desc = Syntax.variable_desc =
-  | Top of int
-  | Loc of int
-  | Meta of int
-  | MetaNew of int
-  | Param
-
 type named_fact_desc =
   | Channel
   | Structure
@@ -18,7 +11,8 @@ let string_of_named_fact_desc = function
   | Global -> "global"
 
 type desc =
-  | Var of var_desc
+  | Var
+  | Param
   | ExtFun of int
   | ExtConst
   | ExtSyscall of int
@@ -28,15 +22,13 @@ type desc =
   | Type of Input.type_class
   | Function of int
   | Process
+  | Rho
 
 let print_desc desc ppf =
   let f = Format.fprintf in
   match desc with
-  | Var (Top i) -> f ppf "Top %d" i
-  | Var (Loc i) -> f ppf "Loc %d" i
-  | Var (Meta i) -> f ppf "Meta %d" i
-  | Var (MetaNew i) -> f ppf "MetaNew %d" i
-  | Var Param -> f ppf "Param"
+  | Var -> f ppf "Var"
+  | Param -> f ppf "Param"
   | ExtFun i -> f ppf "ExtFun (arity=%d)" i
   | ExtConst -> f ppf "ExtConst"
   | ExtSyscall i -> f ppf "ExtSyscall (arity=%d)" i
@@ -48,6 +40,7 @@ let print_desc desc ppf =
   | Type CChan -> f ppf "ty channel"
   | Function i -> f ppf "Function (arity=%d)" i
   | Process -> f ppf "Process"
+  | Rho -> f ppf "Rho"
 
 type t = {
   vars : (Ident.t * desc) list;

@@ -14,7 +14,6 @@ and expr' =
       { id : ident
       ; desc : Env.desc
       ; param : expr option
-       (** [param= Some _] iff [desc= Const true] *)
       }
   (** [id] or [id<e>].
       [id<e>] is only possible either for [id] of [Channel {param=true}] or [Const {param=true}] *)

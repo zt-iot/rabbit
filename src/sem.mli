@@ -13,6 +13,7 @@ module Index : sig
 
   val to_string : t -> string
 
+  module Set : Set.S with type elt = t
   module Map : Map.S with type key = t
 end
 
@@ -68,12 +69,13 @@ val fact_of_typed : Typed.fact -> fact
     - [mutable_overrides] only list the updated fields:
 *)
 type update_desc =
-  | New of Typed.expr option (* None: \rho *)
-  | Update of Typed.expr option (* None: \rho *)
+  | New of Typed.expr
+  | Update of Typed.expr
   | Drop
 
 type update =
-  { register : Typed.expr option (* None: \rho *)
+  { rho : Ident.t
+  ; register : Typed.expr
   ; items : (Ident.t * update_desc) list
   }
 

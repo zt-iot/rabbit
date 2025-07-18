@@ -23,25 +23,37 @@ equations: fst(<loc__1, loc__0>)=loc__1, snd(<loc__1, loc__0>)=loc__0, dec(enc(l
 // const fresh priv_k
 
 
-rule Const__priv_k : [Fr(priv_k)]--[Init__('rab__Const__priv_k'), !Const__('rab__priv_k', priv_k)]->[!Const__('rab__priv_k', priv_k)] 
+rule Const__priv_k
+  : [Fr(priv_k)]
+    --[Init__('rab__Const__priv_k'), !Const__('rab__priv_k', priv_k)]->
+    [!Const__('rab__priv_k', priv_k)] 
 
 
 // const fresh sym_k
 
 
-rule Const__sym_k : [Fr(sym_k)]--[Init__('rab__Const__sym_k'), !Const__('rab__sym_k', sym_k)]->[!Const__('rab__sym_k', sym_k)] 
+rule Const__sym_k
+  : [Fr(sym_k)]
+    --[Init__('rab__Const__sym_k'), !Const__('rab__sym_k', sym_k)]->
+    [!Const__('rab__sym_k', sym_k)] 
 
 
 // const fresh init_data
 
 
-rule Const__init_data : [Fr(init_data)]--[Init__('rab__Const__init_data'), !Const__('rab__init_data', init_data)]->[!Const__('rab__init_data', init_data)] 
+rule Const__init_data
+  : [Fr(init_data)]
+    --[Init__('rab__Const__init_data'), !Const__('rab__init_data', init_data)]->
+    [!Const__('rab__init_data', init_data)] 
 
 
 // Add model inits: Client,Server,Client_ta
 
 
-rule Init__system[role="system"] : []--[Init__('rab__system')]->[!ACP__GEN__('rab__system__', 'rab__rab_str'), State__Client(<'rab_____0', 'rab__rab_str', %1>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty'), State__Server(<'rab_____0', 'rab__rab_str', %1>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty'), State__Client_ta(<'rab_____0', 'rab__rab_str', %1>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty')] 
+rule Init__system[role="system"]
+  : []
+    --[Init__('rab__system')]->
+    [!ACP__GEN__('rab__system__', 'rab__rab_str'), State__Client(<'rab_____0', 'rab__rab_str', %1>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty'), State__Server(<'rab_____0', 'rab__rab_str', %1>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty'), State__Client_ta(<'rab_____0', 'rab__rab_str', %1>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty')] 
 
 
 // Access control of Client:rpc
@@ -51,25 +63,37 @@ rule Init__system[role="system"] : []--[Init__('rab__system')]->[!ACP__GEN__('ra
 // Fact: !ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__close_rpc')
 
 
-rule Init__system__ACP__0[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__0')]->[!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__close_rpc')] 
+rule Init__system__ACP__0[role="system"]
+  : [!ACP__GEN__('rab__system__', 'rab__rab_str')]
+    --[Init__('rab__system__ACP__0')]->
+    [!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__close_rpc')] 
 
 
 // Fact: !ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__invoke_rpc')
 
 
-rule Init__system__ACP__1[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__1')]->[!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__invoke_rpc')] 
+rule Init__system__ACP__1[role="system"]
+  : [!ACP__GEN__('rab__system__', 'rab__rab_str')]
+    --[Init__('rab__system__ACP__1')]->
+    [!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__invoke_rpc')] 
 
 
 // Fact: !ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__connect_rpc')
 
 
-rule Init__system__ACP__2[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__2')]->[!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__connect_rpc')] 
+rule Init__system__ACP__2[role="system"]
+  : [!ACP__GEN__('rab__system__', 'rab__rab_str')]
+    --[Init__('rab__system__ACP__2')]->
+    [!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__connect_rpc')] 
 
 
 // Fact: !ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__')
 
 
-rule Init__system__ACP__3[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__3')]->[!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__')] 
+rule Init__system__ACP__3[role="system"]
+  : [!ACP__GEN__('rab__system__', 'rab__rab_str')]
+    --[Init__('rab__system__ACP__3')]->
+    [!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__rpc', 'rab__')] 
 
 
 // Access control of Client:udp
@@ -79,7 +103,10 @@ rule Init__system__ACP__3[role="system"] : [!ACP__GEN__('rab__system__', 'rab__r
 // Fact: !ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__udp', 'rab__send')
 
 
-rule Init__system__ACP__4[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__4')]->[!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__udp', 'rab__send')] 
+rule Init__system__ACP__4[role="system"]
+  : [!ACP__GEN__('rab__system__', 'rab__rab_str')]
+    --[Init__('rab__system__ACP__4')]->
+    [!ACP__(<'rab__Client', 'rab__rab_str'>, 'rab__udp', 'rab__send')] 
 
 
 // Access control of Server:udp
@@ -89,7 +116,10 @@ rule Init__system__ACP__4[role="system"] : [!ACP__GEN__('rab__system__', 'rab__r
 // Fact: !ACP__(<'rab__Server', 'rab__rab_str'>, 'rab__udp', 'rab__recv')
 
 
-rule Init__system__ACP__5[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__5')]->[!ACP__(<'rab__Server', 'rab__rab_str'>, 'rab__udp', 'rab__recv')] 
+rule Init__system__ACP__5[role="system"]
+  : [!ACP__GEN__('rab__system__', 'rab__rab_str')]
+    --[Init__('rab__system__ACP__5')]->
+    [!ACP__(<'rab__Server', 'rab__rab_str'>, 'rab__udp', 'rab__recv')] 
 
 
 // Access control of Client_ta:rpc
@@ -99,96 +129,190 @@ rule Init__system__ACP__5[role="system"] : [!ACP__GEN__('rab__system__', 'rab__r
 // Fact: !ACP__(<'rab__Client_ta', 'rab__rab_str'>, 'rab__rpc', 'rab__accept_rpc')
 
 
-rule Init__system__ACP__6[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__6')]->[!ACP__(<'rab__Client_ta', 'rab__rab_str'>, 'rab__rpc', 'rab__accept_rpc')] 
+rule Init__system__ACP__6[role="system"]
+  : [!ACP__GEN__('rab__system__', 'rab__rab_str')]
+    --[Init__('rab__system__ACP__6')]->
+    [!ACP__(<'rab__Client_ta', 'rab__rab_str'>, 'rab__rpc', 'rab__accept_rpc')] 
 
 
 // Fact: !ACP__(<'rab__Client_ta', 'rab__rab_str'>, 'rab__rpc', 'rab__')
 
 
-rule Init__system__ACP__7[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab_str')]--[Init__('rab__system__ACP__7')]->[!ACP__(<'rab__Client_ta', 'rab__rab_str'>, 'rab__rpc', 'rab__')] 
+rule Init__system__ACP__7[role="system"]
+  : [!ACP__GEN__('rab__system__', 'rab__rab_str')]
+    --[Init__('rab__system__ACP__7')]->
+    [!ACP__(<'rab__Client_ta', 'rab__rab_str'>, 'rab__rpc', 'rab__')] 
 
 // Model:  Client
 
 
-rule Client__init_mem_init_mem_init_mem_let_intro_scall_intro_put_____0_____4__0_1__96[role="Client"] : [State__Client(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'), !ACP__(<'rab__Client', param>, 'rab__rpc', 'rab__connect_rpc')]--[Transition__(<'rab__Client', param>, 'rab_____0', %v__)]->[State__Client(<'rab_____4__0_1', param, %v__>, 'rab__unit', 'rab__empty', <'rab__rpc', 'rab__'>, <'rab__sign_image', 'rab____secret__priv', 'rab____dev__camera'>), Req('rab__rpc')] 
+rule Client__init_mem_init_mem_init_mem_let_intro_scall_intro_put_____0_____4__0_1__96[role="Client"]
+  : [State__Client(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'), !ACP__(<'rab__Client', param>, 'rab__rpc', 'rab__connect_rpc')]
+    --[Transition__(<'rab__Client', param>, 'rab_____0', %v__)]->
+    [State__Client(<'rab_____4__0_1', param, %v__>, 'rab__unit', 'rab__empty', <'rab__rpc', 'rab__'>, <'rab__sign_image', 'rab____secret__priv', 'rab____dev__camera'>), Req('rab__rpc')] 
 
-rule Client__guarded_new_intro_put_____4__0_1_____4__0_1__0_2__91[role="Client"] : [State__Client(<'rab_____4__0_1', param, %v__>, return__var__6, 'rab__empty', <l__0__6, l__1__6>, <t__0__6, t__1__6, t__2__6>), Fr(n__0__7), !ACP__(<'rab__Client', param>, l__0__6, 'rab__connect_rpc'), !ACP__(<'rab__Client', param>, l__0__6, 'rab__connect_rpc'), Ack(l__0__6)]--[Transition__(<'rab__Client', param>, 'rab_____4__0_1', %v__)]->[State__Client(<'rab_____4__0_1__0_2', param, %v__>, 'rab__unit', n__0__7, <l__0__6, l__1__6>, <t__0__6, t__1__6, t__2__6>), Chid__Client(param, n__0__7, l__0__6), Conn(l__0__6)] 
+rule Client__guarded_new_intro_put_____4__0_1_____4__0_1__0_2__91[role="Client"]
+  : [State__Client(<'rab_____4__0_1', param, %v__>, return__var__6, 'rab__empty', <l__0__6, l__1__6>, <t__0__6, t__1__6, t__2__6>), Fr(n__0__7), !ACP__(<'rab__Client', param>, l__0__6, 'rab__connect_rpc'), !ACP__(<'rab__Client', param>, l__0__6, 'rab__connect_rpc'), Ack(l__0__6)]
+    --[Transition__(<'rab__Client', param>, 'rab_____4__0_1', %v__)]->
+    [State__Client(<'rab_____4__0_1__0_2', param, %v__>, 'rab__unit', n__0__7, <l__0__6, l__1__6>, <t__0__6, t__1__6, t__2__6>), Chid__Client(param, n__0__7, l__0__6), Conn(l__0__6)] 
 
-rule Client__return_new_out_case_out_scall_out_repeat_in_____4__0_1__0_2_____6__89[role="Client"] : [State__Client(<'rab_____4__0_1__0_2', param, %v__>, return__var__9, m__0__9, <l__0__9, l__1__9>, <t__0__9, t__1__9, t__2__9>)]--[Transition__(<'rab__Client', param>, 'rab_____4__0_1__0_2', %v__), Loop__Start(<'rab__Client', param>, 'rab_____5')]->[State__Client(<'rab_____6', param, %v__>, 'rab__unit', 'rab__empty', m__0__9, <t__0__9, t__1__9, t__2__9>)] 
+rule Client__return_new_out_case_out_scall_out_repeat_in_____4__0_1__0_2_____6__89[role="Client"]
+  : [State__Client(<'rab_____4__0_1__0_2', param, %v__>, return__var__9, m__0__9, <l__0__9, l__1__9>, <t__0__9, t__1__9, t__2__9>)]
+    --[Transition__(<'rab__Client', param>, 'rab_____4__0_1__0_2', %v__), Loop__Start(<'rab__Client', param>, 'rab_____5')]->
+    [State__Client(<'rab_____6', param, %v__>, 'rab__unit', 'rab__empty', m__0__9, <t__0__9, t__1__9, t__2__9>)] 
 
-rule Client__guarded_let_intro_scall_intro_new_intro_return_new_out_scall_out_scall_intro_put_scall_out_let_intro_scall_intro_get_intro_put_____6_____6__0_4__0_2__85[role="Client"] : [State__Client(<'rab_____6', param, %v__>, return__var__14, 'rab__empty', l__0__14, <t__0__14, t__1__14, t__2__14>), Fr(n__0__17), !ACP__(<'rab__Client', param>, n__0__26, 'rab__invoke_rpc'), Chid__Client(param, l__0__14, n__0__26)]--[Transition__(<'rab__Client', param>, 'rab_____6', %v__)]->[State__Client(<'rab_____6__0_4__0_2', param, %v__>, 'rab__unit', n__0__26, <t__1__14, n__0__17, t__0__14, l__0__14, 'rab__', n__0__17, l__0__14>, <t__0__14, t__1__14, t__2__14>), Out(n__0__17), Chid__Client(param, l__0__14, n__0__26), Invoke(n__0__26, t__0__14, n__0__17, t__1__14)] 
+rule Client__guarded_let_intro_scall_intro_new_intro_return_new_out_scall_out_scall_intro_put_scall_out_let_intro_scall_intro_get_intro_put_____6_____6__0_4__0_2__85[role="Client"]
+  : [State__Client(<'rab_____6', param, %v__>, return__var__14, 'rab__empty', l__0__14, <t__0__14, t__1__14, t__2__14>), Fr(n__0__17), !ACP__(<'rab__Client', param>, n__0__26, 'rab__invoke_rpc'), Chid__Client(param, l__0__14, n__0__26)]
+    --[Transition__(<'rab__Client', param>, 'rab_____6', %v__)]->
+    [State__Client(<'rab_____6__0_4__0_2', param, %v__>, 'rab__unit', n__0__26, <t__1__14, n__0__17, t__0__14, l__0__14, 'rab__', n__0__17, l__0__14>, <t__0__14, t__1__14, t__2__14>), Out(n__0__17), Chid__Client(param, l__0__14, n__0__26), Invoke(n__0__26, t__0__14, n__0__17, t__1__14)] 
 
-rule Client__guarded_skip_repeat_out_____6_____7__84[role="Client"] : [State__Client(<'rab_____6', param, %v__>, return__var__43, 'rab__empty', l__0__43, <t__0__43, t__1__43, t__2__43>)]--[Transition__(<'rab__Client', param>, 'rab_____6', %v__), Loop__Finish(<'rab__Client', param>, 'rab_____5')]->[State__Client(<'rab_____7', param, %v__>, 'rab__unit', 'rab__empty', l__0__43, <t__0__43, t__1__43, t__2__43>)] 
+rule Client__guarded_skip_repeat_out_____6_____7__84[role="Client"]
+  : [State__Client(<'rab_____6', param, %v__>, return__var__43, 'rab__empty', l__0__43, <t__0__43, t__1__43, t__2__43>)]
+    --[Transition__(<'rab__Client', param>, 'rab_____6', %v__), Loop__Finish(<'rab__Client', param>, 'rab_____5')]->
+    [State__Client(<'rab_____7', param, %v__>, 'rab__unit', 'rab__empty', l__0__43, <t__0__43, t__1__43, t__2__43>)] 
 
-rule Client__guarded_return_case_out_get_out_scall_out_scall_intro_put_____6__0_4__0_2_____6__0_5__0_1__71[role="Client"] : [State__Client(<'rab_____6__0_4__0_2', param, %v__>, return__var__28, m__0__28, <l__0__28, l__1__28, l__2__28, l__3__28, l__4__28, l__5__28, l__6__28>, <t__0__28, t__1__28, t__2__28>), !ACP__(<'rab__Client', param>, m__0__28, 'rab__invoke_rpc'), Returned(m__0__28, n__0__28)]--[Transition__(<'rab__Client', param>, 'rab_____6__0_4__0_2', %v__)]->[State__Client(<'rab_____6__0_5__0_1', param, %v__>, 'rab__unit', 'rab__empty', <n__0__28, n__0__28, l__5__28, l__6__28>, <t__0__28, t__1__28, t__2__28>), Out(n__0__28)] 
+rule Client__guarded_return_case_out_get_out_scall_out_scall_intro_put_____6__0_4__0_2_____6__0_5__0_1__71[role="Client"]
+  : [State__Client(<'rab_____6__0_4__0_2', param, %v__>, return__var__28, m__0__28, <l__0__28, l__1__28, l__2__28, l__3__28, l__4__28, l__5__28, l__6__28>, <t__0__28, t__1__28, t__2__28>), !ACP__(<'rab__Client', param>, m__0__28, 'rab__invoke_rpc'), Returned(m__0__28, n__0__28)]
+    --[Transition__(<'rab__Client', param>, 'rab_____6__0_4__0_2', %v__)]->
+    [State__Client(<'rab_____6__0_5__0_1', param, %v__>, 'rab__unit', 'rab__empty', <n__0__28, n__0__28, l__5__28, l__6__28>, <t__0__28, t__1__28, t__2__28>), Out(n__0__28)] 
 
-rule Client__scall_out_event_____6__0_5__0_1_____6__0_7__65[role="Client"] : [State__Client(<'rab_____6__0_5__0_1', param, %v__>, return__var__35, 'rab__empty', <l__0__35, l__1__35, l__2__35, l__3__35>, <t__0__35, t__1__35, t__2__35>)]--[Transition__(<'rab__Client', param>, 'rab_____6__0_5__0_1', %v__), ImgSend(l__2__35)]->[State__Client(<'rab_____6__0_7', param, %v__>, 'rab__unit', 'rab__empty', <l__1__35, l__2__35, l__3__35>, <t__0__35, t__1__35, t__2__35>)] 
+rule Client__scall_out_event_____6__0_5__0_1_____6__0_7__65[role="Client"]
+  : [State__Client(<'rab_____6__0_5__0_1', param, %v__>, return__var__35, 'rab__empty', <l__0__35, l__1__35, l__2__35, l__3__35>, <t__0__35, t__1__35, t__2__35>)]
+    --[Transition__(<'rab__Client', param>, 'rab_____6__0_5__0_1', %v__), ImgSend(l__2__35)]->
+    [State__Client(<'rab_____6__0_7', param, %v__>, 'rab__unit', 'rab__empty', <l__1__35, l__2__35, l__3__35>, <t__0__35, t__1__35, t__2__35>)] 
 
-rule Client__scall_intro_put_scall_out_let_out_let_out_____6__0_7_____6__0_10__64[role="Client"] : [State__Client(<'rab_____6__0_7', param, %v__>, return__var__37, 'rab__empty', <l__0__37, l__1__37, l__2__37>, <t__0__37, t__1__37, t__2__37>), !ACP__(<'rab__Client', param>, 'rab__udp', 'rab__send')]--[Transition__(<'rab__Client', param>, 'rab_____6__0_7', %v__)]->[State__Client(<'rab_____6__0_10', param, %v__>, 'rab__unit', 'rab__empty', l__2__37, <t__0__37, t__1__37, t__2__37>), Store('rab__udp', <l__0__37, l__1__37>)] 
+rule Client__scall_intro_put_scall_out_let_out_let_out_____6__0_7_____6__0_10__64[role="Client"]
+  : [State__Client(<'rab_____6__0_7', param, %v__>, return__var__37, 'rab__empty', <l__0__37, l__1__37, l__2__37>, <t__0__37, t__1__37, t__2__37>), !ACP__(<'rab__Client', param>, 'rab__udp', 'rab__send')]
+    --[Transition__(<'rab__Client', param>, 'rab_____6__0_7', %v__)]->
+    [State__Client(<'rab_____6__0_10', param, %v__>, 'rab__unit', 'rab__empty', l__2__37, <t__0__37, t__1__37, t__2__37>), Store('rab__udp', <l__0__37, l__1__37>)] 
 
-rule Client__scall_intro_get_intro_del_put_____7_____7__0_3__59[role="Client"] : [State__Client(<'rab_____7', param, %v__>, return__var__46, 'rab__empty', l__0__46, <t__0__46, t__1__46, t__2__46>), Chid__Client(param, l__0__46, n__0__47), !ACP__(<'rab__Client', param>, n__0__47, 'rab__close_rpc')]--[Transition__(<'rab__Client', param>, 'rab_____7', %v__), Eq__(n__0__47, n__0__48)]->[State__Client(<'rab_____7__0_3', param, %v__>, 'rab__unit', n__0__47, <l__0__46, l__0__46>, <t__0__46, t__1__46, t__2__46>), Exit(n__0__47)] 
+rule Client__scall_intro_get_intro_del_put_____7_____7__0_3__59[role="Client"]
+  : [State__Client(<'rab_____7', param, %v__>, return__var__46, 'rab__empty', l__0__46, <t__0__46, t__1__46, t__2__46>), Chid__Client(param, l__0__46, n__0__47), !ACP__(<'rab__Client', param>, n__0__47, 'rab__close_rpc')]
+    --[Transition__(<'rab__Client', param>, 'rab_____7', %v__), Eq__(n__0__47, n__0__48)]->
+    [State__Client(<'rab_____7__0_3', param, %v__>, 'rab__unit', n__0__47, <l__0__46, l__0__46>, <t__0__46, t__1__46, t__2__46>), Exit(n__0__47)] 
 
-rule Client__get_out_scall_out_event_let_out_____7__0_3_____10__56[role="Client"] : [State__Client(<'rab_____7__0_3', param, %v__>, return__var__50, m__0__50, <l__0__50, l__1__50>, <t__0__50, t__1__50, t__2__50>)]--[Transition__(<'rab__Client', param>, 'rab_____7__0_3', %v__), ClientClose()]->[State__Client(<'rab_____10', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', <t__0__50, t__1__50, t__2__50>)] 
+rule Client__get_out_scall_out_event_let_out_____7__0_3_____10__56[role="Client"]
+  : [State__Client(<'rab_____7__0_3', param, %v__>, return__var__50, m__0__50, <l__0__50, l__1__50>, <t__0__50, t__1__50, t__2__50>)]
+    --[Transition__(<'rab__Client', param>, 'rab_____7__0_3', %v__), ClientClose()]->
+    [State__Client(<'rab_____10', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', <t__0__50, t__1__50, t__2__50>)] 
 
-rule Client__repeat_____6__0_10_____6__42[role="Client"] : [State__Client(<'rab_____6__0_10', param, %v__>, return__var__42, 'rab__empty', l__0__42, <t__0__42, t__1__42, t__2__42>)]--[Transition__(<'rab__Client', param>, 'rab_____6__0_10', %v__), Loop__Back(<'rab__Client', param>, 'rab_____5')]->[State__Client(<'rab_____6', param, %v__ %+ %1>, return__var__42, 'rab__empty', l__0__42, <t__0__42, t__1__42, t__2__42>)] 
+rule Client__repeat_____6__0_10_____6__42[role="Client"]
+  : [State__Client(<'rab_____6__0_10', param, %v__>, return__var__42, 'rab__empty', l__0__42, <t__0__42, t__1__42, t__2__42>)]
+    --[Transition__(<'rab__Client', param>, 'rab_____6__0_10', %v__), Loop__Back(<'rab__Client', param>, 'rab_____5')]->
+    [State__Client(<'rab_____6', param, %v__ %+ %1>, return__var__42, 'rab__empty', l__0__42, <t__0__42, t__1__42, t__2__42>)] 
 
 
 // Model:  Server
 
 
-rule Server__init_mem_let_intro_scall_intro_guarded_new_intro_put_return_new_out_case_out_scall_out_let_intro_scall_intro_get_intro_return_get_out_scall_out_repeat_in_guarded_let_intro_scall_intro_____1_____7__0_1__0_0__117[role="Server"] : [State__Server(<'rab_____1', param, %v__>, return__var__1, 'rab__empty', 'rab__empty', 'rab__empty'), File__Server(param, loc__0, n__0__4), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen'), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen'), Fr(n__0__5)]--[Transition__(<'rab__Server', param>, 'rab_____1', %v__), Loop__Start(<'rab__Server', param>, 'rab_____6'), Eq__(n__0__4, n__0__13)]->[State__Server(<'rab_____7__0_1__0_0', param, %v__>, 'rab__unit', 'rab__empty', <'rab__udp', 'rab__', n__0__13, n__0__5>, 'rab____secret__pub'), File__Server(param, loc__0, n__0__4), Fd__Server(param, n__0__5, n__0__13)] 
+rule Server__init_mem_let_intro_scall_intro_guarded_new_intro_put_return_new_out_case_out_scall_out_let_intro_scall_intro_get_intro_return_get_out_scall_out_repeat_in_guarded_let_intro_scall_intro_____1_____7__0_1__0_0__117[role="Server"]
+  : [State__Server(<'rab_____1', param, %v__>, return__var__1, 'rab__empty', 'rab__empty', 'rab__empty'), File__Server(param, loc__0, n__0__4), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen'), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen'), Fr(n__0__5)]
+    --[Transition__(<'rab__Server', param>, 'rab_____1', %v__), Loop__Start(<'rab__Server', param>, 'rab_____6'), Eq__(n__0__4, n__0__13)]->
+    [State__Server(<'rab_____7__0_1__0_0', param, %v__>, 'rab__unit', 'rab__empty', <'rab__udp', 'rab__', n__0__13, n__0__5>, 'rab____secret__pub'), File__Server(param, loc__0, n__0__4), Fd__Server(param, n__0__5, n__0__13)] 
 
-rule Server__init_mem_let_intro_scall_intro_guarded_new_intro_put_return_new_out_case_out_scall_out_let_intro_scall_intro_get_intro_return_get_out_scall_out_repeat_in_guarded_let_intro_attack_intro_____1_____7__0_1__1_0__116[role="Server"] : [State__Server(<'rab_____1', param, %v__>, return__var__1, 'rab__empty', 'rab__empty', 'rab__empty'), File__Server(param, loc__0, n__0__4), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen'), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen'), Fr(n__0__5)]--[Transition__(<'rab__Server', param>, 'rab_____1', %v__), Loop__Start(<'rab__Server', param>, 'rab_____6'), Eq__(n__0__4, n__0__13)]->[State__Server(<'rab_____7__0_1__1_0', param, %v__>, 'rab__unit', 'rab__empty', <'rab__udp', 'rab__', n__0__13, n__0__5>, 'rab____secret__pub'), File__Server(param, loc__0, n__0__4), Fd__Server(param, n__0__5, n__0__13)] 
+rule Server__init_mem_let_intro_scall_intro_guarded_new_intro_put_return_new_out_case_out_scall_out_let_intro_scall_intro_get_intro_return_get_out_scall_out_repeat_in_guarded_let_intro_attack_intro_____1_____7__0_1__1_0__116[role="Server"]
+  : [State__Server(<'rab_____1', param, %v__>, return__var__1, 'rab__empty', 'rab__empty', 'rab__empty'), File__Server(param, loc__0, n__0__4), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen'), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen'), Fr(n__0__5)]
+    --[Transition__(<'rab__Server', param>, 'rab_____1', %v__), Loop__Start(<'rab__Server', param>, 'rab_____6'), Eq__(n__0__4, n__0__13)]->
+    [State__Server(<'rab_____7__0_1__1_0', param, %v__>, 'rab__unit', 'rab__empty', <'rab__udp', 'rab__', n__0__13, n__0__5>, 'rab____secret__pub'), File__Server(param, loc__0, n__0__4), Fd__Server(param, n__0__5, n__0__13)] 
 
-rule Server__init_mem_let_intro_scall_intro_guarded_new_intro_put_return_new_out_case_out_scall_out_let_intro_scall_intro_get_intro_return_get_out_scall_out_repeat_in_____1_____7__115[role="Server"] : [State__Server(<'rab_____1', param, %v__>, return__var__1, 'rab__empty', 'rab__empty', 'rab__empty'), File__Server(param, loc__0, n__0__4), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen'), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen'), Fr(n__0__5)]--[Transition__(<'rab__Server', param>, 'rab_____1', %v__), Loop__Start(<'rab__Server', param>, 'rab_____6'), Eq__(n__0__4, n__0__13)]->[State__Server(<'rab_____7', param, %v__>, 'rab__unit', 'rab__empty', <n__0__13, n__0__5>, 'rab____secret__pub'), File__Server(param, loc__0, n__0__4), Fd__Server(param, n__0__5, n__0__13)] 
+rule Server__init_mem_let_intro_scall_intro_guarded_new_intro_put_return_new_out_case_out_scall_out_let_intro_scall_intro_get_intro_return_get_out_scall_out_repeat_in_____1_____7__115[role="Server"]
+  : [State__Server(<'rab_____1', param, %v__>, return__var__1, 'rab__empty', 'rab__empty', 'rab__empty'), File__Server(param, loc__0, n__0__4), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen'), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen'), Fr(n__0__5)]
+    --[Transition__(<'rab__Server', param>, 'rab_____1', %v__), Loop__Start(<'rab__Server', param>, 'rab_____6'), Eq__(n__0__4, n__0__13)]->
+    [State__Server(<'rab_____7', param, %v__>, 'rab__unit', 'rab__empty', <n__0__13, n__0__5>, 'rab____secret__pub'), File__Server(param, loc__0, n__0__4), Fd__Server(param, n__0__5, n__0__13)] 
 
-rule Server__guarded_skip_repeat_out_let_out_let_out_____7_____10__65[role="Server"] : [State__Server(<'rab_____7', param, %v__>, return__var__40, 'rab__empty', <l__0__40, l__1__40>, t__0__40), False()]--[Transition__(<'rab__Server', param>, 'rab_____7', %v__), Loop__Finish(<'rab__Server', param>, 'rab_____6')]->[State__Server(<'rab_____10', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', t__0__40)] 
+rule Server__guarded_skip_repeat_out_let_out_let_out_____7_____10__65[role="Server"]
+  : [State__Server(<'rab_____7', param, %v__>, return__var__40, 'rab__empty', <l__0__40, l__1__40>, t__0__40), False()]
+    --[Transition__(<'rab__Server', param>, 'rab_____7', %v__), Loop__Finish(<'rab__Server', param>, 'rab_____6')]->
+    [State__Server(<'rab_____10', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', t__0__40)] 
 
-rule Server__guarded_return_case_out_scall_out_____7__0_1__0_0_____7__0_2__62[role="Server"] : [State__Server(<'rab_____7__0_1__0_0', param, %v__>, return__var__21, 'rab__empty', <l__0__21, l__1__21, l__2__21, l__3__21>, t__0__21), !ACP__(<'rab__Server', param>, l__0__21, 'rab__recv'), Store(l__0__21, n__0__21)]--[Transition__(<'rab__Server', param>, 'rab_____7__0_1__0_0', %v__)]->[State__Server(<'rab_____7__0_2', param, %v__>, 'rab__unit', 'rab__empty', <n__0__21, l__2__21, l__3__21>, t__0__21)] 
+rule Server__guarded_return_case_out_scall_out_____7__0_1__0_0_____7__0_2__62[role="Server"]
+  : [State__Server(<'rab_____7__0_1__0_0', param, %v__>, return__var__21, 'rab__empty', <l__0__21, l__1__21, l__2__21, l__3__21>, t__0__21), !ACP__(<'rab__Server', param>, l__0__21, 'rab__recv'), Store(l__0__21, n__0__21)]
+    --[Transition__(<'rab__Server', param>, 'rab_____7__0_1__0_0', %v__)]->
+    [State__Server(<'rab_____7__0_2', param, %v__>, 'rab__unit', 'rab__empty', <n__0__21, l__2__21, l__3__21>, t__0__21)] 
 
-rule Server__guarded_return_case_out_attack_out_____7__0_1__1_0_____7__0_2__59[role="Server"] : [State__Server(<'rab_____7__0_1__1_0', param, %v__>, return__var__26, 'rab__empty', <l__0__26, l__1__26, l__2__26, l__3__26>, t__0__26), !ACP__(<'rab__Server', param>, l__0__26, 'rab__recv'), In(n__1__26), Store(l__0__26, n__0__26)]--[Transition__(<'rab__Server', param>, 'rab_____7__0_1__1_0', %v__)]->[State__Server(<'rab_____7__0_2', param, %v__>, 'rab__unit', 'rab__empty', <n__1__26, l__2__26, l__3__26>, t__0__26)] 
+rule Server__guarded_return_case_out_attack_out_____7__0_1__1_0_____7__0_2__59[role="Server"]
+  : [State__Server(<'rab_____7__0_1__1_0', param, %v__>, return__var__26, 'rab__empty', <l__0__26, l__1__26, l__2__26, l__3__26>, t__0__26), !ACP__(<'rab__Server', param>, l__0__26, 'rab__recv'), In(n__1__26), Store(l__0__26, n__0__26)]
+    --[Transition__(<'rab__Server', param>, 'rab_____7__0_1__1_0', %v__)]->
+    [State__Server(<'rab_____7__0_2', param, %v__>, 'rab__unit', 'rab__empty', <n__1__26, l__2__26, l__3__26>, t__0__26)] 
 
-rule Server__let_intro_guarded_event_case_out_let_out_let_out_____7__0_2_____7__0_6__56[role="Server"] : [State__Server(<'rab_____7__0_2', param, %v__>, return__var__30, 'rab__empty', <l__0__30, l__1__30, l__2__30>, t__0__30)]--[Transition__(<'rab__Server', param>, 'rab_____7__0_2', %v__), ImgRecvInvalid(snd(l__0__30)), NEq__(verify(fst(l__0__30), snd(l__0__30), l__1__30), true())]->[State__Server(<'rab_____7__0_6', param, %v__>, 'rab__unit', 'rab__empty', <l__1__30, l__2__30>, t__0__30)] 
+rule Server__let_intro_guarded_event_case_out_let_out_let_out_____7__0_2_____7__0_6__56[role="Server"]
+  : [State__Server(<'rab_____7__0_2', param, %v__>, return__var__30, 'rab__empty', <l__0__30, l__1__30, l__2__30>, t__0__30)]
+    --[Transition__(<'rab__Server', param>, 'rab_____7__0_2', %v__), ImgRecvInvalid(snd(l__0__30)), NEq__(verify(fst(l__0__30), snd(l__0__30), l__1__30), true())]->
+    [State__Server(<'rab_____7__0_6', param, %v__>, 'rab__unit', 'rab__empty', <l__1__30, l__2__30>, t__0__30)] 
 
-rule Server__let_intro_guarded_event_case_out_let_out_let_out_____7__0_2_____7__0_6__55[role="Server"] : [State__Server(<'rab_____7__0_2', param, %v__>, return__var__30, 'rab__empty', <l__0__30, l__1__30, l__2__30>, t__0__30)]--[Transition__(<'rab__Server', param>, 'rab_____7__0_2', %v__), ImgRecvValid(snd(l__0__30)), Eq__(verify(fst(l__0__30), snd(l__0__30), l__1__30), true())]->[State__Server(<'rab_____7__0_6', param, %v__>, 'rab__unit', 'rab__empty', <l__1__30, l__2__30>, t__0__30)] 
+rule Server__let_intro_guarded_event_case_out_let_out_let_out_____7__0_2_____7__0_6__55[role="Server"]
+  : [State__Server(<'rab_____7__0_2', param, %v__>, return__var__30, 'rab__empty', <l__0__30, l__1__30, l__2__30>, t__0__30)]
+    --[Transition__(<'rab__Server', param>, 'rab_____7__0_2', %v__), ImgRecvValid(snd(l__0__30)), Eq__(verify(fst(l__0__30), snd(l__0__30), l__1__30), true())]->
+    [State__Server(<'rab_____7__0_6', param, %v__>, 'rab__unit', 'rab__empty', <l__1__30, l__2__30>, t__0__30)] 
 
-rule Server__repeat_____7__0_6_____7__39[role="Server"] : [State__Server(<'rab_____7__0_6', param, %v__>, return__var__39, 'rab__empty', <l__0__39, l__1__39>, t__0__39)]--[Transition__(<'rab__Server', param>, 'rab_____7__0_6', %v__), Loop__Back(<'rab__Server', param>, 'rab_____6')]->[State__Server(<'rab_____7', param, %v__ %+ %1>, return__var__39, 'rab__empty', <l__0__39, l__1__39>, t__0__39)] 
+rule Server__repeat_____7__0_6_____7__39[role="Server"]
+  : [State__Server(<'rab_____7__0_6', param, %v__>, return__var__39, 'rab__empty', <l__0__39, l__1__39>, t__0__39)]
+    --[Transition__(<'rab__Server', param>, 'rab_____7__0_6', %v__), Loop__Back(<'rab__Server', param>, 'rab_____6')]->
+    [State__Server(<'rab_____7', param, %v__ %+ %1>, return__var__39, 'rab__empty', <l__0__39, l__1__39>, t__0__39)] 
 
-rule Server__init_filesys_____0_____1__0[role="Server"] : [State__Server(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'), !Const__('rab__priv_k', priv_k__0)]--[Transition__(<'rab__Server', param>, 'rab_____0', %v__)]->[State__Server(<'rab_____1', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty'), File__Server(param, 'rab____secret__pub', pk(priv_k__0)), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fclose'), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fread'), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen')] 
+rule Server__init_filesys_____0_____1__0[role="Server"]
+  : [State__Server(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'), !Const__('rab__priv_k', priv_k__0)]
+    --[Transition__(<'rab__Server', param>, 'rab_____0', %v__)]->
+    [State__Server(<'rab_____1', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty'), File__Server(param, 'rab____secret__pub', pk(priv_k__0)), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fclose'), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fread'), !ACP__(<'rab__Server', param>, 'rab____secret__pub', 'rab__fopen')] 
 
 
 // Model:  Client_ta
 
 
-rule Client_ta__guarded_guarded_let_intro_fcall_intro_let_intro_scall_intro_guarded_new_intro_put_return_new_out_case_out_scall_out_let_intro_scall_intro_get_intro_return_get_out_scall_out_let_intro_let_intro_scall_intro_del_scall_out_return_let_out_let_out_let_out_let_out_fcall_out_put_let_out_case_out_____4_____4__0_1__90[role="Client_ta"] : [State__Client_ta(<'rab_____4', param, %v__>, return__var__8, 'rab__empty', 'rab__empty', t__0__8), !ACP__(<'rab__Client_ta', param>, 'rab__rpc', 'rab__'), Fr(n__0__15), !ACP__(<'rab__Client_ta', param>, n__0__8, 'rab__fopen'), !ACP__(<'rab__Client_ta', param>, n__0__8, 'rab__fopen'), File__Client_ta(param, loc__0, n__0__14), !ACP__(<'rab__Client_ta', param>, 'rab__rpc', 'rab__'), Invoke('rab__rpc', n__2__8, n__1__8, n__0__8)]--[Transition__(<'rab__Client_ta', param>, 'rab_____4', %v__), Eq__(n__0__23, n__0__30), Eq__(n__2__8, 'rab__sign_image'), Eq__(n__0__14, n__0__23)]->[State__Client_ta(<'rab_____4__0_1', param, %v__>, 'rab__unit', <n__0__8, n__1__8, n__2__8>, 'rab__empty', t__0__8), File__Client_ta(param, loc__0, n__0__14), Returned('rab__rpc', sign(n__1__8, dec(n__0__23, t__0__8)))] 
+rule Client_ta__guarded_guarded_let_intro_fcall_intro_let_intro_scall_intro_guarded_new_intro_put_return_new_out_case_out_scall_out_let_intro_scall_intro_get_intro_return_get_out_scall_out_let_intro_let_intro_scall_intro_del_scall_out_return_let_out_let_out_let_out_let_out_fcall_out_put_let_out_case_out_____4_____4__0_1__90[role="Client_ta"]
+  : [State__Client_ta(<'rab_____4', param, %v__>, return__var__8, 'rab__empty', 'rab__empty', t__0__8), !ACP__(<'rab__Client_ta', param>, 'rab__rpc', 'rab__'), Fr(n__0__15), !ACP__(<'rab__Client_ta', param>, n__0__8, 'rab__fopen'), !ACP__(<'rab__Client_ta', param>, n__0__8, 'rab__fopen'), File__Client_ta(param, loc__0, n__0__14), !ACP__(<'rab__Client_ta', param>, 'rab__rpc', 'rab__'), Invoke('rab__rpc', n__2__8, n__1__8, n__0__8)]
+    --[Transition__(<'rab__Client_ta', param>, 'rab_____4', %v__), Eq__(n__0__23, n__0__30), Eq__(n__2__8, 'rab__sign_image'), Eq__(n__0__14, n__0__23)]->
+    [State__Client_ta(<'rab_____4__0_1', param, %v__>, 'rab__unit', <n__0__8, n__1__8, n__2__8>, 'rab__empty', t__0__8), File__Client_ta(param, loc__0, n__0__14), Returned('rab__rpc', sign(n__1__8, dec(n__0__23, t__0__8)))] 
 
-rule Client_ta__init_filesys_init_mem_scall_intro_____0_____2__0_0__89[role="Client_ta"] : [State__Client_ta(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'), !Const__('rab__sym_k', sym_k__1), !Const__('rab__sym_k', sym_k__0), !Const__('rab__priv_k', priv_k__0)]--[Transition__(<'rab__Client_ta', param>, 'rab_____0', %v__)]->[State__Client_ta(<'rab_____2__0_0', param, %v__>, 'rab__unit', 'rab__empty', 'rab__rpc', sym_k__1), File__Client_ta(param, 'rab____secret__priv', enc(priv_k__0, sym_k__0)), !ACP__(<'rab__Client_ta', param>, 'rab____secret__priv', 'rab__fclose'), !ACP__(<'rab__Client_ta', param>, 'rab____secret__priv', 'rab__fread'), !ACP__(<'rab__Client_ta', param>, 'rab____secret__priv', 'rab__fopen')] 
+rule Client_ta__init_filesys_init_mem_scall_intro_____0_____2__0_0__89[role="Client_ta"]
+  : [State__Client_ta(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'), !Const__('rab__sym_k', sym_k__1), !Const__('rab__sym_k', sym_k__0), !Const__('rab__priv_k', priv_k__0)]
+    --[Transition__(<'rab__Client_ta', param>, 'rab_____0', %v__)]->
+    [State__Client_ta(<'rab_____2__0_0', param, %v__>, 'rab__unit', 'rab__empty', 'rab__rpc', sym_k__1), File__Client_ta(param, 'rab____secret__priv', enc(priv_k__0, sym_k__0)), !ACP__(<'rab__Client_ta', param>, 'rab____secret__priv', 'rab__fclose'), !ACP__(<'rab__Client_ta', param>, 'rab____secret__priv', 'rab__fread'), !ACP__(<'rab__Client_ta', param>, 'rab____secret__priv', 'rab__fopen')] 
 
-rule Client_ta__guarded_put_____2__0_0_____2__0_0__0_1__87[role="Client_ta"] : [State__Client_ta(<'rab_____2__0_0', param, %v__>, return__var__3, 'rab__empty', l__0__3, t__0__3), !ACP__(<'rab__Client_ta', param>, l__0__3, 'rab__accept_rpc'), !ACP__(<'rab__Client_ta', param>, l__0__3, 'rab__accept_rpc'), Req(l__0__3)]--[Transition__(<'rab__Client_ta', param>, 'rab_____2__0_0', %v__)]->[State__Client_ta(<'rab_____2__0_0__0_1', param, %v__>, 'rab__unit', 'rab__empty', l__0__3, t__0__3), Ack(l__0__3)] 
+rule Client_ta__guarded_put_____2__0_0_____2__0_0__0_1__87[role="Client_ta"]
+  : [State__Client_ta(<'rab_____2__0_0', param, %v__>, return__var__3, 'rab__empty', l__0__3, t__0__3), !ACP__(<'rab__Client_ta', param>, l__0__3, 'rab__accept_rpc'), !ACP__(<'rab__Client_ta', param>, l__0__3, 'rab__accept_rpc'), Req(l__0__3)]
+    --[Transition__(<'rab__Client_ta', param>, 'rab_____2__0_0', %v__)]->
+    [State__Client_ta(<'rab_____2__0_0__0_1', param, %v__>, 'rab__unit', 'rab__empty', l__0__3, t__0__3), Ack(l__0__3)] 
 
-rule Client_ta__case_out_scall_out_repeat_in_____2__0_0__0_1_____4__86[role="Client_ta"] : [State__Client_ta(<'rab_____2__0_0__0_1', param, %v__>, return__var__5, 'rab__empty', l__0__5, t__0__5)]--[Transition__(<'rab__Client_ta', param>, 'rab_____2__0_0__0_1', %v__), Loop__Start(<'rab__Client_ta', param>, 'rab_____3')]->[State__Client_ta(<'rab_____4', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', t__0__5)] 
+rule Client_ta__case_out_scall_out_repeat_in_____2__0_0__0_1_____4__86[role="Client_ta"]
+  : [State__Client_ta(<'rab_____2__0_0__0_1', param, %v__>, return__var__5, 'rab__empty', l__0__5, t__0__5)]
+    --[Transition__(<'rab__Client_ta', param>, 'rab_____2__0_0__0_1', %v__), Loop__Start(<'rab__Client_ta', param>, 'rab_____3')]->
+    [State__Client_ta(<'rab_____4', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', t__0__5)] 
 
-rule Client_ta__guarded_guarded_event_case_out_____4_____4__0_1__84[role="Client_ta"] : [State__Client_ta(<'rab_____4', param, %v__>, return__var__8, 'rab__empty', 'rab__empty', t__0__8), !ACP__(<'rab__Client_ta', param>, 'rab__rpc', 'rab__'), Invoke('rab__rpc', n__2__8, n__1__8, n__0__8)]--[Transition__(<'rab__Client_ta', param>, 'rab_____4', %v__), InValidName__Client_ta(param, n__2__8), NEq__(n__2__8, 'rab__sign_image')]->[State__Client_ta(<'rab_____4__0_1', param, %v__>, 'rab__unit', <n__0__8, n__1__8, n__2__8>, 'rab__empty', t__0__8)] 
+rule Client_ta__guarded_guarded_event_case_out_____4_____4__0_1__84[role="Client_ta"]
+  : [State__Client_ta(<'rab_____4', param, %v__>, return__var__8, 'rab__empty', 'rab__empty', t__0__8), !ACP__(<'rab__Client_ta', param>, 'rab__rpc', 'rab__'), Invoke('rab__rpc', n__2__8, n__1__8, n__0__8)]
+    --[Transition__(<'rab__Client_ta', param>, 'rab_____4', %v__), InValidName__Client_ta(param, n__2__8), NEq__(n__2__8, 'rab__sign_image')]->
+    [State__Client_ta(<'rab_____4__0_1', param, %v__>, 'rab__unit', <n__0__8, n__1__8, n__2__8>, 'rab__empty', t__0__8)] 
 
-rule Client_ta__guarded_skip_repeat_out_____4_____5__82[role="Client_ta"] : [State__Client_ta(<'rab_____4', param, %v__>, return__var__45, 'rab__empty', 'rab__empty', t__0__45), !ACP__(<'rab__Client_ta', param>, 'rab__rpc', 'rab__'), Exit('rab__rpc')]--[Transition__(<'rab__Client_ta', param>, 'rab_____4', %v__), Loop__Finish(<'rab__Client_ta', param>, 'rab_____3')]->[State__Client_ta(<'rab_____5', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', t__0__45)] 
+rule Client_ta__guarded_skip_repeat_out_____4_____5__82[role="Client_ta"]
+  : [State__Client_ta(<'rab_____4', param, %v__>, return__var__45, 'rab__empty', 'rab__empty', t__0__45), !ACP__(<'rab__Client_ta', param>, 'rab__rpc', 'rab__'), Exit('rab__rpc')]
+    --[Transition__(<'rab__Client_ta', param>, 'rab_____4', %v__), Loop__Finish(<'rab__Client_ta', param>, 'rab_____3')]->
+    [State__Client_ta(<'rab_____5', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', t__0__45)] 
 
-rule Client_ta__event_____5_____6__48[role="Client_ta"] : [State__Client_ta(<'rab_____5', param, %v__>, return__var__48, 'rab__empty', 'rab__empty', t__0__48)]--[Transition__(<'rab__Client_ta', param>, 'rab_____5', %v__), ClientTAClose()]->[State__Client_ta(<'rab_____6', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', t__0__48)] 
+rule Client_ta__event_____5_____6__48[role="Client_ta"]
+  : [State__Client_ta(<'rab_____5', param, %v__>, return__var__48, 'rab__empty', 'rab__empty', t__0__48)]
+    --[Transition__(<'rab__Client_ta', param>, 'rab_____5', %v__), ClientTAClose()]->
+    [State__Client_ta(<'rab_____6', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', t__0__48)] 
 
-rule Client_ta__repeat_____4__0_1_____4__44[role="Client_ta"] : [State__Client_ta(<'rab_____4__0_1', param, %v__>, return__var__44, <m__0__44, m__1__44, m__2__44>, 'rab__empty', t__0__44)]--[Transition__(<'rab__Client_ta', param>, 'rab_____4__0_1', %v__), Loop__Back(<'rab__Client_ta', param>, 'rab_____3')]->[State__Client_ta(<'rab_____4', param, %v__ %+ %1>, return__var__44, 'rab__empty', 'rab__empty', t__0__44)] 
+rule Client_ta__repeat_____4__0_1_____4__44[role="Client_ta"]
+  : [State__Client_ta(<'rab_____4__0_1', param, %v__>, return__var__44, <m__0__44, m__1__44, m__2__44>, 'rab__empty', t__0__44)]
+    --[Transition__(<'rab__Client_ta', param>, 'rab_____4__0_1', %v__), Loop__Back(<'rab__Client_ta', param>, 'rab_____3')]->
+    [State__Client_ta(<'rab_____4', param, %v__ %+ %1>, return__var__44, 'rab__empty', 'rab__empty', t__0__44)] 
 
 restriction Init__ : " All x #i #j . Init__(x) @ #i & Init__(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq__(x,y) @ #i ==> x = y"
 restriction NEquality_rule: "All x #i. NEq__(x,x) @ #i ==> F"
+
 lemma AlwaysStarts__[reuse,use_induction]:
-
       "All x p #i. Loop__Back(x, p) @i ==> Ex #j. Loop__Start(x, p) @j & j < i"
+
 lemma AlwaysStartsWhenEnds__[reuse,use_induction]:
-
       "All x p #i. Loop__Finish(x, p) @i ==> Ex #j. Loop__Start(x, p) @j & j < i"
-lemma TransitionOnce__[reuse,use_induction]:
 
+lemma TransitionOnce__[reuse,use_induction]:
       "All x p %i #j #k . Transition__(x, p, %i) @#j &
         Transition__(x, p, %i) @ #k ==> #j = #k"
+
 
 lemma Correspondence : all-traces "All new__0 #time__1 . ImgRecvValid(new__0)@#time__1 ==> Ex  #time__2 . ImgSend(new__0)@#time__2 & #time__2 < #time__1 "
 lemma Reachable : exists-trace "Ex new__0 #time__2  #time__1  #time__0 . ImgRecvValid(new__0)@#time__2 & ClientTAClose()@#time__1 & ClientClose()@#time__0 "

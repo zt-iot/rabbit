@@ -16,7 +16,9 @@ module E = struct
     ; source_env = Env.empty ()
     ; source_vars = []
     ; pre = []
-    ; update = { register = None; items= [] }
+    ; update = { rho= Ident.local "rho"
+               ; register = Typed.{ env= Env.empty (); loc= Location.nowhere; desc= Unit }
+               ; items= [] }
     ; tag = []
     ; post = []
     ; target = Index.zero
