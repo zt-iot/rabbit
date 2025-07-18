@@ -4,7 +4,7 @@ module SecurityTypeSet = Set.Make(String)
 
 module ProcTySetSet = Set.Make(ProcTySet)
 
-type proc_ty_set = ProcTySet.t
+type proc_ty_set = ProcTySet.t 
 
 
 let pp_proc_ty_set fmt set =

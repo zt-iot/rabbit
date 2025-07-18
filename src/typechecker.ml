@@ -14,10 +14,10 @@ let rec typeof_expr (secrecy_lattice : To_cst.cst_access_policy)
     (* Option 1: Need to look up type in `Cst_env.t` *)
     (* Option 2: Need to look up type in `t_env` *)
     | Ident { id; desc; param } ->
-
-
-        (Dummy, (S_Ignore, I_Ignore))
-    
+         begin match Maps.IdentMap.find_opt id t_env with 
+          | Some t -> t 
+          | None -> raise (TypeException (Format.sprintf "No entry for the following Ident.t: %s" (Ident.name id)))
+         end
     (* Return type bool for both options IF it was declared as simple type *)
     | Boolean b ->
         (* Handle boolean *)
@@ -43,8 +43,44 @@ let rec typeof_expr (secrecy_lattice : To_cst.cst_access_policy)
     (* Option 2: Look up typing signature of `id` in Cst_env.t, 
         then look up types of args in `t_env` and see if they match *)
     | Apply (id, args) ->
-        let types_of_args = List.map typeof_expr_rec args in 
-        (Dummy, (S_Ignore, I_Ignore))
+        (* get the list of function parameters that `id` accepts *)
+        let function_params = begin match Cst_env.find_opt_by_id expr.env id with 
+          | Some (Cst_env.ExtFun(params)) -> params
+          | Some (Cst_env.ExtSyscall(params)) -> params 
+          | Some (Cst_env.MemberFunc(params)) -> params
+          | _ -> raise (TypeException (Format.sprintf "The symbol %s cannot be applied ; 
+                        because it is not an equational theory function syscall or member function" (Ident.name id)))
+        end in 
+        
+        (* OCaml provides no easy way to retrieve the last element of a list, so this has to be done *)
+        let init_and_last lst =
+            let rec aux acc = function
+                | [] -> raise (TypeException (Format.sprintf "function parameter list of %s is empty, which should not be possible" (Ident.string_part id)))
+                | [x] -> (List.rev acc, x)
+                | x :: xs -> aux (x :: acc) xs
+            in
+            aux [] lst
+        in
+        let function_params_input, ret_ty = init_and_last function_params in 
+        (* TODO handle substitution of concrete types for polymorphic types *)
+        (* arity check *)
+        (* (this should have been checked for already in `typer.ml/desugarer.ml`, but I'm just doing it again here )*)
+        let arity_expected = (List.length function_params) - 1 (* minus one, because we don't count the return type as input type *) in 
+        let arity_actual = List.length args in 
+        if (arity_expected <> arity_actual) then
+            raise (TypeException (Format.sprintf "symbol %s is expected to receive %i arguments but it received %i arguments" (Ident.string_part id) arity_expected arity_actual));
+        
+        (* Check equality of function parameter types and given types, modulo the return type of function params *)
+        let function_params_of_args = List.map (fun e -> Cst_env.cst_to_csfp (typeof_expr_rec e t_env)) args in 
+        let zipped = List.combine function_params_input function_params_of_args in
+        let all_match = List.for_all (fun (x, y) -> x = y) zipped in
+
+        if all_match then
+            (* TODO infer the return type of a function if it happens to be polymorphic *)
+            ret_ty
+        else
+            raise (TypeException (Format.sprintf "function parameter list of %s did not match types of the arguments" (Ident.string_part id)))
+
 
     (* Option 1: Look up typing information of all expressions in `Cst_env.t` *)
     (* Option 2: Look up typing information of all expressions in `t_env` *)
@@ -125,9 +161,14 @@ let typecheck_decl (secrecy_lattice : To_cst.cst_access_policy)
   let typeof_expr_rec = (typeof_expr secrecy_lattice integrity_lattice) in 
   let typeof_cmd_rec = (typeof_cmd secrecy_lattice integrity_lattice) in 
   match decl.Cst_syntax.desc with 
-  | Cst_syntax.Syscall _ ->
-      (* failwith "TODO: not sure if Cst_syntax.Syscall needs to be typechecked"; *)
-      ()
+  | Cst_syntax.Syscall {id; args; cmd} ->
+      (* Option 2: we should simply add the syscall with args and cmd to our `t_env`, and we can retrieve the 
+      `args` and `cmd` later when we are typechecking a `cmd` or `expr`
+      *) 
+
+      (* TODO on Sunday: add Syscall(args, cmd) to the `t_env` somehow or create a new environment for function. I just want a working typechecker, I don't care about the code quality up until then *)
+      let updated_t_env = Maps.IdentMap.add id (* TODO *) in
+      () 
 
   | Cst_syntax.Attack _ ->
       (* failwith "TODO: not sure if Cst_syntax.Attack needs to be typechecked"; *)

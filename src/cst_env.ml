@@ -13,13 +13,13 @@ type secrecy_lvl =
   | S_Ignore (* Means: Ignore this secrecy level when type-checking *)
   | Public 
   | SNode of proc_ty_set 
-[@@deriving show]
+[@@deriving show, eq]
 
 type integrity_lvl = 
   | I_Ignore (* Means: "Ignore this integrity level when type-checking"  *)
   | Untrusted
   | INode of proc_ty_set
-[@@deriving show]
+[@@deriving show, eq]
 
 (* core type WITHOUT polymorphic types *)
 type core_type = 
@@ -42,11 +42,11 @@ type core_function_param =
   | CFP_Poly of Name.ident
   | CFP_Dummy (* Just to return a value when we don't care what it is *)
               (* This should never be returned in an actual implementation *)
-[@@deriving show]
+[@@deriving show, eq]
 
 (* contructing a CFP_Poly with secrecy and integrity information should be illegal, but there is 
 no way to enforce this requirement with specific constructors *)
-and core_security_function_param = core_function_param * (secrecy_lvl * integrity_lvl)
+and core_security_function_param = core_function_param * (secrecy_lvl * integrity_lvl) [@@deriving show, eq]
 
 
 (* Boilerplate conversion necesary for `convert_function_param_to_core(Env.FParamSecurity(...)) *)
@@ -111,3 +111,26 @@ type t = {
       and [let xi := e.S in c]
   *)
 } [@@deriving show]
+
+(* Methods are copy-pasted from Env.t *)
+let empty () = { vars= []; facts= ref [] }
+
+let find_opt env name =
+  List.find_opt (fun (id, _desc) -> name = fst id) env.vars
+
+let find_opt_by_id env id = List.assoc_opt id env.vars
+
+let mem env name = find_opt env name <> None
+
+let add env id desc = { env with vars = (id, desc) :: env.vars }
+
+let update_fact env name v =
+  let rec update rev_facts = function
+    | [] -> (name, v) :: List.rev rev_facts
+    | (name', _) :: facts when name = name' ->
+        List.rev_append rev_facts ((name, v) :: facts)
+    | f :: facts -> update (f :: rev_facts) facts
+  in
+  env.facts := update [] !(env.facts)
+
+let find_fact_opt env name = List.assoc_opt name !(env.facts)
