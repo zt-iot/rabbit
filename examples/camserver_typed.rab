@@ -79,12 +79,32 @@ syscall get_picture () : client_img {
 (* function hash_kdf : 'a -> keykind -> key[keykind] *) (* this function also has to be built-in to Rabbit somehow *) 
 
 
+
 syscall fopen (p : string) : filedescr['a] {
   case [p.x] ->
-    new y = Fd(x) in (* TODO don't know how to type y in this case *)
+    (* TODO design a method how to infer what type `'b` should be when running `typechecker.ml`  
+      It should be `filedescr[cipher[sigkey_client_ta]] for `p = /secret/priv` in camserver_typed.rab  
+      And it should be `filedescr[ver_key_server]` for `p = /secret/pub` in camserver_typed.rab `*)
+    (* new y : filedescr['b] = Fd(x) in     this should be the typing annotation, but it causes compilation errors for now *)
+    new y = Fd(x) in 
     put [p.x]; y
   end
 }
+
+syscall fopen_privkey (p : string) : filedescr[sigkey_client_ta] {
+  case [p.x] ->
+    new y : filedescr[cipher[sigkey_client_ta]] = Fd(x) in 
+    put [p.x]; y 
+}
+
+syscall fopen_verkey (p : string) : filedescr[ver_key_server] {
+  case [p.x] ->
+    new y : filedescr[ver_key_server] = Fd(x) in 
+    put [p.x]; y 
+}
+
+
+
 
 syscall fread (y : filedescr['a]) : 'a {
   let x = y.Fd in
@@ -121,8 +141,8 @@ allow client_t rpc_t [.]
 
 allow client_t [get_picture]
 
-allow client_ta_t readonly_t  [fopen, fread, fclose] 
-allow server_t readonly_t     [fopen, fread, fclose]
+allow client_ta_t readonly_t  [fopen, fopen_privkey, fopen_verkey, fread, fclose] 
+allow server_t readonly_t     [fopen, fopen_privkey, fopen_verkey, fread, fclose]
 
 
 
@@ -229,7 +249,7 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
 
   function sign_image(image : client_img, privkey_path : string) : client_ta_sig 
   {
-    var privkey_fd : filedescr[cipher[sigkey_client_ta]] = fopen(privkey_path) in
+    var privkey_fd : filedescr[cipher[sigkey_client_ta]] = fopen_privkey(privkey_path) in
 
     var privkey : cipher[sigkey_client_ta] = fread(privkey_fd) in (* what type should privkey get? The return type of `senc` *)
 
@@ -271,7 +291,7 @@ process server(ch_net : udp_t) : server_t
 
   main 
   {
-    var pubkey_fd : filedescr[ver_key_server] = fopen(pubkey_path) in 
+    var pubkey_fd : filedescr[ver_key_server] = fopen_verkey(pubkey_path) in 
     var pubkey : ver_key_server = fread(pubkey_fd) in 
     _ := recv_verify_loop(ch_net, pubkey);
     _ := fclose(pubkey_fd)

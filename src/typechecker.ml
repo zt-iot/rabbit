@@ -77,7 +77,9 @@ let rec typeof_expr (secrecy_lattice : To_cst.cst_access_policy)
 
         if all_match then
             (* TODO infer the return type of a function if it happens to be polymorphic *)
-            ret_ty
+            (* ret_ty *)
+        
+            (Dummy, (S_Ignore, I_Ignore))
         else
             raise (TypeException (Format.sprintf "function parameter list of %s did not match types of the arguments" (Ident.string_part id)))
 
@@ -100,7 +102,7 @@ let rec typeof_cmd  (secrecy_lattice : To_cst.cst_access_policy)
   let typeof_cmd_rec = (typeof_cmd secrecy_lattice integrity_lattice) in 
   match cmd.Cst_syntax.desc with 
     (* Both options: (unit, (Public, Untrusted)) *)
-    | Skip ->  (TUnit, (Public, Untrusted))
+    | Skip -> (TUnit, (Public, Untrusted))
     (* Both options: typecheck first and then the return type of the second *)
     | Sequence (c1, c2) -> 
         let _ = (typeof_cmd secrecy_lattice integrity_lattice c1) in 
