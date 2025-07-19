@@ -95,12 +95,14 @@ syscall fopen_privkey (p : string) : filedescr[sigkey_client_ta] {
   case [p.x] ->
     new y : filedescr[cipher[sigkey_client_ta]] = Fd(x) in 
     put [p.x]; y 
+  end
 }
 
 syscall fopen_verkey (p : string) : filedescr[ver_key_server] {
   case [p.x] ->
     new y : filedescr[ver_key_server] = Fd(x) in 
     put [p.x]; y 
+  end
 }
 
 
