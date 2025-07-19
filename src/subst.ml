@@ -75,7 +75,7 @@ type param_id = Ident.t
 
 let param_id = Fun.id
 
-type instantiated_proc =
+type proc =
   { id : proc_id
   ; param : param_id option
   ; args : chan_arg list
@@ -174,24 +174,21 @@ let instantiate_proc
   | None -> assert false
   | Some _ -> assert false
 
-type instantiated_proc_group_desc =
-  | Unbounded of instantiated_proc
-  | Bounded of param_id * instantiated_proc list
+type proc_group_desc =
+  | Unbounded of proc
+  | Bounded of param_id * proc list
 
-type instantiated_proc_group =
-  { id : proc_group_id
-  ; desc : instantiated_proc_group_desc
-  }
+type proc_group = proc_group_id * proc_group_desc
 
 let instantiate_proc_group decls (proc_group : Typed.proc) =
   match proc_group with
   | Unbounded { data= { parameter= Some _; _ }; _ } -> assert false
   | Unbounded ({ data= { parameter= None; _ }; _ } as pproc) ->
-      { id= Ident.local ("PG_" ^ fst pproc.data.id) (* New process id *)
-      ; desc= Unbounded (instantiate_proc ~param_rewrite:None decls (pproc : pproc)) }
+      ( Ident.local ("PG_" ^ fst pproc.data.id) (* New process id *),
+        Unbounded (instantiate_proc ~param_rewrite:None decls (pproc : pproc)) )
   | Bounded (id, pprocs) ->
       let new_id = Ident.local (fst id) in
       let proc_id = Ident.prefix "PG_" new_id in
       (* Use the instantiated parameter for the process id *)
-      { id= proc_id
-      ; desc= Bounded (new_id, List.map (instantiate_proc ~param_rewrite:(Some (id, new_id)) decls) pprocs) }
+      ( proc_id,
+        Bounded (new_id, List.map (instantiate_proc ~param_rewrite:(Some (id, new_id)) decls) pprocs) )

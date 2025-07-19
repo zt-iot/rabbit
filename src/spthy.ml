@@ -244,12 +244,20 @@ let string_of_fact' { name; args; config } =
 
 let string_of_fact f = string_of_fact' @@ fact' f
 
-(* It is a state monad! *)
+(* It is a monad!
+
+   Please bear with the use of the monad; it saves lots of LoCs to track down
+   constant dependencies extracted during the compilation stages.
+*)
 type 'a compiled = { deps : fact list; result : 'a }
 
+(* Monad bind *)
 let (let*) x f =
   let { deps; result } = f x.result in
   { deps= x.deps @ deps; result }
+
+(* Monad map *)
+let (let+) x f = { x with result= f x.result }
 
 let return ?(deps = []) result = { deps; result }
 
@@ -257,8 +265,8 @@ let rec mapM f = function
   | [] -> return []
   | x::xs ->
       let* y = f x in
-      let* ys = mapM f xs in
-      return @@ y :: ys
+      let+ ys = mapM f xs in
+      y :: ys
 
 let rec compile_expr (e : Typed.expr) : expr compiled =
   match e.desc with
@@ -292,11 +300,11 @@ let rec compile_expr (e : Typed.expr) : expr compiled =
   | String s ->
       return @@ String ("str:" ^ s)
   | Apply (f, es) ->
-      let* es = mapM compile_expr es in
-      return @@ Apply (f, es)
+      let+ es = mapM compile_expr es in
+      Apply (f, es)
   | Tuple es ->
-      let* es = mapM compile_expr es in
-      return @@ Tuple es
+      let+ es = mapM compile_expr es in
+      Tuple es
   | Unit -> return Unit
 
 let expr_of_chan_arg ({ channel; parameter; _ } : Typed.chan_arg) =
@@ -323,41 +331,41 @@ let compile_fact (f : Sem.fact) : fact compiled =
   match f.desc with
   | Channel { channel; name; args } ->
       let* channel = compile_expr channel in
-      let* args = mapM compile_expr args in
-      return @@ Channel { channel; name; args }
+      let+ args = mapM compile_expr args in
+      Channel { channel; name; args }
   | Out e ->
-      let* e = compile_expr e in
-      return @@ Out e
+      let+ e = compile_expr e in
+      Out e
   | In e ->
-      let* e = compile_expr e in
-      return @@ In e
+      let+ e = compile_expr e in
+      In e
   | Plain (n, es) ->
-      let* es = mapM compile_expr es in
-      return @@ Plain (n, es)
+      let+ es = mapM compile_expr es in
+      Plain (n, es)
   | Eq (e1, e2) ->
       let* e1 = compile_expr e1 in
-      let* e2 = compile_expr e2 in
-      return @@ Eq (e1, e2)
+      let+ e2 = compile_expr e2 in
+      Eq (e1, e2)
   | Neq (e1, e2) ->
       let* e1 = compile_expr e1 in
-      let* e2 = compile_expr e2 in
-      return @@ Neq (e1, e2)
+      let+ e2 = compile_expr e2 in
+      Neq (e1, e2)
   | File { path; contents } ->
       let* path = compile_expr path in
-      let* contents = compile_expr contents in
-      return @@ File { path; contents }
+      let+ contents = compile_expr contents in
+      File { path; contents }
   | Global (n, es) ->
-      let* es = mapM compile_expr es in
-      return @@ Global (n, es)
+      let+ es = mapM compile_expr es in
+      Global (n, es)
   | Fresh id -> return @@ Fresh id
   | Structure { name; proc_id; address; args } ->
       let* address = compile_expr address in
-      let* args = mapM compile_expr args in
-      return @@ Structure { name; proc_id; address; args }
+      let+ args = mapM compile_expr args in
+      Structure { name; proc_id; address; args }
   | Loop { mode; proc_id; param; index } -> return @@ Loop { mode; proc_id; param; index }
   | Access { proc_id; param; channel; syscall } ->
-      let* channel = compile_expr channel in
-      return @@ Access { proc_id; param; channel; syscall }
+      let+ channel = compile_expr channel in
+      Access { proc_id; param; channel; syscall }
 
 let compile_facts (fs : Sem.fact list) : fact list compiled =
   let fs_f_list = List.map compile_fact fs in
@@ -519,7 +527,7 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
           return (id, res)
         ) edge.target_vars
     in
-    let* mapping =
+    let+ mapping =
       let* rho_expr = compile_expr edge.update.register in
       return @@ (edge.update.rho, rho_expr) :: mapping
     in
@@ -528,7 +536,7 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
         if edge.loop_back then Some Inc
         else Some Var
       else None in
-    return @@ State { proc_id; param; index= edge.target; mapping; transition }
+    State { proc_id; param; index= edge.target; mapping; transition }
   in
   (* move equality and inequality facts from precondition to tags because Tamarin cannot handle
      (N)Eq fact generation rules correctly for fresh values *)
@@ -548,7 +556,7 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
             "Edge %s/%s : %s"
             (Ident.to_string (proc_id :> Ident.t))
             (Ident.to_string (edge.id :> Ident.t))
-            (Sem.string_of_update edge.update)
+            (Sem.Update.string_of_update edge.update)
          )
   in
   { id= (edge.id :> Ident.t); role; pre; label; post; comment }
@@ -575,16 +583,16 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
                      'rab__empty', 'rab__empty', 'rab__empty')]
 *)
 
-let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.modeled_proc_group_desc)) =
+let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_desc)) =
   let comment = Some (Printf.sprintf "Proc group initialization %s" (Ident.to_string (proc_group_id :> Ident.t))) in
   match p with
-  | Unbounded model ->
-      assert (model.param = None);
+  | Unbounded proc ->
+      assert (proc.param = None);
       let pre = [] in
       let label = [ Initing_proc_group proc_group_id ] in
       let rho = Ident.local "rho" in
       let state = State
-          { proc_id= model.id
+          { proc_id= proc.id
           ; param= None
           ; index= Sem.Index.zero (* ? *)
           ; mapping= [ rho, Unit ]
@@ -599,21 +607,21 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.modeled_pro
       ; post
       ; comment
       }
-  | Bounded (param, models) ->
+  | Bounded (param, procs) ->
       let pre = [ Fresh (param :> Ident.t) ] in
       let label = [ Initing_proc_group proc_group_id ] in
       let states =
-        List.map (fun (model : Sem.model) ->
-            assert (model.param <> None);
+        List.map (fun (proc : Sem.proc) ->
+            assert (proc.param <> None);
             let rho = Ident.local "rho" in
             State
-              { proc_id= model.id
+              { proc_id= proc.id
               ; param= Some param
               ; index= Sem.Index.zero (* ? *)
               ; mapping = [ rho, Unit ] (* no need of param in the mapping since it is not mutable *)
               ; transition= if !Config.tag_transition then Some One else None
               }
-          ) models
+          ) procs
       in
       let post = Inited_proc_group (proc_group_id, Some param) :: states in
       { id = Ident.prefix "Init_" (proc_group_id :> Ident.t)
@@ -673,11 +681,10 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       }
 
 let compile_access_controls
-    (proc_group_id : Subst.proc_group_id)
-    (proc_group : Sem.modeled_proc_group_desc)
+    (proc_group_id, proc_group_desc : Sem.proc_group)
     proc_id_elems_list =
   let param =
-    match proc_group with
+    match proc_group_desc with
     | Unbounded _ -> None
     | Bounded (param, _) -> Some param
   in
@@ -780,7 +787,7 @@ let compile_sem ({ signature; proc_groups; constants; lemmas; access_controls } 
   let signature = compile_signature signature in
   let constants = List.map (fun (id, init_desc) -> rule_of_const id init_desc) constants in
   let models =
-    List.map (fun ({ id; edges; param } : Sem.model) -> (id, List.map (rule_of_edge id param) edges))
+    List.map (fun ({ id; edges; param } : Sem.proc) -> (id, List.map (rule_of_edge id param) edges))
     @@ List.concat_map (function
         | _procid, Sem.Unbounded m -> [m]
         | _procid, Bounded (_, ms) -> ms) proc_groups
@@ -788,6 +795,7 @@ let compile_sem ({ signature; proc_groups; constants; lemmas; access_controls } 
   let proc_group_inits = List.map proc_group_init proc_groups in
   let lemmas = List.map (fun (id, l) -> id, compile_lemma l) lemmas in
   let access_controls = List.concat @@ List.filter_map (fun (proc_group_id, ac) ->
-      compile_access_controls proc_group_id (List.assoc proc_group_id proc_groups) ac) access_controls
+      compile_access_controls (proc_group_id, List.assoc proc_group_id proc_groups) ac)
+      access_controls
   in
   { signature; constants; models; proc_group_inits; lemmas; access_controls }

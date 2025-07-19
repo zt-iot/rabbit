@@ -45,7 +45,7 @@ module G' = struct
       String.concat ";\n"
       @@ Ident.to_string (t.id :> Ident.t)
          :: ("PRE:"^String.concat "; " (List.map string_of_fact t.pre))
-         :: string_of_update t.update
+         :: Update.string_of_update t.update
          :: (match t.tag with
              | [] -> []
              | fs -> [ "Tag:"

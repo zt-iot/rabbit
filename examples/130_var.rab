@@ -1,0 +1,21 @@
+type person_t : process
+
+process alice() : person_t 
+{
+    var v = 1
+
+    main {
+        put [::x(v)];
+	case
+	| [::x(1)] -> event[::Valid()]
+	end
+    }
+}
+
+system
+  alice()
+requires
+[
+    lemma Valid: (* verified *)
+        reachable ::Valid()
+]

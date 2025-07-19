@@ -124,17 +124,18 @@ let _main =
             (match typer_result with
              | Error _ -> ()
              | Ok decls ->
-                 let semantics = Sem.t_of_decls decls in
+                 let sem = Sem.compile decls in
+                 let sem =
+                   if !Config.optimize then Sem.optimize sem else sem
+                 in
                  (match !svg2_file with
                   | None -> ()
                   | Some fn ->
                       Sem_debug.write_models_svg fn
                       @@ List.concat_map (function
                           | _id, Sem.Unbounded model -> [model]
-                          | _id, Bounded (_p, models) -> models) semantics.proc_groups);
-                 prerr_endline "graph checked";
+                          | _id, Bounded (_p, models) -> models) sem.proc_groups);
 
-                 let sem = Sem.t_of_decls decls in
                  let spthy = Spthy.compile_sem sem in
 
                  match fst !ofile with

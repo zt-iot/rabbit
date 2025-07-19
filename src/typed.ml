@@ -35,10 +35,9 @@ let rec string_of_expr (e : expr) =
   | Boolean b -> string_of_bool b
   | Unit -> "()"
 
-let mutable_vars_of_expr e =
+let vars_of_expr e =
   let rec aux e =
     match e.desc with
-    | Ident { id=_; param= None; desc= Param } -> []
     | Ident { id; param= None; desc= Var } -> [id]
     | Ident { id; param= Some p; desc= Var } -> id :: aux p
     | Ident { id=_; param= Some p; desc= _ } -> aux p
@@ -74,17 +73,17 @@ and fact' =
       { channel : expr
       ; name : name
       ; args : expr list
-      } (** [e :: n(e1,..,en)] *)
-  | Out of expr (** [Out(e1)] *)
-  | In of expr (** [In(e1)] *)
-  | Plain of name * expr list (** [n(e1,..,en)] *)
-  | Eq of expr * expr (** [e1 = e2] *)
-  | Neq of expr * expr (** [e1 != e2] *)
+      }
+  | Out of expr
+  | In of expr
+  | Plain of name * expr list
+  | Eq of expr * expr
+  | Neq of expr * expr
   | File of
       { path : expr
       ; contents : expr
-      } (** [S.e] *)
-  | Global of string * expr list (** [:: n(e1,..,en)] *)
+      }
+  | Global of string * expr list
 
 type cmd = cmd' loc_env
 

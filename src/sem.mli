@@ -1,4 +1,7 @@
+(** The semantics *)
+
 module Index : sig
+  (** Transition graph node index *)
   type t = private (int * int) list
 
   val compare : t -> t -> int
@@ -17,9 +20,9 @@ module Index : sig
   module Map : Map.S with type key = t
 end
 
+(** [Typed.fact] + some internal facts *)
 type fact = fact' Typed.loc_env
 
-(* Typed.fact' + internal facts *)
 and fact' =
   | Channel of
       { channel : Typed.expr
@@ -28,14 +31,14 @@ and fact' =
       } (** Channel fact [ch :: name(args)] *)
   | Out of Typed.expr (** Attacker fact: Out *)
   | In of Typed.expr (** Attacker fact: In *)
-  | Plain of Name.t * Typed.expr list
-  | Eq of Typed.expr * Typed.expr
-  | Neq of Typed.expr * Typed.expr
+  | Plain of Name.t * Typed.expr list (** [n(e1,..,en)] *)
+  | Eq of Typed.expr * Typed.expr (** [e1 = e2] *)
+  | Neq of Typed.expr * Typed.expr (** [e1 != e2] *)
   | File of
       { path : Typed.expr
       ; contents : Typed.expr
       } (** File fact [path.contents] *)
-  | Global of Name.t * Typed.expr list
+  | Global of Name.t * Typed.expr list (** [:: n(e1,..,en)] *)
 
   (* New additions at Sem level *)
 
@@ -53,52 +56,77 @@ and fact' =
       ; index : Index.t
       }
   | Access of
-      { proc_id: Subst.proc_id (** process id *)
+      { proc_id: Subst.proc_id
       ; param : Subst.param_id option
       ; channel: Typed.expr (** channel or file *)
-      ; syscall: Ident.t option (** system call performs this access *)
+      ; syscall: Ident.t option (** System call allowed the access.
+                                    [None] allows the access out of syscalls.   *)
       }
 
 val string_of_fact : fact -> string
 
 val fact_of_typed : Typed.fact -> fact
+(** Canonically maps [Typed.fact] to [fact] *)
 
-(** State update.
+module Update : sig
+  type update_desc =
+    | New of Typed.expr
+    | Update of Typed.expr
+    | Drop
 
-    - [None] is for $\rho$: the register value of the last command execution
-    - [mutable_overrides] only list the updated fields:
-*)
-type update_desc =
-  | New of Typed.expr
-  | Update of Typed.expr
-  | Drop
+  (** State update
 
-type update =
-  { rho : Ident.t
-  ; register : Typed.expr
-  ; items : (Ident.t * update_desc) list
-  }
+      For simplicity, we do not track unmodified variables.
+  *)
+  type update =
+    { rho : Ident.t
+    (** $\rho$ variable used in this update *)
 
+    ; register : Typed.expr
+    (** The register value a.k.a the return value *)
 
-val string_of_update : update -> string
+    ; items : (Ident.t * update_desc) list
+    (** Value updates, if a variable is not listed here, it is not changed *)
+    }
+
+  val string_of_update : update -> string
+end
 
 type edge_id = private Ident.t
 
 val edge_id : Ident.t -> edge_id
 
+(**
+                      update  tag
+                          ↓   ↓
+                          f, [T]
+   [A]^i_{\Gamma_i} -----------------> [B]^j_{\Gamma_j}
+    ↑  ↑      ↑                         ↑  ↑      ↑
+   pre |      |                      post  |      |
+     source source_vars                 target target_vars
+            (source_env)                       (target_env)
+
+   Note that [source_env] and [target_env] are the environments used to name-check (Typer)
+   and they can be different from $\Gamma_i$ when in system call codes,
+   i.e. the process local variables in [source/target_vars] are not bound in [source/target_env]
+   at system call cmds.
+
+   Now [source_env] and [target_env] are only used for debugging purposes.
+   They can be safely dropped from this type.
+*)
 type edge =
   { id : edge_id
-  ; source : Index.t
-  ; source_env : Env.t
-  ; source_vars : Ident.t list
-  ; pre : fact list
-  ; update : update
-  ; tag : fact list
-  ; post : fact list
-  ; target : Index.t
-  ; target_env : Env.t
-  ; target_vars : Ident.t list
-  ; loop_back : bool (** Loops back and triggers an increment of transition counter if [true] *)
+  ; source : Index.t (** source node index *)
+  ; source_env : Env.t (** environment of the source node *)
+  ; source_vars : Ident.t list (** mutable variables of the source node *)
+  ; pre : fact list (** preconditions *)
+  ; update : Update.update (** state update *)
+  ; tag : fact list (** tags *)
+  ; post : fact list (** postconditions *)
+  ; target : Index.t (** target node index *)
+  ; target_env : Env.t (** environment of the target node *)
+  ; target_vars : Ident.t list (** mutable variables of the target node *)
+  ; loop_back : bool (** Loops back. Triggers an increment of transition counter if [true] *)
   }
 
 type signature =
@@ -106,24 +134,28 @@ type signature =
   ; equations : (Typed.expr * Typed.expr) list
   }
 
-type model =
+type proc =
   { id : Subst.proc_id
   ; param : Subst.param_id option
   ; edges : edge list }
 
-type modeled_proc_group_desc =
-  | Unbounded of model
-  | Bounded of Subst.param_id * model list
+type proc_group_desc =
+  | Unbounded of proc
+  | Bounded of Subst.param_id * proc list
+
+type proc_group = Subst.proc_group_id * proc_group_desc
 
 type t =
   { signature : signature
-  ; proc_groups : (Subst.proc_group_id * modeled_proc_group_desc) list
+  ; proc_groups : proc_group list
   ; access_controls :
       (Subst.proc_group_id
        * (Subst.proc_id
-          * (Typed.chan_arg * Ident.t option) list) list) list
+          * (Typed.chan_arg * Ident.t option (* system call or "anywhere" *)) list) list) list
   ; constants : (Ident.t * Typed.init_desc) list
   ; lemmas : (Ident.t * Typed.lemma) list
   }
 
-val t_of_decls : Typed.decl list -> t
+val compile : Typed.decl list -> t
+
+val optimize : t -> t

@@ -1,6 +1,12 @@
+(** Name checked AST
+
+    This is not really "typed" but just name checked.
+*)
+
 type name = Name.t
 type ident = Ident.t
 
+(** Similar to [Locaiton.located] but also the environment is attached *)
 type 'desc loc_env =
   { desc : 'desc
   ; loc : Location.t
@@ -27,9 +33,11 @@ and expr' =
 
 val string_of_expr : expr -> string
 
-val mutable_vars_of_expr : expr -> Ident.t list
+val vars_of_expr : expr -> Ident.t list
+(** Extract the mutable variables of an expression *)
 
 val constants : expr -> expr list
+(** Extract the constants of an expression *)
 
 type loop_mode =
   | In
@@ -46,21 +54,21 @@ and fact' =
       ; name : name
       ; args : expr list
       } (** Channel fact [ch :: name(args)] *)
-  | Out of expr (** Attacker fact: Out *)
-  | In of expr (** Attacker fact: In *)
-  | Plain of name * expr list
-  | Eq of expr * expr
-  | Neq of expr * expr
+  | Out of expr (** Attacker fact: [Out(e)] *)
+  | In of expr (** Attacker fact: [In(e)] *)
+  | Plain of name * expr list  (** [n(e1,..,en)] *)
+  | Eq of expr * expr (** [e1 = e2] *)
+  | Neq of expr * expr (** [e1 != e2] *)
   | File of
       { path : expr
       ; contents : expr
       } (** File fact [path.contents] *)
-  | Global of string * expr list
+  | Global of string * expr list (** [:: n(e1,..,en)] *)
 
 type cmd = cmd' loc_env
 
 and case =
-  { fresh : ident list
+  { fresh : ident list (** Variables considered quantified *)
   ; facts : fact list
   ; cmd : cmd
   }
@@ -85,7 +93,10 @@ and cmd' =
   | Get of ident list * expr * name * cmd (** fetch, let x1,..,xn := e.S in c *)
   | Del of expr * name (** deletion , delete e.S *)
 
-type chan_param = { channel : ident; param : unit option; typ : ident }
+type chan_param =
+  { channel : ident
+  ; param : unit option (** [None] for [ch] and [Some ()] for [ch<>] *)
+  ; typ : ident }
 
 type chan_arg =
   { channel : ident
@@ -114,9 +125,7 @@ type proc =
 type lemma = lemma' loc_env
 
 and lemma' =
-  | Plain of string (** [exists-trace "xxx"]
-      [all-traces "xxx"]
-  *)
+  | Plain of string (** [exists-trace "xxx"], [all-traces "xxx"], etc *)
   | Reachability of
       { fresh : ident list
       ; facts : fact list
@@ -147,8 +156,7 @@ and decl' =
       ; cmd : cmd
       }
   (** system call, [syscall f(a1,..,an) { c }]
-                   [passive attack f(ty1 a1,..,tyn an) { c }]
-      XXX what is passive attack for?  It is not distinguishable from syscall in Input.
+                   or [passive attack f(ty1 a1,..,tyn an) { c }]
   *)
   | Attack of
       { id : ident
@@ -180,7 +188,7 @@ and decl' =
       } (** [const n = e], [const fresh n], [const n<p> = e], [const fresh n<>] *)
   | Channel of
       { id : ident
-      ; param : unit option
+      ; param : unit option (** [None] for [ch] and [Some ()] for [ch<>] *)
       ; typ : ident
       } (** [channel n : ty] or [channel n<> : ty] *)
   | Process of

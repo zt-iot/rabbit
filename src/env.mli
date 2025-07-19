@@ -18,7 +18,7 @@ type desc =
   | Type of Input.type_class
   | Function of int (** function with definition and arity *)
   | Process
-  | Rho (** $\rho *)
+  | Rho (** $\rho$, only used in [Sem] and later stages *)
 
 val print_desc : desc -> Format.formatter -> unit
 
@@ -27,7 +27,9 @@ type t = {
   facts : (Name.ident * (named_fact_desc * int option)) list ref
   (** Fact names with descriptions and arities. Arities can be unknown
       if [delete e.S] first appear than [new x := S(args) in c]
-      and [let xi := e.S in c]
+      and [let xi := e.S in c].
+
+      The fact environment is a global singleton and shared, therefore a reference.
   *)
 }
 
