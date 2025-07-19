@@ -36,33 +36,6 @@ let rec string_of_expr = function
 
 let expr_of_channel id = String ("chan:" ^ Ident.to_string id)
 
-let rec compile_expr (e : Typed.expr) : expr =
-  match e.desc with
-  | Boolean _ -> assert false
-  | Float _ -> assert false
-  | Integer z -> Integer z
-  | Ident { id; param= None; desc= Var | Const false | ExtConst | Param } -> Ident id
-  | Ident { id; param= Some _p; desc= Const true } -> Ident id (* p XXX ??? *)
-  | Ident { id; param= None; desc= Channel (false, _cty) } -> expr_of_channel id
-  | Ident { id; param= Some p; desc= Channel (true, _cty) } ->
-      Tuple [expr_of_channel id; compile_expr p]
-  | Ident { id; param= None; desc } ->
-      Format.eprintf "Error %s : %t@." (Ident.to_string id) (Env.print_desc desc);
-      assert false
-  | Ident { id; param= Some _p; desc } ->
-      Format.eprintf "Error %s : %t@." (Ident.to_string id) (Env.print_desc desc);
-      assert false
-  | String s -> String ("str:" ^ s)
-  | Apply (f, es) -> Apply (f, List.map compile_expr es)
-  | Tuple es -> Tuple (List.map compile_expr es)
-  | Unit -> Unit
-
-let expr_of_chan_arg ({ channel; parameter; _ } : Typed.chan_arg) =
-  match parameter with
-  | None -> expr_of_channel channel
-  | Some (Some e) -> Tuple [expr_of_channel channel; compile_expr e]
-  | Some None -> Tuple [expr_of_channel channel; Ident (Ident.local "any")]
-
 type signature =
   { functions : (Ident.t * int) list
   ; equations : (expr * expr) list
@@ -89,11 +62,6 @@ let print_signature ppf signature =
          ~pp_sep:(fun ppf () -> fprintf ppf ", ")
          (fun ppf (e1, e2) -> fprintf ppf "%s=%s" (string_of_expr e1) (string_of_expr e2)))
       signature.equations
-
-let compile_signature (sg : Sem.signature) =
-  { functions = sg.functions
-  ; equations = List.map (fun (e1,e2) -> compile_expr e1, compile_expr e2) sg.equations
-  }
 
 type fact =
   | Channel of
@@ -276,89 +244,134 @@ let string_of_fact' { name; args; config } =
 
 let string_of_fact f = string_of_fact' @@ fact' f
 
-(* ???
-let print_fact fact =
-  print_fact2 fact ^
-  match fact.config.priority with
-  | 0 -> "[-,no_precomp]"
-  | 1 -> "[-]"
-  | 2 -> ""
-  | 3 -> "[+]"
-  | _ -> assert false
-*)
+(* It is a state monad! *)
+type 'a compiled = { deps : fact list; result : 'a }
 
-let constant_dependencies e =
-  let dep_consts = Typed.constants e in
-  List.map (fun (e : Typed.expr) ->
-      match e.desc with
-      | Ident { id; desc= Const false; param= None } ->
-          Const { id; param= None; value= Ident id }
-      | Ident { id; desc= Const true; param= Some p } ->
-          Const { id; param= Some (compile_expr p); value= Ident id }  (* no parameter in value *)
-      | Ident { id= _; desc= Const _; param= _ } -> assert false
-      | _ -> assert false
-    ) dep_consts
+let (let*) x f =
+  let { deps; result } = f x.result in
+  { deps= x.deps @ deps; result }
 
-let compile_fact_ (f : Sem.fact) : fact =
+let return ?(deps = []) result = { deps; result }
+
+let rec mapM f = function
+  | [] -> return []
+  | x::xs ->
+      let* y = f x in
+      let* ys = mapM f xs in
+      return @@ y :: ys
+
+let rec compile_expr (e : Typed.expr) : expr compiled =
+  match e.desc with
+  | Boolean _ -> assert false
+  | Float _ -> assert false
+  | Integer z -> return @@ Integer z
+  | Ident { id; param= None; desc= Const false } ->
+      return ~deps:[Const { id; param= None; value= Ident id }] @@ Ident id
+  | Ident { id; param= Some p; desc= Const true } ->
+      (* [c<p>] and [c<(p,p)>] must be compiled to different facts and identifiers!
+
+         [c<p>]     => [Const { id; param= Some p;              value= Ident c__1}, c__1]
+         [c<(p,p)>] => [Const { id; param= Some (Tuple [p; p]); value= Ident c__2}, c__2]
+      *)
+      let id' = Ident.local (fst id) in
+      let* p = compile_expr p in
+      return ~deps:[Const { id; param= Some p; value= Ident id' }] @@ Ident id'
+  | Ident { id; param= None; desc= Var | ExtConst | Param | Rho } ->
+      return @@ Ident id
+  | Ident { id; param= None; desc= Channel (false, _cty) } ->
+      return @@ expr_of_channel id
+  | Ident { id; param= Some p; desc= Channel (true, _cty) } ->
+      let* p = compile_expr p in
+      return @@ Tuple [expr_of_channel id; p]
+  | Ident { id; param= None; desc } ->
+      Format.eprintf "Error %s : %t@." (Ident.to_string id) (Env.print_desc desc);
+      assert false
+  | Ident { id; param= Some _p; desc } ->
+      Format.eprintf "Error %s : %t@." (Ident.to_string id) (Env.print_desc desc);
+      assert false
+  | String s ->
+      return @@ String ("str:" ^ s)
+  | Apply (f, es) ->
+      let* es = mapM compile_expr es in
+      return @@ Apply (f, es)
+  | Tuple es ->
+      let* es = mapM compile_expr es in
+      return @@ Tuple es
+  | Unit -> return Unit
+
+let expr_of_chan_arg ({ channel; parameter; _ } : Typed.chan_arg) =
+  match parameter with
+  | None ->
+      return @@ expr_of_channel channel
+  | Some (Some e) ->
+      let* e = compile_expr e in
+      return @@ Tuple [expr_of_channel channel; e]
+  | Some None ->
+      return @@ Tuple [expr_of_channel channel; Ident (Ident.local "any")]
+
+let compile_signature (sg : Sem.signature) =
+  let compile_expr e =
+    let { deps; result= e } = compile_expr e in
+    assert (deps = []);
+    e
+  in
+  { functions = sg.functions
+  ; equations = List.map (fun (e1,e2) -> compile_expr e1, compile_expr e2) sg.equations
+  }
+
+let compile_fact (f : Sem.fact) : fact compiled =
   match f.desc with
   | Channel { channel; name; args } ->
-      Channel { channel= compile_expr channel;
-                name;
-                args= List.map compile_expr args }
-  | Out e -> Out (compile_expr e)
-  | In e -> In (compile_expr e)
-  | Plain (n, es) -> Plain (n, List.map compile_expr es)
-  | Eq (e1, e2) -> Eq (compile_expr e1, compile_expr e2)
-  | Neq (e1, e2) -> Neq (compile_expr e1, compile_expr e2)
-  | File { path; contents } -> File { path= compile_expr path; contents=  compile_expr contents }
-  | Global (n, es) -> Global (n, List.map compile_expr es)
-  | Fresh id -> Fresh id
+      let* channel = compile_expr channel in
+      let* args = mapM compile_expr args in
+      return @@ Channel { channel; name; args }
+  | Out e ->
+      let* e = compile_expr e in
+      return @@ Out e
+  | In e ->
+      let* e = compile_expr e in
+      return @@ In e
+  | Plain (n, es) ->
+      let* es = mapM compile_expr es in
+      return @@ Plain (n, es)
+  | Eq (e1, e2) ->
+      let* e1 = compile_expr e1 in
+      let* e2 = compile_expr e2 in
+      return @@ Eq (e1, e2)
+  | Neq (e1, e2) ->
+      let* e1 = compile_expr e1 in
+      let* e2 = compile_expr e2 in
+      return @@ Neq (e1, e2)
+  | File { path; contents } ->
+      let* path = compile_expr path in
+      let* contents = compile_expr contents in
+      return @@ File { path; contents }
+  | Global (n, es) ->
+      let* es = mapM compile_expr es in
+      return @@ Global (n, es)
+  | Fresh id -> return @@ Fresh id
   | Structure { name; proc_id; address; args } ->
-      Structure { name; proc_id; address= compile_expr address; args= List.map compile_expr args }
-  | Loop { mode; proc_id; param; index } -> Loop { mode; proc_id; param; index }
+      let* address = compile_expr address in
+      let* args = mapM compile_expr args in
+      return @@ Structure { name; proc_id; address; args }
+  | Loop { mode; proc_id; param; index } -> return @@ Loop { mode; proc_id; param; index }
   | Access { proc_id; param; channel; syscall } ->
-      Access { proc_id; param; channel= compile_expr channel; syscall }
+      let* channel = compile_expr channel in
+      return @@ Access { proc_id; param; channel; syscall }
 
-let fact_constant_dependencies (f : Sem.fact) =
-  match f.desc with
-  | Channel { channel; name=_; args } ->
-      constant_dependencies channel @ List.concat_map constant_dependencies args
-  | Out e | In e -> constant_dependencies e
-  | Plain (_, es) | Global (_, es) -> List.concat_map constant_dependencies es
-  | Eq (e1, e2)
-  | Neq (e1, e2) -> constant_dependencies e1 @ constant_dependencies e2
-  | File { path; contents } -> constant_dependencies path @ constant_dependencies contents
-  | Fresh _id -> []
-  | Structure { name=_; proc_id=_; address; args } ->
-      constant_dependencies address @ List.concat_map constant_dependencies args
-  | Loop _ -> []
-  | Access { proc_id=_; param=_; channel; syscall=_ } -> constant_dependencies channel
-
-let compile_fact (f : Sem.fact) : fact * fact list =
-  compile_fact_ f, fact_constant_dependencies f
-
-let compile_facts (fs : Sem.fact list) : fact list * fact list =
-  let rev_facts, rev_deps = List.fold_left (fun (rev_fs, rev_deps) f ->
-      let f, deps = compile_fact f in
-      f :: rev_fs, List.rev_append deps rev_deps) ([], []) fs
-  in
-  List.rev rev_facts, List.rev rev_deps
-
-type correspondence_unit =
-  { global_variables : fact list
-  ; fact : fact }
+let compile_facts (fs : Sem.fact list) : fact list compiled =
+  let fs_f_list = List.map compile_fact fs in
+  let deps = List.concat_map (fun x -> x.deps) fs_f_list in
+  let fs = List.map (fun x -> x.result) fs_f_list in
+  { deps; result= fs }
 
 type lemma =
   | Plain of string
-  | Reachability of
-      { global_variables : fact list
-      ; facts : fact list
-      }
+  | Reachability of fact list compiled
   | Correspondence of
-      { premise : correspondence_unit
-      ; conclusion : correspondence_unit
+      { premise : fact compiled
+      ; conclusion : fact compiled
       }
-
 
 let vars_of_global_fact = function
   | Global (_name, es) ->
@@ -375,7 +388,7 @@ let print_lemma ppf (id, lemma) =
   match lemma with
   | Plain desc ->
       fprintf ppf "lemma %s :@.  %s@." (Ident.to_string id) desc
-  | Reachability {global_variables= gv; facts} ->
+  | Reachability {deps= gv; result= facts} ->
       let vars = List.fold_left Ident.Set.union Ident.Set.empty @@ List.map vars_of_global_fact (gv @ facts) in
       fprintf ppf "lemma %s :@." (Ident.to_string id);
       fprintf ppf "  exists-trace@.    \"Ex ";
@@ -394,7 +407,7 @@ let print_lemma ppf (id, lemma) =
       let vars_of_correspondnce_unit c =
         List.fold_left Ident.Set.union Ident.Set.empty
         @@ List.map vars_of_global_fact
-        @@ c.fact :: c.global_variables
+        @@ c.result :: c.deps
       in
       let vara = vars_of_correspondnce_unit premise in
       let varb = Ident.Set.diff (vars_of_correspondnce_unit conclusion) vara in
@@ -402,25 +415,25 @@ let print_lemma ppf (id, lemma) =
       fprintf ppf "  all-traces@.    \"All ";
       fprintf ppf "%s" @@ String.concat " " (List.map Ident.to_string (Ident.Set.elements vara));
       fprintf ppf "%s" @@ String.concat " "
-        (List.mapi (fun n _ -> " #label_time_" ^ string_of_int n) premise.global_variables);
+        (List.mapi (fun n _ -> " #label_time_" ^ string_of_int n) premise.deps);
       fprintf ppf " #time_1 . ";
       fprintf ppf "%s" @@ String.concat " & "
         (List.mapi (fun n g ->
              string_of_fact g
-             ^ "@#label_time_" ^ string_of_int n) premise.global_variables);
-      if premise.global_variables <> [] then fprintf ppf " & ";
-      fprintf ppf "%s" @@ string_of_fact premise.fact;
+             ^ "@#label_time_" ^ string_of_int n) premise.deps);
+      if premise.deps <> [] then fprintf ppf " & ";
+      fprintf ppf "%s" @@ string_of_fact premise.result;
       fprintf ppf "@@#time_1 ==> Ex ";
       fprintf ppf "%s" @@ String.concat " " (List.map Ident.to_string (Ident.Set.elements varb));
       fprintf ppf "%s" @@ String.concat " "
-        (List.mapi (fun n _ -> " #label_time_" ^ string_of_int n) conclusion.global_variables);
+        (List.mapi (fun n _ -> " #label_time_" ^ string_of_int n) conclusion.deps);
       fprintf ppf " #time_2 . ";
       fprintf ppf "%s" @@ String.concat " & "
         (List.mapi (fun n g ->
              string_of_fact g
-             ^ "@#label_time_" ^ string_of_int n) conclusion.global_variables);
-      if conclusion.global_variables <> [] then fprintf ppf " & ";
-      fprintf ppf "%s" @@ string_of_fact conclusion.fact;
+             ^ "@#label_time_" ^ string_of_int n) conclusion.deps);
+      if conclusion.deps <> [] then fprintf ppf " & ";
+      fprintf ppf "%s" @@ string_of_fact conclusion.result;
       fprintf ppf "@@#time_2 & #time_2 < #time_1 \"@."
 
 
@@ -429,18 +442,11 @@ let compile_lemma (lem : Typed.lemma) : lemma =
   | Plain s -> Plain s
   | Reachability { fresh=_; facts } ->
       let facts = List.map Sem.fact_of_typed facts in
-      let facts, deps = compile_facts facts in
-      Reachability { global_variables= deps; facts }
+      Reachability (compile_facts facts)
   | Correspondence { fresh=_; premise; conclusion } ->
-      let premise = Sem.fact_of_typed premise in
-      let conclusion = Sem.fact_of_typed conclusion in
-      let premise, premise_deps = compile_fact premise in
-      let conclusion, conclusion_deps = compile_fact conclusion in
-      Correspondence { premise= { global_variables = premise_deps
-                                ; fact= premise }
-                     ; conclusion = { global_variables = conclusion_deps
-                                    ; fact= conclusion }
-                     }
+      let premise = compile_fact @@ Sem.fact_of_typed premise in
+      let conclusion = compile_fact @@ Sem.fact_of_typed conclusion in
+      Correspondence { premise; conclusion }
 
 type rule =
   { id : Ident.t
@@ -501,49 +507,35 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
     let transition = if !Config.tag_transition then Some Var else None in
     State { proc_id; param; index= edge.source; mapping; transition }
   in
-  let state_post : fact =
-    let mapping =
-      List.map (fun id ->
-          id,
-          match List.assoc_opt id edge.update.items with
-          | None -> Ident id (* no change *)
-          | Some (New e | Update e) -> compile_expr e
-          | Some Drop -> assert false)  edge.target_vars
+  let { deps= post_consts; result= state_post } =
+    let* mapping =
+      mapM (fun id ->
+          let* res =
+            match List.assoc_opt id edge.update.items with
+            | None -> return @@ Ident id (* no change *)
+            | Some (New e | Update e) -> compile_expr e
+            | Some Drop -> assert false
+          in
+          return (id, res)
+        ) edge.target_vars
     in
-    let mapping =
-      let rho_expr = compile_expr edge.update.register in
-      (edge.update.rho, rho_expr) :: mapping
+    let* mapping =
+      let* rho_expr = compile_expr edge.update.register in
+      return @@ (edge.update.rho, rho_expr) :: mapping
     in
     let transition =
       if !Config.tag_transition then
         if edge.loop_back then Some Inc
         else Some Var
       else None in
-    State { proc_id; param; index= edge.target; mapping; transition }
-  in
-  let post_consts =
-    List.filter_map (fun (c : Typed.expr) ->
-        match c.desc with
-        | Ident { id; desc= Const false; param= None } ->
-            Some (Const { id; param= None; value= Ident id })
-        | Ident { id; desc= Const true; param= Some p } ->
-            Some (Const { id; param= Some (compile_expr p); value= Ident id })
-        | Ident { id= _; desc= Const _; param= _ } -> assert false
-        | Ident _ -> None
-        | _ -> None)
-    @@
-    List.concat_map Typed.constants
-      (edge.update.register
-       :: List.filter_map (function
-           | (_id, (Sem.New e | Update e)) -> Some e
-           | (_id, Drop) -> None) edge.update.items)
+    return @@ State { proc_id; param; index= edge.target; mapping; transition }
   in
   (* move equality and inequality facts from precondition to tags because Tamarin cannot handle
      (N)Eq fact generation rules correctly for fresh values *)
   let pre, label, post = facts_of_edge edge in
-  let pre, pre_deps = compile_facts pre in
-  let label, label_deps = compile_facts label in
-  let post, post_deps = compile_facts post in
+  let { deps= pre_deps; result= pre } = compile_facts pre in
+  let { deps= label_deps; result= label } = compile_facts label in
+  let { deps= post_deps; result= post } = compile_facts post in
   let label =
     if !Config.tag_transition then
       Transition { proc_id; param; source=edge.source; transition= Some Var } :: label
@@ -645,11 +637,11 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       ; comment = Some (Printf.sprintf "const fresh %s" (Ident.to_string id))
       }
   | Value e -> (* const c = e *)
-      let const = Const { id; param= None; value= compile_expr e } in
-      let const_deps = constant_dependencies e in
+      let { deps= const_deps; result= e' } = compile_expr e in
+      let const = Const { id; param= None; value= e' } in
       { id= rule_id
       ; role= None
-      ; pre= Fresh id :: const_deps
+      ; pre= const_deps
       ; label= [Initing_const {id; param= None}; const]
       ; post= [const]
       ; comment = Some (Printf.sprintf "const %s = %s" (Ident.to_string id) (Typed.string_of_expr e))
@@ -670,8 +662,8 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       ; comment = Some (Printf.sprintf "const fresh %s<>" (Ident.to_string id))
       }
   | Value_with_param (p, e) -> (* const c<p> = e *)
-      let const = Const { id; param= Some (Ident p); value= compile_expr e } in
-      let const_deps = constant_dependencies e in
+      let { deps= const_deps; result= e' } = compile_expr e in
+      let const = Const { id; param= Some (Ident p); value= e' } in
       { id= rule_id
       ; role = None
       ; pre = const_deps
@@ -700,18 +692,17 @@ let compile_access_controls
       in
       let pre = [ Inited_proc_group (proc_group_id, param) ] in
       let label = [ Initing_proc_access { proc_id; param } ] in
-      let post =
-        List.filter_map (function
-            | `Channel ((chan_arg : Typed.chan_arg), syscall_opt) ->
-                Some (Access {
-                    proc_id;
-                    param;
-                    channel= expr_of_chan_arg chan_arg;
-                    syscall= syscall_opt
-                  })
-            | `Attacks _ -> None (* attack is not handled here *)
-          ) elems
+      let { deps; result= post } =
+        mapM (fun ((chan_arg : Typed.chan_arg), syscall_opt) ->
+            let* channel= expr_of_chan_arg chan_arg in
+            return @@ Access {
+              proc_id;
+              param;
+              channel;
+              syscall= syscall_opt
+            }) elems
       in
+      assert (deps = []); (* XXX ??? *)
       match post with
       | [] -> None
       | _ ->
