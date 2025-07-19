@@ -29,7 +29,8 @@ let rec expr (s : t) (e : expr) : expr =
       Option.value ~default:e @@ List.assoc_opt id s.parameters
   | Ident { id=_; desc= Param; param= Some _; _ } ->
       assert false
-  | Ident _ -> e
+  | Ident ({ param; _ } as desc) ->
+      { e with desc= Ident { desc with param= Option.map (expr s) param } }
 
 let fact s (f : fact) : fact =
   let desc : fact' = match f.desc with
@@ -98,13 +99,26 @@ let instantiate_proc_aux s ~id ~param ~args ~typ ~files ~vars ~funcs ~main =
   { id; param; args; typ; files; vars; funcs; main }
 
 let instantiate_proc
-    s
-    ~param
+    ~param_rewrite
     (decls : decl list)
     (pproc : pproc) (* id<parameter>(args) *) =
   let { id; parameter= param_arg; args= chan_args } = pproc.data in (* id<param_arg>(chan_args) *)
   (* instantiate [param_arg] and [chan_args] with [s] *)
-  let s = { parameters= s(*XXX*); channels= [] } in
+  let s =
+    let parameters =
+      match param_rewrite with
+      | None -> []
+      | Some (org, new_) ->
+          [org,
+           { desc= Ident { id= new_
+                         ; desc= Param
+                         ; param= None }
+           ; loc= Location.nowhere
+           ; env= Env.add (Env.empty ()) new_ Param
+           }]
+    in
+    { parameters; channels= [] }
+  in
   let param_arg = Option.map (expr s) param_arg in
   let chan_args = List.map (fun (chan_arg : chan_arg) ->
       { chan_arg
@@ -156,7 +170,7 @@ let instantiate_proc
         in
         { parameters; channels }
       in
-      instantiate_proc_aux s ~id ~param ~args:chan_args ~typ ~files ~vars ~funcs ~main
+      instantiate_proc_aux s ~id ~param:(Option.map snd param_rewrite) ~args:chan_args ~typ ~files ~vars ~funcs ~main
   | None -> assert false
   | Some _ -> assert false
 
@@ -173,19 +187,11 @@ let instantiate_proc_group decls (proc_group : Typed.proc) =
   match proc_group with
   | Unbounded { data= { parameter= Some _; _ }; _ } -> assert false
   | Unbounded ({ data= { parameter= None; _ }; _ } as pproc) ->
-      (* New process id *)
-      { id= Ident.local ("PG_" ^ fst pproc.data.id)
-      ; desc= Unbounded (instantiate_proc [] ~param:None decls (pproc : pproc)) }
+      { id= Ident.local ("PG_" ^ fst pproc.data.id) (* New process id *)
+      ; desc= Unbounded (instantiate_proc ~param_rewrite:None decls (pproc : pproc)) }
   | Bounded (id, pprocs) ->
       let new_id = Ident.local (fst id) in
       let proc_id = Ident.prefix "PG_" new_id in
-      let e = { desc= Ident { id= new_id
-                            ; desc= Param
-                            ; param= None }
-              ; loc= Location.nowhere
-              ; env= Env.add (Env.empty ()) new_id Param
-              }
-      in
       (* Use the instantiated parameter for the process id *)
       { id= proc_id
-      ; desc= Bounded (new_id, List.map (instantiate_proc [id, e] ~param:(Some new_id) decls) pprocs) }
+      ; desc= Bounded (new_id, List.map (instantiate_proc ~param_rewrite:(Some (id, new_id)) decls) pprocs) }
