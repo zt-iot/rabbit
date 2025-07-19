@@ -121,8 +121,7 @@ type t =
   ; access_controls :
       (Subst.proc_group_id
        * (Subst.proc_id
-          * [ `Attacks of Ident.t list
-            | `Channel of Typed.chan_arg * Ident.t option ] list) list) list
+          * (Typed.chan_arg * Ident.t option) list) list) list
   ; constants : (Ident.t * Typed.init_desc) list
   ; lemmas : (Ident.t * Typed.lemma) list
   }

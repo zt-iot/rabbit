@@ -1086,7 +1086,7 @@ let get_constants (decls : decl list) : (Typed.ident * Typed.init_desc) list =
       | _ -> None) decls
 
 let get_access_controls (decls : decl list) (proc : Subst.instantiated_proc_group)
-  : Subst.proc_group_id * (Subst.proc_id * [`Attacks of Typed.ident list | `Channel of Typed.chan_arg * Typed.ident option ] list) list =
+  : Subst.proc_group_id * (Subst.proc_id * (Typed.chan_arg * Typed.ident option) list) list =
   let aux (proc : Subst.instantiated_proc) =
     proc.id,
     List.concat @@ List.filter_map (fun decl ->
@@ -1102,9 +1102,7 @@ let get_access_controls (decls : decl list) (proc : Subst.instantiated_proc_grou
               | Some ss -> List.map Option.some ss
             in
             Some (List.concat_map (fun chan_arg ->
-                List.map (fun syscall -> `Channel (chan_arg, syscall)) syscalls) chan_args)
-        | AllowAttack { process_typs; attacks } when List.mem proc.typ process_typs ->
-            Some [`Attacks attacks]
+                List.map (fun syscall -> (chan_arg, syscall)) syscalls) chan_args)
         | _ -> None) decls
   in
   proc.id,
@@ -1115,7 +1113,7 @@ let get_access_controls (decls : decl list) (proc : Subst.instantiated_proc_grou
 type t =
   { signature : signature
   ; proc_groups : (Subst.proc_group_id * modeled_proc_group_desc) list
-  ; access_controls : (Subst.proc_group_id * (Subst.proc_id * [`Attacks of ident list | `Channel of chan_arg * ident option ] list) list) list
+  ; access_controls : (Subst.proc_group_id * (Subst.proc_id * (chan_arg * ident option) list) list) list
   ; constants : (ident * init_desc) list
   ; lemmas : (Ident.t * lemma) list
   }
