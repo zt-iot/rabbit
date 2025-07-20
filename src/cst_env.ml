@@ -21,6 +21,7 @@ type integrity_lvl =
   | INode of proc_ty_set
 [@@deriving show, eq]
 
+
 (* core type WITHOUT polymorphic types *)
 type core_type = 
   | TUnit 
@@ -60,7 +61,6 @@ let rec cst_to_csfp (cst : core_security_type) : core_security_function_param =
         CFP_Simple (name, List.map cst_to_csfp core_security_types)
     | TProd (cst1, cst2) -> 
         CFP_Product (cst_to_csfp cst1, cst_to_csfp cst2)
-
     | Dummy -> CFP_Dummy
     
   in
