@@ -111,7 +111,7 @@ type decl = decl' loc_env [@@deriving show]
 and decl' =
   | Syscall of
       { id : ident
-      ; args : ident list (* typing information is recorded in the environment instead *)
+      ; args : ident list
       ; cmd : cmd
       }
   (** system call, [syscall f(a1,..,an) { c }]

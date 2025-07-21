@@ -5,9 +5,10 @@ type 'desc loc_env =
   { desc : 'desc
   ; loc : Location.t
   ; env : Env.t
+  ; typ : Env.instantiated_ty option (* the type of "`desc" if it can have a type.  *)
   }
 
-let pp_loc_env pp_desc fmt { desc; loc = _; env } =
+let pp_loc_env pp_desc fmt { desc; loc = _; env ; typ = _ } =
   Format.fprintf fmt "{ desc = %a; env = %a }"
     pp_desc desc
     Env.pp env
@@ -344,6 +345,7 @@ module Subst = struct
                               ; param= None }
                 ; loc= Location.nowhere
                 ; env= Env.add (Env.empty ()) new_id (Var Param)
+                ; typ= None
                 }
         in
         List.map (instantiate_pproc [id, e] decls) pprocs

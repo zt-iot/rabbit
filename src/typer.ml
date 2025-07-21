@@ -330,13 +330,13 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
              Ident { id; desc; param= Some e }
          | id, desc -> error ~loc @@ NonParameterizableIdentifier (id, desc))
   in
-  { loc; env; desc }
+  { loc; env; desc; typ = None }
 ;;
 
 (* If [f] is a system call or a funciton w/ definition, an application of [f] is only
    allowed at commands [x := f (..)].
+   this function is called if `at_assignment=false`
 *)
-
 let check_apps e =
   let rec aux (e : Typed.expr) =
     match e.desc with
@@ -402,7 +402,7 @@ let type_fact env (fact : Input.fact) : Typed.fact =
         let e2 = desugar_expr env e2 in
         File { path = e1; contents = e2 }
   in
-  { env; loc; desc }
+  { env; loc; desc; typ = None }
 ;;
 
 let extend_with_args env (args : Name.ident list) f =
@@ -438,6 +438,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         let facts = type_facts env facts in
         Put facts
     | Let (name, e, cmd) ->
+        (* print_endline (Format.sprintf "typing `var %s = ...`" name); *)
         let e = desugar_expr ~at_assignment:true env e in
         let id = Ident.local name in
         let env' = Env.add env id (Var (Loc (snd id))) in
@@ -497,7 +498,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
          | None -> error ~loc @@ UnboundFact str);
         Del (e, str)
   in
-  { loc; env; desc }
+  { loc; env; desc; typ = None }
 
 and type_cases env cases : Typed.case list = List.map (type_case env) cases
 
@@ -585,7 +586,7 @@ let type_process
            path, filety, contents)
         files
     in
-    (* add contens of process memory to local  environment *)
+    (* add contents of process memory to local  environment *)
     let env', rev_vars =
       List.fold_left
         (fun (env, rev_vars) (name, ty_opt, e) ->
@@ -623,6 +624,8 @@ let type_process
         funcs
     in
     let funcs = List.rev rev_funcs in
+    if (name = "client_ta") then
+      print_endline "running cmd code of client_ta through typer.ml";
     let main = type_cmd env' main in
     param_opt, args, proc_ty, files, vars, funcs, main
   in
@@ -633,6 +636,7 @@ let type_process
     ; loc
     ; desc =
         Process { id; param = param_opt; args; typ = proc_ty; files; vars; funcs; main }
+    ; typ = None
     }
   in
   env', decl
@@ -674,7 +678,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         let f2 = type_fact env' f2 in
         Correspondence { fresh = fresh_ids; from = f1; to_ = f2 }
   in
-  let lemma : Typed.lemma = { env; loc; desc } in
+  let lemma : Typed.lemma = { env; loc; desc; typ = None } in
   let env', id = Env.add_global ~loc env name Process in
   env', (id, lemma)
 ;;
@@ -723,7 +727,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let e1 = desugar_expr env' e1 in
       let e2 = desugar_expr env' e2 in
       ( env
-      , [{ env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *) }] )
+      , [{ env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *); typ = None }] )
   | DeclExtSyscall (name, syscall_desc_input, c) ->
 
       
@@ -741,7 +745,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
             Env.DesSMFunTyped(args, converted_fun_params_types)
       end in 
       let env', id = Env.add_global ~loc env name (ExtSyscall converted_syscall_sig) in
-      env', [{ env; loc; desc = Typed.Syscall { id; fun_sig = converted_syscall_sig; cmd } }]
+      env', [{ env; loc; desc = Typed.Syscall { id; fun_sig = converted_syscall_sig; cmd }; typ = None }]
   | DeclExtAttack (name, syscall, args, c) ->
       (* [attack id on syscall (a1,..,an) { c }] *)
       let syscall =
@@ -757,7 +761,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         args, c
       in
       let env', id = Env.add_global ~loc env name Attack in
-      env', [{ env; loc; desc = Attack { id; syscall; args; cmd } }]
+      env', [{ env; loc; desc = Attack { id; syscall; args; cmd }; typ = None }]
   | DeclType (name, typ) ->
       let converted_to_env_desc = begin match typ with 
         | Input.CProc -> Env.ProcTypeDef 
@@ -799,7 +803,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let res = match typclass_opt with 
         | Some ty_class -> 
           let typed_decl_desc = Typed.Type {id = id' ; typclass = ty_class } in 
-          (env', [{ Typed.desc = typed_decl_desc ; Typed.loc = loc; Typed.env = env} ])
+          (env', [{ Typed.desc = typed_decl_desc ; Typed.loc = loc; Typed.env = env; Typed.typ = None} ])
         | None ->
           (env', []) in 
       res
@@ -834,6 +838,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         ; loc
         ; desc =
             Allow { process_typ = proc_ty; target_typs = tys; syscalls = syscalls_opt }
+        ; typ = None
         }] )
   | DeclAttack (proc_tys, attacks) ->
       (* [allow attack proc_ty1 .. proc_tyn [attack1, .., attackn]] *)
@@ -843,28 +848,28 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let attacks =
         List.map (fun attack -> Env.find_desc ~loc env attack Attack) attacks
       in
-      env, [{ env; loc; desc = AllowAttack { process_typs = proc_tys; attacks } }]
+      env, [{ env; loc; desc = AllowAttack { process_typs = proc_tys; attacks }; typ = None }]
   | DeclInit (name, rabbit_typ_opt, Fresh) ->
       let converted_ty_opt = Option.map (fun rtyp -> convert_rabbit_typ_to_instantiated_ty ~loc env rtyp) rabbit_typ_opt in 
       (* [const fresh n] *)
       let env', id = Env.add_global ~loc env name (Const (false, converted_ty_opt)) in
 
       (* We only return a declaration for compatibility with sem.ml *)
-      env', [{ env; loc; desc = Init { id; desc = Fresh } }]
+      env', [{ env; loc; desc = Init { id; desc = Fresh }; typ = None }]
   | DeclInit (name, _, Value e) ->
       (* [const n = e] *)
       let e = desugar_expr env e in
       let env', id = Env.add_global ~loc env name (Const (false, None)) in
 
       (* We only return a declaration for compatibility with sem.ml *)
-      env', [{ env; loc; desc = Init { id; desc = Value e } }]
+      env', [{ env; loc; desc = Init { id; desc = Value e }; typ = None }]
   | DeclInit (name, rabbit_typ_opt, Fresh_with_param) ->
       (* [const fresh n<>] *)
       let converted_ty_opt = Option.map (fun rtyp -> convert_rabbit_typ_to_instantiated_ty ~loc env rtyp) rabbit_typ_opt in 
       let env', id = Env.add_global ~loc env name (Const (true, converted_ty_opt)) in
       
       (* We only return a declaration for compatibility with sem.ml *)
-      env', [{ env; loc; desc = Init { id; desc = Fresh_with_param } }]
+      env', [{ env; loc; desc = Init { id; desc = Fresh_with_param }; typ = None }]
   | DeclInit (name, _, Value_with_param (e, p)) ->
       (* [const n<p> = e] *)
       let p = Ident.local p in
@@ -876,7 +881,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       in
 
       (* We only return a declaration for compatibility with sem.ml *)
-      env', [{ env; loc; desc = Init { id; desc = Value_with_param (p, e) } }]
+      env', [{ env; loc; desc = Init { id; desc = Value_with_param (p, e) }; typ = None }]
   | DeclChan (ChanParam { id = name; param; typ = chty }) ->
       (* [channel n : ty] *)
       (* [channel n<> : ty] *)
@@ -887,7 +892,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         | _ -> error ~loc @@ Misc("Use a channel type definition instead")
         end in 
       let env', id = Env.add_global ~loc env name (ChannelDecl (param <> None, chty)) in
-      env', [{ env; loc; desc = ChannelDecl { id; param; typ = chty } }]
+      env', [{ env; loc; desc = ChannelDecl { id; param; typ = chty }; typ = None }]
   | DeclProc { id; param; args; typ; files; vars; funcs; main } ->
       let env', decl = type_process ~loc env id param args typ files vars funcs main in
       env', [decl]
@@ -960,7 +965,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
           lemmas
       in
       let lemmas = List.rev rev_lemmas in
-      env, [{ env; loc; desc = System (procs, lemmas) }]
+      env, [{ env; loc; desc = System (procs, lemmas); typ = None }]
 
 and load env fn : Env.t * Typed.decl list =
   let decls, (_used_idents, _used_strings) = Lexer.read_file Parser.file fn in

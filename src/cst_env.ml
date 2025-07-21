@@ -50,6 +50,9 @@ no way to enforce this requirement with specific constructors *)
 and core_security_function_param = core_function_param * (secrecy_lvl * integrity_lvl) [@@deriving show, eq]
 
 
+
+
+
 (* Boilerplate conversion necesary for `convert_function_param_to_core(Env.FParamSecurity(...)) *)
 let rec cst_to_csfp (cst : core_security_type) : core_security_function_param = 
   let (core_ty, security_info) = cst in
@@ -68,7 +71,7 @@ let rec cst_to_csfp (cst : core_security_type) : core_security_function_param =
 
 
 
-
+(* we have a restriction that we cannot have constructors of `Cst_env.desc` with parameter types `expr, cmd` etc., because it would create a circular dependency *)
 type desc =
   | SimpleTypeDef of name list (* simple type declaration *)
   | Var of var_desc

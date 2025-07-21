@@ -738,7 +738,7 @@ let convert_decl (read_access_map : access_map)
   let convert_expr_rec = convert_expr read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in 
   let convert_cmd_rec = (convert_cmd read_access_map provide_access_map all_process_typs 
           secrecy_lattice integrity_lattice) in 
-  let { Typed.loc; env; desc } = td in
+  let { Typed.loc; env; desc; _ } = td in
   let make_loc_env_for_decl_rec = 
     make_loc_env_for_decl read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice loc env in   
   match desc with

@@ -51,6 +51,10 @@ let rec coerce_fun_param (param : Cst_env.core_security_function_param) : Cst_en
 
 
 
+(* Determines whether security type t1 is a subtype of security type t2 *)
+let is_subtype (t1 : Cst_env.core_security_type) (t2 : Cst_env.core_security_type) : bool = 
+  failwith "TODO"
+
 
 
 let rec typeof_expr (secrecy_lattice : To_cst.cst_access_policy)
@@ -293,7 +297,7 @@ and typeof_cmd  (secrecy_lattice : To_cst.cst_access_policy)
        - need to check that no "ill-typed" channel facts are `put`
        - need to check that no ill-typed `out` fact exists *)
     | Event facts ->  
-        let _ = List.map (fun f -> (typecheck_fact secrecy_lattice integrity_lattice f t_env) ) in
+        List.iter (fun f -> (typecheck_fact secrecy_lattice integrity_lattice f t_env) ) facts;
         (TUnit, (Public, Untrusted))
     (* both cases: need to return the type of e *)
     | Return e -> 
