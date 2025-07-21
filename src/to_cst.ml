@@ -397,7 +397,7 @@ let rec convert_instantiated_ty_to_core (read_access_map : access_map)
           | (_, _) -> ct, (secrecy_lvl1, integrity_lvl1)
         end
         
-    | Env.TyChan param_list ->
+    | Env.TyChan (_, param_list) ->
         (* Convert channel parameter list *)
         let converted_params = 
           List.map convert_instantiated_ty_to_core_rec param_list in 

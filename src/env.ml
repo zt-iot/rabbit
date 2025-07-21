@@ -26,7 +26,8 @@ type instantiated_ty =
   | TySecurity of Name.ident (* name of the security type *) * Name.ident (* name of the corresponding simple type *) * instantiated_ty list (* instantiated type parameters of the simple type *)
   | TySimple of Name.ident (* name of the corresponding simple type *) * instantiated_ty list (* instantiated type parameters of the simple type *)
   | TyProduct of instantiated_ty * instantiated_ty
-  | TyChan of instantiated_ty list
+  | TyChan of Name.ident (* name of the channel type (= `channel` if not declared as a specific type <ch_ty> : channel[...] ) *) 
+                * instantiated_ty list (* type parameters of this channel type : which types are allowed to be written to the channel *)
 [@@deriving show]
 
 
@@ -56,7 +57,7 @@ let rec instantiated_ty_to_function_param (ty : instantiated_ty) : function_para
       let f2 = instantiated_ty_to_function_param ty2 in
       FParamProduct (f1, f2)
 
-  | TyChan params ->
+  | TyChan (_, params)  ->
       let param_fparams = List.map instantiated_ty_to_function_param params in
       FParamChannel param_fparams
 

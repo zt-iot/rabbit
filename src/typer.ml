@@ -198,7 +198,7 @@ let rec convert_rabbit_typ_to_instantiated_ty ~loc (env : Env.t) (ty : Input.rab
       error ~loc (Misc "process and filesys cannot be used as a instantiated type")
 
   | CChan input_ty_params ->
-      TyChan(List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params)
+      TyChan("channel", List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params)
 
   | CSimpleOrSecurity (typ_name, input_ty_params) ->
 
@@ -226,7 +226,13 @@ let rec convert_rabbit_typ_to_instantiated_ty ~loc (env : Env.t) (ty : Input.rab
             TySecurity(typ_name, simpletypname, instantiated_simple_typ_params)
 
         | Env.ChanTypeDef (instantiated_tys) -> 
-          TyChan(instantiated_tys)
+          
+          (* we need to check that there are no additional input_ty_params given, because a channel security type cannot have any *)
+          (* Example of "channel security type" is `type udp_t : channel[...]` *)
+
+          if input_ty_params = [] then () else error ~loc (InvalidTypeParam typ_name);
+
+          TyChan(typ_name, instantiated_tys)
           
         (* we disallow security types based on product types for now *)
         | _ -> error ~loc (Misc (Format.sprintf "Invalid declaration: %s is not a simple type definition, security type definition or channel type definition" typ_name))
@@ -372,9 +378,24 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
              error ~loc @@ NonCallableIdentifier (id, desc))
     | Param (f, e) (* [f<e>] *) ->
         (match Env.find ~loc env f with
-         | id, ((Const _ | Channel _) as desc) ->
-             let e = desugar_expr env e in
-             Ident { id; desc; param= Some e }, None
+          (* XXX: shouldn't we check here that the Const or Channel supports parameterization instead of ignoring that value? *)
+         | id, (Const (param, ty_opt) as desc) -> 
+            let e = desugar_expr env e in 
+            
+            Ident { id; desc; param= Some e }, ty_opt 
+         | id, ((Channel (_, ident_typ)) as desc) -> 
+
+            let chty_name = Ident.string_part ident_typ in 
+
+            let chan_typ_params = begin match (Env.find ~loc env chty_name ) with
+              | (_, ChanTypeDef(param_list)) -> param_list
+              | _ -> (raise_typer_exception_with_location (Format.sprintf "%s is not a channel type definition" chty_name) loc)
+             end in
+
+            (* let ty_opt = Some (TyChan()) in *)
+            let ty_opt = Some (Env.TyChan (Ident.string_part ident_typ, chan_typ_params) ) in 
+            let e = desugar_expr env e in 
+            Ident { id; desc; param= Some e }, ty_opt 
          | id, desc -> error ~loc @@ NonParameterizableIdentifier (id, desc))
   in
   { loc; env; desc; typ = typ_opt }
