@@ -359,7 +359,8 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
             let arity = List.length ps - 1 in 
             check_arity ~loc ~arity ~use; 
 
-            let ty_opt = failwith "TODO" in 
+            
+            let ty_opt = List.hd (List.rev ps) in 
              Apply (id, es), ty_opt
          | id, (ExtSyscall sig_desc | Function sig_desc) ->
              let arity = begin match sig_desc with
