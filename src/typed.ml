@@ -176,7 +176,7 @@ and decl' =
       { id : ident
       ; desc : init_desc
       }
-  | ChannelDecl of
+  | Channel of
       { id : ident
       ; param : unit option
       ; typ : ident
@@ -206,13 +206,13 @@ module Subst = struct
     | Boolean _ | String _ | Integer _ | Float _ | Unit -> e
     | Tuple es -> { e with desc= Tuple (List.map (expr s) es) }
     | Apply (f, es) -> { e with desc= Apply (f, List.map (expr s) es) }
-    | Ident ({ id; desc= ChannelDecl _; param; _ } as i) ->
+    | Ident ({ id; desc= Channel _; param; _ } as i) ->
         let id = Option.value ~default:id @@ List.assoc_opt id s.channels in
         let param = Option.map (expr s) param in
         { e with desc= Ident { i with id; param } }
-    | Ident { id; desc= Var Param; param= None; _ } ->
+    | Ident { id; desc= Var (Param, _) ; param= None; _ } ->
         Option.value ~default:e @@ List.assoc_opt id s.parameters
-    | Ident { id=_; desc= Var Param; param= Some _; _ } ->
+    | Ident { id=_; desc= Var (Param, _); param= Some _; _ } ->
         assert false
     | Ident _ -> e
 
@@ -341,10 +341,10 @@ module Subst = struct
     | Bounded (id, pprocs) ->
         let new_id = Ident.local (fst id) in
         let e = { desc= Ident { id= new_id
-                              ; desc= Var Param
+                              ; desc= (Var (Param, None))
                               ; param= None }
                 ; loc= Location.nowhere
-                ; env= Env.add (Env.empty ()) new_id (Var Param)
+                ; env= Env.add (Env.empty ()) new_id (Var (Param, None))
                 ; typ= None
                 }
         in

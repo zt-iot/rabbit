@@ -206,7 +206,7 @@ type graph = edge list
 let evar env id =
     { env
     ; loc = Location.nowhere
-    ; desc = Ident { id; desc = Var (Loc (snd id)); param = None }
+    ; desc = Ident { id; desc = Var (Loc (snd id), None); param = None }
     ; typ = None
     }
 ;;
@@ -448,7 +448,7 @@ let rec graph_cmd find_def ~process i (c : cmd) : graph * Index.t * Env.t =
 
           { env (* XXX vars are not defied in env *)
           ; loc = Location.nowhere
-          ; desc = Ident { id; desc = Var (Loc (snd id)); param = None }
+          ; desc = Ident { id; desc = Var (Loc (snd id), None); param = None }
           ; typ = None
           }
       in

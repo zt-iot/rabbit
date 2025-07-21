@@ -74,7 +74,7 @@ let rec cst_to_csfp (cst : core_security_type) : core_security_function_param =
 (* we have a restriction that we cannot have constructors of `Cst_env.desc` with parameter types `expr, cmd` etc., because it would create a circular dependency *)
 type desc =
   | SimpleTypeDef of name list (* simple type declaration *)
-  | Var of var_desc
+  | Var of var_desc * core_security_type (* Conversion from Env.Var fails if type is not given *)
   | ExtFun of core_security_function_param list (* equational theory function with 0 or more function parameters *)
   | ExtSyscall of core_security_function_param list (** system call with 0 or more function parameters *)
   | MemberFunc of core_security_function_param list (** member function of a process *)

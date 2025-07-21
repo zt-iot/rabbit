@@ -84,12 +84,12 @@ let syscall_member_fun_desc_to_ident_list signature = match signature with
 type desc =
   (* SimpleTypeDef of <type parameter list of the simple type> *)
   | SimpleTypeDef of Name.ident list
-  | Var of var_desc
+  | Var of var_desc * instantiated_ty option
   | ExtFun of eq_thy_func_desc
   | ExtSyscall of syscall_member_fun_sig
   | Function of syscall_member_fun_sig
   | Const of bool * instantiated_ty option
-  | ChannelDecl of bool * Ident.t
+  | Channel of bool * Ident.t
   | Attack
   
   | ProcTypeDef
@@ -105,15 +105,15 @@ type desc =
 let print_desc desc ppf =
   let f = Format.fprintf in
   match desc with
-  | Var (Top i) -> f ppf "Top %d" i
-  | Var (Loc i) -> f ppf "Loc %d" i
-  | Var (Meta i) -> f ppf "Meta %d" i
-  | Var (MetaNew i) -> f ppf "MetaNew %d" i
-  | Var Param -> f ppf "Param"
+  | Var (Top i, _) -> f ppf "Top %d" i
+  | Var (Loc i, _) -> f ppf "Loc %d" i
+  | Var (Meta i, _) -> f ppf "Meta %d" i
+  | Var (MetaNew i, _) -> f ppf "MetaNew %d" i
+  | Var (Param, _) -> f ppf "Param"
   | ExtFun _ -> f ppf "ExtFun"
   | ExtSyscall _ -> f ppf "ExtSyscall"
   | Const (b, _) -> f ppf "Const (param=%b)" b
-  | ChannelDecl (b, id) -> f ppf "Channel declaration (param=%b) : %t" b (Ident.print id)
+  | Channel (b, id) -> f ppf "Channel (param=%b) : %t" b (Ident.print id)
   | Attack -> f ppf "Attack"
   | ProcTypeDef -> f ppf "ty process"
   | FilesysTypeDef -> f ppf "ty filesys"

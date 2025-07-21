@@ -511,7 +511,13 @@ let convert_env_desc (read_access_map : access_map)
       integrity_lattice) in 
   match env_desc with
   | SimpleTypeDef name_list -> SimpleTypeDef name_list
-  | Var var_desc -> Var var_desc
+  | Var (var_desc, ty_opt) -> begin match ty_opt with 
+    | Some typ -> 
+      (Var (var_desc,  convert_instantiated_ty_to_core_rec typ))
+    | None -> 
+      raise (CstConversionException "Cannot convert Var without type information to Cst_env.Var")
+    end
+    
   | ExtFun (DesugaredArity _) -> raise (CstConversionException "Cannot convert ExtFun without type information to Cst_env.desc")
   | ExtFun (DesugaredTypeSig function_params) -> 
       ExtFun (List.map convert_function_param_to_core_rec function_params)
@@ -525,7 +531,7 @@ let convert_env_desc (read_access_map : access_map)
       raise (CstConversionException "Cannot convert Const without type information to Cst_env.desc")
   | Const (is_param, Some instantiated_ty) ->
       Const (is_param, convert_instantiated_ty_to_core_rec instantiated_ty)
-  | ChannelDecl (is_param, ident) -> ChannelDecl (is_param, ident)
+  | Channel (is_param, ident) -> ChannelDecl (is_param, ident)
   | Attack -> Attack
   | ProcTypeDef -> ProcTypeDef
   | FilesysTypeDef -> FilesysTypeDef
