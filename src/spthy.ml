@@ -556,7 +556,7 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
             "Edge %s/%s : %s"
             (Ident.to_string (proc_id :> Ident.t))
             (Ident.to_string (edge.id :> Ident.t))
-            (Sem.Update.string_of_update edge.update)
+            (Sem.Update.to_string edge.update)
          )
   in
   { id= (edge.id :> Ident.t); role; pre; label; post; comment }

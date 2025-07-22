@@ -69,7 +69,7 @@ val fact_of_typed : Typed.fact -> fact
 (** Canonically maps [Typed.fact] to [fact] *)
 
 module Update : sig
-  type update_desc =
+  type desc =
     | New of Typed.expr
     | Update of Typed.expr
     | Drop
@@ -78,18 +78,18 @@ module Update : sig
 
       For simplicity, we do not track unmodified variables.
   *)
-  type update =
+  type t =
     { rho : Ident.t
     (** $\rho$ variable used in this update *)
 
     ; register : Typed.expr
     (** The register value a.k.a the return value *)
 
-    ; items : (Ident.t * update_desc) list
+    ; items : (Ident.t * desc) list
     (** Value updates, if a variable is not listed here, it is not changed *)
     }
 
-  val string_of_update : update -> string
+  val to_string : t -> string
 end
 
 type edge_id = private Ident.t
@@ -120,7 +120,7 @@ type edge =
   ; source_env : Env.t (** environment of the source node *)
   ; source_vars : Ident.t list (** mutable variables of the source node *)
   ; pre : fact list (** preconditions *)
-  ; update : Update.update (** state update *)
+  ; update : Update.t (** state update *)
   ; tag : fact list (** tags *)
   ; post : fact list (** postconditions *)
   ; target : Index.t (** target node index *)

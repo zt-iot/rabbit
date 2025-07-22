@@ -36,7 +36,10 @@ module G' = struct
     include G
     let graph_attributes _g = !graph_attribute (* XXX hack *)
     let default_vertex_attributes _g = []
-    let vertex_name (_,v) = Index.to_string v
+    let vertex_name (proc_id,v) =
+      "\"" ^
+      Ident.to_string (proc_id : Subst.proc_id :> Ident.t) ^ "_" ^ Index.to_string v
+        ^ "\""
     let vertex_attributes _v = []
     let get_subgraph _v = None
     let default_edge_attributes _g = []
@@ -45,14 +48,16 @@ module G' = struct
       String.concat ";\n"
       @@ Ident.to_string (t.id :> Ident.t)
          :: ("PRE:"^String.concat "; " (List.map string_of_fact t.pre))
-         :: Update.string_of_update t.update
+         :: Update.to_string t.update
          :: (match t.tag with
              | [] -> []
              | fs -> [ "Tag:"
                        ^ String.concat "," (List.map string_of_fact fs)])
          @ ["POST:"^String.concat "; " (List.map string_of_fact t.post)]
 
-    let edge_attributes (_,t,_) = [`Label (edge_label t) ]
+    let edge_attributes (_,t,_) =
+      [`Label (edge_label t) ]
+      @ if t.loop_back then [ `Style `Dashed ] else []
 end
 
 module Viz = Graph.Graphviz.Dot(G')
