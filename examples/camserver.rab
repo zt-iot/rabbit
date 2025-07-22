@@ -215,9 +215,9 @@ system
   |	client_ta(rpc) 
 requires  
 [
-  lemma Reachable :
+  lemma Reachable : (* verified *)
     reachable ::ClientClose(), ::ClientTAClose(), ::ImgRecvValid(x) ;
 
-  lemma Correspondence :
+  lemma Correspondence : (* falsified *)
     corresponds ::ImgRecvValid(x) ~> ::ImgSend (x)
 ]
