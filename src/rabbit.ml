@@ -7,15 +7,14 @@ let usage = "Usage: Rabbit [option] ... [file] ..."
     be loaded in interactive mode. *)
 let files = ref []
 
-let ofile = ref ("", false)
+let ofile = ref None
 
-let svg_file = ref None
-let svg2_file = ref None
+let svg_file = ref false
 
 (** Add a file to the list of files to be loaded, and record whether it should
     be processed in interactive mode. *)
-let add_file quiet filename = (files := (filename, quiet) :: !files)
-let add_ofile quiet filename = (ofile := (filename, quiet))
+let add_file filename = files := filename :: !files
+let add_ofile filename = ofile := Some filename
 
 (** Command-line options *)
 let options = Arg.align [
@@ -31,7 +30,7 @@ let options = Arg.align [
      " Print version information and exit");
 
     ("-l",
-     Arg.String (fun str -> add_file true str),
+     Arg.String (fun str -> add_file str),
      "<file> Load <file> into the initial environment");
 (*
     ("--dev",
@@ -40,29 +39,20 @@ let options = Arg.align [
 
     ("--post-process",
      Arg.Set Config.optimize,
-     "post-process to optimize the produced tamarin model");
+     " post-process to optimize the produced tamarin model");
 
      ("--tag-transition",
      Arg.Set Config.tag_transition,
-     "post-process to optimize the produced tamarin model");
+     " post-process to optimize the produced tamarin model");
 
     ("-o",
-     Arg.String (fun str -> add_ofile true str),
+     Arg.String (fun str -> add_ofile str),
      "<file> Printing the translated program into <file>");
 
     ("--svg",
-     Arg.String (fun fn -> svg_file := Some fn),
-     "<file> Output graph SVG <file> (requires graphviz)");
-
-    ("--svg2",
-     Arg.String (fun fn -> svg2_file := Some fn),
-     "<file> Output graph SVG2 <file> (requires graphviz)");
+     Arg.Set svg_file,
+     " Output graph SVGs (requires graphviz)");
     ]
-
-let write_svg (t : Tamarin.tamarin) =
-  match !svg_file with
-  | None -> ()
-  | Some fn -> Tamarin_debug.write_tamarin_svg fn t
 
 (** Main program *)
 let _main =
@@ -70,7 +60,7 @@ let _main =
   (* Parse the arguments. *)
   Arg.parse
     options
-    (fun str -> add_file false str)
+    (fun str -> add_file str)
     usage ;
   (* Files were accumulated in the wrong order, so we reverse them *)
   files := List.rev !files ;
@@ -84,7 +74,7 @@ let _main =
     (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
   try
       let Loader.{ system= sys; used_idents; used_strings; _ } =
-        List.fold_left (fun (env : Loader.env) (fn, _quiet) ->
+        List.fold_left (fun (env : Loader.env) fn ->
             let loader_result =
               try
                 Ok (Loader.load fn env)
@@ -124,27 +114,31 @@ let _main =
             (match typer_result with
              | Error _ -> ()
              | Ok decls ->
-                 let sem = Sem.compile decls in
-                 let sem =
-                   if !Config.optimize then Sem.optimize sem else sem
+                 let compile_sem_to_spthy ext sem =
+                   let spthy = Spthy.compile_sem sem in
+                   match !ofile with
+                   | None -> ()
+                   | Some ofile ->
+                       let ofile = ofile ^ ext in
+                       Out_channel.with_open_text ofile @@ fun oc ->
+                       let ppf = Format.formatter_of_out_channel oc in
+                       Format.fprintf ppf "%a@." Spthy.print spthy;
+                       if !svg_file then
+                         Sem_debug.write_models_svg (ofile ^ ".svg")
+                         @@ List.concat_map (function
+                             | _id, Sem.Unbounded model -> [model]
+                             | _id, Bounded (_p, models) -> models) sem.proc_groups
                  in
-                 (match !svg2_file with
-                  | None -> ()
-                  | Some fn ->
-                      Sem_debug.write_models_svg fn
-                      @@ List.concat_map (function
-                          | _id, Sem.Unbounded model -> [model]
-                          | _id, Bounded (_p, models) -> models) sem.proc_groups);
 
-                 let spthy = Spthy.compile_sem sem in
+                 let sem = Sem.compile decls in
 
-                 match fst !ofile with
-                 | "" -> ()
-                 | ofile ->
-                     let ofile = ofile ^ ".2" in
-                     Out_channel.with_open_text ofile @@ fun oc ->
-                     let ppf = Format.formatter_of_out_channel oc in
-                     Format.fprintf ppf "%a@." Spthy.print spthy
+                 if not !Config.optimize then
+                   compile_sem_to_spthy ".2" sem
+                 else (
+                   compile_sem_to_spthy ".1" sem;
+                   let sem = Sem.optimize sem in
+                   compile_sem_to_spthy ".2" sem
+                 )
             );
             res
           )
@@ -160,14 +154,17 @@ let _main =
             else
               { t with models= List.map Postprocessing.move_eq_facts t.models }
           in
-          write_svg t;
           let tamarin = Tamarin.print_tamarin t ~dev:!Config.dev ~print_transition_label:!Config.tag_transition in
-          if fst !ofile = "" then Print.message ~loc:Location.Nowhere "Warning:" "%s" "output file not specified"
-          else
-            let oc = open_out (fst !ofile) in
-            Printf.fprintf oc "%s\n" tamarin;
-            close_out oc;
-            Print.message ~loc:Location.Nowhere "Translated into" "%s" (fst !ofile)
+          match !ofile with
+          | None ->
+              Print.message ~loc:Location.Nowhere "Warning:" "%s" "output file not specified"
+          | Some ofile ->
+              let oc = open_out ofile in
+              Printf.fprintf oc "%s\n" tamarin;
+              close_out oc;
+              Print.message ~loc:Location.Nowhere "Translated into" "%s" ofile;
+              if !svg_file then
+                Tamarin_debug.write_tamarin_svg (ofile ^ ".svg") t
         ) () sys;
     ()
 
