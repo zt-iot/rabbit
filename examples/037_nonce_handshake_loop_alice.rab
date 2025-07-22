@@ -1,0 +1,23 @@
+type person_t : process
+
+process alice() : person_t 
+{
+    main {
+    	event[::Valid()];
+
+        repeat
+        | [] →
+	    skip
+        until				        
+        | [::False()] →  skip		        (* never terminate *)
+        end
+    }
+}
+
+system
+  alice()
+requires
+[
+  lemma Valid: (* verified *)
+    reachable ::Valid()
+]

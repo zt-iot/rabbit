@@ -1,0 +1,24 @@
+type person_t : process
+type chan_t : channel
+
+process alice() : person_t 
+{
+    main {
+        put [::X()];
+        repeat
+        | [::X()] -> put [::Y()]
+	until
+	| [::Y()] -> skip
+        end;
+	event [::Valid()]
+    }
+}
+
+
+system
+  alice()
+requires
+[
+  lemma Reachable :
+    reachable ::Valid()
+]
