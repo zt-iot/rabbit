@@ -55,24 +55,31 @@ let verify specs spthy =
         | Some g ->
             let lemma_name = Re.Group.get g 1 in
             let result = Re.Group.get g 2 in
-            Format.printf "result: %s: %s@." lemma_name result;
+            (* Format.printf "result: %s: %s@." lemma_name result; *)
             let result = spec_of_string result in
             Some (lemma_name, result)) summary
     in
 
     let fail = ref false in
-    List.iter (fun (lemma_name, expected) ->
-        match List.assoc_opt lemma_name results with
-        | None ->
-            Format.printf "%s: no result - Oops@." lemma_name;
-            fail := true
-        | Some result ->
-            if result = expected then
-              Format.printf "%s: %s - Ok@." lemma_name (string_of_spec result)
-            else (
-              Format.printf "%s: %s - Oops@." lemma_name (string_of_spec result);
-              fail := true
-            )
+    List.iter (fun (lemma_name, result) ->
+        let expected =
+          match List.assoc_opt lemma_name specs with
+          | None -> Verified
+          | Some spec -> spec
+        in
+        if result = expected then
+          Format.printf "%s: %s - Ok@." lemma_name (string_of_spec result)
+        else (
+          Format.printf "%s: %s - Oops@." lemma_name (string_of_spec result);
+          fail := true
+        )
+      ) results;
+
+    List.iter (fun (lemma_name, _spec) ->
+        if not @@ List.mem_assoc lemma_name results then (
+          Format.printf "%s: no result - Oops@." lemma_name;
+          fail := true
+        )
       ) specs;
 
     if !fail then (
@@ -112,7 +119,7 @@ let test_file rab =
   if Sys.file_exists out_spthy then Unix.unlink out_spthy;
   let res, output =
     (* [cd ..] is required *)
-    runf "cd ..; opam exec -- dune exec src/rabbit.exe -- examples/%s -o examples/%s --post-process --tag-transition 2>&1" rab out_spthy
+    runf "cd ..; opam exec -- dune exec src/rabbit.exe -- examples/%s -o examples/%s --post-process --tag-transition --svg 2>&1" rab out_spthy
   in
   write_log output;
   (match res with
