@@ -840,7 +840,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                         ; target = i_1
                         ; target_env = env
                         ; target_vars = vars
-                        ; loop_back = false
+                        ; loop_back = true (* To increment the transition counter *)
                         } ]
                     ])
                  cases))
@@ -881,7 +881,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                       ; target = i_2
                       ; target_env = env
                       ; target_vars = vars
-                      ; loop_back = true (* To increment the transition counter *)
+                      ; loop_back = false
                       }
                     ]
                   ])
