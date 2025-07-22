@@ -361,7 +361,7 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
 
             
             let ty_opt = List.hd (List.rev ps) in 
-             Apply (id, es), ty_opt
+             Apply (id, es), None
          | id, (ExtSyscall sig_desc | Function sig_desc) ->
              let arity = begin match sig_desc with
              (* arity = number of arguments that function takes *)
@@ -373,8 +373,8 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
              end in 
              check_arity ~loc ~arity ~use;
 
-             let ty_opt = failwith "TODO" in 
-             Apply (id, es), ty_opt
+             (* let ty_opt = failwith "TODO" in  *)
+             Apply (id, es), None
          | id, desc ->
              error ~loc @@ NonCallableIdentifier (id, desc))
     | Param (f, e) (* [f<e>] *) ->
