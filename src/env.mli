@@ -47,5 +47,3 @@ val update_fact : t -> Name.ident -> named_fact_desc * int option -> unit
 (** If the binding already exists, it is overridden *)
 
 val find_fact_opt : t -> Name.ident -> (named_fact_desc * int option) option
-
-val merge : t -> t -> t
