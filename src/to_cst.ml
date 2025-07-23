@@ -5,6 +5,14 @@ open Maps
 
 exception CstConversionException of string
 
+let raise_conv_exception_with_location msg loc = 
+    Location.print loc Format.std_formatter;
+    Format.pp_print_newline Format.std_formatter ();
+    raise (CstConversionException msg)
+
+
+
+
 type syscall_effect = 
   | Read 
   | Provide 
@@ -289,6 +297,7 @@ let find_extremum_in_intersect
 let join (pol : cst_access_policy) (a : proc_ty_set) (b : proc_ty_set) : proc_ty_set option = 
   let elements_greater_than_a = elements_greater_than_or_equal_to_u pol a in 
   let elements_greater_than_b = elements_greater_than_or_equal_to_u pol b in 
+  
   (* find the maximum element in the set of elements greater than both a and b *)
   let intersect = ProcTySetSet.inter elements_greater_than_a elements_greater_than_b in 
 
@@ -511,22 +520,25 @@ let convert_env_desc (read_access_map : access_map)
       integrity_lattice) in 
   match env_desc with
   | SimpleTypeDef name_list -> SimpleTypeDef name_list
-  | Var (var_desc, ty_opt) -> begin match ty_opt with 
-    | Some typ -> 
-      (Var (var_desc,  convert_instantiated_ty_to_core_rec typ))
-    | None -> 
-      raise (CstConversionException "Cannot convert Var without type information to Cst_env.Var")
-    end
+  | Var (var_desc, ty_opt) -> 
+
+    Var(var_desc, Option.map (convert_instantiated_ty_to_core_rec) ty_opt)
     
+    (* ExtFuns without typing information are only allowed if no typechecking happens *)
   | ExtFun (DesugaredArity _) -> raise (CstConversionException "Cannot convert ExtFun without type information to Cst_env.desc")
   | ExtFun (DesugaredTypeSig function_params) -> 
       ExtFun (List.map convert_function_param_to_core_rec function_params)
+
+  (* ExtSyscalls without typing information are only allowed if no typechecking happens *)
   | ExtSyscall (DesSMFunUntyped _) -> raise (CstConversionException "Cannot convert ExtSyscall without type information to Cst_env.desc")
   | ExtSyscall (DesSMFunTyped (_, function_params)) ->
       ExtSyscall (List.map convert_function_param_to_core_rec function_params)
+  (* Functions without typing information are only allowed if no typechecking happens *)
   | Function (DesSMFunUntyped _) -> raise (CstConversionException "Cannot convert Function without type information to Cst_env.desc")
   | Function (DesSMFunTyped (_, function_params)) ->
       MemberFunc (List.map convert_function_param_to_core_rec function_params)
+
+  (* Const without typing information is only allowed if no typechecking happens *)
   | Const (_, None) -> 
       raise (CstConversionException "Cannot convert Const without type information to Cst_env.desc")
   | Const (is_param, Some instantiated_ty) ->
@@ -744,6 +756,8 @@ let convert_decl (read_access_map : access_map)
   let convert_expr_rec = convert_expr read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in 
   let convert_cmd_rec = (convert_cmd read_access_map provide_access_map all_process_typs 
           secrecy_lattice integrity_lattice) in 
+
+  let convert_function_param_to_core_rec = (convert_function_param_to_core read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice) in 
   let { Typed.loc; env; desc; _ } = td in
   let make_loc_env_for_decl_rec = 
     make_loc_env_for_decl read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice loc env in   
@@ -752,9 +766,16 @@ let convert_decl (read_access_map : access_map)
 
       (* let _ = print_endline (Format.sprintf "convert_decl syscall with id: %s" (fst id)) in *)
 
-      let args = Env.syscall_member_fun_desc_to_ident_list fun_sig in 
+      let args = Env.syscall_member_fun_desc_to_ident_list fun_sig in
+      let non_converted_function_params = begin match fun_sig with 
+        | Env.DesSMFunUntyped(_) -> (raise_conv_exception_with_location "A syscall must have typing information in order to be typechecked" loc)
+        | Env.DesSMFunTyped(_, fps) -> fps
+      end in 
+      
+      let converted_function_params = List.map (convert_function_param_to_core_rec) non_converted_function_params in 
+      
       let cst_cmd = (convert_cmd_rec cmd) in 
-      let cst_decl = Cst_syntax.Syscall{id ; args ; cmd = cst_cmd} in 
+      let cst_decl = Cst_syntax.Syscall{id ; args ; fun_params = converted_function_params ; cmd = cst_cmd} in 
 
       [make_loc_env_for_decl_rec cst_decl]
 
@@ -773,9 +794,28 @@ let convert_decl (read_access_map : access_map)
         (convert_expr_rec x, y, convert_expr_rec z)) files in 
       let converted_vars = List.map (fun (x, _, z) -> 
         (x, convert_expr_rec z)) vars in 
+
+
+
+      let convert_func_sig (member_fun_id : Ident.t) (y : Env.syscall_member_fun_sig) : 
+        (Ident.t * Cst_env.core_security_function_param) list = 
+        begin match y with 
+        | DesSMFunTyped(ids, fun_params) ->   
+          let converted_fun_params = List.map convert_function_param_to_core_rec fun_params in 
+
+          (* I'm assuming the arity check has already happened *)
+          List.combine ids converted_fun_params 
+        | _ -> 
+          (raise_conv_exception_with_location 
+            (Format.sprintf "Member function %s cannot be typechecked if it does not have a typing annotation" (Ident.string_part member_fun_id))
+            td.loc   
+          )
+        end in 
+      
       let converted_funcs = List.map (fun (x, y, z) -> 
-        (x, Env.syscall_member_fun_desc_to_ident_list y, convert_cmd_rec z)
+        (x, (convert_func_sig x y), convert_cmd_rec z)
         ) funcs in 
+
       let converted_main = convert_cmd_rec main in 
       let cst_decl = 
         Cst_syntax.Process{

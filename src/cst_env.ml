@@ -51,7 +51,9 @@ and core_security_function_param = core_function_param * (secrecy_lvl * integrit
 
 
 
-
+(* Determines whether security type t1 is a subtype of security type t2 *)
+let is_subtype (t1 : core_security_type) (t2 : core_security_type) : bool = 
+  failwith "TODO"
 
 (* Boilerplate conversion necesary for `convert_function_param_to_core(Env.FParamSecurity(...)) *)
 let rec cst_to_csfp (cst : core_security_type) : core_security_function_param = 
@@ -70,11 +72,18 @@ let rec cst_to_csfp (cst : core_security_type) : core_security_function_param =
   (converted_core_function_param, security_info)
 
 
+type syscall_member_fun_sig = 
+  | DesSMFunTyped of Ident.t list * core_security_function_param list (* when types are given *)
+[@@deriving show]
 
+
+
+
+  
 (* we have a restriction that we cannot have constructors of `Cst_env.desc` with parameter types `expr, cmd` etc., because it would create a circular dependency *)
 type desc =
   | SimpleTypeDef of name list (* simple type declaration *)
-  | Var of var_desc * core_security_type (* Conversion from Env.Var fails if type is not given *)
+  | Var of var_desc * core_security_type option  
   | ExtFun of core_security_function_param list (* equational theory function with 0 or more function parameters *)
   | ExtSyscall of core_security_function_param list (** system call with 0 or more function parameters *)
   | MemberFunc of core_security_function_param list (** member function of a process *)

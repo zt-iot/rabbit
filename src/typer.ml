@@ -198,39 +198,49 @@ let rec convert_rabbit_typ_to_instantiated_ty ~loc (env : Env.t) (ty : Input.rab
       error ~loc (Misc "process and filesys cannot be used as a instantiated type")
 
   | CChan input_ty_params ->
-      TyChan("channel", List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params)
+      (* a channel that was not declared with `type` is just compiled to a `TyChan("channel", ...) *)
+       Env.TyChan("channel", List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params)
 
-  | CSimpleOrSecurity (typ_name, input_ty_params) ->
+  | CProd (t1, t2) ->
+      let param1 = convert_rabbit_typ_to_instantiated_ty ~loc env t1 in 
+      let param2 = convert_rabbit_typ_to_instantiated_ty ~loc env t2 in 
+      TyProduct(param1, param2)
+
+  (* generic typ_name[ty_param_1, ..., ty_param_n] syntax *)
+  | CGeneric (typ_name, input_ty_params) ->
 
 
-      let convert_simple_type_params def_ty_params = 
+      let check_ar_and_convert_simple_type_params def_ty_params = 
         let expected_arity = List.length def_ty_params in 
         let actual_arity = List.length input_ty_params in 
         check_arity ~loc ~arity:expected_arity ~use:actual_arity;
         List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params
       in
 
-      (* lookup if typ_name is a simple type definition or security type definition *)
+      (* lookup if *typ_name* is a simple type definition, a security type definition or a channel type definition *)
       let _, desc = Env.find ~loc env typ_name in 
       begin match desc with 
+
+        (* [ty_param_1, ..., ty_param_n] *)
         | Env.SimpleTypeDef def_ty_params -> 
             (* if desc is a SimpleTypDef, check that arity is matching *)
-            let converted_st_params = convert_simple_type_params def_ty_params in 
+            let converted_st_params = check_ar_and_convert_simple_type_params def_ty_params in 
             TySimple(typ_name, converted_st_params)
+
+        (* simpletypname[ty_param_1, ..., ty_param_n ]*)
         | Env.SecurityTypeDef (simpletypname, instantiated_simple_typ_params) -> 
             
             (* we need to check that there are no additional input_ty_params given, because a security type cannot have any *)
-            let _ = if input_ty_params = [] then () else error ~loc (InvalidTypeParam typ_name)
-            in
-
+            if input_ty_params <> [] then error ~loc (InvalidTypeParam typ_name);
+            
+            (* we also record the simpletypname and its type parameters for our convenience *)
             TySecurity(typ_name, simpletypname, instantiated_simple_typ_params)
 
         | Env.ChanTypeDef (instantiated_tys) -> 
           
           (* we need to check that there are no additional input_ty_params given, because a channel security type cannot have any *)
           (* Example of "channel security type" is `type udp_t : channel[...]` *)
-
-          if input_ty_params = [] then () else error ~loc (InvalidTypeParam typ_name);
+          if input_ty_params <> [] then error ~loc (InvalidTypeParam typ_name);
 
           TyChan(typ_name, instantiated_tys)
           
@@ -238,13 +248,31 @@ let rec convert_rabbit_typ_to_instantiated_ty ~loc (env : Env.t) (ty : Input.rab
         | _ -> error ~loc (Misc (Format.sprintf "Invalid declaration: %s is not a simple type definition, security type definition or channel type definition" typ_name))
       end
 
-  | CProd (t1, t2) ->
-      let param1 = convert_rabbit_typ_to_instantiated_ty ~loc env t1 in 
-      let param2 = convert_rabbit_typ_to_instantiated_ty ~loc env t2 in 
-      TyProduct(param1, param2)
-
+  (* a type such as "'a" or "'b" should NOT be used to type terms in a `cmd`. It can only be used as a function parameter *)
   | CPoly _ ->
       error ~loc (Misc "A polymorphic type cannot be used as an instantiated type")
+      
+
+(* A polymorphic type must be conveted to a concrete type based on what was passed to a function *)
+(* let rec env_function_param_to_instantiated_ty loc (fp : Env.function_param) : Env.instantiated_ty = 
+   match fp with
+  | FParamSecurity (sec_name, simple_name, ty_params) ->
+      TySecurity (sec_name, simple_name, ty_params)
+  | FParamSimple (simple_name, params) ->
+      let converted_params = List.map (env_function_param_to_instantiated_ty loc) params in
+      TySimple (simple_name, converted_params)
+  | FParamProduct (p1, p2) ->
+      let ty1 = env_function_param_to_instantiated_ty loc p1 in
+      let ty2 = env_function_param_to_instantiated_ty loc p2 in
+      TyProduct (ty1, ty2)
+  | FParamChannel params ->
+      let converted_params = List.map (env_function_param_to_instantiated_ty loc) params in
+      TyChan ("channel", converted_params)  (* Replace "channel" if needed *)
+
+  (* currently fails if the function parameter is polymorphic. Eventually, we'd want to implement proper conversion in `typechecker.ml` *)
+  | FParamPoly name ->
+      raise_typer_exception_with_location (Format.sprintf "TODO: FParamPoly %s currently cannot be converted to an instantiated_ty" name) loc *)
+
 
 
 let rec convert_rabbit_typ_to_env_function_param ~loc (env : Env.t) (ty : Input.rabbit_typ) : Env.function_param =
@@ -252,7 +280,7 @@ let rec convert_rabbit_typ_to_env_function_param ~loc (env : Env.t) (ty : Input.
   (* a channel is valid as a function parameter *)
   | CChan input_ty_params ->
       FParamChannel (List.map (convert_rabbit_typ_to_env_function_param ~loc env) input_ty_params)
-  | CSimpleOrSecurity (typ_name, input_ty_params) ->
+  | CGeneric (typ_name, input_ty_params) ->
       let _, desc = Env.find ~loc env typ_name in 
       begin match desc with  
         | Env.SimpleTypeDef def_ty_params -> 
@@ -359,22 +387,21 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
             let arity = List.length ps - 1 in 
             check_arity ~loc ~arity ~use; 
 
-            
-            let ty_opt = List.hd (List.rev ps) in 
-             Apply (id, es), None
+            (* let ty_opt = Some ((env_function_param_to_instantiated_ty e.loc (List.hd (List.rev ps)))) in  *)
+            Apply (id, es), None
          | id, (ExtSyscall sig_desc | Function sig_desc) ->
-             let arity = begin match sig_desc with
+             let arity, ty_opt = begin match sig_desc with
              (* arity = number of arguments that function takes *)
-             | Env.DesSMFunUntyped(ids) -> List.length ids
+             | Env.DesSMFunUntyped(ids) -> List.length ids, None
              | Env.DesSMFunTyped(ids, ps) -> 
+                (* let ret_ty_opt = Some (env_function_param_to_instantiated_ty e.loc (List.hd (List.rev ps))) in *)
                 assert ((List.length ids) = (List.length ps) - 1);
                 (* arity = number of arguments that function takes, which is the length of parameter list minus one *)
-                List.length ps - 1
+                List.length ps - 1, None
              end in 
              check_arity ~loc ~arity ~use;
 
-             (* let ty_opt = failwith "TODO" in  *)
-             Apply (id, es), None
+             Apply (id, es), ty_opt
          | id, desc ->
              error ~loc @@ NonCallableIdentifier (id, desc))
     | Param (f, e) (* [f<e>] *) ->
@@ -496,15 +523,16 @@ let type_structure_fact ~loc env name es =
 
 let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
   let loc = cmd.loc in
-  let desc =
+  let (desc : Typed.cmd') =
     match cmd.data with
     | Input.Skip -> Typed.Skip
     | Sequence (c1, c2) ->
         let c1 = type_cmd env c1 in
-        let c2 = type_cmd env c2 in
+        let (c2 : Typed.cmd) = type_cmd env c2 in
         Sequence (c1, c2)
     | Put facts ->
         let facts = type_facts env facts in
+        let ty_opt = Some(Env.TySimple("unit", [])) in 
         Put facts
     | Let (name, e, cmd) ->
         (* print_endline (Format.sprintf "typing `var %s = ...`" name); *)
@@ -516,6 +544,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         Let (id, e, cmd)
     | Assign (None, e) ->
         let e = desugar_expr ~at_assignment:true env e in
+        let ty_opt = Some(Env.TySimple("unit", [])) in 
         Assign (None, e)
     | Assign (Some name, e) ->
         let id, vdesc = Env.find ~loc env name in
@@ -523,6 +552,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
          | Var ((Top _ | Loc _ | Meta _), _) -> ()
          | desc -> error ~loc @@ InvalidVariableAtAssign (id, desc));
         let e = desugar_expr env ~at_assignment:true e in
+        let ty_opt = Some(Env.TySimple("unit", [])) in 
         Assign (Some id, e)
     | Case cases -> Case (type_cases env cases)
     | While (cases1, cases2) ->
@@ -534,7 +564,6 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         Event facts
     | Return e -> Return (desugar_expr env e)
     | New (name, input_ty_opt, str_es_opt, cmd) ->
-        let desugared_ty_opt = Option.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_opt in 
         (* allocation, [new x := S(e1,..,en) in c] or [new x in c] *)
         let str_es_opt =
           Option.map
@@ -547,6 +576,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         let id = Ident.local name in
         let env' = Env.add env id (Var (Loc (snd id), None)) in
         let cmd = type_cmd env' cmd in
+        let desugared_ty_opt = Option.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_opt in 
         New (id, desugared_ty_opt, str_es_opt, cmd)
     | Get (names, e, str, cmd) ->
         (* fetch, [let x1,...,xn := e.S in c] *)
@@ -554,6 +584,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         type_structure_fact ~loc env str names;
         let ids = List.map Ident.local names in
         let env' =
+          (* XXX: add types for all e_1, ..., e_n in this case *)
           List.fold_left (fun env' id -> Env.add env' id (Var (Loc (snd id), None))) env ids
         in
         let cmd = type_cmd env' cmd in
@@ -616,6 +647,7 @@ let type_process
       | None -> env, None
       | Some name ->
           let id = Ident.local name in
+          (* XXX will it not cause problems if we do not register the type of `id` here? *)
           Env.add env id (Var (Param, None)), Some id
     in
 
@@ -627,7 +659,8 @@ let type_process
           
            let chanty = begin match Env.find ~loc env chanty with 
            | id, Env.ChanTypeDef(_) -> id
-           | _ -> error ~loc @@ Misc("Use a channel type definition instead")
+           | _ -> error ~loc 
+                @@ Misc(Format.sprintf "%s is not a valid channel type definition" chanty)
            end in 
 
            let chanid = Ident.local chanid in
@@ -659,13 +692,14 @@ let type_process
     (* add contents of process memory to local  environment *)
     let env', rev_vars =
       List.fold_left
-        (fun (env, rev_vars) (name, ty_opt, e) ->
+        (fun (env, rev_vars) (name, _, e) ->
             let id = Ident.local name in
-            let converted_ty_opt = Option.map
-              (convert_rabbit_typ_to_instantiated_ty ~loc env) ty_opt in 
+            (* let converted_ty_opt = Option.map
+              (convert_rabbit_typ_to_instantiated_ty ~loc env) ty_opt in  *)
+              
             let e = desugar_expr env e in
-            let env' = Env.add env id (Var (Loc (snd id), None)) in
-            env', (id, converted_ty_opt, e) :: rev_vars)
+            let env' = Env.add env id (Var (Loc (snd id), e.typ)) in
+            env', (id, None, e) :: rev_vars)
         (env', [])
         vars
     in
@@ -756,8 +790,10 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
 let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   let loc = d.loc in
   match d.data with
+  (*data t *)
   | DeclSimpleTyp t -> begin match t with 
-    | Input.CSimpleOrSecurity(name, ty_params) ->
+    (* t = name[poly_ty_1, ..., poly_ty_n] *)
+    | Input.CGeneric(name, ty_params) ->
         let ty_params_str = List.map (fun ty_param -> begin match ty_param with 
           | Input.CPoly(id) -> id
           | _ -> error ~loc @@ InvalidSimpleType(t)
@@ -832,10 +868,16 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       in
       let env', id = Env.add_global ~loc env name Attack in
       env', [{ env; loc; desc = Attack { id; syscall; args; cmd }; typ = None }]
-  | DeclType (name, typ) ->
-      let converted_to_env_desc = begin match typ with 
+  | DeclType (name, basetyp) ->
+      let converted_to_env_desc = begin match basetyp with 
+        
+        (* type _name_ : process *)
         | Input.CProc -> Env.ProcTypeDef 
+
+        (* type _name_ : filesys *)
         | Input.CFsys -> Env.FilesysTypeDef
+        
+        (* type _name_ : channel[...] *)
         | Input.CChan(input_ty_params) -> 
           (* every ty_param \in input_ty_param must be *)
           (* - Simple *)
@@ -843,8 +885,10 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
           (* - Product*)
           let ty_params = List.map (convert_rabbit_typ_to_instantiated_ty ~loc env) input_ty_params in
           ChanTypeDef(ty_params)
-        | Input.CSimpleOrSecurity(typ_name, input_ty_params) -> 
-            (* this AST node is always a security type: therefore, typ_name must be a known simple type *)
+
+        (* type _name_ : <simple_type> *)
+        | Input.CGeneric(typ_name, input_ty_params) -> 
+            (* in this case, `basetyp` _must_ be a known simple type *)
             begin match Env.find ~loc env typ_name with 
               | _, SimpleTypeDef def_ty_params -> 
                   let expected_arity = List.length def_ty_params in 

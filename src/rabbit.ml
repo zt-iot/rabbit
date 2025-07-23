@@ -152,7 +152,7 @@ let _main =
              | Ok decls ->
                 let cst_decls, secrecy_lattice, integrity_lattice = 
                   To_cst.convert(decls) in 
-                  
+                prerr_endline "ConverterSuccess";
                 let sys =
                    List.find_opt (fun decl ->
                        match decl.Cst_syntax.desc with

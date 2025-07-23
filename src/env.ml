@@ -42,7 +42,7 @@ type function_param =
 
 
 (* Boilerplate conversion from instantiated_ty to function_param, which is required by 
-convert_rabbit_typ_to_env_function_param(CSimpleOrSecurity(...)) *)
+convert_rabbit_typ_to_env_function_param(CGeneric(...)) *)
 let rec instantiated_ty_to_function_param (ty : instantiated_ty) : function_param =
   match ty with
   | TySecurity (sec_ty_name, simple_ty_name, params) ->

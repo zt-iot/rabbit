@@ -98,6 +98,8 @@ and cmd' =
   | Del of expr * name
 [@@deriving show]
 
+
+(* Example of chan_param : {ch_net ; None ; udp_t }*)
 type chan_param = { channel : ident; param : unit option; typ : ident } [@@deriving show]
 
 type chan_arg =

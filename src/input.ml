@@ -4,7 +4,7 @@ type rabbit_typ =
   | CProc                                     (* process *)
   | CFsys                                     (* filesys *)
   | CChan of rabbit_typ list                  (* channel[t_1 + ... + t_n] *)
-  | CSimpleOrSecurity of Name.ident * rabbit_typ list   (* data name[t_1, ..., t_n] *)
+  | CGeneric of Name.ident * rabbit_typ list   (* name[t_1, ..., t_n] *)
   | CProd of rabbit_typ * rabbit_typ          (* ty_1 * ty_2 *)
   | CPoly of Name.ident                       (* 'a or 'b  or 'c etc. *)
   (* maybe add | CSecurity of Name.ident, I'm not sure if it belongs here *)

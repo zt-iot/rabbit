@@ -267,7 +267,7 @@ typ:
   | t1=typ STAR t2=typ { CProd(t1, t2) }
 
   | CHANNEL opt_params=opt_channel_params { CChan(opt_params) }
-  | t=NAME opt_params=opt_simpletype_params { CSimpleOrSecurity(t, opt_params) }
+  | t=NAME opt_params=opt_simpletype_params { CGeneric(t, opt_params) }
 
 
 func_param:

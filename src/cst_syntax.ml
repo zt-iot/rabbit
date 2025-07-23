@@ -112,6 +112,7 @@ and decl' =
   | Syscall of
       { id : ident
       ; args : ident list
+      ; fun_params : Cst_env.core_security_function_param list
       ; cmd : cmd
       }
   (** system call, [syscall f(a1,..,an) { c }]
@@ -130,7 +131,7 @@ and decl' =
       ; typ : ident
       ; files : (expr * ident * expr) list
       ; vars : (ident * expr) list (* typing information is not necessary, because we can infer the type from the expression *)
-      ; funcs : (ident * ident list * cmd) list (* typing information is recorded in the environment instead *)
+      ; funcs : (ident * (ident * Cst_env.core_security_function_param) list * cmd) list
       ; main : cmd
       }
   (** [process id<p>(x1 : ty1, .., xn : tyn) : ty { file ... var ... function ... main ... }] *)
