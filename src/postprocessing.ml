@@ -47,6 +47,12 @@ let forward_transitions_from (m : model) (st : state) : transition list =
 let forward_transitions_to (m : model) (st : state) : transition list = 
   List.filter (fun (tr : transition) -> state_index_to_string_aux st = state_index_to_string_aux tr.transition_to && not tr.transition_is_loop_back) m.model_transitions
   
+let forward_transitions_from' (m : model) (st : state) : transition list = 
+  List.filter (fun (tr : transition) -> state_index_to_string_aux st = state_index_to_string_aux tr.transition_from) m.model_transitions
+
+let forward_transitions_to' (m : model) (st : state) : transition list = 
+  List.filter (fun (tr : transition) -> state_index_to_string_aux st = state_index_to_string_aux tr.transition_to) m.model_transitions
+
 
 let is_nonlocal_fact f = 
   match f with
@@ -264,8 +270,8 @@ let rec optimize_at (m : model) (st : state) =
         | _, _ -> None
       end in
       let nonlocal = List.exists (fun a -> is_nonlocal_fact a) tr2.transition_pre in
-      let out_num = List.length (forward_transitions_from m st_m) in
-      let in_num = List.length (forward_transitions_to m st_m) in
+      let out_num = List.length (forward_transitions_from' m st_m) in
+      let in_num = List.length (forward_transitions_to' m st_m) in
       let inout = out_num > 1 && in_num > 1 in
       (* if label = None, dont merge *)
       match is_labelled, nonlocal, inout with
