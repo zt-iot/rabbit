@@ -191,6 +191,10 @@ module Update = struct
     String.concat "; " @@
     Printf.sprintf "%s <- %s" (Ident.to_string u.rho) (string_of_expr u.register)
     :: List.filter_map (function
+        | id, New { desc= Ident { id= id'; _ }; _ } when id = id' ->
+            (* new id <- id ==>  new id *)
+            Some (Printf.sprintf "new %s"
+                    (Ident.to_string id))
         | id, New e ->
             Some (Printf.sprintf "new %s = %s"
                     (Ident.to_string id)

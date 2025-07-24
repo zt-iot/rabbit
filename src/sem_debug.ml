@@ -49,17 +49,27 @@ module G' = struct
       String.escaped
       @@ String.concat ";\n"
       @@ Ident.to_string (t.id :> Ident.t)
-         :: ("PRE:"^String.concat "; " (List.map string_of_fact t.pre))
+         (* :: ("PRE:"^String.concat "; " (List.map string_of_fact t.pre)) *)
          :: Update.to_string t.update
          :: (match t.tag with
              | [] -> []
              | fs -> [ "Tag:"
                        ^ String.concat "," (List.map string_of_fact fs)])
-         @ ["POST:"^String.concat "; " (List.map string_of_fact t.post)]
+    (* @ ["POST:"^String.concat "; " (List.map string_of_fact t.post)] *)
+
+    let edge_head_label (t : Sem.edge) =
+      String.escaped
+      @@ String.concat ";\n"
+      @@ [String.concat "; " (List.map string_of_fact t.post)]
+
+    let edge_tail_label (t : Sem.edge) =
+      String.escaped
+      @@ String.concat ";\n"
+      @@ [String.concat "; " (List.map string_of_fact t.pre)]
 
     let edge_attributes (_,t,_) =
-      [`Label (edge_label t) ]
-      @ if t.loop_back then [ `Style `Dashed ] else []
+      [`Fontsize 10; `Taillabel (edge_tail_label t); `Label (edge_label t); `Headlabel (edge_head_label t) ]
+      @ (if t.loop_back then [ `Style `Dashed ] else [])
 end
 
 module Viz = Graph.Graphviz.Dot(G')

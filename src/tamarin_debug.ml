@@ -42,7 +42,6 @@ module G' = struct
     let edge_label t =
       String.concat ";\n"
       @@ t.transition_name
-         :: ("PRE:"^String.concat "; " (List.map string_of_fact t.transition_pre))
          :: (match t.transition_action with
              | None -> []
              | Some acs ->
@@ -57,9 +56,18 @@ module G' = struct
              | [] -> []
              | fs -> [ "Label:"
                        ^ String.concat "," (List.map string_of_fact fs)])
-         @ ["POST:"^String.concat "; " (List.map string_of_fact t.transition_post)]
 
-    let edge_attributes (_,t,_) = [`Label (edge_label t) ]
+    let edge_head_label t =
+      String.concat ";\n"
+      @@ [String.concat "; " (List.map string_of_fact t.transition_post)]
+
+    let edge_tail_label t =
+      String.concat ";\n"
+      @@ [String.concat "; " (List.map string_of_fact t.transition_pre)]
+
+    let edge_attributes (_,t,_) =
+      [`Fontsize 10; `Taillabel (edge_tail_label t); `Label (edge_label t); `Headlabel (edge_head_label t) ]
+      @ if t.transition_is_loop_back then [ `Style `Dashed ] else []
 end
 
 module Viz = Graph.Graphviz.Dot(G')
