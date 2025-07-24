@@ -32,20 +32,22 @@ module G = Graph.Persistent.Digraph.ConcreteLabeled(V)(E)
 (* XXX hack *)
 let graph_attribute = ref []
 
+let escape s = Printf.sprintf "%S" s
+
 module G' = struct
     include G
     let graph_attributes _g = !graph_attribute (* XXX hack *)
     let default_vertex_attributes _g = []
     let vertex_name (proc_id,v) =
-      "\"" ^
-      Ident.to_string (proc_id : Subst.proc_id :> Ident.t) ^ "_" ^ Index.to_string v
-        ^ "\""
+      escape
+      @@ Ident.to_string (proc_id : Subst.proc_id :> Ident.t) ^ "_" ^ Index.to_string v
     let vertex_attributes _v = []
     let get_subgraph _v = None
     let default_edge_attributes _g = []
 
     let edge_label (t : Sem.edge) =
-      String.concat ";\n"
+      String.escaped
+      @@ String.concat ";\n"
       @@ Ident.to_string (t.id :> Ident.t)
          :: ("PRE:"^String.concat "; " (List.map string_of_fact t.pre))
          :: Update.to_string t.update
