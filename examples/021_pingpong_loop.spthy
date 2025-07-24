@@ -57,11 +57,6 @@ rule Init_system_ACP_1[role="system"]
 // Model:  Alice
 
 
-rule Alice_repeat_in_guarded___0___1_0_0_14[role="Alice"]
-  : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty')]
-    --[Transition_(<'rab_Alice', param>, 'rab___0', %v_), Loop_Start(<'rab_Alice', param>, 'rab___0')]->
-    [State_Alice(<'rab___1_0_0', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
-
 rule Alice_guarded_skip_repeat_out___1___2_13[role="Alice"]
   : [State_Alice(<'rab___1', param, %v_>, return_var_7, 'rab_empty', 'rab_empty', 'rab_empty'), False()]
     --[Transition_(<'rab_Alice', param>, 'rab___1', %v_), Loop_Finish(<'rab_Alice', param>, 'rab___0')]->
@@ -81,6 +76,11 @@ rule Alice_repeat___1_0_1___1_6[role="Alice"]
   : [State_Alice(<'rab___1_0_1', param, %v_>, return_var_6, 'rab_empty', 'rab_empty', 'rab_empty')]
     --[Transition_(<'rab_Alice', param>, 'rab___1_0_1', %v_), Loop_Back(<'rab_Alice', param>, 'rab___0')]->
     [State_Alice(<'rab___1', param, %v_ %+ %1>, return_var_6, 'rab_empty', 'rab_empty', 'rab_empty')] 
+
+rule Alice_guarded___1___1_0_0_1[role="Alice"]
+  : [State_Alice(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty')]
+    --[Transition_(<'rab_Alice', param>, 'rab___1', %v_)]->
+    [State_Alice(<'rab___1_0_0', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
 
 rule Alice_repeat_in___0___1_0[role="Alice"]
   : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty')]

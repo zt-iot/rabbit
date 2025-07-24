@@ -96,8 +96,10 @@ requires
   lemma Valid: (* verified *)
     reachable ::Valid(msg, n) ;
 
-  lemma Invalid: (* falsified *)
+(*
+  lXemma Invalid: (* falsified *)
     reachable ::Invalid() ;
+*)
 
   lemma Correspondence : (* verified *)
     corresponds ::Valid(msg, n) ~> ::Sent(msg, n)

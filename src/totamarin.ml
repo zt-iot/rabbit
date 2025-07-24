@@ -363,55 +363,12 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope ~syscall pol c
       let rev_es, pre, _ = translate_expr2s ~num:0 es in
       let es = List.rev rev_es in
       let _f, _args, cmd = List.find (fun (f', _args, _cmd) -> o = f') syscalls in
-      let st_i =
-        next_state ~shift_loc:(List.length es) st (Some [ 0 ])
-      in
-      let mo = add_state mo st_i in
-      let mo =
-        add_transition
-          mo
-          { transition_id = List.length mo.model_transitions
-          ; transition_namespace = mo.model_name
-          ; transition_name = "scall_intro"
-          ; transition_from = st
-          ; transition_to = st_i
-          ; transition_pre = pre
-          ; transition_post = []
-          ; transition_action = Some [ActionIntro es]
-          ; transition_state_transition =
-              mk_state_transition_from_action (ActionIntro es) st.state_vars
-          ; transition_label = []
-          ; transition_is_loop_back = false
-          }
-      in
-      let mo, st_m = translate_cmd mo st_i funs syscalls attacks None ~syscall:(Some o) pol cmd in
+      (* node for exiting system *)
       let st_f = next_state st None in
       let mo = add_state mo st_f in
-      let action =
-        match ov with
-        | None -> ActionPopLoc (List.length es)
-        | Some (_, v) ->
-            ActionSeq
-              (ActionPopLoc (List.length es), ActionAssign (v, return_var))
-      in
-      let mo =
-        add_transition
-          mo
-          { transition_id = List.length mo.model_transitions
-          ; transition_namespace = mo.model_name
-          ; transition_name = "scall_out"
-          ; transition_from = st_m
-          ; transition_to = st_f
-          ; transition_pre = []
-          ; transition_post = []
-          ; transition_action = Some [action]
-          ; transition_state_transition =
-              mk_state_transition_from_action action st_m.state_vars
-          ; transition_label = []
-          ; transition_is_loop_back = false
-          }
-      in
+      (* add attacks in paralell *)
       (* if this system call is attacked *)
+      let mo =
       (match
          List.find_all
            (fun (a, t, _, _cmd) ->
@@ -421,7 +378,7 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope ~syscall pol c
                    pol.Context.pol_attack)
            attacks
        with
-       | [] -> mo, st_f
+       | [] -> mo
        | lst ->
            let scope_lst =
              List.map (fun i -> Some [ i + 1 ]) (List.init (List.length lst) (fun i -> i))
@@ -480,7 +437,53 @@ let rec translate_cmd mo (st : state) funs syscalls attacks scope ~syscall pol c
                scope_lst
                lst
            in
-           mo, st_f)
+           mo)
+      in
+      (* now add normal behavior *)
+      let st_i = next_state ~shift_loc:(List.length es) st (Some [0]) in
+      let mo = add_state mo st_i in
+      let mo = add_transition mo {
+          transition_id = List.length mo.model_transitions;
+          transition_namespace = mo.model_name;
+          transition_name = "scall_intro";
+          transition_from = st;
+          transition_to = st_i;
+          transition_pre = pre;
+          transition_post = [];
+          transition_action = Some [ActionIntro es];
+          transition_state_transition = mk_state_transition_from_action (ActionIntro es) st.state_vars;
+          transition_label = [];
+          transition_is_loop_back = false
+
+        } in
+      let (mo, st_m) = translate_cmd mo st_i funs syscalls attacks None ~syscall:(Some o) pol cmd in
+
+
+      let action =
+        match ov with
+        | None -> ActionPopLoc (List.length es)
+        | Some (_, v) ->
+            ActionSeq
+              (ActionPopLoc (List.length es), ActionAssign (v, return_var))
+      in
+      let mo = add_transition mo {
+          transition_id = List.length mo.model_transitions;
+          transition_namespace = mo.model_name;
+          transition_name = "scall_out";
+          transition_from = st_m;
+          transition_to = st_f;
+          transition_pre = [];
+          transition_post = [];
+          transition_action = Some [action];
+          transition_state_transition = mk_state_transition_from_action action st_m.state_vars;
+          transition_label = [];
+          transition_is_loop_back = false
+
+        } in
+
+      (mo, st_f)
+
+
   | Syntax.Case cs ->
       let scope_lst =
         match scope with

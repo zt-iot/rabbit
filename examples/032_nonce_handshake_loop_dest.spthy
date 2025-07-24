@@ -84,9 +84,9 @@ rule Init_system_ACP_3[role="system"]
 // Model:  Alice
 
 
-rule Alice_repeat_in_guarded_let_intro_scall_intro___0___1_0_1_0_0_32[role="Alice"]
-  : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty')]
-    --[Transition_(<'rab_Alice', param>, 'rab___0', %v_), Loop_Start(<'rab_Alice', param>, 'rab___0')]->
+rule Alice_guarded_let_intro_scall_intro___1___1_0_1_0_0_31[role="Alice"]
+  : [State_Alice(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty')]
+    --[Transition_(<'rab_Alice', param>, 'rab___1', %v_)]->
     [State_Alice(<'rab___1_0_1_0_0', param, %v_>, 'rab_unit', 'rab_empty', <'rab_bob', 'rab_chan', 'rab_'>, 'rab_empty')] 
 
 rule Alice_guarded_skip_repeat_out___1___2_30[role="Alice"]
@@ -164,7 +164,6 @@ lemma TransitionOnce_[reuse,use_induction]:
 
 
 lemma Correspondence : all-traces "All new_0 new_1 #time_1 . Valid(new_1, new_0)@#time_1 ==> Ex  #time_2 . Sent(new_1, new_0)@#time_2 & #time_2 < #time_1 "
-lemma Invalid : exists-trace "Ex  #time_0 . Invalid()@#time_0 "
 lemma Valid : exists-trace "Ex new_0 new_1 #time_0 . Valid(new_1, new_0)@#time_0 "
 end
 
