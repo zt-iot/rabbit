@@ -45,7 +45,24 @@ module G' = struct
          :: (match t.transition_action with
              | None -> []
              | Some acs ->
-                 ["ACTION:" ^ String.concat "; " (List.map string_of_action acs)]
+                 let acs =
+                   let rec filter_action = function
+                     | ActionSeq (a1, a2) ->
+                         (match filter_action a1, filter_action a2 with
+                          | None, None -> None
+                          | Some a, None -> Some a
+                          | None, Some b -> Some b
+                          | Some a, Some b -> Some (ActionSeq (a, b)))
+                     | ActionAddMeta 0
+                     | ActionIntro []
+                     | ActionPopLoc 0
+                     | ActionPopMeta 0
+                     | ActionLetTop [] -> None
+                     | a -> Some a
+                   in
+                   List.filter_map filter_action acs
+                 in
+                 [String.concat "; " (List.map string_of_action acs)]
            )
 (*
          @ [ state_desc (fst t.transition_state_transition)
