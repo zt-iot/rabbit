@@ -34,6 +34,27 @@ type core_type =
 
 and core_security_type = core_type * (secrecy_lvl * integrity_lvl) [@@deriving show]
 
+(* Whether two `core_security_type`'s hold the same data, ignoring any (secrecy_lvl * integrity_lvl) *)
+let rec equals_datatype (ty1 : core_security_type) (ty2 : core_security_type) : bool =
+  let (ct1, _) = ty1 in
+  let (ct2, _) = ty2 in
+  match ct1, ct2 with
+  | TUnit, TUnit -> true
+  | Dummy, Dummy -> true
+  | TChan lst1, TChan lst2 -> 
+      let same_length = (List.length lst1 = List.length lst2) in 
+      let same_typ_params = List.for_all2 equals_datatype lst1 lst2 in 
+      same_length && same_typ_params
+  | TSimple (id1, lst1), TSimple (id2, lst2) ->
+      let same_type = Name.equal id1 id2 in 
+      let same_length = (List.length lst1 = List.length lst2) in 
+      let same_typ_params = List.for_all2 equals_datatype lst1 lst2 in 
+      same_type && same_length && same_typ_params
+  | TProd (a1, b1), TProd (a2, b2) ->
+      equals_datatype a1 a2 && equals_datatype b1 b2
+  | _, _ -> false
+
+
 (* core type POSSIBLY WITH polymorphic types *)
 type core_function_param =
   | CFP_Unit 
@@ -51,9 +72,8 @@ and core_security_function_param = core_function_param * (secrecy_lvl * integrit
 
 
 
-(* Determines whether security type t1 is a subtype of security type t2 *)
-let is_subtype (t1 : core_security_type) (t2 : core_security_type) : bool = 
-  failwith "TODO"
+
+
 
 (* Boilerplate conversion necesary for `convert_function_param_to_core(Env.FParamSecurity(...)) *)
 let rec cst_to_csfp (cst : core_security_type) : core_security_function_param = 

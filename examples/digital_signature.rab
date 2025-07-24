@@ -126,10 +126,11 @@ process bob(ch_net : udp_t) : client_t
 system
    alice(udp) | bob(udp)
 requires  [
+    (* The system eventually reaches a state where process `alice` closes and where process `bob` closes *)
     lemma Reachable : 
       exists-trace "Ex #i #j . AliceClose () @ #i & BobClose() @ #j";
     
-
+    (* if a message's integrity is verified, this must mean that the message was sent earlier *)
     lemma Correspondence :
     	all-traces "All msg #j  . IntegritySuccess(msg) @ #j ==> Ex #i . MsgSend (msg) @ i & i < j" 
 

@@ -1,4 +1,4 @@
-
+open Cst_util
 
 exception TypeException of string
 
@@ -53,8 +53,8 @@ let rec coerce_fun_param (param : Cst_env.core_security_function_param) : Cst_en
 
 
 
-let rec typeof_expr (secrecy_lattice : To_cst.cst_access_policy)
-  (integrity_lattice : To_cst.cst_access_policy) (expr : Cst_syntax.expr) (t_env : typing_env) : Cst_env.core_security_type = 
+let rec typeof_expr (secrecy_lattice : cst_access_policy)
+  (integrity_lattice : cst_access_policy) (expr : Cst_syntax.expr) (t_env : typing_env) : Cst_env.core_security_type = 
   let typeof_expr_rec = (typeof_expr secrecy_lattice integrity_lattice) in 
   match expr.desc with
 
@@ -130,21 +130,34 @@ let rec typeof_expr (secrecy_lattice : To_cst.cst_access_policy)
             aux [] lst
         in
         let function_params_input, ret_ty = init_and_last function_params in 
-        (* TODO handle substitution of concrete types for polymorphic types *)
+
         (* arity check *)
         (* (this should have been checked for already in `typer.ml/desugarer.ml`, but I'm just doing it again here )*)
         let arity_expected = (List.length function_params) - 1 (* minus one, because we don't count the return type as input type *) in 
         let arity_actual = List.length args in 
         if (arity_expected <> arity_actual) then
             raise (TypeException (Format.sprintf "symbol %s is expected to receive %i arguments but it received %i arguments" (Ident.string_part id) arity_expected arity_actual));
-        
-        (* Check equality of function parameter types and given types, modulo the return type of function params *)
-        let function_params_of_args = List.map (fun e -> Cst_env.cst_to_csfp (typeof_expr_rec e t_env)) args in 
-        let zipped = List.combine function_params_input function_params_of_args in
-        let all_equal = List.for_all (fun (x, y) -> x = y) zipped in
 
-        if all_equal then
+
+        
+        
+        (* Check whether each argument is a subtype of the function parameter type, modulo the return type of function params *)
+        let types_of_args = List.map (fun e -> (typeof_expr_rec e t_env)) args in 
+
+        (* TODO handle substitution of concrete types for polymorphic types *)
+        (* for now, we coerce the function parameters to `core_security_type`'s *)
+        let types_of_function_params = List.map (coerce_fun_param) function_params_input in 
+        
+        
+        let args_x_f_params = List.combine types_of_args types_of_function_params in
+        let all_subtypes = List.for_all (fun (x, y) -> 
+          print_endline (Cst_env.show_core_security_type x);
+          print_endline (Cst_env.show_core_security_type y);
+          is_subtype secrecy_lattice integrity_lattice x y) args_x_f_params in
+
+        if all_subtypes then
             (* TODO infer the return type of a function if it happens to be polymorphic *)
+              (* for now, we coerce the return type to `core_security_type` *)
             coerce_fun_param ret_ty
         else
             raise (TypeException (Format.sprintf "function parameter list of %s did not match types of the arguments" (Ident.string_part id)))
@@ -180,14 +193,13 @@ let rec typeof_expr (secrecy_lattice : To_cst.cst_access_policy)
 
     (* Both options: return type (unit, (Public, Untrusted)) *)
     | Unit ->
-        (* Handle unit *)
-        (Dummy, (S_Ignore, I_Ignore))
+        (Dummy, (Public, Untrusted))
 
 
 
 
-let typecheck_fact (secrecy_lattice : To_cst.cst_access_policy) 
-  (integrity_lattice : To_cst.cst_access_policy) (fact : Cst_syntax.fact) 
+let typecheck_fact (secrecy_lattice : cst_access_policy) 
+  (integrity_lattice : cst_access_policy) (fact : Cst_syntax.fact) 
   (t_env : typing_env) : unit = match fact.desc with 
   | Channel {channel ; name ; args} -> failwith "TODO"
   | Out(e) -> failwith "TODO"
@@ -217,8 +229,8 @@ let rec convert_product_type_to_list_of_types (prod_type : Cst_env.core_security
 
 
 (* typecheck a list of commands and check that they all return the same type *)
-let rec check_cmds_return_same_type (secrecy_lattice : To_cst.cst_access_policy)
-  (integrity_lattice : To_cst.cst_access_policy) (cmds : Cst_syntax.cmd list) (loc : Location.t) (t_env : typing_env) : Cst_env.core_security_type = 
+let rec check_cmds_return_same_type (secrecy_lattice : cst_access_policy)
+  (integrity_lattice : cst_access_policy) (cmds : Cst_syntax.cmd list) (loc : Location.t) (t_env : typing_env) : Cst_env.core_security_type = 
   let typeof_cmd_rec = (typeof_cmd secrecy_lattice integrity_lattice) in 
   begin
     match cmds with 
@@ -228,15 +240,15 @@ let rec check_cmds_return_same_type (secrecy_lattice : To_cst.cst_access_policy)
         List.iter(fun (c : Cst_syntax.cmd) -> 
                     let ty' = typeof_cmd_rec c t_env in
                     (* For now, ty' must be a subtype of ty1, but we can _probably_ be more relaxed *)
-                    if not (Cst_env.is_subtype ty' ty1) then 
+                    if not (is_subtype secrecy_lattice integrity_lattice ty' ty1) then 
                         (raise_type_exception_with_location "All branches of a case/repeat statement must return the same type" loc)
                 ) cmds';
         ty1
   end
 
 
-and typeof_cmd  (secrecy_lattice : To_cst.cst_access_policy)
-  (integrity_lattice : To_cst.cst_access_policy) (cmd : Cst_syntax.cmd) (t_env : typing_env) : Cst_env.core_security_type = 
+and typeof_cmd  (secrecy_lattice : cst_access_policy)
+  (integrity_lattice : cst_access_policy) (cmd : Cst_syntax.cmd) (t_env : typing_env) : Cst_env.core_security_type = 
   let typeof_expr_rec = (typeof_expr secrecy_lattice integrity_lattice) in 
   let typeof_cmd_rec = (typeof_cmd secrecy_lattice integrity_lattice) in 
   let typecheck_fact_rec = (typecheck_fact secrecy_lattice integrity_lattice) in 
@@ -270,7 +282,7 @@ and typeof_cmd  (secrecy_lattice : To_cst.cst_access_policy)
           | None -> raise (TypeException (Format.sprintf "Identifier %s was not present in typing environment t_env" (Ident.string_part id)))
         in
         (* cst_typ must be a subtype of the looked_up_typ *)
-        if not (Cst_env.is_subtype cst_typ looked_up_typ) then
+        if not (is_subtype secrecy_lattice integrity_lattice cst_typ looked_up_typ) then
             (raise_type_exception_with_location "The type being assigned does not match the type of the variable being assigned" cmd.Cst_syntax.loc);
         (TUnit, (Public, Untrusted))
     (*  typecheck e 
@@ -368,8 +380,8 @@ let create_initial_t_env (cst_env : Cst_env.t) : typing_env =
 
 
 
-let typecheck_decl (secrecy_lattice : To_cst.cst_access_policy)
-  (integrity_lattice : To_cst.cst_access_policy) (decl : Cst_syntax.decl) : unit = 
+let typecheck_decl (secrecy_lattice : cst_access_policy)
+  (integrity_lattice : cst_access_policy) (decl : Cst_syntax.decl) : unit = 
   let typeof_expr_rec = (typeof_expr secrecy_lattice integrity_lattice) in 
   let typeof_cmd_rec = (typeof_cmd secrecy_lattice integrity_lattice) in 
 
@@ -466,8 +478,8 @@ let typecheck_decl (secrecy_lattice : To_cst.cst_access_policy)
 
 
 let typecheck_sys (cst_decls : Cst_syntax.decl list) 
-  (sys : Cst_syntax.decl) (secrecy_lattice : To_cst.cst_access_policy)
-  (integrity_lattice : To_cst.cst_access_policy) : unit = match sys.Cst_syntax.desc with 
+  (sys : Cst_syntax.decl) (secrecy_lattice : cst_access_policy)
+  (integrity_lattice : cst_access_policy) : unit = match sys.Cst_syntax.desc with 
   | Cst_syntax.System(proc_strs) ->
 
     (* for all `proc_name` \in `procs`, we need to check that `proc_name` is well-typed *)

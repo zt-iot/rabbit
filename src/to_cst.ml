@@ -2,8 +2,7 @@
 open Sets 
 open Maps
 
-
-exception CstConversionException of string
+open Cst_util
 
 let raise_conv_exception_with_location msg loc = 
     Location.print loc Format.std_formatter;
@@ -22,20 +21,11 @@ type syscall_effect =
 type syscall_effect_map = (syscall_effect) string_map 
 
 
-type relation = 
-  | LessThanOrEqual
-  | GreaterThanOrEqual
-
-type cst_access_policy = ((proc_ty_set * proc_ty_set) * bool) list * relation
-
-
 let syscall_effect_map = 
   StringMap.empty
   |> StringMap.add "recv" Read 
   |> StringMap.add "send" Provide
   |> StringMap.add "invoke_rpc" ReadProvide
-
-
 
 (* A map from SecurityType (=string) to ProcTySet.t, which tells us which security type is allowed to be read by which process *)
 type access_map = (proc_ty_set) security_type_map
@@ -54,18 +44,6 @@ let update_access_map map target_typs proc_ty =
     (* update the binding of security_typ with its new value *)
     SecurityTypeMap.add security_typ new_proc_tys_of_security_typ acc_map
   ) map target_typs
-
-
-(* return corresponding secrecy lvl of if need_integrity_lvl=false else return corresponding integrity lvl *)
-(* let access_map_to_lvl access_map need_integrity_lvl = 
-  if not need_integrity_lvl then  *)
-
-
-
-
-
-
-
 
 
 (* Create read access map and provide access map from a list of `Typed.Allow` declarations *)
@@ -114,11 +92,7 @@ let create_access_maps (decls : Typed.decl list) : access_map * access_map =
 
 
 
-
-
-
-
-(* Get all process strings from procs :  *)
+(* Get all process strings from (procs : Typed.proc list) *)
 let extract_proc_strings procs =
   let extract_pproc_str (pproc : Typed.pproc) = match pproc.Location.data with 
   | {id; _} -> Ident.string_part id
@@ -176,14 +150,11 @@ let provide_access_map_to_integrity_lvls_map provide_access_map all_process_typs
     ) provide_access_map
 
 
-(* Takes an access_map : access_map and proc_ty : string and returns the set of security types that include the given proc_ty *)
-
-
 
 (* COMPUTING a <= b FOR EACH PAIR OF ELEMENTS OF `all_process_typs` *)
-
+(* Takes an access_map : access_map and proc_ty : string and returns the set of security types that include the given proc_ty *)
+(* 1. Find the set of security labels that allow access to a given process type *)
 let accessing_labels (access_map : access_map) (proc_ty : string) : SecurityTypeSet.t =
-  (* 1. Find the set of security labels that allow access to a given process type *)
   SecurityTypeMap.fold (fun key allowed_set acc ->
     if ProcTySet.mem proc_ty allowed_set then
       SecurityTypeSet.add key acc
@@ -293,52 +264,60 @@ let find_extremum_in_intersect
   | None -> None 
 
 
-(* Given a, b, find the least upper bound between a and b *)
-let join (pol : cst_access_policy) (a : proc_ty_set) (b : proc_ty_set) : proc_ty_set option = 
-  let elements_greater_than_a = elements_greater_than_or_equal_to_u pol a in 
-  let elements_greater_than_b = elements_greater_than_or_equal_to_u pol b in 
-  
-  (* find the maximum element in the set of elements greater than both a and b *)
-  let intersect = ProcTySetSet.inter elements_greater_than_a elements_greater_than_b in 
-
-  find_extremum_in_intersect ~find_max:true pol intersect 
-  
-
-
-
-let meet (pol : cst_access_policy) (a : proc_ty_set) (b : proc_ty_set) : proc_ty_set option = 
-  let elements_less_than_or_equal_to_a = elements_less_than_or_equal_to_u pol a in 
-  let elements_less_than_or_equal_to_b = elements_less_than_or_equal_to_u pol b in 
-
-  (* find the minimum element in the set of elements less than both a and b *)
-  let intersect = ProcTySetSet.inter elements_less_than_or_equal_to_a elements_less_than_or_equal_to_b in 
-
-  find_extremum_in_intersect ~find_max:false pol intersect
-
-
-
-
-
+(* Given two secrecy levels a and b: 
+- return the secrecy lvl which is the least upper bound of a and b, if it exists
+- otherwise, return None
+*)
 let join_of_secrecy_lvls (pol : cst_access_policy) (a : Cst_env.secrecy_lvl) (b : Cst_env.secrecy_lvl) : Cst_env.secrecy_lvl option = 
   match (a, b) with
   | Cst_env.S_Ignore, _ -> None 
   | _, Cst_env.S_Ignore -> None 
+  (* If one secrecy_lvl is Public, the least upper bound is the other secrecy_lvl *)
   | Cst_env.Public, _ -> Some b 
   | _, Cst_env.Public -> Some a 
-  | Cst_env.SNode(a_set), Cst_env.SNode(b_set) -> match join pol a_set b_set with 
-    | Some candidate -> Some (SNode candidate)
-    | None -> None
+  | Cst_env.SNode(a_set), Cst_env.SNode(b_set) -> 
+    
+    let elements_greater_than_a = elements_greater_than_or_equal_to_u pol a_set in 
+    let elements_greater_than_b = elements_greater_than_or_equal_to_u pol b_set in 
 
+    (* find the maximum element in the set of elements greater than both a and b *)
+    let intersect = ProcTySetSet.inter elements_greater_than_a elements_greater_than_b in 
+    let candidate = find_extremum_in_intersect ~find_max:true pol intersect in 
 
+    match candidate with 
+    | Some res -> Some (SNode res)
+    | None -> None 
+    
+
+(* Given two integrity levels a and b:
+- return the integrity lvl which is the greatest lower bound of a and b, if it exists
+- otherwsie, return None
+*)
 let meet_of_integrity_lvls (pol : cst_access_policy) (a : Cst_env.integrity_lvl) (b : Cst_env.integrity_lvl) : Cst_env.integrity_lvl option = 
   match (a, b) with 
   | Cst_env.I_Ignore, _ -> None
   | _, Cst_env.I_Ignore -> None
+  (* if one integrity_lvl is Untrusted, the greatest lower bound is the other integrity_lvl *)
   | Cst_env.Untrusted, _ -> Some b
   | _, Cst_env.Untrusted -> Some a 
-  | Cst_env.INode(a_set), Cst_env.INode(b_set) -> match meet pol a_set b_set with 
-    | Some candidate -> Some (INode candidate)
-    | None -> None 
+  | Cst_env.INode(a_set), Cst_env.INode(b_set) -> 
+    
+    let elements_less_than_or_equal_to_a = elements_less_than_or_equal_to_u pol a_set in 
+    let elements_less_than_or_equal_to_b = elements_less_than_or_equal_to_u pol b_set in 
+
+    (* find the minimum element in the set of elements less than both a and b *)
+    let intersect = ProcTySetSet.inter elements_less_than_or_equal_to_a elements_less_than_or_equal_to_b in 
+
+    let candidate = find_extremum_in_intersect ~find_max:false pol intersect in 
+
+    match candidate with 
+    | Some (res) -> Some (INode res)
+    | None -> None
+
+
+
+
+
 
 
 let rec convert_instantiated_ty_to_core (read_access_map : access_map) 
@@ -864,8 +843,8 @@ let convert (decls : Typed.decl list)
     let all_process_typs = extract_process_typs_from_decls procs decls_rev in
 
     (* The method to compute the relation is the same for both reading/providing *)
-    let secrecy_lattice = (compute_access_relation read_access_map, GreaterThanOrEqual) in (* the relation is '>=' *)
-    let integrity_lattice = (compute_access_relation provide_access_map, LessThanOrEqual) in (* the relation is '<=' *)
+    let secrecy_lattice = ((compute_access_relation read_access_map), GreaterThanOrEqual) in (* the relation is '>=' *)
+    let integrity_lattice = ((compute_access_relation provide_access_map), LessThanOrEqual) in (* the relation is '<=' *)
 
     let converted_decls = List.fold_left (fun acc decl -> 
         acc @ (convert_decl read_access_map provide_access_map
