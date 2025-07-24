@@ -48,9 +48,11 @@ module G' = struct
              | Some acs ->
                  ["ACTION:" ^ String.concat "; " (List.map string_of_action acs)]
            )
+(*
          @ [ state_desc (fst t.transition_state_transition)
               ^ " => "
               ^ state_desc (snd t.transition_state_transition) ]
+*)
          @ (match t.transition_label with
              | [] -> []
              | fs -> [ "Label:"
