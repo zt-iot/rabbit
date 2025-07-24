@@ -1,5 +1,7 @@
 open Tamarin
 
+let debug = ref false
+
 type error =
   | ConflictingCondition'
 
@@ -190,13 +192,20 @@ let reduce_conditions post pre' =
         begin match List.filter (fun f -> fact_eq_by_fid f fid) post with
         | [] -> f :: pre
         | [InjectiveFact (_, _, e, arg)] ->
-          print_endline "Testing";
-          print_endline ("- " ^ Tamarin.print_expr e);
-          print_endline ("- " ^ Tamarin.print_expr e');
+          if !debug then (
+            print_endline "Testing";
+            print_endline ("- " ^ Tamarin.print_expr e);
+            print_endline ("- " ^ Tamarin.print_expr e');
+          );
 
           if e = e'
-            then (print_endline ("- judged equal"); (EqFact (arg, arg'))::pre )
-            else (print_endline ("- judged inequal"); error' ConflictingCondition')
+          then (
+            if !debug then print_endline ("- judged equal");
+            (EqFact (arg, arg'))::pre
+          ) else (
+            if !debug then print_endline ("- judged inequal");
+            error' ConflictingCondition'
+          )
         | _ -> error' ConflictingCondition'
         end
       | FileFact (_, _, _) ->
@@ -262,10 +271,11 @@ let rec optimize_at (m : model) (st : state) =
       match is_labelled, nonlocal, inout with
       | Some la, false, false ->
 
-
-        print_endline "Merging";
-        print_endline ("- " ^ print_transition tr1 ~dev:true);
-        print_endline ("- " ^ print_transition tr2 ~dev:true);
+        if !debug then (
+          print_endline "Merging";
+          print_endline ("- " ^ print_transition tr1 ~dev:true);
+          print_endline ("- " ^ print_transition tr2 ~dev:true)
+        );
 
         begin
           let {ret= ret1; metas= meta1; locs= loc1; tops= top1} = (snd tr1.transition_state_transition) in
@@ -309,15 +319,20 @@ let rec optimize_at (m : model) (st : state) =
                 transition_label = la;
                 transition_is_loop_back = false
               } in
-              print_endline "Merged into:";
-              print_endline ("- " ^ print_transition tr ~dev:true);
+              if !debug then (
+                print_endline "Merged into:";
+                print_endline ("- " ^ print_transition tr ~dev:true)
+              );
               add_transition m tr
-            | _ -> print_endline "Failed to merge"; m
+            | _ ->
+              if !debug then print_endline "Failed to merge"; m
         end
       | _ ->
-        print_endline "Not Merging";
-        print_endline ("- " ^ print_transition tr1 ~dev:true);
-        print_endline ("- " ^ print_transition tr2 ~dev:true);
+        if !debug then (
+          print_endline "Not Merging";
+          print_endline ("- " ^ print_transition tr1 ~dev:true);
+          print_endline ("- " ^ print_transition tr2 ~dev:true)
+        );
 
         m
     ) m tr2_lst in m) m tr1_lst in

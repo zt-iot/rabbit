@@ -1,6 +1,8 @@
 (* The semantics *)
 open Typed
 
+let debug = ref false
+
 let unit = { env= Env.empty (); loc= Location.nowhere; desc= Unit }
 
 let evar id =
@@ -283,7 +285,6 @@ module Update = struct
     match enforces with
     | [] -> u
     | _ ->
-        Format.eprintf "ENFORCES!@.";
         let items =
           List.map (fun (v, desc) ->
               v,
@@ -1035,7 +1036,6 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
 let check_edges es =
   let vs = Index.Map.empty in
   List.fold_left (fun vs (e : edge) ->
-      Format.eprintf "Check edge %t@." (Ident.print e.id);
       check_edge_invariants e;
       let check is_source vs v env =
         match Index.Map.find_opt v vs with
@@ -1115,10 +1115,6 @@ let model_process ~loc env decls syscalls (proc : Subst.proc) =
     graph_cmd ~vars:(List.map fst proc.vars) ~proc ~syscaller:None find_def decls i proc.main in
   let g = g @ g' in
   ignore (check_edges g);
-  Format.eprintf "%t: %d edges@." (Ident.print (proc.id :> Ident.t)) (List.length g);
-  List.iter (fun (e : edge) ->
-      Format.eprintf "  %t@." (Ident.print e.id)
-    ) g;
   { id= proc.id; param= proc.param; edges= g }
 
 let instantiate_proc_groups (decls : decl list) (sys : decl) =
@@ -1346,12 +1342,16 @@ let compress (e1 : edge) (e2 : edge) =
   }
 
 let compress e1 e2 =
-  Format.eprintf "@[<v2>Compress@ %a@ %a@]@."
-    print_edge_summary e1
-    print_edge_summary e2;
+  if !debug then (
+    Format.eprintf "@[<v2>Compress@ %a@ %a@]@."
+      print_edge_summary e1
+      print_edge_summary e2
+  );
   let e12 = compress e1 e2 in
-  Format.eprintf "  @[=> %a@]@.@."
-    print_edge_summary e12;
+  if !debug then (
+    Format.eprintf "  @[=> %a@]@.@."
+      print_edge_summary e12
+  );
   e12
 
 let rec optimize_edges edges =
