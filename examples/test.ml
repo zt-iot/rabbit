@@ -24,6 +24,12 @@ let run (com : string) : int * string list =
   in
   exit, outputs
 
+let with_time f =
+  let start = Unix.gettimeofday () in
+  let res = f () in
+  let end_ = Unix.gettimeofday () in
+  res, end_ -. start
+
 let runf fmt = Printf.ksprintf run fmt
 
 let verify specs spthy =
@@ -142,9 +148,9 @@ let test_file rab =
   else
     ignore @@ runf "cp %s %s" out_spthy spthy;
 
-  let res = verify specs out_spthy in
-  let res2 = verify specs out_spthy_2 in
-  res || res2
+  let res, time = with_time @@ fun () -> verify specs out_spthy in
+  let res2, time2 = with_time @@ fun () -> verify specs out_spthy_2 in
+  res || res2, time, time2
 
 
 let () =
@@ -153,13 +159,11 @@ let () =
   let files = List.rev !rev_files in
   let results =
     List.map (fun fn ->
-        let start = Unix.gettimeofday () in
-        let res = test_file fn in
-        let end_ = Unix.gettimeofday () in
-        fn, res, end_ -. start) files
+        fn, with_time @@ fun () -> test_file fn) files
   in
   Format.printf "Test summary:@.";
-  List.iter (fun (fn, res, secs) ->
-      Format.printf "- %s: %s (%.2f secs)@." fn (if res then "Failure" else "Ok") secs) results;
-  let has_failure = List.exists (function (_,true,_) -> true | _ -> false) results in
+  List.iter (fun (fn, ((res, secs1, secs2), secs)) ->
+      Format.printf "- %s: %s (%.2f secs, verification: [original %.2f; new %.2f])@."
+        fn (if res then "Failure" else "Ok") secs secs1 secs2) results;
+  let has_failure = List.exists (function (_,((true, _, _),_)) -> true | _ -> false) results in
   exit (if has_failure then 1 else 0)
