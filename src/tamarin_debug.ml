@@ -25,12 +25,9 @@ module E = struct
 end
 module G = Graph.Persistent.Digraph.ConcreteLabeled(V)(E)
 
-(* XXX hack *)
-let graph_attribute = ref []
-
 module G' = struct
     include G
-    let graph_attributes _g = !graph_attribute (* XXX hack *)
+    let graph_attributes _g = []
     let default_vertex_attributes _g = []
     let vertex_name v =
       "\"" ^ v.state_namespace ^ "_" ^ Mindex.to_string v.state_index ^ "\""
@@ -77,17 +74,6 @@ let write_graph fn g =
 
 let write_tamarin_graph fn t =
   let g = List.fold_left add_model G'.empty t.models in
-  graph_attribute :=
-    [`Label (String.concat ";\n"
-               (List.filter_map (function
-                    | Comment _ -> None
-                    | Rule {name; role; pre; label; post} ->
-                        Some (Printf.sprintf "%s (%s) pre:(%s) label:(%s) post:(%s)" name role
-                                (String.concat ";" (List.map string_of_fact pre))
-                                (String.concat ";" (List.map string_of_fact label))
-                                (String.concat ";" (List.map string_of_fact post))
-                             ))
-                   t.rules)) ];
   write_graph fn g
 
 let write_tamarin_svg fn t =
