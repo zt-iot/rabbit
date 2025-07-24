@@ -670,7 +670,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       in
       let type_pproc env idopt (pproc : Input.pproc) =
         let loc = pproc.loc in
-        let data : Typed.pproc' =
+        let data : Typed.proc' =
           match pproc.data, idopt with
           | Proc (pname, chan_args), None ->
               (* [pname (chargs,..,chargs)] *)
@@ -691,7 +691,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         in
         { pproc with data }
       in
-      let type_proc env : _ -> Typed.proc = function
+      let type_proc env : _ -> Typed.proc_group_desc = function
         | Input.UnboundedProc pproc -> Unbounded (type_pproc env None pproc)
         | BoundedProc (name, pprocs) (* [!name.(pproc1|..|pprocn)] *) ->
             let id = Ident.local name in

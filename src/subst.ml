@@ -101,8 +101,8 @@ let instantiate_proc_aux s ~id ~param ~args ~typ ~files ~vars ~funcs ~main =
 let instantiate_proc
     ~param_rewrite
     (decls : decl list)
-    (pproc : pproc) (* id<parameter>(args) *) =
-  let { id; parameter= param_arg; args= chan_args } = pproc.data in (* id<param_arg>(chan_args) *)
+    (proc : Typed.proc) (* id<parameter>(args) *) =
+  let { id; parameter= param_arg; args= chan_args } = proc.data in (* id<param_arg>(chan_args) *)
   (* instantiate [param_arg] and [chan_args] with [s] *)
   let s =
     let parameters =
@@ -180,12 +180,12 @@ type proc_group_desc =
 
 type proc_group = proc_group_id * proc_group_desc
 
-let instantiate_proc_group decls (proc_group : Typed.proc) =
+let instantiate_proc_group decls (proc_group : Typed.proc_group_desc) =
   match proc_group with
   | Unbounded { data= { parameter= Some _; _ }; _ } -> assert false
   | Unbounded ({ data= { parameter= None; _ }; _ } as pproc) ->
       ( Ident.local ("PG_" ^ fst pproc.data.id) (* New process id *),
-        Unbounded (instantiate_proc ~param_rewrite:None decls (pproc : pproc)) )
+        Unbounded (instantiate_proc ~param_rewrite:None decls (pproc : Typed.proc)) )
   | Bounded (id, pprocs) ->
       let new_id = Ident.local (fst id) in
       let proc_id = Ident.prefix "PG_" new_id in

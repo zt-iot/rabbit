@@ -115,17 +115,17 @@ type chan_arg =
   ; typ : ident
   }
 
-type pproc = pproc' Location.located
+type proc = proc' Location.located
 
-and pproc' =
+and proc' =
   { id : ident
   ; parameter : expr option
   ; args : chan_arg list
   }
 
-type proc =
-  | Unbounded of pproc
-  | Bounded of ident * pproc list
+type proc_group_desc =
+  | Unbounded of proc
+  | Bounded of ident * proc list
 
 type lemma = lemma' loc_env
 
@@ -198,5 +198,5 @@ and decl' =
       ; funcs : (ident * ident list * cmd) list
       ; main : cmd
       }
-  | System of proc list * (Ident.t * lemma) list
+  | System of proc_group_desc list * (Ident.t * lemma) list
   | Load of string * decl list

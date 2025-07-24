@@ -67,6 +67,7 @@ and fact' =
 
 type cmd = cmd' loc_env
 
+(** A match case [| [ ... ] => c] *)
 and case =
   { fresh : ident list (** Variables considered quantified *)
   ; facts : fact list
@@ -93,11 +94,13 @@ and cmd' =
   | Get of ident list * expr * name * cmd (** fetch, let x1,..,xn := e.S in c *)
   | Del of expr * name (** deletion , delete e.S *)
 
+(** Parameter in process declarations [ch<p> : typ] *)
 type chan_param =
   { channel : ident
   ; param : unit option (** [None] for [ch] and [Some ()] for [ch<>] *)
   ; typ : ident }
 
+(** Applied channel argument [ch<e>] and its type *)
 type chan_arg =
   { channel : ident
   ; parameter : expr option option
@@ -108,18 +111,19 @@ type chan_arg =
   ; typ : ident
   }
 
-type pproc = pproc' Location.located
+(** A process *)
+type proc = proc' Location.located
 
 (** id<parameter>(args) *)
-and pproc' =
+and proc' =
   { id : ident
   ; parameter : expr option
   ; args : chan_arg list
   }
 
-type proc =
-  | Unbounded of pproc (** [proc] *)
-  | Bounded of ident * pproc list (** [!name.(pproc1|..|pprocn)] *)
+type proc_group_desc =
+  | Unbounded of proc (** [proc] *)
+  | Bounded of ident * proc list (** [!name.(pproc1|..|pprocn)] *)
 
 (** Lemma *)
 type lemma = lemma' loc_env
@@ -202,6 +206,6 @@ and decl' =
       ; main : cmd
       }
   (** [process id<p>(x1 : ty1, .., xn : tyn) : ty { file ... var ... function ... main ... }] *)
-  | System of proc list * (Ident.t * lemma) list
+  | System of proc_group_desc list * (Ident.t * lemma) list
   (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
   | Load of string * decl list (** [load "fn"] *)

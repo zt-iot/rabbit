@@ -43,4 +43,4 @@ type proc_group_desc =
 (** Instantiated proc group *)
 type proc_group = proc_group_id * proc_group_desc
 
-val instantiate_proc_group : decl list -> Typed.proc -> proc_group
+val instantiate_proc_group : decl list -> Typed.proc_group_desc -> proc_group
