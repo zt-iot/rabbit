@@ -226,6 +226,15 @@ let reduce_conditions post pre' =
   | Error ConflictingCondition' -> None
   end
 
+let has_non_while_label (tr : transition) =
+  List.fold_left (fun b l ->
+  match l with
+  | LoopFact(_, _, _) -> b
+  | _ -> true) false tr.transition_label
+
+let has_effect (tr : transition) =
+  has_non_while_label tr || List.exists (fun a -> is_nonlocal_fact a) tr.transition_post
+
 (* p *)
 let rec optimize_at (m : model) (st : state) =
 
@@ -263,7 +272,10 @@ let rec optimize_at (m : model) (st : state) =
             end
         | _, _ -> None
       end in
-      let nonlocal = List.exists (fun a -> is_nonlocal_fact a) tr2.transition_pre in
+      let nonlocal = (has_effect tr1 && has_effect tr2)
+      || (List.exists (fun a -> is_nonlocal_fact a) tr2.transition_pre)
+
+      in
       let out_num = List.length (forward_transitions_from' m st_m) in
       let in_num = List.length (forward_transitions_to' m st_m) in
       let inout = out_num > 1 && in_num > 1 in

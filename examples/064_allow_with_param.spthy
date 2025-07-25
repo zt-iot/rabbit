@@ -62,10 +62,15 @@ rule Init__system1__ACP__1[role="system1"]
 // Model:  Alice
 
 
-rule Alice__scall_intro_put_scall_out_scall_intro_put_____0_____1__0_1__11[role="Alice"]
-  : [ State__Alice(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'), !ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_one'), !ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_two') ]
+rule Alice__scall_intro_put_____0_____0__0_1__10[role="Alice"]
+  : [ State__Alice(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'), !ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_one') ]
     --[ Transition__(<'rab__Alice', param>, 'rab_____0', %v__) ]->
-    [ State__Alice(<'rab_____1__0_1', param, %v__>, 'rab__unit', 'rab__empty', 'rab__chan', 'rab__empty'), Send('rab__chan', '1'), Send('rab__chan', '2') ] 
+    [ State__Alice(<'rab_____0__0_1', param, %v__>, 'rab__unit', 'rab__empty', 'rab__chan', 'rab__empty'), Send('rab__chan', '1') ] 
+
+rule Alice__scall_out_scall_intro_put_____0__0_1_____1__0_1__9[role="Alice"]
+  : [ State__Alice(<'rab_____0__0_1', param, %v__>, return__var__2, 'rab__empty', l__0__2, 'rab__empty'), !ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_two') ]
+    --[ Transition__(<'rab__Alice', param>, 'rab_____0__0_1', %v__) ]->
+    [ State__Alice(<'rab_____1__0_1', param, %v__>, 'rab__unit', 'rab__empty', 'rab__chan', 'rab__empty'), Send('rab__chan', '2') ] 
 
 rule Alice__scall_out_event_____1__0_1_____3__7[role="Alice"]
   : [ State__Alice(<'rab_____1__0_1', param, %v__>, return__var__5, 'rab__empty', l__0__5, 'rab__empty') ]
