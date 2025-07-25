@@ -29,8 +29,8 @@ and fact' =
       ; name : Name.t
       ; args : Typed.expr list
       } (** Channel fact [ch :: name(args)] *)
-  | Out of Typed.expr (** Attacker fact: Out *)
-  | In of Typed.expr (** Attacker fact: In *)
+  | Out of Typed.expr (** Attacker fact: [Out e] *)
+  | In of Typed.expr (** Attacker fact: [In e] *)
   | Plain of Name.t * Typed.expr list (** [n(e1,..,en)] *)
   | Eq of Typed.expr * Typed.expr (** [e1 = e2] *)
   | Neq of Typed.expr * Typed.expr (** [e1 != e2] *)
@@ -42,7 +42,7 @@ and fact' =
 
   (* New additions at Sem level *)
 
-  | Fresh of Ident.t
+  | Fresh of Ident.t (** Fresh variable *)
   | Structure of
       { name : Name.t
       ; proc_id : Subst.proc_id
@@ -134,15 +134,18 @@ type signature =
   ; equations : (Typed.expr * Typed.expr) list
   }
 
+(** Process, [id<parameter>(args)] *)
 type proc =
   { id : Subst.proc_id
   ; param : Subst.param_id option
   ; edges : edge list }
 
+(** Unnamed process group *)
 type proc_group_desc =
   | Unbounded of proc
   | Bounded of Subst.param_id * proc list
 
+(** Named process group *)
 type proc_group = Subst.proc_group_id * proc_group_desc
 
 type t =
@@ -159,3 +162,4 @@ type t =
 val compile : Typed.decl list -> t
 
 val optimize : t -> t
+(** Performs graph compression *)

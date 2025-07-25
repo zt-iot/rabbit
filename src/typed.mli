@@ -111,16 +111,17 @@ type chan_arg =
   ; typ : ident
   }
 
-(** A process *)
+(** Process *)
 type proc = proc' Location.located
 
-(** id<parameter>(args) *)
+(** [id<parameter>(args)] *)
 and proc' =
   { id : ident
   ; parameter : expr option
   ; args : chan_arg list
   }
 
+(** Unnamed process group *)
 type proc_group_desc =
   | Unbounded of proc (** [proc] *)
   | Bounded of ident * proc list (** [!name.(pproc1|..|pprocn)] *)
