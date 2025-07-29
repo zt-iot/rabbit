@@ -1267,6 +1267,13 @@ let compressable edges e1 e2 =
   &&
   (* The preconditions of [e2]: τ2 has no nonlocal preconditions *)
   not (List.exists is_global_fact e2.pre)
+  &&
+  (* The edges must not be both effectful *)
+  let effectful e =
+    List.exists (fun f -> match f.desc with Loop _ -> false | _ -> true) e.tag
+    || List.exists is_global_fact e.post
+  in
+  not (effectful e1 && effectful e2)
   && (
     (* Even in this case, we avoid merging if both the precondition of τ2
        and the postcondition of τ1 contain file facts. *)
@@ -1275,8 +1282,6 @@ let compressable edges e1 e2 =
     in
     not (has_file_fact e1.post && has_file_fact e2.pre)
   )
-  (* [e1] must not be loop_back *)
-  && not e1.loop_back
 
 let compress (e1 : edge) (e2 : edge) =
   let id =
