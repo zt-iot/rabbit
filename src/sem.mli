@@ -1,5 +1,7 @@
 (** The semantics *)
 
+include Sig.ERROR
+
 module Index : sig
   (** Transition graph node index *)
   type t = private (int * int) list

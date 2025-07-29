@@ -1,6 +1,22 @@
 (* The semantics *)
 open Typed
 
+(** Conversion errors *)
+type error =
+  | NoSystem
+  | MultipleSystems
+
+(** Print error description. *)
+let print_error err ppf =
+  match err with
+  | NoSystem -> Format.fprintf ppf "No system to compile"
+  | MultipleSystems -> Format.fprintf ppf "Only 1 system can exist"
+
+exception Error of error Location.located
+
+(** [error ~loc err] raises the given runtime error. *)
+let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
+
 let debug = ref false
 
 let unit = { env= Env.empty (); loc= Location.nowhere; desc= Unit }
@@ -1234,8 +1250,8 @@ let compile (decls : decl list) =
           | _ -> false) decls
     with
     | [sys] -> sys
-    | [] -> assert false
-    | _ -> assert false
+    | [] -> error ~loc:Location.nowhere NoSystem
+    | _ -> error ~loc:Location.nowhere MultipleSystems
   in
   let signature = signature_of_decls decls in
   let proc_groups : Subst.proc_group list= instantiate_proc_groups decls sys in
