@@ -1,0 +1,51 @@
+syscall send(c, v) {
+  put [c::store(v)]
+}
+
+syscall recv(c) {
+  case 
+  | [c::store(v)] → v 
+  end
+}
+
+type person_t : process
+type chan_t : channel
+
+process alice(ch : chan_t) : person_t 
+{
+    main {
+        repeat
+        | [] →
+	    new n in
+	    _ := send(ch, n);
+	    var m = recv(ch) in
+	    case
+	    | [n = m] ->
+	         event [::Valid()]
+            | [n != m] ->
+	         event [::Invalid()]
+            end
+        until
+        | [::False()] →  skip (* never terminate *)
+        end
+    }
+}
+
+allow person_t chan_t [send, recv]
+
+channel chan : chan_t
+
+system
+  alice(chan)
+requires
+[
+  lemma Valid: (* verified *)
+    reachable ::Valid()
+
+(*
+ ;
+
+  lXemma Invalid: (* falsified *)
+    reachable ::Invalid()
+*)
+]

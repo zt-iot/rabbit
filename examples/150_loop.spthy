@@ -1,0 +1,81 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+
+
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Constants:
+
+
+
+// Add model inits: Alice
+
+
+rule Init_system[role="system"]
+  : []
+    --[Init_('rab_system')]->
+    [!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+
+// Model:  Alice
+
+
+rule Alice_guarded_put___2___2_0_1_11[role="Alice"]
+  : [State_Alice(<'rab___2', param, %v_>, return_var_2, 'rab_empty', 'rab_empty', 'rab_empty'), X()]
+    --[Transition_(<'rab_Alice', param>, 'rab___2', %v_)]->
+    [State_Alice(<'rab___2_0_1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), Y()] 
+
+rule Alice_guarded_skip_repeat_out___2___3_10[role="Alice"]
+  : [State_Alice(<'rab___2', param, %v_>, return_var_5, 'rab_empty', 'rab_empty', 'rab_empty'), Y()]
+    --[Transition_(<'rab_Alice', param>, 'rab___2', %v_), Loop_Finish(<'rab_Alice', param>, 'rab___1')]->
+    [State_Alice(<'rab___3', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+
+rule Alice_event___3___4_8[role="Alice"]
+  : [State_Alice(<'rab___3', param, %v_>, return_var_8, 'rab_empty', 'rab_empty', 'rab_empty')]
+    --[Transition_(<'rab_Alice', param>, 'rab___3', %v_), Valid()]->
+    [State_Alice(<'rab___4', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+
+rule Alice_repeat___2_0_1___2_4[role="Alice"]
+  : [State_Alice(<'rab___2_0_1', param, %v_>, return_var_4, 'rab_empty', 'rab_empty', 'rab_empty')]
+    --[Transition_(<'rab_Alice', param>, 'rab___2_0_1', %v_), Loop_Back(<'rab_Alice', param>, 'rab___1')]->
+    [State_Alice(<'rab___2', param, %v_ %+ %1>, return_var_4, 'rab_empty', 'rab_empty', 'rab_empty')] 
+
+rule Alice_repeat_in___1___2_1[role="Alice"]
+  : [State_Alice(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty')]
+    --[Transition_(<'rab_Alice', param>, 'rab___1', %v_), Loop_Start(<'rab_Alice', param>, 'rab___1')]->
+    [State_Alice(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+
+rule Alice_put___0___1_0[role="Alice"]
+  : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty')]
+    --[Transition_(<'rab_Alice', param>, 'rab___0', %v_)]->
+    [State_Alice(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), X()] 
+
+restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
+
+lemma AlwaysStarts_[reuse,use_induction]:
+      "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+
+lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
+      "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
+
+lemma TransitionOnce_[reuse,use_induction]:
+      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+        Transition_(x, p, %i) @ #k ==> #j = #k"
+
+
+lemma Reachable : exists-trace "Ex  #time_0 . Valid()@#time_0 "
+end
+
