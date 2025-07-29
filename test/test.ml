@@ -57,7 +57,7 @@ end
 
 let run_check_syntax fn =
   (* [cd ..] is required *)
-  let com = Printf.sprintf "cd ..; opam exec -- dune exec -- src/rabbit.exe %s -o %s.spthy 2>&1" fn fn in
+  let com = Printf.sprintf "cd ..; opam exec -- dune exec -- src/rabbit.exe --test-new %s -o %s.spthy 2>&1" fn fn in
   let ic = Unix.open_process_in com in
   let outputs = In_channel.input_lines ic in
   let res =
