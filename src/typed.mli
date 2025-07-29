@@ -1,6 +1,6 @@
 (** Name checked AST
 
-    This is not really "typed" but just name checked.
+    This is not really "typed" but just name checked AST.
 *)
 
 type name = Name.t

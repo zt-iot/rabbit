@@ -162,6 +162,11 @@ type t =
   }
 
 val compile : Typed.decl list -> t
+(** [compile decls] compiles [decls] to semantics [t].
+
+    If the function fails to compile [decls], it raises an exception
+    [Error _].
+*)
 
 val optimize : t -> t
-(** Performs graph compression *)
+(** Performs graph compression. *)

@@ -114,7 +114,7 @@ type rule =
   ; comment : string option
   }
 
-(** Tamarin system *)
+(** Rabbit system compiled to Tamarin *)
 type t =
   { signature : signature
   ; constants : rule list
@@ -127,3 +127,4 @@ type t =
 val print : Format.formatter -> t -> unit
 
 val compile_sem : Sem.t -> t
+(** [compile_sem sem] compiles semantics [sem] to a Tamarin system. *)
