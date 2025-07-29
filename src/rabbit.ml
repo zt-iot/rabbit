@@ -11,6 +11,11 @@ let ofile = ref None
 
 let svg_file = ref false
 
+(** [Some `Main] to use the new compiler pipeline: [Typer], [Sem], [Spthy]
+    [Some `Test] to run it along with the original one.
+*)
+let new_compiler = ref None
+
 (** Add a file to the list of files to be loaded, and record whether it should
     be processed in interactive mode. *)
 let add_file filename = files := filename :: !files
@@ -52,10 +57,147 @@ let options = Arg.align [
     ("--svg",
      Arg.Set svg_file,
      " Output graph SVGs (requires graphviz)");
+
+    ("--new",
+     Arg.Unit (fun () -> new_compiler := Some `Main),
+     " Use new compiler");
+
+    ("--test-new",
+     Arg.Unit (fun () -> new_compiler := Some `Test),
+     " Test new compiler along with the original compiler");
     ]
 
+let load_file (env : Loader.env) fn =
+  try
+    Ok (Loader.load fn env)
+  with
+  | exn -> Error exn
+
+let new_load_file fn =
+  try
+    (* The new compiler loads each file with the empty env *)
+    Ok (snd @@ Typer.load (Env.empty ()) fn)
+  with
+  | (Typer.Error _ as exn) -> Error exn
+  | exn ->
+      Format.eprintf "Typer unexpected exception: %s@." (Printexc.to_string exn);
+      Error exn
+
+let compare_load_results res new_res =
+  (* Compare the results of the original and new and report them to stderr *)
+  match res, new_res with
+  | Ok _, Ok _ ->
+      prerr_endline "TyperSuccess"
+  | Error _exn, Error (Typer.Error e) ->
+      Format.eprintf "TyperFail: %t: %t@." (Location.print e.loc) (Typer.print_error e.data);
+  | Error _exn, Error exn' ->
+      Format.eprintf "TyperFail: %s@." (Printexc.to_string exn');
+  | Ok _, Error (Typer.Error e) ->
+      Format.eprintf "Unexpected TyperFail: %t: %t@." (Location.print e.loc) (Typer.print_error e.data)
+  | Ok _, Error exn ->
+      Format.eprintf "Unexpected TyperFail: %s@." (Printexc.to_string exn)
+  | Error _, Ok _ ->
+      prerr_endline "Unexpected TyperSuccess"
+
+let translate_system (used_idents, used_strings) s =
+  let t = Totamarin.translate_sys s (used_idents, used_strings) in
+  let t =
+    if !Config.optimize then
+      { t with models= List.map (fun m -> Postprocessing.(move_eq_facts @@ optimize m)) t.models }
+    else
+      { t with models= List.map Postprocessing.move_eq_facts t.models }
+  in
+  let tamarin = Tamarin.print_tamarin t ~dev:!Config.dev ~print_transition_label:!Config.tag_transition in
+  match !ofile with
+  | None ->
+      Print.message ~loc:Location.Nowhere "Warning:" "%s" "output file not specified"
+  | Some ofile ->
+      let oc = open_out ofile in
+      Printf.fprintf oc "%s\n" tamarin;
+      close_out oc;
+      Print.message ~loc:Location.Nowhere "Translated into" "%s" ofile;
+      if !svg_file then
+        Tamarin_debug.write_tamarin_svg (ofile ^ ".svg") t
+
+(* [ext] is to give a different path than the original output files
+   when [!new_copmiler = Some `Test] *)
+let new_translate_system ext decls =
+  let sem = Sem.compile decls in
+  let sem = if !Config.optimize then Sem.optimize sem else sem in
+  (match !ofile, !svg_file with
+   | Some ofile, true ->
+       Sem_debug.write_models_svg (ofile ^ ext ^ ".svg")
+       @@ List.concat_map (function
+           | _id, Sem.Unbounded model -> [model]
+           | _id, Bounded (_p, models) -> models) sem.proc_groups
+   | None, _ | _, false -> ());
+  let spthy = Spthy.compile_sem sem in
+  (match !ofile with
+   | None -> ()
+   | Some ofile ->
+       Out_channel.with_open_text (ofile ^ ext) @@ fun oc ->
+       let ppf = Format.formatter_of_out_channel oc in
+       Format.fprintf ppf "%a@." Spthy.print spthy)
+
+let wrap_exn f = try Ok (f ()) with exn -> Error exn
+
+let run files =
+  match !new_compiler with
+  | None ->
+      (* Only the original compiler *)
+      let Loader.{ system= sys; used_idents; used_strings; _ } =
+        List.fold_left (fun env fn ->
+            match load_file env fn with
+            | Ok res -> res
+            | Error exn -> raise exn) Loader.process_init !files
+      in
+      print_string "Loading complete..\n";
+      (* XXX Bug: this cannot handle multiple systems properly *)
+      List.iter (translate_system (used_idents, used_strings)) sys
+  | Some `Main ->
+      (* Only the new compiler *)
+      let decls = List.concat_map (fun fn ->
+          match new_load_file fn with
+          | Ok decls -> decls
+          | Error exn -> raise exn
+        ) !files
+      in
+      new_translate_system "" decls
+  | Some `Test ->
+      (* Run the new compiler along with the original one *)
+      let Loader.{ system= sys; used_idents; used_strings; _ }, (decls : (Typed.decl list, exn) result) =
+        List.fold_left (fun ((env : Loader.env), decls) fn ->
+            let res = load_file env fn in
+            let new_res = new_load_file fn in
+            let may_raise = function
+              | Ok x -> x
+              | Error exn -> raise exn
+            in
+            compare_load_results res new_res;
+            may_raise res,
+            match decls, new_res with
+            | Error exn, _ | _, Error exn -> Error exn
+            | Ok decls, Ok decls' -> Ok (decls @ decls'))
+          (Loader.process_init, Ok []) !files
+      in
+      print_string "Loading complete..\n";
+      (* XXX Bug: this cannot handle multiple systems properly *)
+      let res =
+        wrap_exn @@ fun () -> List.iter (translate_system (used_idents, used_strings)) sys
+      in
+      let new_res =
+        match decls with
+        | Error exn -> Error exn
+        | Ok decls -> wrap_exn @@ fun () -> new_translate_system ".2" decls
+      in
+      match res, new_res with
+      | Ok _, Ok _ -> ()
+      | Error exn, _ -> raise exn
+      | Ok _, Error (Typer.Error _ | Sem.Error _) -> () (* Well-defined errors are ignored for test/test.exe *)
+      | Ok _, Error exn -> raise exn
+
 (** Main program *)
-let _main =
+let () =
   Sys.catch_break true ;
   (* Parse the arguments. *)
   Arg.parse
@@ -69,105 +211,9 @@ let _main =
   Format.set_max_boxes !Config.max_boxes ;
   Format.set_margin !Config.columns ;
   Format.set_ellipsis_text "..." ;
-  (* try *)
-    (* Run and load all the specified files. *)
-    (* let _ = Desugar.load (fst (List.hd !files)) Desugar.ctx_init Desugar.pol_init Desugar.def_init in  *)
+
   try
-      let Loader.{ system= sys; used_idents; used_strings; _ } =
-        List.fold_left (fun (env : Loader.env) fn ->
-            let loader_result =
-              try
-                Ok (Loader.load fn env)
-              with
-              | exn -> Error exn
-            in
-            let typer_result =
-              try
-                let _, decls = Typer.load (Env.empty ()) fn in
-                Ok decls
-              with
-              | (Typer.Error _ as exn) -> Error exn
-              | exn ->
-                  Format.eprintf "Typer unexpected exception: %s@." (Printexc.to_string exn);
-                  Error exn
-            in
-            let res =
-              match loader_result, typer_result with
-              | Ok res, Ok _ ->
-                  prerr_endline "TyperSuccess";
-                  res
-              | Error exn, Error (Typer.Error e) ->
-                  Format.eprintf "TyperFail: %t: %t@." (Location.print e.loc) (Typer.print_error e.data);
-                  raise exn
-              | Error exn, Error exn' ->
-                  Format.eprintf "TyperFail: %s@." (Printexc.to_string exn');
-                  raise exn
-              | Ok res, Error (Typer.Error e) ->
-                  Format.eprintf "Unexpected TyperFail: %t: %t@." (Location.print e.loc) (Typer.print_error e.data); res
-              | Ok res, Error exn ->
-                  Format.eprintf "Unexpected TyperFail: %s@." (Printexc.to_string exn); res
-              | Error exn, Ok _ ->
-                  prerr_endline "Unexpected TyperSuccess";
-                  raise exn
-            in
-            (* Semantics test *)
-            (match typer_result with
-             | Error _ -> ()
-             | Ok decls ->
-                 let compile_sem_to_spthy ext sem =
-                   let spthy = Spthy.compile_sem sem in
-                   match !ofile with
-                   | None -> ()
-                   | Some ofile ->
-                       let ofile = ofile ^ ext in
-                       Out_channel.with_open_text ofile @@ fun oc ->
-                       let ppf = Format.formatter_of_out_channel oc in
-                       Format.fprintf ppf "%a@." Spthy.print spthy;
-                       if !svg_file then
-                         Sem_debug.write_models_svg (ofile ^ ".svg")
-                         @@ List.concat_map (function
-                             | _id, Sem.Unbounded model -> [model]
-                             | _id, Bounded (_p, models) -> models) sem.proc_groups
-                 in
-
-                 let sem = Sem.compile decls in
-
-                 if not !Config.optimize then
-                   compile_sem_to_spthy ".2" sem
-                 else (
-                   compile_sem_to_spthy ".1" sem;
-                   let sem = Sem.optimize sem in
-                   compile_sem_to_spthy ".2" sem
-                 )
-            );
-            res
-          )
-          Loader.process_init !files
-      in
-      print_string "Loading complete..\n";
-      (* XXX What happens if there are multiple systems? *)
-      List.fold_left (fun _ s ->
-          let t = Totamarin.translate_sys s (used_idents, used_strings) in
-          let t =
-            if !Config.optimize then
-              { t with models= List.map (fun m -> Postprocessing.(move_eq_facts @@ optimize m)) t.models }
-            else
-              { t with models= List.map Postprocessing.move_eq_facts t.models }
-          in
-          let tamarin = Tamarin.print_tamarin t ~dev:!Config.dev ~print_transition_label:!Config.tag_transition in
-          match !ofile with
-          | None ->
-              Print.message ~loc:Location.Nowhere "Warning:" "%s" "output file not specified"
-          | Some ofile ->
-              let oc = open_out ofile in
-              Printf.fprintf oc "%s\n" tamarin;
-              close_out oc;
-              Print.message ~loc:Location.Nowhere "Translated into" "%s" ofile;
-              if !svg_file then
-                Tamarin_debug.write_tamarin_svg (ofile ^ ".svg") t
-        ) () sys;
-    ()
-
+    run files
   with
   | Ulexbuf.Error {Location.data=err; Location.loc} ->
       Print.message ~loc "Parsing error" "%t" (Ulexbuf.print_error err);
@@ -185,4 +231,7 @@ let _main =
       exit 1
   | Postprocessing.Error err ->
       Print.message ~loc:Location.Nowhere "Translate error" "%t" (Postprocessing.print_error err);
+      exit 1
+  | Typer.Error err ->
+      Print.message ~loc:err.loc "Typer error" "%t" (Typer.print_error err.data);
       exit 1
