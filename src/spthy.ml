@@ -41,6 +41,9 @@ type signature =
   ; equations : (expr * expr) list
   }
 
+let print_list sep f =
+  Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf sep) f
+
 (*
 functions: true/0, pk/1, enc/2, sign/2, dec/2, fst/1, snd/1, verify/3, h/1
 equations: fst(<loc__1, loc__0>)=loc__1,
@@ -52,15 +55,11 @@ let print_signature ppf signature =
   let open Format in
   if signature.functions <> [] then
     fprintf ppf "functions: %a@."
-      (pp_print_list
-         ~pp_sep:(fun ppf () -> fprintf ppf ", ")
-         (fun ppf (id, arity) -> fprintf ppf "%s/%d" (Ident.to_string id) arity))
+      (print_list ", " (fun ppf (id, arity) -> fprintf ppf "%s/%d" (Ident.to_string id) arity))
       signature.functions;
   if signature.equations <> [] then
     fprintf ppf "equations: %a@."
-      (pp_print_list
-         ~pp_sep:(fun ppf () -> fprintf ppf ", ")
-         (fun ppf (e1, e2) -> fprintf ppf "%s=%s" (string_of_expr e1) (string_of_expr e2)))
+      (print_list ", " (fun ppf (e1, e2) -> fprintf ppf "%s=%s" (string_of_expr e1) (string_of_expr e2)))
       signature.equations
 
 type fact =
@@ -468,12 +467,15 @@ type rule =
 let print_rule ppf rule =
   let open Format in
   Option.iter (fprintf ppf "// %s@.") rule.comment;
-  fprintf ppf "rule %s%s@.  : [%s]@.    --[%s]->@.    [%s]"
+  fprintf ppf "rule %s%s@.  : [ @[<v>%a@] ]@.    --[ @[<v>%a@] ]->@.    [ @[<v>%a@] ]"
     (Ident.to_string rule.id)
     (match rule.role with None -> "" | Some id -> Printf.sprintf "[role=\"%s\"]" (Ident.to_string id))
-    (String.concat ", " (List.map (fun f -> string_of_fact' (fact' f)) rule.pre))
-    (String.concat ", " (List.map (fun f -> string_of_fact' (fact' f)) rule.label))
-    (String.concat ", " (List.map (fun f -> string_of_fact' (fact' f)) rule.post))
+    (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (string_of_fact f)))
+    rule.pre
+    (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (string_of_fact f)))
+    rule.label
+    (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (string_of_fact f)))
+    rule.post
 
 (* move equality and inequality facts from precondition to tags because Tamarin cannot handle
    (N)Eq fact generation rules correctly for fresh values *)
