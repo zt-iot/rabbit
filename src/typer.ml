@@ -23,6 +23,7 @@ type error =
   | UnboundFact of Name.ident
   | NonCallableInExpression of Ident.t * Env.desc
   | InvalidAnonymousAssignment
+  | GlobalChannelInExpr of Ident.t
 
 exception Error of error Location.located
 
@@ -98,6 +99,8 @@ let print_error err ppf =
   | UnboundFact id -> Format.fprintf ppf "Unbound fact %s" id
   | InvalidAnonymousAssignment ->
       Format.pp_print_string ppf "Pure expression is used at _ := e, which has no effect"
+  | GlobalChannelInExpr id ->
+      Format.fprintf ppf "Global channel %t cannot be used in an expression" (Ident.print id)
 ;;
 
 module Env : sig
@@ -168,6 +171,12 @@ let rec type_expr env (e : Input.expr) : Typed.expr =
     | Float f -> Float f
     | Var name ->
         let id, desc = Env.find ~loc env name in
+        (* Global channels cannot be used in exprs.
+           Channels must be given as [chan_arg]s *)
+        (match desc  with
+         | Channel _ when Ident.is_global id -> error ~loc @@ GlobalChannelInExpr id
+         | _ -> ()
+        );
         Ident { id; desc; param = None }
     | Tuple es ->
         assert (List.length es > 0);

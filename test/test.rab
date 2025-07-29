@@ -224,3 +224,29 @@ requires
   lemma Reachable :
     reachable ::Valid()
 ]
+
+(*** Fail "unknown meta variable chan", TyperFail "Global channel chan cannot be used in an expression" *)
+type person_t : process
+type chan_t : channel
+
+channel chan : chan_t
+
+process alice() : person_t
+{
+    main {
+        put [chan::store(1)];   (* Parser failure *)
+	case
+	| [chan::store(1)] -> event[::Valid()]
+	end
+    }
+}
+
+allow person_t chan_t [.]
+
+system
+  alice()
+requires
+[
+  lemma Valid: (* verified *)
+    reachable ::Valid()
+]
