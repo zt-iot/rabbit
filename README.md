@@ -3,18 +3,17 @@ Rabbit is a modeling language for verified networked systems, featuring an imper
 
 ## Installing Rabbit via OPAM
 
-We assume that OPAM is installed and the OCaml compiler version is 5.0.0 (or higher). The tested version is 5.0.0.
-You can follow [these instructions](https://www.ocaml.org/docs/up-and-running) for installing OCaml and the OCaml package manager OPAM.
+We assume that OPAM is installed and the OCaml compiler version is 5.2.1 (or higher). The tested version is 5.2.1.
+You can follow [these instructions](https://www.ocaml.org/docs/up-and-running) for installing the OCaml package manager OPAM.
 
-Rabbit is implemented in OCaml and can be built easily using its `rabbit.opam` file. From the repository root, run:
+Rabbit is implemented in OCaml and can be built easily using `opam` command. From the repository root, run:
 
 ```bash
-opam pin add . -n
-opam install . --deps-only
-opam install .
+rm -rf _opam   # clean an older build if exists
+opam switch create -y -w . ocaml-base-compiler.5.2.1
 ```
 
-This installs most dependencies available in OPAM and your system's package manager, builds Rabbit, and places the executable in `~/.opam/[switch]/bin`, which is typically included in your shell environment.
+This installs most dependencies available in OPAM and your system's package manager, builds Rabbit, and places the executable in `_opam/bin`, which is typically included in your shell environment.
 
 ## Tamarin
 To run the Rabbit produced tamain files, of course, `tamarin-prover` needs to be installed.
