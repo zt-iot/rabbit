@@ -23,12 +23,15 @@ type syscall_effect_map = (syscall_effect) string_map
 
 let syscall_effect_map = 
   StringMap.empty
-  |> StringMap.add "recv" Read 
+  |> StringMap.add "recv" Read
   |> StringMap.add "send" Provide
   |> StringMap.add "invoke_rpc" ReadProvide
 
 (* A map from SecurityType (=string) to ProcTySet.t, which tells us which security type is allowed to be read by which process *)
 type access_map = (proc_ty_set) security_type_map
+
+(* Just an idea: the transpose of access_map *)
+(* type reverse_acces_map = (security_type) proc_type_map *)
 
 (* For all security_typ in target_typs, register the connection (target_typ, proc_ty) in map *)
 let update_access_map map target_typs proc_ty = 

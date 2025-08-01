@@ -2,11 +2,22 @@ open Cst_util
 
 exception TypeException of string
 
-
 let raise_type_exception_with_location msg loc = 
     Location.print loc Format.std_formatter;
     Format.pp_print_newline Format.std_formatter ();
     raise (TypeException msg)
+
+(* OCaml provides no easy way to retrieve the last element of a list, so this has to be done *)
+let init_and_last generic_list loc =
+    let rec aux acc = function
+        | [] -> raise_type_exception_with_location "A construct at this location caused `init_and_last` to be called with an empty list" loc
+        | [x] -> (List.rev acc, x)
+        | x :: xs -> aux (x :: acc) xs
+    in
+    aux [] generic_list
+
+
+
 
 
 
@@ -54,7 +65,7 @@ let rec coerce_fun_param (param : Cst_env.core_security_function_param) : Cst_en
 
 
 let rec typeof_expr (secrecy_lattice : cst_access_policy)
-  (integrity_lattice : cst_access_policy) (expr : Cst_syntax.expr) (t_env : typing_env) : Cst_env.core_security_type = 
+  (integrity_lattice : cst_access_policy) (expr : Cst_syntax.expr) (t_env : typing_env) ?(is_fresh = false) : Cst_env.core_security_type = 
   let typeof_expr_rec = (typeof_expr secrecy_lattice integrity_lattice) in 
   match expr.desc with
 
@@ -120,16 +131,7 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
                         because it is not an equational theory function syscall or member function" (Ident.name id)))
         end in 
         
-        (* OCaml provides no easy way to retrieve the last element of a list, so this has to be done *)
-        let init_and_last lst =
-            let rec aux acc = function
-                | [] -> raise (TypeException (Format.sprintf "function parameter list of %s is empty, which should not be possible" (Ident.string_part id)))
-                | [x] -> (List.rev acc, x)
-                | x :: xs -> aux (x :: acc) xs
-            in
-            aux [] lst
-        in
-        let function_params_input, ret_ty = init_and_last function_params in 
+        let function_params_input, ret_ty = init_and_last function_params expr.loc in 
 
         (* arity check *)
         (* (this should have been checked for already in `typer.ml/desugarer.ml`, but I'm just doing it again here )*)
@@ -137,9 +139,6 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
         let arity_actual = List.length args in 
         if (arity_expected <> arity_actual) then
             raise (TypeException (Format.sprintf "symbol %s is expected to receive %i arguments but it received %i arguments" (Ident.string_part id) arity_expected arity_actual));
-
-
-        
         
         (* Check whether each argument is a subtype of the function parameter type, modulo the return type of function params *)
         let types_of_args = List.map (fun e -> (typeof_expr_rec e t_env)) args in 
@@ -147,12 +146,10 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
         (* TODO handle substitution of concrete types for polymorphic types *)
         (* for now, we coerce the function parameters to `core_security_type`'s *)
         let types_of_function_params = List.map (coerce_fun_param) function_params_input in 
-        
-        
         let args_x_f_params = List.combine types_of_args types_of_function_params in
         let all_subtypes = List.for_all (fun (x, y) -> 
-          print_endline (Cst_env.show_core_security_type x);
-          print_endline (Cst_env.show_core_security_type y);
+          (* print_endline (Cst_env.show_core_security_type x);
+          print_endline (Cst_env.show_core_security_type y); *)
           is_subtype secrecy_lattice integrity_lattice x y) args_x_f_params in
 
         if all_subtypes then
@@ -199,11 +196,31 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
 
 
 let typecheck_fact (secrecy_lattice : cst_access_policy) 
-  (integrity_lattice : cst_access_policy) (fact : Cst_syntax.fact) 
-  (t_env : typing_env) : unit = match fact.desc with 
-  | Channel {channel ; name ; args} -> failwith "TODO"
-  | Out(e) -> failwith "TODO"
+  (integrity_lattice : cst_access_policy) (fact : Cst_syntax.fact)
+  (t_env : typing_env) : unit = 
+  let typeof_expr_rec = (typeof_expr secrecy_lattice integrity_lattice) in 
+  match fact.desc with 
+  (* E.G. ch::store(arg_1, ..., arg_n) *)
+  | Channel {channel = ch ; name ; args} -> begin match (typeof_expr secrecy_lattice integrity_lattice ch t_env) with 
+    | (Cst_env.TChan(chan_type_params), (_, _)) -> 
+      let type_of_args = List.map (fun arg -> (typeof_expr_rec arg t_env)) args in
 
+      (* arity check ; although we should also have checked this in typer.ml *)
+      
+      if (List.length type_of_args != List.length chan_type_params) then
+        (raise_type_exception_with_location "Channel fact is used with incorrect amount of arguments" fact.loc);
+      
+      (* check that each arg is a subtype of the channel parameter type *)
+      List.iter (fun (param_ty, arg_ty) -> 
+        if not (Cst_util.is_subtype secrecy_lattice integrity_lattice arg_ty param_ty) then 
+          (raise_type_exception_with_location "An argument type is not a subtype of the type of the channel" fact.loc);
+        ) (List.combine chan_type_params type_of_args);
+      
+    | _ -> (raise_type_exception_with_location "a non-channel expression was used in a channel fact" fact.loc)
+    end
+
+  (* I do not know if the `Out` fact actually needs to be typechecked *)
+  | Out(e) -> failwith "TODO"
   (* In(e) is always well-typed *)
   | In(e) -> ()
   (* Plain facts are always well-typed *)
@@ -293,6 +310,13 @@ and typeof_cmd  (secrecy_lattice : cst_access_policy)
         (TUnit, (Public, Untrusted))
     (* both cases: typecheck all branches to see that they are well-typed and return the same type *)
     | Case cases ->  
+
+        (* check that there is no ill-typed fact in any of the cases *)
+        List.iter (fun (c : Cst_syntax.case) -> 
+            (List.iter (fun fact -> typecheck_fact_rec fact t_env) c.facts);
+        ) cases;
+
+        (* check that all commands of a case statement return the same type*)
         let cmds = List.map (fun (c : Cst_syntax.case) -> c.cmd) cases in 
         (check_cmds_return_same_type secrecy_lattice integrity_lattice cmds cmd.loc t_env)
     (* both cases: typecheck all branches to see that they are well-typed and return the same result *)
@@ -389,17 +413,24 @@ let typecheck_decl (secrecy_lattice : cst_access_policy)
   let initial_tenv = create_initial_t_env decl.env in 
   begin match decl.Cst_syntax.desc with 
   | Cst_syntax.Syscall {id; args; fun_params; cmd} ->
-    (* It is necessary to typecheck the cmd of syscall:
-       1.) To ensure that there are no typing violations
+    
+      (* It is necessary to typecheck the cmd of syscall:
+       1.) To ensure that there are no typing violations happening within the syscall's code
        2.) To ensure that the return type is equal to the type that was put in the function signature *)
+      
+      let fun_params_init, _ = init_and_last fun_params decl.loc in 
 
+      let bindings = List.combine args (List.map (fun x -> cst_to_tenv_typ (coerce_fun_param x)) fun_params_init) in 
 
-      let bindings = List.combine args (List.map (fun x -> cst_to_tenv_typ (coerce_fun_param x)) fun_params) in 
-
+      
       let t_env = List.fold_left (fun acc_t_env (id, t_env_typ) ->  
         Maps.IdentMap.add id t_env_typ acc_t_env
         ) initial_tenv bindings in 
 
+
+      
+      let s = Format.sprintf "Running typeof_cmd on syscall with id %s" (Ident.string_part id) in 
+      print_endline s;
       (* CURRENT SETUP: we typecheck the body of a Cst_syntax.Syscall at this point ONCE under the assumption that we trust the typing signature *)
       (* then in `typecheck_cmd` we only check whether the list of arguments matches the list of function parameters  *)
       let _ = typeof_cmd_rec cmd t_env 
@@ -485,20 +516,20 @@ let typecheck_sys (cst_decls : Cst_syntax.decl list)
     (* for all `proc_name` \in `procs`, we need to check that `proc_name` is well-typed *)
 
     (* get only the declarations for which their name appears in `proc_strs` *)
-    let filtered_decls =
+    (* let filtered_decls =
       List.filter (fun decl -> match decl.Cst_syntax.desc with
         | Cst_syntax.Process { id; _ } -> List.mem (Ident.string_part id) proc_strs
         | _ -> false  (* keep all non-process declarations *)
       ) cst_decls in 
 
+    (* printing the name of each process that appears in the system declaration *)
     (print_endline "typecheck sys : printing filtered_decls process names");
     List.iter (fun decl -> match decl.Cst_syntax.desc with 
         | Cst_syntax.Process { id; _ } -> print_endline (Ident.string_part id) 
         | _ -> ()
-    ) filtered_decls;
+    ) filtered_decls; *)
 
     
-    (* typecheck each decl of filtered_decls *)
-    List.iter (fun decl -> 
-        typecheck_decl secrecy_lattice integrity_lattice decl) filtered_decls;
-  | _ -> assert true
+    (* typecheck each decl of filtered_decls with computed secrecy_lattice and integrity_lattice from previous pass *)
+    List.iter (fun decl -> typecheck_decl secrecy_lattice integrity_lattice decl) cst_decls;
+  | _ -> (raise_type_exception_with_location "this declaration is not a system declaration" sys.loc)

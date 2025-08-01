@@ -604,18 +604,28 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
 and type_cases env cases : Typed.case list = List.map (type_case env) cases
 
 and type_case env (facts, cmd) : Typed.case =
-  (* facts -> cmd *)
+  
+  (* extract all the variables for each fact of the case statement *)
   let vs =
     List.fold_left
       (fun vs fact -> Name.Set.union vs (Input.vars_of_fact fact))
       Name.Set.empty
       facts
   in
+  (* identify the variables which are fresh, i.e. which are not known in the environment *)
   let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
+  (* create an `Ident.t` for each variable \in fresh *)
   let fresh_ids = Name.Set.fold (fun name ids -> Ident.local name :: ids) fresh [] in
+
+  (* record in the environment that each variable \in fresh is a meta variable *)
   let env' =
     List.fold_left (fun env id -> Env.add env id (Var (Meta (snd id), None))) env fresh_ids
   in
+
+  (* XXX: why is every fact 'typed' under the same environment? 
+  Shouldn't each fact be 'typed' under a different environment depending on
+  which variables appear fresh in a given fact?
+  *)
   let facts = type_facts env' facts in
   let cmd = type_cmd env' cmd in
   Typed.{ fresh = fresh_ids; facts; cmd }

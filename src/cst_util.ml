@@ -20,7 +20,6 @@ let leq_secrecy (secrecy_lattice : cst_access_policy) (lvl_a : Cst_env.secrecy_l
   | Cst_env.Public, _ -> true 
   | Cst_env.SNode(a_set), Cst_env.SNode(b_set) -> 
     let comparison, rel = secrecy_lattice in
-
     begin match rel with 
     | GreaterThanOrEqual -> 
       (* This is a sub-optimal way to compute, but for now we need it due to the way that secrecy_lattice is built *)

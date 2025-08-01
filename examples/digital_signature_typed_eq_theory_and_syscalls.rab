@@ -16,7 +16,7 @@ equation verify (sign(d, k), d, vk(k)) = true
 syscall send(c : channel['a], v : 'a) : unit {
   put [c::store(v)]
 }
-
+  
 syscall recv(c : channel['a]) : 'a {
   case 
   | [c::store(v)] →   v 

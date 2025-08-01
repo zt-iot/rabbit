@@ -59,7 +59,6 @@ passive attack eaves_mem (v : 'a) : unit {
   put [::Out(v)]
 }
 
-
 allow client_t [eaves_mem]
 
 
@@ -107,7 +106,7 @@ process bob(ch_net : udp_t) : client_t
 
   main 
   {
-    
+
     var msg_with_sig = recv(ch_net) in
 
     var res = verify(snd(msg_with_sig), fst(msg_with_sig), pub_key_alice) in
