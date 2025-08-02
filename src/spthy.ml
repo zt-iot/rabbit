@@ -283,7 +283,9 @@ let rec compile_expr (e : Typed.expr) : expr compiled =
       let id' = Ident.local (fst id) in
       let* p = compile_expr p in
       return ~deps:[Const { id; param= Some p; value= Ident id' }] @@ Ident id'
-  | Ident { id; param= None; desc= Var | ExtConst | Param | Rho } ->
+  | Ident { id; param= None; desc= ExtConst } ->
+      return @@ Apply (id, [])
+  | Ident { id; param= None; desc= Var | Param | Rho } ->
       return @@ Ident id
   | Ident { id; param= None; desc= Channel (false, _cty) } ->
       return @@ expr_of_channel id

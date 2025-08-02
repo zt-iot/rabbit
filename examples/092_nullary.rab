@@ -1,0 +1,23 @@
+function true:0
+function eq:2
+equation eq(x, x) = true
+
+type proc_t : process
+
+process proc() : proc_t 
+{  
+  main 
+  {
+    case
+    | [eq (1, 1) = true] -> event [::Valid()]
+    end
+  }
+}
+
+system
+  proc()
+requires  
+[
+  lemma Reachable :
+    reachable ::Valid()
+]
