@@ -40,6 +40,7 @@ type fact =
   | Structure of
       { name : Name.t
       ; proc_id : Subst.proc_id
+      ; param : Subst.param_id option
       ; address : expr
       ; args : expr list
       } (** Structure fact [name(process, address, args)] *)
@@ -68,7 +69,7 @@ type fact =
       { id : Ident.t
       ; param : Subst.param_id option
       } (** Constant initialization event *)
-  | Initing_proc_group of Subst.proc_group_id (** Process group initialization event *)
+  | Initing_proc_group of Subst.proc_group_id * Subst.param_id option (** Process group initialization event *)
   | Initing_proc_access of
       { proc_id : Subst.proc_id
       ; param : Subst.param_id option

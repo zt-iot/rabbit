@@ -106,6 +106,7 @@ and fact' =
   | Structure of
       { name : name
       ; proc_id : Subst.proc_id
+      ; param : Subst.param_id option
       ; address : expr
       ; args : expr list
       }
@@ -153,9 +154,11 @@ let string_of_fact f =
       path ^ "." ^ contents
   | Fresh id -> "Fr " ^ Ident.to_string id
   | Global (s, args) -> Printf.sprintf "::%s(%s)" s (String.concat ", " @@ List.map string_of_expr args)
-  | Structure { name; proc_id; address; args } ->
-      Printf.sprintf "Structure(%s, %s, %s, %s)"
-        name (Ident.to_string (proc_id :> Ident.t)) (string_of_expr address) (String.concat "," (List.map string_of_expr args))
+  | Structure { name; param; proc_id; address; args } ->
+      Printf.sprintf "Structure(%s, %s, %s, %s, %s)"
+        name
+        (match param with None -> "None" | Some p -> Ident.to_string (p :> Ident.t))
+        (Ident.to_string (proc_id :> Ident.t)) (string_of_expr address) (String.concat "," (List.map string_of_expr args))
   | Loop { mode; proc_id; param; index } ->
       let mode = Typed.string_of_loop_mode mode in
       Printf.sprintf
@@ -268,8 +271,8 @@ module Update = struct
       | Neq (e1, e2) -> Neq (s e1, s e2)
       | File { path; contents } -> File { path= s path; contents= s contents }
       | Global (n, es) -> Global (n, List.map s es)
-      | Structure { name; proc_id; address; args } ->
-          Structure { name; proc_id; address= s address; args= List.map s args }
+      | Structure { name; param; proc_id; address; args } ->
+          Structure { name; proc_id; param; address= s address; args= List.map s args }
       | Fresh _-> f.desc
       | Loop _ -> f.desc
       | Access { proc_id; param; channel; syscall } ->
@@ -661,7 +664,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                    | Some (s, es) ->
                        [ fact c.env
                          @@ Structure
-                           { name = s; proc_id=proc.id; address = evar x; args = es }
+                           { name = s; proc_id=proc.id; param= proc.param; address = evar x; args = es }
                        ])
               ; target = i_1
               ; target_env = c.env
@@ -693,7 +696,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
       let j_1 = Index.add j 1 in
       let pre_and_post : fact list =
         [ fact env
-          @@ Structure { name = s; proc_id= proc.id; address = e; args = List.map evar xs }
+          @@ Structure { name = s; proc_id= proc.id; param= proc.param; address = e; args = List.map evar xs }
         ]
       in
       ( List.concat [
@@ -749,7 +752,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; source = i
           ; source_env = env
           ; source_vars = vars
-          ; pre = [ fact env @@ Structure { name = s; proc_id= proc.id; address = e; args = xs } ]
+          ; pre = [ fact env @@ Structure { name = s; proc_id= proc.id; param= proc.param; address = e; args = xs } ]
           ; update = Update.update_unit ()
           ; tag = []
           ; post = []
@@ -1310,7 +1313,7 @@ let compress (e1 : edge) (e2 : edge) =
     let e2_pre_structure_bindings =
       List.filter_map (fun (f : fact) ->
           match f.desc with
-          | Structure { name; proc_id; address; args } ->
+          | Structure { name; proc_id; param; address; args } ->
               let (let*) a f =
                 match a with
                 | None -> None
@@ -1330,14 +1333,14 @@ let compress (e1 : edge) (e2 : edge) =
               in
               let* address = get_var address in
               let* args = mapM get_var args in
-              Some ((name, proc_id), (f, address, args))
+              Some ((name, proc_id, param), (f, address, args))
           | _ -> None) e2.pre
     in
     let e1_post, enforces, e2_pre_removals =
       List.fold_left (fun (e1_post, enforces, e2_pre_removals) (f : fact) ->
           match f.desc with
-          | Structure { name; proc_id; address; args } ->
-              (match List.assoc_opt (name, proc_id) e2_pre_structure_bindings with
+          | Structure { name; proc_id; param; address; args } ->
+              (match List.assoc_opt (name, proc_id, param) e2_pre_structure_bindings with
               | None -> f :: e1_post, enforces, e2_pre_removals
               | Some (f2, address', args') ->
                   e1_post, (address', address) :: List.combine args' args, f2 :: e2_pre_removals)

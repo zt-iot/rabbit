@@ -85,6 +85,7 @@ type fact =
   | Structure of
       { name : Name.t
       ; proc_id : Subst.proc_id
+      ; param : Subst.param_id option
       ; address : expr
       ; args : expr list
       } (** Structure fact [name(process, address, args)] *)
@@ -104,7 +105,7 @@ type fact =
   (* New additions at Spthy level *)
   | Const of { id : Ident.t; param : expr option; value : expr }
   | Initing_const of { id : Ident.t; param : Subst.param_id option } (* XXX init *)
-  | Initing_proc_group of Subst.proc_group_id (* XXX init *)
+  | Initing_proc_group of Subst.proc_group_id * Subst.param_id option (* XXX init *)
   | Initing_proc_access of { proc_id : Subst.proc_id; param: Subst.param_id option } (* XXX init *)
   | Inited_proc_group of Subst.proc_group_id * Subst.param_id option (* to bind param *)
   | State of
@@ -168,9 +169,11 @@ let fact' f : fact' =
       { name= fix_name name; args; config = config_linear }
   | Fresh id ->
       { name= "Fr"; args= [Ident id]; config= config_linear }
-  | Structure { name; proc_id; address; args } ->
+  | Structure { name; proc_id; param; address; args } ->
       { name= "Structure_" ^ Ident.to_string (proc_id :> Ident.t) ^ "_" ^ name
-      ; args = address :: args (* Param? *)
+      ; args =
+          (match param with None -> [] | Some p -> [Ident (p :> Ident.t)])
+          @ address :: args
       ; config = config_linear }
   | Loop { mode; proc_id; param; index } ->
       { name = "Loop_" ^ Typed.string_of_loop_mode mode
@@ -189,9 +192,15 @@ let fact' f : fact' =
       { name= "Init"
       ; args= [ Tuple (String "Const" :: String (Ident.to_string id) :: with_param param) ]
       ; config= config_linear }
-  | Initing_proc_group id ->
+  | Initing_proc_group (id, None) ->
       { name= "Init"
       ; args= [ Tuple [String "Proc_group"; String (Ident.to_string (id :> Ident.t))] ]
+      ; config= config_linear }
+  | Initing_proc_group (id, Some param) ->
+      { name= "Init"
+      ; args= [ Tuple [String "Proc_group";
+                       Tuple [ String (Ident.to_string (id :> Ident.t));
+                               Ident (param :> Ident.t) ] ] ]
       ; config= config_linear }
   | Initing_proc_access { proc_id; param } ->
       { name= "Init"
@@ -359,10 +368,10 @@ let compile_fact (f : Sem.fact) : fact compiled =
       let+ es = mapM compile_expr es in
       Global (n, es)
   | Fresh id -> return @@ Fresh id
-  | Structure { name; proc_id; address; args } ->
+  | Structure { name; proc_id; param; address; args } ->
       let* address = compile_expr address in
       let+ args = mapM compile_expr args in
-      Structure { name; proc_id; address; args }
+      Structure { name; proc_id; param; address; args }
   | Loop { mode; proc_id; param; index } -> return @@ Loop { mode; proc_id; param; index }
   | Access { proc_id; param; channel; syscall } ->
       let+ channel = compile_expr channel in
@@ -593,7 +602,7 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_
   | Unbounded proc ->
       assert (proc.param = None);
       let pre = [] in
-      let label = [ Initing_proc_group proc_group_id ] in
+      let label = [ Initing_proc_group (proc_group_id, None) ] in
       let rho = Ident.local "rho" in
       let state = State
           { proc_id= proc.id
@@ -613,7 +622,7 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_
       }
   | Bounded (param, procs) ->
       let pre = [ Fresh (param :> Ident.t) ] in
-      let label = [ Initing_proc_group proc_group_id ] in
+      let label = [ Initing_proc_group (proc_group_id, Some param) ] in
       let states =
         List.map (fun (proc : Sem.proc) ->
             assert (proc.param <> None);
