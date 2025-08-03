@@ -500,26 +500,6 @@ let facts_of_edge (e : Sem.edge) =
   e.tag @ pre_eq_neq,
   e.post
 
-(*
-rule Client_ta__guarded_guarded_...._____4_____4__0_1__90[role="Client_ta"]
-  : [State__Client_ta(<'rab_____4', param, %v__>,
-                      return__var__8,
-                      'rab__', 'rab__', t__0__8),
-     !ACP__(<'rab__Client_ta', param>, 'rab__rpc', 'rab__'),
-     Fr(n__0__15),
-     ...]
-  --[Transition__(<'rab__Client_ta', param>, 'rab_____4', %v__),
-     Eq__(n__0__23, n__0__30),
-     ...]
-  ->[State__Client_ta(<'rab_____4__0_1', param, %v__>,
-                      'rab__',
-                      <n__0__8, n__1__8, n__2__8>,
-                      'rab__',
-                      t__0__8),
-     File__Client_ta(param, loc__0, n__0__14),
-     Returned('rab__rpc', sign(n__1__8, dec(n__0__23, t__0__8)))
-    ]
-*)
 let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge : Sem.edge) =
   let role = Some (proc_id :> Ident.t) in
   let state_pre : fact =

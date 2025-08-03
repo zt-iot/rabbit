@@ -188,7 +188,7 @@ let reduce_conditions post pre' =
         | [] -> f :: pre
         | _ -> error' ConflictingCondition'
         end
-      | InjectiveFact (fid, _, e', arg') ->
+      | InjectiveFact (fid, _, e', arg') -> (* structure *)
         begin match List.filter (fun f -> fact_eq_by_fid f fid) post with
         | [] -> f :: pre
         | [InjectiveFact (_, _, e, arg)] ->
