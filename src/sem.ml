@@ -17,7 +17,7 @@ exception Error of error Location.located
 (** [error ~loc err] raises the given runtime error. *)
 let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 
-let debug = ref false
+let debug = ref true
 
 let unit = { env= Env.empty (); loc= Location.nowhere; desc= Unit }
 
@@ -157,8 +157,9 @@ let string_of_fact f =
   | Structure { name; param; proc_id; address; args } ->
       Printf.sprintf "Structure(%s, %s, %s, %s, %s)"
         name
+        (Ident.to_string (proc_id :> Ident.t))
         (match param with None -> "None" | Some p -> Ident.to_string (p :> Ident.t))
-        (Ident.to_string (proc_id :> Ident.t)) (string_of_expr address) (String.concat "," (List.map string_of_expr args))
+        (string_of_expr address) (String.concat "," (List.map string_of_expr args))
   | Loop { mode; proc_id; param; index } ->
       let mode = Typed.string_of_loop_mode mode in
       Printf.sprintf
@@ -304,7 +305,7 @@ module Update = struct
     in
     { u1 with register; items }
 
-  let override_enforces enforces u =
+  let _override_enforces enforces u =
     match enforces with
     | [] -> u
     | _ ->
@@ -1308,13 +1309,14 @@ let compress (e1 : edge) (e2 : edge) =
     let s = if String.length s > 16 then String.sub s 0 16 else s in
     Ident.local s
   in
+(*
   (* fix structure (C. Graph Compression: special case) *)
   let e1_post, enforces, e2_pre =
     let e2_pre_structure_bindings =
       List.filter_map (fun (f : fact) ->
           match f.desc with
           | Structure { name; proc_id; param; address; args } ->
-              let (let*) a f =
+              let (let* ) a f =
                 match a with
                 | None -> None
                 | Some v -> f v
@@ -1331,7 +1333,10 @@ let compress (e1 : edge) (e2 : edge) =
                 | Ident { id; _ } -> Some id
                 | _ -> None
               in
-              let* address = get_var address in
+              let* address =
+                (* It must be a variable, and not already bound *)
+                get_var address
+              in
               let* args = mapM get_var args in
               Some ((name, proc_id, param), (f, address, args))
           | _ -> None) e2.pre
@@ -1341,27 +1346,75 @@ let compress (e1 : edge) (e2 : edge) =
           match f.desc with
           | Structure { name; proc_id; param; address; args } ->
               (match List.assoc_opt (name, proc_id, param) e2_pre_structure_bindings with
-              | None -> f :: e1_post, enforces, e2_pre_removals
-              | Some (f2, address', args') ->
-                  e1_post, (address', address) :: List.combine args' args, f2 :: e2_pre_removals)
+               | None -> f :: e1_post, enforces, e2_pre_removals
+               | Some (f2, address', args') ->
+                   Format.eprintf "remove structure %s %s@." name (Ident.to_string (proc_id :> Ident.t));
+                   e1_post, (address', address) :: List.combine args' args, f2 :: e2_pre_removals)
           | _ -> f :: e1_post, enforces, e2_pre_removals)
         ([], [], []) e1.post
     in
     let e2_pre = List.filter (fun f -> not @@ List.mem f e2_pre_removals) e2.pre in
     e1_post, enforces, e2_pre
   in
+  let update = Update.override_enforces enforces (Update.compress e1.update e2.update) in
+*)
+  (* fix structure (C. Graph Compression: special case) *)
+  let rec eq_expr e1 e2 =
+    match e1.desc, e2.desc with
+    | Unit, Unit -> true
+    | Boolean b1, Boolean b2 -> b1 = b2
+    | Integer i1, Integer i2 -> i1 = i2
+    | Float f1, Float f2 -> f1 = f2
+    | String s1, String s2 -> s1 = s2
+    | Tuple es1, Tuple es2 ->
+        (* Untyped therefore lengths can be differ *)
+        List.length es1 = List.length es2 && List.for_all2 eq_expr es1 es2
+    | Apply (f1, es1), Apply (f2, es2) when f1 = f2 ->
+        (* Untyped therefore lengths can be differ *)
+        List.length es1 = List.length es2 && List.for_all2 eq_expr es1 es2
+    | Ident { id=id1; desc=desc1; param=param1 }, Ident { id=id2; desc=desc2; param=param2 }
+      when id1 = id2 && desc1 = desc2 ->
+        (match param1, param2 with
+         | None, None -> true
+         | Some e1, Some e2 -> eq_expr e1 e2
+         | _ -> false)
+    | _ -> false
+  in
+  let e1_post, eqs, e2_pre =
+    List.fold_left (fun (e1_post, eqs, e2_pre) e2p ->
+        match e2p.desc with
+        | Structure { name; proc_id; param; address; args } ->
+            let left, matches =
+              List.partition_map (fun f ->
+                  match f.desc with
+                  | Structure { name=name'; proc_id=proc_id'; param=param'; address=address'; args=args' }
+                    when name = name' && proc_id = proc_id' && param = param' && eq_expr address address' ->
+                      Format.eprintf "Match found: %s %s@." name (Ident.to_string (proc_id :> Ident.t));
+                      Either.Right (args, args', f)
+                  | _ -> Either.Left f) e1_post
+            in
+            (match matches with
+             | [(args, args', _f)] ->
+                 Format.eprintf "Structure comp: %s %s@." name (Ident.to_string (proc_id :> Ident.t));
+                 left,
+                 List.map2 (fun a a' -> { desc= Eq (a, a'); loc= Location.nowhere; env= a.env }) args args' @ eqs,
+                 e2_pre
+             | _ -> e1_post, eqs, e2p :: e2_pre)
+        | _ -> e1_post, eqs, e2p :: e2_pre
+      ) (e1.post, [], []) e2.pre
+  in
+  let update = Update.compress e1.update e2.update in
   (* facts in [e2] must be substituted by [e1.update] *)
   let e2_pre = List.map (Update.update_fact e1.update) e2_pre in
   let e2_tag = List.map (Update.update_fact e1.update) e2.tag in
   let e2_post = List.map (Update.update_fact e1.update) e2.post in
-  let update = Update.override_enforces enforces (Update.compress e1.update e2.update) in
   { id
   ; source = e1.source
   ; source_env = e1.source_env
   ; source_vars = e1.source_vars
   ; pre = e1.pre @ e2_pre
   ; update
-  ; tag = e1.tag @ e2_tag
+  ; tag = e1.tag @ e2_tag @ eqs
   ; post = e1_post @ e2_post
   ; target = e2.target
   ; target_env = e2.target_env
