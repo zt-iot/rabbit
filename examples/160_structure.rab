@@ -1,0 +1,26 @@
+type proc_t : process
+
+process proc() : proc_t
+{
+  main 
+  {
+    new x = S(1,2,3) in
+    new y = S(4,5,6) in
+    let x1, x2, x3 = x.S in
+    case
+    | [x1 = 1, x2 = 2, x3 = 3] -> event[::Valid()]
+    | [x1 = 4, x2 = 5, x3 = 6] -> event[::Invalid()] (* A wrong optimization made this reachable *)
+    end
+  }
+}
+
+system 
+  proc()
+requires  
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid();
+
+  lemma Uneachable : (* falsified *)
+    reachable ::Invalid()
+]

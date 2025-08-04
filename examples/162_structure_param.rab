@@ -1,0 +1,27 @@
+type proc_t : process
+
+process proc<p>() : proc_t
+{
+  main 
+  {
+    new x = S(1,2,p) in
+    new y = S(1,2,p) in
+    let x1, x2, xp = x.S in
+    let y1, y2, yp = y.S in
+    case
+    | [xp = yp] -> event[::Valid()]
+    | [xp != yp] -> event[::Invalid()]
+    end
+  }
+}
+
+system 
+  !p.proc<p>()
+requires  
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid();
+
+  lemma Uneachable : (* falsified *)
+    reachable ::Invalid()
+]

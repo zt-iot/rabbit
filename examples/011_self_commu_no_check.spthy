@@ -24,9 +24,9 @@ builtins: natural-numbers
 
 
 rule Init_system[role="system"]
-  : []
-    --[Init_('rab_system')]->
-    [!ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+  : [  ]
+    --[ Init_('rab_system') ]->
+    [ !ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
 
 
 // Access control of Alice:chan
@@ -37,36 +37,36 @@ rule Init_system[role="system"]
 
 
 rule Init_system_ACP_0[role="system"]
-  : [!ACP_GEN_('rab_system_', 'rab_rab_str')]
-    --[Init_('rab_system_ACP_0')]->
-    [!ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_recv')] 
+  : [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
+    --[ Init_('rab_system_ACP_0') ]->
+    [ !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_recv') ] 
 
 
 // Fact: !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_send')
 
 
 rule Init_system_ACP_1[role="system"]
-  : [!ACP_GEN_('rab_system_', 'rab_rab_str')]
-    --[Init_('rab_system_ACP_1')]->
-    [!ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_send')] 
+  : [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
+    --[ Init_('rab_system_ACP_1') ]->
+    [ !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_send') ] 
 
 // Model:  Alice
 
 
 rule Alice_scall_intro_put___0___0_0_1_20[role="Alice"]
-  : [State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_send')]
-    --[Transition_(<'rab_Alice', param>, 'rab___0', %v_)]->
-    [State_Alice(<'rab___0_0_1', param, %v_>, 'rab_unit', 'rab_empty', <'1', 'rab_chan'>, 'rab_empty'), Store('rab_chan', '1')] 
+  : [ State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_send') ]
+    --[ Transition_(<'rab_Alice', param>, 'rab___0', %v_) ]->
+    [ State_Alice(<'rab___0_0_1', param, %v_>, 'rab_unit', 'rab_empty', <'1', 'rab_chan'>, 'rab_empty'), Store('rab_chan', '1') ] 
 
 rule Alice_scall_out_event_let_intro_scall_intro___0_0_1___3_0_0_19[role="Alice"]
-  : [State_Alice(<'rab___0_0_1', param, %v_>, return_var_2, 'rab_empty', <l_0_2, l_1_2>, 'rab_empty')]
-    --[Transition_(<'rab_Alice', param>, 'rab___0_0_1', %v_), Sent()]->
-    [State_Alice(<'rab___3_0_0', param, %v_>, 'rab_unit', 'rab_empty', <'rab_chan', 'rab_'>, 'rab_empty')] 
+  : [ State_Alice(<'rab___0_0_1', param, %v_>, return_var_2, 'rab_empty', <l_0_2, l_1_2>, 'rab_empty') ]
+    --[ Transition_(<'rab_Alice', param>, 'rab___0_0_1', %v_), Sent() ]->
+    [ State_Alice(<'rab___3_0_0', param, %v_>, 'rab_unit', 'rab_empty', <'rab_chan', 'rab_'>, 'rab_empty') ] 
 
 rule Alice_guarded_return_case_out_scall_out_event_let_out___3_0_0___6_16[role="Alice"]
-  : [State_Alice(<'rab___3_0_0', param, %v_>, return_var_6, 'rab_empty', <l_0_6, l_1_6>, 'rab_empty'), !ACP_(<'rab_Alice', param>, l_0_6, 'rab_recv'), Store(l_0_6, n_0_6)]
-    --[Transition_(<'rab_Alice', param>, 'rab___3_0_0', %v_), Received(), Valid()]->
-    [State_Alice(<'rab___6', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty')] 
+  : [ State_Alice(<'rab___3_0_0', param, %v_>, return_var_6, 'rab_empty', <l_0_6, l_1_6>, 'rab_empty'), !ACP_(<'rab_Alice', param>, l_0_6, 'rab_recv'), Store(l_0_6, n_0_6) ]
+    --[ Transition_(<'rab_Alice', param>, 'rab___3_0_0', %v_), Received(), Valid() ]->
+    [ State_Alice(<'rab___6', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"

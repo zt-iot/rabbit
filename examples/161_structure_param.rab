@@ -1,0 +1,25 @@
+type proc_t : process
+
+process proc<p>() : proc_t
+{
+  main 
+  {
+    new x = S(1,2,p) in
+    let x1, x2, xp = x.S in
+    case
+    | [xp = p] -> event[::Valid()] (* Make sure S of another thread will not be taken here *)
+    | [xp != p] -> event[::Invalid()]
+    end
+  }
+}
+
+system 
+  !p.proc<p>()
+requires  
+[
+  lemma Reachable : (* verified *)
+    reachable ::Valid();
+
+  lemma Uneachable : (* falsified *)
+    reachable ::Invalid()
+]
