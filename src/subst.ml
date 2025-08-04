@@ -38,8 +38,6 @@ let fact s (f : fact) : fact =
         let channel = expr s channel in
         let args = List.map (expr s) args in
         Channel { channel; name; args }
-    | Out e -> Out (expr s e)
-    | In e -> In (expr s e)
     | Plain (n, es) -> Plain (n, List.map (expr s) es)
     | Global (n, es) -> Global (n, List.map (expr s) es)
     | Eq (e1, e2) -> Eq (expr s e1, expr s e2)

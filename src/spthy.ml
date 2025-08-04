@@ -68,8 +68,6 @@ type fact =
       ; name : Name.t
       ; args : expr list
       } (** Channel fact [ch :: name(args)] *)
-  | Out of expr (** Attacker fact: Out *)
-  | In of expr (** Attacker fact: In *)
   | Plain of Name.t * expr list
   | Eq of expr * expr
   | Neq of expr * expr
@@ -150,10 +148,6 @@ let fact' f : fact' =
   match f with
   | Channel { channel; name; args } ->
       { name= fix_name name; args= channel :: args; config= config_linear }
-  | Out e ->
-      { name= "Out"; args= [e]; config= config_linear }
-  | In e ->
-      { name= "In"; args= [e]; config= config_linear }
   | Plain (name, args) ->
       { name= fix_name name; args; config= config_linear }
   | Eq (e1, e2) ->
@@ -343,12 +337,6 @@ let compile_fact (f : Sem.fact) : fact compiled =
       let* channel = compile_expr channel in
       let+ args = mapM compile_expr args in
       Channel { channel; name; args }
-  | Out e ->
-      let+ e = compile_expr e in
-      Out e
-  | In e ->
-      let+ e = compile_expr e in
-      In e
   | Plain (n, es) ->
       let+ es = mapM compile_expr es in
       Plain (n, es)

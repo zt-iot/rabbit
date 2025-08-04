@@ -89,8 +89,6 @@ and fact' =
       ; name : name
       ; args : expr list
       }
-  | Out of expr
-  | In of expr
   | Plain of name * expr list
   | Eq of expr * expr
   | Neq of expr * expr
@@ -135,8 +133,6 @@ let string_of_fact f =
       Printf.sprintf "%s::%s(%s)" (string_of_expr channel) name (String.concat ", " @@ List.map string_of_expr args)
   | Channel { channel; name; args } ->
       Printf.sprintf "(%s)::%s(%s)" (string_of_expr channel) name (String.concat ", " @@ List.map string_of_expr args)
-  | Out e -> Printf.sprintf "Out(%s)" @@ string_of_expr e
-  | In e -> Printf.sprintf "In(%s)" @@ string_of_expr e
   | Plain (s, args) -> Printf.sprintf "%s(%s)" s (String.concat ", " @@ List.map string_of_expr args)
   | Eq (e1, e2) -> Printf.sprintf "%s = %s" (string_of_expr e1) (string_of_expr e2)
   | Neq (e1, e2) -> Printf.sprintf "%s != %s" (string_of_expr e1) (string_of_expr e2)
@@ -185,8 +181,6 @@ let fact_of_typed (f : Typed.fact) : fact =
   let desc : fact' =
     match f.desc with
     | Channel { channel; name; args} -> Channel { channel; name; args }
-    | Out e -> Out e
-    | In e -> In e
     | Plain (name, es) -> Plain (name, es)
     | Eq (e1, e2) -> Eq (e1, e2)
     | Neq (e1, e2) -> Neq (e1, e2)
@@ -265,8 +259,6 @@ module Update = struct
       match f.desc with
       | Channel { channel; name; args } ->
           Channel { channel= s channel; name; args= List.map s args }
-      | Out e -> Out (s e)
-      | In e -> In (s e)
       | Plain (n, es) -> Plain (n, List.map s es)
       | Eq (e1, e2) -> Eq (s e1, s e2)
       | Neq (e1, e2) -> Neq (s e1, s e2)

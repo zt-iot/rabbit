@@ -31,8 +31,6 @@ and fact' =
       ; name : Name.t
       ; args : Typed.expr list
       } (** Channel fact [ch :: name(args)] *)
-  | Out of Typed.expr (** Attacker fact: [Out e] *)
-  | In of Typed.expr (** Attacker fact: [In e] *)
   | Plain of Name.t * Typed.expr list (** [n(e1,..,en)] *)
   | Eq of Typed.expr * Typed.expr (** [e1 = e2] *)
   | Neq of Typed.expr * Typed.expr (** [e1 != e2] *)

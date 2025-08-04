@@ -230,8 +230,6 @@ let type_fact env (fact : Input.fact) : Typed.fact =
   let desc : Typed.fact' =
     match fact.data with
     | ProcessFact _ -> assert false (* XXX ??? *)
-    | Fact ("In", [ e ]) -> In (type_expr env e)
-    | Fact ("Out", [ e ]) -> Out (type_expr env e)
     | Fact (name, es) ->
         (* Which fact? For strucure? *)
         let nes = List.length es in

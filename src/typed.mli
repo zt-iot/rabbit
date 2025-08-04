@@ -54,8 +54,6 @@ and fact' =
       ; name : name
       ; args : expr list
       } (** Channel fact [ch :: name(args)] *)
-  | Out of expr (** Attacker fact: [Out(e)] *)
-  | In of expr (** Attacker fact: [In(e)] *)
   | Plain of name * expr list  (** [n(e1,..,en)] *)
   | Eq of expr * expr (** [e1 = e2] *)
   | Neq of expr * expr (** [e1 != e2] *)

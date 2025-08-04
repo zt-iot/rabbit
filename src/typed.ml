@@ -74,8 +74,6 @@ and fact' =
       ; name : name
       ; args : expr list
       }
-  | Out of expr
-  | In of expr
   | Plain of name * expr list
   | Eq of expr * expr
   | Neq of expr * expr
