@@ -3,7 +3,7 @@
 include Sig.ERROR
 
 module Index : sig
-  (** Transition graph node index *)
+  (** Transition graph node index, it is reversed! *)
   type t = private (int * int) list
 
   val compare : t -> t -> int
