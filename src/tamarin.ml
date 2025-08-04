@@ -672,15 +672,15 @@ let print_rule_aux { name; role; pre; label; post } ~dev =
   ^ name
   ^ (if role = "" || not dev then "" else "[role=\"" ^ role ^ "\"]")
   ^ "\n  : "
-  ^ "["
+  ^ "[ "
   ^ String.concat ", " (List.map print_fact pre)
-  ^ "]\n"
+  ^ " ]\n"
   ^ (match label with
      | [] -> "    -->\n"
-     | _ -> "    --[" ^ String.concat ", " (List.map print_fact2 label) ^ "]->\n")
-  ^ "    ["
+     | _ -> "    --[ " ^ String.concat ", " (List.map print_fact2 label) ^ " ]->\n")
+  ^ "    [ "
   ^ String.concat ", " (List.map print_fact2 post)
-  ^ "] \n"
+  ^ " ] \n"
 ;;
 
 let print_comment s = "\n// " ^ s ^ "\n\n"
