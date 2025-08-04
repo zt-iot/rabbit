@@ -163,7 +163,10 @@ let () =
   in
   Format.printf "Test summary:@.";
   List.iter (fun (fn, ((res, secs1, secs2), secs)) ->
-      Format.printf "- %s: %s (%.2f secs, verification: [original %.2f; new %.2f])@."
-        fn (if res then "Failure" else "Ok") secs secs1 secs2) results;
+      Format.printf "- %s: %s (%.2f secs, verification: [original %.2f; new %.2f]) %s@."
+        fn (if res then "Failure" else "Ok") secs secs1 secs2
+        (* If the times are very different worth warning them *)
+        (if secs1 /. secs2 > 2.0 || secs2 /. secs1 > 1.5 then "!!!" else "")
+    ) results;
   let has_failure = List.exists (function (_,((true, _, _),_)) -> true | _ -> false) results in
   exit (if has_failure then 1 else 0)
