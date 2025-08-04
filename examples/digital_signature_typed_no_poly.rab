@@ -67,11 +67,6 @@ syscall recv(c : channel[client_msg * client_sig]) : client_msg * client_sig {
   end
 }
 
-
-
-
-
-
 (* syscall that returns some fresh globally known message *)
 syscall gen_message () : client_msg {
   new v : client_msg in 

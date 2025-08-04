@@ -835,24 +835,26 @@ let convert_decl (read_access_map : access_map)
 let convert (decls : Typed.decl list) 
   : (Cst_syntax.decl list) * cst_access_policy * cst_access_policy = 
   
-  let decls' = List.map (fun decl -> decl.Typed.desc) decls in 
   (* check that the last declaration is a `Typed.System` declaration *)
-  match List.rev decls' with
+  match List.rev decls with
   | [] ->
       raise (CstConversionException "Expected a System declaration at the end, but the list is empty")
-  | Typed.System(procs, _) :: decls_rev ->
+
+  | {desc = System(procs, _) ; _ } :: decls_rev ->
 
     let (read_access_map, provide_access_map) = create_access_maps decls in 
-    let all_process_typs = extract_process_typs_from_decls procs decls_rev in
+    let all_process_typs = extract_process_typs_from_decls procs (List.map (fun (d : Typed.decl) -> d.desc) decls_rev) in
 
     (* The method to compute the relation is the same for both reading/providing *)
     let secrecy_lattice = ((compute_access_relation read_access_map), GreaterThanOrEqual) in (* the relation is '>=' *)
     let integrity_lattice = ((compute_access_relation provide_access_map), LessThanOrEqual) in (* the relation is '<=' *)
 
-    let converted_decls = List.fold_left (fun acc decl -> 
-        acc @ (convert_decl read_access_map provide_access_map
-          all_process_typs secrecy_lattice integrity_lattice decl)
-      ) [] decls in 
+    let converted_decls = List.fold_right (fun decl acc -> 
+      let converted_decl = convert_decl read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice decl in 
+      converted_decl @ acc
+    ) decls_rev [] in 
+
+    let converted_sys = convert_decl read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice
 
     converted_decls, secrecy_lattice, integrity_lattice
   | _ -> raise (CstConversionException "Expected a System declaration at the the end, but there is a different declaration")

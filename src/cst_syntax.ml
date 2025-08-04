@@ -61,6 +61,7 @@ and fact' =
 Additionally, the `New` constructor needs a Cst_env.core_security_type
 *)
 type cmd = cmd' loc_env [@@deriving show]
+(* A Cst_syntax.case represents a single branch of a `case` or `repeat` statement *)
 and case =
   { fresh : ident list
   ; facts : fact list

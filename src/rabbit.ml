@@ -140,7 +140,7 @@ let _main =
               | Ok decls -> 
                   
                   (* let cst_decls, secrecy_lattice, integrity_lattice = To_cst.convert(decls) in  *)
-                  let _, _, _ = To_cst.convert(decls) in 
+                  let _, _, _, _ = To_cst.convert(decls) in 
                 ()
             );
 
@@ -150,7 +150,7 @@ let _main =
             (match typer_result with
              | Error _ -> ()
              | Ok decls ->
-                let cst_decls, secrecy_lattice, integrity_lattice = 
+                let cst_decls, sys, secrecy_lattice, integrity_lattice = 
                   To_cst.convert(decls) in 
                 prerr_endline "ConverterSuccess";
                 let sys =

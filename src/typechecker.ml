@@ -41,8 +41,6 @@ let coerce_tenv_typ (typ : t_env_typ) : Cst_env.core_security_type =
   | FunT _ -> raise (TypeException "FunT cannot be converted to core_security_type")
 
 
-
-
 let rec coerce_fun_param (param : Cst_env.core_security_function_param) : Cst_env.core_security_type =
   match param with
   | (CFP_Unit, lvl) -> (TUnit, lvl)
@@ -62,11 +60,9 @@ let rec coerce_fun_param (param : Cst_env.core_security_function_param) : Cst_en
       raise (TypeException "CFP_Poly cannot be coerced to core_security_type")
 
 
-
-
 let rec typeof_expr (secrecy_lattice : cst_access_policy)
-  (integrity_lattice : cst_access_policy) (expr : Cst_syntax.expr) (t_env : typing_env) ?(is_fresh = false) : Cst_env.core_security_type = 
-  let typeof_expr_rec = (typeof_expr secrecy_lattice integrity_lattice) in 
+  (integrity_lattice : cst_access_policy) (expr : Cst_syntax.expr) (t_env : typing_env) : Cst_env.core_security_type = 
+  let typeof_expr_rec = typeof_expr secrecy_lattice integrity_lattice in 
   match expr.desc with
 
     (* Need to look up type in `t_env` *)
@@ -193,47 +189,82 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
         (Dummy, (Public, Untrusted))
 
 
+let typeof_case_channel_fact_argument (secrecy_lattice : cst_access_policy)
+  (integrity_lattice : cst_access_policy) (expected_arg_type : Cst_env.core_security_type) (ch_fact_arg : Cst_syntax.expr) (ch_fact_fresh_idents : Ident.t list) (t_env : typing_env) 
+    : Cst_env.core_security_type * (Ident.t * t_env_typ) option = match ch_fact_arg.desc with
+  (* The identifier needs to be typechecked differently when it is used as a channel fact argument in a case statement *)
+  | Ident { id; desc; param } ->
+    (* *)
+    let new_binding = (id, cst_to_tenv_typ expected_arg_type) in 
+
+    (expected_arg_type, Some new_binding)
+  (* Pass other expressions through to typeof_expr *)
+  | _ -> 
+    let (res_type, _) = ((typeof_expr secrecy_lattice integrity_lattice ch_fact_arg t_env), t_env) in 
+    (res_type, None)
 
 
 let typecheck_fact (secrecy_lattice : cst_access_policy) 
   (integrity_lattice : cst_access_policy) (fact : Cst_syntax.fact)
-  (t_env : typing_env) : unit = 
-  let typeof_expr_rec = (typeof_expr secrecy_lattice integrity_lattice) in 
+  (t_env : typing_env) ~(is_case_fact : bool) ~(fresh_idents : Ident.t list) : (Ident.t * t_env_typ) list = 
   match fact.desc with 
   (* E.G. ch::store(arg_1, ..., arg_n) *)
   | Channel {channel = ch ; name ; args} -> begin match (typeof_expr secrecy_lattice integrity_lattice ch t_env) with 
     | (Cst_env.TChan(chan_type_params), (_, _)) -> 
-      let type_of_args = List.map (fun arg -> (typeof_expr_rec arg t_env)) args in
-
       (* arity check ; although we should also have checked this in typer.ml *)
-      
-      if (List.length type_of_args != List.length chan_type_params) then
-        (raise_type_exception_with_location "Channel fact is used with incorrect amount of arguments" fact.loc);
-      
-      (* check that each arg is a subtype of the channel parameter type *)
-      List.iter (fun (param_ty, arg_ty) -> 
-        if not (Cst_util.is_subtype secrecy_lattice integrity_lattice arg_ty param_ty) then 
-          (raise_type_exception_with_location "An argument type is not a subtype of the type of the channel" fact.loc);
-        ) (List.combine chan_type_params type_of_args);
-      
+      if (List.length args != List.length chan_type_params) then
+        (raise_type_exception_with_location "Channel fact is used with incorrect amount of arguments" fact.loc); 
+      let ch_params_x_ch_args = List.combine chan_type_params args in
+
+      if is_case_fact then 
+        (* we need to check that: 
+        - Any identifiers used `args` are:  
+          -- either declared as fresh in `fact.fresh`, or:
+          -- are bound in t_env
+        - Any other expressions passed from argument to channel are of the correct type
+        *)
+        (*
+        we need to create: 
+        - new bindings (<ident>, <type>) for each fresh identifier declared in the fact
+        *)
+        let bindings = List.fold_left (fun acc_bindings (ch_param_ty, ch_arg) -> match ch_arg.Cst_syntax.desc with 
+          | Cst_syntax.Ident { id; desc; param } when List.mem id fresh_idents -> 
+            (* if `id` is not in the list of fresh identifiers, AND is not present in the `t_env`, THEN it is unbound *)
+            let new_binding = (id, cst_to_tenv_typ ch_param_ty) in 
+            new_binding :: acc_bindings
+          | _ -> 
+            let type_of_arg = (typeof_expr secrecy_lattice integrity_lattice ch_arg t_env) in 
+            if not (Cst_util.is_subtype secrecy_lattice integrity_lattice type_of_arg ch_param_ty) then 
+              (raise_type_exception_with_location "An argument type is not a subtype of the type of the channel" fact.loc);
+            acc_bindings
+          ) [] ch_params_x_ch_args in 
+          bindings
+        else
+          (* we only need to check that the type of each expression matches the write type of the channel *) 
+          let _ = List.iter (fun (ch_param_ty, ch_arg) -> 
+              let type_of_arg = (typeof_expr secrecy_lattice integrity_lattice ch_arg t_env) in 
+
+              if not (Cst_util.is_subtype secrecy_lattice integrity_lattice type_of_arg ch_param_ty) then 
+                (raise_type_exception_with_location "An argument type is not a subtype of the type of the channel" fact.loc);
+            ) ch_params_x_ch_args in 
+          []
     | _ -> (raise_type_exception_with_location "a non-channel expression was used in a channel fact" fact.loc)
     end
 
   (* I do not know if the `Out` fact actually needs to be typechecked *)
   | Out(e) -> failwith "TODO"
   (* In(e) is always well-typed *)
-  | In(e) -> ()
+  | In(e) -> []
   (* Plain facts are always well-typed *)
-  | Plain(name, es) -> ()
+  | Plain(name, es) -> []
 
   (* Eq and Neq facts are always well-typed *)
-  | Eq(e1, e2) -> ()
-  | Neq(e1, e2) -> ()
+  | Eq(e1, e2) -> []
+  | Neq(e1, e2) -> []
   (* A File fact [path.contents] is always well-typed *)
-  | File{ path ; contents } -> ()
+  | File{ path ; contents } -> []
   (* A global fact <name>::<es> is always well-typed *)
-  | Global(name, es) -> ()
-
+  | Global(name, es) -> []
 
 
 let rec convert_product_type_to_list_of_types (prod_type : Cst_env.core_security_type) (loc : Location.t) : Cst_env.core_security_type list = begin match prod_type with 
@@ -245,41 +276,57 @@ let rec convert_product_type_to_list_of_types (prod_type : Cst_env.core_security
   end
 
 
-(* typecheck a list of commands and check that they all return the same type *)
-let rec check_cmds_return_same_type (secrecy_lattice : cst_access_policy)
-  (integrity_lattice : cst_access_policy) (cmds : Cst_syntax.cmd list) (loc : Location.t) (t_env : typing_env) : Cst_env.core_security_type = 
-  let typeof_cmd_rec = (typeof_cmd secrecy_lattice integrity_lattice) in 
-  begin
-    match cmds with 
-    | [] -> (raise_type_exception_with_location "empty case or repeat statement" loc)
-    | c1 :: cmds' -> 
-        let ty1 = (typeof_cmd_rec c1 t_env) in 
-        List.iter(fun (c : Cst_syntax.cmd) -> 
-                    let ty' = typeof_cmd_rec c t_env in
-                    (* For now, ty' must be a subtype of ty1, but we can _probably_ be more relaxed *)
-                    if not (is_subtype secrecy_lattice integrity_lattice ty' ty1) then 
-                        (raise_type_exception_with_location "All branches of a case/repeat statement must return the same type" loc)
-                ) cmds';
-        ty1
+let check_all_types_equal (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) 
+(ts_and_locs : (Cst_env.core_security_type * Location.t) list) : Cst_env.core_security_type = 
+  begin match ts_and_locs with 
+  | [] -> 
+      raise (TypeException "empty case or repeat statement") 
+  | (ty1, _) :: ts' -> 
+    (List.iter (fun (ty', loc') -> 
+        (* For now, ty' must be a subtype of ty1, but we can _probably_ be more relaxed *)
+        if not (is_subtype secrecy_lattice integrity_lattice ty' ty1) then 
+          (raise_type_exception_with_location "All branches of a case/repeat statement must return the same type" loc')
+      ) ts');
+    (* return ty1 after we concluded all types are equal *)
+    ty1
   end
+
+let rec typeof_case (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) 
+  (case : Cst_syntax.case) (t_env : typing_env) : Cst_env.core_security_type = 
+    let branch_bindings = (List.fold_left (fun acc_bindings fact -> 
+    let fact_bindings = (typecheck_fact secrecy_lattice integrity_lattice fact t_env ~is_case_fact:true ~fresh_idents:case.fresh) in 
+    acc_bindings @ fact_bindings
+    ) [] case.facts) in 
+
+    (* create the updated environment for this particular branch *)
+    let branch_env = List.fold_left (fun acc_t_env (fresh_ident, typ) -> 
+        Maps.IdentMap.add fresh_ident typ acc_t_env
+    ) t_env branch_bindings in 
+
+    (* typecheck case.cmd under branch_env *)
+    (typeof_cmd secrecy_lattice integrity_lattice case.cmd branch_env)
 
 
 and typeof_cmd  (secrecy_lattice : cst_access_policy)
   (integrity_lattice : cst_access_policy) (cmd : Cst_syntax.cmd) (t_env : typing_env) : Cst_env.core_security_type = 
   let typeof_expr_rec = (typeof_expr secrecy_lattice integrity_lattice) in 
   let typeof_cmd_rec = (typeof_cmd secrecy_lattice integrity_lattice) in 
-  let typecheck_fact_rec = (typecheck_fact secrecy_lattice integrity_lattice) in 
   match cmd.Cst_syntax.desc with 
+
     (* Both options: (unit, (Public, Untrusted)) *)
     | Skip -> (TUnit, (Public, Untrusted))
+
     (* Both options: typecheck first and then the return type of the second *)
     | Sequence (c1, c2) -> 
         let _ = (typeof_cmd_rec c1 t_env) in 
         (typeof_cmd_rec c2 t_env)
+    
     (* Both options: need to check that no "ill-typed" channel facts are `put` *)
        (* need to check that no ill-typed `out` fact exists *)
     | Put facts -> 
-      List.iter(fun fact -> typecheck_fact_rec fact t_env) facts;
+      let _ = List.map (fun fact -> 
+        typecheck_fact secrecy_lattice integrity_lattice fact t_env ~is_case_fact:false ~fresh_idents:[]) facts
+      in
       (TUnit, (Public, Untrusted))
 
     (* add binding (id, typeof_expr(e)) to t_env, 
@@ -309,26 +356,34 @@ and typeof_cmd  (secrecy_lattice : cst_access_policy)
         let _ = (typeof_expr_rec e t_env) in 
         (TUnit, (Public, Untrusted))
     (* both cases: typecheck all branches to see that they are well-typed and return the same type *)
-    | Case cases ->  
+    | Case cases -> 
 
-        (* check that there is no ill-typed fact in any of the cases *)
-        List.iter (fun (c : Cst_syntax.case) -> 
-            (List.iter (fun fact -> typecheck_fact_rec fact t_env) c.facts);
-        ) cases;
+        let types_of_each_branch = List.map (fun (c : Cst_syntax.case) -> (typeof_case secrecy_lattice integrity_lattice c t_env)) cases in 
+        let types_of_each_branch_with_locs = List.combine types_of_each_branch (List.map (fun (c : Cst_syntax.case) -> c.cmd.loc) cases) in 
+        
+        (check_all_types_equal secrecy_lattice integrity_lattice types_of_each_branch_with_locs)
 
-        (* check that all commands of a case statement return the same type*)
-        let cmds = List.map (fun (c : Cst_syntax.case) -> c.cmd) cases in 
-        (check_cmds_return_same_type secrecy_lattice integrity_lattice cmds cmd.loc t_env)
-    (* both cases: typecheck all branches to see that they are well-typed and return the same result *)
+    (* both for "guards" and "untils" : typecheck all branches to see that they are well-typed and return the same result *)
     | While (guards, untils) -> 
-      let guards_cmds = List.map (fun (c : Cst_syntax.case) -> c.cmd) guards in 
-      let untils_cmds = List.map (fun (u : Cst_syntax.case) -> u.cmd) untils in 
-      let _ = (check_cmds_return_same_type secrecy_lattice integrity_lattice guards_cmds cmd.loc t_env) in
-      check_cmds_return_same_type secrecy_lattice integrity_lattice untils_cmds cmd.loc t_env
+
+      let types_of_each_guard = List.map (fun g -> (typeof_case secrecy_lattice integrity_lattice g t_env)) guards in 
+      let types_of_each_guard_with_locs = List.combine types_of_each_guard (List.map (fun (g : Cst_syntax.case) -> g.cmd.loc) guards) in 
+
+      let _ = (check_all_types_equal secrecy_lattice integrity_lattice types_of_each_guard_with_locs) in 
+
+      let types_of_each_until = List.map (fun u -> (typeof_case secrecy_lattice integrity_lattice u t_env)) untils in 
+      let types_of_each_until_with_locs = List.combine types_of_each_until (List.map (fun (u : Cst_syntax.case) -> u.cmd.loc) untils) in 
+
+      check_all_types_equal secrecy_lattice integrity_lattice types_of_each_until_with_locs 
+
+
     (* - need to check that no "ill-typed" channel facts are `put`
        - need to check that no ill-typed `out` fact exists *)
     | Event facts ->  
-        List.iter (fun f -> (typecheck_fact secrecy_lattice integrity_lattice f t_env) ) facts;
+        let _ = List.iter (fun fact -> 
+          let _ = typecheck_fact secrecy_lattice integrity_lattice fact t_env ~is_case_fact:false ~fresh_idents:[] in 
+          ()
+          ) facts in 
         (TUnit, (Public, Untrusted))
     (*  need to return the type of e *)
     | Return e -> 
@@ -432,7 +487,7 @@ let typecheck_decl (secrecy_lattice : cst_access_policy)
       let s = Format.sprintf "Running typeof_cmd on syscall with id %s" (Ident.string_part id) in 
       print_endline s;
       (* CURRENT SETUP: we typecheck the body of a Cst_syntax.Syscall at this point ONCE under the assumption that we trust the typing signature *)
-      (* then in `typecheck_cmd` we only check whether the list of arguments matches the list of function parameters  *)
+      (* then in `typeof_cmd` we only check whether the list of arguments matches the list of function parameters  *)
       let _ = typeof_cmd_rec cmd t_env 
       in () 
 
@@ -480,7 +535,7 @@ let typecheck_decl (secrecy_lattice : cst_access_policy)
 
       
       (* CURRENT SETUP: we typecheck the body of a member function ONCE, under the assumption that we trust the typing signature*)
-      (* then in `typecheck_cmd`, we only check whether the list of arguments matches the list of function parameters *)
+      (* then in `typeof_cmd`, we only check whether the list of arguments matches the list of function parameters *)
 
       (* typecheck the cmd of each member function *)
       let typeof_member_func (func : Ident.t * (Ident.t * Cst_env.core_security_function_param) list * Cst_syntax.cmd) 
