@@ -58,32 +58,32 @@ rule Alice_new_intro_event___0___2_45[role="Alice"]
     --[ Transition_(<'rab_Alice', param>, 'rab___0', %v_), Send(n_0_0) ]->
     [ State_Alice(<'rab___2', param, %v_>, 'rab_unit', n_0_0, 'rab_empty', 'rab_empty') ] 
 
-rule Alice_scall_intro_put_scall_out_let_intro_scall_intro___2___4_0_0_44[role="Alice"]
+rule Alice_scall_intro_put____2___4_0_0_44[role="Alice"]
   : [ State_Alice(<'rab___2', param, %v_>, return_var_2, m_0_2, 'rab_empty', 'rab_empty'), !ACP_(<'rab_Alice', param>, 'rab_ch', 'rab_send') ]
     --[ Transition_(<'rab_Alice', param>, 'rab___2', %v_) ]->
     [ State_Alice(<'rab___4_0_0', param, %v_>, 'rab_unit', m_0_2, <'rab_ch', 'rab_'>, 'rab_empty'), Store('rab_ch', m_0_2) ] 
 
-rule Alice_scall_intro_put_scall_out_let_intro_attack_intro___2___4_1_0_43[role="Alice"]
+rule Alice_scall_intro_put____2___4_1_0_43[role="Alice"]
   : [ State_Alice(<'rab___2', param, %v_>, return_var_2, m_0_2, 'rab_empty', 'rab_empty'), !ACP_(<'rab_Alice', param>, 'rab_ch', 'rab_send') ]
     --[ Transition_(<'rab_Alice', param>, 'rab___2', %v_) ]->
     [ State_Alice(<'rab___4_1_0', param, %v_>, 'rab_unit', m_0_2, <'rab_ch', 'rab_'>, 'rab_empty'), Store('rab_ch', m_0_2) ] 
 
-rule Alice_guarded_return_case_out_attack_out___4_1_0___5_36[role="Alice"]
+rule Alice_guarded_return_c___4_1_0___5_36[role="Alice"]
   : [ State_Alice(<'rab___4_1_0', param, %v_>, return_var_7, m_0_7, <l_0_7, l_1_7>, 'rab_empty'), !ACP_(<'rab_Alice', param>, l_0_7, 'rab_recv'), In(n_1_7), Store(l_0_7, n_0_7) ]
     --[ Transition_(<'rab_Alice', param>, 'rab___4_1_0', %v_) ]->
     [ State_Alice(<'rab___5', param, %v_>, 'rab_unit', m_0_7, n_1_7, 'rab_empty') ] 
 
-rule Alice_guarded_return_case_out_scall_out___4_0_0___5_33[role="Alice"]
+rule Alice_guarded_return_c___4_0_0___5_33[role="Alice"]
   : [ State_Alice(<'rab___4_0_0', param, %v_>, return_var_12, m_0_12, <l_0_12, l_1_12>, 'rab_empty'), !ACP_(<'rab_Alice', param>, l_0_12, 'rab_recv'), Store(l_0_12, n_0_12) ]
     --[ Transition_(<'rab_Alice', param>, 'rab___4_0_0', %v_) ]->
     [ State_Alice(<'rab___5', param, %v_>, 'rab_unit', m_0_12, n_0_12, 'rab_empty') ] 
 
-rule Alice_guarded_event_case_out_let_out_new_out___5___8_30[role="Alice"]
+rule Alice_guarded_event_ca___5___8_30[role="Alice"]
   : [ State_Alice(<'rab___5', param, %v_>, return_var_16, m_0_16, l_0_16, 'rab_empty') ]
     --[ Transition_(<'rab_Alice', param>, 'rab___5', %v_), Valid(m_0_16), Eq_(m_0_16, l_0_16) ]->
     [ State_Alice(<'rab___8', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
 
-rule Alice_guarded_event_case_out_let_out_new_out___5___8_29[role="Alice"]
+rule Alice_guarded_event_ca___5___8_29[role="Alice"]
   : [ State_Alice(<'rab___5', param, %v_>, return_var_19, m_0_19, l_0_19, 'rab_empty') ]
     --[ Transition_(<'rab_Alice', param>, 'rab___5', %v_), Invalid(), NEq_(m_0_19, l_0_19) ]->
     [ State_Alice(<'rab___8', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 

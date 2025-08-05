@@ -76,12 +76,12 @@ rule Bob_new_intro_event___0___2_16[role="Bob"]
     --[ Transition_(<'rab_Bob', param>, 'rab___0', %v_), Ping(n_0_0) ]->
     [ State_Bob(<'rab___2', param, %v_>, 'rab_unit', n_0_0, 'rab_empty', 'rab_empty') ] 
 
-rule Bob_guarded_event_case_out_new_out___3___5_15[role="Bob"]
+rule Bob_guarded_event_ca___3___5_15[role="Bob"]
   : [ State_Bob(<'rab___3', param, %v_>, return_var_3, m_0_3, 'rab_empty', 'rab_empty'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_'), Pong('rab_chan', m_0_3) ]
     --[ Transition_(<'rab_Bob', param>, 'rab___3', %v_), Valid(m_0_3) ]->
     [ State_Bob(<'rab___5', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
 
-rule Bob_guarded_event_case_out_new_out___3___5_14[role="Bob"]
+rule Bob_guarded_event_ca___3___5_14[role="Bob"]
   : [ State_Bob(<'rab___3', param, %v_>, return_var_6, m_0_6, 'rab_empty', 'rab_empty'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_'), Pong('rab_chan', n_0_6) ]
     --[ Transition_(<'rab_Bob', param>, 'rab___3', %v_), Invalid(m_0_6, n_0_6), NEq_(m_0_6, n_0_6) ]->
     [ State_Bob(<'rab___5', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 

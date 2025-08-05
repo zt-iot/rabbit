@@ -36,7 +36,7 @@ rule Alice_init_mem_put___0___2_7[role="Alice"]
     --[ Transition_(<'rab_Alice', param>, 'rab___0', %v_) ]->
     [ State_Alice(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', '1'), X('1') ] 
 
-rule Alice_guarded_event_case_out___2___3_6[role="Alice"]
+rule Alice_guarded_event_ca___2___3_6[role="Alice"]
   : [ State_Alice(<'rab___2', param, %v_>, return_var_2, 'rab_empty', 'rab_empty', t_0_2), X('1') ]
     --[ Transition_(<'rab_Alice', param>, 'rab___2', %v_), Valid() ]->
     [ State_Alice(<'rab___3', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', t_0_2) ] 

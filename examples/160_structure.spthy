@@ -31,17 +31,17 @@ rule Init_system[role="system"]
 // Model:  Proc
 
 
-rule Proc_new_intro_new_intro___0___2_22[role="Proc"]
+rule Proc_new_intro_new_in___0___2_22[role="Proc"]
   : [ State_Proc(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), Fr(n_0_1), Fr(n_0_0) ]
     --[ Transition_(<'rab_Proc', param>, 'rab___0', %v_) ]->
     [ State_Proc(<'rab___2', param, %v_>, 'rab_unit', <n_0_1, n_0_0>, 'rab_empty', 'rab_empty'), S_Proc(param, n_0_0, <'1', '2', '3'>), S_Proc(param, n_0_1, <'4', '5', '6'>) ] 
 
-rule Proc_get_intro_guarded_event_case_out_get_out_new_out_new_out___2___7_21[role="Proc"]
+rule Proc_get_intro_guarde___2___7_21[role="Proc"]
   : [ State_Proc(<'rab___2', param, %v_>, return_var_2, <m_0_2, m_1_2>, 'rab_empty', 'rab_empty'), S_Proc(param, m_1_2, <n_0_2, n_1_2, n_2_2>) ]
     --[ Transition_(<'rab_Proc', param>, 'rab___2', %v_), Invalid(), Eq_(n_0_2, '4'), Eq_(n_1_2, '5'), Eq_(n_2_2, '6') ]->
     [ State_Proc(<'rab___7', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), S_Proc(param, m_1_2, <n_0_2, n_1_2, n_2_2>) ] 
 
-rule Proc_get_intro_guarded_event_case_out_get_out_new_out_new_out___2___7_20[role="Proc"]
+rule Proc_get_intro_guarde___2___7_20[role="Proc"]
   : [ State_Proc(<'rab___2', param, %v_>, return_var_2, <m_0_2, m_1_2>, 'rab_empty', 'rab_empty'), S_Proc(param, m_1_2, <n_0_2, n_1_2, n_2_2>) ]
     --[ Transition_(<'rab_Proc', param>, 'rab___2', %v_), Valid(), Eq_(n_0_2, '1'), Eq_(n_1_2, '2'), Eq_(n_2_2, '3') ]->
     [ State_Proc(<'rab___7', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), S_Proc(param, m_1_2, <n_0_2, n_1_2, n_2_2>) ] 

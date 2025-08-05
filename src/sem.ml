@@ -40,6 +40,9 @@ module Index : sig
 
   val compare : t -> t -> int
 
+  val compare_lexico : t -> t -> int
+  (** Lexicographic ordering.  Slower than [compare] *)
+
   val zero : t
 
   val add : t -> int -> t
@@ -54,6 +57,19 @@ end = struct
   type t = (int * int) list
 
   let compare = compare
+
+  let compare_lexico i1 i2 =
+    let rec aux i1 i2 =
+      match i1, i2 with
+      | [], [] -> 0
+      | [], _ -> -1
+      | _, [] -> 1
+      | ii1 :: i1, ii2 :: i2 ->
+          match compare ii1 ii2 with
+          | 0 -> aux i1 i2
+          | n -> n
+    in
+    aux (List.rev i1) (List.rev i2)
 
   let zero = [ 0, 0 ]
 
@@ -1445,7 +1461,30 @@ let compress e1 e2 =
   );
   e12
 
+(* Topo-sort the edges (ignoring the cycles of course)
+   Not really required but good to check the result by human eyes.
+*)
+let sort_edges edges =
+  let sorted_edges_from n =
+    List.sort (fun e1 e2 -> Index.compare_lexico e1.target e2.target)
+    @@ List.find_all (fun e -> e.source = n) edges
+  in
+  let rec sort (es : edge list) visited rev_sorted =
+    match es with
+    | [] -> List.rev rev_sorted
+    | e::es when Ident.Set.mem (e.id :> Ident.t) visited ->
+        sort es visited rev_sorted
+    | e::es ->
+        let visited = Ident.Set.add (e.id :> Ident.t) visited in
+        let rev_sorted = e :: rev_sorted in
+        let es' = sorted_edges_from e.target in
+        sort (es' @ es) visited rev_sorted
+  in
+  sort (sorted_edges_from Index.zero) Ident.Set.empty []
+
 let rec optimize_edges edges =
+  (* Code to visit all the pairs of edges.
+     Stupid, but runs enough fast even for the camserver example. *)
   let pairs =
     List.concat_map (fun e1 ->
         List.map (fun e2 -> (e1, e2)) edges) edges
@@ -1473,7 +1512,7 @@ let rec optimize_edges edges =
         (optimize_edges[@tailcall]) edges
     | _ :: pairs -> aux pairs
   in
-  aux pairs
+  sort_edges @@ aux pairs
 
 let optimize_proc proc = { proc with edges = optimize_edges proc.edges }
 

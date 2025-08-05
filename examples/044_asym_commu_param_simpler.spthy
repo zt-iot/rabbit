@@ -66,12 +66,12 @@ rule Init_system1_ACP_0[role="system1"]
 // Model:  Server
 
 
-rule Server_guarded_guarded_event_case_out_case_out___0___1_15[role="Server"]
+rule Server_guarded_guarded____0___1_15[role="Server"]
   : [ State_Server(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), !ACP_(<'rab_Server', param>, <'rab_chan', n_0_0>, 'rab_'), Store(<'rab_chan', n_0_0>, n_1_0) ]
     --[ Transition_(<'rab_Server', param>, 'rab___0', %v_), Invalid(n_0_0), NEq_(n_0_0, n_1_0) ]->
     [ State_Server(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
 
-rule Server_guarded_guarded_event_case_out_case_out___0___1_14[role="Server"]
+rule Server_guarded_guarded____0___1_14[role="Server"]
   : [ State_Server(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), !ACP_(<'rab_Server', param>, <'rab_chan', n_0_0>, 'rab_'), Store(<'rab_chan', n_0_0>, n_1_0) ]
     --[ Transition_(<'rab_Server', param>, 'rab___0', %v_), Valid(n_0_0), Eq_(n_0_0, n_1_0) ]->
     [ State_Server(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 

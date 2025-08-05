@@ -57,7 +57,7 @@ rule Init_system_ACP_1[role="system"]
 // Model:  Alice
 
 
-rule Alice_guarded_skip_repeat_out___1___2_13[role="Alice"]
+rule Alice_guarded_skip_rep___1___2_13[role="Alice"]
   : [ State_Alice(<'rab___1', param, %v_>, return_var_7, 'rab_empty', 'rab_empty', 'rab_empty'), False() ]
     --[ Transition_(<'rab_Alice', param>, 'rab___1', %v_), Loop_Finish(<'rab_Alice', param>, 'rab___0') ]->
     [ State_Alice(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
@@ -91,22 +91,22 @@ rule Alice_repeat_in___0___1_0[role="Alice"]
 // Model:  Bob
 
 
-rule Bob_guarded_new_intro_event___1___1_0_2_25[role="Bob"]
+rule Bob_guarded_new_intr___1___1_0_2_25[role="Bob"]
   : [ State_Bob(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'), Fr(n_0_2) ]
     --[ Transition_(<'rab_Bob', param>, 'rab___1', %v_), Ping(n_0_2) ]->
     [ State_Bob(<'rab___1_0_2', param, %v_>, 'rab_unit', n_0_2, 'rab_empty', 'rab_empty') ] 
 
-rule Bob_guarded_skip_repeat_out___1___2_24[role="Bob"]
+rule Bob_guarded_skip_rep___1___2_24[role="Bob"]
   : [ State_Bob(<'rab___1', param, %v_>, return_var_13, 'rab_empty', 'rab_empty', 'rab_empty'), False() ]
     --[ Transition_(<'rab_Bob', param>, 'rab___1', %v_), Loop_Finish(<'rab_Bob', param>, 'rab___0') ]->
     [ State_Bob(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
 
-rule Bob_guarded_event_case_out_new_out___1_0_3___1_0_5_22[role="Bob"]
+rule Bob_guarded_event_ca___1_0_3___1_0_5_22[role="Bob"]
   : [ State_Bob(<'rab___1_0_3', param, %v_>, return_var_5, m_0_5, 'rab_empty', 'rab_empty'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_'), Pong('rab_chan', m_0_5) ]
     --[ Transition_(<'rab_Bob', param>, 'rab___1_0_3', %v_), Valid(m_0_5) ]->
     [ State_Bob(<'rab___1_0_5', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
 
-rule Bob_guarded_event_case_out_new_out___1_0_3___1_0_5_21[role="Bob"]
+rule Bob_guarded_event_ca___1_0_3___1_0_5_21[role="Bob"]
   : [ State_Bob(<'rab___1_0_3', param, %v_>, return_var_8, m_0_8, 'rab_empty', 'rab_empty'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_'), Pong('rab_chan', n_0_8) ]
     --[ Transition_(<'rab_Bob', param>, 'rab___1_0_3', %v_), Invalid(m_0_8, n_0_8), NEq_(m_0_8, n_0_8) ]->
     [ State_Bob(<'rab___1_0_5', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 

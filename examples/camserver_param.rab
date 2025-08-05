@@ -124,7 +124,7 @@ process client_ta<k>(ch_rpc : rpc_t) : client_ta_t
 
     var privkey0 = dec(privkey, fek) in 
 
-    var sig = sign(image, priv_k<k>) in
+    var sig = sign(image, privkey0) in
 
     _ := fclose(privkey_fd);
 
