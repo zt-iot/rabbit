@@ -163,9 +163,14 @@ plain_fact:
   | e1=expr NEQ e2=expr { NeqFact(e1, e2) }
   | scope=expr DOT e=expr { FileFact(scope, e) }
 
+
+sys_requires_opt:
+  | REQUIRES LBRACKET a=separated_nonempty_list(SEMICOLON, lemma) RBRACKET { a }
+  | /* empty */                                         { [] }
+
+
 sys:
-  | SYSTEM p=separated_nonempty_list(BAR, proc) REQUIRES
-    LBRACKET a=separated_nonempty_list(SEMICOLON, lemma)  RBRACKET { DeclSys(p, a) }
+  | SYSTEM p=separated_nonempty_list(BAR, proc) lemmas=sys_requires_opt { DeclSys(p, lemmas) }
 
 proc:
   | p=uproc { UnboundedProc p }

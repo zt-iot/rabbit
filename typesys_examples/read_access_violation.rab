@@ -1,0 +1,48 @@
+data unit
+data message 
+
+
+type alice_t      : process
+
+
+
+(** temporary solution *)
+type attacker_ty : process
+
+
+
+(** declare security types *)
+type client_msg : message
+
+
+
+
+(** Temporary solution to have read and provide as bound names *)
+syscall read () : unit {
+  skip
+}
+
+syscall provide () : unit {
+  skip
+}
+
+(* note that alice_t is not allowed to read client_msg *)
+
+allow attacker_ty client_msg [read, provide]
+
+
+
+(***********)
+(** process templates *)
+
+process alice() : alice_t
+{
+  	main 
+  	{
+        new msg : client_msg in (* alice_t attemtps to read client_msg, while this is not allowed according to access control *)
+        event [::AliceClose ()]
+  	}
+}
+
+
+system alice()
