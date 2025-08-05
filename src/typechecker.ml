@@ -509,7 +509,7 @@ let typecheck_decl (secrecy_lattice : cst_access_policy)
 
       (* add `args` channel args to t_env *)
       let t_env' = List.fold_left (fun acc_t_env (arg : Typed.chan_param) -> 
-        (* For some reason, OCaml will keep complaining that `channel` is unbound of a `Typed.chan_param`, so I have to do a useless pattern match like this *)
+        (* For some reason, OCaml will keep complaining that `channel` is not part of a Typed.chan_param, so I have to do a useless pattern match like this *)
         begin match arg with
           | {channel = channel_id ; typ = typ_id ; _ } -> 
             let t_params = begin match Cst_env.find_opt decl.env (Ident.string_part typ_id) with 
@@ -571,20 +571,12 @@ let typecheck_sys (cst_decls : Cst_syntax.decl list)
     (* for all `proc_name` \in `procs`, we need to check that `proc_name` is well-typed *)
 
     (* get only the declarations for which their name appears in `proc_strs` *)
-    (* let filtered_decls =
+    let filtered_cst_decls =
       List.filter (fun decl -> match decl.Cst_syntax.desc with
         | Cst_syntax.Process { id; _ } -> List.mem (Ident.string_part id) proc_strs
         | _ -> false  (* keep all non-process declarations *)
       ) cst_decls in 
 
-    (* printing the name of each process that appears in the system declaration *)
-    (print_endline "typecheck sys : printing filtered_decls process names");
-    List.iter (fun decl -> match decl.Cst_syntax.desc with 
-        | Cst_syntax.Process { id; _ } -> print_endline (Ident.string_part id) 
-        | _ -> ()
-    ) filtered_decls; *)
-
-    
     (* typecheck each decl of filtered_decls with computed secrecy_lattice and integrity_lattice from previous pass *)
-    List.iter (fun decl -> typecheck_decl secrecy_lattice integrity_lattice decl) cst_decls;
+    List.iter (fun decl -> typecheck_decl secrecy_lattice integrity_lattice decl) filtered_cst_decls;
   | _ -> (raise_type_exception_with_location "this declaration is not a system declaration" sys.loc)

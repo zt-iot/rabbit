@@ -833,14 +833,14 @@ let convert_decl (read_access_map : access_map)
 - A cst_access_policy for integrity levels a, b
 *)
 let convert (decls : Typed.decl list) 
-  : (Cst_syntax.decl list) * cst_access_policy * cst_access_policy = 
+  : (Cst_syntax.decl list) * Cst_syntax.decl * cst_access_policy * cst_access_policy = 
   
   (* check that the last declaration is a `Typed.System` declaration *)
   match List.rev decls with
   | [] ->
       raise (CstConversionException "Expected a System declaration at the end, but the list is empty")
 
-  | {desc = System(procs, _) ; _ } :: decls_rev ->
+  | {desc = System(procs, _) ; _ } as sys_decl :: decls_rev ->
 
     let (read_access_map, provide_access_map) = create_access_maps decls in 
     let all_process_typs = extract_process_typs_from_decls procs (List.map (fun (d : Typed.decl) -> d.desc) decls_rev) in
@@ -854,7 +854,7 @@ let convert (decls : Typed.decl list)
       converted_decl @ acc
     ) decls_rev [] in 
 
-    let converted_sys = convert_decl read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice
+    let converted_sys = List.hd (convert_decl read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice sys_decl) in 
 
-    converted_decls, secrecy_lattice, integrity_lattice
+    converted_decls, converted_sys, secrecy_lattice, integrity_lattice
   | _ -> raise (CstConversionException "Expected a System declaration at the the end, but there is a different declaration")

@@ -137,35 +137,23 @@ let _main =
               | Error exn -> 
                 Format.eprintf "Unexpected TyperFail: %s" (Printexc.to_string exn); 
                 raise exn
-              | Ok decls -> 
-                  
-                  (* let cst_decls, secrecy_lattice, integrity_lattice = To_cst.convert(decls) in  *)
-                  let _, _, _, _ = To_cst.convert(decls) in 
-                ()
+              | _ -> ()
             );
 
 
-
-            (* Typechecking test with security type system *)
+            (* Running typechecker.ml *)
             (match typer_result with
              | Error _ -> ()
              | Ok decls ->
                 let cst_decls, sys, secrecy_lattice, integrity_lattice = 
                   To_cst.convert(decls) in 
                 prerr_endline "ConverterSuccess";
-                let sys =
-                   List.find_opt (fun decl ->
-                       match decl.Cst_syntax.desc with
-                       | Cst_syntax.System _ -> true
-                       | _ -> false) cst_decls
-                 in
-                 match sys with 
-                 | Some sys -> 
-                   Typechecker.typecheck_sys cst_decls sys secrecy_lattice integrity_lattice
-                 | None -> prerr_endline "no system declaration was given: cannot do any typechecking"
+                
+                let _ = Typechecker.typecheck_sys cst_decls sys secrecy_lattice integrity_lattice in
+                prerr_endline "TypecheckerSuccess";
             );
 
-            (* Semantics test *)
+            (* Running semantic graph generation *)
             (match typer_result with
              | Error _ -> ()
              | Ok decls ->
