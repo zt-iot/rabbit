@@ -45,8 +45,13 @@ module G' = struct
     let get_subgraph _v = None
     let default_edge_attributes _g = []
 
+    let cull n s =
+      if String.length s <= n then s
+      else String.sub s 0 n ^ ".."
+
     let edge_label (t : Sem.edge) =
       String.escaped
+      @@ cull 16
       @@ String.concat ";\n"
       @@ Ident.to_string (t.id :> Ident.t)
          (* :: ("PRE:"^String.concat "; " (List.map string_of_fact t.pre)) *)

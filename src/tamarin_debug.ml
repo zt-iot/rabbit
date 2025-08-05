@@ -39,8 +39,13 @@ module G' = struct
       String.concat "; "
         (List.map print_expr (sd.ret :: sd.metas @ sd.locs @ sd.tops))
 
+    let cull n s =
+      if String.length s <= n then s
+      else String.sub s 0 n ^ ".."
+
     let edge_label t =
-      String.concat ";\n"
+      cull 16
+      @@ String.concat ";\n"
       @@ t.transition_name
          :: (match t.transition_action with
              | None -> []
