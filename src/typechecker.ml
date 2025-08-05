@@ -153,7 +153,9 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
               (* for now, we coerce the return type to `core_security_type` *)
             coerce_fun_param ret_ty
         else
-            raise (TypeException (Format.sprintf "function parameter list of %s did not match types of the arguments" (Ident.string_part id)))
+            (raise_type_exception_with_location 
+              (Format.sprintf "some arguments of function application of %s cannot be coerced to the function's parameters" (Ident.string_part id))
+              expr.loc)
 
     | Tuple exprs ->
         if (List.length exprs < 2) then

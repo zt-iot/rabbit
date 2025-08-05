@@ -49,6 +49,11 @@ syscall recv(c : channel[client_msg]) : client_msg {
 }
 
 
+(* For each process type, declare which channels they are allowed to read from and write to *)
+allow alice_t udp_t [send, recv]
+allow bob_t udp_t [send, recv]
+
+
 (* alice_t is allowed to read and provide client_msg *)
 allow alice_t client_msg [send, recv]
 

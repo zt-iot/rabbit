@@ -1,0 +1,89 @@
+
+
+(** 
+send_ill_typed: alice tries to send a message with "high" security to bob:
+- the "high" security datatype is 'client_msg'
+- alice_t is the only process type which has read and provide access to 'client_msg'
+- the channel between alice and bob takes a message type of a `lower` security level
+If this program typechecks, it means that there are no secrecy or integrity violations for any variables existing in the program
+*)
+
+
+data unit
+data message 
+
+type alice_t      : process
+type bob_t        : process 
+
+
+(** temporary solution *)
+type attacker_ty : process
+
+(** single security type for this example *)
+type client_msg : message
+
+
+type udp_t : channel[message]
+
+
+
+(** Temporary solution to have read and provide as bound names *)
+syscall read () : unit {
+  skip
+}
+
+syscall provide () : unit {
+  skip
+}
+
+syscall send(c : channel[message], v : message) : unit {
+  put [c::store(v)]
+}
+
+syscall recv(c : channel[message]) : message {
+  case 
+  | [c::store(v)] →   v
+  end
+}
+
+(* For each process type, declare which channels they are allowed to read from and write to *)
+allow alice_t udp_t [send, recv]
+allow bob_t udp_t [send, recv]
+
+
+(* alice_t is allowed to read and provide client_msg *)
+allow alice_t client_msg [send, recv]
+
+(* bob is not allowed to do anything. I.e., he is only able to read/provide the simple type 'message' *)
+(* the attacker_ty is not allowed to do anything. I.e., they are only able to read/provide the simple type 'message' *)
+
+channel udp : udp_t
+
+
+(***********)
+(** process templates *)
+
+
+process alice(ch_net : udp_t) : alice_t
+{
+  	main 
+  	{
+        new msg : client_msg in (* alice_t creates a client_msg *)
+        _ := send(ch_net, msg); (* alice tries to send it to a channel with a lower secrecy level, which means it is ill-typed *)
+
+        event [::AliceClose ()]
+  	}
+}
+
+
+
+process bob(ch_net : udp_t) : bob_t 
+{
+    main {
+      var msg = recv(ch_net) in (* bob tries to receive the message *)
+      skip
+    }
+}
+
+
+system alice(udp) | bob(udp)
