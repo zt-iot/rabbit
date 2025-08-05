@@ -4,12 +4,6 @@ open Maps
 
 open Cst_util
 
-let raise_conv_exception_with_location msg loc = 
-    Location.print loc Format.std_formatter;
-    Format.pp_print_newline Format.std_formatter ();
-    raise (CstConversionException msg)
-
-
 
 
 type syscall_effect = 

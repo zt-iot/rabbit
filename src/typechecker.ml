@@ -146,7 +146,7 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
         let all_subtypes = List.for_all (fun (x, y) -> 
           (* print_endline (Cst_env.show_core_security_type x);
           print_endline (Cst_env.show_core_security_type y); *)
-          is_subtype secrecy_lattice integrity_lattice x y) args_x_f_params in
+          is_subtype secrecy_lattice integrity_lattice x y expr.loc) args_x_f_params in
 
         if all_subtypes then
             (* TODO infer the return type of a function if it happens to be polymorphic *)
@@ -234,7 +234,7 @@ let typecheck_fact (secrecy_lattice : cst_access_policy)
             new_binding :: acc_bindings
           | _ -> 
             let type_of_arg = (typeof_expr secrecy_lattice integrity_lattice ch_arg t_env) in 
-            if not (Cst_util.is_subtype secrecy_lattice integrity_lattice type_of_arg ch_param_ty) then 
+            if not (Cst_util.is_subtype secrecy_lattice integrity_lattice type_of_arg ch_param_ty fact.loc) then 
               (raise_type_exception_with_location "An argument type is not a subtype of the type of the channel" fact.loc);
             acc_bindings
           ) [] ch_params_x_ch_args in 
@@ -244,7 +244,7 @@ let typecheck_fact (secrecy_lattice : cst_access_policy)
           let _ = List.iter (fun (ch_param_ty, ch_arg) -> 
               let type_of_arg = (typeof_expr secrecy_lattice integrity_lattice ch_arg t_env) in 
 
-              if not (Cst_util.is_subtype secrecy_lattice integrity_lattice type_of_arg ch_param_ty) then 
+              if not (Cst_util.is_subtype secrecy_lattice integrity_lattice type_of_arg ch_param_ty fact.loc) then 
                 (raise_type_exception_with_location "An argument type is not a subtype of the type of the channel" fact.loc);
             ) ch_params_x_ch_args in 
           []
@@ -284,7 +284,7 @@ let check_all_types_equal (secrecy_lattice : cst_access_policy) (integrity_latti
   | (ty1, _) :: ts' -> 
     (List.iter (fun (ty', loc') -> 
         (* For now, ty' must be a subtype of ty1, but we can _probably_ be more relaxed *)
-        if not (is_subtype secrecy_lattice integrity_lattice ty' ty1) then 
+        if not (is_subtype secrecy_lattice integrity_lattice ty' ty1 loc') then 
           (raise_type_exception_with_location "All branches of a case/repeat statement must return the same type" loc')
       ) ts');
     (* return ty1 after we concluded all types are equal *)
@@ -346,7 +346,7 @@ and typeof_cmd  (secrecy_lattice : cst_access_policy)
           | None -> raise (TypeException (Format.sprintf "Identifier %s was not present in typing environment t_env" (Ident.string_part id)))
         in
         (* cst_typ must be a subtype of the looked_up_typ *)
-        if not (is_subtype secrecy_lattice integrity_lattice cst_typ looked_up_typ) then
+        if not (is_subtype secrecy_lattice integrity_lattice cst_typ looked_up_typ e.loc) then
             (raise_type_exception_with_location "The type being assigned does not match the type of the variable being assigned" cmd.Cst_syntax.loc);
         (TUnit, (Public, Untrusted))
     (*  typecheck e 

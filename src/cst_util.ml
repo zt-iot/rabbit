@@ -12,6 +12,13 @@ type cst_access_policy = ((proc_ty_set * proc_ty_set) * bool) list * relation
 exception CstConversionException of string
 
 
+let raise_conv_exception_with_location msg loc = 
+    Location.print loc Format.std_formatter;
+    Format.pp_print_newline Format.std_formatter ();
+    raise (CstConversionException msg)
+
+
+
 
 (* reads whether lvl_a is less than or equal to lvl_b *)
 let leq_secrecy (secrecy_lattice : cst_access_policy) (lvl_a : Cst_env.secrecy_lvl) (lvl_b : Cst_env.secrecy_lvl) = 
@@ -65,9 +72,36 @@ let leq_integrity (integrity_lattice : cst_access_policy) (lvl_a : Cst_env.integ
   | _, _ -> false
 
 
+
+(* Whether two `core_security_type`'s hold the same data, ignoring any (secrecy_lvl * integrity_lvl) *)
+let rec equals_datatype (ty1 : Cst_env.core_security_type) (ty2 : Cst_env.core_security_type) (loc : Location.t) : bool =
+  let (ct1, _) = ty1 in
+  let (ct2, _) = ty2 in
+  match ct1, ct2 with
+  | TUnit, TUnit -> true
+  | Dummy, Dummy -> true
+  | TChan lst1, TChan lst2 -> 
+      let same_length = (List.length lst1 = List.length lst2) in 
+      if not same_length then
+        (raise_conv_exception_with_location "channels do not have the same amount of type parameters" loc);
+      let same_typ_params = List.for_all2 (fun typ1 typ2 -> equals_datatype typ1 typ2 loc) lst1 lst2 in 
+      same_length && same_typ_params
+  | TSimple (id1, lst1), TSimple (id2, lst2) ->
+      let same_type = Name.equal id1 id2 in 
+      let same_length = (List.length lst1 = List.length lst2) in 
+      if not same_length then
+        (raise_conv_exception_with_location "simple types do not have the same amount of type parameters" loc);
+      let same_typ_params = List.for_all2 (fun typ1 typ2 -> equals_datatype typ1 typ2 loc) lst1 lst2 in 
+      same_type && same_length && same_typ_params
+  | TProd (a1, b1), TProd (a2, b2) ->
+      equals_datatype a1 a2 loc && equals_datatype b1 b2 loc
+  | _, _ -> false
+
+
+
 (* Determines whether security type t1 is a subtype of security type t2 (i.e. whether t1 <: t2) *)
 let is_subtype (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) 
-  (t1 : Cst_env.core_security_type) (t2 : Cst_env.core_security_type) : bool = 
+  (t1 : Cst_env.core_security_type) (t2 : Cst_env.core_security_type) (loc : Location.t) : bool = 
   (* for t1 to be a subtype of t2, it must hold that: 
     1.) t1 is of the same datatype as t2, and:
     2.) t1's secrecy level is smaller than or equal to the secrecy level of t2, and:
@@ -76,7 +110,7 @@ let is_subtype (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_ac
 
   let (_, (t1_secrecy, t1_integrity)) = t1 in 
   let (_, (t2_secrecy, t2_integrity)) = t2 in 
-  let same_datatype = Cst_env.equals_datatype t1 t2 in 
+  let same_datatype = equals_datatype t1 t2 loc in 
   let secrecy_cnd = begin match (t1, t2) with 
     (* For channel types, we currently do not care about secrecy levels *)
     | ((TChan _, _), (TChan _, _)) -> true 

@@ -1,0 +1,90 @@
+
+
+(** 
+send_well_typed: alice tries to send a message with "high" security to bob:
+- The message with high security has type "client_msg"
+- The attacker is not able to read or provide "client_msg"
+
+If this program typechecks, it means that there are no secrecy or integrity violations for any variables existing in the program
+*)
+
+
+data unit
+data message 
+
+type alice_t      : process
+type bob_t        : process 
+
+
+(** temporary solution *)
+type attacker_ty : process
+
+
+
+(** single security type for this example *)
+type client_msg : message
+
+
+type udp_t : channel[client_msg]
+
+
+
+(** Temporary solution to have read and provide as bound names *)
+syscall read () : unit {
+  skip
+}
+
+syscall provide () : unit {
+  skip
+}
+
+syscall send(c : channel[client_msg], v : client_msg) : unit {
+  put [c::store(v)]
+}
+
+syscall recv(c : channel[client_msg]) : client_msg {
+  case 
+  | [c::store(v)] →   v
+  end
+}
+
+
+(* alice_t is allowed to read and provide client_msg *)
+allow alice_t client_msg [send, recv]
+
+(* bob_t is allowed to read client_msg *)
+allow bob_t client_msg [recv]
+
+
+channel udp : udp_t
+
+(* the attacker is not able to do anything ; i.e. we give 0 permissions to the attacker_ty *)
+
+(***********)
+(** process templates *)
+
+
+process alice(ch_net : udp_t) : alice_t
+{
+  	main 
+  	{
+        new msg : client_msg in (* alice_t creates a client_msg *)
+        _ := send(ch_net, msg);
+
+        event [::AliceClose ()]
+  	}
+}
+
+
+
+process bob(ch_net : udp_t) : bob_t 
+{
+    main {
+      var msg = recv(ch_net) in 
+      skip
+    }
+}
+
+
+
+system alice(udp) | bob(udp)

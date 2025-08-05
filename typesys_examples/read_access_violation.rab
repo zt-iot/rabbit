@@ -44,5 +44,4 @@ process alice() : alice_t
   	}
 }
 
-
 system alice()

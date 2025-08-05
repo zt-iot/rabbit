@@ -103,7 +103,7 @@ plain_decl:
   | CONST FRESH t=NAME COLON typ=typ { DeclInit(t, Some typ, Fresh) }
   | CONST FRESH t=NAME { DeclInit(t, None, Fresh) }
 
-  | ATTACK f=NAME ON t=NAME LPAREN arg=separated_list(COMMA, NAME) RPAREN LBRACE c=cmd RBRACE { DeclExtAttack (f, t, arg, c) }
+  | ATTACK f=NAME ON t=NAME LPAREN arg=separated_list(COMMA, NAME) RPAREN c=cmd { DeclExtAttack (f, t, arg, c) }
 
   | external_syscall { $1 }
 
@@ -228,10 +228,10 @@ member_fun_decls:
 
 member_fun_decl:
   | FUNC id=NAME signature=fun_signature
-    LBRACE c=cmd RBRACE { (id, signature, c) }
+    c=cmd { (id, signature, c) }
 
 main_stmt:
-  | MAIN LBRACE c=cmd RBRACE { c }
+  | MAIN c=cmd { c }
 
 fpath:
   | LBRACE PATH COLON fp=QUOTED_STRING COMMA DATA COLON e=expr COMMA TYPE COLON t=NAME RBRACE
@@ -312,6 +312,7 @@ plain_expr:
 
 guarded_cmd:
   | LBRACKET precond=separated_list(COMMA, fact) RBRACKET ARROW c=cmd { (precond, c) }
+
 
 cmd:
   | LBRACE c=cmd RBRACE { c }
