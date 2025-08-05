@@ -313,7 +313,9 @@ let rec optimize_at (m : model) (st : state) =
               let tr = {
                 transition_id = m.model_transition_id_max;
                 transition_namespace = m.model_name;
-                transition_name = tr1.transition_name ^ "_" ^ tr2.transition_name;
+                transition_name =
+                  (let s = tr1.transition_name ^ "_" ^ tr2.transition_name in
+                   if String.length s > 16 then String.sub s 0 16 else s);
                 transition_from = st;
                 transition_to = st_f;
                 transition_pre = tr1.transition_pre @ pre2;
