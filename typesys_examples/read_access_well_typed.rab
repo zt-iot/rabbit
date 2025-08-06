@@ -16,6 +16,16 @@ type client_msg : message
 
 
 
+syscall send(c : channel[client_msg], v : client_msg) : unit {
+  put [c::store(v)]
+}
+
+syscall recv(c : channel[client_msg]) : client_msg {
+  case 
+  | [c::store(v)] →   v
+  end
+}
+
 
 (** Temporary solution to have read and provide as bound names *)
 syscall read () : unit {
@@ -26,15 +36,14 @@ syscall provide () : unit {
   skip
 }
 
-(* note that alice_t is not allowed to read client_msg *)
 
+allow alice_t client_msg [recv]
 allow attacker_ty client_msg [read, provide]
 
 
 
 (***********)
 (** process templates *)
-
 process alice() : alice_t
 {
   	main 
