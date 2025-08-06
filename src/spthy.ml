@@ -165,8 +165,8 @@ let fact' f : fact' =
   | Fresh id ->
       { name= "Fr"; args= [Ident id]; config= config_linear }
   | Structure { pid; name; address; args } ->
-      { name= "Structure_" ^ name
-      ; args = pid' pid :: address :: args
+      { name= "Structure"
+      ; args = pid' pid :: String name :: address :: args
       ; config = config_linear }
   | Loop { pid; mode; index } ->
       { name = "Loop_" ^ Typed.string_of_loop_mode mode
