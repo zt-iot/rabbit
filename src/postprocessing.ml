@@ -32,16 +32,21 @@ type ('a, 'b) sum =
 
 
 let forward_transitions_from (m : model) (st : state) : transition list =
-  List.filter (fun (tr : transition) -> state_index_to_string_aux st = state_index_to_string_aux tr.transition_from && not tr.transition_is_loop_back) m.model_transitions
+  List.filter (fun (tr : transition) ->
+      st.state_index = tr.transition_from.state_index
+      && not tr.transition_is_loop_back) m.model_transitions
 
 let _forward_transitions_to (m : model) (st : state) : transition list =
-  List.filter (fun (tr : transition) -> state_index_to_string_aux st = state_index_to_string_aux tr.transition_to && not tr.transition_is_loop_back) m.model_transitions
+  List.filter (fun (tr : transition) ->
+      st.state_index = tr.transition_to.state_index && not tr.transition_is_loop_back) m.model_transitions
 
 let forward_transitions_from' (m : model) (st : state) : transition list =
-  List.filter (fun (tr : transition) -> state_index_to_string_aux st = state_index_to_string_aux tr.transition_from) m.model_transitions
+  List.filter (fun (tr : transition) ->
+      st.state_index = tr.transition_from.state_index) m.model_transitions
 
 let forward_transitions_to' (m : model) (st : state) : transition list =
-  List.filter (fun (tr : transition) -> state_index_to_string_aux st = state_index_to_string_aux tr.transition_to) m.model_transitions
+  List.filter (fun (tr : transition) ->
+      st.state_index = tr.transition_to.state_index) m.model_transitions
 
 
 let is_nonlocal_fact f =

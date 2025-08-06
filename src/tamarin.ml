@@ -4,8 +4,8 @@
    it only contains reserved facts.
 *)
 let separator = ref "_"
-let fresh_ident = ref "rab_ident"
-let fresh_string = ref "rab_str"
+let fresh_ident = ref "ident"
+let fresh_string = ref ""
 let fresh_param = ref "param"
 
 let rec replace_nth lst i new_val =
@@ -61,15 +61,12 @@ module Mindex = struct
         Mindex ((s, 0) :: i)
 
   let to_string (Mindex idx) =
-    List.fold_left
-      (fun s (scope, ind) ->
-         s
-         ^ !separator
-         ^ String.concat "_" (List.map string_of_int scope)
-         ^ "_"
-         ^ string_of_int ind)
-      ""
-      (List.rev idx)
+    "idx" ^
+    String.concat "__"
+      (List.map (fun (scope, ind) ->
+           String.concat "_" (List.map string_of_int scope)
+           ^ "_"
+           ^ string_of_int ind) (List.rev idx))
 end
 
 (* we do not do well-formedness check (at the moment..) *)
@@ -84,6 +81,7 @@ type expr =
   | MetaNewVar of int
   | Apply of string * expr list
   | String of string
+  | Index of Mindex.t
   | Integer of int
   | List of expr list
   | One
@@ -97,6 +95,7 @@ let rec expr_collect_vars e =
   | FVar _ | Var _ | MetaVar _ | LocVar _ | TopVar _ | MetaNewVar _ | Param -> [ e ]
   | Apply (_s, el) -> List.fold_left (fun vl e -> expr_collect_vars e @ vl) [] el
   | String _ -> []
+  | Index _ -> []
   | Integer _ -> []
   | List el -> List.fold_left (fun vl e -> expr_collect_vars e @ vl) [] el
   | One -> []
@@ -105,7 +104,7 @@ let rec expr_collect_vars e =
   | Unit -> []
 ;;
 
-let get_return_var () = Var ("return" ^ !separator ^ "var")
+let get_return_var () = Var "rho"
 
 type equations = (expr * expr) list
 
@@ -208,26 +207,22 @@ let check_state_and_state_desc st desc =
   assert (List.length desc.tops = st.state_vars.top)
 ;;
 
-let get_state_fact_name (s : state) = "State" ^ !separator ^ s.state_namespace
-let state_index_to_string_aux (st : state) = Mindex.to_string st.state_index
-let state_index_to_string st = String (state_index_to_string_aux st)
-
 let compile_state_fact param state state_desc transition =
   check_state_and_state_desc state state_desc;
-  { name = get_state_fact_name state
+  { name = "State"
   ; args =
-      [ List
-          ([ state_index_to_string state
+          ([ String state.state_namespace
+           ; Index state.state_index
            ; (match param with
               | None -> Param
               | Some param -> String param)
            ]
-           @ Option.to_list transition)
-      ; state_desc.ret
-      ; List state_desc.metas
-      ; List state_desc.locs
-      ; List state_desc.tops
-      ]
+           @ Option.to_list transition
+           @ [ List (state_desc.ret :: state_desc.metas @ state_desc.locs @ state_desc.tops) ]
+           (* Flattening it surely reduce the time!
+              @ (state_desc.ret :: state_desc.metas @ state_desc.locs @ state_desc.tops)
+           *)
+          )
   ; config = config_linear
   }
 ;;
@@ -244,7 +239,7 @@ let compile_fact (f : fact) : fact' =
       ; config = config_linear
       }
   | ConstantFact (e1, e2) ->
-      { name = "Const" ^ !separator; args = [ e1; e2 ]; config = config_persist }
+      { name = "Const"; args = [ e1; e2 ]; config = config_persist }
   | GlobalFact (fid, el) ->
       { name = mk_my_fact_name fid; args = el; config = config_linear }
   | ChannelFact (fid, ch, el) ->
@@ -270,7 +265,7 @@ let compile_fact (f : fact) : fact' =
       ; args = [ Param; path; e ]
       ; config = config_linear
       }
-  | InitFact el -> { name = "Init" ^ !separator; args = el; config = config_linear }
+  | InitFact el -> { name = "Init"; args = el; config = config_linear }
   | LoopFact (nsp, tid, b) ->
       { name =
           ("Loop"
@@ -284,9 +279,16 @@ let compile_fact (f : fact) : fact' =
       ; args = [ List [ String nsp; p ]; String ind; e ]
       ; config = config_linear
       }
+(*
   | InjectiveFact (fid, nsp, id, el) ->
       { name = mk_my_fact_name fid ^ !separator ^ nsp
       ; args = [ Param; FVar id; el ]
+      ; config = config_linear
+      }
+*)
+  | InjectiveFact (fid, nsp, id, el) ->
+      { name = "Structure"
+      ; args = [ List [ String nsp; Param ]; String fid; FVar id; el ]
       ; config = config_linear
       }
   | FreshFact' e -> { name = "Fr"; args = [ e ]; config = config_linear }
@@ -379,18 +381,20 @@ let rec print_expr e =
   | LocVar i -> "loc" ^ !separator ^ string_of_int i
   | TopVar i -> "top" ^ !separator ^ string_of_int i
   | Apply (s, el) -> s ^ "(" ^ String.concat ", " (List.map print_expr el) ^ ")"
-  | String s -> "\'rab" ^ !separator ^ replace_string '/' !separator s ^ "\'"
+  | String "" -> "'str:'"
+  | String s -> "'" ^ replace_string '/' !separator s ^ "\'"
+  | Index i -> "'" ^ Mindex.to_string i ^ "'"
   | Integer i -> "\'" ^ string_of_int i ^ "\'"
   | List el ->
       (* < .. > is not a list but a tuple *)
       (match el with
-       | [] -> "\'rab" ^ !separator ^ "empty\'"
+       | [] -> "'_'"
        | [ e ] -> print_expr e (* XXX Why?!?! *)
        | _ -> "<" ^ String.concat ", " (List.map print_expr el) ^ ">")
   | One -> "%1"
   | Int v -> "%" ^ v
   | AddOne e -> print_expr e ^ " %+ %1"
-  | Unit -> "\'rab" ^ !separator ^ "unit\'"
+  | Unit -> "'()'"
   | MetaNewVar i -> "new" ^ !separator ^ string_of_int i
   | Param -> !fresh_param
 ;;
@@ -600,9 +604,9 @@ let transition_to_rule (tr : transition) : rule =
     ^ !separator
     ^ tr.transition_name
     ^ !separator
-    ^ state_index_to_string_aux tr.transition_from
+    ^ Mindex.to_string tr.transition_from.state_index
     ^ !separator
-    ^ state_index_to_string_aux tr.transition_to
+    ^ Mindex.to_string tr.transition_to.state_index
     ^ !separator
     ^ string_of_int tr.transition_id
   in
@@ -630,9 +634,9 @@ let transition_to_transition_rule (tr : transition) : rule =
     ^ !separator
     ^ tr.transition_name
     ^ !separator
-    ^ state_index_to_string_aux tr.transition_from
+    ^ Mindex.to_string tr.transition_from.state_index
     ^ !separator
-    ^ state_index_to_string_aux tr.transition_to
+    ^ Mindex.to_string tr.transition_to.state_index
     ^ !separator
     ^ string_of_int tr.transition_id
   in
@@ -870,9 +874,7 @@ let print_tamarin
   ^ "\nrestriction Init"
   ^ !separator
   ^ " : \" All x #i #j . Init"
-  ^ !separator
   ^ "(x) @ #i & Init"
-  ^ !separator
   ^ "(x) @ #j ==> #i = #j \"\n"
   ^ "restriction Equality_rule: \"All x y #i. Eq"^ !separator ^"(x,y) @ #i ==> x = y\"\n"
   ^ "restriction NEquality_rule: \"All x #i. NEq"^ !separator ^"(x,x) @ #i ==> F\"\n\n"
@@ -896,7 +898,7 @@ let print_tamarin
        ^ !separator
        ^ "[reuse,use_induction]:\n      \"All x p %i #j #k . Transition"
        ^ !separator
-       ^ "(x, p, %i) @#j &\n        Transition"
+       ^ "(x, p, %i) @ #j &\n        Transition"
        ^ !separator
        ^ "(x, p, %i) @ #k ==> #j = #k\"\n\n"
        (* (String.concat (List.map (fun mo ->

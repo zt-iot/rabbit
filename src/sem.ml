@@ -1555,9 +1555,10 @@ let rec optimize_edges edges =
         (optimize_edges[@tailcall]) edges
     | _ :: pairs -> aux pairs
   in
-  sort_edges @@ aux pairs
+  aux pairs
 
-let optimize_proc proc = { proc with edges = optimize_edges proc.edges }
+let optimize_proc proc =
+  { proc with edges = sort_edges @@ optimize_edges proc.edges }
 
 let optimize_proc_group_desc = function
   | Unbounded proc -> Unbounded (optimize_proc proc)

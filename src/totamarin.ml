@@ -1,6 +1,6 @@
 open Tamarin
 
-let get_return_var () = Var ("return" ^ !separator ^ "var")
+let get_return_var () = Var "rho"
 let expr_pair a b = List [ a; b ]
 
 let next_state ?(shift_meta=0) ?(shift_loc=0) ?(shift_top=0) st scope =
@@ -920,7 +920,7 @@ let translate_process
   mo
 ;;
 
-let get_fact_names ctx =
+let _get_fact_names ctx =
   List.map (fun (a, _, _) -> a) ctx.Context.ctx_fact
   @ List.map fst ctx.Context.ctx_event
   @ List.map fst ctx.Context.ctx_ext_syscall
@@ -1061,8 +1061,9 @@ let translate_sys
     ; Context.sys_param_proc = param_proc
     ; Context.sys_lemma = lem
     }
-    (used_idents, used_string)
+    (_used_idents, _used_string)
   =
+(*
   (separator
    := let names = get_fact_names ctx in
       let rec f s =
@@ -1078,6 +1079,7 @@ let translate_sys
   (fresh_param
    := let rec f s = if List.exists (fun u -> u = s) used_string then f (s ^ "_") else s in
       f "param");
+*)
   let sep = !separator in
   let (!!) = String.concat !separator in
 

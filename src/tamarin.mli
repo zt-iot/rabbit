@@ -26,6 +26,7 @@ type expr =
   | MetaNewVar of int
   | Apply of string * expr list
   | String of string
+  | Index of Mindex.t
   | Integer of int
   | List of expr list
   | One
@@ -129,7 +130,6 @@ type transition =
   }
 
 val mk_state_transition_from_action : action -> var_nums -> state_desc * state_desc
-val state_index_to_string_aux : state -> string
 
 (**
    rule name[role=<role>] : [pre]--[label]->[post]
