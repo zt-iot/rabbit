@@ -67,7 +67,7 @@ type fact =
       { channel : expr
       ; name : Name.t
       ; args : expr list
-      } (** Channel fact [ch :: name(args)] *)
+      }
   | Plain of
       { pid : Subst.proc_id * Subst.param_id option
       ; name : Name.t
@@ -182,22 +182,25 @@ let fact' f : fact' =
       ; config = config_persist
       }
   | Initing_const { id; param } ->
+      (* Init must take only 1 arg for the [restriction Init] *)
       { name= "Init"
-      ; args= [ Tuple (String "Const" :: String (Ident.to_string id) :: with_param param) ]
+      ; args= [ Tuple [String "Const";
+                       match param with
+                       | None -> String (Ident.to_string id)
+                       | Some param -> Tuple (String (Ident.to_string id) :: with_param (Some param)) ] ]
       ; config= config_linear }
   | Initing_proc_group (id, None) ->
+      (* Init must take only 1 arg for the [restriction Init] *)
       { name= "Init"
-      ; args= [ Tuple [String "Proc_group"; String (Ident.to_string (id :> Ident.t))] ]
+      ; args= [ Tuple [ String "Proc_group"; String (Ident.to_string (id :> Ident.t)) ] ]
       ; config= config_linear }
   | Initing_proc_group (id, Some param) ->
       { name= "Init"
-      ; args= [ Tuple [String "Proc_group";
-                       Tuple [ String (Ident.to_string (id :> Ident.t));
-                               Ident (param :> Ident.t) ] ] ]
+      ; args= [ Tuple [ String "Proc_group"; String (Ident.to_string (id :> Ident.t)); Ident (param :> Ident.t) ] ]
       ; config= config_linear }
   | Initing_proc_access (proc_id, param) ->
       { name= "Init"
-      ; args= [ String "Proc_access"; pid' (proc_id, param) ]
+      ; args= [ Tuple [ String "Proc_access"; pid' (proc_id, param) ] ]
       ; config= config_linear }
   | Inited_proc_group (id, param) ->
       { name= "Inited_proc_group"
