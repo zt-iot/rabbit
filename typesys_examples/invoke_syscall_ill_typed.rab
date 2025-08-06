@@ -1,0 +1,43 @@
+data unit
+data message 
+
+
+type alice_t      : process
+
+
+(** temporary solution *)
+type attacker_ty : process
+
+
+syscall generate_message() : message {
+    new m : message in 
+    m
+}
+
+
+(** Temporary solution to have read and provide as bound names *)
+syscall read () : unit {
+  skip
+}
+
+syscall provide () : unit {
+  skip
+}
+
+
+(* alice_t is not allowed to invoke any syscalls *)
+
+
+
+(***********)
+(** process templates *)
+process alice() : alice_t
+{
+  	main 
+  	{
+        var m = generate_message() in (* alice tries to call a system call which they are not allowed to call *)
+        event [::AliceClose ()]
+  	}
+}
+
+system alice()

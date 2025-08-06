@@ -390,11 +390,6 @@ and typeof_cmd  (secrecy_lattice : cst_access_policy)
     (*  need to return the type of e *)
     | Return e -> 
         (typeof_expr_rec e t_env)
-    (* Option 1: Simply return the type of body. 
-        IF (typing information was present) -> We assume that 
-        that `(id, sec_ty)` is already in Cst_env. 
-        ELSE -> No typing information was present and typechecking will fail when `id` gets read *)
-    (* Option 2: Add binding (id, sec_ty) to `t_env`, and return the type of `body` *)
     | New (id, sec_ty_opt, constr_opt, body) ->  
         (* XXX I don't know at this point if I need to do anything at all with `constr_opt` *)
         let sec_ty = match sec_ty_opt with
