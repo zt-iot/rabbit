@@ -23,7 +23,7 @@ let rec vars_of_expr e =
   | Transition _ -> Ident.Set.empty
 
 let rec string_of_expr = function
-  | Unit -> "'unit'"
+  | Unit -> "'()'"
   | String s -> "'" ^ s ^ "'"
   | Integer i -> "\'" ^ string_of_int i ^ "\'"
   | Ident id -> Ident.to_string id
