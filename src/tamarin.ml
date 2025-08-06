@@ -667,27 +667,26 @@ let transition_to_transition_rule (tr : transition) : rule =
     }
 ;;
 
-let print_rule_aux { name; role; pre; label; post } ~dev =
-  "rule "
-  ^ name
-  ^ (if role = "" || not dev then "" else "[role=\"" ^ role ^ "\"]")
-  ^ "\n  : "
-  ^ "[ "
-  ^ String.concat ", " (List.map print_fact pre)
-  ^ " ]\n"
-  ^ (match label with
-     | [] -> "    -->\n"
-     | _ -> "    --[ " ^ String.concat ", " (List.map print_fact2 label) ^ " ]->\n")
-  ^ "    [ "
-  ^ String.concat ", " (List.map print_fact2 post)
-  ^ " ] \n"
-;;
+let print_list sep f =
+  Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf sep) f
+
+let print_rule_aux ~dev ppf { name; role; pre; label; post } =
+  let open Format in
+  fprintf ppf "rule %s%s@.  : [ @[<v>%a@] ]@.    --[ @[<v>%a@] ]->@.    [ @[<v>%a@] ]"
+    name
+    (match role with "" -> "" | _ when not dev -> "" | _ -> Printf.sprintf "[role=\"%s\"]" role)
+    (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (print_fact f)))
+    pre
+    (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (print_fact2 f)))
+    label
+    (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (print_fact2 f)))
+    post
 
 let print_comment s = "\n// " ^ s ^ "\n\n"
 
 let print_rule r ~dev =
   match r with
-  | Rule r -> print_rule_aux (compile_rule_ r) ~dev
+  | Rule r -> Format.asprintf "%a@." (print_rule_aux ~dev) (compile_rule_ r)
   | Comment s -> print_comment s
 ;;
 
