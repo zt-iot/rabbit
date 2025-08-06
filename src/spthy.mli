@@ -26,31 +26,34 @@ type fact =
       ; name : Name.t
       ; args : expr list
       } (** Channel fact [ch :: name(args)] *)
-  | Plain of Name.t * expr list (** [n(e1,..,en)] *)
+  | Plain of
+      { pid : Subst.proc_id * Subst.param_id option
+      ; name : Name.t
+      ; args : expr list } (** [n(e1,..,en)] *)
   | Eq of expr * expr (** [e1 = e2] *)
   | Neq of expr * expr (** [e1 != e2] *)
-  | File of { path : expr; contents : expr; } (** File fact [path.contents] *)
+  | File of
+      { pid : Subst.proc_id * Subst.param_id option
+      ; path : expr
+      ; contents : expr } (** File fact [path.contents] *)
   | Global of Name.t * expr list (** [:: n(e1,..,en)] *)
 
   (* New additions at Sem level *)
 
   | Fresh of Ident.t (** Fresh variable *)
   | Structure of
-      { name : Name.t
-      ; proc_id : Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
+      ; name : Name.t
       ; address : expr
       ; args : expr list
       } (** Structure fact [name(process, address, args)] *)
   | Loop of
-      { mode : Typed.loop_mode
-      ; proc_id : Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
+      ; mode : Typed.loop_mode
       ; index : Sem.Index.t
       }
   | Access of
-      { proc_id : Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
       ; channel : expr (** channel or file *)
       ; syscall : Ident.t option (** System call allowed the access.
                                     [None] allows the access out of syscalls.   *)
@@ -68,21 +71,16 @@ type fact =
       ; param : Subst.param_id option
       } (** Constant initialization event *)
   | Initing_proc_group of Subst.proc_group_id * Subst.param_id option (** Process group initialization event *)
-  | Initing_proc_access of
-      { proc_id : Subst.proc_id
-      ; param : Subst.param_id option
-      } (** Process access initialization event *)
+  | Initing_proc_access of Subst.proc_id * Subst.param_id option (** Process access initialization event *)
   | Inited_proc_group of Subst.proc_group_id * Subst.param_id option (** Process group initialized *)
   | State of
-      { proc_id : Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
       ; index : Sem.Index.t
       ; mapping : (Ident.t * expr) list (** The values of the mutable variables *)
       ; transition : transition option
       } (** Process status *)
   | Transition of
-      { proc_id : Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
       ; source : Sem.Index.t; transition : transition option
       } (** Transition event *)
 

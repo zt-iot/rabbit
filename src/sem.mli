@@ -31,11 +31,16 @@ and fact' =
       ; name : Name.t
       ; args : Typed.expr list
       } (** Channel fact [ch :: name(args)] *)
-  | Plain of Name.t * Typed.expr list (** [n(e1,..,en)] *)
+  | Plain of
+      { pid : Subst.proc_id * Subst.param_id option
+      ; name : Name.t
+      ; args : Typed.expr list
+      } (** [n(e1,..,en)] *)
   | Eq of Typed.expr * Typed.expr (** [e1 = e2] *)
   | Neq of Typed.expr * Typed.expr (** [e1 != e2] *)
   | File of
-      { path : Typed.expr
+      { pid : Subst.proc_id * Subst.param_id option
+      ; path : Typed.expr
       ; contents : Typed.expr
       } (** File fact [path.contents] *)
   | Global of Name.t * Typed.expr list (** [:: n(e1,..,en)] *)
@@ -44,21 +49,18 @@ and fact' =
 
   | Fresh of Ident.t (** Fresh variable *)
   | Structure of
-      { name : Name.t
-      ; proc_id : Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
+      ; name : Name.t
       ; address : Typed.expr
       ; args : Typed.expr list
       } (** Structure fact [name(process, address, args)] *)
   | Loop of
-      { mode : Typed.loop_mode
-      ; proc_id : Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
+      ; mode : Typed.loop_mode
       ; index : Index.t
       }
   | Access of
-      { proc_id: Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
       ; channel: Typed.expr (** channel or file *)
       ; syscall: Ident.t option (** System call allowed the access.
                                     [None] allows the access out of syscalls.   *)
@@ -66,7 +68,7 @@ and fact' =
 
 val string_of_fact : fact -> string
 
-val fact_of_typed : Typed.fact -> fact
+val fact_of_typed : (Subst.proc_id * Subst.param_id option) option -> Typed.fact -> fact
 (** Canonically maps [Typed.fact] to [fact] *)
 
 module Update : sig

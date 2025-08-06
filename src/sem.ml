@@ -5,12 +5,14 @@ open Typed
 type error =
   | NoSystem
   | MultipleSystems
+  | LocalFactNotAllowed
 
 (** Print error description. *)
 let print_error err ppf =
   match err with
   | NoSystem -> Format.fprintf ppf "No system to compile"
   | MultipleSystems -> Format.fprintf ppf "Only 1 system can exist"
+  | LocalFactNotAllowed -> Format.fprintf ppf "Local fact is not allowed in this context"
 
 exception Error of error Location.located
 
@@ -105,11 +107,16 @@ and fact' =
       ; name : name
       ; args : expr list
       }
-  | Plain of name * expr list
+  | Plain of
+      { pid : Subst.proc_id * Subst.param_id option
+      ; name : name
+      ; args : expr list
+      }
   | Eq of expr * expr
   | Neq of expr * expr
   | File of
-      { path : expr
+      { pid : Subst.proc_id * Subst.param_id option
+      ; path : expr
       ; contents : expr
       }
   | Global of string * expr list
@@ -118,21 +125,18 @@ and fact' =
 
   | Fresh of ident
   | Structure of
-      { name : name
-      ; proc_id : Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
+      ; name : name
       ; address : expr
       ; args : expr list
       }
   | Loop of
-      { mode : loop_mode
-      ; proc_id : Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
+      ; mode : loop_mode
       ; index : Index.t
       }
   | Access of
-      { proc_id: Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
       ; channel: expr
       ; syscall: ident option
       }
@@ -149,10 +153,10 @@ let string_of_fact f =
       Printf.sprintf "%s::%s(%s)" (string_of_expr channel) name (String.concat ", " @@ List.map string_of_expr args)
   | Channel { channel; name; args } ->
       Printf.sprintf "(%s)::%s(%s)" (string_of_expr channel) name (String.concat ", " @@ List.map string_of_expr args)
-  | Plain (s, args) -> Printf.sprintf "%s(%s)" s (String.concat ", " @@ List.map string_of_expr args)
+  | Plain { pid=_; name; args } -> Printf.sprintf "%s(%s)" name (String.concat ", " @@ List.map string_of_expr args)
   | Eq (e1, e2) -> Printf.sprintf "%s = %s" (string_of_expr e1) (string_of_expr e2)
   | Neq (e1, e2) -> Printf.sprintf "%s != %s" (string_of_expr e1) (string_of_expr e2)
-  | File { path; contents } ->
+  | File { pid=_; path; contents } ->
       let path =
         match path.desc with
         | Ident _ -> string_of_expr path
@@ -166,41 +170,40 @@ let string_of_fact f =
       path ^ "." ^ contents
   | Fresh id -> "Fr " ^ Ident.to_string id
   | Global (s, args) -> Printf.sprintf "::%s(%s)" s (String.concat ", " @@ List.map string_of_expr args)
-  | Structure { name; param; proc_id; address; args } ->
-      Printf.sprintf "Structure(%s, %s, %s, %s, %s)"
+  | Structure { pid=_; name; address; args } ->
+      Printf.sprintf "Structure(%s, %s, %s)"
         name
-        (Ident.to_string (proc_id :> Ident.t))
-        (match param with None -> "None" | Some p -> Ident.to_string (p :> Ident.t))
         (string_of_expr address) (String.concat "," (List.map string_of_expr args))
-  | Loop { mode; proc_id; param; index } ->
+  | Loop { pid=_; mode; index } ->
       let mode = Typed.string_of_loop_mode mode in
       Printf.sprintf
-        "Loop%s(%s, %s, %s)"
+        "Loop%s(%s)"
         mode
-        (Ident.to_string (proc_id :> Ident.t))
-        (match param with None -> "None" | Some p -> Ident.to_string (p :> Ident.t))
         (Index.to_string index)
-  | Access { proc_id; param; channel; syscall } ->
+  | Access { pid=_; channel; syscall } ->
       let syscall =
         match syscall with
         | None -> "."
         | Some syscall -> Ident.to_string syscall
       in
       Printf.sprintf
-        "Access(%s, %s, %s, %s)"
-        (Ident.to_string (proc_id :> Ident.t))
-        (match param with None -> "None" | Some p -> Ident.to_string (p :> Ident.t))
+        "Access(%s, %s)"
         (string_of_expr channel)
         syscall
 
-let fact_of_typed (f : Typed.fact) : fact =
+let fact_of_typed pido (f : Typed.fact) : fact =
+  let get_pid () =
+    match pido with
+    | Some pid -> pid
+    | None -> error ~loc:f.loc LocalFactNotAllowed
+  in
   let desc : fact' =
     match f.desc with
     | Channel { channel; name; args} -> Channel { channel; name; args }
-    | Plain (name, es) -> Plain (name, es)
+    | Plain (name, es) -> Plain { pid= get_pid (); name; args= es }
     | Eq (e1, e2) -> Eq (e1, e2)
     | Neq (e1, e2) -> Neq (e1, e2)
-    | File { path; contents } -> File { path; contents }
+    | File { path; contents } -> File { pid= get_pid (); path; contents }
     | Global (name, es) -> Global (name, es)
   in
   { f with desc }
@@ -275,17 +278,17 @@ module Update = struct
       match f.desc with
       | Channel { channel; name; args } ->
           Channel { channel= s channel; name; args= List.map s args }
-      | Plain (n, es) -> Plain (n, List.map s es)
+      | Plain { pid; name; args } -> Plain { pid; name; args= List.map s args }
       | Eq (e1, e2) -> Eq (s e1, s e2)
       | Neq (e1, e2) -> Neq (s e1, s e2)
-      | File { path; contents } -> File { path= s path; contents= s contents }
+      | File { pid; path; contents } -> File { pid; path= s path; contents= s contents }
       | Global (n, es) -> Global (n, List.map s es)
-      | Structure { name; param; proc_id; address; args } ->
-          Structure { name; proc_id; param; address= s address; args= List.map s args }
+      | Structure { pid; name; address; args } ->
+          Structure { pid; name; address= s address; args= List.map s args }
       | Fresh _-> f.desc
       | Loop _ -> f.desc
-      | Access { proc_id; param; channel; syscall } ->
-          Access { proc_id; param; channel= s channel; syscall }
+      | Access { pid; channel; syscall } ->
+          Access { pid; channel= s channel; syscall }
     in
     { f with desc }
 
@@ -423,7 +426,7 @@ type graph = edge list
 let channel_access ~proc:(proc : Subst.proc) ~syscaller (f : Typed.fact) =
   match f.desc with
   | Channel { channel; _ } ->
-      Some { f with desc= Access { proc_id= proc.id; param= proc.param; channel; syscall= syscaller } }
+      Some { f with desc= Access { pid= proc.id, proc.param; channel; syscall= syscaller } }
   | _ -> None
 
 (* <\Gamma |- c>i *)
@@ -432,6 +435,8 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
      Therefore, no worry of name crash of transition variables *)
   let env = c.env in
   let fact env desc : fact = { env; desc; loc = Location.nowhere } in
+  let pid = proc.id, proc.param in
+  let fact_of_typed = fact_of_typed (Some pid) in
   match c.desc with
   | Skip ->
       (* i =skip=> i+1 *)
@@ -678,7 +683,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                    | Some (s, es) ->
                        [ fact c.env
                          @@ Structure
-                           { name = s; proc_id=proc.id; param= proc.param; address = evar x; args = es }
+                           { pid; name = s; address = evar x; args = es }
                        ])
               ; target = i_1
               ; target_env = c.env
@@ -710,7 +715,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
       let j_1 = Index.add j 1 in
       let pre_and_post : fact list =
         [ fact env
-          @@ Structure { name = s; proc_id= proc.id; param= proc.param; address = e; args = List.map evar xs }
+          @@ Structure { pid; name = s; address = e; args = List.map evar xs }
         ]
       in
       ( List.concat [
@@ -766,7 +771,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; source = i
           ; source_env = env
           ; source_vars = vars
-          ; pre = [ fact env @@ Structure { name = s; proc_id= proc.id; param= proc.param; address = e; args = xs } ]
+          ; pre = [ fact env @@ Structure { pid; name = s; address = e; args = xs } ]
           ; update = Update.update_unit ()
           ; tag = []
           ; post = []
@@ -836,7 +841,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
          ; source_vars = vars
          ; pre = []
          ; update = Update.update_unit ()
-         ; tag = [ fact env @@ Loop { mode = In; proc_id= proc.id; param= proc.param; index = i } ]
+         ; tag = [ fact env @@ Loop { pid; mode = In; index = i } ]
          ; post = []
          ; target = i_1
          ; target_env = env
@@ -875,7 +880,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                         ; update = { (Update.update_unit ()) with items = List.map (fun id -> id, Update.Drop) case.fresh }
                         ; tag =
                             [ fact case.cmd.env
-                              @@ Loop { mode = Back; proc_id= proc.id; param= proc.param; index = i }
+                              @@ Loop { pid; mode = Back; index = i }
                             ]
                         ; post = []
                         ; target = i_1
@@ -918,7 +923,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                                    with items = List.map (fun id -> id, Update.Drop) case.fresh }
                       ; tag =
                           [ fact case.cmd.env
-                            @@ Loop { mode = Out; proc_id= proc.id; param= proc.param; index = i }
+                            @@ Loop { pid; mode = Out; index = i }
                           ]
                       ; post = []
                       ; target = i_2
@@ -1097,21 +1102,22 @@ let graph_files_and_vars
   (proc : Subst.proc)
   (i : Index.t) =
   let fact fact' : fact = { env; desc=fact'; loc } in
+  let pid = proc.id, proc.param in
   let files : fact list =
     List.concat_map (fun (path, fty, contents) ->
-        let f = fact @@ File { path; contents } in
+        let f = fact @@ File { pid; path; contents } in
         let fs : fact list =
           List.concat_map (fun (decl : Typed.decl) ->
               match decl.desc with
               | Allow { process_typ; target_typs; syscalls= Some syscalls } ->
                   if process_typ = proc.typ && List.mem fty target_typs then
                     List.map (fun syscall ->
-                        fact (Access { proc_id= proc.id; param= proc.param; channel= path; syscall= Some syscall })) syscalls
+                        fact (Access { pid; channel= path; syscall= Some syscall })) syscalls
                   else
                     []
               | Allow { process_typ; target_typs; syscalls= None } ->
                   if process_typ = proc.typ && List.mem fty target_typs then
-                    [ fact (Access { proc_id= proc.id; param= proc.param; channel= path; syscall= None }) ]
+                    [ fact (Access { pid; channel= path; syscall= None }) ]
                   else
                     []
               | _ -> []) decls
@@ -1375,11 +1381,11 @@ let compressable edges e1 e2 =
     let e2_pre = List.map (Update.update_fact e1.update) e2.pre in
     List.for_all (fun e2_pre_f ->
         match e2_pre_f.desc with
-        | Structure { name; proc_id; param; address; args=_ } ->
+        | Structure { pid; name; address; args=_ } ->
             List.for_all (fun e1_post_f ->
                 match e1_post_f.desc with
-                | Structure { name= name'; proc_id= proc_id'; param= param'; address= address'; args=_ }
-                    when name = name' && proc_id = proc_id' && param = param' ->
+                | Structure { pid= pid'; name= name'; address= address'; args=_ }
+                    when pid = pid' && name = name' ->
                       if eq_expr address address' then true
                       else
                         (* We cannot tell the structures are contractable,
@@ -1408,14 +1414,13 @@ let compress (e1 : edge) (e2 : edge) =
   let e1_post, (enforces : (Typed.ident * Typed.expr) list), e2_pre =
     List.fold_left (fun (e1_post, enforces, e2_pre) e2_pre_f ->
         match e2_pre_f.desc with
-        | Structure { name; proc_id; param; address; args } ->
+        | Structure { pid; name; address; args } ->
             let e1_post, enforces' =
               List.partition_map (fun e1_post_f ->
                   match e1_post_f.desc with
-                  | Structure { name= name'; proc_id= proc_id'; param= param'; address= address'; args= args' }
-                    when name = name'
-                      && proc_id = proc_id'
-                      && param = param' ->
+                  | Structure { pid= pid';  name= name'; address= address'; args= args' }
+                    when pid = pid'
+                      && name = name' ->
                       assert (eq_expr address address');
                       assert (List.length args = List.length args');
                       let vars =

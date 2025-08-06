@@ -68,11 +68,16 @@ type fact =
       ; name : Name.t
       ; args : expr list
       } (** Channel fact [ch :: name(args)] *)
-  | Plain of Name.t * expr list
+  | Plain of
+      { pid : Subst.proc_id * Subst.param_id option
+      ; name : Name.t
+      ; args : expr list
+      }
   | Eq of expr * expr
   | Neq of expr * expr
   | File of
-      { path : expr
+      { pid : Subst.proc_id * Subst.param_id option
+      ; path : expr
       ; contents : expr
       } (** File fact [path.contents] *)
   | Global of Name.t * expr list
@@ -81,21 +86,18 @@ type fact =
 
   | Fresh of Ident.t
   | Structure of
-      { name : Name.t
-      ; proc_id : Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
+      ; name : Name.t
       ; address : expr
       ; args : expr list
       } (** Structure fact [name(process, address, args)] *)
   | Loop of
-      { mode : Typed.loop_mode
-      ; proc_id : Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
+      ; mode : Typed.loop_mode
       ; index : Sem.Index.t
       }
   | Access of
-      { proc_id: Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
       ; channel: expr (** channel or file *)
       ; syscall: Ident.t option (** system call performs this access *)
       }
@@ -104,18 +106,16 @@ type fact =
   | Const of { id : Ident.t; param : expr option; value : expr }
   | Initing_const of { id : Ident.t; param : Subst.param_id option } (* XXX init *)
   | Initing_proc_group of Subst.proc_group_id * Subst.param_id option (* XXX init *)
-  | Initing_proc_access of { proc_id : Subst.proc_id; param: Subst.param_id option } (* XXX init *)
+  | Initing_proc_access of Subst.proc_id * Subst.param_id option (* XXX init *)
   | Inited_proc_group of Subst.proc_group_id * Subst.param_id option (* to bind param *)
   | State of
-      { proc_id : Subst.proc_id
-      ; param : Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
       ; index : Sem.Index.t
       ; mapping : (Ident.t * expr) list
       ; transition : transition option
       }
   | Transition of
-      { proc_id : Subst.proc_id
-      ; param: Subst.param_id option
+      { pid : Subst.proc_id * Subst.param_id option
       ; source : Sem.Index.t
       ; transition : transition option }
 
@@ -139,39 +139,38 @@ let fact' f : fact' =
     | None -> []
     | Some p -> [Ident (p :> Ident.t)]
   in
-  let pid x (param : Subst.param_id option) =
+  let pid' ((proc_id : Subst.proc_id), (param : Subst.param_id option)) =
+    let n = String (Ident.to_string (proc_id :> Ident.t)) in
     match param with
-    | None -> x
-    | Some p -> Tuple [x; Ident (p :> Ident.t)]
+    | None -> n
+    | Some p -> Tuple [n; Ident (p :> Ident.t)]
   in
   let fix_name = String.capitalize_ascii in
   match f with
   | Channel { channel; name; args } ->
       { name= fix_name name; args= channel :: args; config= config_linear }
-  | Plain (name, args) ->
-      { name= fix_name name; args; config= config_linear }
+  | Plain { pid; name; args } ->
+      { name= fix_name name; args= pid' pid :: args; config= config_linear }
   | Eq (e1, e2) ->
       (* linear because we will move this to tag and it wont be used as facts *)
       { name = "Eq"; args = [ e1; e2 ]; config = config_linear }
   | Neq (e1, e2) ->
       (* linear because we will move this to tag and it wont be used as facts *)
       { name = "NEq"; args = [ e1; e2 ]; config = config_linear }
-  | File { path; contents } ->
-      { name = "File" (* namespace? *); args= [ (* param?; *) path; contents ]; config = config_linear }
+  | File { pid; path; contents } ->
+      { name = "File" (* namespace? *); args= [ pid' pid; path; contents ]; config = config_linear }
 
   | Global (name, args) ->
       { name= fix_name name; args; config = config_linear }
   | Fresh id ->
       { name= "Fr"; args= [Ident id]; config= config_linear }
-  | Structure { name; proc_id; param; address; args } ->
-      { name= "Structure_" ^ Ident.to_string (proc_id :> Ident.t) ^ "_" ^ name
-      ; args =
-          (match param with None -> [] | Some p -> [Ident (p :> Ident.t)])
-          @ address :: args
+  | Structure { pid; name; address; args } ->
+      { name= "Structure_" ^ name
+      ; args = pid' pid :: address :: args
       ; config = config_linear }
-  | Loop { mode; proc_id; param; index } ->
+  | Loop { pid; mode; index } ->
       { name = "Loop_" ^ Typed.string_of_loop_mode mode
-      ; args = [ pid (String (Ident.to_string (proc_id :> Ident.t))) param; Index index ]
+      ; args = [ pid' pid; Index index ]
       ; config = config_linear
       }
   | Const { id; param; value } ->
@@ -196,44 +195,36 @@ let fact' f : fact' =
                        Tuple [ String (Ident.to_string (id :> Ident.t));
                                Ident (param :> Ident.t) ] ] ]
       ; config= config_linear }
-  | Initing_proc_access { proc_id; param } ->
+  | Initing_proc_access (proc_id, param) ->
       { name= "Init"
-      ; args= [ Tuple (String "Proc_access" :: String (Ident.to_string (proc_id :> Ident.t)) :: with_param param) ]
+      ; args= [ String "Proc_access"; pid' (proc_id, param) ]
       ; config= config_linear }
   | Inited_proc_group (id, param) ->
       { name= "Inited_proc_group"
       ; args= String (Ident.to_string (id :> Ident.t)) :: with_param param
       ; config= config_persist }
-  | Access { proc_id; param; channel; syscall } ->
+  | Access { pid; channel; syscall } ->
       { name= "ACP"
       ; args= [
-          pid (String (Ident.to_string (proc_id :> Ident.t))) param;
+          pid' pid;
           channel;
           String (match syscall with None -> "." | Some id -> Ident.to_string id)
         ]
       ; config= config_persist
       }
-  | State { proc_id; param; index; mapping; transition } ->
-      { name = "State_" ^ Ident.to_string (proc_id :> Ident.t)
-      ; args = [ (match
-                   Index index
-                   :: Option.to_list (Option.map (fun p -> Ident (p : Subst.param_id :> Ident.t)) param)
-                   @ Option.to_list (Option.map (fun x -> (Transition x : expr)) transition)
-                  with
-                  | [] -> assert false
-                  | [x] -> x
-                  | xs -> Tuple xs
-                 );
-                 match mapping with
-                 | [] -> assert false
-                 | [_id, e] -> e
-                 | _ -> Tuple (List.map (fun (_id,e) -> e) mapping)]
+  | State { pid; index; mapping; transition } ->
+      { name = "State"
+      ; args = [ pid' pid; Index index ]
+               @ Option.to_list (Option.map (fun x -> (Transition x : expr)) transition)
+               @ [match mapping with
+                   | [] -> assert false
+                   | [_id, e] -> e
+                   | _ -> Tuple (List.map snd mapping)]
       ; config = config_linear
       }
-  | Transition { proc_id; param; source; transition } ->
+  | Transition { pid; source; transition } ->
       { name= "Transition"
-      ; args = [ pid (String (Ident.to_string (proc_id :> Ident.t))) param
-               ; Index source ]
+      ; args = [ pid' pid; Index source ]
                @ Option.to_list (Option.map (fun t -> (Transition t : expr)) transition)
       ; config = config_linear }
 
@@ -337,9 +328,9 @@ let compile_fact (f : Sem.fact) : fact compiled =
       let* channel = compile_expr channel in
       let+ args = mapM compile_expr args in
       Channel { channel; name; args }
-  | Plain (n, es) ->
-      let+ es = mapM compile_expr es in
-      Plain (n, es)
+  | Plain { pid; name; args } ->
+      let+ args = mapM compile_expr args in
+      Plain { pid; name; args }
   | Eq (e1, e2) ->
       let* e1 = compile_expr e1 in
       let+ e2 = compile_expr e2 in
@@ -348,22 +339,22 @@ let compile_fact (f : Sem.fact) : fact compiled =
       let* e1 = compile_expr e1 in
       let+ e2 = compile_expr e2 in
       Neq (e1, e2)
-  | File { path; contents } ->
+  | File { pid; path; contents } ->
       let* path = compile_expr path in
       let+ contents = compile_expr contents in
-      File { path; contents }
+      File { pid; path; contents }
   | Global (n, es) ->
       let+ es = mapM compile_expr es in
       Global (n, es)
   | Fresh id -> return @@ Fresh id
-  | Structure { name; proc_id; param; address; args } ->
+  | Structure { pid; name; address; args } ->
       let* address = compile_expr address in
       let+ args = mapM compile_expr args in
-      Structure { name; proc_id; param; address; args }
-  | Loop { mode; proc_id; param; index } -> return @@ Loop { mode; proc_id; param; index }
-  | Access { proc_id; param; channel; syscall } ->
+      Structure { pid; name; address; args }
+  | Loop { pid; mode; index } -> return @@ Loop { pid; mode; index }
+  | Access { pid; channel; syscall } ->
       let+ channel = compile_expr channel in
-      Access { proc_id; param; channel; syscall }
+      Access { pid; channel; syscall }
 
 let compile_facts (fs : Sem.fact list) : fact list compiled =
   let fs_f_list = List.map compile_fact fs in
@@ -447,11 +438,11 @@ let compile_lemma (lem : Typed.lemma) : lemma =
   match lem.desc with
   | Plain s -> Plain s
   | Reachability { fresh=_; facts } ->
-      let facts = List.map Sem.fact_of_typed facts in
+      let facts = List.map (Sem.fact_of_typed None) facts in
       Reachability (compile_facts facts)
   | Correspondence { fresh=_; premise; conclusion } ->
-      let premise = compile_fact @@ Sem.fact_of_typed premise in
-      let conclusion = compile_fact @@ Sem.fact_of_typed conclusion in
+      let premise = compile_fact @@ Sem.fact_of_typed None premise in
+      let conclusion = compile_fact @@ Sem.fact_of_typed None conclusion in
       Correspondence { premise; conclusion }
 
 type rule =
@@ -489,12 +480,13 @@ let facts_of_edge (e : Sem.edge) =
   e.post
 
 let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge : Sem.edge) =
+  let pid = proc_id, param in
   let role = Some (proc_id :> Ident.t) in
   let state_pre : fact =
     let vars = edge.update.rho :: edge.source_vars in
     let mapping = List.map (fun id -> id, Ident id) vars in
     let transition = if !Config.tag_transition then Some Var else None in
-    State { proc_id; param; index= edge.source; mapping; transition }
+    State { pid; index= edge.source; mapping; transition }
   in
   let { deps= post_consts; result= state_post } =
     let* mapping =
@@ -517,7 +509,7 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
         if edge.loop_back then Some Inc
         else Some Var
       else None in
-    State { proc_id; param; index= edge.target; mapping; transition }
+    State { pid; index= edge.target; mapping; transition }
   in
   (* move equality and inequality facts from precondition to tags because Tamarin cannot handle
      (N)Eq fact generation rules correctly for fresh values *)
@@ -527,7 +519,7 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
   let { deps= post_deps; result= post } = compile_facts post in
   let label =
     if !Config.tag_transition then
-      Transition { proc_id; param; source=edge.source; transition= Some Var } :: label
+      Transition { pid; source=edge.source; transition= Some Var } :: label
     else label
   in
   let pre = state_pre :: pre @ pre_deps @ post_deps @ post_consts @ label_deps in
@@ -569,12 +561,12 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_
   match p with
   | Unbounded proc ->
       assert (proc.param = None);
+      let pid = proc.id, proc.param in
       let pre = [] in
       let label = [ Initing_proc_group (proc_group_id, None) ] in
       let rho = Ident.local "rho" in
       let state = State
-          { proc_id= proc.id
-          ; param= None
+          { pid
           ; index= Sem.Index.zero (* ? *)
           ; mapping= [ rho, Unit ]
           ; transition= if !Config.tag_transition then Some One else None
@@ -593,11 +585,11 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_
       let label = [ Initing_proc_group (proc_group_id, Some param) ] in
       let states =
         List.map (fun (proc : Sem.proc) ->
+            let pid = proc.id, proc.param in
             assert (proc.param <> None);
             let rho = Ident.local "rho" in
             State
-              { proc_id= proc.id
-              ; param= Some param
+              { pid
               ; index= Sem.Index.zero (* ? *)
               ; mapping = [ rho, Unit ] (* no need of param in the mapping since it is not mutable *)
               ; transition= if !Config.tag_transition then Some One else None
@@ -670,6 +662,7 @@ let compile_access_controls
     | Bounded (param, _) -> Some param
   in
   let compile_proc_id_elems ((proc_id : Subst.proc_id), elems) =
+    let pid = proc_id, param in
     if elems = [] then None
     else
       let rule_id = Ident.prefix "Access_" (proc_id :> Ident.t) in
@@ -679,13 +672,12 @@ let compile_access_controls
                 (Ident.to_string (proc_group_id :> Ident.t)))
       in
       let pre = [ Inited_proc_group (proc_group_id, param) ] in
-      let label = [ Initing_proc_access { proc_id; param } ] in
+      let label = [ Initing_proc_access (proc_id, param) ] in
       let { deps; result= post } =
         mapM (fun ((chan_arg : Typed.chan_arg), syscall_opt) ->
             let* channel= expr_of_chan_arg chan_arg in
             return @@ Access {
-              proc_id;
-              param;
+              pid;
               channel;
               syscall= syscall_opt
             }) elems
