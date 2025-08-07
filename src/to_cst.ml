@@ -21,13 +21,57 @@ let syscall_effect_map =
   |> StringMap.add "send" Provide
   |> StringMap.add "invoke_rpc" ReadProvide
 
+
+
+
+type proc_ty = string
+type syscall = string 
+type sec_ty = string
+
+(* generic AccessTable interface *)
+module type AccessTable = sig
+  type t
+  val add : proc_ty  -> sec_ty -> syscall -> bool -> t -> t
+  val find : proc_ty -> sec_ty -> syscall -> t -> bool option
+end
+
+
+module MapAccessTable : AccessTable = struct
+  module Key = struct
+    type t = proc_ty * sec_ty * syscall
+    let compare = compare
+  end
+
+  module MapTable = Map.Make(Key)
+
+  type t = bool MapTable.t
+
+  let empty = MapTable.empty
+  
+  let add proc sec_ty syscall value table = 
+    MapTable.add (proc, sec_ty, syscall) value table
+  let find proc sec_ty syscall table = 
+    MapTable.find_opt (proc, sec_ty, syscall) table
+end
+
+
+
+
+
+
+
+
+
 (* A map from SecurityType (=string) to ProcTySet.t, which tells us which security type is allowed to be read by which process *)
 type access_map = (proc_ty_set) security_type_map
+
+
+
 
 (* Just an idea: the transpose of access_map *)
 (* type reverse_acces_map = (security_type) proc_type_map *)
 
-(* For all security_typ in target_typs, register the connection (target_typ, proc_ty) in map *)
+(* For all security_typs in target_typs, register the connection (target_typ, proc_ty) in map *)
 let update_access_map map target_typs proc_ty = 
   List.fold_left (fun acc_map security_typ ->
     (* check if there is already a binding for security_typ *)
@@ -43,7 +87,7 @@ let update_access_map map target_typs proc_ty =
   ) map target_typs
 
 
-(* Create read access map and provide access map from a list of `Typed.Allow` declarations *)
+(* Create read_access_map and provide_access_map from a list of `Typed.Allow` declarations *)
 let create_access_maps (decls : Typed.decl list) : access_map * access_map =
   List.fold_left (fun (acc_read_access, acc_provide_access) decl -> match decl.Typed.desc with 
     | Typed.Allow{process_typ = proc_ty; target_typs; syscalls} ->
