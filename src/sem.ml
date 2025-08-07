@@ -53,6 +53,8 @@ module Index : sig
 
   val to_string : t -> string
 
+  val to_string' : t -> string
+
   module Set : Set.S with type elt = t
   module Map : Map.S with type key = t
 end = struct
@@ -85,6 +87,10 @@ end = struct
 
   let to_string i =
     String.concat "_" @@ List.rev_map (fun (a, b) -> Printf.sprintf "%d.%d" a b) i
+  ;;
+
+  let to_string' i =
+    String.concat "_" @@ List.rev_map (fun (a, b) -> Printf.sprintf "%d_%d" a b) i
   ;;
 
   module Map = Map.Make(struct

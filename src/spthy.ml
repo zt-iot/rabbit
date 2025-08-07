@@ -133,6 +133,10 @@ type fact' =
   ; config : fact_config
   }
 
+let dedup_persistent facts' =
+  let linears, persists = List.partition (fun f' -> f'.config.persist) facts' in
+  linears @ List.sort_uniq compare persists
+
 let fact' f : fact' =
   let with_param (param : Subst.param_id option) =
     match param with
@@ -142,15 +146,26 @@ let fact' f : fact' =
   let pid' ((proc_id : Subst.proc_id), (param : Subst.param_id option)) =
     let n = String (Ident.to_string (proc_id :> Ident.t)) in
     match param with
-    | None -> n
-    | Some p -> Tuple [n; Ident (p :> Ident.t)]
+    | None -> [n]
+    | Some p -> [n; Ident (p :> Ident.t)]
+  in
+  let pid'' pid =
+    match pid' pid with
+    | [n] -> n
+    | [n; p] -> Tuple [n; p]
+    | _ -> assert false
+  in
+  let param pid =
+    match pid with
+    | _, None -> []
+    | _, Some (param : Subst.param_id) -> [Ident (param :> Ident.t)]
   in
   let fix_name = String.capitalize_ascii in
   match f with
   | Channel { channel; name; args } ->
       { name= fix_name name; args= channel :: args; config= config_linear }
   | Plain { pid; name; args } ->
-      { name= fix_name name; args= pid' pid :: args; config= config_linear }
+      { name= fix_name name; args= pid' pid @ args; config= config_linear }
   | Eq (e1, e2) ->
       (* linear because we will move this to tag and it wont be used as facts *)
       { name = "Eq"; args = [ e1; e2 ]; config = config_linear }
@@ -158,7 +173,7 @@ let fact' f : fact' =
       (* linear because we will move this to tag and it wont be used as facts *)
       { name = "NEq"; args = [ e1; e2 ]; config = config_linear }
   | File { pid; path; contents } ->
-      { name = "File" (* namespace? *); args= [ pid' pid; path; contents ]; config = config_linear }
+      { name = "File" (* namespace? *); args= pid' pid @ [ path; contents ]; config = config_linear }
 
   | Global (name, args) ->
       { name= fix_name name; args; config = config_linear }
@@ -166,11 +181,11 @@ let fact' f : fact' =
       { name= "Fr"; args= [Ident id]; config= config_linear }
   | Structure { pid; name; address; args } ->
       { name= "Structure"
-      ; args = pid' pid :: String name :: address :: args
+      ; args = pid' pid @ String name :: address :: args
       ; config = config_linear }
   | Loop { pid; mode; index } ->
       { name = "Loop_" ^ Typed.string_of_loop_mode mode
-      ; args = [ pid' pid; Index index ]
+      ; args = [ pid'' pid; Index index ]
       ; config = config_linear
       }
   | Const { id; param; value } ->
@@ -178,7 +193,7 @@ let fact' f : fact' =
       ; args =
           (match param with
            | None -> [String (Ident.to_string id); value]
-           | Some p -> [ Tuple [String (Ident.to_string id); p]; value ])
+           | Some p -> [ String (Ident.to_string id); p; value ])
       ; config = config_persist
       }
   | Initing_const { id; param } ->
@@ -200,7 +215,7 @@ let fact' f : fact' =
       ; config= config_linear }
   | Initing_proc_access (proc_id, param) ->
       { name= "Init"
-      ; args= [ Tuple [ String "Proc_access"; pid' (proc_id, param) ] ]
+      ; args= [ Tuple ( String "Proc_access" :: pid' (proc_id, param) ) ]
       ; config= config_linear }
   | Inited_proc_group (id, param) ->
       { name= "Inited_proc_group"
@@ -208,26 +223,38 @@ let fact' f : fact' =
       ; config= config_persist }
   | Access { pid; channel; syscall } ->
       { name= "ACP"
-      ; args= [
-          pid' pid;
-          channel;
-          String (match syscall with None -> "." | Some id -> Ident.to_string id)
-        ]
+      ; args= pid' pid
+              @ [ channel;
+                  String (match syscall with None -> "." | Some id -> Ident.to_string id)
+                ]
       ; config= config_persist
       }
+(*
   | State { pid; index; mapping; transition } ->
       { name = "State"
-      ; args = [ pid' pid; Index index ]
+      ; args = pid' pid
+               @ [ Index index ]
                @ Option.to_list (Option.map (fun x -> (Transition x : expr)) transition)
-               @ [match mapping with
+               @ (match mapping with
                    | [] -> assert false
-                   | [_id, e] -> e
-                   | _ -> Tuple (List.map snd mapping)]
+                   | [_id, e] -> [e]
+                   | _ -> List.map snd mapping)
+      ; config = config_linear
+      }
+*)
+  | State { pid; index; mapping; transition } ->
+      { name = "State_" ^ Ident.to_string (fst pid :> Ident.t) ^ "_" ^ Sem.Index.to_string' index
+      ; args = param pid
+               @ Option.to_list (Option.map (fun x -> (Transition x : expr)) transition)
+               @ (match mapping with
+                   | [] -> assert false
+                   | [_id, e] -> [e]
+                   | _ -> List.map snd mapping)
       ; config = config_linear
       }
   | Transition { pid; source; transition } ->
       { name= "Transition"
-      ; args = [ pid' pid; Index source ]
+      ; args = [ pid'' pid; Index source ]
                @ Option.to_list (Option.map (fun t -> (Transition t : expr)) transition)
       ; config = config_linear }
 
@@ -237,6 +264,8 @@ let string_of_fact' { name; args; config } =
   ^ "("
   ^ String.concat ", " (List.map string_of_expr args)
   ^ ")"
+
+let facts' fs = dedup_persistent @@ List.map fact' fs
 
 let string_of_fact f = string_of_fact' @@ fact' f
 
@@ -451,9 +480,9 @@ let compile_lemma (lem : Typed.lemma) : lemma =
 type rule =
   { id : Ident.t
   ; role : Ident.t option (* proc_id or proc_id or both? *)
-  ; pre : fact list
-  ; label : fact list
-  ; post : fact list
+  ; pre : fact' list
+  ; label : fact' list
+  ; post : fact' list
   ; comment : string option
   }
 
@@ -463,11 +492,11 @@ let print_rule ppf rule =
   fprintf ppf "rule %s%s@.  : [ @[<v>%a@] ]@.    --[ @[<v>%a@] ]->@.    [ @[<v>%a@] ]"
     (Ident.to_string rule.id)
     (match rule.role with None -> "" | Some id -> Printf.sprintf "[role=\"%s\"]" (Ident.to_string id))
-    (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (string_of_fact f)))
+    (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (string_of_fact' f)))
     rule.pre
-    (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (string_of_fact f)))
+    (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (string_of_fact' f)))
     rule.label
-    (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (string_of_fact f)))
+    (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (string_of_fact' f)))
     rule.post
 
 (* move equality and inequality facts from precondition to tags because Tamarin cannot handle
@@ -521,12 +550,17 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
   let { deps= label_deps; result= label } = compile_facts label in
   let { deps= post_deps; result= post } = compile_facts post in
   let label =
+    facts'
+    @@
     if !Config.tag_transition then
       Transition { pid; source=edge.source; transition= Some Var } :: label
     else label
   in
-  let pre = state_pre :: pre @ pre_deps @ post_deps @ post_consts @ label_deps in
-  let post = state_post :: post in
+  let pre =
+    facts' @@ state_pre :: pre @ pre_deps @ post_deps @ post_consts @ label_deps
+  in
+  let post =
+    facts' @@ state_post :: post in
   let comment =
     Some (Printf.sprintf
             "%s %s/%s : %s"
@@ -557,9 +591,9 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_
       let post = [ Inited_proc_group (proc_group_id, None); state ] in
       { id = Ident.prefix "Init_" (proc_group_id :> Ident.t)
       ; role = Some (proc_group_id :> Ident.t)
-      ; pre
-      ; label
-      ; post
+      ; pre = facts' pre
+      ; label = facts' label
+      ; post = facts' post
       ; comment
       }
   | Bounded (param, procs) ->
@@ -581,9 +615,9 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_
       let post = Inited_proc_group (proc_group_id, Some param) :: states in
       { id = Ident.prefix "Init_" (proc_group_id :> Ident.t)
       ; role = Some (proc_group_id :> Ident.t)
-      ; pre
-      ; label
-      ; post
+      ; pre = facts' pre
+      ; label = facts' label
+      ; post = facts' post
       ; comment
       }
 
@@ -594,9 +628,9 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       let const = Const { id; param= None; value= Ident id } in
       { id= rule_id
       ; role= None
-      ; pre= [Fresh id]
-      ; label= [Initing_const {id; param= None}; const]
-      ; post= [const]
+      ; pre= facts' [Fresh id]
+      ; label= facts' [Initing_const {id; param= None}; const]
+      ; post= facts' [const]
       ; comment = Some (Printf.sprintf "const fresh %s" (Ident.to_string id))
       }
   | Value e -> (* const c = e *)
@@ -604,9 +638,9 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       let const = Const { id; param= None; value= e' } in
       { id= rule_id
       ; role= None
-      ; pre= const_deps
-      ; label= [Initing_const {id; param= None}; const]
-      ; post= [const]
+      ; pre= facts' const_deps
+      ; label= facts' [Initing_const {id; param= None}; const]
+      ; post= facts' [const]
       ; comment = Some (Printf.sprintf "const %s = %s" (Ident.to_string id) (Typed.string_of_expr e))
       }
   | Fresh_with_param -> (* const fresh c<> *)
@@ -619,9 +653,9 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       let const = Const { id; param= Some (Ident (p :> Ident.t)); value= Ident id } in
       { id= rule_id
       ; role= None
-      ; pre= [Fresh (id :> Ident.t)]
-      ; label= [Initing_const {id; param= Some p}; const]
-      ; post= [const]
+      ; pre= facts' [Fresh (id :> Ident.t)]
+      ; label= facts' [Initing_const {id; param= Some p}; const]
+      ; post= facts' [const]
       ; comment = Some (Printf.sprintf "const fresh %s<>" (Ident.to_string id))
       }
   | Value_with_param (p, e) -> (* const c<p> = e *)
@@ -629,9 +663,9 @@ let rule_of_const (id : Ident.t) (init_desc : Typed.init_desc) : rule =
       let const = Const { id; param= Some (Ident p); value= e' } in
       { id= rule_id
       ; role = None
-      ; pre = const_deps
-      ; label= [Initing_const {id; param= Some (Subst.param_id p)}; const]
-      ; post= [const]
+      ; pre = facts' const_deps
+      ; label= facts' [Initing_const {id; param= Some (Subst.param_id p)}; const]
+      ; post= facts' [const]
       ; comment = Some (Printf.sprintf "const %s<%s> = %s" (Ident.to_string id) (Ident.to_string p) (Typed.string_of_expr e))
       }
 
@@ -670,9 +704,9 @@ let compile_access_controls
       | _ ->
           Some { id= rule_id
                ; role = Some (proc_id :> Ident.t)
-               ; pre
-               ; label
-               ; post
+               ; pre = facts' pre
+               ; label = facts' label
+               ; post = facts' post
                ; comment
                }
   in
@@ -736,7 +770,6 @@ let print ppf t =
   List.iter (print_lemma ppf) t.lemmas;
 
   fprintf ppf "@.end@."
-
 
 let compile_sem ({ signature; proc_groups; constants; lemmas; access_controls } : Sem.t) =
   let signature = compile_signature signature in

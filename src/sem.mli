@@ -18,6 +18,9 @@ module Index : sig
 
   val to_string : t -> string
 
+  val to_string' : t -> string
+  (** Same as [to_string] but uses '_' instead of '.' *)
+
   module Set : Set.S with type elt = t
   module Map : Map.S with type key = t
 end

@@ -86,11 +86,13 @@ type fact =
 
 val string_of_fact : fact -> string
 
+type fact'
+
 type 'a compiled =
   { deps : fact list (** Constants dependencies *)
   ; result : 'a;
   }
-(** Compilation result of type ['a] and the extracted constant fact from the compilation *)
+(** Compilation result of type ['a] and the extracted constant fact' from the compilation *)
 
 (** Tamarin lemma *)
 type lemma =
@@ -105,9 +107,9 @@ type lemma =
 type rule =
   { id : Ident.t
   ; role : Ident.t option
-  ; pre : fact list
-  ; label : fact list
-  ; post : fact list
+  ; pre : fact' list
+  ; label : fact' list
+  ; post : fact' list
   ; comment : string option
   }
 
