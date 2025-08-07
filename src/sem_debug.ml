@@ -25,6 +25,7 @@ module E = struct
     ; target_env = Env.empty ()
     ; target_vars = []
     ; loop_back = false
+    ; attack = false
     }
 end
 module G = Graph.Persistent.Digraph.ConcreteLabeled(V)(E)
@@ -74,7 +75,9 @@ module G' = struct
 
     let edge_attributes (_,t,_) =
       [`Fontsize 10; `Taillabel (edge_tail_label t); `Label (edge_label t); `Headlabel (edge_head_label t) ]
-      @ (if t.loop_back then [ `Style `Dashed ] else [])
+      @ (if t.loop_back then [ `Style `Dashed ]
+         else if t.attack then [ `Style `Bold ]
+         else [ ])
 end
 
 module Viz = Graph.Graphviz.Dot(G')

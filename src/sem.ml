@@ -359,6 +359,7 @@ type edge =
   ; target_env : Env.t
   ; target_vars : Ident.t list
   ; loop_back : bool
+  ; attack : bool
   }
 
 let print_list sep f =
@@ -456,6 +457,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_env = env
           ; target_vars = vars
           ; loop_back = false
+          ; attack = false
           }
         ]
       , i_1, env )
@@ -481,6 +483,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_env = env
           ; target_vars = vars
           ; loop_back = false
+          ; attack = false
           }
         ]
       , i_1, env )
@@ -507,6 +510,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_env = c.env
               ; target_vars = x :: vars
               ; loop_back = false
+              ; attack = false
               } ];
             g';
             [ { id = Ident.local ("let_exit_" ^ fst x)
@@ -521,6 +525,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_env = env
               ; target_vars = vars
               ; loop_back = false
+              ; attack = false
               } ]
           ]
       , k_1, env)
@@ -543,6 +548,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_env = c.env
               ; target_vars = x :: vars
               ; loop_back = false
+              ; attack = false
               } ];
             g;
             [ { id = Ident.local ("let_exit_" ^ fst x)
@@ -557,6 +563,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_env = env
               ; target_vars = vars
               ; loop_back = false
+              ; attack = false
               }
             ]
           ],
@@ -582,6 +589,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_env = env
               ; target_vars = vars
               ; loop_back = false
+              ; attack = false
               } ]
           ]
       , j_1, env )
@@ -604,6 +612,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_env = env
               ; target_vars = vars
               ; loop_back = false
+              ; attack = false
               } ]
           ]
       , j_1, env)
@@ -623,6 +632,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_env = env
           ; target_vars = vars
           ; loop_back = false
+          ; attack = false
           }
         ]
       , i_1, env)
@@ -644,6 +654,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_env = env
           ; target_vars = vars
           ; loop_back = false
+          ; attack = false
           }
         ]
       , i_1, env )
@@ -662,6 +673,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_env = env
           ; target_vars = vars
           ; loop_back = false
+          ; attack = false
           }
         ]
       , i_1, env )
@@ -692,6 +704,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_env = c.env
               ; target_vars = x :: vars
               ; loop_back = false
+              ; attack = false
               } ];
             g;
             [ { id = Ident.local "new_out"
@@ -706,6 +719,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_env = env
               ; target_vars = vars
               ; loop_back = false
+              ; attack = false
               }
             ]
           ]
@@ -735,6 +749,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_env = c.env
               ; target_vars = xs @ vars
               ; loop_back = false
+              ; attack = false
               } ];
             g;
             [ { id = Ident.local "get_out"
@@ -749,6 +764,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_env = env
               ; target_vars = vars
               ; loop_back = false
+              ; attack = false
               } ]
           ]
       , j_1, env )
@@ -782,6 +798,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_env = env
           ; target_vars = vars
           ; loop_back = false
+          ; attack = false
           }
         ]
       , i_1, env )
@@ -810,6 +827,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                         ; target_env = case.cmd.env
                         ; target_vars = case.fresh @ vars
                         ; loop_back = false
+                        ; attack = false
                         } ];
                       gj;
                       [ { id= Ident.local "case_out"
@@ -824,6 +842,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                         ; target_env = env
                         ; target_vars = vars
                         ; loop_back = false
+                        ; attack = false
                         } ]
                     ]))
              cases
@@ -872,6 +891,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                         ; target_env = case.cmd.env
                         ; target_vars = case.fresh @ vars
                         ; loop_back = false
+                        ; attack = false
                         } ];
                       gj;
                       [ { id= Ident.local "case_out"
@@ -889,6 +909,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                         ; target_env = env
                         ; target_vars = vars
                         ; loop_back = true (* To increment the transition counter *)
+                        ; attack = false
                         } ]
                     ])
                  cases))
@@ -914,6 +935,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                       ; target_env = case.cmd.env
                       ; target_vars = case.fresh @ vars
                       ; loop_back = false
+                      ; attack = false
                       } ];
                     gj;
                     [ { id= Ident.local "until_out"
@@ -932,6 +954,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                       ; target_env = env
                       ; target_vars = vars
                       ; loop_back = false
+                      ; attack = false
                       }
                     ]
                   ])
@@ -959,6 +982,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                ; target_env = app.env
                ; target_vars = vars
                ; loop_back = false
+               ; attack = false
                }
              ]
            , i_1, app.env)
@@ -1008,6 +1032,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                          ; target_env = cmd.env
                          ; target_vars = args @ vars
                          ; loop_back = false
+                         ; attack = true
                          } ];
                        g';
                        [ { id= Ident.local ((Ident.to_string attack_id) ^ "_attack_out")
@@ -1023,6 +1048,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                          ; target_env = app.env
                          ; target_vars = vars
                          ; loop_back = false
+                         ; attack = false
                          } ]
                      ])
                    [] attacks
@@ -1055,6 +1081,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                ; target_env = cmd.env
                ; target_vars = args @ vars
                ; loop_back = false
+               ; attack = false
                } ];
              g;
              [ { id= Ident.local (Ident.to_string f ^ "_app_out")
@@ -1070,6 +1097,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                ; target_env = app.env
                ; target_vars = vars
                ; loop_back = false
+               ; attack = false
                } ];
              g_attacks
            ], i_1, app.env
@@ -1143,6 +1171,7 @@ let graph_files_and_vars
      ; target_env = proc.main.env
      ; target_vars = List.map fst proc.vars
      ; loop_back = false
+     ; attack = false
      }],
     i_1
 
@@ -1453,6 +1482,7 @@ let compress (e1 : edge) (e2 : edge) =
   ; target_env = e2.target_env
   ; target_vars = e2.target_vars
   ; loop_back = e2.loop_back
+  ; attack = e1.attack || e2.attack
   }
 
 let compress e1 e2 =

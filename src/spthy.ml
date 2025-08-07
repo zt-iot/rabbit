@@ -529,35 +529,14 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
   let post = state_post :: post in
   let comment =
     Some (Printf.sprintf
-            "Edge %s/%s : %s"
+            "%s %s/%s : %s"
+            (if edge.attack then "Attack edge" else "Edge")
             (Ident.to_string (proc_id :> Ident.t))
             (Ident.to_string (edge.id :> Ident.t))
             (Sem.Update.to_string edge.update)
          )
   in
   { id= (edge.id :> Ident.t); role; pre; label; post; comment }
-
-(* rule Init__system[role="system"]
-    : []
-    --[Init__('rab__system')]
-    ->[!ACP__GEN__('rab__system__', 'rab__rab_str'),
-       State__Server(<'rab_____0', 'rab__rab_str', %1>,
-                     'rab__unit',                         <--- return
-                     'rab__empty', 'rab__empty', 'rab__empty'  <-- mutable vars
-                    )]
-
-   # Processes quantified together must be initialized together
-   rule Init__system1[role="system1"]
-    : [Fr(param)]
-    --[Init__(<'rab__system1', param>)]
-    ->[!ACP__GEN__('rab__system1__', param),
-       State__Client_ta(<'rab_____0', param, %1>,
-                        'rab__unit',         <--- return
-                        'rab__empty', 'rab__empty', 'rab__empty'), <-- mutable vars
-       State__Client(<'rab_____0', param, %1>,
-                     'rab__unit',
-                     'rab__empty', 'rab__empty', 'rab__empty')]
-*)
 
 let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_desc)) =
   let comment = Some (Printf.sprintf "Proc group initialization %s" (Ident.to_string (proc_group_id :> Ident.t))) in

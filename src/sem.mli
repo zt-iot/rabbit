@@ -130,6 +130,7 @@ type edge =
   ; target_env : Env.t (** environment of the target node *)
   ; target_vars : Ident.t list (** mutable variables of the target node *)
   ; loop_back : bool (** Loops back. Triggers an increment of transition counter if [true] *)
+  ; attack : bool (** Attack route. [true] if the edge to start an attack *)
   }
 
 type signature =
