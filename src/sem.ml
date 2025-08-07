@@ -137,7 +137,7 @@ and fact' =
       }
   | Access of
       { pid : Subst.proc_id * Subst.param_id option
-      ; channel: expr
+      ; channel: expr (* XXX it is also used for file path *)
       ; syscall: ident option
       }
 
@@ -423,10 +423,13 @@ let check_edge_invariants (e : edge) =
 
 type graph = edge list
 
-let channel_access ~proc:(proc : Subst.proc) ~syscaller (f : Typed.fact) =
+let channel_and_file_access ~proc:(proc : Subst.proc) ~syscaller (f : Typed.fact) =
+  let pid = proc.id, proc.param in
   match f.desc with
   | Channel { channel; _ } ->
-      Some { f with desc= Access { pid= proc.id, proc.param; channel; syscall= syscaller } }
+      Some { f with desc= Access { pid; channel; syscall= syscaller } }
+  | File { path; contents= _ } ->
+      Some { f with desc= Access { pid; channel= path; syscall= syscaller } }
   | _ -> None
 
 (* <\Gamma |- c>i *)
@@ -465,7 +468,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
       (* i =put=> i+1 *)
       (* XXX ??? requires access policy check *)
       let i_1 = Index.add i 1 in
-      let pre = List.filter_map (channel_access ~proc ~syscaller) fs in
+      let pre = List.filter_map (channel_and_file_access ~proc ~syscaller) fs in
       ( [ { id = Ident.local "put"
           ; source = i
           ; source_env = env
@@ -791,7 +794,6 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
              (fun j (case : case) ->
                 let ij = Index.push i j in
                 let gj, bj (* bold j *), env_bj = graph_cmd ~vars:(case.fresh @ vars) ~proc ~syscaller find_def decls ij case.cmd in
-                (* XXX ??? requires access policy check *)
                 ( List.concat [
                       [ { id= Ident.local "case_in"
                         ; source = i
@@ -799,7 +801,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                         ; source_vars = vars
                         ; pre =
                             List.map fact_of_typed case.facts
-                            @ List.filter_map (channel_access ~proc ~syscaller) case.facts
+                            @ List.filter_map (channel_and_file_access ~proc ~syscaller) case.facts
                         ; update = { (Update.update_unit ())
                                      with items = List.map (fun x -> x, Update.New (evar x)) case.fresh }
                         ; tag = []
@@ -847,13 +849,13 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
          ; target_env = env
          ; target_vars = vars
          ; loop_back = false
+         ; attack = false
          }
          :: List.concat
               (List.mapi
                  (fun j (case : case) ->
                     let i_1j = Index.push i_1 j in
                     let gj, bj (* bold j *), env_bj = graph_cmd ~vars:(case.fresh @ vars) ~proc ~syscaller find_def decls i_1j case.cmd in
-                    (* XXX ??? requires access policy check *)
                     List.concat [
                       [ { id= Ident.local "case_in"
                         ; source = i_1
@@ -861,7 +863,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                         ; source_vars = vars
                         ; pre =
                             List.map fact_of_typed case.facts
-                            @ List.filter_map (channel_access ~proc ~syscaller) case.facts
+                            @ List.filter_map (channel_and_file_access ~proc ~syscaller) case.facts
                         ; update = { (Update.update_unit ())
                                      with items = List.map (fun x -> x, Update.New (evar x)) case.fresh }
                         ; tag = []
@@ -903,7 +905,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                       ; source_vars = vars
                       ; pre =
                           List.map fact_of_typed case.facts
-                          @ List.filter_map (channel_access ~proc ~syscaller) case.facts
+                          @ List.filter_map (channel_and_file_access ~proc ~syscaller) case.facts
                       ; update = { (Update.update_unit ())
                                    with items = List.map (fun x -> x, Update.New (evar x)) case.fresh }
                       ; tag = []
