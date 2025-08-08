@@ -151,6 +151,20 @@ type syscall_desc =
 [@@deriving show, eq]
 
 
+let compare_syscall_desc syscall1 syscall2 =
+  match syscall1, syscall2 with
+  | Read, Read -> 0
+  | Provide, Provide -> 0
+  | DirectInteraction, DirectInteraction -> 0
+  | SyscallId id1, SyscallId id2 -> Ident.compare id1 id2
+  | Read, _ -> -1
+  | _, Read -> 1
+  | Provide, _ -> -1
+  | _, Provide -> 1
+  | DirectInteraction, _ -> -1
+  | _, DirectInteraction -> 1
+
+
 let simplify_list_of_syscall_descs (syscall_descs : syscall_desc list) : Ident.t list =  
   List.fold_left (fun acc_syscalls_simplified syscall_desc -> match syscall_desc with 
                           | Read -> acc_syscalls_simplified

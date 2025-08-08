@@ -76,7 +76,7 @@ let induces_provide_effect (syscall_desc : Typed.syscall_desc) : bool = match sy
 type access_map = (proc_ty_set) security_type_map
 
 
-type access_map_two = (proc_ty * syscall_desc) list security_type_map
+type access_map_two = ProcSyscallSet.t security_type_map
 
 (* For all target_typ in target_typs, register the connection (target_typ, proc_ty) in map *)
 let update_access_map map target_typs proc_ty = 
@@ -122,13 +122,25 @@ let create_access_maps (decls : Typed.decl list) : access_map * access_map =
 
 let create_access_map_2 (decls : Typed.decl list) : access_map_two = 
   List.fold_left (fun acc_map decl -> match decl.Typed.desc with 
-    | Typed.Allow{process_typ = proc_ty; target_typs; syscall_descs} ->  
-
+    | Typed.Allow{process_typ = proc_ty; target_typs; syscall_descs} -> 
       (* add binding for all syscall_desc \in syscall_descs *)
-      List.fold_left (fun acc_map_2 target_typ -> failwith "TODO"
-      ) acc_map target_typs
+      List.fold_left (fun acc_map_2 target_typ -> 
+        List.fold_left (fun acc_map_3 syscall_desc -> 
+
+            (* Query for current security type 
+            key = security_typ
+            value = (proc_ty * syscall_desc) list
+            *)
+            let syscalls_in_access_opt = SecurityTypeMap.find_opt target_typ acc_map_3 in 
+            let old_set = begin match syscalls_in_access_opt with 
+            | None -> ProcSyscallSet.empty
+            | Some (s) -> s
+            end in 
+            let new_set = ProcSyscallSet.add (proc_ty, syscall_desc) old_set in 
+            SecurityTypeMap.add target_typ new_set acc_map_3
+          ) acc_map_2 syscall_descs
+      ) acc_map (List.map (fun target_typ -> Ident.string_part target_typ) target_typs)
     | _ -> acc_map
-    
   ) SecurityTypeMap.empty decls
 
 
@@ -191,16 +203,6 @@ let compute_access_relation (access_map : access_map) : ((proc_ty_set * proc_ty_
 
 
 
-
-
-
-let proc_ty_set_rel (access_table : MapAccessTable.t) (a : proc_ty_set) (b : proc_ty_set) : (proc_ty_set * proc_ty_set) = failwith "TODO"
-
-
-let compute_access_relation_table (access_table : MapAccessTable.t) : ((proc_ty_set * proc_ty_set) * bool) list = 
-  (* first get the list of unique proc_ty_sets in access_table *)
-  let proc_ty_sets = MapAccessTable.bindings access_table |> List.map fst |> List.map (fun (proc_ty, _, _) -> proc_ty)
-    |> List.sort_uniq compare in failwith "TODO"
 
   
 
