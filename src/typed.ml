@@ -146,6 +146,7 @@ type init_desc =
 type syscall_desc = 
   | Read
   | Provide 
+  | DirectInteraction (* allow proc_ty sec_ty [.] *)
   | SyscallId of ident 
 [@@deriving show, eq]
 
@@ -154,6 +155,7 @@ let simplify_list_of_syscall_descs (syscall_descs : syscall_desc list) : Ident.t
   List.fold_left (fun acc_syscalls_simplified syscall_desc -> match syscall_desc with 
                           | Read -> acc_syscalls_simplified
                           | Provide -> acc_syscalls_simplified
+                          | DirectInteraction -> acc_syscalls_simplified
                           | SyscallId id -> acc_syscalls_simplified @ [id]
                         ) [] syscall_descs
 
@@ -180,7 +182,7 @@ and decl' =
   | Allow of
       { process_typ : ident
       ; target_typs : ident list
-      ; syscall_descs_opt : syscall_desc list option
+      ; syscall_descs : syscall_desc list
       }
   | AllowAttack of
       { process_typs : ident list

@@ -27,15 +27,6 @@ syscall recv(c : channel[client_msg]) : client_msg {
 }
 
 
-(** Temporary solution to have read and provide as bound names *)
-syscall read () : unit {
-  skip
-}
-
-syscall provide () : unit {
-  skip
-}
-
 
 allow alice_t client_msg [recv]
 allow attacker_ty client_msg [read, provide]

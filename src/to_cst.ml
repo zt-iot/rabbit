@@ -12,7 +12,7 @@ type syscall_effect =
   | ReadProvide
 
 
-type syscall_effect_map = (syscall_effect) string_map 
+type syscall_effect_map = (syscall_effect) string_map
 
 
 let syscall_effect_map = 
@@ -22,16 +22,14 @@ let syscall_effect_map =
   |> StringMap.add "invoke_rpc" ReadProvide
 
 
-
-
 type proc_ty = Ident.t 
 type sec_ty = Ident.t
-type syscall = Typed.syscall_desc
+type syscall_desc = Typed.syscall_desc
 
 
 module MapAccessTable = struct
   module Key = struct
-    type t = proc_ty * sec_ty * syscall
+    type t = proc_ty * sec_ty * syscall_desc
     let compare = compare
   end
 
@@ -45,6 +43,8 @@ module MapAccessTable = struct
     MapTable.add (proc, sec_ty, syscall) value table
   let find proc sec_ty syscall table = 
     MapTable.find_opt (proc, sec_ty, syscall) table
+  
+  let bindings table = MapTable.bindings table
 end
 
 
@@ -55,16 +55,30 @@ end
 
 
 
+let induces_read_effect (syscall_desc : Typed.syscall_desc) : bool = match syscall_desc with 
+  | Typed.Read -> true 
+  | Typed.Provide -> false 
+  | Typed.DirectInteraction -> true 
+  | Typed.SyscallId id -> match StringMap.find_opt (fst id) syscall_effect_map with 
+      | Some (Read | ReadProvide) -> true
+      | _ -> false
+
+let induces_provide_effect (syscall_desc : Typed.syscall_desc) : bool = match syscall_desc with 
+  | Typed.Read -> false 
+  | Typed.Provide -> true 
+  | Typed.DirectInteraction -> true 
+  | Typed.SyscallId id -> match StringMap.find_opt (fst id) syscall_effect_map with 
+      | Some (Provide | ReadProvide) -> true
+      | _ -> false
+
+      
 (* A map from SecurityType (=string) to ProcTySet.t, which tells us which security type is allowed to be read by which process *)
 type access_map = (proc_ty_set) security_type_map
 
 
+type access_map_two = (proc_ty * syscall_desc) list security_type_map
 
-
-(* Just an idea: the transpose of access_map *)
-(* type reverse_acces_map = (security_type) proc_type_map *)
-
-(* For all security_typs in target_typs, register the connection (target_typ, proc_ty) in map *)
+(* For all target_typ in target_typs, register the connection (target_typ, proc_ty) in map *)
 let update_access_map map target_typs proc_ty = 
   List.fold_left (fun acc_map security_typ ->
     (* check if there is already a binding for security_typ *)
@@ -79,40 +93,13 @@ let update_access_map map target_typs proc_ty =
     SecurityTypeMap.add security_typ new_proc_tys_of_security_typ acc_map
   ) map target_typs
 
-
-
-let induces_read_effect (syscall_desc : Typed.syscall_desc) : bool = match syscall_desc with 
-  | Typed.Read -> true 
-  | Typed.Provide -> false 
-  | Typed.SyscallId id -> match StringMap.find_opt (fst id) syscall_effect_map with 
-      | Some (Read | ReadProvide) -> true
-      | _ -> false
-
-let induces_provide_effect (syscall_desc : Typed.syscall_desc) : bool = match syscall_desc with 
-  | Typed.Read -> false 
-  | Typed.Provide -> true 
-  | Typed.SyscallId id -> match StringMap.find_opt (fst id) syscall_effect_map with 
-      | Some (Provide | ReadProvide) -> true
-      | _ -> false
-
-
 (* Create read_access_map and provide_access_map from a list of `Typed.Allow` declarations *)
 let create_access_maps (decls : Typed.decl list) : access_map * access_map =
   List.fold_left (fun (acc_read_access, acc_provide_access) decl -> match decl.Typed.desc with 
-    | Typed.Allow{process_typ = proc_ty; target_typs; syscall_descs_opt} ->
+    | Typed.Allow{process_typ = proc_ty; target_typs; syscall_descs} ->
       (* check if there is a syscall in the provided syscall list that gives a read effect *)
-      let is_read_effect = 
-        begin match syscall_descs_opt with 
-        | None -> true 
-        | Some (syscall_descs) -> 
-            (List.exists induces_read_effect syscall_descs)
-        end in 
-      let is_provide_effect = 
-        begin match syscall_descs_opt with 
-        | None -> true 
-        | Some (syscall_descs) -> 
-            (List.exists induces_provide_effect syscall_descs) 
-        end in
+      let is_read_effect = (List.exists induces_read_effect syscall_descs) in 
+      let is_provide_effect = (List.exists induces_provide_effect syscall_descs) in
       let target_typs_names = List.map fst target_typs in 
 
       let read_access' = begin
@@ -133,20 +120,26 @@ let create_access_maps (decls : Typed.decl list) : access_map * access_map =
   ) (SecurityTypeMap.empty, SecurityTypeMap.empty) decls
 
 
+let create_access_map_2 (decls : Typed.decl list) : access_map_two = 
+  List.fold_left (fun acc_map decl -> match decl.Typed.desc with 
+    | Typed.Allow{process_typ = proc_ty; target_typs; syscall_descs} ->  
+
+      (* add binding for all syscall_desc \in syscall_descs *)
+      List.fold_left (fun acc_map_2 target_typ -> failwith "TODO"
+      ) acc_map target_typs
+    | _ -> acc_map
+    
+  ) SecurityTypeMap.empty decls
 
 
 let create_access_table (decls : Typed.decl list) : MapAccessTable.t = 
   List.fold_left (fun acc_access decl -> match decl.Typed.desc with 
-   | Typed.Allow{process_typ = proc_ty; target_typs; syscall_descs_opt} -> 
-    let syscall_list = match syscall_descs_opt with 
-      | Some (l) -> l 
-      | None -> [] 
-    in
+   | Typed.Allow{process_typ = proc_ty; target_typs; syscall_descs} -> 
     (* for all ty in target_typs and s in syscalls, register that (process_typ, t, s) = true *)
     List.fold_left (fun acc ty ->
-          List.fold_left (fun acc2 syscall ->
-            MapAccessTable.add proc_ty ty syscall true acc2
-          ) acc syscall_list
+          List.fold_left (fun acc2 syscall_desc ->
+            MapAccessTable.add proc_ty ty syscall_desc true acc2
+          ) acc syscall_descs
         ) acc_access target_typs
    | _ -> acc_access
   ) MapAccessTable.empty decls 
@@ -154,60 +147,7 @@ let create_access_table (decls : Typed.decl list) : MapAccessTable.t =
 
 
 
-(* Get all process strings from (procs : Typed.proc list) *)
-let extract_proc_strings procs =
-  let extract_pproc_str (pproc : Typed.pproc) = match pproc.Location.data with 
-  | {id; _} -> Ident.string_part id
-  in 
-  let extract = function
-    | Typed.Unbounded p -> [extract_pproc_str p]
-    | Typed.Bounded (_, ps) -> List.map extract_pproc_str ps
-  in
-  List.flatten (List.map extract procs)
-
-
-(* Find the corresponding Process decl and return its type *)
-let find_process_typ decls name =
-  let is_matching_process_decl = function
-    | Typed.Process { id; _ } when (Ident.string_part id) = name -> true
-    | _ -> false
-  in
-  match List.find_opt is_matching_process_decl decls with
-  | Some Process { typ; _ } -> Some (Ident.string_part typ)
-  | _ -> None
-
-
-
-
-(* Return the set of all process types that are present in some given Typed.decl' list *)
-let extract_process_typs_from_decls procs decls =
-  let proc_strs = extract_proc_strings procs in 
-  let add_typ_to_set acc proc_str = 
-   let typ_opt = find_process_typ decls proc_str in 
-   match typ_opt with 
-     | Some typ_str -> ProcTySet.add typ_str acc 
-     | None -> acc 
-  in
-  (* return a set of all unique process types *)
-  List.fold_left add_typ_to_set ProcTySet.empty proc_strs
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   
-
-
-
 
 
 
@@ -254,16 +194,15 @@ let compute_access_relation (access_map : access_map) : ((proc_ty_set * proc_ty_
 
 
 
+let proc_ty_set_rel (access_table : MapAccessTable.t) (a : proc_ty_set) (b : proc_ty_set) : (proc_ty_set * proc_ty_set) = failwith "TODO"
 
 
+let compute_access_relation_table (access_table : MapAccessTable.t) : ((proc_ty_set * proc_ty_set) * bool) list = 
+  (* first get the list of unique proc_ty_sets in access_table *)
+  let proc_ty_sets = MapAccessTable.bindings access_table |> List.map fst |> List.map (fun (proc_ty, _, _) -> proc_ty)
+    |> List.sort_uniq compare in failwith "TODO"
 
-
-
-
-
-
-
-
+  
 
 
 
@@ -673,6 +612,45 @@ let make_loc_env_for_decl  (read_access_map : access_map)
   from Typed.chan_param *)
 let convert_chan_param (p : Typed.chan_param) : Cst_syntax.chan_param =
   { channel = p.channel; param = p.param; typ = p.typ }
+
+
+
+(* Get all process strings from (procs : Typed.proc list) *)
+let extract_proc_strings procs =
+  let extract_pproc_str (pproc : Typed.pproc) = match pproc.Location.data with 
+  | {id; _} -> Ident.string_part id
+  in 
+  let extract = function
+    | Typed.Unbounded p -> [extract_pproc_str p]
+    | Typed.Bounded (_, ps) -> List.map extract_pproc_str ps
+  in
+  List.flatten (List.map extract procs)
+
+
+(* Find the corresponding Process decl and return its type *)
+let find_process_typ decls name =
+  let is_matching_process_decl = function
+    | Typed.Process { id; _ } when (Ident.string_part id) = name -> true
+    | _ -> false
+  in
+  match List.find_opt is_matching_process_decl decls with
+  | Some Process { typ; _ } -> Some (Ident.string_part typ)
+  | _ -> None
+
+
+(* Return the set of all process types that are present in some given Typed.decl' list *)
+let extract_process_typs_from_decls procs decls =
+  let proc_strs = extract_proc_strings procs in 
+  let add_typ_to_set acc proc_str = 
+   let typ_opt = find_process_typ decls proc_str in 
+   match typ_opt with 
+     | Some typ_str -> ProcTySet.add typ_str acc 
+     | None -> acc 
+  in
+  (* return a set of all unique process types *)
+  List.fold_left add_typ_to_set ProcTySet.empty proc_strs
+
+
 
 
 
