@@ -1,5 +1,5 @@
 (* we assign an `int` to each `Ident.t` to ensure that each variable in a Rabbit program has a unique name *)
-type t = string * int [@@deriving show]
+type t = string * int [@@deriving show, eq]
 
 let compare ((s1, i1) : t) ((s2, i2) : t) =
   let cmp_str = String.compare s1 s2 in

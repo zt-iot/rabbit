@@ -18,7 +18,6 @@ let reserved = [
   ("main", MAIN) ;
   ("return", RETURN) ;
   ("data", DATA) ;
-  ("skip", SKIP) ;
   ("let", LET) ;
   ("requires", REQUIRES) ;
   ("constant", CONSTANT) ;
@@ -47,7 +46,10 @@ let reserved = [
   ("S", Ssecrecy) ;
   ("I", Iintegrity) ; 
   ("Public", PUBLIC) ;
-  ("Untrusted", UNTRUSTED) 
+  ("Untrusted", UNTRUSTED) ; 
+  (* for dealing with access control rules *)
+  ("read", READ) ;
+  ("provide", PROVIDE)
   ]
 
 let name =

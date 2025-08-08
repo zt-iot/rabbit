@@ -24,19 +24,12 @@ let syscall_effect_map =
 
 
 
-type proc_ty = string
-type syscall = string 
-type sec_ty = string
-
-(* generic AccessTable interface *)
-module type AccessTable = sig
-  type t
-  val add : proc_ty  -> sec_ty -> syscall -> bool -> t -> t
-  val find : proc_ty -> sec_ty -> syscall -> t -> bool option
-end
+type proc_ty = Ident.t 
+type sec_ty = Ident.t
+type syscall = Typed.syscall_desc
 
 
-module MapAccessTable : AccessTable = struct
+module MapAccessTable = struct
   module Key = struct
     type t = proc_ty * sec_ty * syscall
     let compare = compare
@@ -87,42 +80,50 @@ let update_access_map map target_typs proc_ty =
   ) map target_typs
 
 
+
+let induces_read_effect (syscall_desc : Typed.syscall_desc) : bool = match syscall_desc with 
+  | Typed.Read -> true 
+  | Typed.Provide -> false 
+  | Typed.SyscallId id -> match StringMap.find_opt (fst id) syscall_effect_map with 
+      | Some (Read | ReadProvide) -> true
+      | _ -> false
+
+let induces_provide_effect (syscall_desc : Typed.syscall_desc) : bool = match syscall_desc with 
+  | Typed.Read -> false 
+  | Typed.Provide -> true 
+  | Typed.SyscallId id -> match StringMap.find_opt (fst id) syscall_effect_map with 
+      | Some (Provide | ReadProvide) -> true
+      | _ -> false
+
+
 (* Create read_access_map and provide_access_map from a list of `Typed.Allow` declarations *)
 let create_access_maps (decls : Typed.decl list) : access_map * access_map =
   List.fold_left (fun (acc_read_access, acc_provide_access) decl -> match decl.Typed.desc with 
-    | Typed.Allow{process_typ = proc_ty; target_typs; syscalls} ->
+    | Typed.Allow{process_typ = proc_ty; target_typs; syscall_descs_opt} ->
       (* check if there is a syscall in the provided syscall list that gives a read effect *)
       let is_read_effect = 
-        match syscalls with
-        | None -> true
-        | Some(syscalls_ids) -> 
-          (not (List.is_empty (List.filter 
-            (fun syscall -> match StringMap.find_opt syscall syscall_effect_map with 
-              | Some (Read | ReadProvide) -> true
-              | _ -> false 
-            ) (List.map fst syscalls_ids)))) in
-      let is_provide_effect = 
-        match syscalls with 
+        begin match syscall_descs_opt with 
         | None -> true 
-        | Some(syscalls_ids) -> 
-          (not (List.is_empty (List.filter 
-            (fun syscall -> match StringMap.find_opt syscall syscall_effect_map with 
-              | Some (Provide | ReadProvide) -> true
-              | _ -> false 
-            ) (List.map fst syscalls_ids)))) in
-
-      
-      let target_typs_simplified = List.map fst target_typs in 
+        | Some (syscall_descs) -> 
+            (List.exists induces_read_effect syscall_descs)
+        end in 
+      let is_provide_effect = 
+        begin match syscall_descs_opt with 
+        | None -> true 
+        | Some (syscall_descs) -> 
+            (List.exists induces_provide_effect syscall_descs) 
+        end in
+      let target_typs_names = List.map fst target_typs in 
 
       let read_access' = begin
         if (is_read_effect) then 
-          (update_access_map acc_read_access target_typs_simplified (fst proc_ty))
+          (update_access_map acc_read_access target_typs_names (Ident.string_part proc_ty))
         else 
           acc_read_access
         end in 
       let provide_access' = begin
         if (is_provide_effect) then 
-          (update_access_map acc_provide_access target_typs_simplified (fst proc_ty))
+          (update_access_map acc_provide_access target_typs_names (Ident.string_part proc_ty))
         else 
           acc_provide_access
       end in 
@@ -130,6 +131,26 @@ let create_access_maps (decls : Typed.decl list) : access_map * access_map =
       (read_access', provide_access')
    | _ -> (acc_read_access, acc_provide_access)
   ) (SecurityTypeMap.empty, SecurityTypeMap.empty) decls
+
+
+
+
+let create_access_table (decls : Typed.decl list) : MapAccessTable.t = 
+  List.fold_left (fun acc_access decl -> match decl.Typed.desc with 
+   | Typed.Allow{process_typ = proc_ty; target_typs; syscall_descs_opt} -> 
+    let syscall_list = match syscall_descs_opt with 
+      | Some (l) -> l 
+      | None -> [] 
+    in
+    (* for all ty in target_typs and s in syscalls, register that (process_typ, t, s) = true *)
+    List.fold_left (fun acc ty ->
+          List.fold_left (fun acc2 syscall ->
+            MapAccessTable.add proc_ty ty syscall true acc2
+          ) acc syscall_list
+        ) acc_access target_typs
+   | _ -> acc_access
+  ) MapAccessTable.empty decls 
+
 
 
 
@@ -169,26 +190,24 @@ let extract_process_typs_from_decls procs decls =
   in
   (* return a set of all unique process types *)
   List.fold_left add_typ_to_set ProcTySet.empty proc_strs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   
 
 
-(* returns a map from SecurityType to secrecy lvl *)
-let read_access_map_to_secrecy_lvls_map read_access_map all_process_typs = 
-  SecurityTypeMap.map (fun set -> 
-    if all_process_typs = set then 
-      Cst_env.Public 
-    else 
-      Cst_env.SNode set
-    ) read_access_map
 
-
-let provide_access_map_to_integrity_lvls_map provide_access_map all_process_typs = 
-  SecurityTypeMap.map (fun proc_ty_set -> 
-    if all_process_typs = proc_ty_set then 
-      Cst_env.Untrusted
-    else 
-      Cst_env.INode proc_ty_set
-    ) provide_access_map
 
 
 
@@ -232,128 +251,17 @@ let compute_access_relation (access_map : access_map) : ((proc_ty_set * proc_ty_
 
 
 
-(* Given an `u : proc_ty_set`, return vs, a set of all `proc_ty_set`s such that for each v \in vs, v <= u *)
-let elements_less_than_or_equal_to_u (pol : cst_access_policy) (u : proc_ty_set) : ProcTySetSet.t =
-  if (snd pol) = LessThanOrEqual then   
-    List.fold_left (fun acc ((v, u'), rel_holds) ->
-      if ProcTySet.equal u u' && rel_holds then
-        ProcTySetSet.add v acc
-      else
-        acc
-    ) ProcTySetSet.empty (fst pol)
-   else
-    List.fold_left (fun acc ((u', v), rel_holds) ->
-      if ProcTySet.equal u u' && rel_holds then
-        ProcTySetSet.add v acc
-      else
-        acc
-    ) ProcTySetSet.empty (fst pol)
-
-
-(* Given an `a : proc_ty_set`, return bs, a set of all `proc_ty_set`s such that for each b \in bs, b >= a *)
-let elements_greater_than_or_equal_to_u (pol : cst_access_policy) (u : proc_ty_set) : ProcTySetSet.t =
-  if (snd pol) = GreaterThanOrEqual then   
-    List.fold_left (fun acc ((v, u'), rel_holds) ->
-      if ProcTySet.equal u u' && rel_holds then
-        ProcTySetSet.add v acc
-      else
-        acc
-    ) ProcTySetSet.empty (fst pol)
-   else
-    List.fold_left (fun acc ((u', v), rel_holds) ->
-      if ProcTySet.equal u u' && rel_holds then
-        ProcTySetSet.add v acc
-      else
-        acc
-    ) ProcTySetSet.empty (fst pol)
 
 
 
 
-let find_extremum_in_intersect
-    ~(find_max : bool)
-    (pol : cst_access_policy)
-    (intersect : ProcTySetSet.t) : proc_ty_set option =
-
-  let (rel, relation_kind) = pol in
-
-  let rel_holds a b =
-    List.exists (fun ((x, y), holds) ->
-       ProcTySet.equal x a && ProcTySet.equal y b && holds
-    ) rel
-  in
-
-  let is_extremum candidate =
-    (* check if candidate is _relation_ for all `other \in intersect` *)
-    ProcTySetSet.for_all (fun other ->
-      (* the relation always holds on the candidate itself *)
-      if ProcTySet.equal candidate other then true
-
-      (* otherwise, check if `rel` holds depending on `relation_kind` *)
-      else match (find_max, relation_kind) with
-        | (true, LessThanOrEqual) -> rel_holds other candidate  (* other <= candidate <-> candidate is max *)
-        | (false, LessThanOrEqual) -> rel_holds candidate other  (* candidate <= other <-> candidate is min *)
-        | (true, GreaterThanOrEqual) -> rel_holds candidate other (* candidate >= other <-> candidate is max *)
-        | (false, GreaterThanOrEqual) -> rel_holds other candidate (* other >= candidate <-> candidate is min *)
-    ) intersect
-  in
-
-  let extremums = Seq.filter is_extremum (ProcTySetSet.to_seq intersect) in 
-  let extremum_opt = Seq.uncons extremums in
-  match extremum_opt with
-  | Some (proc_ty_set, _) -> Some proc_ty_set
-  | None -> None 
 
 
-(* Given two secrecy levels a and b: 
-- return the secrecy lvl which is the least upper bound of a and b, if it exists
-- otherwise, return None
-*)
-let join_of_secrecy_lvls (pol : cst_access_policy) (a : Cst_env.secrecy_lvl) (b : Cst_env.secrecy_lvl) : Cst_env.secrecy_lvl option = 
-  match (a, b) with
-  | Cst_env.S_Ignore, _ -> None 
-  | _, Cst_env.S_Ignore -> None 
-  (* If one secrecy_lvl is Public, the least upper bound is the other secrecy_lvl *)
-  | Cst_env.Public, _ -> Some b 
-  | _, Cst_env.Public -> Some a 
-  | Cst_env.SNode(a_set), Cst_env.SNode(b_set) -> 
-    
-    let elements_greater_than_a = elements_greater_than_or_equal_to_u pol a_set in 
-    let elements_greater_than_b = elements_greater_than_or_equal_to_u pol b_set in 
 
-    (* find the maximum element in the set of elements greater than both a and b *)
-    let intersect = ProcTySetSet.inter elements_greater_than_a elements_greater_than_b in 
-    let candidate = find_extremum_in_intersect ~find_max:true pol intersect in 
 
-    match candidate with 
-    | Some res -> Some (SNode res)
-    | None -> None 
-    
 
-(* Given two integrity levels a and b:
-- return the integrity lvl which is the greatest lower bound of a and b, if it exists
-- otherwsie, return None
-*)
-let meet_of_integrity_lvls (pol : cst_access_policy) (a : Cst_env.integrity_lvl) (b : Cst_env.integrity_lvl) : Cst_env.integrity_lvl option = 
-  match (a, b) with 
-  | Cst_env.I_Ignore, _ -> None
-  | _, Cst_env.I_Ignore -> None
-  (* if one integrity_lvl is Untrusted, the greatest lower bound is the other integrity_lvl *)
-  | Cst_env.Untrusted, _ -> Some b
-  | _, Cst_env.Untrusted -> Some a 
-  | Cst_env.INode(a_set), Cst_env.INode(b_set) -> 
-    
-    let elements_less_than_or_equal_to_a = elements_less_than_or_equal_to_u pol a_set in 
-    let elements_less_than_or_equal_to_b = elements_less_than_or_equal_to_u pol b_set in 
 
-    (* find the minimum element in the set of elements less than both a and b *)
-    let intersect = ProcTySetSet.inter elements_less_than_or_equal_to_a elements_less_than_or_equal_to_b in 
 
-    let candidate = find_extremum_in_intersect ~find_max:false pol intersect in 
-
-    match candidate with 
-    | Some (res) -> Some (INode res)
-    | None -> None
 
 
 
@@ -881,6 +789,9 @@ let convert (decls : Typed.decl list)
   | {desc = System(procs, _) ; _ } as sys_decl :: decls_rev ->
 
     let (read_access_map, provide_access_map) = create_access_maps decls in 
+
+    let access_table = create_access_table decls in 
+
     let all_process_typs = extract_process_typs_from_decls procs (List.map (fun (d : Typed.decl) -> d.desc) decls_rev) in
 
     (* The method to compute the relation is the same for both reading/providing *)

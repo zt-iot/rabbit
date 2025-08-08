@@ -29,14 +29,6 @@ type udp_t : channel[client_msg]
 
 
 
-(** Temporary solution to have read and provide as bound names *)
-syscall read () : unit {
-  skip
-}
-
-syscall provide () : unit {
-  skip
-}
 
 syscall send(c : channel[client_msg], v : client_msg) : unit {
   put [c::store(v)]

@@ -944,15 +944,21 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       (match tys with
        | [] | [ _ ] -> ()
        | _ -> error ~loc (Misc "At most 1 channel or filesys type is allowed"));
-      let syscalls_opt =
+      let syscall_descs_opt =
         Option.map
           (fun syscalls ->
              List.map
-               (fun syscall ->
-                  match Env.find ~loc env syscall with
-                  | id, ExtSyscall _ -> id
-                  | _, _ ->
-                      error ~loc @@ Misc "Unknown syscall used in allow rule: use a syscall which exists"
+               (fun syscall -> 
+                  begin match syscall with 
+                  | "read" -> Typed.Read
+                  | "provide" -> Typed.Provide
+                  | _ ->  
+                    begin match Env.find ~loc env syscall with
+                    | id, ExtSyscall _ -> (Typed.SyscallId id)
+                    | _, _ ->
+                        error ~loc @@ Misc "Unknown syscall used in allow rule: use a syscall which exists"
+                    end
+                  end
                       )
                syscalls)
           syscalls_opt
@@ -961,7 +967,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       , [{ env
         ; loc
         ; desc =
-            Allow { process_typ = proc_ty; target_typs = tys; syscalls = syscalls_opt }
+            Allow { process_typ = proc_ty; target_typs = tys; syscall_descs_opt = syscall_descs_opt }
         ; typ = None
         }] )
   | DeclAttack (proc_tys, attacks) ->
@@ -1092,6 +1098,10 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       env, [{ env; loc; desc = System (procs, lemmas); typ = None }]
 
 and load env fn : Env.t * Typed.decl list =
+  (* With whatever initial environment we get, we will add the following bindings to it: *)
+  (* *)
+
+
   let decls, (_used_idents, _used_strings) = Lexer.read_file Parser.file fn in
   let env, rev_decls =
     List.fold_left

@@ -169,8 +169,8 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
         (* TODO: _it is really not that ideal that we are computing this information again here_. 
             Ideally, we should just be able to look it up after the pass `To_cst` *)
         (* TODO: don't know what to do in case there is no upper/lower bound *)
-        let init_secrecy_lvl = Option.value ~default:secrecy_lvl1 (To_cst.join_of_secrecy_lvls secrecy_lattice secrecy_lvl1 secrecy_lvl2) in 
-        let init_integrity_lvl = Option.value ~default:integrity_lvl1 (To_cst.meet_of_integrity_lvls integrity_lattice integrity_lvl1 integrity_lvl2) in 
+        let init_secrecy_lvl = Option.value ~default:secrecy_lvl1 (Cst_util.join_of_secrecy_lvls secrecy_lattice secrecy_lvl1 secrecy_lvl2) in 
+        let init_integrity_lvl = Option.value ~default:integrity_lvl1 (Cst_util.meet_of_integrity_lvls integrity_lattice integrity_lvl1 integrity_lvl2) in 
 
         let init_tuple_typ = (Cst_env.TProd(List.hd es_typs, List.hd (List.tl es_typs)), (init_secrecy_lvl, init_integrity_lvl)) in 
 
@@ -179,8 +179,8 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
                 let (_, (secrecy_lvl_acc, integrity_lvl_acc)) = acc_tup_type in 
                 let (_, (e_typ_secrecy_lvl, e_typ_integrity_lvl)) = e_typ in 
 
-                let secrecy_lvl' = Option.value ~default:secrecy_lvl_acc (To_cst.join_of_secrecy_lvls secrecy_lattice secrecy_lvl_acc e_typ_secrecy_lvl) in 
-                let integrity_lvl' = Option.value ~default:integrity_lvl_acc (To_cst.meet_of_integrity_lvls integrity_lattice integrity_lvl_acc e_typ_integrity_lvl) in 
+                let secrecy_lvl' = Option.value ~default:secrecy_lvl_acc (Cst_util.join_of_secrecy_lvls secrecy_lattice secrecy_lvl_acc e_typ_secrecy_lvl) in 
+                let integrity_lvl' = Option.value ~default:integrity_lvl_acc (Cst_util.meet_of_integrity_lvls integrity_lattice integrity_lvl_acc e_typ_integrity_lvl) in 
 
                 (Cst_env.TProd(acc_tup_type, e_typ), (secrecy_lvl', integrity_lvl'))
             ) init_tuple_typ (List.tl (List.tl es_typs)) in 

@@ -25,6 +25,9 @@
 %token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LTGT
 %token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL
 
+(* special names for access control instead of a syscall *)
+%token READ PROVIDE
+
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
 
 (* Secrecy and integrity levels within function typing signature *)
@@ -77,8 +80,16 @@ plain_decl:
   | TYPE id=NAME COLON t=typ    { DeclType(id, t) }
   
   | ALLOW ATTACK t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAttack(t,a)}
-  | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAccess(s,t, Some a)}
+
+  (* special cases for the attacker_ty *)
+  // | ALLOW s=NAME t=list(NAME) LBRACKET READ RBRACKET { DeclAccess(s, t, Some ["read"]) }
+  // | ALLOW s=NAME t=list(NAME) LBRACKET PROVIDE RBRACKET { DeclAccess(s, t, Some ["provide"]) }
+
+  | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, syscall_name) RBRACKET { DeclAccess(s,t, Some a) }
+
+  (* special case for reading/providing directly *)
   | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)}
+  | READ { DeclAccess("hello", ["hello"], None) }
 
   // | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
 
@@ -122,6 +133,11 @@ plain_decl:
   | CONST FRESH t=NAME LTGT COLON typ=typ { DeclInit(t, Some typ, Fresh_with_param) }
   | CONST FRESH t=NAME LTGT { DeclInit(t, None, Fresh_with_param) }
 
+
+syscall_name : 
+  | READ { "read" }
+  | PROVIDE { "provide" }
+  | NAME { $1 }
 
 
 colon_name_pair :

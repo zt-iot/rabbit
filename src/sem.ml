@@ -639,6 +639,7 @@ let check_edges es =
       let vs = check false vs e.target e.target_env in
       vs) vs es
 
+
 let graph_files_and_vars
   ~loc
   env
@@ -652,13 +653,18 @@ let graph_files_and_vars
         let fs : fact list =
           List.concat_map (fun (decl : Typed.decl) ->
               match decl.desc with
-              | Allow { process_typ; target_typs; syscalls= Some syscalls } ->
+              | Allow { process_typ; target_typs; syscall_descs_opt= Some syscall_descs } ->
                   if process_typ = proc.typ && List.mem fty target_typs then
+                    
+                    (* convert list of syscall_desc into a list of ident *)
+                    let syscalls_simplified = Typed.simplify_list_of_syscall_descs syscall_descs in 
+                      
+
                     List.map (fun syscall ->
-                        fact (Access { pid= proc.id; target= path; syscall= Some syscall })) syscalls
+                        fact (Access { pid= proc.id; target= path; syscall= Some syscall })) syscalls_simplified
                   else
                     []
-              | Allow { process_typ; target_typs; syscalls= None } ->
+              | Allow { process_typ; target_typs; syscall_descs_opt= None } ->
                   if process_typ = proc.typ && List.mem fty target_typs then
                     [ fact (Access { pid= proc.id; target= path; syscall= None }) ]
                   else
@@ -762,12 +768,14 @@ let _ppp
       ( parameter = Some None
       , List.concat_map (fun decl ->
             match decl.desc with
-            | Allow { process_typ; target_typs; syscalls } ->
+            | Allow { process_typ; target_typs; syscall_descs_opt } ->
                 if p.typ = process_typ && List.mem typ target_typs then
                   let syscalls =
-                    match syscalls with
+                    match syscall_descs_opt with
                     | None -> [None]
-                    | Some syscalls -> List.map Option.some syscalls
+                    | Some syscall_descs -> 
+                        let ident_list = (Typed.simplify_list_of_syscall_descs syscall_descs) in                         
+                        List.map Option.some ident_list
                   in
                   List.map (fun syscall ->
                       fact @@ AccessX { pid= p.id; target= channel; parameter; syscall })

@@ -1,5 +1,5 @@
 type name = Name.t [@@deriving show]
-type ident = Ident.t [@@deriving show]
+type ident = Ident.t [@@deriving show, eq]
 
 type 'desc loc_env =
   { desc : 'desc
@@ -143,7 +143,19 @@ type init_desc =
 [@@deriving show]
 
 
+type syscall_desc = 
+  | Read
+  | Provide 
+  | SyscallId of ident 
+[@@deriving show, eq]
 
+
+let simplify_list_of_syscall_descs (syscall_descs : syscall_desc list) : Ident.t list =  
+  List.fold_left (fun acc_syscalls_simplified syscall_desc -> match syscall_desc with 
+                          | Read -> acc_syscalls_simplified
+                          | Provide -> acc_syscalls_simplified
+                          | SyscallId id -> acc_syscalls_simplified @ [id]
+                        ) [] syscall_descs
 
 type decl = decl' loc_env [@@deriving show]
 
@@ -168,7 +180,7 @@ and decl' =
   | Allow of
       { process_typ : ident
       ; target_typs : ident list
-      ; syscalls : ident list option
+      ; syscall_descs_opt : syscall_desc list option
       }
   | AllowAttack of
       { process_typs : ident list
