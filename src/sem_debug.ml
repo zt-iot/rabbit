@@ -26,6 +26,7 @@ module E = struct
     ; target_vars = []
     ; loop_back = false
     ; attack = false
+    ; param = None
     }
 end
 module G = Graph.Persistent.Digraph.ConcreteLabeled(V)(E)
