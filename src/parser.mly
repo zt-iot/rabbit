@@ -110,12 +110,12 @@ colon_name_pair :
   | a=NAME LTGT COLON b=NAME { ChanParam {id=a; param= Some (); typ=b} }
 
 external_syscall:
-  |  syscall_tk f=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN
-      LBRACE c=cmd RBRACE { DeclExtSyscall(f, parems, c) }
+  |  syscall_tk=syscall_tk f=NAME LPAREN parems=separated_list(COMMA, NAME) RPAREN
+      LBRACE c=cmd RBRACE { DeclExtSyscall(f, parems, c, syscall_tk) }
 
 syscall_tk:
-  | SYSCALL {()}
-  | PASSIVE ATTACK {()}
+  | SYSCALL {false}
+  | PASSIVE ATTACK {true}
 
 fact : mark_location(plain_fact) { $1 }
 plain_fact:

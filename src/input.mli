@@ -98,7 +98,7 @@ type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int (** external function, [function id : arity] *)
   | DeclExtEq of expr * expr (** external equation, [equation e1 = e2] *)
-  | DeclExtSyscall of Name.ident * Name.ident list * cmd
+  | DeclExtSyscall of Name.ident * Name.ident list * cmd * bool
   (** system call, [syscall f(ty1 a1,..,tyn an) { c }]
                    [passive attack f(ty1 a1,..,tyn an) { c }]
       XXX what is passive attack for?  It is not distinguishable from syscall in Input.

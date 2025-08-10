@@ -157,6 +157,7 @@ and decl' =
       { id : ident
       ; args : ident list
       ; cmd : cmd
+      ; attack : bool
       }
   | Attack of
       { id : ident
