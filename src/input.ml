@@ -115,7 +115,7 @@ type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int
   | DeclExtEq of expr * expr
-  | DeclExtSyscall of Name.ident * Name.ident list * cmd
+  | DeclExtSyscall of Name.ident * Name.ident list * cmd * bool
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
   | DeclType of Name.ident * type_class
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option

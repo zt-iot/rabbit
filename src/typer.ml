@@ -546,14 +546,14 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let e2 = type_expr env' e2 in
       ( env
       , [{ env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *) }] )
-  | DeclExtSyscall (name, args, c) ->
+  | DeclExtSyscall (name, args, c, attack) ->
       let args, cmd =
         let env', args = extend_with_args env args @@ fun _id -> Var in
         let c = type_cmd env' c in
         args, c
       in
       let env', id = Env.add_global ~loc env name (ExtSyscall (List.length args)) in
-      env', [{ env; loc; desc = Syscall { id; args; cmd } }]
+      env', [{ env; loc; desc = Syscall { id; args; cmd; attack } }]
   | DeclExtAttack (name, syscall, args, c) ->
       (* [attack id on syscall (a1,..,an) { c }] *)
       let syscall =

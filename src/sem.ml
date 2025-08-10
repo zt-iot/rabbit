@@ -1170,7 +1170,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
              | _ -> assert false
            in
 
-           let args, cmd = find_def f in
+           let args, cmd, attack = find_def f in
            (* i => i0 => ... => j => i_1 *)
            let i0 = Index.push i 0 in
            let g, j, env_j =
@@ -1195,7 +1195,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                ; target_env = cmd.env
                ; target_vars = args @ vars
                ; loop_back = false
-               ; attack = false
+               ; attack
                ; param = proc.param
                } ];
              g;
@@ -1299,7 +1299,7 @@ type proc =
   }
 
 let model_process ~loc env decls syscalls (proc : Subst.proc) =
-  let funcs = List.map (fun (f, args, cmd) -> f, (args, cmd)) proc.Subst.funcs in
+  let funcs = List.map (fun (f, args, cmd) -> f, (args, cmd, false)) proc.Subst.funcs in
   let find_def n = List.assoc n (syscalls @ funcs) in
   let g, i = graph_files_and_vars ~loc env decls proc Index.zero in
   let g', _j, _env =
@@ -1325,7 +1325,7 @@ let model_proc_groups (decls : decl list) (sys : decl) (proc_groups : Subst.proc
   let syscalls =
     List.filter_map (fun (decl : Typed.decl) ->
         match decl.desc with
-        | Syscall { id; args; cmd } -> Some (id, (args, cmd))
+        | Syscall { id; args; cmd; attack } -> Some (id, (args, cmd, attack))
         | _ -> None) decls
   in
   List.rev @@ List.fold_left (fun rev_ps (proc_group_id, proc_group_desc) ->

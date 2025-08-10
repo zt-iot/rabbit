@@ -157,6 +157,7 @@ and decl' =
       { id : ident
       ; args : ident list
       ; cmd : cmd
+      ; attack : bool (** [true] if declared with [passive attack] *)
       }
   (** system call, [syscall f(a1,..,an) { c }]
                    or [passive attack f(ty1 a1,..,tyn an) { c }]
