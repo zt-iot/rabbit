@@ -1,17 +1,16 @@
-let failwithf fmt = Printf.ksprintf failwith fmt
-
 let (!!) s = Re.compile @@ Re.Pcre.re s
 
-type spec = Verified | Falsified
+type spec = Verified | Falsified | Other of string
 
 let string_of_spec = function
   | Verified -> "verified"
   | Falsified -> "falsified"
+  | Other s -> s
 
 let spec_of_string = function
   | "verified" -> Verified
   | "falsified" -> Falsified
-  | s -> failwithf "invalid spec: %S" s
+  | s -> Other s
 
 let run (com : string) : int * string list =
   Format.printf "execute %s@." com;
@@ -32,10 +31,17 @@ let with_time f =
 
 let runf fmt = Printf.ksprintf run fmt
 
-let verify specs spthy =
+let verify ~no_auto specs spthy =
+
+  let proves =
+    if no_auto then
+      (* Only specified in [spec] *)
+      String.concat " " @@ List.map (fun (s, _) -> Printf.sprintf "--prove=%s" s) specs
+    else "--prove=" (* prove all *)
+  in
 
   (* Verification *)
-  let res, output = runf "tamarin-prover %s --prove= 2>&1" spthy in
+  let res, output = runf "tamarin-prover %s %s 2>&1" spthy proves in
 
   if res <> 0 then
     ( Format.printf "tamarin-prover failed with return code %d!@." res;
@@ -70,15 +76,20 @@ let verify specs spthy =
     List.iter (fun (lemma_name, result) ->
         let expected =
           match List.assoc_opt lemma_name specs with
-          | None -> Verified
-          | Some spec -> spec
+          | None when no_auto -> None
+          | None -> Some Verified
+          | Some spec -> Some spec
         in
-        if result = expected then
-          Format.printf "%s: %s - Ok@." lemma_name (string_of_spec result)
-        else (
-          Format.printf "%s: %s - Oops@." lemma_name (string_of_spec result);
-          fail := true
-        )
+        match expected with
+        | None ->
+            Format.printf "%s: %s - Ignored@." lemma_name (string_of_spec result)
+        | Some expected ->
+            if result = expected then
+              Format.printf "%s: %s - Ok@." lemma_name (string_of_spec result)
+            else (
+              Format.printf "%s: %s - Oops@." lemma_name (string_of_spec result);
+              fail := true
+            )
       ) results;
 
     List.iter (fun (lemma_name, _spec) ->
@@ -96,7 +107,7 @@ let verify specs spthy =
     !fail
   )
 
-let test_file rab =
+let test_file ~no_auto rab =
   let module_ = Re.replace !!{|\.rab$|} ~f:(fun _ -> "") rab in
   Format.printf "Testing module: %s@." module_;
 
@@ -149,18 +160,21 @@ let test_file rab =
   else
     ignore @@ runf "cp %s %s" out_spthy spthy;
 
-  let res, time = with_time @@ fun () -> verify specs out_spthy in
-  let res2, time2 = with_time @@ fun () -> verify specs out_spthy_2 in
+  let res, time = with_time @@ fun () -> verify ~no_auto specs out_spthy in
+  let res2, time2 = with_time @@ fun () -> verify ~no_auto specs out_spthy_2 in
   res || res2, time, time2
 
 
 let () =
   let rev_files = ref [] in
-  let () = Arg.parse [] (fun fn -> rev_files := fn :: !rev_files) "test files" in
+  let no_auto = ref false in
+  let () = Arg.parse [
+      "--no-auto-lemmas", Arg.Set no_auto, " Do not prove auto-generated lemmas such as TransitionOnce"
+    ] (fun fn -> rev_files := fn :: !rev_files) "test files" in
   let files = List.rev !rev_files in
   let results =
     List.map (fun fn ->
-        fn, with_time @@ fun () -> test_file fn) files
+        fn, with_time @@ fun () -> test_file ~no_auto:!no_auto fn) files
   in
   Format.printf "Test summary:@.";
   List.iter (fun (fn, ((res, secs1, secs2), secs)) ->
