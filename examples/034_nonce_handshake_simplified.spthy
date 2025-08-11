@@ -25,8 +25,9 @@ equations: fst(<loc_1, loc_0>)=loc_1, snd(<loc_1, loc_0>)=loc_0, dec(enc(loc_1, 
 
 rule Const_sym_k
   : [ Fr(sym_k) ]
-    --[ Init_('rab_Const_sym_k'), !Const_('rab_sym_k', sym_k) ]->
-    [ !Const_('rab_sym_k', sym_k) ] 
+    --[ Init('Const_sym_k'),
+        !Const('sym_k', sym_k) ]->
+    [ !Const('sym_k', sym_k) ]
 
 
 // Add model inits: Bob
@@ -34,82 +35,103 @@ rule Const_sym_k
 
 rule Init_system[role="system"]
   : [  ]
-    --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str'), State_Bob(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Init('system') ]->
+    [ !ACP_GEN_('system_', 'str:'),
+      State('Bob', 'idx_0', 'str:', %1, '()') ]
 
 
 // Access control of Bob:chan2
 
 
 
-// Fact: !ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan2', 'rab_recv')
+// Fact: !ACP_(<'Bob', 'str:'>, 'chan2', 'recv')
 
 
 rule Init_system_ACP_0[role="system"]
-  : [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
-    --[ Init_('rab_system_ACP_0') ]->
-    [ !ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan2', 'rab_recv') ] 
+  : [ !ACP_GEN_('system_', 'str:') ]
+    --[ Init('system_ACP_0') ]->
+    [ !ACP_(<'Bob', 'str:'>, 'chan2', 'recv') ]
 
 
-// Fact: !ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan2', 'rab_send')
+// Fact: !ACP_(<'Bob', 'str:'>, 'chan2', 'send')
 
 
 rule Init_system_ACP_1[role="system"]
-  : [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
-    --[ Init_('rab_system_ACP_1') ]->
-    [ !ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan2', 'rab_send') ] 
+  : [ !ACP_GEN_('system_', 'str:') ]
+    --[ Init('system_ACP_1') ]->
+    [ !ACP_(<'Bob', 'str:'>, 'chan2', 'send') ]
 
 
 // Access control of Bob:chan
 
 
 
-// Fact: !ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan', 'rab_recv')
+// Fact: !ACP_(<'Bob', 'str:'>, 'chan', 'recv')
 
 
 rule Init_system_ACP_2[role="system"]
-  : [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
-    --[ Init_('rab_system_ACP_2') ]->
-    [ !ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan', 'rab_recv') ] 
+  : [ !ACP_GEN_('system_', 'str:') ]
+    --[ Init('system_ACP_2') ]->
+    [ !ACP_(<'Bob', 'str:'>, 'chan', 'recv') ]
 
 
-// Fact: !ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan', 'rab_send')
+// Fact: !ACP_(<'Bob', 'str:'>, 'chan', 'send')
 
 
 rule Init_system_ACP_3[role="system"]
-  : [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
-    --[ Init_('rab_system_ACP_3') ]->
-    [ !ACP_(<'rab_Bob', 'rab_rab_str'>, 'rab_chan', 'rab_send') ] 
+  : [ !ACP_GEN_('system_', 'str:') ]
+    --[ Init('system_ACP_3') ]->
+    [ !ACP_(<'Bob', 'str:'>, 'chan', 'send') ]
 
 // Model:  Bob
 
 
-rule Bob_new_intro_scall____0___3_0_0_76[role="Bob"]
-  : [ State_Bob(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), !ACP_(<'rab_Bob', param>, 'rab_chan', 'rab_send'), Fr(n_0_0) ]
-    --[ Transition_(<'rab_Bob', param>, 'rab___0', %v_) ]->
-    [ State_Bob(<'rab___3_0_0', param, %v_>, 'rab_unit', n_0_0, <'rab_chan', 'rab_'>, 'rab_empty'), Store('rab_chan', n_0_0) ] 
+rule Bob_new_intro_scall__idx_0_idx_3__0_0_76[role="Bob"]
+  : [ State('Bob', 'idx_0', param, %v_, rho_0),
+      !ACP_(<'Bob', param>, 'chan', 'send'),
+      Fr(n_0_0) ]
+    --[ Transition_(<'Bob', param>, 'idx_0', %v_) ]->
+    [ State('Bob', 'idx_3__0_0', param, %v_, <'()', n_0_0, 'chan', 'str:'>),
+      Store('chan', n_0_0) ]
 
-rule Bob_guarded_return_c___3_0_0___6_71[role="Bob"]
-  : [ State_Bob(<'rab___3_0_0', param, %v_>, return_var_6, m_0_6, <l_0_6, l_1_6>, 'rab_empty'), Fr(n_0_10), !ACP_(<'rab_Bob', param>, l_0_6, 'rab_recv'), Store(l_0_6, n_0_6) ]
-    --[ Transition_(<'rab_Bob', param>, 'rab___3_0_0', %v_), Sent(n_0_10, n_0_6) ]->
-    [ State_Bob(<'rab___6', param, %v_>, 'rab_unit', <n_0_10, m_0_6>, n_0_6, 'rab_empty') ] 
+rule Bob_guarded_return_c_idx_3__0_0_idx_6_71[role="Bob"]
+  : [ State('Bob', 'idx_3__0_0', param, %v_, <rho_6, m_0_6, l_0_6, l_1_6>),
+      Fr(n_0_10),
+      !ACP_(<'Bob', param>, l_0_6, 'recv'),
+      Store(l_0_6, n_0_6) ]
+    --[ Transition_(<'Bob', param>, 'idx_3__0_0', %v_),
+        Sent(n_0_10, n_0_6) ]->
+    [ State('Bob', 'idx_6', param, %v_, <'()', n_0_10, m_0_6, n_0_6>) ]
 
-rule Bob_scall_intro_put____6___8_0_0_66[role="Bob"]
-  : [ State_Bob(<'rab___6', param, %v_>, return_var_12, <m_0_12, m_1_12>, l_0_12, 'rab_empty'), !ACP_(<'rab_Bob', param>, 'rab_chan2', 'rab_send'), !Const_('rab_sym_k', sym_k_12) ]
-    --[ Transition_(<'rab_Bob', param>, 'rab___6', %v_) ]->
-    [ State_Bob(<'rab___8_0_0', param, %v_>, 'rab_unit', <m_0_12, m_1_12>, <'rab_chan2', 'rab_', l_0_12>, 'rab_empty'), Store('rab_chan2', enc(<m_0_12, l_0_12>, sym_k_12)) ] 
+rule Bob_scall_intro_put__idx_6_idx_8__0_0_66[role="Bob"]
+  : [ State('Bob', 'idx_6', param, %v_, <rho_12, m_0_12, m_1_12, l_0_12>),
+      !ACP_(<'Bob', param>, 'chan2', 'send'),
+      !Const('sym_k', sym_k_12) ]
+    --[ Transition_(<'Bob', param>, 'idx_6', %v_) ]->
+    [ State('Bob', 'idx_8__0_0', param, %v_, <'()', m_0_12, m_1_12, 'chan2', 'str:', l_0_12>),
+      Store('chan2', enc(<m_0_12, l_0_12>, sym_k_12)) ]
 
-rule Bob_guarded_return_c___8_0_0___20_62[role="Bob"]
-  : [ State_Bob(<'rab___8_0_0', param, %v_>, return_var_17, <m_0_17, m_1_17>, <l_0_17, l_1_17, l_2_17>, 'rab_empty'), !Const_('rab_sym_k', sym_k_21), !ACP_(<'rab_Bob', param>, l_0_17, 'rab_recv'), Store(l_0_17, n_0_17) ]
-    --[ Transition_(<'rab_Bob', param>, 'rab___8_0_0', %v_), Invalid(), NEq_(m_1_17, snd(dec(n_0_17, sym_k_21))) ]->
-    [ State_Bob(<'rab___20', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Bob_guarded_return_c_idx_8__0_0_idx_20_62[role="Bob"]
+  : [ State('Bob', 'idx_8__0_0', param, %v_, <rho_17, m_0_17, m_1_17, l_0_17, l_1_17, l_2_17>),
+      !Const('sym_k', sym_k_21),
+      !ACP_(<'Bob', param>, l_0_17, 'recv'),
+      Store(l_0_17, n_0_17) ]
+    --[ Transition_(<'Bob', param>, 'idx_8__0_0', %v_),
+        Invalid(),
+        NEq_(m_1_17, snd(dec(n_0_17, sym_k_21))) ]->
+    [ State('Bob', 'idx_20', param, %v_, '()') ]
 
-rule Bob_guarded_return_c___8_0_0___20_61[role="Bob"]
-  : [ State_Bob(<'rab___8_0_0', param, %v_>, return_var_17, <m_0_17, m_1_17>, <l_0_17, l_1_17, l_2_17>, 'rab_empty'), !Const_('rab_sym_k', sym_k_21), !ACP_(<'rab_Bob', param>, l_0_17, 'rab_recv'), Store(l_0_17, n_0_17) ]
-    --[ Transition_(<'rab_Bob', param>, 'rab___8_0_0', %v_), Valid(fst(dec(n_0_17, sym_k_21)), m_1_17), Eq_(m_1_17, snd(dec(n_0_17, sym_k_21))) ]->
-    [ State_Bob(<'rab___20', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Bob_guarded_return_c_idx_8__0_0_idx_20_61[role="Bob"]
+  : [ State('Bob', 'idx_8__0_0', param, %v_, <rho_17, m_0_17, m_1_17, l_0_17, l_1_17, l_2_17>),
+      !Const('sym_k', sym_k_21),
+      !ACP_(<'Bob', param>, l_0_17, 'recv'),
+      Store(l_0_17, n_0_17) ]
+    --[ Transition_(<'Bob', param>, 'idx_8__0_0', %v_),
+        Valid(fst(dec(n_0_17, sym_k_21)), m_1_17),
+        Eq_(m_1_17, snd(dec(n_0_17, sym_k_21))) ]->
+    [ State('Bob', 'idx_20', param, %v_, '()') ]
 
-restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+restriction Init_ : " All x #i #j . Init(x) @ #i & Init(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
 restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
 
@@ -120,7 +142,7 @@ lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
       "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
 
 lemma TransitionOnce_[reuse,use_induction]:
-      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+      "All x p %i #j #k . Transition_(x, p, %i) @ #j &
         Transition_(x, p, %i) @ #k ==> #j = #k"
 
 

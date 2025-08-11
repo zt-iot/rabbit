@@ -25,8 +25,9 @@ builtins: natural-numbers
 
 rule Const_c
   : [ Fr(c) ]
-    --[ Init_(<'rab_c', param>), !Const_(<'rab_c', param>, c) ]->
-    [ !Const_(<'rab_c', param>, c) ] 
+    --[ Init(<'c', param>),
+        !Const(<'c', param>, c) ]->
+    [ !Const(<'c', param>, c) ]
 
 
 // Add model inits: 
@@ -34,8 +35,8 @@ rule Const_c
 
 rule Init_system[role="system"]
   : [  ]
-    --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str') ] 
+    --[ Init('system') ]->
+    [ !ACP_GEN_('system_', 'str:') ]
 
 
 // Add model inits: Server
@@ -43,23 +44,26 @@ rule Init_system[role="system"]
 
 rule Init_system1[role="system1"]
   : [ Fr(param) ]
-    --[ Init_(<'rab_system1', param>) ]->
-    [ !ACP_GEN_('rab_system1_', param), State_Server(<'rab___0', param, %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Init(<'system1', param>) ]->
+    [ !ACP_GEN_('system1_', param),
+      State('Server', 'idx_0', param, %1, '()') ]
 
 // Model:  Server
 
 
-rule Server_return___1___2_1[role="Server"]
-  : [ State_Server(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'), !Const_(<'rab_c', param>, c_0_1) ]
-    --[ Transition_(<'rab_Server', param>, 'rab___1', %v_) ]->
-    [ State_Server(<'rab___2', param, %v_>, <param, c_0_1>, 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Server_return_idx_1_idx_2_1[role="Server"]
+  : [ State('Server', 'idx_1', param, %v_, rho_1),
+      !Const(<'c', param>, c_0_1) ]
+    --[ Transition_(<'Server', param>, 'idx_1', %v_) ]->
+    [ State('Server', 'idx_2', param, %v_, <param, c_0_1>) ]
 
-rule Server_event___0___1_0[role="Server"]
-  : [ State_Server(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Server', param>, 'rab___0', %v_), Valid() ]->
-    [ State_Server(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Server_event_idx_0_idx_1_0[role="Server"]
+  : [ State('Server', 'idx_0', param, %v_, rho_0) ]
+    --[ Transition_(<'Server', param>, 'idx_0', %v_),
+        Valid() ]->
+    [ State('Server', 'idx_1', param, %v_, '()') ]
 
-restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+restriction Init_ : " All x #i #j . Init(x) @ #i & Init(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
 restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
 
@@ -70,7 +74,7 @@ lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
       "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
 
 lemma TransitionOnce_[reuse,use_induction]:
-      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+      "All x p %i #j #k . Transition_(x, p, %i) @ #j &
         Transition_(x, p, %i) @ #k ==> #j = #k"
 
 

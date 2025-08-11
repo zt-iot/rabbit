@@ -25,65 +25,81 @@ builtins: natural-numbers
 
 rule Init_system[role="system"]
   : [  ]
-    --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Init('system') ]->
+    [ !ACP_GEN_('system_', 'str:'),
+      State('Alice', 'idx_0', 'str:', %1, '()') ]
 
 
 // Access control of Alice:chan
 
 
 
-// Fact: !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_recv')
+// Fact: !ACP_(<'Alice', 'str:'>, 'chan', 'recv')
 
 
 rule Init_system_ACP_0[role="system"]
-  : [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
-    --[ Init_('rab_system_ACP_0') ]->
-    [ !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_recv') ] 
+  : [ !ACP_GEN_('system_', 'str:') ]
+    --[ Init('system_ACP_0') ]->
+    [ !ACP_(<'Alice', 'str:'>, 'chan', 'recv') ]
 
 
-// Fact: !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_send')
+// Fact: !ACP_(<'Alice', 'str:'>, 'chan', 'send')
 
 
 rule Init_system_ACP_1[role="system"]
-  : [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
-    --[ Init_('rab_system_ACP_1') ]->
-    [ !ACP_(<'rab_Alice', 'rab_rab_str'>, 'rab_chan', 'rab_send') ] 
+  : [ !ACP_GEN_('system_', 'str:') ]
+    --[ Init('system_ACP_1') ]->
+    [ !ACP_(<'Alice', 'str:'>, 'chan', 'send') ]
 
 // Model:  Alice
 
 
-rule Alice_guarded_new_intr___1___1_0_3_0_0_46[role="Alice"]
-  : [ State_Alice(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'), Fr(n_0_2), !ACP_(<'rab_Alice', param>, 'rab_chan', 'rab_send') ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___1', %v_) ]->
-    [ State_Alice(<'rab___1_0_3_0_0', param, %v_>, 'rab_unit', n_0_2, <'rab_chan', 'rab_'>, 'rab_empty'), Store('rab_chan', n_0_2) ] 
+rule Alice_guarded_new_intr_idx_1_idx_1__0_3__0_0_46[role="Alice"]
+  : [ State('Alice', 'idx_1', param, %v_, rho_1),
+      Fr(n_0_2),
+      !ACP_(<'Alice', param>, 'chan', 'send') ]
+    --[ Transition_(<'Alice', param>, 'idx_1', %v_) ]->
+    [ State('Alice', 'idx_1__0_3__0_0', param, %v_, <'()', n_0_2, 'chan', 'str:'>),
+      Store('chan', n_0_2) ]
 
-rule Alice_guarded_skip_rep___1___2_45[role="Alice"]
-  : [ State_Alice(<'rab___1', param, %v_>, return_var_21, 'rab_empty', 'rab_empty', 'rab_empty'), False() ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___1', %v_), Loop_Finish(<'rab_Alice', param>, 'rab___0') ]->
-    [ State_Alice(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Alice_guarded_skip_rep_idx_1_idx_2_45[role="Alice"]
+  : [ State('Alice', 'idx_1', param, %v_, rho_21),
+      False() ]
+    --[ Transition_(<'Alice', param>, 'idx_1', %v_),
+        Loop_Finish(<'Alice', param>, 'idx_0') ]->
+    [ State('Alice', 'idx_2', param, %v_, '()') ]
 
-rule Alice_guarded_return_c___1_0_3_0_0___1_0_7_39[role="Alice"]
-  : [ State_Alice(<'rab___1_0_3_0_0', param, %v_>, return_var_8, m_0_8, <l_0_8, l_1_8>, 'rab_empty'), !ACP_(<'rab_Alice', param>, l_0_8, 'rab_recv'), Store(l_0_8, n_0_8) ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___1_0_3_0_0', %v_), Valid(), Eq_(m_0_8, n_0_8) ]->
-    [ State_Alice(<'rab___1_0_7', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Alice_guarded_return_c_idx_1__0_3__0_0_idx_1__0_7_39[role="Alice"]
+  : [ State('Alice', 'idx_1__0_3__0_0', param, %v_, <rho_8, m_0_8, l_0_8, l_1_8>),
+      !ACP_(<'Alice', param>, l_0_8, 'recv'),
+      Store(l_0_8, n_0_8) ]
+    --[ Transition_(<'Alice', param>, 'idx_1__0_3__0_0', %v_),
+        Valid(),
+        Eq_(m_0_8, n_0_8) ]->
+    [ State('Alice', 'idx_1__0_7', param, %v_, '()') ]
 
-rule Alice_guarded_return_c___1_0_3_0_0___1_0_7_38[role="Alice"]
-  : [ State_Alice(<'rab___1_0_3_0_0', param, %v_>, return_var_8, m_0_8, <l_0_8, l_1_8>, 'rab_empty'), !ACP_(<'rab_Alice', param>, l_0_8, 'rab_recv'), Store(l_0_8, n_0_8) ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___1_0_3_0_0', %v_), Invalid(), NEq_(m_0_8, n_0_8) ]->
-    [ State_Alice(<'rab___1_0_7', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Alice_guarded_return_c_idx_1__0_3__0_0_idx_1__0_7_38[role="Alice"]
+  : [ State('Alice', 'idx_1__0_3__0_0', param, %v_, <rho_8, m_0_8, l_0_8, l_1_8>),
+      !ACP_(<'Alice', param>, l_0_8, 'recv'),
+      Store(l_0_8, n_0_8) ]
+    --[ Transition_(<'Alice', param>, 'idx_1__0_3__0_0', %v_),
+        Invalid(),
+        NEq_(m_0_8, n_0_8) ]->
+    [ State('Alice', 'idx_1__0_7', param, %v_, '()') ]
 
-rule Alice_repeat___1_0_7___1_20[role="Alice"]
-  : [ State_Alice(<'rab___1_0_7', param, %v_>, return_var_20, 'rab_empty', 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___1_0_7', %v_), Loop_Back(<'rab_Alice', param>, 'rab___0') ]->
-    [ State_Alice(<'rab___1', param, %v_ %+ %1>, return_var_20, 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Alice_repeat_idx_1__0_7_idx_1_20[role="Alice"]
+  : [ State('Alice', 'idx_1__0_7', param, %v_, rho_20) ]
+    --[ Transition_(<'Alice', param>, 'idx_1__0_7', %v_),
+        Loop_Back(<'Alice', param>, 'idx_0') ]->
+    [ State('Alice', 'idx_1', param, %v_ %+ %1, rho_20) ]
 
-rule Alice_repeat_in___0___1_0[role="Alice"]
-  : [ State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___0', %v_), Loop_Start(<'rab_Alice', param>, 'rab___0') ]->
-    [ State_Alice(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Alice_repeat_in_idx_0_idx_1_0[role="Alice"]
+  : [ State('Alice', 'idx_0', param, %v_, rho_0) ]
+    --[ Transition_(<'Alice', param>, 'idx_0', %v_),
+        Loop_Start(<'Alice', param>, 'idx_0') ]->
+    [ State('Alice', 'idx_1', param, %v_, '()') ]
 
-restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+restriction Init_ : " All x #i #j . Init(x) @ #i & Init(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
 restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
 
@@ -94,7 +110,7 @@ lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
       "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
 
 lemma TransitionOnce_[reuse,use_induction]:
-      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+      "All x p %i #j #k . Transition_(x, p, %i) @ #j &
         Transition_(x, p, %i) @ #k ==> #j = #k"
 
 

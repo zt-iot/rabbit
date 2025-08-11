@@ -25,17 +25,19 @@ builtins: natural-numbers
 
 rule Const_c
   : [ Fr(c) ]
-    --[ Init_('rab_Const_c'), !Const_('rab_c', c) ]->
-    [ !Const_('rab_c', c) ] 
+    --[ Init('Const_c'),
+        !Const('c', c) ]->
+    [ !Const('c', c) ]
 
 
 // const c2 = <c, c>
 
 
 rule Const_c2
-  : [ !Const_('rab_c', c), !Const_('rab_c', c) ]
-    --[ !Const_('rab_c2', <c, c>) ]->
-    [ !Const_('rab_c2', <c, c>) ] 
+  : [ !Const('c', c),
+      !Const('c', c) ]
+    --[ !Const('c2', <c, c>) ]->
+    [ !Const('c2', <c, c>) ]
 
 
 // const fresh cp<>
@@ -43,17 +45,20 @@ rule Const_c2
 
 rule Const_cp
   : [ Fr(cp) ]
-    --[ Init_(<'rab_cp', param>), !Const_(<'rab_cp', param>, cp) ]->
-    [ !Const_(<'rab_cp', param>, cp) ] 
+    --[ Init(<'cp', param>),
+        !Const(<'cp', param>, cp) ]->
+    [ !Const(<'cp', param>, cp) ]
 
 
 // const fresh cp2<p> = <cp_0, cp_1>
 
 
 rule Const_cp2
-  : [ !Const_(<'rab_cp', param>, cp_0), !Const_(<'rab_cp', <param, param>>, cp_1) ]
-    --[ Init_(<'rab_cp2', param>), !Const_(<'rab_cp2', param>, <cp_0, cp_1>) ]->
-    [ !Const_(<'rab_cp2', param>, <cp_0, cp_1>) ] 
+  : [ !Const(<'cp', param>, cp_0),
+      !Const(<'cp', <param, param>>, cp_1) ]
+    --[ Init(<'cp2', param>),
+        !Const(<'cp2', param>, <cp_0, cp_1>) ]->
+    [ !Const(<'cp2', param>, <cp_0, cp_1>) ]
 
 
 // Add model inits: 
@@ -61,8 +66,8 @@ rule Const_cp2
 
 rule Init_system[role="system"]
   : [  ]
-    --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str') ] 
+    --[ Init('system') ]->
+    [ !ACP_GEN_('system_', 'str:') ]
 
 
 // Add model inits: Proc
@@ -70,23 +75,29 @@ rule Init_system[role="system"]
 
 rule Init_system1[role="system1"]
   : [ Fr(param) ]
-    --[ Init_(<'rab_system1', param>) ]->
-    [ !ACP_GEN_('rab_system1_', param), State_Proc(<'rab___0', param, %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Init(<'system1', param>) ]->
+    [ !ACP_GEN_('system1_', param),
+      State('Proc', 'idx_0', param, %1, '()') ]
 
 // Model:  Proc
 
 
-rule Proc_return___1___2_1[role="Proc"]
-  : [ State_Proc(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'), !Const_(<'rab_cp2', <param, param>>, cp2_1_1), !Const_(<'rab_cp', param>, cp_0_1), !Const_('rab_c2', c2_1), !Const_('rab_c', c_1) ]
-    --[ Transition_(<'rab_Proc', param>, 'rab___1', %v_) ]->
-    [ State_Proc(<'rab___2', param, %v_>, <c_1, c2_1, cp_0_1, cp2_1_1>, 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Proc_return_idx_1_idx_2_1[role="Proc"]
+  : [ State('Proc', 'idx_1', param, %v_, rho_1),
+      !Const(<'cp2', <param, param>>, cp2_1_1),
+      !Const(<'cp', param>, cp_0_1),
+      !Const('c2', c2_1),
+      !Const('c', c_1) ]
+    --[ Transition_(<'Proc', param>, 'idx_1', %v_) ]->
+    [ State('Proc', 'idx_2', param, %v_, <c_1, c2_1, cp_0_1, cp2_1_1>) ]
 
-rule Proc_event___0___1_0[role="Proc"]
-  : [ State_Proc(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Proc', param>, 'rab___0', %v_), Valid() ]->
-    [ State_Proc(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Proc_event_idx_0_idx_1_0[role="Proc"]
+  : [ State('Proc', 'idx_0', param, %v_, rho_0) ]
+    --[ Transition_(<'Proc', param>, 'idx_0', %v_),
+        Valid() ]->
+    [ State('Proc', 'idx_1', param, %v_, '()') ]
 
-restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+restriction Init_ : " All x #i #j . Init(x) @ #i & Init(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
 restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
 
@@ -97,7 +108,7 @@ lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
       "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
 
 lemma TransitionOnce_[reuse,use_induction]:
-      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+      "All x p %i #j #k . Transition_(x, p, %i) @ #j &
         Transition_(x, p, %i) @ #k ==> #j = #k"
 
 

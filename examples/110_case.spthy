@@ -25,23 +25,28 @@ builtins: natural-numbers
 
 rule Init_system[role="system"]
   : [  ]
-    --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Init('system') ]->
+    [ !ACP_GEN_('system_', 'str:'),
+      State('Alice', 'idx_0', 'str:', %1, '()') ]
 
 // Model:  Alice
 
 
-rule Alice_let_intro_guarde___0___3_15[role="Alice"]
-  : [ State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___0', %v_), Invalid(), NEq_('1', '1') ]->
-    [ State_Alice(<'rab___3', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Alice_let_intro_guarde_idx_0_idx_3_15[role="Alice"]
+  : [ State('Alice', 'idx_0', param, %v_, rho_0) ]
+    --[ Transition_(<'Alice', param>, 'idx_0', %v_),
+        Invalid(),
+        NEq_('1', '1') ]->
+    [ State('Alice', 'idx_3', param, %v_, '()') ]
 
-rule Alice_let_intro_guarde___0___3_14[role="Alice"]
-  : [ State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___0', %v_), Valid(), Eq_('1', '1') ]->
-    [ State_Alice(<'rab___3', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Alice_let_intro_guarde_idx_0_idx_3_14[role="Alice"]
+  : [ State('Alice', 'idx_0', param, %v_, rho_0) ]
+    --[ Transition_(<'Alice', param>, 'idx_0', %v_),
+        Valid(),
+        Eq_('1', '1') ]->
+    [ State('Alice', 'idx_3', param, %v_, '()') ]
 
-restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+restriction Init_ : " All x #i #j . Init(x) @ #i & Init(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
 restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
 
@@ -52,7 +57,7 @@ lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
       "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
 
 lemma TransitionOnce_[reuse,use_induction]:
-      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+      "All x p %i #j #k . Transition_(x, p, %i) @ #j &
         Transition_(x, p, %i) @ #k ==> #j = #k"
 
 

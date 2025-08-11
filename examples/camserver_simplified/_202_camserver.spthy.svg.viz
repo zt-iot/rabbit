@@ -1,0 +1,127 @@
+digraph G {
+  "Client_idx_0";
+  "Client_idx_3";
+  "Client_idx_4";
+  "Client_idx_7";
+  "Client_idx_3__0_1__0_1";
+  "Client_idx_3__0_4__0_1";
+  "Client_idx_1__0_2";
+  "Client_idx_3__0_3__0_2";
+  "Client_idx_4__0_3";
+  "Client_idx_3__0_6";
+  "Client_idx_3__0_9";
+  "Client_ta_idx_0";
+  "Client_ta_idx_1";
+  "Client_ta_idx_2";
+  "Client_ta_idx_3";
+  "Client_ta_idx_1__0_1";
+  "Server_idx_0";
+  "Server_idx_1";
+  "Server_idx_2";
+  "Server_idx_1__0_1__0_0";
+  "Server_idx_1__0_2";
+  "Server_idx_1__0_6";
+  "Server_idx_1__0_1__1_0";
+  
+  
+  "Client_idx_0" -> "Client_idx_1__0_2" [headlabel="Structure(<'Client', param>, 'chid', n_0_2, 'rpc'); Conn('rpc')",
+                                         label="let_intro_scall_..",
+                                         taillabel="!ACP_(<'Client', param>, 'rpc', 'connect_rpc'); Fr(n_0_2)",
+                                         fontsize=10, ];
+  "Client_idx_3" -> "Client_idx_4" [headlabel="", label="guarded_skip_rep..",
+                                    taillabel="", fontsize=10, ];
+  "Client_idx_3" -> "Client_idx_3__0_1__0_1" [headlabel="Out(n_0_9)",
+                                              label="guarded_new_intr..",
+                                              taillabel="Fr(n_0_9)",
+                                              fontsize=10, ];
+  "Client_idx_4" -> "Client_idx_4__0_3" [headlabel="Exit(n_0_36)",
+                                         label="scall_intro_get_..",
+                                         taillabel="Structure(<'Client', param>, 'chid', l_0_35, n_0_36); !ACP_(<'Client', param>, n_0_36, 'close_rpc')",
+                                         fontsize=10, ];
+  "Client_idx_3__0_1__0_1" -> "Client_idx_3__0_3__0_2" [headlabel="Structure(<'Client', param>, 'chid', l_1_12, n_0_15); Invoke(n_0_15, 'sign_image', m_0_12)",
+                                                        label="scall_out_let_in..",
+                                                        taillabel="Structure(<'Client', param>, 'chid', l_1_12, n_0_15); !ACP_(<'Client', param>, n_0_15, 'invoke_rpc')",
+                                                        fontsize=10, ];
+  "Client_idx_3__0_4__0_1" -> "Client_idx_3__0_6" [headlabel="",
+                                                   label="scall_out_event;..",
+                                                   taillabel="", fontsize=10, ];
+  "Client_idx_1__0_2" -> "Client_idx_3" [headlabel="",
+                                         label="return_new_out_s..",
+                                         taillabel="", fontsize=10, ];
+  "Client_idx_3__0_3__0_2" -> "Client_idx_3__0_4__0_1" [headlabel="Out(n_0_17)",
+                                                        label="guarded_return_c..",
+                                                        taillabel="!ACP_(<'Client', param>, m_0_17, 'invoke_rpc'); Returned(m_0_17, n_0_17)",
+                                                        fontsize=10, ];
+  "Client_idx_4__0_3" -> "Client_idx_7" [headlabel="",
+                                         label="get_out_scall_ou..",
+                                         taillabel="", fontsize=10, ];
+  "Client_idx_3__0_6" -> "Client_idx_3__0_9" [headlabel="Store('udp', <l_0_26, m_0_26>)",
+                                              label="scall_intro_put_..",
+                                              taillabel="!ACP_(<'Client', param>, 'udp', 'send')",
+                                              fontsize=10, ];
+  "Client_idx_3__0_9" -> "Client_idx_3" [headlabel="",
+                                         label="repeat;
+;
+Label:..",
+                                         taillabel="", fontsize=10,
+                                         style="dashed", ];
+  "Client_ta_idx_0" -> "Client_ta_idx_1" [headlabel="",
+                                          label="repeat_in;
+retur..",
+                                          taillabel="", fontsize=10, ];
+  "Client_ta_idx_1" -> "Client_ta_idx_2" [headlabel="",
+                                          label="guarded_skip_rep..",
+                                          taillabel="!ACP_(<'Client_ta', param>, 'rpc', 'str:'); Exit('rpc')",
+                                          fontsize=10, ];
+  "Client_ta_idx_1" -> "Client_ta_idx_1__0_1" [headlabel="Returned('rpc', sign(n_0_1, priv_k_3))",
+                                               label="guarded_guarded_..",
+                                               taillabel="!ACP_(<'Client_ta', param>, 'rpc', 'str:'); !Const('priv_k', priv_k_3); !ACP_(<'Client_ta', param>, 'rpc', 'str:'); Invoke('rpc', n_1_1, n_0_1)",
+                                               fontsize=10, ];
+  "Client_ta_idx_1" -> "Client_ta_idx_1__0_1" [headlabel="",
+                                               label="guarded_guarded_..",
+                                               taillabel="!ACP_(<'Client_ta', param>, 'rpc', 'str:'); Invoke('rpc', n_1_1, n_0_1)",
+                                               fontsize=10, ];
+  "Client_ta_idx_2" -> "Client_ta_idx_3" [headlabel="",
+                                          label="event;
+return '(..",
+                                          taillabel="", fontsize=10, ];
+  "Client_ta_idx_1__0_1" -> "Client_ta_idx_1" [headlabel="",
+                                               label="repeat;
+popMeta ..",
+                                               taillabel="", fontsize=10,
+                                               style="dashed", ];
+  "Server_idx_0" -> "Server_idx_1" [headlabel="", label="repeat_in;
+retur..",
+                                    taillabel="", fontsize=10, ];
+  "Server_idx_1" -> "Server_idx_2" [headlabel="", label="guarded_skip_rep..",
+                                    taillabel="False()", fontsize=10, ];
+  "Server_idx_1" -> "Server_idx_1__0_1__0_0" [headlabel="",
+                                              label="guarded_let_intr..",
+                                              taillabel="", fontsize=10, ];
+  "Server_idx_1" -> "Server_idx_1__0_1__1_0" [headlabel="",
+                                              label="guarded_let_intr..",
+                                              taillabel="", fontsize=10, ];
+  "Server_idx_1__0_1__0_0" -> "Server_idx_1__0_2" [headlabel="",
+                                                   label="guarded_return_c..",
+                                                   taillabel="!ACP_(<'Server', param>, l_0_9, 'recv'); Store(l_0_9, n_0_9)",
+                                                   fontsize=10, ];
+  "Server_idx_1__0_2" -> "Server_idx_1__0_6" [headlabel="",
+                                              label="let_intro_guarde..",
+                                              taillabel="!Const('pub_k', pub_k_13)",
+                                              fontsize=10, ];
+  "Server_idx_1__0_2" -> "Server_idx_1__0_6" [headlabel="",
+                                              label="let_intro_guarde..",
+                                              taillabel="!Const('pub_k', pub_k_13)",
+                                              fontsize=10, ];
+  "Server_idx_1__0_6" -> "Server_idx_1" [headlabel="",
+                                         label="repeat;
+;
+Label:..",
+                                         taillabel="", fontsize=10,
+                                         style="dashed", ];
+  "Server_idx_1__0_1__1_0" -> "Server_idx_1__0_2" [headlabel="",
+                                                   label="guarded_return_c..",
+                                                   taillabel="!ACP_(<'Server', param>, l_0_4, 'recv'); In(n_1_4); Store(l_0_4, n_0_4)",
+                                                   fontsize=10, ];
+  
+  }

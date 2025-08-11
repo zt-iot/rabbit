@@ -25,17 +25,19 @@ equations: fst(<loc_1, loc_0>)=loc_1, snd(<loc_1, loc_0>)=loc_0, verify(sign(loc
 
 rule Const_privkey
   : [ Fr(privkey) ]
-    --[ Init_(<'rab_privkey', param>), !Const_(<'rab_privkey', param>, privkey) ]->
-    [ !Const_(<'rab_privkey', param>, privkey) ] 
+    --[ Init(<'privkey', param>),
+        !Const(<'privkey', param>, privkey) ]->
+    [ !Const(<'privkey', param>, privkey) ]
 
 
 // const fresh pubkey<k> = pk(privkey_0)
 
 
 rule Const_pubkey
-  : [ !Const_(<'rab_privkey', param>, privkey_0) ]
-    --[ Init_(<'rab_pubkey', param>), !Const_(<'rab_pubkey', param>, pk(privkey_0)) ]->
-    [ !Const_(<'rab_pubkey', param>, pk(privkey_0)) ] 
+  : [ !Const(<'privkey', param>, privkey_0) ]
+    --[ Init(<'pubkey', param>),
+        !Const(<'pubkey', param>, pk(privkey_0)) ]->
+    [ !Const(<'pubkey', param>, pk(privkey_0)) ]
 
 
 // Add model inits: Server
@@ -43,21 +45,22 @@ rule Const_pubkey
 
 rule Init_system[role="system"]
   : [  ]
-    --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str'), State_Server(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Init('system') ]->
+    [ !ACP_GEN_('system_', 'str:'),
+      State('Server', 'idx_0', 'str:', %1, '()') ]
 
 
 // Access control of Server:chan
 
 
 
-// Fact: !ACP_(<'rab_Server', 'rab_rab_str'>, <'rab_chan', rab_ident>, 'rab_')
+// Fact: !ACP_(<'Server', 'str:'>, <'chan', ident>, 'str:')
 
 
 rule Init_system_ACP_0[role="system"]
-  : [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
-    --[ Init_(<'rab_system_ACP_0', rab_ident>) ]->
-    [ !ACP_(<'rab_Server', 'rab_rab_str'>, <'rab_chan', rab_ident>, 'rab_') ] 
+  : [ !ACP_GEN_('system_', 'str:') ]
+    --[ Init(<'system_ACP_0', ident>) ]->
+    [ !ACP_(<'Server', 'str:'>, <'chan', ident>, 'str:') ]
 
 
 // Add model inits: Client
@@ -65,65 +68,85 @@ rule Init_system_ACP_0[role="system"]
 
 rule Init_system1[role="system1"]
   : [ Fr(param) ]
-    --[ Init_(<'rab_system1', param>) ]->
-    [ !ACP_GEN_('rab_system1_', param), State_Client(<'rab___0', param, %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Init(<'system1', param>) ]->
+    [ !ACP_GEN_('system1_', param),
+      State('Client', 'idx_0', param, %1, '()') ]
 
 
 // Access control of Client:chan
 
 
 
-// Fact: !ACP_(<'rab_Client', param>, <'rab_chan', <param, '2'>>, 'rab_')
+// Fact: !ACP_(<'Client', param>, <'chan', <param, '2'>>, 'str:')
 
 
 rule Init_system1_ACP_0[role="system1"]
-  : [ !ACP_GEN_('rab_system1_', param) ]
-    --[ Init_(<'rab_system1_ACP_0', param>) ]->
-    [ !ACP_(<'rab_Client', param>, <'rab_chan', <param, '2'>>, 'rab_') ] 
+  : [ !ACP_GEN_('system1_', param) ]
+    --[ Init(<'system1_ACP_0', param>) ]->
+    [ !ACP_(<'Client', param>, <'chan', <param, '2'>>, 'str:') ]
 
 // Model:  Server
 
 
-rule Server_guarded_let_intr___1___1_0_7_35[role="Server"]
-  : [ State_Server(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'), !Const_(<'rab_pubkey', <n_0_1, '3'>>, pubkey_0_4), !ACP_(<'rab_Server', param>, <'rab_chan', <n_0_1, '2'>>, 'rab_'), Store(<'rab_chan', <n_0_1, '2'>>, n_1_1) ]
-    --[ Transition_(<'rab_Server', param>, 'rab___1', %v_), Valid(snd(n_1_1)), Eq_(verify(fst(n_1_1), snd(n_1_1), pubkey_0_4), true()) ]->
-    [ State_Server(<'rab___1_0_7', param, %v_>, 'rab_unit', <n_0_1, n_1_1>, 'rab_empty', 'rab_empty') ] 
+rule Server_guarded_let_intr_idx_1_idx_1__0_7_35[role="Server"]
+  : [ State('Server', 'idx_1', param, %v_, rho_1),
+      !Const(<'pubkey', <n_0_1, '3'>>, pubkey_0_4),
+      !ACP_(<'Server', param>, <'chan', <n_0_1, '2'>>, 'str:'),
+      Store(<'chan', <n_0_1, '2'>>, n_1_1) ]
+    --[ Transition_(<'Server', param>, 'idx_1', %v_),
+        Valid(snd(n_1_1)),
+        Eq_(verify(fst(n_1_1), snd(n_1_1), pubkey_0_4), true()) ]->
+    [ State('Server', 'idx_1__0_7', param, %v_, <'()', n_0_1, n_1_1>) ]
 
-rule Server_guarded_let_intr___1___1_0_7_34[role="Server"]
-  : [ State_Server(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'), !Const_(<'rab_pubkey', <n_0_1, '3'>>, pubkey_0_4), !ACP_(<'rab_Server', param>, <'rab_chan', <n_0_1, '2'>>, 'rab_'), Store(<'rab_chan', <n_0_1, '2'>>, n_1_1) ]
-    --[ Transition_(<'rab_Server', param>, 'rab___1', %v_), Invalid(snd(n_1_1)), Eq_(verify(fst(n_1_1), snd(n_1_1), pubkey_0_4), false()) ]->
-    [ State_Server(<'rab___1_0_7', param, %v_>, 'rab_unit', <n_0_1, n_1_1>, 'rab_empty', 'rab_empty') ] 
+rule Server_guarded_let_intr_idx_1_idx_1__0_7_34[role="Server"]
+  : [ State('Server', 'idx_1', param, %v_, rho_1),
+      !Const(<'pubkey', <n_0_1, '3'>>, pubkey_0_4),
+      !ACP_(<'Server', param>, <'chan', <n_0_1, '2'>>, 'str:'),
+      Store(<'chan', <n_0_1, '2'>>, n_1_1) ]
+    --[ Transition_(<'Server', param>, 'idx_1', %v_),
+        Invalid(snd(n_1_1)),
+        Eq_(verify(fst(n_1_1), snd(n_1_1), pubkey_0_4), false()) ]->
+    [ State('Server', 'idx_1__0_7', param, %v_, <'()', n_0_1, n_1_1>) ]
 
-rule Server_guarded_skip_rep___1___2_33[role="Server"]
-  : [ State_Server(<'rab___1', param, %v_>, return_var_15, 'rab_empty', 'rab_empty', 'rab_empty'), False() ]
-    --[ Transition_(<'rab_Server', param>, 'rab___1', %v_), Loop_Finish(<'rab_Server', param>, 'rab___0') ]->
-    [ State_Server(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Server_guarded_skip_rep_idx_1_idx_2_33[role="Server"]
+  : [ State('Server', 'idx_1', param, %v_, rho_15),
+      False() ]
+    --[ Transition_(<'Server', param>, 'idx_1', %v_),
+        Loop_Finish(<'Server', param>, 'idx_0') ]->
+    [ State('Server', 'idx_2', param, %v_, '()') ]
 
-rule Server_repeat___1_0_7___1_14[role="Server"]
-  : [ State_Server(<'rab___1_0_7', param, %v_>, return_var_14, <m_0_14, m_1_14>, 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Server', param>, 'rab___1_0_7', %v_), Loop_Back(<'rab_Server', param>, 'rab___0') ]->
-    [ State_Server(<'rab___1', param, %v_ %+ %1>, return_var_14, 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Server_repeat_idx_1__0_7_idx_1_14[role="Server"]
+  : [ State('Server', 'idx_1__0_7', param, %v_, <rho_14, m_0_14, m_1_14>) ]
+    --[ Transition_(<'Server', param>, 'idx_1__0_7', %v_),
+        Loop_Back(<'Server', param>, 'idx_0') ]->
+    [ State('Server', 'idx_1', param, %v_ %+ %1, rho_14) ]
 
-rule Server_repeat_in___0___1_0[role="Server"]
-  : [ State_Server(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Server', param>, 'rab___0', %v_), Loop_Start(<'rab_Server', param>, 'rab___0') ]->
-    [ State_Server(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule Server_repeat_in_idx_0_idx_1_0[role="Server"]
+  : [ State('Server', 'idx_0', param, %v_, rho_0) ]
+    --[ Transition_(<'Server', param>, 'idx_0', %v_),
+        Loop_Start(<'Server', param>, 'idx_0') ]->
+    [ State('Server', 'idx_1', param, %v_, '()') ]
 
 
 // Model:  Client
 
 
-rule Client_new_intro_let_in___0___4_13[role="Client"]
-  : [ State_Client(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), !Const_(<'rab_privkey', <fst(<param, '1'>), '3'>>, privkey_0_2), Fr(n_0_0) ]
-    --[ Transition_(<'rab_Client', param>, 'rab___0', %v_), Sent(n_0_0) ]->
-    [ State_Client(<'rab___4', param, %v_>, 'rab_unit', n_0_0, <sign(n_0_0, privkey_0_2), fst(<param, '1'>)>, 'rab_empty') ] 
+rule Client_new_intro_let_in_idx_0_idx_4_13[role="Client"]
+  : [ State('Client', 'idx_0', param, %v_, rho_0),
+      !Const(<'privkey', <fst(<param, '1'>), '3'>>, privkey_0_2),
+      Fr(n_0_0) ]
+    --[ Transition_(<'Client', param>, 'idx_0', %v_),
+        Sent(n_0_0) ]->
+    [ State('Client', 'idx_4', param, %v_, <'()', n_0_0, sign(n_0_0, privkey_0_2), fst(<param, '1'>)>) ]
 
-rule Client_put_let_out_let____4___8_10[role="Client"]
-  : [ State_Client(<'rab___4', param, %v_>, return_var_4, m_0_4, <l_0_4, l_1_4>, 'rab_empty'), !ACP_(<'rab_Client', param>, <'rab_chan', <param, '2'>>, 'rab_') ]
-    --[ Transition_(<'rab_Client', param>, 'rab___4', %v_) ]->
-    [ State_Client(<'rab___8', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), Store(<'rab_chan', <param, '2'>>, <l_0_4, m_0_4>) ] 
+rule Client_put_let_out_let__idx_4_idx_8_10[role="Client"]
+  : [ State('Client', 'idx_4', param, %v_, <rho_4, m_0_4, l_0_4, l_1_4>),
+      !ACP_(<'Client', param>, <'chan', <param, '2'>>, 'str:') ]
+    --[ Transition_(<'Client', param>, 'idx_4', %v_) ]->
+    [ State('Client', 'idx_8', param, %v_, '()'),
+      Store(<'chan', <param, '2'>>, <l_0_4, m_0_4>) ]
 
-restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+restriction Init_ : " All x #i #j . Init(x) @ #i & Init(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
 restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
 
@@ -134,7 +157,7 @@ lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
       "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
 
 lemma TransitionOnce_[reuse,use_induction]:
-      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+      "All x p %i #j #k . Transition_(x, p, %i) @ #j &
         Transition_(x, p, %i) @ #k ==> #j = #k"
 
 

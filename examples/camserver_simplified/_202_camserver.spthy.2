@@ -1,0 +1,330 @@
+theory rabbit
+begin
+builtins: natural-numbers
+
+//// Signature
+
+functions: pk/1, sign/2, fst/1, snd/1, true/0, verify/3
+equations: fst(<x__2, y__3>)=x__2, snd(<x__4, y__5>)=y__5, verify(sign(d__6, k__7), d__6, pk(k__7))=true()
+
+//// Constants
+
+// const fresh priv_k
+rule Const_priv_k
+  : [ Fr(priv_k) ]
+    --[ !Const('priv_k', priv_k),
+        Init(<'Const', 'priv_k'>) ]->
+    [ !Const('priv_k', priv_k) ]
+
+// const pub_k = pk(priv_k)
+rule Const_pub_k
+  : [ !Const('priv_k', priv_k) ]
+    --[ !Const('pub_k', pk(priv_k)),
+        Init(<'Const', 'pub_k'>) ]->
+    [ !Const('pub_k', pk(priv_k)) ]
+
+// const fresh sym_k
+rule Const_sym_k
+  : [ Fr(sym_k) ]
+    --[ !Const('sym_k', sym_k),
+        Init(<'Const', 'sym_k'>) ]->
+    [ !Const('sym_k', sym_k) ]
+
+// const fresh init_data
+rule Const_init_data
+  : [ Fr(init_data) ]
+    --[ !Const('init_data', init_data),
+        Init(<'Const', 'init_data'>) ]->
+    [ !Const('init_data', init_data) ]
+
+
+//// Proc group initialization
+
+// Proc group initialization PG_client__45
+rule Init_PG_client__45[role="PG_client__45"]
+  : [  ]
+    --[ Init(<'Proc_group', 'PG_client__45'>) ]->
+    [ !Inited_proc_group('PG_client__45'),
+      State_client__44_0_0(%1, '()') ]
+
+// Proc group initialization PG_server__47
+rule Init_PG_server__47[role="PG_server__47"]
+  : [  ]
+    --[ Init(<'Proc_group', 'PG_server__47'>) ]->
+    [ !Inited_proc_group('PG_server__47'),
+      State_server__46_0_0(%1, '()') ]
+
+// Proc group initialization PG_client_ta__49
+rule Init_PG_client_ta__49[role="PG_client_ta__49"]
+  : [  ]
+    --[ Init(<'Proc_group', 'PG_client_ta__49'>) ]->
+    [ !Inited_proc_group('PG_client_ta__49'),
+      State_client_ta__48_0_0(%1, '()') ]
+
+
+//// Access control
+
+// Access control for proc client__44 of group PG_client__45
+rule Access_client__44[role="client__44"]
+  : [ !Inited_proc_group('PG_client__45') ]
+    --[ Init(<'Proc_access', 'client__44'>) ]->
+    [ !ACP('client__44', 'chan:udp', 'send'),
+      !ACP('client__44', 'chan:rpc', 'connect_rpc'),
+      !ACP('client__44', 'chan:rpc', 'invoke_rpc'),
+      !ACP('client__44', 'chan:rpc', 'close_rpc'),
+      !ACP('client__44', 'chan:rpc', '.') ]
+
+// Access control for proc server__46 of group PG_server__47
+rule Access_server__46[role="server__46"]
+  : [ !Inited_proc_group('PG_server__47') ]
+    --[ Init(<'Proc_access', 'server__46'>) ]->
+    [ !ACP('server__46', 'chan:udp', 'recv') ]
+
+// Access control for proc client_ta__48 of group PG_client_ta__49
+rule Access_client_ta__48[role="client_ta__48"]
+  : [ !Inited_proc_group('PG_client_ta__49') ]
+    --[ Init(<'Proc_access', 'client_ta__48'>) ]->
+    [ !ACP('client_ta__48', 'chan:rpc', '.') ]
+
+//// Proc models
+
+// Model of proc client__44
+
+// Edge client__44/connect_rpc_app___236 : rho__60 <- (); new conn__33 = x__13
+rule connect_rpc_app___236[role="client__44"]
+  : [ !ACP('client__44', 'chan:rpc', 'connect_rpc'),
+      Fr(x__13),
+      State_client__44_0_0(%v, rho__60) ]
+    --[ Transition('client__44', 'index:0.0', %v) ]->
+    [ Conn('chan:rpc'),
+      State_client__44_0_2(%v, '()', x__13),
+      Structure('client__44', 'chid', x__13, 'chan:rpc') ]
+
+// Edge client__44/repeat_in__123 : rho__122 <- ()
+rule repeat_in__123[role="client__44"]
+  : [ State_client__44_0_2(%v, rho__122, conn__33) ]
+    --[ Loop_In('client__44', 'index:0.2'),
+        Transition('client__44', 'index:0.2', %v) ]->
+    [ State_client__44_0_3(%v, '()', conn__33) ]
+
+// Attack edge client__44/case_in_new_intr__243 : rho__120 <- (); new c__17; new cid__14 = conn__33; new f__15 = "sign_image"; new arg1__16 = image__34; new image__34
+rule case_in_new_intr__243[role="client__44"]
+  : [ Fr(image__34),
+      State_client__44_0_3(%v, rho__120, conn__33),
+      Structure('client__44', 'chid', conn__33, c__17) ]
+    --[ Transition('client__44', 'index:0.3', %v) ]->
+    [ Out(image__34),
+      State_client__44_0_3_0_3_0_1(%v, '()', c__17, conn__33, 'str:sign_image', image__34, image__34, conn__33),
+      Structure('client__44', 'chid', conn__33, c__17) ]
+
+// Edge client__44/put__77 : rho__76 <- ()
+rule put__77[role="client__44"]
+  : [ !ACP('client__44', c__17, 'invoke_rpc'),
+      State_client__44_0_3_0_3_0_1(%v, rho__76, c__17, cid__14, f__15, arg1__16, image__34, conn__33) ]
+    --[ Transition('client__44', 'index:0.3_0.3_0.1', %v) ]->
+    [ Invoke(c__17, f__15, arg1__16),
+      State_client__44_0_3_0_3_0_2(%v, '()', c__17, cid__14, f__15, arg1__16, image__34, conn__33) ]
+
+// Attack edge client__44/case_in_return_c__252 : rho__82 <- (); new sig__35 = v__18; drop cid__14; drop f__15; drop arg1__16; drop c__17
+rule case_in_return_c__252[role="client__44"]
+  : [ !ACP('client__44', c__17, 'invoke_rpc'),
+      Returned(c__17, v__18),
+      State_client__44_0_3_0_3_0_2(%v, rho__82, c__17, cid__14, f__15, arg1__16, image__34, conn__33) ]
+    --[ Transition('client__44', 'index:0.3_0.3_0.2', %v) ]->
+    [ Out(v__18),
+      State_client__44_0_3_0_7(%v, '()', v__18, image__34, conn__33) ]
+
+// Edge client__44/event_send_app_i__253 : rho__100 <- (); new c__8 = udp; new v__9 = (sig__35, image__34)
+rule event_send_app_i__253[role="client__44"]
+  : [ State_client__44_0_3_0_7(%v, rho__100, sig__35, image__34, conn__33) ]
+    --[ ImgSend(image__34),
+        Transition('client__44', 'index:0.3_0.7', %v) ]->
+    [ State_client__44_0_3_0_8_0_0(%v, '()', 'chan:udp', <sig__35, image__34>, sig__35, image__34, conn__33) ]
+
+// Edge client__44/put_send_app_out__257 : rho__102 <- (); drop image__34; drop sig__35; drop c__8; drop v__9
+rule put_send_app_out__257[role="client__44"]
+  : [ !ACP('client__44', c__8, 'send'),
+      State_client__44_0_3_0_8_0_0(%v, rho__102, c__8, v__9, sig__35, image__34, conn__33) ]
+    --[ Transition('client__44', 'index:0.3_0.8_0.0', %v) ]->
+    [ State_client__44_0_3_0_12(%v, '()', conn__33),
+      Store(c__8, v__9) ]
+
+// Edge client__44/case_out__119 : rho__118 <- ()
+rule case_out__119[role="client__44"]
+  : [ State_client__44_0_3_0_12(%v, rho__118, conn__33) ]
+    --[ Loop_Back('client__44', 'index:0.2'),
+        Transition('client__44', 'index:0.3_0.12', %v) ]->
+    [ State_client__44_0_3(%v %+ %1, '()', conn__33) ]
+
+// Edge client__44/until_in_skip_un__260 : rho__66 <- (); new cid__19 = conn__33
+rule until_in_skip_un__260[role="client__44"]
+  : [ State_client__44_0_3(%v, rho__66, conn__33) ]
+    --[ Loop_Out('client__44', 'index:0.2'),
+        Transition('client__44', 'index:0.3', %v) ]->
+    [ State_client__44_0_4_0_0(%v, '()', conn__33, conn__33) ]
+
+// Edge client__44/get_intro_del_pu__265 : rho__131 <- (); drop cid__19
+rule get_intro_del_pu__265[role="client__44"]
+  : [ !ACP('client__44', c__20, 'close_rpc'),
+      State_client__44_0_4_0_0(%v, rho__131, cid__19, conn__33),
+      Structure('client__44', 'chid', cid__19, c__20) ]
+    --[ Transition('client__44', 'index:0.4_0.0', %v) ]->
+    [ Exit(c__20),
+      State_client__44_0_6(%v, '()', conn__33) ]
+
+// Edge client__44/event_let_exit_c__266 : rho__139 <- (); drop conn__33
+rule event_let_exit_c__266[role="client__44"]
+  : [ State_client__44_0_6(%v, rho__139, conn__33) ]
+    --[ ClientClose(),
+        Transition('client__44', 'index:0.6', %v) ]->
+    [ State_client__44_0_8(%v, '()') ]
+
+// Model of proc server__46
+
+// Edge server__46/repeat_in__198 : rho__197 <- ()
+rule repeat_in__198[role="server__46"]
+  : [ State_server__46_0_0(%v, rho__197) ]
+    --[ Loop_In('server__46', 'index:0.0'),
+        Transition('server__46', 'index:0.0', %v) ]->
+    [ State_server__46_0_1(%v, '()') ]
+
+// Edge server__46/case_in_recv_app__267 : rho__195 <- (); new c__10 = udp
+rule case_in_recv_app__267[role="server__46"]
+  : [ State_server__46_0_1(%v, rho__195) ]
+    --[ Transition('server__46', 'index:0.1', %v) ]->
+    [ State_server__46_0_1_0_0_0_0(%v, '()', 'chan:udp') ]
+
+// Edge server__46/case_in_return_c__274 : rho__165 <- (); new res__42 = verify(fst(v__11), snd(v__11), pub_k); new p__41 = v__11; drop c__10
+rule case_in_return_c__274[role="server__46"]
+  : [ !ACP('server__46', c__10, 'recv'),
+      !Const('pub_k', pub_k),
+      State_server__46_0_1_0_0_0_0(%v, rho__165, c__10),
+      Store(c__10, v__11) ]
+    --[ Transition('server__46', 'index:0.1_0.0_0.0', %v) ]->
+    [ State_server__46_0_1_0_4(%v, '()', verify(fst(v__11), snd(v__11), pub_k), v__11) ]
+
+// Edge server__46/case_in_event_ca__288 : rho__183 <- (); drop p__41; drop res__42
+rule case_in_event_ca__288[role="server__46"]
+  : [ State_server__46_0_1_0_4(%v, rho__183, res__42, p__41) ]
+    --[ ImgRecvInvalid(snd(p__41)),
+        NEq(res__42, true()),
+        Transition('server__46', 'index:0.1_0.4', %v) ]->
+    [ State_server__46_0_1_0_7(%v, '()') ]
+
+// Edge server__46/case_out__194 : rho__193 <- ()
+rule case_out__194[role="server__46"]
+  : [ State_server__46_0_1_0_7(%v, rho__193) ]
+    --[ Loop_Back('server__46', 'index:0.0'),
+        Transition('server__46', 'index:0.1_0.7', %v) ]->
+    [ State_server__46_0_1(%v %+ %1, '()') ]
+
+// Attack edge server__46/case_in_tamper_c__268 : rho__195 <- (); new c__27 = udp
+rule case_in_tamper_c__268[role="server__46"]
+  : [ State_server__46_0_1(%v, rho__195) ]
+    --[ Transition('server__46', 'index:0.1', %v) ]->
+    [ State_server__46_0_1_0_0_1_0(%v, '()', 'chan:udp') ]
+
+// Edge server__46/case_in_return_c__280 : rho__155 <- (); new res__42 = verify(fst(w__29), snd(w__29), pub_k); new p__41 = w__29; drop c__27
+rule case_in_return_c__280[role="server__46"]
+  : [ !ACP('server__46', c__27, 'recv'),
+      !Const('pub_k', pub_k),
+      In(w__29),
+      State_server__46_0_1_0_0_1_0(%v, rho__155, c__27),
+      Store(c__27, j__28) ]
+    --[ Transition('server__46', 'index:0.1_0.0_1.0', %v) ]->
+    [ State_server__46_0_1_0_4(%v, '()', verify(fst(w__29), snd(w__29), pub_k), w__29) ]
+
+// Edge server__46/case_in_event_ca__284 : rho__177 <- (); drop p__41; drop res__42
+rule case_in_event_ca__284[role="server__46"]
+  : [ State_server__46_0_1_0_4(%v, rho__177, res__42, p__41) ]
+    --[ Eq(res__42, true()),
+        ImgRecvValid(snd(p__41)),
+        Transition('server__46', 'index:0.1_0.4', %v) ]->
+    [ State_server__46_0_1_0_7(%v, '()') ]
+
+// Edge server__46/until_in_skip_un__290 : rho__149 <- ()
+rule until_in_skip_un__290[role="server__46"]
+  : [ False(),
+      State_server__46_0_1(%v, rho__149) ]
+    --[ Loop_Out('server__46', 'index:0.0'),
+        Transition('server__46', 'index:0.1', %v) ]->
+    [ State_server__46_0_2(%v, '()') ]
+
+// Model of proc client_ta__48
+
+// Edge client_ta__48/repeat_in__228 : rho__227 <- ()
+rule repeat_in__228[role="client_ta__48"]
+  : [ State_client_ta__48_0_0(%v, rho__227) ]
+    --[ Loop_In('client_ta__48', 'index:0.0'),
+        Transition('client_ta__48', 'index:0.0', %v) ]->
+    [ State_client_ta__48_0_1(%v, '()') ]
+
+// Edge client_ta__48/case_in_case_in___299 : rho__225 <- (); new image__38; new fname__37
+rule case_in_case_in___299[role="client_ta__48"]
+  : [ !ACP('client_ta__48', 'chan:rpc', '.'),
+      Invoke('chan:rpc', fname__37, image__38),
+      State_client_ta__48_0_1(%v, rho__225) ]
+    --[ InValidName('client_ta__48', fname__37),
+        NEq(fname__37, 'str:sign_image'),
+        Transition('client_ta__48', 'index:0.1', %v) ]->
+    [ State_client_ta__48_0_1_0_1(%v, '()', image__38, fname__37) ]
+
+// Edge client_ta__48/case_out__224 : rho__223 <- (); drop image__38; drop fname__37
+rule case_out__224[role="client_ta__48"]
+  : [ State_client_ta__48_0_1_0_1(%v, rho__223, image__38, fname__37) ]
+    --[ Loop_Back('client_ta__48', 'index:0.0'),
+        Transition('client_ta__48', 'index:0.1_0.1', %v) ]->
+    [ State_client_ta__48_0_1(%v %+ %1, '()') ]
+
+// Edge client_ta__48/case_in_case_in___296 : rho__225 <- (); new image__38; new fname__37
+rule case_in_case_in___296[role="client_ta__48"]
+  : [ !ACP('client_ta__48', 'chan:rpc', '.'),
+      !ACP('client_ta__48', 'chan:rpc', '.'),
+      !Const('priv_k', priv_k),
+      Invoke('chan:rpc', fname__37, image__38),
+      State_client_ta__48_0_1(%v, rho__225) ]
+    --[ Eq(fname__37, 'str:sign_image'),
+        Transition('client_ta__48', 'index:0.1', %v) ]->
+    [ Returned('chan:rpc', sign(image__38, priv_k)),
+      State_client_ta__48_0_1_0_1(%v, '()', image__38, fname__37) ]
+
+// Edge client_ta__48/until_in_skip_un__301 : rho__203 <- ()
+rule until_in_skip_un__301[role="client_ta__48"]
+  : [ !ACP('client_ta__48', 'chan:rpc', '.'),
+      Exit('chan:rpc'),
+      State_client_ta__48_0_1(%v, rho__203) ]
+    --[ Loop_Out('client_ta__48', 'index:0.0'),
+        Transition('client_ta__48', 'index:0.1', %v) ]->
+    [ State_client_ta__48_0_2(%v, '()') ]
+
+// Edge client_ta__48/event__230 : rho__229 <- ()
+rule event__230[role="client_ta__48"]
+  : [ State_client_ta__48_0_2(%v, rho__229) ]
+    --[ ClientTAClose(),
+        Transition('client_ta__48', 'index:0.2', %v) ]->
+    [ State_client_ta__48_0_3(%v, '()') ]
+
+//// Midamble
+
+restriction Init : " All x #i #j . Init(x) @ #i & Init(x) @ #j ==> #i = #j "
+restriction Equality_rule: "All x y #i. Eq(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq(x,x) @ #i ==> F"
+
+lemma AlwaysStarts[reuse,use_induction]:
+      "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_In(x, p) @j & j < i"
+
+lemma AlwaysStartsWhenEnds[reuse,use_induction]:
+      "All x p #i. Loop_Out(x, p) @i ==> Ex #j. Loop_In(x, p) @j & j < i"
+
+lemma TransitionOnce[reuse,use_induction]:
+      "All x p %i #j #k . Transition(x, p, %i) @#j & Transition(x, p, %i) @#k ==> #j = #k"
+
+//// Lemmas
+
+lemma Reachable :
+  exists-trace
+    "Ex x__43 #time_0  #time_1  #time_2 . ClientClose()@#time_0 & ClientTAClose()@#time_1 & ImgRecvValid(x__43)@#time_2 "
+
+
+end
+

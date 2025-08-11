@@ -1,0 +1,125 @@
+digraph G {
+  "client__44_0.0";
+  "client__44_0.4_0.0";
+  "client__44_0.3_0.8_0.0";
+  "client__44_0.3_0.3_0.1";
+  "client__44_0.2";
+  "client__44_0.3_0.3_0.2";
+  "client__44_0.3";
+  "client__44_0.6";
+  "client__44_0.3_0.7";
+  "client__44_0.8";
+  "client__44_0.3_0.12";
+  "client_ta__48_0.0";
+  "client_ta__48_0.1";
+  "client_ta__48_0.1_0.1";
+  "client_ta__48_0.2";
+  "client_ta__48_0.3";
+  "server__46_0.0";
+  "server__46_0.1_0.0_0.0";
+  "server__46_0.1";
+  "server__46_0.2";
+  "server__46_0.1_0.4";
+  "server__46_0.1_0.7";
+  "server__46_0.1_0.0_1.0";
+  
+  
+  "client__44_0.0" -> "client__44_0.2" [headlabel="Structure(chid, x__13, rpc); rpc::conn()",
+                                        label="connect_rpc_app_..",
+                                        taillabel="Fr x__13; Access(rpc, connect_rpc)",
+                                        fontsize=10, ];
+  "client__44_0.4_0.0" -> "client__44_0.6" [headlabel="c__20::exit()",
+                                            label="get_intro_del_pu..",
+                                            taillabel="Structure(chid, cid__19, c__20); Access(c__20, close_rpc)",
+                                            fontsize=10, ];
+  "client__44_0.3_0.8_0.0" -> "client__44_0.3_0.12" [headlabel="c__8::store(v__9)",
+                                                     label="put_send_app_out..",
+                                                     taillabel="Access(c__8, send)",
+                                                     fontsize=10, ];
+  "client__44_0.3_0.3_0.1" -> "client__44_0.3_0.3_0.2" [headlabel="c__17::invoke(f__15, arg1__16)",
+                                                        label="put__77;\nrho__76..",
+                                                        taillabel="Access(c__17, invoke_rpc)",
+                                                        fontsize=10, ];
+  "client__44_0.2" -> "client__44_0.3" [headlabel="",
+                                        label="repeat_in__123;\n..",
+                                        taillabel="", fontsize=10, ];
+  "client__44_0.3_0.3_0.2" -> "client__44_0.3_0.7" [headlabel="::Out(v__18)",
+                                                    label="case_in_return_c..",
+                                                    taillabel="c__17::Returned(v__18); Access(c__17, invoke_rpc)",
+                                                    fontsize=10,
+                                                    style="bold", ];
+  "client__44_0.3" -> "client__44_0.4_0.0" [headlabel="",
+                                            label="until_in_skip_un..",
+                                            taillabel="", fontsize=10, ];
+  "client__44_0.3" -> "client__44_0.3_0.3_0.1" [headlabel="::Out(image__34); Structure(chid, conn__33, c__17)",
+                                                label="case_in_new_intr..",
+                                                taillabel="Fr image__34; Structure(chid, conn__33, c__17)",
+                                                fontsize=10, style="bold", ];
+  "client__44_0.6" -> "client__44_0.8" [headlabel="",
+                                        label="event_let_exit_c..",
+                                        taillabel="", fontsize=10, ];
+  "client__44_0.3_0.7" -> "client__44_0.3_0.8_0.0" [headlabel="",
+                                                    label="event_send_app_i..",
+                                                    taillabel="",
+                                                    fontsize=10, ];
+  "client__44_0.3_0.12" -> "client__44_0.3" [headlabel="",
+                                             label="case_out__119;\nr..",
+                                             taillabel="", fontsize=10,
+                                             style="dashed", ];
+  "client_ta__48_0.0" -> "client_ta__48_0.1" [headlabel="",
+                                              label="repeat_in__228;\n..",
+                                              taillabel="", fontsize=10, ];
+  "client_ta__48_0.1" -> "client_ta__48_0.1_0.1" [headlabel="rpc::Returned(sign(image__38, priv_k))",
+                                                  label="case_in_case_in_..",
+                                                  taillabel="rpc::invoke(fname__37, image__38); Access(rpc, .); fname__37 = \"sign_image\"; Access(rpc, .)",
+                                                  fontsize=10, ];
+  "client_ta__48_0.1" -> "client_ta__48_0.1_0.1" [headlabel="",
+                                                  label="case_in_case_in_..",
+                                                  taillabel="rpc::invoke(fname__37, image__38); Access(rpc, .); fname__37 != \"sign_image\"",
+                                                  fontsize=10, ];
+  "client_ta__48_0.1" -> "client_ta__48_0.2" [headlabel="",
+                                              label="until_in_skip_un..",
+                                              taillabel="rpc::exit(); Access(rpc, .)",
+                                              fontsize=10, ];
+  "client_ta__48_0.1_0.1" -> "client_ta__48_0.1" [headlabel="",
+                                                  label="case_out__224;\nr..",
+                                                  taillabel="", fontsize=10,
+                                                  style="dashed", ];
+  "client_ta__48_0.2" -> "client_ta__48_0.3" [headlabel="",
+                                              label="event__230;\nrho_..",
+                                              taillabel="", fontsize=10, ];
+  "server__46_0.0" -> "server__46_0.1" [headlabel="",
+                                        label="repeat_in__198;\n..",
+                                        taillabel="", fontsize=10, ];
+  "server__46_0.1_0.0_0.0" -> "server__46_0.1_0.4" [headlabel="",
+                                                    label="case_in_return_c..",
+                                                    taillabel="c__10::store(v__11); Access(c__10, recv)",
+                                                    fontsize=10, ];
+  "server__46_0.1" -> "server__46_0.1_0.0_0.0" [headlabel="",
+                                                label="case_in_recv_app..",
+                                                taillabel="", fontsize=10, ];
+  "server__46_0.1" -> "server__46_0.2" [headlabel="",
+                                        label="until_in_skip_un..",
+                                        taillabel="::False()", fontsize=10, ];
+  "server__46_0.1" -> "server__46_0.1_0.0_1.0" [headlabel="",
+                                                label="case_in_tamper_c..",
+                                                taillabel="", fontsize=10,
+                                                style="bold", ];
+  "server__46_0.1_0.4" -> "server__46_0.1_0.7" [headlabel="",
+                                                label="case_in_event_ca..",
+                                                taillabel="res__42 = true",
+                                                fontsize=10, ];
+  "server__46_0.1_0.4" -> "server__46_0.1_0.7" [headlabel="",
+                                                label="case_in_event_ca..",
+                                                taillabel="res__42 != true",
+                                                fontsize=10, ];
+  "server__46_0.1_0.7" -> "server__46_0.1" [headlabel="",
+                                            label="case_out__194;\nr..",
+                                            taillabel="", fontsize=10,
+                                            style="dashed", ];
+  "server__46_0.1_0.0_1.0" -> "server__46_0.1_0.4" [headlabel="",
+                                                    label="case_in_return_c..",
+                                                    taillabel="c__27::store(j__28); ::In(w__29); Access(c__27, recv)",
+                                                    fontsize=10, ];
+  
+  }

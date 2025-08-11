@@ -25,28 +25,40 @@ builtins: natural-numbers
 
 rule Init_system[role="system"]
   : [  ]
-    --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str'), State_P(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Init('system') ]->
+    [ !ACP_GEN_('system_', 'str:'),
+      State('P', 'idx_0', 'str:', %1, '()') ]
 
 // Model:  P
 
 
-rule P_new_intro_event___0___2_16[role="P"]
-  : [ State_P(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), Fr(n_0_0) ]
-    --[ Transition_(<'rab_P', param>, 'rab___0', %v_), Allocated() ]->
-    [ State_P(<'rab___2', param, %v_>, 'rab_unit', n_0_0, 'rab_empty', 'rab_empty'), S_P(param, n_0_0, <'1', '2', '3'>) ] 
+rule P_new_intro_event_idx_0_idx_2_16[role="P"]
+  : [ State('P', 'idx_0', param, %v_, rho_0),
+      Fr(n_0_0) ]
+    --[ Transition_(<'P', param>, 'idx_0', %v_),
+        Allocated() ]->
+    [ State('P', 'idx_2', param, %v_, <'()', n_0_0>),
+      Structure(<'P', param>, 'S', n_0_0, <'1', '2', '3'>) ]
 
-rule P_del_get_intro_gu___2___4_0_1_15[role="P"]
-  : [ State_P(<'rab___2', param, %v_>, return_var_2, m_0_2, 'rab_empty', 'rab_empty'), S_P(param, m_0_2, <n_0_3, n_1_3, n_2_3>), S_P(param, m_0_2, n_0_2) ]
-    --[ Transition_(<'rab_P', param>, 'rab___2', %v_), Valid(), Eq_(n_2_3, '3'), Eq_(n_1_3, '2'), Eq_(n_0_3, '1') ]->
-    [ State_P(<'rab___4_0_1', param, %v_>, 'rab_unit', <n_0_3, n_1_3, n_2_3, m_0_2>, 'rab_empty', 'rab_empty'), S_P(param, m_0_2, <n_0_3, n_1_3, n_2_3>) ] 
+rule P_del_get_intro_gu_idx_2_idx_4__0_1_15[role="P"]
+  : [ State('P', 'idx_2', param, %v_, <rho_2, m_0_2>),
+      Structure(<'P', param>, 'S', m_0_2, <n_0_3, n_1_3, n_2_3>),
+      Structure(<'P', param>, 'S', m_0_2, n_0_2) ]
+    --[ Transition_(<'P', param>, 'idx_2', %v_),
+        Valid(),
+        Eq_(n_2_3, '3'),
+        Eq_(n_1_3, '2'),
+        Eq_(n_0_3, '1') ]->
+    [ State('P', 'idx_4__0_1', param, %v_, <'()', n_0_3, n_1_3, n_2_3, m_0_2>),
+      Structure(<'P', param>, 'S', m_0_2, <n_0_3, n_1_3, n_2_3>) ]
 
-rule P_case_out_event_g___4_0_1___8_12[role="P"]
-  : [ State_P(<'rab___4_0_1', param, %v_>, return_var_6, <m_0_6, m_1_6, m_2_6, m_3_6>, 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_P', param>, 'rab___4_0_1', %v_), Deleted() ]->
-    [ State_P(<'rab___8', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+rule P_case_out_event_g_idx_4__0_1_idx_8_12[role="P"]
+  : [ State('P', 'idx_4__0_1', param, %v_, <rho_6, m_0_6, m_1_6, m_2_6, m_3_6>) ]
+    --[ Transition_(<'P', param>, 'idx_4__0_1', %v_),
+        Deleted() ]->
+    [ State('P', 'idx_8', param, %v_, '()') ]
 
-restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
+restriction Init_ : " All x #i #j . Init(x) @ #i & Init(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
 restriction NEquality_rule: "All x #i. NEq_(x,x) @ #i ==> F"
 
@@ -57,7 +69,7 @@ lemma AlwaysStartsWhenEnds_[reuse,use_induction]:
       "All x p #i. Loop_Finish(x, p) @i ==> Ex #j. Loop_Start(x, p) @j & j < i"
 
 lemma TransitionOnce_[reuse,use_induction]:
-      "All x p %i #j #k . Transition_(x, p, %i) @#j &
+      "All x p %i #j #k . Transition_(x, p, %i) @ #j &
         Transition_(x, p, %i) @ #k ==> #j = #k"
 
 

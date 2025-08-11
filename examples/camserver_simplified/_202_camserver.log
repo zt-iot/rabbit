@@ -1,0 +1,1123 @@
+TyperSuccess
+Translated into: examples/_202_camserver.spthy
+Loading complete..
+execute dot -Tsvg "examples/_202_camserver.spthy.svg.viz" -o "examples/_202_camserver.spthy.svg"
+Compress
+  0.0: connect_rpc_app_in__61
+    [  ] 
+    --[  ]->
+    [  ] 0.0_0.0 / rho__60 <- (); new c__12 = rpc
+  0.0_0.0: new_intro__57
+    [ Fr x__13 ] c__12
+    --[  ]->
+    [ Structure(chid, x__13, c__12) ] 0.0_0.1 / rho__56 <- (); new x__13
+  => 0.0: connect_rpc_app___231
+       [ Fr x__13 ] 
+       --[  ]->
+       [ Structure(chid, x__13, rpc) ] 0.0_0.1 / rho__60 <- (); new x__13; new c__12 = rpc
+
+Compress
+  0.0: connect_rpc_app___231
+    [ Fr x__13 ] 
+    --[  ]->
+    [ Structure(chid, x__13, rpc) ] 0.0_0.1 / rho__60 <- (); new x__13; new c__12 = rpc
+  0.0_0.1: put__51
+    [ Access(c__12, connect_rpc) ] x__13, c__12
+    --[  ]->
+    [ c__12::conn() ] 0.0_0.2 / rho__50 <- ()
+  => 0.0: connect_rpc_app___232
+       [ Fr x__13,
+         Access(rpc, connect_rpc) ] 
+       --[  ]->
+       [ Structure(chid, x__13, rpc),
+         rpc::conn() ] 0.0_0.2 / rho__60 <- (); new x__13; new c__12 = rpc
+
+Compress
+  0.0: connect_rpc_app___232
+    [ Fr x__13,
+      Access(rpc, connect_rpc) ] 
+    --[  ]->
+    [ Structure(chid, x__13, rpc),
+      rpc::conn() ] 0.0_0.2 / rho__60 <- (); new x__13; new c__12 = rpc
+  0.0_0.2: return__53
+    [  ] x__13, c__12
+    --[  ]->
+    [  ] 0.0_0.3 / rho__52 <- x__13
+  => 0.0: connect_rpc_app___233
+       [ Fr x__13,
+         Access(rpc, connect_rpc) ] 
+       --[  ]->
+       [ Structure(chid, x__13, rpc),
+         rpc::conn() ] 0.0_0.3 / rho__60 <- x__13; new x__13; new c__12 = rpc
+
+Compress
+  0.0: connect_rpc_app___233
+    [ Fr x__13,
+      Access(rpc, connect_rpc) ] 
+    --[  ]->
+    [ Structure(chid, x__13, rpc),
+      rpc::conn() ] 0.0_0.3 / rho__60 <- x__13; new x__13; new c__12 = rpc
+  0.0_0.3: new_out__55
+    [  ] x__13, c__12
+    --[  ]->
+    [  ] 0.0_0.4 / rho__54 <- rho__54; drop x__13
+  => 0.0: connect_rpc_app___234
+       [ Fr x__13,
+         Access(rpc, connect_rpc) ] 
+       --[  ]->
+       [ Structure(chid, x__13, rpc),
+         rpc::conn() ] 0.0_0.4 / rho__60 <- x__13; new c__12 = rpc
+
+Compress
+  0.0: connect_rpc_app___234
+    [ Fr x__13,
+      Access(rpc, connect_rpc) ] 
+    --[  ]->
+    [ Structure(chid, x__13, rpc),
+      rpc::conn() ] 0.0_0.4 / rho__60 <- x__13; new c__12 = rpc
+  0.0_0.4: connect_rpc_app_out__59
+    [  ] c__12
+    --[  ]->
+    [  ] 0.1 / rho__58 <- rho__58; drop c__12
+  => 0.0: connect_rpc_app___235
+       [ Fr x__13,
+         Access(rpc, connect_rpc) ] 
+       --[  ]->
+       [ Structure(chid, x__13, rpc),
+         rpc::conn() ] 0.1 / rho__60 <- x__13
+
+Compress
+  0.0: connect_rpc_app___235
+    [ Fr x__13,
+      Access(rpc, connect_rpc) ] 
+    --[  ]->
+    [ Structure(chid, x__13, rpc),
+      rpc::conn() ] 0.1 / rho__60 <- x__13
+  0.1: let_def_conn__144
+    [  ] 
+    --[  ]->
+    [  ] 0.2 / rho__143 <- (); new conn__33 = rho__143
+  => 0.0: connect_rpc_app___236
+       [ Fr x__13,
+         Access(rpc, connect_rpc) ] 
+       --[  ]->
+       [ Structure(chid, x__13, rpc),
+         rpc::conn() ] 0.2 / rho__60 <- (); new conn__33 = x__13
+
+Compress
+  0.3: case_in__121
+    [  ] conn__33
+    --[  ]->
+    [  ] 0.3_0.0 / rho__120 <- ()
+  0.3_0.0: new_intro__117
+    [ Fr image__34 ] conn__33
+    --[  ]->
+    [  ] 0.3_0.1 / rho__116 <- (); new image__34
+  => 0.3: case_in_new_intr__237
+       [ Fr image__34 ] conn__33
+       --[  ]->
+       [  ] 0.3_0.1 / rho__120 <- (); new image__34
+
+Compress
+  0.3: case_in_new_intr__237
+    [ Fr image__34 ] conn__33
+    --[  ]->
+    [  ] 0.3_0.1 / rho__120 <- (); new image__34
+  0.3_0.1: eaves_mem_app_in__73
+    [  ] image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.1_0.0 / rho__72 <- (); new v__30 = image__34
+  => 0.3: case_in_new_intr__238
+       [ Fr image__34 ] conn__33
+       --[  ]->
+       [  ] 0.3_0.1_0.0 / rho__120 <- (); new v__30 = image__34; new image__34
+
+Compress
+  0.3: case_in_new_intr__238
+    [ Fr image__34 ] conn__33
+    --[  ]->
+    [  ] 0.3_0.1_0.0 / rho__120 <- (); new v__30 = image__34; new image__34
+  0.3_0.1_0.0: put__69
+    [  ] v__30, image__34, conn__33
+    --[  ]->
+    [ ::Out(v__30) ] 0.3_0.1_0.1 / rho__68 <- ()
+  => 0.3: case_in_new_intr__239
+       [ Fr image__34 ] conn__33
+       --[  ]->
+       [ ::Out(image__34) ] 0.3_0.1_0.1 / rho__120 <- (); new v__30 = image__34; new image__34
+
+Compress
+  0.3: case_in_new_intr__239
+    [ Fr image__34 ] conn__33
+    --[  ]->
+    [ ::Out(image__34) ] 0.3_0.1_0.1 / rho__120 <- (); new v__30 = image__34; new image__34
+  0.3_0.1_0.1: eaves_mem_app_out__71
+    [  ] v__30, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.2 / rho__70 <- rho__70; drop v__30
+  => 0.3: case_in_new_intr__240
+       [ Fr image__34 ] conn__33
+       --[  ]->
+       [ ::Out(image__34) ] 0.3_0.2 / rho__120 <- (); new image__34
+
+Compress
+  0.3: case_in_new_intr__240
+    [ Fr image__34 ] conn__33
+    --[  ]->
+    [ ::Out(image__34) ] 0.3_0.2 / rho__120 <- (); new image__34
+  0.3_0.2: call__75
+    [  ] image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.3 / rho__74 <- ()
+  => 0.3: case_in_new_intr__241
+       [ Fr image__34 ] conn__33
+       --[  ]->
+       [ ::Out(image__34) ] 0.3_0.3 / rho__120 <- (); new image__34
+
+Compress
+  0.3: case_in_new_intr__241
+    [ Fr image__34 ] conn__33
+    --[  ]->
+    [ ::Out(image__34) ] 0.3_0.3 / rho__120 <- (); new image__34
+  0.3_0.3: invoke_rpc_app_in__91
+    [  ] image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.3_0.0 / rho__90 <- (); new cid__14 = conn__33; new f__15 = "sign_image"; new arg1__16 = image__34
+  => 0.3: case_in_new_intr__242
+       [ Fr image__34 ] conn__33
+       --[  ]->
+       [ ::Out(image__34) ] 0.3_0.3_0.0 / rho__120 <- (); new cid__14 = conn__33; new f__15 = "sign_image"; new arg1__16 = image__34; new image__34
+
+Compress
+  0.3: case_in_new_intr__242
+    [ Fr image__34 ] conn__33
+    --[  ]->
+    [ ::Out(image__34) ] 0.3_0.3_0.0 / rho__120 <- (); new cid__14 = conn__33; new f__15 = "sign_image"; new arg1__16 = image__34; new image__34
+  0.3_0.3_0.0: get_intro__87
+    [ Structure(chid, cid__14, c__17) ] cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [ Structure(chid, cid__14, c__17) ] 0.3_0.3_0.1 / rho__86 <- (); new c__17
+  => 0.3: case_in_new_intr__243
+       [ Fr image__34,
+         Structure(chid, conn__33, c__17) ] conn__33
+       --[  ]->
+       [ ::Out(image__34),
+         Structure(chid, conn__33, c__17) ] 0.3_0.3_0.1 / rho__120 <- (); new c__17; new cid__14 = conn__33; new f__15 = "sign_image"; new arg1__16 = image__34; new image__34
+
+Compress
+  0.3_0.3_0.2: case_in__83
+    [ c__17::Returned(v__18),
+      Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.3_0.2_0.0 / rho__82 <- (); new v__18
+  0.3_0.3_0.2_0.0: return__79
+    [  ] v__18, c__17, cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.3_0.2_0.1 / rho__78 <- v__18
+  => 0.3_0.3_0.2: case_in_return__244
+       [ c__17::Returned(v__18),
+         Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+       --[  ]->
+       [  ] 0.3_0.3_0.2_0.1 / rho__82 <- v__18; new v__18
+
+Compress
+  0.3_0.3_0.2: case_in_return__244
+    [ c__17::Returned(v__18),
+      Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.3_0.2_0.1 / rho__82 <- v__18; new v__18
+  0.3_0.3_0.2_0.1: case_out__81
+    [  ] v__18, c__17, cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.3_0.3 / rho__80 <- rho__80; drop v__18
+  => 0.3_0.3_0.2: case_in_return_c__245
+       [ c__17::Returned(v__18),
+         Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+       --[  ]->
+       [  ] 0.3_0.3_0.3 / rho__82 <- v__18
+
+Compress
+  0.3_0.3_0.2: case_in_return_c__245
+    [ c__17::Returned(v__18),
+      Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.3_0.3 / rho__82 <- v__18
+  0.3_0.3_0.3: get_out__85
+    [  ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.3_0.4 / rho__84 <- rho__84; drop c__17
+  => 0.3_0.3_0.2: case_in_return_c__246
+       [ c__17::Returned(v__18),
+         Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+       --[  ]->
+       [  ] 0.3_0.3_0.4 / rho__82 <- v__18; drop c__17
+
+Compress
+  0.3_0.3_0.2: case_in_return_c__246
+    [ c__17::Returned(v__18),
+      Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.3_0.4 / rho__82 <- v__18; drop c__17
+  0.3_0.3_0.4: invoke_rpc_app_out__89
+    [  ] cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.4 / rho__88 <- rho__88; drop cid__14; drop f__15; drop arg1__16
+  => 0.3_0.3_0.2: case_in_return_c__247
+       [ c__17::Returned(v__18),
+         Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+       --[  ]->
+       [  ] 0.3_0.4 / rho__82 <- v__18; drop cid__14; drop f__15; drop arg1__16; drop c__17
+
+Compress
+  0.3_0.3_0.2: case_in_return_c__247
+    [ c__17::Returned(v__18),
+      Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.4 / rho__82 <- v__18; drop cid__14; drop f__15; drop arg1__16; drop c__17
+  0.3_0.4: let_def_sig__113
+    [  ] image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.5 / rho__112 <- (); new sig__35 = rho__112
+  => 0.3_0.3_0.2: case_in_return_c__248
+       [ c__17::Returned(v__18),
+         Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+       --[  ]->
+       [  ] 0.3_0.5 / rho__82 <- (); new sig__35 = v__18; drop cid__14; drop f__15; drop arg1__16; drop c__17
+
+Compress
+  0.3_0.3_0.2: case_in_return_c__248
+    [ c__17::Returned(v__18),
+      Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.5 / rho__82 <- (); new sig__35 = v__18; drop cid__14; drop f__15; drop arg1__16; drop c__17
+  0.3_0.5: eaves_mem_app_in__97
+    [  ] sig__35, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.5_0.0 / rho__96 <- (); new v__30 = sig__35
+  => 0.3_0.3_0.2: case_in_return_c__249
+       [ c__17::Returned(v__18),
+         Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+       --[  ]->
+       [  ] 0.3_0.5_0.0 / rho__82 <- (); new v__30 = v__18; new sig__35 = v__18; drop cid__14; drop f__15; drop arg1__16; drop c__17
+
+Compress
+  0.3_0.3_0.2: case_in_return_c__249
+    [ c__17::Returned(v__18),
+      Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.5_0.0 / rho__82 <- (); new v__30 = v__18; new sig__35 = v__18; drop cid__14; drop f__15; drop arg1__16; drop c__17
+  0.3_0.5_0.0: put__93
+    [  ] v__30, sig__35, image__34, conn__33
+    --[  ]->
+    [ ::Out(v__30) ] 0.3_0.5_0.1 / rho__92 <- ()
+  => 0.3_0.3_0.2: case_in_return_c__250
+       [ c__17::Returned(v__18),
+         Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+       --[  ]->
+       [ ::Out(v__18) ] 0.3_0.5_0.1 / rho__82 <- (); new v__30 = v__18; new sig__35 = v__18; drop cid__14; drop f__15; drop arg1__16; drop c__17
+
+Compress
+  0.3_0.3_0.2: case_in_return_c__250
+    [ c__17::Returned(v__18),
+      Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [ ::Out(v__18) ] 0.3_0.5_0.1 / rho__82 <- (); new v__30 = v__18; new sig__35 = v__18; drop cid__14; drop f__15; drop arg1__16; drop c__17
+  0.3_0.5_0.1: eaves_mem_app_out__95
+    [  ] v__30, sig__35, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.6 / rho__94 <- rho__94; drop v__30
+  => 0.3_0.3_0.2: case_in_return_c__251
+       [ c__17::Returned(v__18),
+         Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+       --[  ]->
+       [ ::Out(v__18) ] 0.3_0.6 / rho__82 <- (); new sig__35 = v__18; drop cid__14; drop f__15; drop arg1__16; drop c__17
+
+Compress
+  0.3_0.3_0.2: case_in_return_c__251
+    [ c__17::Returned(v__18),
+      Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+    --[  ]->
+    [ ::Out(v__18) ] 0.3_0.6 / rho__82 <- (); new sig__35 = v__18; drop cid__14; drop f__15; drop arg1__16; drop c__17
+  0.3_0.6: call__99
+    [  ] sig__35, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.7 / rho__98 <- ()
+  => 0.3_0.3_0.2: case_in_return_c__252
+       [ c__17::Returned(v__18),
+         Access(c__17, invoke_rpc) ] c__17, cid__14, f__15, arg1__16, image__34, conn__33
+       --[  ]->
+       [ ::Out(v__18) ] 0.3_0.7 / rho__82 <- (); new sig__35 = v__18; drop cid__14; drop f__15; drop arg1__16; drop c__17
+
+Compress
+  0.3_0.7: event__101
+    [  ] sig__35, image__34, conn__33
+    --[ ::ImgSend(image__34) ]->
+    [  ] 0.3_0.8 / rho__100 <- ()
+  0.3_0.8: send_app_in__107
+    [  ] sig__35, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.8_0.0 / rho__106 <- (); new c__8 = udp; new v__9 = (sig__35, image__34)
+  => 0.3_0.7: event_send_app_i__253
+       [  ] sig__35, image__34, conn__33
+       --[ ::ImgSend(image__34) ]->
+       [  ] 0.3_0.8_0.0 / rho__100 <- (); new c__8 = udp; new v__9 = (sig__35, image__34)
+
+Compress
+  0.3_0.8_0.0: put__103
+    [ Access(c__8, send) ] c__8, v__9, sig__35, image__34, conn__33
+    --[  ]->
+    [ c__8::store(v__9) ] 0.3_0.8_0.1 / rho__102 <- ()
+  0.3_0.8_0.1: send_app_out__105
+    [  ] c__8, v__9, sig__35, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.9 / rho__104 <- rho__104; drop c__8; drop v__9
+  => 0.3_0.8_0.0: put_send_app_out__254
+       [ Access(c__8, send) ] c__8, v__9, sig__35, image__34, conn__33
+       --[  ]->
+       [ c__8::store(v__9) ] 0.3_0.9 / rho__102 <- (); drop c__8; drop v__9
+
+Compress
+  0.3_0.8_0.0: put_send_app_out__254
+    [ Access(c__8, send) ] c__8, v__9, sig__35, image__34, conn__33
+    --[  ]->
+    [ c__8::store(v__9) ] 0.3_0.9 / rho__102 <- (); drop c__8; drop v__9
+  0.3_0.9: call__109
+    [  ] sig__35, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.10 / rho__108 <- ()
+  => 0.3_0.8_0.0: put_send_app_out__255
+       [ Access(c__8, send) ] c__8, v__9, sig__35, image__34, conn__33
+       --[  ]->
+       [ c__8::store(v__9) ] 0.3_0.10 / rho__102 <- (); drop c__8; drop v__9
+
+Compress
+  0.3_0.8_0.0: put_send_app_out__255
+    [ Access(c__8, send) ] c__8, v__9, sig__35, image__34, conn__33
+    --[  ]->
+    [ c__8::store(v__9) ] 0.3_0.10 / rho__102 <- (); drop c__8; drop v__9
+  0.3_0.10: let_exit_sig__111
+    [  ] sig__35, image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.11 / rho__110 <- rho__110; drop sig__35
+  => 0.3_0.8_0.0: put_send_app_out__256
+       [ Access(c__8, send) ] c__8, v__9, sig__35, image__34, conn__33
+       --[  ]->
+       [ c__8::store(v__9) ] 0.3_0.11 / rho__102 <- (); drop sig__35; drop c__8; drop v__9
+
+Compress
+  0.3_0.8_0.0: put_send_app_out__256
+    [ Access(c__8, send) ] c__8, v__9, sig__35, image__34, conn__33
+    --[  ]->
+    [ c__8::store(v__9) ] 0.3_0.11 / rho__102 <- (); drop sig__35; drop c__8; drop v__9
+  0.3_0.11: new_out__115
+    [  ] image__34, conn__33
+    --[  ]->
+    [  ] 0.3_0.12 / rho__114 <- rho__114; drop image__34
+  => 0.3_0.8_0.0: put_send_app_out__257
+       [ Access(c__8, send) ] c__8, v__9, sig__35, image__34, conn__33
+       --[  ]->
+       [ c__8::store(v__9) ] 0.3_0.12 / rho__102 <- (); drop image__34; drop sig__35; drop c__8; drop v__9
+
+Compress
+  0.3: until_in__67
+    [  ] conn__33
+    --[  ]->
+    [  ] 0.3_1.0 / rho__66 <- ()
+  0.3_1.0: skip__63
+    [  ] conn__33
+    --[  ]->
+    [  ] 0.3_1.1 / rho__62 <- ()
+  => 0.3: until_in_skip__258
+       [  ] conn__33
+       --[  ]->
+       [  ] 0.3_1.1 / rho__66 <- ()
+
+Compress
+  0.3: until_in_skip__258
+    [  ] conn__33
+    --[  ]->
+    [  ] 0.3_1.1 / rho__66 <- ()
+  0.3_1.1: until_out__65
+    [  ] conn__33
+    --[ LoopOut(0.2) ]->
+    [  ] 0.4 / rho__64 <- rho__64
+  => 0.3: until_in_skip_un__259
+       [  ] conn__33
+       --[ LoopOut(0.2) ]->
+       [  ] 0.4 / rho__66 <- ()
+
+Compress
+  0.3: until_in_skip_un__259
+    [  ] conn__33
+    --[ LoopOut(0.2) ]->
+    [  ] 0.4 / rho__66 <- ()
+  0.4: close_rpc_app_in__136
+    [  ] conn__33
+    --[  ]->
+    [  ] 0.4_0.0 / rho__135 <- (); new cid__19 = conn__33
+  => 0.3: until_in_skip_un__260
+       [  ] conn__33
+       --[ LoopOut(0.2) ]->
+       [  ] 0.4_0.0 / rho__66 <- (); new cid__19 = conn__33
+
+Compress
+  0.4_0.0: get_intro__132
+    [ Structure(chid, cid__19, c__20) ] cid__19, conn__33
+    --[  ]->
+    [ Structure(chid, cid__19, c__20) ] 0.4_0.1 / rho__131 <- (); new c__20
+  0.4_0.1: del__126
+    [ Structure(chid, cid__19, x0__124) ] c__20, cid__19, conn__33
+    --[  ]->
+    [  ] 0.4_0.2 / rho__125 <- ()
+  => 0.4_0.0: get_intro_del__261
+       [ Structure(chid, cid__19, c__20) ] cid__19, conn__33
+       --[  ]->
+       [  ] 0.4_0.2 / rho__131 <- (); new c__20
+
+Compress
+  0.4_0.0: get_intro_del__261
+    [ Structure(chid, cid__19, c__20) ] cid__19, conn__33
+    --[  ]->
+    [  ] 0.4_0.2 / rho__131 <- (); new c__20
+  0.4_0.2: put__128
+    [ Access(c__20, close_rpc) ] c__20, cid__19, conn__33
+    --[  ]->
+    [ c__20::exit() ] 0.4_0.3 / rho__127 <- ()
+  => 0.4_0.0: get_intro_del_pu__262
+       [ Structure(chid, cid__19, c__20),
+         Access(c__20, close_rpc) ] cid__19, conn__33
+       --[  ]->
+       [ c__20::exit() ] 0.4_0.3 / rho__131 <- (); new c__20
+
+Compress
+  0.4_0.0: get_intro_del_pu__262
+    [ Structure(chid, cid__19, c__20),
+      Access(c__20, close_rpc) ] cid__19, conn__33
+    --[  ]->
+    [ c__20::exit() ] 0.4_0.3 / rho__131 <- (); new c__20
+  0.4_0.3: get_out__130
+    [  ] c__20, cid__19, conn__33
+    --[  ]->
+    [  ] 0.4_0.4 / rho__129 <- rho__129; drop c__20
+  => 0.4_0.0: get_intro_del_pu__263
+       [ Structure(chid, cid__19, c__20),
+         Access(c__20, close_rpc) ] cid__19, conn__33
+       --[  ]->
+       [ c__20::exit() ] 0.4_0.4 / rho__131 <- ()
+
+Compress
+  0.4_0.0: get_intro_del_pu__263
+    [ Structure(chid, cid__19, c__20),
+      Access(c__20, close_rpc) ] cid__19, conn__33
+    --[  ]->
+    [ c__20::exit() ] 0.4_0.4 / rho__131 <- ()
+  0.4_0.4: close_rpc_app_out__134
+    [  ] cid__19, conn__33
+    --[  ]->
+    [  ] 0.5 / rho__133 <- rho__133; drop cid__19
+  => 0.4_0.0: get_intro_del_pu__264
+       [ Structure(chid, cid__19, c__20),
+         Access(c__20, close_rpc) ] cid__19, conn__33
+       --[  ]->
+       [ c__20::exit() ] 0.5 / rho__131 <- (); drop cid__19
+
+Compress
+  0.4_0.0: get_intro_del_pu__264
+    [ Structure(chid, cid__19, c__20),
+      Access(c__20, close_rpc) ] cid__19, conn__33
+    --[  ]->
+    [ c__20::exit() ] 0.5 / rho__131 <- (); drop cid__19
+  0.5: call__138
+    [  ] conn__33
+    --[  ]->
+    [  ] 0.6 / rho__137 <- ()
+  => 0.4_0.0: get_intro_del_pu__265
+       [ Structure(chid, cid__19, c__20),
+         Access(c__20, close_rpc) ] cid__19, conn__33
+       --[  ]->
+       [ c__20::exit() ] 0.6 / rho__131 <- (); drop cid__19
+
+Compress
+  0.6: event__140
+    [  ] conn__33
+    --[ ::ClientClose() ]->
+    [  ] 0.7 / rho__139 <- ()
+  0.7: let_exit_conn__142
+    [  ] conn__33
+    --[  ]->
+    [  ] 0.8 / rho__141 <- rho__141; drop conn__33
+  => 0.6: event_let_exit_c__266
+       [  ] conn__33
+       --[ ::ClientClose() ]->
+       [  ] 0.8 / rho__139 <- (); drop conn__33
+
+Compress
+  0.1: case_in__196
+    [  ] 
+    --[  ]->
+    [  ] 0.1_0.0 / rho__195 <- ()
+  0.1_0.0: recv_app_in__170
+    [  ] 
+    --[  ]->
+    [  ] 0.1_0.0_0.0 / rho__169 <- (); new c__10 = udp
+  => 0.1: case_in_recv_app__267
+       [  ] 
+       --[  ]->
+       [  ] 0.1_0.0_0.0 / rho__195 <- (); new c__10 = udp
+
+Compress
+  0.1: case_in__196
+    [  ] 
+    --[  ]->
+    [  ] 0.1_0.0 / rho__195 <- ()
+  0.1_0.0: tamper_channel_attack_in__160
+    [  ] 
+    --[  ]->
+    [  ] 0.1_0.0_1.0 / rho__159 <- (); new c__27 = udp
+  => 0.1: case_in_tamper_c__268
+       [  ] 
+       --[  ]->
+       [  ] 0.1_0.0_1.0 / rho__195 <- (); new c__27 = udp
+
+Compress
+  0.1_0.0_0.0: case_in__166
+    [ c__10::store(v__11),
+      Access(c__10, recv) ] c__10
+    --[  ]->
+    [  ] 0.1_0.0_0.0_0.0 / rho__165 <- (); new v__11
+  0.1_0.0_0.0_0.0: return__162
+    [  ] v__11, c__10
+    --[  ]->
+    [  ] 0.1_0.0_0.0_0.1 / rho__161 <- v__11
+  => 0.1_0.0_0.0: case_in_return__269
+       [ c__10::store(v__11),
+         Access(c__10, recv) ] c__10
+       --[  ]->
+       [  ] 0.1_0.0_0.0_0.1 / rho__165 <- v__11; new v__11
+
+Compress
+  0.1_0.0_0.0: case_in_return__269
+    [ c__10::store(v__11),
+      Access(c__10, recv) ] c__10
+    --[  ]->
+    [  ] 0.1_0.0_0.0_0.1 / rho__165 <- v__11; new v__11
+  0.1_0.0_0.0_0.1: case_out__164
+    [  ] v__11, c__10
+    --[  ]->
+    [  ] 0.1_0.0_0.1 / rho__163 <- rho__163; drop v__11
+  => 0.1_0.0_0.0: case_in_return_c__270
+       [ c__10::store(v__11),
+         Access(c__10, recv) ] c__10
+       --[  ]->
+       [  ] 0.1_0.0_0.1 / rho__165 <- v__11
+
+Compress
+  0.1_0.0_0.0: case_in_return_c__270
+    [ c__10::store(v__11),
+      Access(c__10, recv) ] c__10
+    --[  ]->
+    [  ] 0.1_0.0_0.1 / rho__165 <- v__11
+  0.1_0.0_0.1: recv_app_out__168
+    [  ] c__10
+    --[  ]->
+    [  ] 0.1_0.1 / rho__167 <- rho__167; drop c__10
+  => 0.1_0.0_0.0: case_in_return_c__271
+       [ c__10::store(v__11),
+         Access(c__10, recv) ] c__10
+       --[  ]->
+       [  ] 0.1_0.1 / rho__165 <- v__11; drop c__10
+
+Compress
+  0.1_0.0_0.0: case_in_return_c__271
+    [ c__10::store(v__11),
+      Access(c__10, recv) ] c__10
+    --[  ]->
+    [  ] 0.1_0.1 / rho__165 <- v__11; drop c__10
+  0.1_0.1: let_def_p__192
+    [  ] 
+    --[  ]->
+    [  ] 0.1_0.2 / rho__191 <- (); new p__41 = rho__191
+  => 0.1_0.0_0.0: case_in_return_c__272
+       [ c__10::store(v__11),
+         Access(c__10, recv) ] c__10
+       --[  ]->
+       [  ] 0.1_0.2 / rho__165 <- (); new p__41 = v__11; drop c__10
+
+Compress
+  0.1_0.0_0.0: case_in_return_c__272
+    [ c__10::store(v__11),
+      Access(c__10, recv) ] c__10
+    --[  ]->
+    [  ] 0.1_0.2 / rho__165 <- (); new p__41 = v__11; drop c__10
+  0.1_0.2: extfun__172
+    [  ] p__41
+    --[  ]->
+    [  ] 0.1_0.3 / rho__171 <- verify(fst(p__41), snd(p__41), pub_k)
+  => 0.1_0.0_0.0: case_in_return_c__273
+       [ c__10::store(v__11),
+         Access(c__10, recv) ] c__10
+       --[  ]->
+       [  ] 0.1_0.3 / rho__165 <- verify(fst(v__11), snd(v__11), pub_k); new p__41 = v__11; drop c__10
+
+Compress
+  0.1_0.0_0.0: case_in_return_c__273
+    [ c__10::store(v__11),
+      Access(c__10, recv) ] c__10
+    --[  ]->
+    [  ] 0.1_0.3 / rho__165 <- verify(fst(v__11), snd(v__11), pub_k); new p__41 = v__11; drop c__10
+  0.1_0.3: let_def_res__188
+    [  ] p__41
+    --[  ]->
+    [  ] 0.1_0.4 / rho__187 <- (); new res__42 = rho__187
+  => 0.1_0.0_0.0: case_in_return_c__274
+       [ c__10::store(v__11),
+         Access(c__10, recv) ] c__10
+       --[  ]->
+       [  ] 0.1_0.4 / rho__165 <- (); new res__42 = verify(fst(v__11), snd(v__11), pub_k); new p__41 = v__11; drop c__10
+
+Compress
+  0.1_0.0_1.0: case_in__156
+    [ c__27::store(j__28),
+      ::In(w__29),
+      Access(c__27, recv) ] c__27
+    --[  ]->
+    [  ] 0.1_0.0_1.0_0.0 / rho__155 <- (); new w__29; new j__28
+  0.1_0.0_1.0_0.0: return__152
+    [  ] w__29, j__28, c__27
+    --[  ]->
+    [  ] 0.1_0.0_1.0_0.1 / rho__151 <- w__29
+  => 0.1_0.0_1.0: case_in_return__275
+       [ c__27::store(j__28),
+         ::In(w__29),
+         Access(c__27, recv) ] c__27
+       --[  ]->
+       [  ] 0.1_0.0_1.0_0.1 / rho__155 <- w__29; new w__29; new j__28
+
+Compress
+  0.1_0.0_1.0: case_in_return__275
+    [ c__27::store(j__28),
+      ::In(w__29),
+      Access(c__27, recv) ] c__27
+    --[  ]->
+    [  ] 0.1_0.0_1.0_0.1 / rho__155 <- w__29; new w__29; new j__28
+  0.1_0.0_1.0_0.1: case_out__154
+    [  ] w__29, j__28, c__27
+    --[  ]->
+    [  ] 0.1_0.0_1.1 / rho__153 <- rho__153; drop w__29; drop j__28
+  => 0.1_0.0_1.0: case_in_return_c__276
+       [ c__27::store(j__28),
+         ::In(w__29),
+         Access(c__27, recv) ] c__27
+       --[  ]->
+       [  ] 0.1_0.0_1.1 / rho__155 <- w__29
+
+Compress
+  0.1_0.0_1.0: case_in_return_c__276
+    [ c__27::store(j__28),
+      ::In(w__29),
+      Access(c__27, recv) ] c__27
+    --[  ]->
+    [  ] 0.1_0.0_1.1 / rho__155 <- w__29
+  0.1_0.0_1.1: tamper_channel_attack_out__158
+    [  ] c__27
+    --[  ]->
+    [  ] 0.1_0.1 / rho__157 <- rho__157; drop c__27
+  => 0.1_0.0_1.0: case_in_return_c__277
+       [ c__27::store(j__28),
+         ::In(w__29),
+         Access(c__27, recv) ] c__27
+       --[  ]->
+       [  ] 0.1_0.1 / rho__155 <- w__29; drop c__27
+
+Compress
+  0.1_0.0_1.0: case_in_return_c__277
+    [ c__27::store(j__28),
+      ::In(w__29),
+      Access(c__27, recv) ] c__27
+    --[  ]->
+    [  ] 0.1_0.1 / rho__155 <- w__29; drop c__27
+  0.1_0.1: let_def_p__192
+    [  ] 
+    --[  ]->
+    [  ] 0.1_0.2 / rho__191 <- (); new p__41 = rho__191
+  => 0.1_0.0_1.0: case_in_return_c__278
+       [ c__27::store(j__28),
+         ::In(w__29),
+         Access(c__27, recv) ] c__27
+       --[  ]->
+       [  ] 0.1_0.2 / rho__155 <- (); new p__41 = w__29; drop c__27
+
+Compress
+  0.1_0.0_1.0: case_in_return_c__278
+    [ c__27::store(j__28),
+      ::In(w__29),
+      Access(c__27, recv) ] c__27
+    --[  ]->
+    [  ] 0.1_0.2 / rho__155 <- (); new p__41 = w__29; drop c__27
+  0.1_0.2: extfun__172
+    [  ] p__41
+    --[  ]->
+    [  ] 0.1_0.3 / rho__171 <- verify(fst(p__41), snd(p__41), pub_k)
+  => 0.1_0.0_1.0: case_in_return_c__279
+       [ c__27::store(j__28),
+         ::In(w__29),
+         Access(c__27, recv) ] c__27
+       --[  ]->
+       [  ] 0.1_0.3 / rho__155 <- verify(fst(w__29), snd(w__29), pub_k); new p__41 = w__29; drop c__27
+
+Compress
+  0.1_0.0_1.0: case_in_return_c__279
+    [ c__27::store(j__28),
+      ::In(w__29),
+      Access(c__27, recv) ] c__27
+    --[  ]->
+    [  ] 0.1_0.3 / rho__155 <- verify(fst(w__29), snd(w__29), pub_k); new p__41 = w__29; drop c__27
+  0.1_0.3: let_def_res__188
+    [  ] p__41
+    --[  ]->
+    [  ] 0.1_0.4 / rho__187 <- (); new res__42 = rho__187
+  => 0.1_0.0_1.0: case_in_return_c__280
+       [ c__27::store(j__28),
+         ::In(w__29),
+         Access(c__27, recv) ] c__27
+       --[  ]->
+       [  ] 0.1_0.4 / rho__155 <- (); new res__42 = verify(fst(w__29), snd(w__29), pub_k); new p__41 = w__29; drop c__27
+
+Compress
+  0.1_0.4: case_in__178
+    [ res__42 = true ] res__42, p__41
+    --[  ]->
+    [  ] 0.1_0.4_0.0 / rho__177 <- ()
+  0.1_0.4_0.0: event__174
+    [  ] res__42, p__41
+    --[ ::ImgRecvValid(snd(p__41)) ]->
+    [  ] 0.1_0.4_0.1 / rho__173 <- ()
+  => 0.1_0.4: case_in_event__281
+       [ res__42 = true ] res__42, p__41
+       --[ ::ImgRecvValid(snd(p__41)) ]->
+       [  ] 0.1_0.4_0.1 / rho__177 <- ()
+
+Compress
+  0.1_0.4: case_in_event__281
+    [ res__42 = true ] res__42, p__41
+    --[ ::ImgRecvValid(snd(p__41)) ]->
+    [  ] 0.1_0.4_0.1 / rho__177 <- ()
+  0.1_0.4_0.1: case_out__176
+    [  ] res__42, p__41
+    --[  ]->
+    [  ] 0.1_0.5 / rho__175 <- rho__175
+  => 0.1_0.4: case_in_event_ca__282
+       [ res__42 = true ] res__42, p__41
+       --[ ::ImgRecvValid(snd(p__41)) ]->
+       [  ] 0.1_0.5 / rho__177 <- ()
+
+Compress
+  0.1_0.4: case_in_event_ca__282
+    [ res__42 = true ] res__42, p__41
+    --[ ::ImgRecvValid(snd(p__41)) ]->
+    [  ] 0.1_0.5 / rho__177 <- ()
+  0.1_0.5: let_exit_res__186
+    [  ] res__42, p__41
+    --[  ]->
+    [  ] 0.1_0.6 / rho__185 <- rho__185; drop res__42
+  => 0.1_0.4: case_in_event_ca__283
+       [ res__42 = true ] res__42, p__41
+       --[ ::ImgRecvValid(snd(p__41)) ]->
+       [  ] 0.1_0.6 / rho__177 <- (); drop res__42
+
+Compress
+  0.1_0.4: case_in_event_ca__283
+    [ res__42 = true ] res__42, p__41
+    --[ ::ImgRecvValid(snd(p__41)) ]->
+    [  ] 0.1_0.6 / rho__177 <- (); drop res__42
+  0.1_0.6: let_exit_p__190
+    [  ] p__41
+    --[  ]->
+    [  ] 0.1_0.7 / rho__189 <- rho__189; drop p__41
+  => 0.1_0.4: case_in_event_ca__284
+       [ res__42 = true ] res__42, p__41
+       --[ ::ImgRecvValid(snd(p__41)) ]->
+       [  ] 0.1_0.7 / rho__177 <- (); drop p__41; drop res__42
+
+Compress
+  0.1_0.4: case_in__184
+    [ res__42 != true ] res__42, p__41
+    --[  ]->
+    [  ] 0.1_0.4_1.0 / rho__183 <- ()
+  0.1_0.4_1.0: event__180
+    [  ] res__42, p__41
+    --[ ::ImgRecvInvalid(snd(p__41)) ]->
+    [  ] 0.1_0.4_1.1 / rho__179 <- ()
+  => 0.1_0.4: case_in_event__285
+       [ res__42 != true ] res__42, p__41
+       --[ ::ImgRecvInvalid(snd(p__41)) ]->
+       [  ] 0.1_0.4_1.1 / rho__183 <- ()
+
+Compress
+  0.1_0.4: case_in_event__285
+    [ res__42 != true ] res__42, p__41
+    --[ ::ImgRecvInvalid(snd(p__41)) ]->
+    [  ] 0.1_0.4_1.1 / rho__183 <- ()
+  0.1_0.4_1.1: case_out__182
+    [  ] res__42, p__41
+    --[  ]->
+    [  ] 0.1_0.5 / rho__181 <- rho__181
+  => 0.1_0.4: case_in_event_ca__286
+       [ res__42 != true ] res__42, p__41
+       --[ ::ImgRecvInvalid(snd(p__41)) ]->
+       [  ] 0.1_0.5 / rho__183 <- ()
+
+Compress
+  0.1_0.4: case_in_event_ca__286
+    [ res__42 != true ] res__42, p__41
+    --[ ::ImgRecvInvalid(snd(p__41)) ]->
+    [  ] 0.1_0.5 / rho__183 <- ()
+  0.1_0.5: let_exit_res__186
+    [  ] res__42, p__41
+    --[  ]->
+    [  ] 0.1_0.6 / rho__185 <- rho__185; drop res__42
+  => 0.1_0.4: case_in_event_ca__287
+       [ res__42 != true ] res__42, p__41
+       --[ ::ImgRecvInvalid(snd(p__41)) ]->
+       [  ] 0.1_0.6 / rho__183 <- (); drop res__42
+
+Compress
+  0.1_0.4: case_in_event_ca__287
+    [ res__42 != true ] res__42, p__41
+    --[ ::ImgRecvInvalid(snd(p__41)) ]->
+    [  ] 0.1_0.6 / rho__183 <- (); drop res__42
+  0.1_0.6: let_exit_p__190
+    [  ] p__41
+    --[  ]->
+    [  ] 0.1_0.7 / rho__189 <- rho__189; drop p__41
+  => 0.1_0.4: case_in_event_ca__288
+       [ res__42 != true ] res__42, p__41
+       --[ ::ImgRecvInvalid(snd(p__41)) ]->
+       [  ] 0.1_0.7 / rho__183 <- (); drop p__41; drop res__42
+
+Compress
+  0.1: until_in__150
+    [ ::False() ] 
+    --[  ]->
+    [  ] 0.1_1.0 / rho__149 <- ()
+  0.1_1.0: skip__146
+    [  ] 
+    --[  ]->
+    [  ] 0.1_1.1 / rho__145 <- ()
+  => 0.1: until_in_skip__289
+       [ ::False() ] 
+       --[  ]->
+       [  ] 0.1_1.1 / rho__149 <- ()
+
+Compress
+  0.1: until_in_skip__289
+    [ ::False() ] 
+    --[  ]->
+    [  ] 0.1_1.1 / rho__149 <- ()
+  0.1_1.1: until_out__148
+    [  ] 
+    --[ LoopOut(0.0) ]->
+    [  ] 0.2 / rho__147 <- rho__147
+  => 0.1: until_in_skip_un__290
+       [ ::False() ] 
+       --[ LoopOut(0.0) ]->
+       [  ] 0.2 / rho__149 <- ()
+
+Compress
+  0.1: case_in__226
+    [ rpc::invoke(fname__37, image__38),
+      Access(rpc, .) ] 
+    --[  ]->
+    [  ] 0.1_0.0 / rho__225 <- (); new image__38; new fname__37
+  0.1_0.0: case_in__216
+    [ fname__37 = "sign_image" ] image__38, fname__37
+    --[  ]->
+    [  ] 0.1_0.0_0.0 / rho__215 <- ()
+  => 0.1: case_in_case_in__291
+       [ rpc::invoke(fname__37, image__38),
+         Access(rpc, .),
+         fname__37 = "sign_image" ] 
+       --[  ]->
+       [  ] 0.1_0.0_0.0 / rho__225 <- (); new image__38; new fname__37
+
+Compress
+  0.1: case_in_case_in__291
+    [ rpc::invoke(fname__37, image__38),
+      Access(rpc, .),
+      fname__37 = "sign_image" ] 
+    --[  ]->
+    [  ] 0.1_0.0_0.0 / rho__225 <- (); new image__38; new fname__37
+  0.1_0.0_0.0: extfun__206
+    [  ] image__38, fname__37
+    --[  ]->
+    [  ] 0.1_0.0_0.1 / rho__205 <- sign(image__38, priv_k)
+  => 0.1: case_in_case_in___292
+       [ rpc::invoke(fname__37, image__38),
+         Access(rpc, .),
+         fname__37 = "sign_image" ] 
+       --[  ]->
+       [  ] 0.1_0.0_0.1 / rho__225 <- sign(image__38, priv_k); new image__38; new fname__37
+
+Compress
+  0.1: case_in_case_in___292
+    [ rpc::invoke(fname__37, image__38),
+      Access(rpc, .),
+      fname__37 = "sign_image" ] 
+    --[  ]->
+    [  ] 0.1_0.0_0.1 / rho__225 <- sign(image__38, priv_k); new image__38; new fname__37
+  0.1_0.0_0.1: let_def_signed__212
+    [  ] image__38, fname__37
+    --[  ]->
+    [  ] 0.1_0.0_0.2 / rho__211 <- (); new signed__39 = rho__211
+  => 0.1: case_in_case_in___293
+       [ rpc::invoke(fname__37, image__38),
+         Access(rpc, .),
+         fname__37 = "sign_image" ] 
+       --[  ]->
+       [  ] 0.1_0.0_0.2 / rho__225 <- (); new signed__39 = sign(image__38, priv_k); new image__38; new fname__37
+
+Compress
+  0.1: case_in_case_in___293
+    [ rpc::invoke(fname__37, image__38),
+      Access(rpc, .),
+      fname__37 = "sign_image" ] 
+    --[  ]->
+    [  ] 0.1_0.0_0.2 / rho__225 <- (); new signed__39 = sign(image__38, priv_k); new image__38; new fname__37
+  0.1_0.0_0.2: put__208
+    [ Access(rpc, .) ] signed__39, image__38, fname__37
+    --[  ]->
+    [ rpc::Returned(signed__39) ] 0.1_0.0_0.3 / rho__207 <- ()
+  => 0.1: case_in_case_in___294
+       [ rpc::invoke(fname__37, image__38),
+         Access(rpc, .),
+         fname__37 = "sign_image",
+         Access(rpc, .) ] 
+       --[  ]->
+       [ rpc::Returned(sign(image__38, priv_k)) ] 0.1_0.0_0.3 / rho__225 <- (); new signed__39 = sign(image__38, priv_k); new image__38; new fname__37
+
+Compress
+  0.1: case_in_case_in___294
+    [ rpc::invoke(fname__37, image__38),
+      Access(rpc, .),
+      fname__37 = "sign_image",
+      Access(rpc, .) ] 
+    --[  ]->
+    [ rpc::Returned(sign(image__38, priv_k)) ] 0.1_0.0_0.3 / rho__225 <- (); new signed__39 = sign(image__38, priv_k); new image__38; new fname__37
+  0.1_0.0_0.3: let_exit_signed__210
+    [  ] signed__39, image__38, fname__37
+    --[  ]->
+    [  ] 0.1_0.0_0.4 / rho__209 <- rho__209; drop signed__39
+  => 0.1: case_in_case_in___295
+       [ rpc::invoke(fname__37, image__38),
+         Access(rpc, .),
+         fname__37 = "sign_image",
+         Access(rpc, .) ] 
+       --[  ]->
+       [ rpc::Returned(sign(image__38, priv_k)) ] 0.1_0.0_0.4 / rho__225 <- (); new image__38; new fname__37
+
+Compress
+  0.1: case_in_case_in___295
+    [ rpc::invoke(fname__37, image__38),
+      Access(rpc, .),
+      fname__37 = "sign_image",
+      Access(rpc, .) ] 
+    --[  ]->
+    [ rpc::Returned(sign(image__38, priv_k)) ] 0.1_0.0_0.4 / rho__225 <- (); new image__38; new fname__37
+  0.1_0.0_0.4: case_out__214
+    [  ] image__38, fname__37
+    --[  ]->
+    [  ] 0.1_0.1 / rho__213 <- rho__213
+  => 0.1: case_in_case_in___296
+       [ rpc::invoke(fname__37, image__38),
+         Access(rpc, .),
+         fname__37 = "sign_image",
+         Access(rpc, .) ] 
+       --[  ]->
+       [ rpc::Returned(sign(image__38, priv_k)) ] 0.1_0.1 / rho__225 <- (); new image__38; new fname__37
+
+Compress
+  0.1: case_in__226
+    [ rpc::invoke(fname__37, image__38),
+      Access(rpc, .) ] 
+    --[  ]->
+    [  ] 0.1_0.0 / rho__225 <- (); new image__38; new fname__37
+  0.1_0.0: case_in__222
+    [ fname__37 != "sign_image" ] image__38, fname__37
+    --[  ]->
+    [  ] 0.1_0.0_1.0 / rho__221 <- ()
+  => 0.1: case_in_case_in__297
+       [ rpc::invoke(fname__37, image__38),
+         Access(rpc, .),
+         fname__37 != "sign_image" ] 
+       --[  ]->
+       [  ] 0.1_0.0_1.0 / rho__225 <- (); new image__38; new fname__37
+
+Compress
+  0.1: case_in_case_in__297
+    [ rpc::invoke(fname__37, image__38),
+      Access(rpc, .),
+      fname__37 != "sign_image" ] 
+    --[  ]->
+    [  ] 0.1_0.0_1.0 / rho__225 <- (); new image__38; new fname__37
+  0.1_0.0_1.0: event__218
+    [  ] image__38, fname__37
+    --[ InValidName(fname__37) ]->
+    [  ] 0.1_0.0_1.1 / rho__217 <- ()
+  => 0.1: case_in_case_in___298
+       [ rpc::invoke(fname__37, image__38),
+         Access(rpc, .),
+         fname__37 != "sign_image" ] 
+       --[ InValidName(fname__37) ]->
+       [  ] 0.1_0.0_1.1 / rho__225 <- (); new image__38; new fname__37
+
+Compress
+  0.1: case_in_case_in___298
+    [ rpc::invoke(fname__37, image__38),
+      Access(rpc, .),
+      fname__37 != "sign_image" ] 
+    --[ InValidName(fname__37) ]->
+    [  ] 0.1_0.0_1.1 / rho__225 <- (); new image__38; new fname__37
+  0.1_0.0_1.1: case_out__220
+    [  ] image__38, fname__37
+    --[  ]->
+    [  ] 0.1_0.1 / rho__219 <- rho__219
+  => 0.1: case_in_case_in___299
+       [ rpc::invoke(fname__37, image__38),
+         Access(rpc, .),
+         fname__37 != "sign_image" ] 
+       --[ InValidName(fname__37) ]->
+       [  ] 0.1_0.1 / rho__225 <- (); new image__38; new fname__37
+
+Compress
+  0.1: until_in__204
+    [ rpc::exit(),
+      Access(rpc, .) ] 
+    --[  ]->
+    [  ] 0.1_1.0 / rho__203 <- ()
+  0.1_1.0: skip__200
+    [  ] 
+    --[  ]->
+    [  ] 0.1_1.1 / rho__199 <- ()
+  => 0.1: until_in_skip__300
+       [ rpc::exit(),
+         Access(rpc, .) ] 
+       --[  ]->
+       [  ] 0.1_1.1 / rho__203 <- ()
+
+Compress
+  0.1: until_in_skip__300
+    [ rpc::exit(),
+      Access(rpc, .) ] 
+    --[  ]->
+    [  ] 0.1_1.1 / rho__203 <- ()
+  0.1_1.1: until_out__202
+    [  ] 
+    --[ LoopOut(0.0) ]->
+    [  ] 0.2 / rho__201 <- rho__201
+  => 0.1: until_in_skip_un__301
+       [ rpc::exit(),
+         Access(rpc, .) ] 
+       --[ LoopOut(0.0) ]->
+       [  ] 0.2 / rho__203 <- ()
+
+execute dot -Tsvg "examples/_202_camserver.spthy.2.svg.viz" -o "examples/_202_camserver.spthy.2.svg"
