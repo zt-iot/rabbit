@@ -298,7 +298,7 @@ module Update = struct
     | Ident { id=_; param= None; desc= Rho } ->
         (* [id] and [u.rho] are usually different, but we do not care *)
         u.register
-    | Ident { id; param= None; desc= Var} ->
+    | Ident { id; param= None; desc= Var } ->
         (match List.assoc_opt id u.items with
          | None -> evar id (* no binding *)
          | Some Drop -> assert false (* dropped *)
@@ -1483,6 +1483,7 @@ let compressable edges e1 e2 =
   in
   preconditions_e2 &&
 
+(*
   let not_effectful =
     (* The edges must not be both effectful *)
     let effectful e =
@@ -1492,6 +1493,7 @@ let compressable edges e1 e2 =
     not (effectful e1 && effectful e2)
   in
   not_effectful &&
+*)
 
   let file_facts =
     (* Even in this case, we avoid merging if both the precondition of τ2
