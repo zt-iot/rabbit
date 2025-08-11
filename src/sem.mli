@@ -18,8 +18,8 @@ module Index : sig
 
   val to_string : t -> string
 
-  val to_string' : t -> string
   (** Same as [to_string] but uses '_' instead of '.' *)
+  val to_string' : t -> string
 
   module Set : Set.S with type elt = t
   module Map : Map.S with type key = t
@@ -33,37 +33,41 @@ and fact' =
       { channel : Typed.expr
       ; name : Name.t
       ; args : Typed.expr list
-      } (** Channel fact [ch :: name(args)] *)
+      }
+      (** Channel fact [ch :: name(args)] *)
   | Plain of
-      { pid : Subst.proc_id * Subst.param_id option
+      { pid : Subst.pid
       ; name : Name.t
       ; args : Typed.expr list
-      } (** [n(e1,..,en)] *)
+      }
+      (** [n(e1,..,en)] *)
   | Eq of Typed.expr * Typed.expr (** [e1 = e2] *)
   | Neq of Typed.expr * Typed.expr (** [e1 != e2] *)
   | File of
-      { pid : Subst.proc_id * Subst.param_id option
+      { pid : Subst.pid
       ; path : Typed.expr
       ; contents : Typed.expr
-      } (** File fact [path.contents] *)
+      }
+      (** File fact [path.contents] *)
   | Global of Name.t * Typed.expr list (** [:: n(e1,..,en)] *)
 
   (* New additions at Sem level *)
 
   | Fresh of Ident.t (** Fresh variable *)
   | Structure of
-      { pid : Subst.proc_id * Subst.param_id option
+      { pid : Subst.pid
       ; name : Name.t
       ; address : Typed.expr
       ; args : Typed.expr list
-      } (** Structure fact [name(process, address, args)] *)
+      }
+      (** Structure fact [name(process, address, args)] *)
   | Loop of
-      { pid : Subst.proc_id * Subst.param_id option
+      { pid : Subst.pid
       ; mode : Typed.loop_mode
-      ; index : Index.t
+      ; index : Index.t (** Loop identification *)
       }
   | Access of
-      { pid : Subst.proc_id * Subst.param_id option
+      { pid : Subst.pid
       ; channel: Typed.expr (** channel or file *)
       ; syscall: Ident.t option (** System call allowed the access.
                                     [None] allows the access out of syscalls.   *)
@@ -71,7 +75,7 @@ and fact' =
 
 val string_of_fact : fact -> string
 
-val fact_of_typed : (Subst.proc_id * Subst.param_id option) option -> Typed.fact -> fact
+val fact_of_typed : Subst.pid option -> Typed.fact -> fact
 (** Canonically maps [Typed.fact] to [fact] *)
 
 module Update : sig
@@ -86,13 +90,13 @@ module Update : sig
   *)
   type t =
     { rho : Ident.t
-    (** $\rho$ variable used in this update *)
+      (** $\rho$ variable used in this update *)
 
     ; register : Typed.expr
-    (** The register value a.k.a the return value *)
+      (** The register value a.k.a the return value *)
 
     ; items : (Ident.t * desc) list
-    (** Value updates, if a variable is not listed here, it is not changed *)
+      (** Value updates, if a variable is not listed here, it is not changed *)
     }
 
   val to_string : t -> string
@@ -144,8 +148,7 @@ type signature =
 
 (** Process, [id<parameter>(args)] *)
 type proc =
-  { id : Subst.proc_id
-  ; param : Subst.param_id option
+  { pid : Subst.pid
   ; edges : edge list }
 
 (** Unnamed process group *)

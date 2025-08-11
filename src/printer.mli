@@ -1,4 +1,5 @@
-(* XXX not used for now *)
+(* XXX This module is not used at all *)
+
 val print_type_class : Input.type_class -> string
 val pprint_iv : (string * int * int * int) Sig.printer
 val pprint_expr : Syntax.expr Sig.printer

@@ -389,7 +389,7 @@ let rec print_expr e =
       (* < .. > is not a list but a tuple *)
       (match el with
        | [] -> "'_'"
-       | [ e ] -> print_expr e (* XXX Why?!?! *)
+       | [ e ] -> print_expr e
        | _ -> "<" ^ String.concat ", " (List.map print_expr el) ^ ">")
   | One -> "%1"
   | Int v -> "%" ^ v

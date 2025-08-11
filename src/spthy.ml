@@ -104,10 +104,10 @@ type fact =
 
   (* New additions at Spthy level *)
   | Const of { id : Ident.t; param : expr option; value : expr }
-  | Initing_const of { id : Ident.t; param : Subst.param_id option } (* XXX init *)
-  | Initing_proc_group of Subst.proc_group_id * Subst.param_id option (* XXX init *)
-  | Initing_proc_access of Subst.proc_id * Subst.param_id option (* XXX init *)
-  | Inited_proc_group of Subst.proc_group_id * Subst.param_id option (* to bind param *)
+  | Initing_const of { id : Ident.t; param : Subst.param_id option }
+  | Initing_proc_group of Subst.proc_group_id * Subst.param_id option
+  | Initing_proc_access of Subst.proc_id * Subst.param_id option
+  | Inited_proc_group of Subst.proc_group_id * Subst.param_id option
   | State of
       { pid : Subst.proc_id * Subst.param_id option
       ; index : Sem.Index.t
@@ -511,9 +511,8 @@ let facts_of_edge (e : Sem.edge) =
   e.tag @ pre_eq_neq,
   e.post
 
-let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge : Sem.edge) =
-  let pid = proc_id, param in
-  let role = Some (proc_id :> Ident.t) in
+let rule_of_edge (pid : Subst.pid) (edge : Sem.edge) =
+  let role = Some (fst pid :> Ident.t) in
   let state_pre : fact =
     let vars = edge.update.rho :: edge.source_vars in
     let mapping = List.map (fun id -> id, Ident id) vars in
@@ -565,7 +564,7 @@ let rule_of_edge (proc_id : Subst.proc_id) (param : Subst.param_id option) (edge
     Some (Printf.sprintf
             "%s %s/%s : %s"
             (if edge.attack then "Attack edge" else "Edge")
-            (Ident.to_string (proc_id :> Ident.t))
+            (Ident.to_string (fst pid :> Ident.t))
             (Ident.to_string (edge.id :> Ident.t))
             (Sem.Update.to_string edge.update)
          )
@@ -576,13 +575,12 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_
   let comment = Some (Printf.sprintf "Proc group initialization %s" (Ident.to_string (proc_group_id :> Ident.t))) in
   match p with
   | Unbounded proc ->
-      assert (proc.param = None);
-      let pid = proc.id, proc.param in
+      assert (snd proc.pid = None);
       let pre = [] in
       let label = [ Initing_proc_group (proc_group_id, None) ] in
       let rho = Ident.local "rho" in
       let state = State
-          { pid
+          { pid= proc.pid
           ; index= Sem.Index.zero (* ? *)
           ; mapping= [ rho, Unit ]
           ; transition= if !Config.tag_transition then Some One else None
@@ -601,11 +599,10 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_
       let label = [ Initing_proc_group (proc_group_id, Some param) ] in
       let states =
         List.map (fun (proc : Sem.proc) ->
-            let pid = proc.id, proc.param in
-            assert (proc.param <> None);
+            assert (snd proc.pid <> None);
             let rho = Ident.local "rho" in
             State
-              { pid
+              { pid= proc.pid
               ; index= Sem.Index.zero (* ? *)
               ; mapping = [ rho, Unit ] (* no need of param in the mapping since it is not mutable *)
               ; transition= if !Config.tag_transition then Some One else None
@@ -775,7 +772,7 @@ let compile_sem ({ signature; proc_groups; constants; lemmas; access_controls } 
   let signature = compile_signature signature in
   let constants = List.map (fun (id, init_desc) -> rule_of_const id init_desc) constants in
   let models =
-    List.map (fun ({ id; edges; param } : Sem.proc) -> (id, List.map (rule_of_edge id param) edges))
+    List.map (fun ({ pid; edges } : Sem.proc) -> (fst pid, List.map (rule_of_edge pid) edges))
     @@ List.concat_map (function
         | _procid, Sem.Unbounded m -> [m]
         | _procid, Bounded (_, ms) -> ms) proc_groups

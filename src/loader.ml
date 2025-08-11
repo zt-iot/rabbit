@@ -180,7 +180,7 @@ let process_fact_closed new_meta_vars ctx lctx f =
           ~loc:f.Location.loc
           (Syntax.FileFact (process_expr2 new_meta_vars ctx lctx e1,
                           process_expr2 new_meta_vars ctx lctx e2)))
-  | Input.ProcessFact _ -> assert false (* XXX ??? *)
+  | Input.ProcessFact _ -> assert false (* Unused *)
 ;;
 
 let process_facts_closed new_meta_vars ctx lctx fl =

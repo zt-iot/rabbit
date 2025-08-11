@@ -53,14 +53,16 @@ and fact' =
       { channel : expr
       ; name : name
       ; args : expr list
-      } (** Channel fact [ch :: name(args)] *)
+      }
+    (** Channel fact [ch :: name(args)] *)
   | Plain of name * expr list  (** [n(e1,..,en)] *)
   | Eq of expr * expr (** [e1 = e2] *)
   | Neq of expr * expr (** [e1 != e2] *)
   | File of
       { path : expr
       ; contents : expr
-      } (** File fact [path.contents] *)
+      }
+    (** File fact [path.contents] *)
   | Global of string * expr list (** [:: n(e1,..,en)] *)
 
 type cmd = cmd' loc_env
@@ -80,15 +82,15 @@ and cmd' =
   | Assign of ident option * expr (** assignment, x := e *)
   | Case of case list (** guarded cases, case [a1s] => c1 | .. | [ans] => cn end *)
   | While of case list * case list
-  (** guarded loop,
-      repeat [a1s] => c1 | .. | [ans] => cn
-      until [a'1s] => c'1 | .. | [a'ms] => c'm
-      end
-  *)
+    (** guarded loop,
+        repeat [a1s] => c1 | .. | [ans] => cn
+        until [a'1s] => c'1 | .. | [a'ms] => c'm
+        end
+    *)
   | Event of fact list (** tag, event[T] *)
   | Return of expr (** return *)
   | New of ident * (name * expr list) option * cmd
-  (** allocation, new x := S(e1,..en) in c *)
+    (** allocation, new x := S(e1,..en) in c *)
   | Get of ident list * expr * name * cmd (** fetch, let x1,..,xn := e.S in c *)
   | Del of expr * name (** deletion , delete e.S *)
 
@@ -102,10 +104,10 @@ type chan_param =
 type chan_arg =
   { channel : ident
   ; parameter : expr option option
-  (** - [None]: Simple channel [id],
-      - [Some None]: Channel with a parameter [id<>],
-      - [Some (Some e)]: Instantiated channel with a parameter [id<e>]
-  *)
+    (** - [None]: Simple channel [id],
+        - [Some None]: Channel with a parameter [id<>],
+        - [Some (Some e)]: Instantiated channel with a parameter [id<e>]
+    *)
   ; typ : ident
   }
 
@@ -132,12 +134,14 @@ and lemma' =
   | Reachability of
       { fresh : ident list
       ; facts : fact list
-      } (** [reachable f1,..,fn] *)
+      }
+    (** [reachable f1,..,fn] *)
   | Correspondence of
       { fresh : ident list
       ; premise : fact
       ; conclusion : fact
-      } (** [corresponds fa ~> fb] *)
+      }
+    (** [corresponds fa ~> fb] *)
 
 type init_desc =
   | Value of expr (** [const n = e] *)
@@ -151,7 +155,8 @@ and decl' =
   | Function of
       { id : ident
       ; arity : int
-      } (** external function, [function id : arity] *)
+      }
+     (** external function, [function id : arity] *)
   | Equation of expr * expr (** external equation, [equation e1 = e2] *)
   | Syscall of
       { id : ident
@@ -159,9 +164,9 @@ and decl' =
       ; cmd : cmd
       ; attack : bool (** [true] if declared with [passive attack] *)
       }
-  (** system call, [syscall f(a1,..,an) { c }]
-                   or [passive attack f(ty1 a1,..,tyn an) { c }]
-  *)
+       (** system call, [syscall f(a1,..,an) { c }]
+           or [passive attack f(ty1 a1,..,tyn an) { c }]
+       *)
   | Attack of
       { id : ident
       ; syscall : ident
@@ -171,30 +176,32 @@ and decl' =
   | Type of
       { id : ident
       ; typclass : Input.type_class
-      } (** type declaration, [type t : filesys/process/channel] *)
+      }
+      (** type declaration, [type t : filesys/process/channel] *)
   | Allow of
       { process_typ : ident
       ; target_typs : ident list
       ; syscalls : ident list option
       }
-  (** [allow s t1 .. tn [f1, .., fm]]
-      [allow s t1 .. tn [.]]  for the direct accesses via [put] and [case], [repeat]
-
-      XXX the list [ti] is either empty or singleton.  Should use option type?
-  *)
+      (** [allow s t1 .. tn [f1, .., fm]]
+          [allow s t1 .. tn [.]]  for the direct accesses via [put] and [case], [repeat]
+      *)
   | AllowAttack of
       { process_typs : ident list
       ; attacks : ident list
-      } (** [allow attack t1 .. tn [f1, .., fm]] *)
+      }
+      (** [allow attack t1 .. tn [f1, .., fm]] *)
   | Init of
       { id : ident
       ; desc : init_desc
-      } (** [const n = e], [const fresh n], [const n<p> = e], [const fresh n<>] *)
+      }
+      (** [const n = e], [const fresh n], [const n<p> = e], [const fresh n<>] *)
   | Channel of
       { id : ident
       ; param : unit option (** [None] for [ch] and [Some ()] for [ch<>] *)
       ; typ : ident
-      } (** [channel n : ty] or [channel n<> : ty] *)
+      }
+      (** [channel n : ty] or [channel n<> : ty] *)
   | Process of
       { id : ident
       ; param : ident option
@@ -205,7 +212,7 @@ and decl' =
       ; funcs : (ident * ident list * cmd) list
       ; main : cmd
       }
-  (** [process id<p>(x1 : ty1, .., xn : tyn) : ty { file ... var ... function ... main ... }] *)
+      (** [process id<p>(x1 : ty1, .., xn : tyn) : ty { file ... var ... function ... main ... }] *)
   | System of proc_group_desc list * (Ident.t * lemma) list
-  (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
+    (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
   | Load of string * decl list (** [load "fn"] *)

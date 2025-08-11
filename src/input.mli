@@ -9,7 +9,7 @@ type expr = expr' Location.located
 
 and expr' =
   | Var of Name.ident (** variable, [x] *)
-  | Boolean of bool (** boolean, XXX Currently no boolean constants available  *)
+  | Boolean of bool (** boolean. Currently no boolean constants available  *)
   | String of string (** string, ["hello"] *)
   (* | Integer of Mpzf.t *)
   | Integer of int (** integer, [42] *)
@@ -101,7 +101,6 @@ and decl' =
   | DeclExtSyscall of Name.ident * Name.ident list * cmd * bool
   (** system call, [syscall f(ty1 a1,..,tyn an) { c }]
                    [passive attack f(ty1 a1,..,tyn an) { c }]
-      XXX what is passive attack for?  It is not distinguishable from syscall in Input.
   *)
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
   (** [attack f on name (ty1 a1,..,tyn an) { c }] *)
