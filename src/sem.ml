@@ -303,7 +303,9 @@ module Update = struct
          | None -> evar id (* no binding *)
          | Some Drop -> assert false (* dropped *)
          | Some (New e | Update e) -> e)
-    | Ident { id; param= Some p; desc } -> { e with desc= Ident { id; desc; param= Some (update_expr u p) } }
+    | Ident { id; param= Some p; desc } ->
+        (* [id] is channel ident therefore never changed *)
+        { e with desc= Ident { id; desc; param= Some (update_expr u p) } }
     | Ident _ -> e
     | Apply (f, es) -> { e with desc= Apply (f, List.map (update_expr u) es) }
     | Tuple es -> { e with desc= Tuple (List.map (update_expr u) es) }
@@ -341,6 +343,7 @@ module Update = struct
                | Some (New _) -> (* New + Drop = None *) None
                | None | Some (Update _) -> Some (x, Drop))
           | New e ->
+              assert (not @@ List.mem_assoc x u1.items);
               Some (x, New (update_expr u1 e ))
           | Update e ->
               let e = update_expr u1 e in
@@ -355,17 +358,15 @@ module Update = struct
     { u1 with register; items }
 
   let override_enforces enforces u =
-    match enforces with
-    | [] -> u
-    | _ ->
-        let items =
-          List.map (fun (v, desc) ->
-              v,
-              match desc, List.assoc_opt v enforces with
-              | New { desc= Ident {id= v'; _}; _}, Some e when v = v' -> New e
-              | _ -> desc) u.items
-        in
-        { u with items }
+    let items =
+      List.map (fun (v, desc) ->
+          v,
+          (* only for New variables I believe *)
+          match desc, List.assoc_opt v enforces with
+          | New { desc= Ident {id= v'; _}; _}, Some e when v = v' -> New e
+          | _ -> desc) u.items
+    in
+    { u with items }
 
   let update_unit () =
     { rho = Ident.local "rho"
@@ -528,25 +529,26 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
   let env = c.env in
   let fact env desc : fact = { env; desc; loc = Location.nowhere } in
   let pid = proc.pid in
+  let param = snd pid in
   let fact_of_typed = fact_of_typed (Some pid) in
   match c.desc with
   | Skip ->
       (* i =skip=> i+1 *)
       let i_1 = Index.add i 1 in
       ( [ { id = Ident.local "skip"
-          ; source = i (* transition_from *)
+          ; source = i
           ; source_env = env
           ; source_vars = vars
-          ; pre = [] (* transition_pre *)
-          ; update = Update.update_unit () (* transition_state_transition *)
-          ; tag = [] (* transition_label *)
-          ; post = [] (* transition_post *)
-          ; target = i_1 (* transition_to *)
+          ; pre = []
+          ; update = Update.update_unit ()
+          ; tag = []
+          ; post = []
+          ; target = i_1
           ; target_env = env
           ; target_vars = vars
           ; loop_back = false
           ; attack = false
-          ; param = snd pid
+          ; param
           }
         ]
       , i_1, env )
@@ -572,148 +574,154 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_vars = vars
           ; loop_back = false
           ; attack = false
-          ; param = snd pid
+          ; param
           }
         ]
       , i_1, env )
   | Let (x, ({ desc= Apply _; _ } as app), c) ->
       (* var x := f(e) in c *)
-      (* i =f(e)=> j =let_def=> j+1 =c=> k =let_exit=> k+1 *)
-      let g, j, env_j = graph_application ~vars ~proc ~syscaller find_def decls i app in
+      (* i =f(e)=> j *)
+      let g1, j, env_j = graph_application ~vars ~proc ~syscaller find_def decls i app in
       let j_1 = Index.add j 1 in
-      let g', k, env_k = graph_cmd ~vars:(x :: vars) ~proc ~syscaller find_def decls j_1 c in
+      let g2 =
+        (* j =let_def=> j+1 *)
+        [ { id = Ident.local ("let_def_" ^ fst x)
+          ; source = j
+          ; source_env = env_j
+          ; source_vars = vars
+          ; pre = []
+          ; update =
+              (let update = Update.update_unit () in
+               { update with items = [ x, New (rho update.rho) ] })
+          ; tag = []
+          ; post = []
+          ; target = j_1
+          ; target_env = c.env
+          ; target_vars = x :: vars
+          ; loop_back = false
+          ; attack = false
+          ; param
+          } ]
+      in
+      (* j+1 =c=> k *)
+      let g3, k, env_k = graph_cmd ~vars:(x :: vars) ~proc ~syscaller find_def decls j_1 c in
+      (* k =let_exit=> k+1 *)
       let k_1 = Index.add k 1 in
-      ( List.concat [
-            g;
-            [ { id = Ident.local ("let_def_" ^ fst x)
-              ; source = j
-              ; source_env = env_j
-              ; source_vars = vars
-              ; pre = []
-              ; update =
-                  (let update = Update.update_unit () in
-                   { update with items = [ x, New (rho update.rho) ] })
-              ; tag = []
-              ; post = []
-              ; target = j_1
-              ; target_env = c.env
-              ; target_vars = x :: vars
-              ; loop_back = false
-              ; attack = false
-              ; param = snd pid
-              } ];
-            g';
-            [ { id = Ident.local ("let_exit_" ^ fst x)
-              ; source = k
-              ; source_env = env_k
-              ; source_vars = x :: vars
-              ; pre = []
-              ; update = { (Update.update_id ()) with items = [ x, Drop ] }
-              ; tag = []
-              ; post = []
-              ; target = k_1
-              ; target_env = env
-              ; target_vars = vars
-              ; loop_back = false
-              ; attack = false
-              ; param = snd pid
-              } ]
-          ]
-      , k_1, env)
+      let g4 =
+        [ { id = Ident.local ("let_exit_" ^ fst x)
+          ; source = k
+          ; source_env = env_k
+          ; source_vars = x :: vars
+          ; pre = []
+          ; update = { (Update.update_id ()) with items = [ x, Drop ] }
+          ; tag = []
+          ; post = []
+          ; target = k_1
+          ; target_env = env
+          ; target_vars = vars
+          ; loop_back = false
+          ; attack = false
+          ; param
+          } ]
+      in
+      ( List.concat [ g1; g2; g3; g4 ], k_1, env)
   | Let (x, e, c) ->
       (* var x := e in c *)
-      (* i =let_def=> i+1 =c=> j =let_exit=> j+1 *)
+      (* i =let_def=> i+1 *)
       let i_1 = Index.add i 1 in
-      let g, j, env_j = graph_cmd ~vars:(x :: vars) ~proc ~syscaller find_def decls i_1 c in
+      let g1 =
+        [ { id = Ident.local ("let_def_" ^ fst x)
+          ; source = i
+          ; source_env = env
+          ; source_vars = vars
+          ; pre = []
+          ; update = { (Update.update_unit ()) with items = [ x, New e ] }
+          ; tag = []
+          ; post = []
+          ; target = i_1
+          ; target_env = c.env
+          ; target_vars = x :: vars
+          ; loop_back = false
+          ; attack = false
+          ; param
+          } ]
+      in
+      (* i+1 =c=> j *)
+      let g2, j, env_j = graph_cmd ~vars:(x :: vars) ~proc ~syscaller find_def decls i_1 c in
+      (* j =let_exit=> j+1 *)
       let j_1 = Index.add j 1 in
-      ( List.concat [
-            [ { id = Ident.local ("let_def_" ^ fst x)
-              ; source = i
-              ; source_env = env
-              ; source_vars = vars
-              ; pre = []
-              ; update = { (Update.update_unit ()) with items = [ x, New e ] }
-              ; tag = []
-              ; post = []
-              ; target = i_1
-              ; target_env = c.env
-              ; target_vars = x :: vars
-              ; loop_back = false
-              ; attack = false
-              ; param = snd pid
-              } ];
-            g;
-            [ { id = Ident.local ("let_exit_" ^ fst x)
-              ; source = j
-              ; source_env = env_j
-              ; source_vars = x :: vars
-              ; pre = []
-              ; update = { (Update.update_id ()) with items = [ x, Drop ] }
-              ; tag = []
-              ; post = []
-              ; target = j_1
-              ; target_env = env
-              ; target_vars = vars
-              ; loop_back = false
-              ; attack = false
-              ; param = snd pid
-              }
-            ]
-          ],
-        j_1, env )
+      let g3 =
+        [ { id = Ident.local ("let_exit_" ^ fst x)
+          ; source = j
+          ; source_env = env_j
+          ; source_vars = x :: vars
+          ; pre = []
+          ; update = { (Update.update_id ()) with items = [ x, Drop ] }
+          ; tag = []
+          ; post = []
+          ; target = j_1
+          ; target_env = env
+          ; target_vars = vars
+          ; loop_back = false
+          ; attack = false
+          ; param
+          }
+        ]
+      in
+      ( List.concat [ g1; g2; g3 ], j_1, env )
   | Assign (Some x, ({ desc= Apply _; _ } as app)) ->
-      (* i =f(e)=> j =assign_call=> j+1 *)
       (* x := f(e) *)
-      let g, j, env_j = graph_application ~vars ~proc ~syscaller find_def decls i app in
+      (* i =f(e)=> j *)
+      let g1, j, env_j = graph_application ~vars ~proc ~syscaller find_def decls i app in
+      (* j =assign_call=> j+1 *)
       let j_1 = Index.add j 1 in
-      ( List.concat [
-            g;
-            [ { id = Ident.local "assign_call"
-              ; source = j
-              ; source_env = env_j
-              ; source_vars = vars
-              ; pre = []
-              ; update =
-                  (let update = Update.update_unit () in
-                   { update with items = [ x, Update (rho update.rho) ] })
-              ; tag = []
-              ; post = []
-              ; target = j_1
-              ; target_env = env
-              ; target_vars = vars
-              ; loop_back = false
-              ; attack = false
-              ; param = snd pid
-              } ]
-          ]
-      , j_1, env )
+      let g2 =
+        [ { id = Ident.local "assign_call"
+          ; source = j
+          ; source_env = env_j
+          ; source_vars = vars
+          ; pre = []
+          ; update =
+              (let update = Update.update_unit () in
+               { update with items = [ x, Update (rho update.rho) ] })
+          ; tag = []
+          ; post = []
+          ; target = j_1
+          ; target_env = env
+          ; target_vars = vars
+          ; loop_back = false
+          ; attack = false
+          ; param
+          } ]
+      in
+      ( List.concat [ g1; g2 ], j_1, env )
   | Assign (None, ({ desc= Apply _; _ } as app)) ->
-      (* i =f(e)=> j =call=> j+1 *)
       (* _ := f(e) *)
-      let g, j, env_j = graph_application ~vars ~proc ~syscaller find_def decls i app in
+      (* i =f(e)=> j *)
+      let g1, j, env_j = graph_application ~vars ~proc ~syscaller find_def decls i app in
+      (* j =call=> j+1 *)
       let j_1 = Index.add j 1 in
-      ( List.concat [
-            g;
-            [ { id = Ident.local "call"
-              ; source = j
-              ; source_env = env_j
-              ; source_vars = vars
-              ; pre = []
-              ; update = Update.update_unit ()
-              ; tag = []
-              ; post = []
-              ; target = j_1
-              ; target_env = env
-              ; target_vars = vars
-              ; loop_back = false
-              ; attack = false
-              ; param = snd pid
-              } ]
-          ]
-      , j_1, env)
+      let g2 =
+        [ { id = Ident.local "call"
+          ; source = j
+          ; source_env = env_j
+          ; source_vars = vars
+          ; pre = []
+          ; update = Update.update_unit ()
+          ; tag = []
+          ; post = []
+          ; target = j_1
+          ; target_env = env
+          ; target_vars = vars
+          ; loop_back = false
+          ; attack = false
+          ; param
+          } ]
+      in
+      (List.concat [ g1; g2 ], j_1, env)
   | Assign (Some x, e) ->
-      (* i =assign=> i+1 *)
       (* x := e *)
+      (* i =assign=> i+1 *)
       let i_1 = Index.add i 1 in
       ( [ { id = Ident.local "assign"
           ; source = i
@@ -728,7 +736,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_vars = vars
           ; loop_back = false
           ; attack = false
-          ; param = snd pid
+          ; param
           }
         ]
       , i_1, env)
@@ -751,7 +759,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_vars = vars
           ; loop_back = false
           ; attack = false
-          ; param = snd pid
+          ; param
           }
         ]
       , i_1, env )
@@ -771,105 +779,111 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_vars = vars
           ; loop_back = false
           ; attack = false
-          ; param = snd pid
+          ; param
           }
         ]
       , i_1, env )
   | New (x, eopt, c) ->
-      (* i =new_intro=> i+1 =c=> j =new_out=> j+1 *)
       (* new x in c *)
       (* new x = e in c *)
+      (* i =new_intro=> i+1 *)
       let i_1 = Index.add i 1 in
-      let g, j, env_j = graph_cmd ~vars:(x :: vars) ~proc ~syscaller find_def decls i_1 c in
+      let g1 =
+        [ { id = Ident.local "new_intro"
+          ; source = i
+          ; source_env = env
+          ; source_vars = vars
+          ; pre = [ fact c.env @@ Fresh x ]
+          ; update = { (Update.update_unit ()) with items = [x, New (evar x)] }
+          ; tag = []
+          ; post =
+              (match eopt with
+               | None -> []
+               | Some (s, es) ->
+                   [ fact c.env
+                     @@ Structure
+                       { pid; name = s; address = evar x; args = es }
+                   ])
+          ; target = i_1
+          ; target_env = c.env
+          ; target_vars = x :: vars
+          ; loop_back = false
+          ; attack = false
+          ; param
+          } ]
+      in
+      (* i+1 =c=> j *)
+      let g2, j, env_j = graph_cmd ~vars:(x :: vars) ~proc ~syscaller find_def decls i_1 c in
+      (* j =new_out=> j+1 *)
       let j_1 = Index.add j 1 in
-      ( List.concat [
-            [ { id = Ident.local "new_intro"
-              ; source = i
-              ; source_env = env
-              ; source_vars = vars
-              ; pre = [ fact c.env @@ Fresh x ]
-              ; update = { (Update.update_unit ()) with items = [x, New (evar x)] }
-              ; tag = []
-              ; post =
-                  (match eopt with
-                   | None -> []
-                   | Some (s, es) ->
-                       [ fact c.env
-                         @@ Structure
-                           { pid; name = s; address = evar x; args = es }
-                       ])
-              ; target = i_1
-              ; target_env = c.env
-              ; target_vars = x :: vars
-              ; loop_back = false
-              ; attack = false
-              ; param = snd pid
-              } ];
-            g;
-            [ { id = Ident.local "new_out"
-              ; source = j
-              ; source_env = env_j
-              ; source_vars = x :: vars
-              ; pre = []
-              ; update = { (Update.update_id ()) with items= [x, Drop] }
-              ; tag = []
-              ; post = []
-              ; target = j_1
-              ; target_env = env
-              ; target_vars = vars
-              ; loop_back = false
-              ; attack = false
-              ; param = snd pid
-              }
-            ]
-          ]
-      , j_1, env )
-  | Get (xs, e, s, c) ->
-      (* i =get_intro=> i+1 =c=> j =get_out=> j+1 *)
-      (* [let x1,..,xn := e.S in c] *)
-      let i_1 = Index.add i 1 in
-      let g, j, env_j = graph_cmd ~vars:(xs @ vars) ~proc ~syscaller find_def decls i_1 c in
-      let j_1 = Index.add j 1 in
-      let pre_and_post : fact list =
-        [ fact env
-          @@ Structure { pid; name = s; address = e; args = List.map evar xs }
+      let g3 =
+        [ { id = Ident.local "new_out"
+          ; source = j
+          ; source_env = env_j
+          ; source_vars = x :: vars
+          ; pre = []
+          ; update = { (Update.update_id ()) with items= [x, Drop] }
+          ; tag = []
+          ; post = []
+          ; target = j_1
+          ; target_env = env
+          ; target_vars = vars
+          ; loop_back = false
+          ; attack = false
+          ; param
+          }
         ]
       in
-      ( List.concat [
-            [ { id = Ident.local "get_intro"
-              ; source = i
-              ; source_env = env
-              ; source_vars = vars
-              ; pre = pre_and_post
-              ; update = { (Update.update_unit ())
-                           with items = List.map (fun x -> x, Update.New (evar x)) xs }
-              ; tag = []
-              ; post = pre_and_post
-              ; target = i_1
-              ; target_env = c.env
-              ; target_vars = xs @ vars
-              ; loop_back = false
-              ; attack = false
-              ; param = snd pid
-              } ];
-            g;
-            [ { id = Ident.local "get_out"
-              ; source = j
-              ; source_env = env_j
-              ; source_vars = xs @ vars
-              ; pre = []
-              ; update = { (Update.update_id ()) with items = List.map (fun x -> x, Update.Drop) xs }
-              ; tag = []
-              ; post = []
-              ; target = j_1
-              ; target_env = env
-              ; target_vars = vars
-              ; loop_back = false
-              ; attack = false
-              ; param = snd pid
-              } ]
+      ( List.concat [ g1; g2; g3 ], j_1, env )
+  | Get (xs, e, s, c) ->
+      (* [let x1,..,xn := e.S in c] *)
+      (* i =get_intro=> i+1 *)
+      let i_1 = Index.add i 1 in
+      let g1 =
+        let pre_and_post : fact list =
+          [ fact env
+            @@ Structure { pid; name = s; address = e; args = List.map evar xs }
           ]
-      , j_1, env )
+        in
+        [ { id = Ident.local "get_intro"
+          ; source = i
+          ; source_env = env
+          ; source_vars = vars
+          ; pre = pre_and_post
+          ; update = { (Update.update_unit ())
+                       with items = List.map (fun x -> x, Update.New (evar x)) xs }
+          ; tag = []
+          ; post = pre_and_post
+          ; target = i_1
+          ; target_env = c.env
+          ; target_vars = xs @ vars
+          ; loop_back = false
+          ; attack = false
+          ; param
+          } ]
+      in
+      (* i+1 =c=> j *)
+      let g2, j, env_j = graph_cmd ~vars:(xs @ vars) ~proc ~syscaller find_def decls i_1 c in
+      (* j =get_out=> j+1 *)
+      let j_1 = Index.add j 1 in
+      let g3 =
+        [ { id = Ident.local "get_out"
+          ; source = j
+          ; source_env = env_j
+          ; source_vars = xs @ vars
+          ; pre = []
+          ; update = { (Update.update_id ()) with items = List.map (fun x -> x, Update.Drop) xs }
+          ; tag = []
+          ; post = []
+          ; target = j_1
+          ; target_env = env
+          ; target_vars = vars
+          ; loop_back = false
+          ; attack = false
+          ; param
+          } ]
+      in
+      ( List.concat [ g1; g2; g3 ], j_1, env )
   | Del (e, s) ->
       (* i =del=> i+1 *)
       let i_1 = Index.add i 1 in
@@ -901,7 +915,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_vars = vars
           ; loop_back = false
           ; attack = false
-          ; param = snd pid
+          ; param
           }
         ]
       , i_1, env )
@@ -912,44 +926,49 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
         List.concat
         @@ List.mapi
              (fun j (case : case) ->
-                let ij = Index.push i j in
-                let gj, bj (* bold j *), env_bj = graph_cmd ~vars:(case.fresh @ vars) ~proc ~syscaller find_def decls ij case.cmd in
-                ( List.concat [
-                      [ { id= Ident.local "case_in"
-                        ; source = i
-                        ; source_env = env
-                        ; source_vars = vars
-                        ; pre =
-                            List.map fact_of_typed case.facts
-                            @ List.filter_map (channel_and_file_access ~proc ~syscaller) case.facts
-                        ; update = { (Update.update_unit ())
-                                     with items = List.map (fun x -> x, Update.New (evar x)) case.fresh }
-                        ; tag = []
-                        ; post = []
-                        ; target = ij
-                        ; target_env = case.cmd.env
-                        ; target_vars = case.fresh @ vars
-                        ; loop_back = false
-                        ; attack = false
-                        ; param = snd pid
-                        } ];
-                      gj;
-                      [ { id= Ident.local "case_out"
-                        ; source = bj
-                        ; source_env = env_bj
-                        ; source_vars = case.fresh @ vars
-                        ; pre = []
-                        ; update = { (Update.update_id ()) with items = List.map (fun id -> id, Update.Drop) case.fresh }
-                        ; tag = []
-                        ; post = []
-                        ; target = i_1
-                        ; target_env = env
-                        ; target_vars = vars
-                        ; loop_back = false
-                        ; attack = false
-                        ; param = snd pid
-                        } ]
-                    ]))
+              (* i =case_in=> i:j *)
+              let ij = Index.push i j in
+              let g1 =
+                [ { id= Ident.local "case_in"
+                  ; source = i
+                  ; source_env = env
+                  ; source_vars = vars
+                  ; pre =
+                      List.map fact_of_typed case.facts
+                      @ List.filter_map (channel_and_file_access ~proc ~syscaller) case.facts
+                  ; update = { (Update.update_unit ())
+                               with items = List.map (fun x -> x, Update.New (evar x)) case.fresh }
+                  ; tag = []
+                  ; post = []
+                  ; target = ij
+                  ; target_env = case.cmd.env
+                  ; target_vars = case.fresh @ vars
+                  ; loop_back = false
+                  ; attack = false
+                  ; param
+                  } ]
+              in
+              (* i:j =case.cmd=> bj *)
+              let g2, bj (* bold j *), env_bj = graph_cmd ~vars:(case.fresh @ vars) ~proc ~syscaller find_def decls ij case.cmd in
+              (* bj =case_out=> i+1 *)
+              let g3 =
+                [ { id= Ident.local "case_out"
+                  ; source = bj
+                  ; source_env = env_bj
+                  ; source_vars = case.fresh @ vars
+                  ; pre = []
+                  ; update = { (Update.update_id ()) with items = List.map (fun id -> id, Update.Drop) case.fresh }
+                  ; tag = []
+                  ; post = []
+                  ; target = i_1
+                  ; target_env = env
+                  ; target_vars = vars
+                  ; loop_back = false
+                  ; attack = false
+                  ; param
+                  } ]
+              in
+              List.concat [ g1; g2; g3 ])
              cases
       in
       es, i_1, env
@@ -960,73 +979,80 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
       let i_1 = Index.add i 1 in
       let i_2 = Index.add i 2 in
       let n = List.length cases in
+      (* i =repeat_in=> i+1 *)
+      let gin =
+        [ { id= Ident.local "repeat_in"
+          ; source = i
+          ; source_env = env
+          ; source_vars = vars
+          ; pre = []
+          ; update = Update.update_unit ()
+          ; tag = [ fact env @@ Loop { pid; mode = In; index = i } ]
+          ; post = []
+          ; target = i_1
+          ; target_env = env
+          ; target_vars = vars
+          ; loop_back = false
+          ; attack = false
+          ; param
+          } ]
+      in
       let es =
-        ({ id= Ident.local "repeat_in"
-         ; source = i
-         ; source_env = env
-         ; source_vars = vars
-         ; pre = []
-         ; update = Update.update_unit ()
-         ; tag = [ fact env @@ Loop { pid; mode = In; index = i } ]
-         ; post = []
-         ; target = i_1
-         ; target_env = env
-         ; target_vars = vars
-         ; loop_back = false
-         ; attack = false
-         ; param = snd pid
-         }
-         :: List.concat
-              (List.mapi
-                 (fun j (case : case) ->
-                    let i_1j = Index.push i_1 j in
-                    let gj, bj (* bold j *), env_bj = graph_cmd ~vars:(case.fresh @ vars) ~proc ~syscaller find_def decls i_1j case.cmd in
-                    List.concat [
-                      [ { id= Ident.local "case_in"
-                        ; source = i_1
-                        ; source_env = env
-                        ; source_vars = vars
-                        ; pre =
-                            List.map fact_of_typed case.facts
-                            @ List.filter_map (channel_and_file_access ~proc ~syscaller) case.facts
-                        ; update = { (Update.update_unit ())
-                                     with items = List.map (fun x -> x, Update.New (evar x)) case.fresh }
-                        ; tag = []
-                        ; post = []
-                        ; target = i_1j
-                        ; target_env = case.cmd.env
-                        ; target_vars = case.fresh @ vars
-                        ; loop_back = false
-                        ; attack = false
-                        ; param = snd pid
-                        } ];
-                      gj;
-                      [ { id= Ident.local "case_out"
-                        ; source = bj
-                        ; source_env = env_bj
-                        ; source_vars = case.fresh @ vars
-                        ; pre = []
-                        ; update = { (Update.update_unit ()) with items = List.map (fun id -> id, Update.Drop) case.fresh }
-                        ; tag =
-                            [ fact case.cmd.env
-                              @@ Loop { pid; mode = Back; index = i }
-                            ]
-                        ; post = []
-                        ; target = i_1
-                        ; target_env = env
-                        ; target_vars = vars
-                        ; loop_back = true (* To increment the transition counter *)
-                        ; attack = false
-                        ; param = snd pid
-                        } ]
-                    ])
-                 cases))
-        @ List.concat
-            (List.mapi
+        gin
+        @ List.concat (
+          (List.mapi
+             (fun j (case : case) ->
+                (* i+1 =case_in=> i+1:j *)
+                let i_1j = Index.push i_1 j in
+                let g1 =
+                  [ { id= Ident.local "case_in"
+                    ; source = i_1
+                    ; source_env = env
+                    ; source_vars = vars
+                    ; pre =
+                        List.map fact_of_typed case.facts
+                        @ List.filter_map (channel_and_file_access ~proc ~syscaller) case.facts
+                    ; update = { (Update.update_unit ())
+                                 with items = List.map (fun x -> x, Update.New (evar x)) case.fresh }
+                    ; tag = []
+                    ; post = []
+                    ; target = i_1j
+                    ; target_env = case.cmd.env
+                    ; target_vars = case.fresh @ vars
+                    ; loop_back = false
+                    ; attack = false
+                    ; param
+                    } ]
+                in
+                (* i+1:j =c=> bj *)
+                let g2, bj (* bold j *), env_bj = graph_cmd ~vars:(case.fresh @ vars) ~proc ~syscaller find_def decls i_1j case.cmd in
+                let g3 =
+                  [ { id= Ident.local "case_out"
+                    ; source = bj
+                    ; source_env = env_bj
+                    ; source_vars = case.fresh @ vars
+                    ; pre = []
+                    ; update = { (Update.update_unit ()) with items = List.map (fun id -> id, Update.Drop) case.fresh }
+                    ; tag =
+                        [ fact case.cmd.env
+                          @@ Loop { pid; mode = Back; index = i }
+                        ]
+                    ; post = []
+                    ; target = i_1
+                    ; target_env = env
+                    ; target_vars = vars
+                    ; loop_back = true (* To increment the transition counter *)
+                    ; attack = false
+                    ; param
+                    } ]
+                in
+                List.concat [ g1; g2; g3 ])
+             cases)
+          @ (List.mapi
                (fun j (case : case) ->
+                  (* i =until_in=> i+1:(j+n) *)
                   let i_1jn = Index.push i_1 (j + n) in
-                  let gj, bj (* bold j *), env_bj = graph_cmd ~vars:(case.fresh @ vars) ~proc ~syscaller find_def decls i_1jn case.cmd in
-                  List.concat [
+                  let g1 =
                     [ { id= Ident.local "until_in"
                       ; source = i_1
                       ; source_env = env
@@ -1043,9 +1069,13 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                       ; target_vars = case.fresh @ vars
                       ; loop_back = false
                       ; attack = false
-                      ; param = snd pid
-                      } ];
-                    gj;
+                      ; param
+                      } ]
+                  in
+                  (* i+1:(j+n) =c=> bj *)
+                  let g2, bj (* bold j *), env_bj = graph_cmd ~vars:(case.fresh @ vars) ~proc ~syscaller find_def decls i_1jn case.cmd in
+                  (* bj => } => i+2 *)
+                  let g3 =
                     [ { id= Ident.local "until_out"
                       ; source = bj
                       ; source_env = env_bj
@@ -1063,11 +1093,13 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                       ; target_vars = vars
                       ; loop_back = false
                       ; attack = false
-                      ; param = snd pid
+                      ; param
                       }
                     ]
-                  ])
+                  in
+                  List.concat [ g1; g2; g3 ])
                cases')
+        )
       in
       es, i_2, env
 
@@ -1122,13 +1154,10 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                  in
                  let attacks = List.mapi (fun i a -> (i+1), a) attacks in
                  List.fold_left (fun g (k, (attack_id, args, cmd)) ->
-                     (* i => ik => ... => j => i_1 *)
+                     (* i => ik =cmd=> j => i_1 *)
+                     (* i =attack_in=> ik *)
                      let ik = Index.push i k in
-                     (* XXX dupe: same as the normal applications *)
-                     (* XXX Attacker is restricted by the syscaller?  Yes in Totamarin. So do we here. *)
-                     let g', j, env_j = graph_cmd ~vars:(args @ vars) ~proc ~syscaller find_def decls ik cmd in
-                     List.concat [
-                       g;
+                     let g1 =
                        [ { id= Ident.local ((Ident.to_string attack_id) ^ "_attack_in")
                          ; source = i
                          ; source_env = app.env
@@ -1144,8 +1173,14 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                          ; loop_back = false
                          ; attack = true
                          ; param
-                         } ];
-                       g';
+                         } ]
+                     in
+                     (* ik =c=> j *)
+                     (* XXX dupe: same as the normal applications *)
+                     (* XXX Attacker is restricted by the syscaller?  Yes in Totamarin. So do we here. *)
+                     let g2, j, env_j = graph_cmd ~vars:(args @ vars) ~proc ~syscaller find_def decls ik cmd in
+                     (* j =attack_out=> i+1 *)
+                     let g3 =
                        [ { id= Ident.local ((Ident.to_string attack_id) ^ "_attack_out")
                          ; source = j
                          ; source_env = env_j
@@ -1162,7 +1197,8 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                          ; attack = false
                          ; param
                          } ]
-                     ])
+                     in
+                     List.concat [ g; g1; g2; g3 ])
                    [] attacks
              | Function _ -> []
              | _ -> assert false
@@ -1170,16 +1206,9 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
 
            let args, cmd, attack = find_def f in
            (* i => i0 => ... => j => i_1 *)
+           (* i =app_in=> i:0 *)
            let i0 = Index.push i 0 in
-           let g, j, env_j =
-             let syscaller =
-               match desc with
-               | ExtSyscall _ -> Some f
-               | _ -> syscaller
-             in
-             graph_cmd ~vars:(args @ vars) ~proc ~syscaller find_def decls i0 cmd
-           in
-           List.concat [
+           let g1 =
              [ { id= Ident.local (Ident.to_string f ^ "_app_in")
                ; source = i
                ; source_env = app.env
@@ -1195,8 +1224,19 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                ; loop_back = false
                ; attack
                ; param
-               } ];
-             g;
+               } ]
+           in
+           (* i:0 =call=> j *)
+           let g2, j, env_j =
+             let syscaller =
+               match desc with
+               | ExtSyscall _ -> Some f
+               | _ -> syscaller
+             in
+             graph_cmd ~vars:(args @ vars) ~proc ~syscaller find_def decls i0 cmd
+           in
+           (* j =app_out=> i+1 *)
+           let g3 =
              [ { id= Ident.local (Ident.to_string f ^ "_app_out")
                ; source = j
                ; source_env = env_j
@@ -1212,9 +1252,9 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                ; loop_back = false
                ; attack = false
                ; param
-               } ];
-             g_attacks
-           ], i_1, app.env
+               } ]
+           in
+           List.concat [ g1; g2; g3; g_attacks ], i_1, app.env
        | None | Some _ -> assert false)
   | _ -> assert false
 ;;
@@ -1569,7 +1609,9 @@ let compress (e1 : edge) (e2 : edge) =
 
   (* Apply enforces e2 facts *)
   (* Or, adds Eq facts instead? *)
-  let u = Update.{ rho= update.rho; register= rho update.rho; items= List.map (fun (id, e) -> id, Update e) enforces } in
+  let u = Update.{ rho= update.rho
+                 ; register= rho update.rho
+                 ; items= List.map (fun (id, e) -> id, Update e) enforces } in
   let e2_pre = Update.update_facts u e2_pre in
   let e2_tag = Update.update_facts u e2_tag in
   let e2_post =Update.update_facts u e2_post in
@@ -1591,16 +1633,16 @@ let compress (e1 : edge) (e2 : edge) =
   ; loop_back = e2.loop_back
   ; attack = e1.attack || e2.attack
   ; param = (assert (e1.param = e2.param); e1.param)
-  }
+  }, enforces <> []
 
 let compress e1 e2 =
-  if !debug then (
+  let e12, with_enforces = compress e1 e2 in
+  if !debug && with_enforces then (
     Format.eprintf "@[<v2>Compress@ %a@ %a@]@."
       print_edge_summary e1
       print_edge_summary e2
   );
-  let e12 = compress e1 e2 in
-  if !debug then (
+  if !debug && with_enforces then (
     Format.eprintf "  @[=> %a@]@.@."
       print_edge_summary e12
   );
