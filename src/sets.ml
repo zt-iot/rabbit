@@ -1,17 +1,23 @@
 module StringSet = Set.Make(String)
+
+
 module ProcTySet = Set.Make(String)
-module SecurityTypeSet = Set.Make(String)
-
-module ProcTySetSet = Set.Make(ProcTySet)
-type proc_ty_set = ProcTySet.t 
-
-
-
+type proc_ty_set = ProcTySet.t
 
 let pp_proc_ty_set fmt set =
   Format.fprintf fmt "{ ";
   ProcTySet.iter (fun s -> Format.fprintf fmt "%s; " s) set;
   Format.fprintf fmt "}"
+
+
+module SecurityTypeSet = Set.Make(String)
+module ProcTySetSet = Set.Make(ProcTySet)
+
+
+
+
+
+
 
 
 let equal_proc_ty_set = ProcTySet.equal
@@ -20,6 +26,8 @@ let equal_proc_ty_set = ProcTySet.equal
 
 type proc_ty = Ident.t
 type syscall_desc = Typed.syscall_desc
+
+
 
 module ProcSyscallPair = struct
   type t = proc_ty * syscall_desc
@@ -31,13 +39,30 @@ module ProcSyscallPair = struct
     else
       proc_cmp
       
-  let pp fmt (proc_ty, syscall_desc) =
+  (* let pp fmt (proc_ty, syscall_desc) =
     Format.fprintf fmt "(%a, %a)" 
       Ident.pp proc_ty
       Typed.pp_syscall_desc syscall_desc
       
   let equal (proc1, syscall1) (proc2, syscall2) =
-    Ident.equal proc1 proc2 && Typed.equal_syscall_desc syscall1 syscall2
+    Ident.equal proc1 proc2 && Typed.equal_syscall_desc syscall1 syscall2 *)
 end
 
 module ProcSyscallSet = Set.Make(ProcSyscallPair)
+
+
+
+module SyscallDesc = struct
+  type t = syscall_desc
+
+  let compare syscall1 syscall2 = 
+    Typed.compare_syscall_desc syscall1 syscall2 
+end
+
+module SyscallDescSet = Set.Make(SyscallDesc)
+
+
+let proc_syscall_set_to_syscall_set (proc_syscall_set : ProcSyscallSet.t) : SyscallDescSet.t = 
+  ProcSyscallSet.fold (fun (_, syscall_desc) acc_set -> 
+      SyscallDescSet.add syscall_desc acc_set
+    ) proc_syscall_set SyscallDescSet.empty

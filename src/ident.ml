@@ -8,7 +8,7 @@ let compare ((s1, i1) : t) ((s2, i2) : t) =
 
 
 module IdentOrd = struct
-  type t = string * int [@@deriving show]
+  type t = string * int 
   let compare = compare
 end
 

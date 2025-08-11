@@ -145,12 +145,12 @@ let _main =
             (match typer_result with
              | Error _ -> ()
              | Ok decls ->
-                let cst_decls, sys, secrecy_lattice, integrity_lattice = 
+                let core_rabbit_prog, secrecy_lattice, integrity_lattice = 
                   To_cst.convert(decls) in 
                 prerr_endline "ConverterSuccess";
                 
-                let _ = Typechecker.typecheck_sys cst_decls sys secrecy_lattice integrity_lattice in
-                prerr_endline "TypecheckerSuccess";
+                (* let _ = Typechecker.typecheck_sys cst_decls sys secrecy_lattice integrity_lattice in
+                prerr_endline "TypecheckerSuccess"; *)
             );
 
             (* Running semantic graph generation *)

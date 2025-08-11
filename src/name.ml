@@ -1,5 +1,5 @@
-type ident = string [@@deriving show, eq]
-type t = ident [@@deriving show, eq]
+type ident = string 
+type t = ident 
 
 module Set = Set.Make(struct
     type t = ident

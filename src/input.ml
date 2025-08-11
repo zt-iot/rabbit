@@ -8,7 +8,7 @@ type rabbit_typ =
   | CProd of rabbit_typ * rabbit_typ          (* ty_1 * ty_2 *)
   | CPoly of Name.ident                       (* 'a or 'b  or 'c etc. *)
   (* maybe add | CSecurity of Name.ident, I'm not sure if it belongs here *)
-[@@deriving show]
+
 
 
 
@@ -17,16 +17,16 @@ and func_param_secrecy_lvl =
   | Public
   | SecPoly of Name.ident (* non-concrete secrecy level *)
   | S of rabbit_typ
-[@@deriving show]
+
 
 
 and func_param_integrity_lvl = 
   | Untrusted 
   | IntegPoly of Name.ident (* non-concrete integrity level *)
   | I of rabbit_typ
-[@@deriving show]
 
-and security_lvl = func_param_secrecy_lvl * func_param_integrity_lvl [@@deriving show]
+
+and security_lvl = func_param_secrecy_lvl * func_param_integrity_lvl 
 
 
 
@@ -135,14 +135,14 @@ and lemma' = Lemma of Name.ident * prop
 type eq_thy_func_desc = 
   | Arity of int (* when types are not given *)
   | TypeSig of rabbit_typ list (* when types are given *)
-[@@deriving show]
+
 
 
 (* Used for signature of syscalls and member function *)
 type syscall_member_fun_desc = 
   | UntypedSig of Name.ident list  (* when types are not given *)
   | TypedSig of Name.ident list * rabbit_typ list (* when types are given *)
-[@@deriving show]
+
 
 (* return the list of identifiers that represent function parameters for a given syscall signature *)
 let syscall_member_fun_desc_to_ident_list signature = match signature with 

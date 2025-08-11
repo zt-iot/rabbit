@@ -4,14 +4,12 @@ type var_desc = Syntax.variable_desc =
   | Meta of int
   | MetaNew of int
   | Param
-[@@deriving show]
 
 type named_fact_desc =
   | Channel
   | Structure
   | Plain
   | Global
-[@@deriving show]
 
 let string_of_named_fact_desc = function
   | Channel -> "channel"
@@ -21,59 +19,52 @@ let string_of_named_fact_desc = function
 
 
 
-(* an instantiated_ty is used to type expression terms in Rabbit *)
-type instantiated_ty = 
-  | TySecurity of Name.ident (* name of the security type *) * Name.ident (* name of the corresponding simple type *) * instantiated_ty list (* instantiated type parameters of the simple type *)
-  | TySimple of Name.ident (* name of the corresponding simple type *) * instantiated_ty list (* instantiated type parameters of the simple type *)
-  | TyProduct of instantiated_ty * instantiated_ty
-  | TyChan of Name.ident (* name of the channel type (= `channel` if not declared as a specific type <ch_ty> : channel[...] ) *) 
-                * instantiated_ty list (* type parameters of this channel type : which types are allowed to be written to the channel *)
-[@@deriving show]
 
 
-(* a function_param is used to type equational theory functions/syscalls/member functions *)
-type function_param = 
-  | FParamSecurity of Name.ident (* name of security type *) * Name.ident (* name of simple type *) * instantiated_ty list (* instantiated type parameters of the simple type *)
-  | FParamSimple of Name.ident * function_param list
-  | FParamProduct of function_param * function_param
-  | FParamPoly of Name.ident 
-  | FParamChannel of function_param list
-[@@deriving show]
+type 'poly processed_ty = 
+  | TySecurity of Ident.t (* name of the security type *) * Ident.t (* name of the corresponding simple type *) * 'poly processed_ty list (* instantiated type parameters of the simple type *)
+  | TySimple of Ident.t (* name of the corresponding simple type *) * 'poly processed_ty list (* instantiated type parameters of the simple type *)
+  | TyProduct of 'poly processed_ty * 'poly processed_ty
+  | TyChanPlain of 'poly processed_ty list (* channel[ty_1, ..., ty_n] *)
+  | TyChan of Ident.t (* name of the channel type *) 
+  | TyPoly of 'poly (* this constructor is only used when 'poly is meaningful *)
+
+(* This datatype has 0 constructors, and thus cannot be instantiated *)
+type void = |
+
+(* To encode an instantiated_ty, we declare instantiated_ty as follows, which means we can never construct `TyPoly` *)
+type instantiated_ty = void processed_ty
+(* for function params, we can construct `TyPoly string` *)
+type function_param = string processed_ty
+
+(* convert instantiated_ty to function_param, always succeeds *)
+let rec inst_ty_to_function_param : instantiated_ty -> function_param = function
+  | TySecurity (sec_ident, simple_ident, ty_params) ->
+      TySecurity (sec_ident, simple_ident, List.map inst_ty_to_function_param ty_params)
+  | TySimple (simple_ty_ident, ty_params) -> 
+      TySimple (simple_ty_ident, List.map inst_ty_to_function_param ty_params)
+  | TyProduct (t1, t2) -> 
+      TyProduct (inst_ty_to_function_param t1, inst_ty_to_function_param t2)
+  | TyChanPlain ty_params -> 
+      TyChanPlain (List.map inst_ty_to_function_param ty_params)
+  | TyChan ch_ident -> TyChan ch_ident
+  (* This case is impossible, because we cannot construct members of void *)
+  | TyPoly _ -> .
 
 
-(* Boilerplate conversion from instantiated_ty to function_param, which is required by 
-convert_rabbit_typ_to_env_function_param(CGeneric(...)) *)
-let rec instantiated_ty_to_function_param (ty : instantiated_ty) : function_param =
-  match ty with
-  | TySecurity (sec_ty_name, simple_ty_name, params) ->
-      FParamSecurity (sec_ty_name, simple_ty_name, params)
-
-  | TySimple (simple_ty_name, params) ->
-      let param_fparams = List.map instantiated_ty_to_function_param params in
-      FParamSimple (simple_ty_name, param_fparams)
-
-  | TyProduct (ty1, ty2) ->
-      let f1 = instantiated_ty_to_function_param ty1 in
-      let f2 = instantiated_ty_to_function_param ty2 in
-      FParamProduct (f1, f2)
-
-  | TyChan (_, params)  ->
-      let param_fparams = List.map instantiated_ty_to_function_param params in
-      FParamChannel param_fparams
 
 
 (* Used for signature of equational theory function *)
 type eq_thy_func_desc = 
   | DesugaredArity of int (* when types are not given *)
   | DesugaredTypeSig of function_param list (* when types are given *)
-[@@deriving show]
 
 
 (* Used for signature of syscalls and member function *)
 type syscall_member_fun_sig = 
   | DesSMFunUntyped of Ident.t list  (* when types are not given *)
   | DesSMFunTyped of Ident.t list * function_param list (* when types are given *)
-[@@deriving show]
+
 
 let syscall_member_fun_desc_to_ident_list signature = match signature with 
   (* Description Syscall Member Function *)
@@ -84,13 +75,13 @@ let syscall_member_fun_desc_to_ident_list signature = match signature with
 
 type desc =
   (* SimpleTypeDef of <type parameter list of the simple type> *)
-  | SimpleTypeDef of Name.ident list
+  | SimpleTypeDef of string list
   | Var of var_desc * instantiated_ty option
   | ExtFun of eq_thy_func_desc
   | ExtSyscall of syscall_member_fun_sig
   | Function of syscall_member_fun_sig
   | Const of bool * instantiated_ty option
-  | Channel of bool * Ident.t
+  | Channel of bool (* parameterized channel or not *)* Ident.t (* corresponding channel type *)
   | Attack
   
   | ProcTypeDef
@@ -98,10 +89,10 @@ type desc =
   | ChanTypeDef of instantiated_ty list
 
   (* SecurityTypeDef of <name of the simple type> * <instantiated type parameter list of the simple type> *)
-  | SecurityTypeDef of Name.ident * instantiated_ty list
+  | SecurityTypeDef of Ident.t * instantiated_ty list
   
   | Process
-[@@deriving show]
+
 
 let print_desc desc ppf =
   let f = Format.fprintf in
@@ -129,7 +120,7 @@ type t = {
   vars : (Ident.t * desc) list;
   facts : (Name.ident * (named_fact_desc * int option)) list ref
   (* The fact environment is global therefore implemented as mutable *)
-} [@@deriving show]
+} 
 
 let empty () = { vars= []; facts= ref [] }
 

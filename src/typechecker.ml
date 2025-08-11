@@ -1,6 +1,4 @@
-open Cst_util
-
-exception TypeException of string
+(* exception TypeException of string
 
 let raise_type_exception_with_location msg loc = 
     Location.print loc Format.std_formatter;
@@ -20,48 +18,8 @@ let init_and_last generic_list loc =
 
 
 
-
-type t_env_typ = 
-  | CST of Cst_env.core_security_type
-  | FunT of Cst_env.core_security_type list (* Just to be able to have bindings in `t_env` whose value is a function type, possibly with `cmd` code. This should never be actually returned from 
-    typechecker.ml, because Rabbit does not support higher-order functions *)
-
-
-(* a Map from Ident.t to Cst_env.core_security_type *)
-(* because we Map from Ident.t to t_env_typ, we should not encounter any problems with name shadowing *)
-type typing_env = t_env_typ Maps.IdentMap.t
-
-
-let cst_to_tenv_typ (typ : Cst_env.core_security_type) : t_env_typ =
-  CST typ
-
-let coerce_tenv_typ (typ : t_env_typ) : Cst_env.core_security_type =
-  match typ with
-  | CST t -> t
-  | FunT _ -> raise (TypeException "FunT cannot be converted to core_security_type")
-
-
-let rec coerce_fun_param (param : Cst_env.core_security_function_param) : Cst_env.core_security_type =
-  match param with
-  | (CFP_Unit, lvl) -> (TUnit, lvl)
-  | (CFP_Chan ps, lvl) ->
-      let tys = List.map coerce_fun_param ps in
-      (TChan tys, lvl)
-  | (CFP_Simple (id, ps), lvl) ->
-      let tys = List.map coerce_fun_param ps in
-      (TSimple (id, tys), lvl)
-  | (CFP_Product (p1, p2), lvl) ->
-      let t1 = coerce_fun_param p1 in
-      let t2 = coerce_fun_param p2 in
-      (TProd (t1, t2), lvl)
-  | (CFP_Dummy, lvl) -> (Dummy, lvl)
-  (* currently fails if the function parameter is polymorphic. Eventually, we'd want to implement proper conversion *)
-  | (CFP_Poly _, _) ->
-      raise (TypeException "CFP_Poly cannot be coerced to core_security_type")
-
-
 let rec typeof_expr (secrecy_lattice : cst_access_policy)
-  (integrity_lattice : cst_access_policy) (expr : Cst_syntax.expr) (t_env : typing_env) : Cst_env.core_security_type = 
+  (integrity_lattice : cst_access_policy) (expr : Cst_syntax.expr) (t_env : typing_env) : core_security_type = 
   let typeof_expr_rec = typeof_expr secrecy_lattice integrity_lattice in 
   match expr.desc with
 
@@ -76,12 +34,12 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
     | Boolean _ -> 
 
         (* Need to check that `bool` was actually declared as a simple type *)
-        let _ = begin match (Cst_env.find_opt expr.env "bool") with 
+        let (ident, _) = begin match (Cst_env.find_opt expr.env "bool") with 
           | Some ((_, Cst_env.SimpleTypeDef([]))) -> ()
           | _ -> (raise_type_exception_with_location "type bool was not declared as a simple type in this program" expr.Cst_syntax.loc)
         end in 
 
-        (Cst_env.TSimple("bool", []), (Public, Untrusted))
+        (Cst_env.TSimple(ident, []), (Public, Untrusted))
     
     (* Return type string for both options IF it was declared as a simple type *)
     | String _ ->
@@ -91,7 +49,7 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
           | _ -> (raise_type_exception_with_location "type string was not declared as a simple type in this program" expr.Cst_syntax.loc)
         end in 
 
-        (Cst_env.TSimple("string", []), (Public, Untrusted))
+        (Cst_env.TSimple(ident, []), (Public, Untrusted))
 
     (* Return type int for both options IF it was declared as a simple type *)
     | Integer _ ->
@@ -101,7 +59,7 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
           | _ -> (raise_type_exception_with_location "type int was not declared as a simple type in this program" expr.Cst_syntax.loc)
         end in 
 
-        (Cst_env.TSimple("int", []), (Public, Untrusted))
+        (Cst_env.TSimple(ident, []), (Public, Untrusted))
 
     (* Return type float for both options IF it was declared as a simple type *)
     | Float _ ->
@@ -111,12 +69,9 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
           | _ -> (raise_type_exception_with_location "type float was not declared as a simple type in this program" expr.Cst_syntax.loc)
         end in 
 
-        (Cst_env.TSimple("float", []), (Public, Untrusted))
+        (Cst_env.TSimple(ident, []), (Public, Untrusted))
 
-    (* Option 1: Look up typing signature of `id` in Cst_env.t, 
-        then look up types of args in `Cst_env.t` and see if they match *)
-    (* Option 2: Look up typing signature of `id` in Cst_env.t, 
-        then look up types of args in `t_env` and see if they match *)
+
     | Apply (id, args) ->
         (* obtain the list of function parameters that `id` accepts *)
         let function_params = begin match Cst_env.find_opt_by_id expr.env id with 
@@ -130,7 +85,6 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
         let function_params_input, ret_ty = init_and_last function_params expr.loc in 
 
         (* arity check *)
-        (* (this should have been checked for already in `typer.ml/desugarer.ml`, but I'm just doing it again here )*)
         let arity_expected = (List.length function_params) - 1 (* minus one, because we don't count the return type as input type *) in 
         let arity_actual = List.length args in 
         if (arity_expected <> arity_actual) then
@@ -139,7 +93,6 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
         (* Check whether each argument is a subtype of the function parameter type, modulo the return type of function params *)
         let types_of_args = List.map (fun e -> (typeof_expr_rec e t_env)) args in 
 
-        (* TODO handle substitution of concrete types for polymorphic types *)
         (* for now, we coerce the function parameters to `core_security_type`'s *)
         let types_of_function_params = List.map (coerce_fun_param) function_params_input in 
         let args_x_f_params = List.combine types_of_args types_of_function_params in
@@ -192,8 +145,8 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
 
 
 let typeof_case_channel_fact_argument (secrecy_lattice : cst_access_policy)
-  (integrity_lattice : cst_access_policy) (expected_arg_type : Cst_env.core_security_type) (ch_fact_arg : Cst_syntax.expr) (ch_fact_fresh_idents : Ident.t list) (t_env : typing_env) 
-    : Cst_env.core_security_type * (Ident.t * t_env_typ) option = match ch_fact_arg.desc with
+  (integrity_lattice : cst_access_policy) (expected_arg_type : core_security_type) (ch_fact_arg : Cst_syntax.expr) (ch_fact_fresh_idents : Ident.t list) (t_env : typing_env) 
+    : core_security_type * (Ident.t * t_env_typ) option = match ch_fact_arg.desc with
   (* The identifier needs to be typechecked differently when it is used as a channel fact argument in a case statement *)
   | Ident { id; desc; param } ->
     (* *)
@@ -269,7 +222,7 @@ let typecheck_fact (secrecy_lattice : cst_access_policy)
   | Global(name, es) -> []
 
 
-let rec convert_product_type_to_list_of_types (prod_type : Cst_env.core_security_type) (loc : Location.t) : Cst_env.core_security_type list = begin match prod_type with 
+let rec convert_product_type_to_list_of_types (prod_type : core_security_type) (loc : Location.t) : core_security_type list = begin match prod_type with 
   | (Cst_env.TProd(t1, t2), (_, _)) -> 
     let t1_tys = convert_product_type_to_list_of_types t1 loc in 
     let t2_tys = convert_product_type_to_list_of_types t2 loc in 
@@ -279,7 +232,7 @@ let rec convert_product_type_to_list_of_types (prod_type : Cst_env.core_security
 
 
 let check_all_types_equal (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) 
-(ts_and_locs : (Cst_env.core_security_type * Location.t) list) : Cst_env.core_security_type = 
+(ts_and_locs : (core_security_type * Location.t) list) : core_security_type = 
   begin match ts_and_locs with 
   | [] -> 
       raise (TypeException "empty case or repeat statement") 
@@ -294,7 +247,7 @@ let check_all_types_equal (secrecy_lattice : cst_access_policy) (integrity_latti
   end
 
 let rec typeof_case (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) 
-  (case : Cst_syntax.case) (t_env : typing_env) : Cst_env.core_security_type = 
+  (case : Cst_syntax.case) (t_env : typing_env) : core_security_type = 
     let branch_bindings = (List.fold_left (fun acc_bindings fact -> 
     let fact_bindings = (typecheck_fact secrecy_lattice integrity_lattice fact t_env ~is_case_fact:true ~fresh_idents:case.fresh) in 
     acc_bindings @ fact_bindings
@@ -310,7 +263,7 @@ let rec typeof_case (secrecy_lattice : cst_access_policy) (integrity_lattice : c
 
 
 and typeof_cmd  (secrecy_lattice : cst_access_policy)
-  (integrity_lattice : cst_access_policy) (cmd : Cst_syntax.cmd) (t_env : typing_env) : Cst_env.core_security_type = 
+  (integrity_lattice : cst_access_policy) (cmd : Cst_syntax.cmd) (t_env : typing_env) : core_security_type = 
   let typeof_expr_rec = (typeof_expr secrecy_lattice integrity_lattice) in 
   let typeof_cmd_rec = (typeof_cmd secrecy_lattice integrity_lattice) in 
   match cmd.Cst_syntax.desc with 
@@ -536,7 +489,7 @@ let typecheck_decl (secrecy_lattice : cst_access_policy)
 
       (* typecheck the cmd of each member function *)
       let typeof_member_func (func : Ident.t * (Ident.t * Cst_env.core_security_function_param) list * Cst_syntax.cmd) 
-        : Cst_env.core_security_type = 
+        : core_security_type = 
          let (_, fun_ids_and_param_typs, fun_cmd) = func in 
          let t_env''' = List.fold_left (fun acc_t_env (member_fun_param_id, member_fun_param_typ) -> 
            let t_env_typ = cst_to_tenv_typ (coerce_fun_param (member_fun_param_typ)) in 
@@ -549,7 +502,6 @@ let typecheck_decl (secrecy_lattice : cst_access_policy)
 
       (* it is not necessary to add the typing signature of a function to the t_env *)
       (* that information is already present in the Cst_env.t *)
-
       
       (print_endline (Format.sprintf "Running typeof_cmd on process name %s" (Ident.string_part id)));
 
@@ -576,4 +528,4 @@ let typecheck_sys (cst_decls : Cst_syntax.decl list)
 
     (* typecheck each decl of filtered_decls with computed secrecy_lattice and integrity_lattice from previous pass *)
     List.iter (fun decl -> typecheck_decl secrecy_lattice integrity_lattice decl) filtered_cst_decls;
-  | _ -> (raise_type_exception_with_location "this declaration is not a system declaration" sys.loc)
+  | _ -> (raise_type_exception_with_location "this declaration is not a system declaration" sys.loc) *)

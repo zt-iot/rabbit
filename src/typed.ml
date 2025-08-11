@@ -1,5 +1,5 @@
-type name = Name.t [@@deriving show]
-type ident = Ident.t [@@deriving show, eq]
+type name = Name.t 
+type ident = Ident.t
 
 type 'desc loc_env =
   { desc : 'desc
@@ -8,10 +8,10 @@ type 'desc loc_env =
   ; typ : Env.instantiated_ty option (* the type of "`desc" if it can have a type.  *)
   }
 
-let pp_loc_env pp_desc fmt { desc; loc = _; env ; typ = _ } =
+(* let pp_loc_env pp_desc fmt { desc; loc = _; env ; typ = _ } =
   Format.fprintf fmt "{ desc = %a; env = %a }"
     pp_desc desc
-    Env.pp env
+    Env.pp env *)
 
 (* let show_loc_env show_desc { desc; loc = _; env } =
   Printf.sprintf "{ desc = %s; env = %s }"
