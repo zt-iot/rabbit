@@ -5,7 +5,6 @@ type 'desc loc_env =
   { desc : 'desc
   ; loc : Location.t
   ; env : Env.t
-  ; typ : Env.instantiated_ty option (* the type of "`desc" if it can have a type.  *)
   }
 
 (* let pp_loc_env pp_desc fmt { desc; loc = _; env ; typ = _ } =
@@ -19,7 +18,7 @@ type 'desc loc_env =
     (Env.show env) *)
 
 
-type expr = expr' loc_env [@@deriving show]
+type expr = expr' loc_env 
 
 and expr' =
   | Ident of
@@ -37,7 +36,7 @@ and expr' =
   | Apply of ident * expr list  (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Unit
-[@@deriving show]
+
 
 let rec string_of_expr (e : expr) =
   match e.desc with
@@ -56,7 +55,7 @@ type loop_mode =
   | Back
   | Out
 
-type fact = fact' loc_env [@@deriving show]
+type fact = fact' loc_env 
 
 and fact' =
   | Channel of
@@ -75,13 +74,13 @@ and fact' =
       }
   | Global of string * expr list
 
-type cmd = cmd' loc_env [@@deriving show]
+type cmd = cmd' loc_env 
 
 and case =
   { fresh : ident list
   ; facts : fact list
   ; cmd : cmd
-  } [@@deriving show]
+  } 
 
 and cmd' =
   | Skip
@@ -96,32 +95,32 @@ and cmd' =
   | New of ident * Env.instantiated_ty option * (name * expr list) option * cmd
   | Get of ident list * expr * name * cmd
   | Del of expr * name
-[@@deriving show]
+
 
 
 (* Example of chan_param : {ch_net ; None ; udp_t }*)
-type chan_param = { channel : ident; param : unit option; typ : ident } [@@deriving show]
+type chan_param = { channel : ident; param : unit option; typ : ident } 
 
 type chan_arg =
   { channel : ident
   ; parameter : expr option option
   ; typ : ident
-  } [@@deriving show]
+  } 
 
-type pproc = pproc' Location.located [@@deriving show]
+type pproc = pproc' Location.located 
 
 and pproc' =
   { id : ident
   ; parameter : expr option
   ; args : chan_arg list
-  } [@@deriving show]
+  } 
 
 type proc =
   | Unbounded of pproc
   | Bounded of ident * pproc list
-[@@deriving show]
 
-type lemma = lemma' loc_env [@@deriving show]
+
+type lemma = lemma' loc_env 
 
 and lemma' =
   | Plain of string
@@ -140,7 +139,7 @@ type init_desc =
   | Value_with_param of ident * expr
   | Fresh
   | Fresh_with_param
-[@@deriving show]
+
 
 
 type syscall_desc = 
@@ -148,7 +147,7 @@ type syscall_desc =
   | Provide 
   | DirectInteraction (* allow proc_ty sec_ty [.] *)
   | SyscallId of ident 
-[@@deriving show, eq]
+
 
 
 let compare_syscall_desc syscall1 syscall2 =
@@ -173,7 +172,7 @@ let simplify_list_of_syscall_descs (syscall_descs : syscall_desc list) : Ident.t
                           | SyscallId id -> acc_syscalls_simplified @ [id]
                         ) [] syscall_descs
 
-type decl = decl' loc_env [@@deriving show]
+type decl = decl' loc_env 
 
 and decl' =
   | Equation of expr * expr
@@ -223,7 +222,7 @@ and decl' =
       }
   | System of proc list * (Ident.t * lemma) list
   | Load of string * decl list
-[@@deriving show]
+
 
 module Subst = struct
   type t =
@@ -240,9 +239,9 @@ module Subst = struct
         let id = Option.value ~default:id @@ List.assoc_opt id s.channels in
         let param = Option.map (expr s) param in
         { e with desc= Ident { i with id; param } }
-    | Ident { id; desc= Var (Param, _) ; param= None; _ } ->
+    | Ident { id; desc= Var (Param) ; param= None; _ } ->
         Option.value ~default:e @@ List.assoc_opt id s.parameters
-    | Ident { id=_; desc= Var (Param, _); param= Some _; _ } ->
+    | Ident { id=_; desc= Var (Param); param= Some _; _ } ->
         assert false
     | Ident _ -> e
 
@@ -371,11 +370,10 @@ module Subst = struct
     | Bounded (id, pprocs) ->
         let new_id = Ident.local (fst id) in
         let e = { desc= Ident { id= new_id
-                              ; desc= (Var (Param, None))
+                              ; desc= (Var (Param))
                               ; param= None }
                 ; loc= Location.nowhere
-                ; env= Env.add (Env.empty ()) new_id (Var (Param, None))
-                ; typ= None
+                ; env= Env.add (Env.empty ()) new_id (Var (Param))
                 }
         in
         List.map (instantiate_pproc [id, e] decls) pprocs

@@ -43,11 +43,11 @@ let raise_typer_exception_with_location msg loc =
 
 
 let kind_of_desc = function
-  | Env.Var (Top _, _) -> "toplevel"
-  | Var (Loc _, _) -> "local"
-  | Var (Meta _, _) -> "meta"
-  | Var (MetaNew _, _) -> "metanew"
-  | Var (Param, _) -> "parameter"
+  | Env.Var (Top _) -> "toplevel"
+  | Var (Loc _) -> "local"
+  | Var (Meta _) -> "meta"
+  | Var (MetaNew _) -> "metanew"
+  | Var (Param) -> "parameter"
   | ExtFun _ -> "external function"
   | ExtSyscall _ -> "system call"
   | Const _ -> "constant"
@@ -265,30 +265,20 @@ let convert_rabbit_ty_to_env_function_param ~loc (env : Env.t) (ty : Input.rabbi
 
 let rec desugar_expr env (e : Input.expr) : Typed.expr =
   let loc = e.loc in
-  let desc, typ_opt =
+  let desc =
     match e.data with
     | Boolean b -> 
-        let typ_ident, desc = Env.find ~loc env "bool" in 
-        Typed.Boolean b, Some (Env.TySimple(typ_ident, []))
+        Typed.Boolean b
     | String s -> 
-        let typ_ident, desc = Env.find ~loc env "string" in 
-        String s, Some(Env.TySimple(typ_ident, []))
+        String s
     | Integer i -> 
-        let typ_ident, desc = Env.find ~loc env "int" in 
-        Integer i, Some(Env.TySimple(typ_ident, []))
+        Integer i
     | Float f -> 
-        let typ_ident, desc = Env.find ~loc env "float" in 
-        Float f, Some(Env.TySimple(typ_ident, []))
+        Float f
     | Var name ->
         let id, desc = Env.find ~loc env name in
 
-        let ty_opt = begin match desc with
-          | Var (_, ty_opt) -> ty_opt
-          | Const (_, ty_opt) -> ty_opt
-          | _ -> None
-        end in
-
-        Ident { id; desc; param = None }, ty_opt
+        Ident { id; desc; param = None }
     | Tuple es ->
         assert (List.length es > 0);
 
@@ -298,51 +288,34 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
 
         let typed_es = List.map (desugar_expr env) es in 
 
-        let init_tuple_typ_opt = begin match (List.hd typed_es).typ with 
-          | Some (ty1) -> begin match (List.hd (List.tl typed_es)).typ with
-            | Some(ty2) -> Some (Env.TyProduct(ty1, ty2))
-            | _ -> None 
-            end
-          | _ -> None 
-        end in 
-
-        let ty_opt = List.fold_left (fun acc_tup_typ_opt (typed_expr : Typed.expr) -> begin match acc_tup_typ_opt with 
-          | Some (typrod) -> begin match typed_expr.typ with 
-            | Some(ty3) -> Some (Env.TyProduct(typrod, ty3))
-            | None -> None
-            end
-          | None -> None
-          end
-          ) init_tuple_typ_opt (List.tl (List.tl typed_es)) in 
-
-        Tuple (typed_es), ty_opt
+        Tuple (typed_es)
     | Apply (f, es) ->
         let es = List.map (desugar_expr env) es in
         let use = List.length es in
         (match Env.find ~loc env f with
          | id, (ExtFun (DesugaredArity arity)) -> 
              check_arity ~loc ~arity ~use;
-             Apply (id, es), None
+             Apply (id, es)
          | id, (ExtFun (DesugaredTypeSig ps)) -> 
             (* arity = number of arguments that function takes *)
             let arity = List.length ps - 1 in 
             check_arity ~loc ~arity ~use; 
 
             (* let ty_opt = Some ((env_function_param_to_instantiated_ty e.loc (List.hd (List.rev ps)))) in  *)
-            Apply (id, es), None
+            Apply (id, es)
          | id, (ExtSyscall sig_desc | Function sig_desc) ->
-             let arity, ty_opt = begin match sig_desc with
+             let arity = begin match sig_desc with
              (* arity = number of arguments that function takes *)
-             | Env.DesSMFunUntyped(ids) -> List.length ids, None
+             | Env.DesSMFunUntyped(ids) -> List.length ids
              | Env.DesSMFunTyped(ids, ps) -> 
                 (* let ret_ty_opt = Some (env_function_param_to_instantiated_ty e.loc (List.hd (List.rev ps))) in *)
                 assert ((List.length ids) = (List.length ps) - 1);
                 (* arity = number of arguments that function takes, which is the length of parameter list minus one *)
-                List.length ps - 1, None
+                List.length ps - 1
              end in 
              check_arity ~loc ~arity ~use;
 
-             Apply (id, es), ty_opt
+             Apply (id, es)
          | id, desc ->
              error ~loc @@ NonCallableIdentifier (id, desc))
     | Param (f, e) (* [f<e>] *) ->
@@ -351,7 +324,7 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
          | id, (Const (param, ty_opt) as desc) -> 
             let e = desugar_expr env e in 
             
-            Ident { id; desc; param= Some e }, ty_opt 
+            Ident { id; desc; param= Some e }
          | id, ((Channel (_, ident_typ)) as desc) -> 
 
             let chty_name = Ident.string_part ident_typ in 
@@ -360,13 +333,12 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
               | (_, ChanTypeDef(param_list)) -> param_list
               | _ -> (raise_typer_exception_with_location (Format.sprintf "%s is not a channel type definition" chty_name) loc)
              end in
-             
-            let ty_opt = Some (Env.TyChan (Ident.string_part ident_typ, chan_typ_params) ) in 
+
             let e = desugar_expr env e in 
-            Ident { id; desc; param= Some e }, ty_opt 
+            Ident { id; desc; param= Some e }
          | id, desc -> error ~loc @@ NonParameterizableIdentifier (id, desc))
   in
-  { loc; env; desc; typ = typ_opt }
+  { loc; env; desc; }
 ;;
 
 (* If [f] is a system call or a funciton w/ definition, an application of [f] is only
@@ -438,7 +410,7 @@ let type_fact env (fact : Input.fact) : Typed.fact =
         let e2 = desugar_expr env e2 in
         File { path = e1; contents = e2 }
   in
-  { env; loc; desc; typ = None }
+  { env; loc; desc; }
 ;;
 
 let extend_with_args env (args : Name.ident list) f =
@@ -472,27 +444,24 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         Sequence (c1, c2)
     | Put facts ->
         let facts = type_facts env facts in
-        let ty_opt = Some(Env.TySimple("unit", [])) in 
         Put facts
     | Let (name, e, cmd) ->
         (* print_endline (Format.sprintf "typing `var %s = ...`" name); *)
         let e = desugar_expr ~at_assignment:true env e in
 
         let id = Ident.local name in
-        let env' = Env.add env id (Var (Loc (snd id), e.typ)) in
+        let env' = Env.add env id (Var (Loc (snd id))) in
         let cmd = type_cmd env' cmd in
         Let (id, e, cmd)
     | Assign (None, e) ->
         let e = desugar_expr ~at_assignment:true env e in
-        let ty_opt = Some(Env.TySimple("unit", [])) in 
         Assign (None, e)
     | Assign (Some name, e) ->
         let id, vdesc = Env.find ~loc env name in
         (match vdesc with
-         | Var ((Top _ | Loc _ | Meta _), _) -> ()
+         | Var ((Top _ | Loc _ | Meta _)) -> ()
          | desc -> error ~loc @@ InvalidVariableAtAssign (id, desc));
         let e = desugar_expr env ~at_assignment:true e in
-        let ty_opt = Some(Env.TySimple("unit", [])) in 
         Assign (Some id, e)
     | Case cases -> Case (type_cases env cases)
     | While (cases1, cases2) ->
@@ -514,7 +483,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
             str_es_opt
         in
         let id = Ident.local name in
-        let env' = Env.add env id (Var (Loc (snd id), None)) in
+        let env' = Env.add env id (Var (Loc (snd id))) in
         let cmd = type_cmd env' cmd in
         let desugared_ty_opt = Option.map (convert_rabbit_ty_to_instantiated_ty ~loc env) input_ty_opt in 
         New (id, desugared_ty_opt, str_es_opt, cmd)
@@ -525,7 +494,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         let ids = List.map Ident.local names in
         let env' =
           (* XXX: add types for all e_1, ..., e_n in this case *)
-          List.fold_left (fun env' id -> Env.add env' id (Var (Loc (snd id), None))) env ids
+          List.fold_left (fun env' id -> Env.add env' id (Var (Loc (snd id)))) env ids
         in
         let cmd = type_cmd env' cmd in
         Get (ids, e, str, cmd)
@@ -539,7 +508,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
          | None -> error ~loc @@ UnboundFact str);
         Del (e, str)
   in
-  { loc; env; desc; typ = None }
+  { loc; env; desc }
 
 and type_cases env cases : Typed.case list = List.map (type_case env) cases
 
@@ -559,7 +528,7 @@ and type_case env (facts, cmd) : Typed.case =
 
   (* record in the environment that each variable \in fresh is a meta variable *)
   let env' =
-    List.fold_left (fun env id -> Env.add env id (Var (Meta (snd id), None))) env fresh_ids
+    List.fold_left (fun env id -> Env.add env id (Var (Meta (snd id)))) env fresh_ids
   in
 
   (* XXX: why is every fact 'typed' under the same environment? 
@@ -597,8 +566,7 @@ let type_process
       | None -> env, None
       | Some name ->
           let id = Ident.local name in
-          (* XXX will it not cause problems if we do not register the type of `id` here? *)
-          Env.add env id (Var (Param, None)), Some id
+          Env.add env id (Var (Param)), Some id
     in
 
     (* add channel paramters to local environment *)
@@ -648,7 +616,7 @@ let type_process
               (convert_rabbit_ty_to_instantiated_ty ~loc env) ty_opt in  *)
               
             let e = desugar_expr env e in
-            let env' = Env.add env id (Var (Loc (snd id), e.typ)) in
+            let env' = Env.add env id (Var (Loc (snd id))) in
             env', (id, None, e) :: rev_vars)
         (env', [])
         vars
@@ -660,7 +628,7 @@ let type_process
       List.fold_left
         (fun (env', rev_funcs) (fname, input_member_fun_desc, c) ->
            let args = Input.syscall_member_fun_desc_to_ident_list input_member_fun_desc in 
-           let env'', args = extend_with_args env' args @@ fun id -> Var (Loc (snd id), None) in
+           let env'', args = extend_with_args env' args @@ fun id -> Var (Loc (snd id)) in
 
            let converted_fun_desc = begin match input_member_fun_desc with 
             | Input.UntypedSig(_) -> Env.DesSMFunUntyped(args)
@@ -690,7 +658,6 @@ let type_process
     ; loc
     ; desc =
         Process { id; param = param_opt; args; typ = proc_ty; files; vars; funcs; main }
-    ; typ = None
     }
   in
   env', decl
@@ -710,7 +677,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         in
         let env' =
           List.fold_left
-            (fun env id -> Env.add env id (Var (Meta (snd id), None)))
+            (fun env id -> Env.add env id (Var (Meta (snd id))))
             env
             fresh_ids
         in
@@ -724,7 +691,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         in
         let env' =
           List.fold_left
-            (fun env id -> Env.add env id (Var (Meta (snd id), None)))
+            (fun env id -> Env.add env id (Var (Meta (snd id))))
             env
             fresh_ids
         in
@@ -732,7 +699,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         let f2 = type_fact env' f2 in
         Correspondence { fresh = fresh_ids; from = f1; to_ = f2 }
   in
-  let lemma : Typed.lemma = { env; loc; desc; typ = None } in
+  let lemma : Typed.lemma = { env; loc; desc } in
   let env', id = Env.add_global ~loc env name Process in
   env', (id, lemma)
 ;;
@@ -779,18 +746,18 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         Name.Set.elements (Name.Set.filter (fun v -> not (Env.mem env v)) vars)
       in
       let env', _fresh_ids (* XXX should be in the tree *) =
-        extend_with_args env fresh @@ fun id -> Var (Meta (snd id), None)
+        extend_with_args env fresh @@ fun id -> Var (Meta (snd id))
       in
       let e1 = desugar_expr env' e1 in
       let e2 = desugar_expr env' e2 in
       ( env
-      , [{ env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *); typ = None }] )
+      , [{ env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *) }] )
   | DeclExtSyscall (name, syscall_desc_input, c) ->
 
       
       let args = Input.syscall_member_fun_desc_to_ident_list syscall_desc_input in 
       let args, cmd =
-        let env', args = extend_with_args env args @@ fun id -> Var (Loc (snd id), None) in
+        let env', args = extend_with_args env args @@ fun id -> Var (Loc (snd id)) in
         let c = type_cmd env' c in
         args, c
       in
@@ -802,7 +769,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
             Env.DesSMFunTyped(args, converted_fun_params_types)
       end in 
       let env', id = Env.add_global ~loc env name (ExtSyscall converted_syscall_sig) in
-      env', [{ env; loc; desc = Typed.Syscall { id; fun_sig = converted_syscall_sig; cmd }; typ = None }]
+      env', [{ env; loc; desc = Typed.Syscall { id; fun_sig = converted_syscall_sig; cmd } }]
   | DeclExtAttack (name, syscall, args, c) ->
       (* [attack id on syscall (a1,..,an) { c }] *)
       let syscall =
@@ -813,12 +780,12 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
             @@ Misc "Incorrect usage of `on`: use an existing syscall with the correct arity"
       in
       let args, cmd =
-        let env', args = extend_with_args env args @@ fun id -> Var (Loc (snd id), None) in
+        let env', args = extend_with_args env args @@ fun id -> Var (Loc (snd id)) in
         let c = type_cmd env' c in
         args, c
       in
       let env', id = Env.add_global ~loc env name Attack in
-      env', [{ env; loc; desc = Attack { id; syscall; args; cmd }; typ = None }]
+      env', [{ env; loc; desc = Attack { id; syscall; args; cmd } }]
   | DeclType (name, basetyp) ->
       let converted_to_env_desc = begin match basetyp with 
         
@@ -868,7 +835,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let res = match typclass_opt with 
         | Some ty_class -> 
           let typed_decl_desc = Typed.Type {id = id' ; typclass = ty_class } in 
-          (env', [{ Typed.desc = typed_decl_desc ; Typed.loc = loc; Typed.env = env; Typed.typ = None} ])
+          (env', [{ Typed.desc = typed_decl_desc ; Typed.loc = loc; Typed.env = env } ])
         | None ->
           (env', []) in 
       res
@@ -906,7 +873,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         ; loc
         ; desc =
             Allow { process_typ = proc_ty; target_typs = tys; syscall_descs = syscall_descs_processed }
-        ; typ = None
+        
         }] )
   | DeclAttack (proc_tys, attacks) ->
       (* [allow attack proc_ty1 .. proc_tyn [attack1, .., attackn]] *)
@@ -916,32 +883,32 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let attacks =
         List.map (fun attack -> Env.find_desc ~loc env attack Attack) attacks
       in
-      env, [{ env; loc; desc = AllowAttack { process_typs = proc_tys; attacks }; typ = None }]
+      env, [{ env; loc; desc = AllowAttack { process_typs = proc_tys; attacks } }]
   | DeclInit (name, rabbit_typ_opt, Fresh) ->
       let converted_ty_opt = Option.map (fun rtyp -> convert_rabbit_ty_to_instantiated_ty ~loc env rtyp) rabbit_typ_opt in 
       (* [const fresh n] *)
       let env', id = Env.add_global ~loc env name (Const (false, converted_ty_opt)) in
 
       (* We only return a declaration for compatibility with sem.ml *)
-      env', [{ env; loc; desc = Init { id; desc = Fresh }; typ = None }]
+      env', [{ env; loc; desc = Init { id; desc = Fresh } }]
   | DeclInit (name, _, Value e) ->
       (* [const n = e] *)
       let e = desugar_expr env e in
       let env', id = Env.add_global ~loc env name (Const (false, None)) in
 
       (* We only return a declaration for compatibility with sem.ml *)
-      env', [{ env; loc; desc = Init { id; desc = Value e }; typ = None }]
+      env', [{ env; loc; desc = Init { id; desc = Value e } }]
   | DeclInit (name, rabbit_typ_opt, Fresh_with_param) ->
       (* [const fresh n<>] *)
       let converted_ty_opt = Option.map (fun rtyp -> convert_rabbit_ty_to_instantiated_ty ~loc env rtyp) rabbit_typ_opt in 
       let env', id = Env.add_global ~loc env name (Const (true, converted_ty_opt)) in
       
       (* We only return a declaration for compatibility with sem.ml *)
-      env', [{ env; loc; desc = Init { id; desc = Fresh_with_param }; typ = None }]
+      env', [{ env; loc; desc = Init { id; desc = Fresh_with_param } }]
   | DeclInit (name, _, Value_with_param (e, p)) ->
       (* [const n<p> = e] *)
       let p = Ident.local p in
-      let env' = Env.add env p (Var (Param, None)) in
+      let env' = Env.add env p (Var (Param)) in
       let e = desugar_expr env' e in
       let env', id =
         Env.add_global ~loc env name (Const (true, None))
@@ -949,7 +916,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       in
 
       (* We only return a declaration for compatibility with sem.ml *)
-      env', [{ env; loc; desc = Init { id; desc = Value_with_param (p, e) }; typ = None }]
+      env', [{ env; loc; desc = Init { id; desc = Value_with_param (p, e) } }]
   | DeclChan (ChanParam { id = name; param; typ = chty }) ->
       (* [channel n : ty] *)
       (* [channel n<> : ty] *)
@@ -960,7 +927,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         | _ -> error ~loc @@ Misc("Use a channel type definition instead")
         end in 
       let env', id = Env.add_global ~loc env name (Channel (param <> None, chty)) in
-      env', [{ env; loc; desc = Channel { id; param; typ = chty }; typ = None }]
+      env', [{ env; loc; desc = Channel { id; param; typ = chty } }]
   | DeclProc { id; param; args; typ; files; vars; funcs; main } ->
       let env', decl = type_process ~loc env id param args typ files vars funcs main in
       env', [decl]
@@ -1019,7 +986,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         | Input.UnboundedProc pproc -> Unbounded (type_pproc env None pproc)
         | BoundedProc (name, pprocs) (* [!name.(pproc1|..|pprocn)] *) ->
             let id = Ident.local name in
-            let env = Env.add env id (Var (Param, None)) in
+            let env = Env.add env id (Var (Param)) in
             let pprocs = List.map (type_pproc env (Some id)) pprocs in
             Bounded (id, pprocs)
       in
@@ -1033,7 +1000,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
           lemmas
       in
       let lemmas = List.rev rev_lemmas in
-      env, [{ env; loc; desc = System (procs, lemmas); typ = None }]
+      env, [{ env; loc; desc = System (procs, lemmas) }]
 
 and load env fn : Env.t * Typed.decl list =
 

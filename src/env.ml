@@ -76,7 +76,7 @@ let syscall_member_fun_desc_to_ident_list signature = match signature with
 type desc =
   (* SimpleTypeDef of <type parameter list of the simple type> *)
   | SimpleTypeDef of string list
-  | Var of var_desc * instantiated_ty option
+  | Var of var_desc
   | ExtFun of eq_thy_func_desc
   | ExtSyscall of syscall_member_fun_sig
   | Function of syscall_member_fun_sig
@@ -97,11 +97,11 @@ type desc =
 let print_desc desc ppf =
   let f = Format.fprintf in
   match desc with
-  | Var (Top i, _) -> f ppf "Top %d" i
-  | Var (Loc i, _) -> f ppf "Loc %d" i
-  | Var (Meta i, _) -> f ppf "Meta %d" i
-  | Var (MetaNew i, _) -> f ppf "MetaNew %d" i
-  | Var (Param, _) -> f ppf "Param"
+  | Var (Top i) -> f ppf "Top %d" i
+  | Var (Loc i) -> f ppf "Loc %d" i
+  | Var (Meta i) -> f ppf "Meta %d" i
+  | Var (MetaNew i) -> f ppf "MetaNew %d" i
+  | Var (Param) -> f ppf "Param"
   | ExtFun _ -> f ppf "ExtFun"
   | ExtSyscall _ -> f ppf "ExtSyscall"
   | Const (b, _) -> f ppf "Const (param=%b)" b

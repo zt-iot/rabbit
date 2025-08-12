@@ -206,8 +206,7 @@ type graph = edge list
 let evar env id =
     { env
     ; loc = Location.nowhere
-    ; desc = Ident { id; desc = Var (Loc (snd id), None); param = None }
-    ; typ = None
+    ; desc = Ident { id; desc = Var (Loc (snd id)); param = None }
     }
 ;;
 
@@ -215,13 +214,13 @@ let evar env id =
 let rec graph_cmd find_def ~process i (c : cmd) : graph * Index.t * Env.t =
   let env = c.env in
   let update_unit =
-    { register = Some { env; loc = Location.nowhere; desc = Unit; typ = None }
+    { register = Some { env; loc = Location.nowhere; desc = Unit }
     ; mutable_overrides = []
     ; drops = []
     }
   in
   let update_id = { register = None; mutable_overrides = []; drops = [] } in
-  let fact env desc : fact = { env; desc; loc = Location.nowhere; typ = None } in
+  let fact env desc : fact = { env; desc; loc = Location.nowhere } in
   match c.desc with
   | Skip ->
       let i_1 = Index.add i 1 in
@@ -448,8 +447,7 @@ let rec graph_cmd find_def ~process i (c : cmd) : graph * Index.t * Env.t =
 
           { env (* XXX vars are not defied in env *)
           ; loc = Location.nowhere
-          ; desc = Ident { id; desc = Var (Loc (snd id), None); param = None }
-          ; typ = None
+          ; desc = Ident { id; desc = Var (Loc (snd id)); param = None }
           }
       in
       ( [ { id = Ident.local "del"
@@ -593,7 +591,7 @@ and graph_application find_def ~process i (app : expr) : graph * Index.t * Env.t
            ; source = i
            ; source_env = app.env
            ; pre = []
-           ; update = { register = Some { env= app.env; loc = Location.nowhere; desc = Unit ; typ = None}
+           ; update = { register = Some { env= app.env; loc = Location.nowhere; desc = Unit}
                       ; mutable_overrides = List.combine args (List.map Option.some es)
                       ; drops= []
                       }
@@ -646,7 +644,7 @@ let graph_files_and_vars
   (decls : Typed.decl list)
   (proc : Typed.Subst.instantiated_process)
   (i : Index.t) =
-  let fact fact' : fact = { env; desc=fact'; loc; typ = None } in
+  let fact fact' : fact = { env; desc=fact'; loc; } in
   let files : fact list =
     List.concat_map (fun (path, fty, contents) ->
         let f = fact @@ File { path; contents } in
@@ -679,7 +677,7 @@ let graph_files_and_vars
   ; source = i
   ; source_env = env
   ; pre = []
-  ; update = { register = Some { env; loc = Location.nowhere; desc = Unit; typ = None }
+  ; update = { register = Some { env; loc = Location.nowhere; desc = Unit }
              ; mutable_overrides = List.map (fun (id,e) -> id, Some e) proc.vars
              ; drops = []
              }
@@ -713,7 +711,7 @@ type rule =
 
 let const_rules decls =
   List.filter_map (fun (decl : Typed.decl) ->
-      let fact desc = { env= decl.env; loc=Location.nowhere; desc; typ = None } in
+      let fact desc = { env= decl.env; loc=Location.nowhere; desc } in
       match decl.desc with
       | Init { id; desc } ->
           (match desc with
@@ -764,7 +762,7 @@ let _ppp
     env
     (chan_args : Typed.chan_arg list)
     (p : Typed.Subst.instantiated_process) =
-  let fact desc = { env; loc=Location.nowhere; desc; typ = None } in
+  let fact desc = { env; loc=Location.nowhere; desc } in
   List.map (fun { channel; parameter; typ } ->
       ( parameter = Some None
       , List.concat_map (fun decl ->
