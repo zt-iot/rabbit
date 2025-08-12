@@ -2,6 +2,8 @@
 
 open Sets
 
+exception CstSyntaxException of string
+
 (* type 'desc loc_env =
   { desc : 'desc
   ; loc : Location.t
@@ -25,31 +27,50 @@ type integrity_lvl =
 
 
 
-(* core type WITHOUT polymorphic types *)
-type core_type = 
+
+
+(* This datatype has 0 constructors, and thus cannot be instantiated *)
+type void = |
+
+
+type 'poly abstract_core_ty = 
   | TUnit 
-  | TChan of core_security_type list
-  | TSimple of Ident.t * core_security_type list
-  | TProd of core_security_type * core_security_type
-  | Dummy     (* Just to return a value when we don't care what it is *)
-              (* This should never be returned in an actual implementation *)
+  | TChan of ('poly abstract_core_security_ty) list
+  | TSimple of Ident.t * ('poly abstract_core_security_ty) list 
+  | TProd of 'poly abstract_core_security_ty * 'poly abstract_core_security_ty
+  | TPoly of 'poly (* this constructor is only used when 'poly is meaningful *)
+
+and 'poly abstract_core_security_ty = 'poly abstract_core_ty * (secrecy_lvl * integrity_lvl)
+
+type core_ty = void abstract_core_ty
+type core_function_param = string abstract_core_ty
+
+type core_security_ty = core_ty * (secrecy_lvl * integrity_lvl)
+type core_security_function_param = core_function_param * (secrecy_lvl * integrity_lvl)
 
 
-and core_security_type = core_type * (secrecy_lvl * integrity_lvl)
+(* converting a core security type to a core security function param always succeeds *)
+let rec core_ty_to_f_param : core_ty -> core_function_param = function
+  | TUnit -> TUnit
+  | TChan ty_params -> TChan (List.map (core_sec_ty_to_core_sec_f_param) ty_params)
+  | TSimple (simple_ty_ident, ty_params) -> TSimple (simple_ty_ident, (List.map (core_sec_ty_to_core_sec_f_param) ty_params))
+  | TProd (ty1, ty2) -> TProd (core_sec_ty_to_core_sec_f_param ty1, core_sec_ty_to_core_sec_f_param ty2)
+  (* this case is impossible, because we cannot construct members of void *)
+  | TPoly _ -> .
 
-(* core type POSSIBLY WITH polymorphic types *)
-type core_function_param =
-  | CFP_Unit 
-  | CFP_Chan of core_security_function_param list
-  | CFP_Simple of Ident.t (* name of the simple type *) * core_security_function_param list (* core security types of the associated simple type *)
-  | CFP_Product of core_security_function_param * core_security_function_param
-  | CFP_Poly of Ident.t
+and core_sec_ty_to_core_sec_f_param : core_security_ty -> core_security_function_param 
+  = fun (ty, lvls) -> (core_ty_to_f_param ty, lvls)
 
+(* converting a core security function param to a core securit type fails if it contains any polymorphic *)
+let rec core_f_param_to_core_ty : core_function_param -> core_ty = function 
+  | TUnit -> TUnit
+  | TChan ty_params -> TChan (List.map (core_sec_f_param_to_core_sec_ty) ty_params)
+  | TSimple (simple_ty_ident, ty_params) -> TSimple (simple_ty_ident, (List.map core_sec_f_param_to_core_sec_ty ty_params))
+  | TProd (ty1, ty2) -> TProd (core_sec_f_param_to_core_sec_ty ty1, core_sec_f_param_to_core_sec_ty ty2)
+  | TPoly _ -> raise (CstSyntaxException "Currently, a core security function param with polymorphic types cannot be converted to a core security type")
 
-(* contructing a CFP_Poly with secrecy and integrity information should be illegal, but there is 
-no way to enforce this requirement with specific constructors *)
-and core_security_function_param = core_function_param * (secrecy_lvl * integrity_lvl) 
-
+and core_sec_f_param_to_core_sec_ty : core_security_function_param -> core_security_ty 
+ = fun (ty, lvls) -> (core_f_param_to_core_ty ty, lvls)
 
 
 type expr = expr' * Location.t 
@@ -92,7 +113,7 @@ and fact' =
 
 
 (* Cst_synax.cmd = Typed.cmd but with an embedded Cst_env.t 
-Additionally, the `New` constructor needs a core_security_type
+Additionally, the `New` constructor needs a core_security_ty
 *)
 type cmd = cmd' * Location.t 
 (* A Cst_syntax.case represents a single branch of a `case` or `repeat` statement *)
@@ -117,7 +138,7 @@ and cmd' =
   *)
   | Event of fact list (** tag, event[T] *)
   | Return of expr (** return *)
-  | New of Ident.t * core_security_type option * (Name.t * expr list) option * cmd
+  | New of Ident.t * core_security_ty option * (Name.t * expr list) option * cmd
   (** allocation, new x := S(e1,..en) in c *)
   | Get of Ident.t list * expr * Name.t * cmd (** fetch, let x1,..,xn := e.S in c *)
   | Del of expr * Name.t (** deletion , delete e.S *)
@@ -159,10 +180,10 @@ and process' =
 
 type t_env_typ = 
   (* A core security type *)
-  | CST of core_security_type
+  | CST of core_security_ty
   | SimpleTypeDef of string list
-  | SecurityTypeDef of string (* name of simple type upon which the security type is based *) * core_security_type list (* type parameters *)
-  | ChanTypeDef of core_security_type list
+  | SecurityTypeDef of string (* name of simple type upon which the security type is based *) * core_security_ty list (* type parameters *)
+  | ChanTypeDef of core_security_ty list
   | ProcTypeDef 
   | FilesysTypeDef
 
@@ -173,7 +194,7 @@ type t_env_typ =
 
 
 
-(* a Map from Ident.t to core_security_type *)
+(* a Map from Ident.t to core_security_ty *)
 (* because we Map from Ident.t (which is unique in the entire program), we should not encounter any problems with name shadowing *)
 type typing_env = t_env_typ Maps.IdentMap.t
 

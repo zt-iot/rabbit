@@ -1,4 +1,4 @@
-(* 
+
 open Sets 
 open Maps
 
@@ -1198,4 +1198,4 @@ let convert (decls : Typed.decl list)
       secrecy_lattice integrity_lattice proc_decls other_decls in 
 
     converted_rabbit_prog, secrecy_lattice, integrity_lattice
-  | _ -> raise (CstConversionException "Expected a System declaration at the the end, but there is a different declaration") *)
+  | _ -> raise (CstConversionException "Expected a System declaration at the the end, but there is a different declaration")
