@@ -1,0 +1,98 @@
+
+
+data unit
+data message 
+
+
+
+type alice_t      : process
+type bob_t        : process 
+
+
+(** temporary solution *)
+type attacker_ty : process
+
+
+
+(** single security type which we are going to use in the code of this example *)
+type client_msg : message
+
+
+
+type udp_t : channel[client_msg]
+
+
+
+
+syscall send(c : channel[client_msg], v : client_msg) : unit {
+  put [c::store(v)]
+}
+
+syscall recv(c : channel[client_msg]) : client_msg {
+  case 
+  | [c::store(v)] →   v
+  end
+}
+
+(* we need a syscall with which we can give provide-access to alice which is not 'send' *)
+syscall invoke_rpc (cid, f, arg1, arg2) {
+  let c = cid.chid in
+  put [c::invoke(f, arg1, arg2)]; 
+  case [c:: Returned(v)] → v end
+}
+
+
+(* both alice_t and bob_t are given full read/provide access to udp_t channels *)
+allow alice_t udp_t [send, recv]
+allow bob_t udp_t [send, recv]
+
+
+(* alice_t is allowed to read and provide client_msg via the invoke_rpc syscall *)
+allow alice_t client_msg [invoke_rpc]
+
+(* bob_t is allowed to read client_msg via syscall recv *)
+allow bob_t client_msg [recv]
+
+
+channel udp : udp_t
+
+(* the attacker is not able to do anything ; i.e. we give 0 permissions to the attacker_ty *)
+
+(***********)
+(** process templates *)
+
+
+process alice(ch_net : udp_t) : alice_t
+{
+  	main 
+  	{
+        new msg : client_msg in (* alice_t creates a client_msg ; all goes well *)
+
+        (* Below application of syscall send is ill-typed. Why?
+            - Alice is not allowed to send message of type client_msg via the 'send' syscall 
+         *)
+        _ := send(ch_net, msg); 
+        (* However, with the current setup, this example is incorrectly accepted, because: 
+          - alice_t is given access to udp_t 
+          - alice_t is allowed to call 'send'
+          - alice_t is allowed to provide 'client_msg', 
+            because 'alice_t' is allowed access through client_msg via at least one syscall which has a 'provide' effect (invoke_rpc)
+        * )
+
+        event [::AliceClose ()]
+  	}
+}
+
+
+
+process bob(ch_net : udp_t) : bob_t 
+{
+    main {
+      var msg = recv(ch_net) in 
+      skip
+    }
+}
+
+
+
+system alice(udp) | bob(udp)

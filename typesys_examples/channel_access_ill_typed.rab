@@ -1,0 +1,73 @@
+
+
+data unit
+data message 
+
+type alice_t      : process
+type bob_t        : process 
+
+
+(** temporary solution *)
+type attacker_ty : process
+
+(** single security type for this example *)
+type client_msg : message
+
+
+type udp_t : channel[message]
+
+
+
+syscall send(c : channel[message], v : message) : unit {
+  put [c::store(v)]
+}
+
+syscall recv(c : channel[message]) : message {
+  case 
+  | [c::store(v)] →   v
+  end
+}
+
+
+(* In this example, we do not allow anyone access to the `udp_t` channel. This means this program should get rejected by typechecker *)
+
+
+
+
+(* we give alice_t and bob_t permission to call send and recv, but importantly, they are not allowed access to the `udp_t` channel *)
+allow alice_t client_msg [send, recv]
+allow bob_t client_msg [send, recv]
+
+(* bob is not allowed to do anything. I.e., he is only able to read/provide the simple type 'message' *)
+(* the attacker_ty is not allowed to do anything. I.e., they are only able to read/provide the simple type 'message' *)
+
+channel udp : udp_t
+
+
+(***********)
+(** process templates *)
+
+
+process alice(ch_net : udp_t) : alice_t
+{
+  	main 
+  	{
+        new msg : message in (* alice_t creates a message *)
+        _ := send(ch_net, msg); (* if alice was allowd to access this channel, it would be well-typed *)
+
+        event [::AliceClose ()]
+  	}
+}
+
+
+
+process bob(ch_net : udp_t) : bob_t 
+{
+    main {
+      var msg = recv(ch_net) in (* bob tries to receive the message *)
+      skip
+    }
+}
+
+
+system alice(udp) | bob(udp)
