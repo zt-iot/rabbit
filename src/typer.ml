@@ -307,11 +307,9 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
              let arity = begin match sig_desc with
              (* arity = number of arguments that function takes *)
              | Env.DesSMFunUntyped(ids) -> List.length ids
-             | Env.DesSMFunTyped(ids, ps) -> 
-                (* let ret_ty_opt = Some (env_function_param_to_instantiated_ty e.loc (List.hd (List.rev ps))) in *)
-                assert ((List.length ids) = (List.length ps) - 1);
-                (* arity = number of arguments that function takes, which is the length of parameter list minus one *)
-                List.length ps - 1
+             | Env.DesSMFunTyped(idents_x_ps, _) -> 
+                (* arity = number of arguments that function takes *)
+                List.length idents_x_ps
              end in 
              check_arity ~loc ~arity ~use;
 
@@ -632,10 +630,18 @@ let type_process
 
            let converted_fun_desc = begin match input_member_fun_desc with 
             | Input.UntypedSig(_) -> Env.DesSMFunUntyped(args)
-            | Input.TypedSig(_, fun_params) -> 
-              let converted_fun_params = List.map 
-                (convert_rabbit_ty_to_env_function_param ~loc env) fun_params in 
-                Env.DesSMFunTyped(args, converted_fun_params)
+            | Input.TypedSig(ids_x_params, ret_ty) -> 
+              
+              let converted_params = List.map (fun (_, param) -> 
+                (convert_rabbit_ty_to_env_function_param ~loc env param)
+              ) ids_x_params in
+              
+              if List.length args != List.length converted_params then
+                (raise_typer_exception_with_location "args length and params length do not match" loc);
+
+              let converted_ids_x_params = List.combine args converted_params in 
+              let converted_ret_ty = (convert_rabbit_ty_to_env_function_param ~loc env ret_ty) in 
+              Env.DesSMFunTyped(converted_ids_x_params, converted_ret_ty)
            end in 
 
            let c = type_cmd env'' c in
@@ -763,10 +769,19 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       in
       let converted_syscall_sig = begin match syscall_desc_input with 
         | Input.UntypedSig(_) -> Env.DesSMFunUntyped(args)
-        | Input.TypedSig(_, fun_params_types) -> 
-            let converted_fun_params_types = List.map 
-              (convert_rabbit_ty_to_env_function_param ~loc env) fun_params_types in 
-            Env.DesSMFunTyped(args, converted_fun_params_types)
+        | Input.TypedSig(ids_x_param_types, ret_ty) -> 
+            let converted_params = List.map (fun (_, param_ty) -> 
+              (convert_rabbit_ty_to_env_function_param ~loc env param_ty)
+            ) ids_x_param_types in
+
+
+            if List.length args != List.length converted_params then
+                (raise_typer_exception_with_location "args length and params length do not match" loc);
+
+            let converted_fun_params_types = List.combine args converted_params in 
+            
+            let converted_ret_ty = (convert_rabbit_ty_to_env_function_param ~loc env ret_ty) in 
+            Env.DesSMFunTyped(converted_fun_params_types, converted_ret_ty)
       end in 
       let env', id = Env.add_global ~loc env name (ExtSyscall converted_syscall_sig) in
       env', [{ env; loc; desc = Typed.Syscall { id; fun_sig = converted_syscall_sig; cmd } }]

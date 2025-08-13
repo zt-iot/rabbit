@@ -141,13 +141,13 @@ type eq_thy_func_desc =
 (* Used for signature of syscalls and member function *)
 type syscall_member_fun_desc = 
   | UntypedSig of Name.ident list  (* when types are not given *)
-  | TypedSig of Name.ident list * rabbit_typ list (* when types are given *)
+  | TypedSig of (Name.ident * rabbit_typ) list * rabbit_typ (* when types are given *)
 
 
 (* return the list of identifiers that represent function parameters for a given syscall signature *)
 let syscall_member_fun_desc_to_ident_list signature = match signature with 
   | UntypedSig(ids) -> ids
-  | TypedSig(ids, _) -> ids
+  | TypedSig(ids_x_params, _) -> List.map (fst) ids_x_params
 
 
 type init_desc =

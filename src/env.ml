@@ -79,13 +79,13 @@ type eq_thy_func_desc =
 (* Used for signature of syscalls and member function *)
 type syscall_member_fun_sig = 
   | DesSMFunUntyped of Ident.t list  (* when types are not given *)
-  | DesSMFunTyped of Ident.t list * function_param list (* when types are given *)
+  | DesSMFunTyped of ((Ident.t * function_param) list) * function_param (* when types are given *)
 
 
 let syscall_member_fun_desc_to_ident_list signature = match signature with 
   (* Description Syscall Member Function *)
   | DesSMFunUntyped(ids) -> ids
-  | DesSMFunTyped(ids, _) -> ids
+  | DesSMFunTyped (pairs, _) -> List.map (fst) pairs
 
 
 

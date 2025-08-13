@@ -145,7 +145,7 @@ let _main =
             (match typer_result with
              | Error _ -> ()
              | Ok decls ->
-                let core_rabbit_prog, secrecy_lattice, integrity_lattice = 
+                let core_rabbit_prog, secrecy_lattice, integrity_lattice, _ = 
                   To_cst.convert(decls) in 
                 prerr_endline "ConverterSuccess";
                 

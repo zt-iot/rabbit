@@ -98,7 +98,8 @@ and cmd' =
 
 
 
-(* Example of chan_param : {ch_net ; None ; udp_t }*)
+(* the parameters and types used in the definition of a process template *)
+(* Example : {ch_net ; None ; udp_t }*)
 type chan_param = { channel : ident; param : unit option; typ : ident } 
 
 type chan_arg =

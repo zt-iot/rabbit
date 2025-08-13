@@ -348,7 +348,7 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
     | Env.TySecurity (sec_ty_name, simple_ty_id, simple_ty_instantiated_tys) ->
       
       
-        let converted_simple_ty_params = List.map convert_instantiated_ty_to_core ctx simple_ty_instantiated_tys in
+        let converted_simple_ty_params = List.map (convert_instantiated_ty_to_core ctx) simple_ty_instantiated_tys in
         let ct = Cst_syntax.TSimple (simple_ty_id, converted_simple_ty_params) in 
 
         let readers = begin match SecurityTypeMap.find_opt sec_ty_name read_access_map with 
@@ -362,7 +362,6 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
           | None -> ProcTySet.empty
         end in 
 
-
         let secrecy_lvl = Cst_syntax.proc_ty_set_to_secrecy_lvl readers all_process_typs in 
         let integrity_lvl = Cst_syntax.proc_ty_set_to_integrity_lvl providers all_process_typs in 
 
@@ -370,7 +369,7 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
         
     | Env.TySimple (ty_name, param_list) ->
         (* Convert parameter list recursively *)
-        let converted_params = List.map convert_instantiated_ty_to_core ctx param_list in
+        let converted_params = List.map (convert_instantiated_ty_to_core ctx) param_list in
         let ct = Cst_syntax.TSimple (ty_name, converted_params) in 
         
         (* A simple type is always (Public, Untrusted) as every party has read/provide access to it *)
@@ -392,7 +391,7 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
 
         begin match (secrecy_lvl, integrity_lvl) with 
           | (Some s, Some i) -> ct, (s, i)
-          (* XXX : Don't know what to do if there is no join or meet *)
+          (* XXX TODO : Don't know what to do if there is no join or meet *)
           | (_, _) -> ct, (secrecy_lvl1, integrity_lvl1)
         end
 
@@ -403,8 +402,8 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
       ct, (Cst_syntax.Public, Cst_syntax.Untrusted)
         
     | Env.TyChan (chan_ty_ident) ->
+      
         (* look up the security type *)
-
         let param_list = match Env.find_opt_by_id env chan_ty_ident with 
           | Some Env.ChanTypeDef(instantiated_tys) -> instantiated_tys
           | _ -> raise (CstConversionException "There is a an Env.TyChan declared which does not point to a channel type definition: this should not be possible")
@@ -412,10 +411,25 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
 
         (* Convert channel parameter list *)
         let converted_params = 
-          List.map convert_instantiated_ty_to_core ctx param_list in 
+          List.map (convert_instantiated_ty_to_core ctx) param_list in 
         let ct = Cst_syntax.TChan converted_params in 
 
-        ct, (Cst_syntax.Public, Cst_syntax.Untrusted)
+        (* compute secrecy and integrity level in the same manner as for Env.TySecurity *)
+
+        let readers = begin match SecurityTypeMap.find_opt chan_ty_ident read_access_map with 
+          | (Some s) -> s
+          | None -> ProcTySet.empty
+        end in 
+
+        let providers = begin match SecurityTypeMap.find_opt chan_ty_ident provide_access_map with
+          | (Some s) -> s 
+          | None -> ProcTySet.empty
+        end in 
+
+        let secrecy_lvl = Cst_syntax.proc_ty_set_to_secrecy_lvl readers all_process_typs in 
+        let integrity_lvl = Cst_syntax.proc_ty_set_to_integrity_lvl providers all_process_typs in 
+
+        ct, (secrecy_lvl, integrity_lvl)
 
     (* this case is impossible *)
     | Env.TyPoly _ -> .
@@ -424,16 +438,8 @@ let convert_function_param_to_core (ctx : conversion_context) (param : Env.funct
     | Env.TyPoly str -> (Cst_syntax.TPoly str, (Cst_syntax.Public, Cst_syntax.Untrusted))
     | p -> 
         let cst = 
-          (convert_instantiated_ty_to_core read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice env 
-            (Env.function_param_to_inst_ty p)) in
+          (convert_instantiated_ty_to_core ctx (Env.function_param_to_inst_ty p)) in
         Cst_syntax.core_sec_ty_to_core_sec_f_param cst
-
-
-
-
-  
-
-
 
 
 
@@ -450,10 +456,9 @@ let rec convert_expr (ctx : conversion_context) (e : Typed.expr) : Cst_syntax.ex
 (*     let _ = print_endline "Converting expr" in *)
 
     let converted_desc = match e.desc with
-    | Typed.Ident { id; desc; param } ->
-        let converted_desc = convert_env_desc read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice desc in
+    | Typed.Ident { id ; param ; _ } ->
         let converted_param = Option.map (convert_expr ctx) param in
-        Cst_syntax.Ident { id; desc = converted_desc; param = converted_param }
+        Cst_syntax.Ident { id; param = converted_param }
     
     | Typed.Boolean b -> Cst_syntax.Boolean b
     
@@ -466,7 +471,7 @@ let rec convert_expr (ctx : conversion_context) (e : Typed.expr) : Cst_syntax.ex
     | Typed.Apply (id, exprs) -> 
         (* we need to check whether the process type calling this function has the permission to call this system call *)
 
-        Cst_syntax.Apply (id, List.map convert_expr ctx exprs)
+        Cst_syntax.Apply (id, List.map (convert_expr ctx) exprs)
     
     | Typed.Tuple exprs -> 
         Cst_syntax.Tuple (List.map (convert_expr ctx) exprs)
@@ -526,7 +531,7 @@ let rec convert_cmd (ctx : conversion_context)
     | Typed.New (id, instantiated_ty_opt, name_expr_opt, c) -> 
         let core_security_ty_opt = Option.map (convert_instantiated_ty_to_core ctx) instantiated_ty_opt in
 
-        (* XXX why is name_expr_opt an Option? *)
+        (* TODO: I'm not sure if I need to do anything with the 'name_expr_opt' here *)
         let converted_name_expr_opt = Option.map (fun (name, exprs) -> 
           (name, List.map (convert_expr ctx) exprs)) name_expr_opt in
 
@@ -538,7 +543,6 @@ let rec convert_cmd (ctx : conversion_context)
     | Typed.Del (expr, name) -> 
         Cst_syntax.Del ((convert_expr ctx) expr, name)
   in
-  
   converted_cmd', cmd.loc 
 
 and convert_fact (ctx : conversion_context) (fact : Typed.fact) : Cst_syntax.fact =
@@ -549,7 +553,6 @@ and convert_fact (ctx : conversion_context) (fact : Typed.fact) : Cst_syntax.fac
   let secrecy_lattice = ctx.secrecy_lattice in
   let integrity_lattice = ctx.integrity_lattice in
   let env = ctx.env in 
-
 
 (*   let _ = print_endline "Converting fact" in *)
   
@@ -588,19 +591,25 @@ and convert_fact (ctx : conversion_context) (fact : Typed.fact) : Cst_syntax.fac
 
 
 
-
-let convert_chan_param (ctx : conversion_context) (p : Typed.chan_param) : Cst_syntax.process_param =
+(* conversion of the paramteres of a process template *)
+let convert_proc_template_param (ctx : conversion_context) (p : Typed.chan_param) : Cst_syntax.core_process_param =
 
   let read_access_map = ctx.read_access_map in
   let provide_access_map = ctx.provide_access_map in
   let all_process_typs = ctx.all_process_typs in
   let secrecy_lattice = ctx.secrecy_lattice in
   let integrity_lattice = ctx.integrity_lattice in
-  let env = ctx.env in    
+  let env = ctx.env in 
+
+  (* XXX: This is based on the assumption that process template parameters are always channel parameters, 
+  which is not necessarily going to be the case in the future *)
+  let function_param = Env.TyChan(p.typ) in 
     let converted_proc_param_typ = 
-      (convert_function_param_to_core read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice env
-        Typed.TyChan(p.typ)) in  
+      (convert_function_param_to_core ctx function_param) in  
   { proc_param_id = p.channel ; proc_param_typ = converted_proc_param_typ} 
+
+
+
 
 
 
@@ -643,115 +652,9 @@ let extract_process_typs_from_decls procs decls =
 
 
 
-let convert_env_to_typing_env (ctx : conversion_context) (other_decls : Typed.decl list) : Cst_syntax.typing_env = 
-  let convert_function_param_to_core_rec = 
-    (convert_function_param_to_core read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice) in 
-  let resulting_typing_env = List.fold_left (fun acc_t_env (ident, desc) -> match desc with 
-    | Env.SimpleTypeDef param_list -> 
-        let typ = Cst_syntax.SimpleTypeDef param_list in 
-        Maps.IdentMap.add ident typ acc_t_env
-    (* Env.Var is not relevant, because the environment for each process will not contain such Env.Var *)
-    | Env.Var _ -> acc 
-    | Env.ExtFun (DesugaredArity _) -> raise (CstConversionException "Cannot convert Env.ExtFun without type information ")
-    | Env.ExtFun (DesugaredTypeSig function_params) -> 
-        let typ = Cst_syntax.EqThyFunc (List.map (convert_function_param_to_core ctx ) function_params) in 
-        Maps.IdentMap.add ident typ acc_t_env
-    | Env.ExtSyscall (DesSMFunTyped (_, f_params)) -> 
-        let core_f_params = List.map (convert_function_param_to_core ctx f_params) in 
-        (* we need to find the syscall's command by searching through our list of declarations *)
-        let syscall_decl_opt = List.find_opt (fun decl -> match decl with 
-          | Typed.Syscall {id = syscall_id ; _ } -> 
-            (ident == syscall_id)
-          | _ -> false 
-        ) in 
-        let syscall_cmd = begin match syscall_decl_opt with 
-        | Some (syscall_decl) -> match syscall_decl with 
-          | Typed.Syscall { cmd ; _ } -> cmd 
-          | _ -> raise (CstConversionException "This should not be reachable")
-        end in
-        let typ = Cst_syntax.Syscall(core_f_params, syscall_cmd) in 
-        Maps.IdentMap.add ident typ acc_t_env
-    | Env.Function _ ->
-        raise (CstConversionException "An Env.Function should not be present in an Env.t, if the Env.t is the environment of a process declaration")
-    | Env.Const (_, instantiated_ty) -> 
-        let converted_ty = (convert_instantiated_ty_to_core ctx instantiated_ty) in 
-        Maps.IdentMap.add ident (Cst_syntax.CST converted_ty) acc_t_env
-
-    (* TODO I don't understand how to convert an Env.Channel *)
-    | Env.Channel _ -> failwith "TODO"
-
-    (* For now, we are not going to add Attacks to the typing environment *)
-    | Env.Attack -> acc_t_env
-
-    | Env.ProcTypeDef -> 
-        Maps.IdentMap.add ident Cst_syntax.ProcTypeDef acc_t_env
-    | Env.FilesysTypeDef -> 
-        Maps.IdentMap.add ident Cst_syntax.FilesysTypeDef acc_t_env
-    | Env.ChanTypeDef (instantiated_tys) -> 
-        let converted_tys = List.map (convert_instantiated_ty_to_core ctx ) instantiated_tys in 
-        Maps.IdentMap.add ident (Cst_syntax.CST (Cst_syntax.ChanTypeDef converted_tys)) acc_t_env
-    | Env.SecurityTypeDef (simple_ty_name, instantied_tys) -> 
-        let converted_tys = List.map (convert_instantiated_ty_to_core ctx ) instantiated_tys in 
-        let typ = (Cst_syntax.SecurityTypeDef (simple_ty_name, converted_tys)) in 
-        Maps.IdentMap.add ident typ acc_t_env
-    ) Maps.IdentMap.empty env.vars in 
-    resulting_typing_env
 
 
-let convert_proc_decls (ctx : conversion_context) (other_decls : Typed.decl list) : Cst_syntax.core_rabbit_prog = 
-
-    let converted_procs_and_envs = List.map (fun (decl, loc) -> match decl.Typed.desc with 
-      | Typed.Process { id; param; args; typ; files; vars; funcs; main } ->
-        let converted_proc_params = List.map convert_chan_param args in 
-        let converted_files = List.map (fun (x, y, z) -> 
-          ((convert_expr ctx) x, y, (convert_expr ctx) z)) files in 
-        let converted_vars = List.map (fun (x, _, z) -> 
-          (x, (convert_expr ctx) z)) vars in 
-
-        let convert_func_sig (member_fun_id : Ident.t) (y : Env.syscall_member_fun_sig) : (Ident.t * Cst_syntax.core_security_function_param) list = 
-          begin match y with 
-          | DesSMFunTyped(ids, fun_params) ->   
-            let converted_fun_params = List.map convert_function_param_to_core ctx fun_params in 
-
-            (* I'm assuming the arity check has already happened *)
-            List.combine ids converted_fun_params 
-          | _ -> 
-            (raise_conv_exception_with_location 
-              (Format.sprintf "Member function %s cannot be typechecked if it does not have a typing annotation" (Ident.string_part member_fun_id))
-              loc
-            )
-          end in 
-      
-      let converted_funcs = List.map (fun (x, y, z) -> 
-        (x, (convert_func_sig x y), (convert_cmd ctx) z)
-        ) funcs in 
-
-      let converted_main = (convert_cmd ctx) main in 
-
-      let converted_process = Cst_syntax.Process{
-          id 
-          ; param
-          ; args = converted_proc_params
-          ; typ 
-          ; files = converted_files
-          ; vars = converted_vars
-          ; funcs = converted_funcs
-          ; main = converted_main
-        } in 
-
-        let converted_env = convert_env_to_typing_env decl.Typed.env other_decls in 
-
-        converted_process, converted_env
-      | _ -> (raise_conv_exception_with_location "This should be a Process declaration" loc)
-    ) process_decls in 
-    converted_procs_and_envs
-
-
-
-
-
-
-let convert_env_desc (desc : Env.desc) (loc : Location.t) : Cst_syntax.t_env_typ option = match desc with 
+let convert_env_desc (ctx : conversion_context) (desc : Env.desc) (loc : Location.t) : Cst_syntax.t_env_typ option = match desc with 
   | ExtFun (DesugaredArity _) -> raise (CstConversionException "Cannot convert Env.ExtFun without type information ")
   | ExtFun (DesugaredTypeSig function_params) -> 
       let typ = Cst_syntax.EqThyFunc (List.map (convert_function_param_to_core ctx) function_params) in
@@ -762,123 +665,154 @@ let convert_env_desc (desc : Env.desc) (loc : Location.t) : Cst_syntax.t_env_typ
           Some (CST (converted_ty))
       | None -> 
           (raise_conv_exception_with_location "Each global constant has to have an annotated type in order to typecheck a Rabbit program" loc)
-  | Channel (is_parameterized, chan_type_id) ->
+      end
+  | Env.Channel (is_parameterized, chan_type_id) ->
+
     (* TODO: Why is chan_type_id not of type instantiated_ty here? *)
     (* for now, let the argument's type be 'TyChan(ch_param.typ)',
     although creating new nodes like this is bad practice
     *)
-    let inst_ch_ty = (Typed.TyChan chan_type_id) in 
+    let inst_ch_ty = (Env.TyChan chan_type_id) in 
     let converted_ty = (convert_instantiated_ty_to_core ctx inst_ch_ty) in 
     
     Some (CST (converted_ty))
+
+
+  (* For all of the following Env.desc constructs : we do _not_ need to add them to our typing_env here *)
+
   (* We do not need to do anything with ExtSyscall, since we have added all syscalls to our environment in the 
   'initial_typing_env function
   *)
   | ExtSyscall _-> None
   (* A member function cannot occur in a system environment, so we do not process it *)
-  | Function func_sig ->
+  | Function _ ->
       raise_conv_exception_with_location "A member function cannot be present in a system environment" loc
   (* A Var desc cannot occur in the system environment anyway, so we do not process it now *)
   | Var _ -> None
   (* We do not need any of the following information in our typing_env *)
-  | Process | SimpleTypeDef _ | SecurityTypeDef _ | ChanTypeDef _ | FilesysTypeDef _ | ProcTypeDef | Attack | ->
+  | Process | SimpleTypeDef _ | SecurityTypeDef _ | ChanTypeDef _ | FilesysTypeDef | ProcTypeDef | Attack ->
       None
+
+
+
+let convert_process ctx id param (args : Typed.chan_param list) typ files vars funcs main = 
+  (* convert args *)
+  let chan_param_to_core_process_param (ch_param : Typed.chan_param) = (
+    
+    (* TODO: Why is ch_param not of type function_param here? *)
+    (* for now, let the argument's type be 'TyChan(ch_param.typ)',
+    although creating new nodes like this is bad practice
+    *)
+    let ch_typ_ident = ch_param.typ in
+    let core_function_param = 
+      convert_function_param_to_core ctx (Env.TyChan ch_typ_ident)
+    in
+    (ch_typ_ident, core_function_param)
+  ) in
+  let converted_args = List.map (chan_param_to_core_process_param) args in 
+
+  (* convert files *)
+  let converted_files = List.map (fun (file_path, file_ident, file_contents) -> 
+      (convert_expr ctx file_path), file_ident, (convert_expr ctx file_contents)
+    ) files 
+  in
+
+  (* convert vars *)
+  let converted_vars = List.map (fun (var_id, _, var_contents) -> 
+      (var_id, (convert_expr ctx var_contents))
+    ) vars in 
+  
+  (* convert member funcs *)
+  let converted_member_funcs = List.map (fun (member_fun_ident, member_fun_sig, cmd) -> 
+    begin match member_fun_sig with 
+      | Env.DesSMFunUntyped _ -> 
+        (raise_conv_exception_with_location 
+          (Format.sprintf "Member function %s cannot be typechecked if it does not have a typing annotation" (Ident.string_part member_fun_ident))
+          cmd.Typed.loc)
+      | Env.DesSMFunTyped (idents_x_params, ret_ty) -> 
+          
+          let idents_x_core_f_params = List.map (fun (id, param) -> 
+            (id, (convert_function_param_to_core ctx param))) idents_x_params in
+
+          let converted_ret_ty = (convert_function_param_to_core ctx ret_ty) in 
+
+          let core_cmd = (convert_cmd ctx cmd) in 
+
+          let converted_member_func = 
+            (member_fun_ident, idents_x_core_f_params, converted_ret_ty, core_cmd) in
+          
+          converted_member_func
+    end
+  ) funcs in 
+
+  (* convert main function *)
+  let converted_main = (convert_cmd ctx main) in 
+
+  (* add converted process to environment *)
+  let binding_value = Cst_syntax.Process{
+    id = id
+    ; param = param
+    ; args = converted_args
+    ; typ = typ 
+    ; files = converted_files
+    ; vars = converted_vars
+    ; funcs = converted_member_funcs
+    ; main = converted_main
+  } in
+  binding_value
 
 
 (* the initial typing environment for all process declarations and the single system declaration *)
 let initial_typing_env (proc_and_syscall_decls : Typed.decl list) 
-  (ctx : conversion_context) : Cst_syntax.typing_env = 
+  (ctx : conversion_context) (system_loc : Location.t) : Cst_syntax.typing_env = 
   let system_env = ctx.env in 
 
   (* first, we add all the process and syscalls declarations *)
   let initial_env = List.fold_left (fun acc_t_env decl -> begin match decl.Typed.desc with 
       | Typed.Syscall { id = syscall_id ; fun_sig ; cmd } -> begin match fun_sig with 
-            | DesSMFunUntyped _ -> 
+            (* every syscall has to have explicit typing information in order to apply the typechecker *)
+            | Env.DesSMFunUntyped _ -> 
               (raise_conv_exception_with_location 
-                (Format.sprintf "Member function %s cannot be typechecked if it does not have a typing annotation" (Ident.string_part member_fun_id))
+                (Format.sprintf "Member function %s cannot be typechecked if it does not have a typing annotation" (Ident.string_part syscall_id))
                 decl.loc)
-            | DesSMFunTyped(ids, f_params) -> 
-              let core_f_params = List.map (convert_function_param_to_core ctx f_params) in
+            | Env.DesSMFunTyped(ids_x_params, ret_ty) -> 
+              let (_, f_params) = (List.map fst ids_x_params, List.map snd ids_x_params) in 
+
+              let core_ids_x_f_params = List.map (fun (id, param_ty) -> 
+                (id, (convert_function_param_to_core ctx param_ty))) ids_x_params in
+              let core_ret_ty = (convert_function_param_to_core ctx ret_ty) in 
+
               let core_cmd = (convert_cmd ctx cmd) in 
-              let binding_value = Cst_syntax.Syscall(core_f_params, core_cmd) in 
+              let binding_value = Cst_syntax.Syscall(core_ids_x_f_params, core_ret_ty, core_cmd) in 
               
               Maps.IdentMap.add syscall_id binding_value acc_t_env
             end
         
       | Typed.Process { id; param; args; typ; files; vars; funcs; main } -> 
-        (* convert args *)
-        let chan_param_to_core_process_param ch_param = 
-          
-          (* TODO: Why is ch_param not of type function_param here? *)
-          (* for now, let the argument's type be 'TyChan(ch_param.typ)',
-          although creating new nodes like this is bad practice
-          *)
-          let ch_typ_ident = ch_param.typ in
-          let core_function_param = 
-            convert_function_param_to_core (Typed.TyChan ch_typ_ident)
-          in
-          (ch_typ_ident, core_function_param)
-        let converted_args = List.map (chan_param_to_core_process_param) args in 
+        let converted_process = convert_process ctx id param args typ files vars funcs main in 
 
-        (* convert files *)
-        let converted_files = List.map (fun (file_path, file_ident, file_contents) -> 
-            (convert_expr ctx file_path), file_ident, (convert_expr ctx file_contents)
-          ) files 
-        in
-
-        (* convert vars *)
-        let converted_vars = List.map (fun (var_id, var_contents) -> 
-            (var_id, (convert_expr ctx var_contents))
-          ) vars in 
-        
-        (* convert member funcs *)
-        let converted_member_funcs = List.map (fun (member_fun_ident, member_fun_sig, cmd) -> 
-          begin match member_fun_sig with 
-            | DesSMFunUntyped -> 
-              (raise_conv_exception_with_location 
-                (Format.sprintf "Member function %s cannot be typechecked if it does not have a typing annotation" (Ident.string_part member_fun_ident))
-                cmd.loc)
-            | DesSMFunTyped (param_idents, f_params) -> 
-                let core_f_params = List.map (convert_function_param_to_core ctx f_params) in
-
-                let param_idents_x_core_f_params = List.combine param_idents core_f_params in 
-                let core_cmd = (convert_cmd ctx cmd) in 
-                let converted_member_func = 
-                  (member_fun_ident, param_idents_x_core_f_params, core_cmd)
-                
-                converted_member_func
-          end
-        ) in 
-
-        (* convert main function *)
-        let converted_main = (convert_cmd ctx main) in 
-
-        (* add converted process to environment *)
-        let binding_value = Cst_syntax.Process{
-          id = id
-          ; param = param
-          ; args = converted_args
-          ; typ = typ 
-          ; files = converted_files
-          ; vars = converted_vars
-          ; funcs = converted_member_funcs
-          ; main = converted_main
-        } in 
-
-        Maps.IdentMap.add id binding_value acc_t_env
+        Maps.IdentMap.add id converted_process acc_t_env
       (* it is not necessary to add any other Typed.decl to our typing_env *)
       | _ -> acc_t_env
       end
     ) Maps.IdentMap.empty proc_and_syscall_decls in 
 
     (* Then, we add all bindings within the Env.t to our typing_env *)
-    let initial_env' = initial_env in 
+
+    let initial_env' = List.fold_left (fun acc_t_env (ident, env_desc) -> 
+      match (convert_env_desc ctx env_desc system_loc) with 
+        | None -> acc_t_env 
+        | Some (converted_to_t_env_typ) -> 
+          Maps.IdentMap.add ident converted_to_t_env_typ acc_t_env
+      ) initial_env system_env.vars 
+    in 
     initial_env'
 
 
-
-let convert_pproc (pproc : Typed.pproc) = 
-  (pproc.desc.id, pproc.desc.args)
+let convert_pproc (pproc : Typed.pproc) : (Ident.t * Ident.t list) = 
+  let args_idents = List.map (fun ch_arg -> 
+    ch_arg.Typed.channel) pproc.Location.data.args in 
+  (pproc.Location.data.id, args_idents) 
 
 let convert (decls : Typed.decl list)
   : Cst_syntax.core_rabbit_prog * cst_access_policy * cst_access_policy * cst_per_syscall = 
@@ -900,13 +834,13 @@ let convert (decls : Typed.decl list)
       | Typed.Unbounded(pproc) -> 
           (convert_pproc pproc) :: acc
       | Typed.Bounded(_, pprocs) -> 
-          (List.map (convert_pproc)) @ pprocs
+          (List.map (convert_pproc) pprocs) @ acc
     ) [] procs in 
 
     let sys = (system_proc_idents, system_location) in 
 
     (* Based on all Typed.Allow declarations, create the read_access_map and provide_access_map *)
-    let allow_decls = List.filter (fun decl -> match decl with 
+    let allow_decls = List.filter (fun decl -> match decl.Typed.desc with 
       | Typed.Allow _ -> true 
       | _ -> false 
     ) decls in 
@@ -924,13 +858,13 @@ let convert (decls : Typed.decl list)
     (* we will only convert the process templates which are actually occurring in the system declaration, 
     because we do not need to typecheck any process code that is not being executed *)
     let system_proc_strings = extract_proc_strings procs in
-    let proc_and_syscall_decls = List.filter (fun decl -> match decl with 
+    let proc_and_syscall_decls = List.filter (fun decl -> match decl.Typed.desc with 
       | Typed.Process { id ; _} -> 
         let proc_name = Ident.string_part id in 
         List.mem proc_name system_proc_strings
       | Typed.Syscall _ -> true 
       | _ -> false 
-    ) in 
+    ) decls in 
 
     let conversion_ctx = 
       { read_access_map = read_access_map   
@@ -942,6 +876,11 @@ let convert (decls : Typed.decl list)
       }  
     in
 
-    let init_typing_env = (initial_typing_env proc_and_syscall_decls conversion_ctx) in  
-    (sys, init_typing_env)
+    (* XXX: possibly fill this in with security access info per syscall *)
+    let cst_per_syscall = Maps.SecurityTypeMap.empty in 
+
+    let init_typing_env = (initial_typing_env proc_and_syscall_decls conversion_ctx system_location) in  
+
+    let core_rabbit_prog = (sys, init_typing_env) in 
+    (core_rabbit_prog, secrecy_lattice, integrity_lattice, cst_per_syscall)
   | _ -> raise (CstConversionException "Expected a System declaration at the the end, but there is a different declaration")

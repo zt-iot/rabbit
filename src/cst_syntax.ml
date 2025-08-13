@@ -208,18 +208,24 @@ type init_desc =
 type t_env_typ = 
   | CST of core_security_ty
   | EqThyFunc of core_security_function_param list 
-  | Syscall of core_security_function_param list * cmd
-  | MemberFunc of core_security_function_param list * cmd
+
+  (* (<ident> : <param_type>)* <ret_ty> <cmd> *)
+  | Syscall of (Ident.t * core_security_function_param) list * core_security_function_param 
+      * cmd
+  | MemberFunc of (Ident.t * core_security_function_param) list * core_security_function_param 
+      * cmd
   
   (* preparation for when we might want to add mobile processes to Rabbit *)
   | Process of
       { id : Ident.t
       ; param : Ident.t option
-      ; args : core_process_param list
+      ; args : (Ident.t * core_security_function_param) list
       ; typ : Ident.t
       ; files : (expr * Ident.t * expr) list
       ; vars : (Ident.t * expr) list 
-      ; funcs : (Ident.t * (Ident.t * core_security_function_param) list * cmd) list
+      (* * (<ident> : <param_type>)* <ret_ty> <cmd> *) 
+      ; funcs : (Ident.t * (Ident.t * core_security_function_param) list
+        * core_security_function_param * cmd) list
       ; main : cmd
       }
 
