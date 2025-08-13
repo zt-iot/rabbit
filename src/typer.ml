@@ -847,6 +847,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
              match Env.find ~loc env ty with
              | id, (SecurityTypeDef _ | ChanTypeDef _ | FilesysTypeDef) -> id
              | _ -> misc_errorf ~loc "%s must be a security, channel or filesys type" ty)
+          (* XXX: What if 'tys' is empty? *)
           tys
       in
       (match tys with

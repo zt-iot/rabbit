@@ -4,6 +4,11 @@ open Sets
 
 exception CstSyntaxException of string
 
+let raise_cst_syntax_exception_with_location msg loc = 
+  Location.print loc Format.std_formatter;
+  Format.pp_print_newline Format.std_formatter ();
+  raise (CstSyntaxException msg)
+
 (* type 'desc loc_env =
   { desc : 'desc
   ; loc : Location.t
@@ -15,22 +20,33 @@ let pp_loc_env pp_desc fmt { desc; loc = _ } =
 
 
 type secrecy_lvl = 
-  | S_Ignore (* Means: Ignore this secrecy level when type-checking *)
   | Public 
-  | SNode of proc_ty_set 
+  | SNode of proc_ty_set
+[@@deriving eq]
 
 
 type integrity_lvl = 
-  | I_Ignore (* Means: "Ignore this integrity level when type-checking" *)
   | Untrusted
   | INode of proc_ty_set
+[@@deriving eq]
 
+(* convert from all process types to 'Public' *)
+let proc_ty_set_to_secrecy_lvl readers all_process_typs = 
+  if readers = all_process_typs then 
+    Public 
+  else
+    SNode readers  
 
-
+(* convert from all process types to 'Untrusted'*)
+let proc_ty_set_to_integrity_lvl providers all_process_typs = 
+  if providers = all_process_typs then
+    Untrusted
+  else 
+    INode providers
 
 
 (* This datatype has 0 constructors, and thus cannot be instantiated *)
-type void = |
+type void = | [@@deriving eq]
 
 
 type 'poly abstract_core_ty = 
@@ -39,14 +55,17 @@ type 'poly abstract_core_ty =
   | TSimple of Ident.t * ('poly abstract_core_security_ty) list 
   | TProd of 'poly abstract_core_security_ty * 'poly abstract_core_security_ty
   | TPoly of 'poly (* this constructor is only used when 'poly is meaningful *)
+[@@deriving eq]
 
-and 'poly abstract_core_security_ty = 'poly abstract_core_ty * (secrecy_lvl * integrity_lvl)
+and 'poly abstract_core_security_ty = 'poly abstract_core_ty * (secrecy_lvl * integrity_lvl) [@@deriving eq]
 
-type core_ty = void abstract_core_ty
-type core_function_param = string abstract_core_ty
+type core_ty = void abstract_core_ty [@@deriving eq]
+type core_function_param = string abstract_core_ty [@@deriving eq]
 
 type core_security_ty = core_ty * (secrecy_lvl * integrity_lvl)
 type core_security_function_param = core_function_param * (secrecy_lvl * integrity_lvl)
+
+
 
 
 (* converting a core security type to a core security function param always succeeds *)
@@ -71,6 +90,30 @@ let rec core_f_param_to_core_ty : core_function_param -> core_ty = function
 
 and core_sec_f_param_to_core_sec_ty : core_security_function_param -> core_security_ty 
  = fun (ty, lvls) -> (core_f_param_to_core_ty ty, lvls)
+
+
+ (* Whether two `core_security_ty`'s hold the same data, ignoring any (secrecy_lvl * integrity_lvl) *)
+let rec equals_datatype (ty1 : core_security_ty) (ty2 : core_security_ty) (loc : Location.t) : bool =
+  let (ct1, _) = ty1 in
+  let (ct2, _) = ty2 in
+  match ct1, ct2 with
+  | TUnit, TUnit -> true
+  | TChan lst1, TChan lst2 -> 
+      let same_length = (List.length lst1 = List.length lst2) in 
+      if not same_length then
+        (raise_cst_syntax_exception_with_location "channels do not have the same amount of type parameters" loc);
+      let same_typ_params = List.for_all2 (fun typ1 typ2 -> equals_datatype typ1 typ2 loc) lst1 lst2 in 
+      same_length && same_typ_params
+  | TSimple (id1, lst1), TSimple (id2, lst2) ->
+      let same_type = Ident.equal id1 id2 in 
+      let same_length = (List.length lst1 = List.length lst2) in 
+      if not same_length then
+        (raise_cst_syntax_exception_with_location "simple types do not have the same amount of type parameters" loc);
+      let same_typ_params = List.for_all2 (fun typ1 typ2 -> equals_datatype typ1 typ2 loc) lst1 lst2 in 
+      same_type && same_length && same_typ_params
+  | TProd (a1, b1), TProd (a2, b2) ->
+      equals_datatype a1 a2 loc && equals_datatype b1 b2 loc
+  | _, _ -> false
 
 
 type expr = expr' * Location.t 
@@ -148,7 +191,9 @@ and cmd' =
 
 
 
-type chan_param = Typed.chan_param 
+type core_process_param = 
+  { proc_param_id : Ident.t ; proc_param_typ : core_security_function_param} 
+
 type proc = Typed.proc 
 
 
@@ -160,47 +205,39 @@ type init_desc =
 
 
 
-
-type process = process' * Location.t 
-and process' =
+type t_env_typ = 
+  | CST of core_security_ty
+  | EqThyFunc of core_security_function_param list 
+  | Syscall of core_security_function_param list * cmd
+  | MemberFunc of core_security_function_param list * cmd
+  
+  (* preparation for when we might want to add mobile processes to Rabbit *)
   | Process of
       { id : Ident.t
       ; param : Ident.t option
-      ; args : chan_param list
+      ; args : core_process_param list
       ; typ : Ident.t
       ; files : (expr * Ident.t * expr) list
-      ; vars : (Ident.t * expr) list (* typing information is not necessary, because we can infer the type from the expression *)
+      ; vars : (Ident.t * expr) list 
       ; funcs : (Ident.t * (Ident.t * core_security_function_param) list * cmd) list
       ; main : cmd
       }
-
-
-
-
-
-type t_env_typ = 
-  (* A core security type *)
-  | CST of core_security_ty
-  | SimpleTypeDef of string list
-  | SecurityTypeDef of string (* name of simple type upon which the security type is based *) * core_security_ty list (* type parameters *)
-  | ChanTypeDef of core_security_ty list
-  | ProcTypeDef 
-  | FilesysTypeDef
-
-  | EqThyFunc of core_security_function_param list 
-  | MemberFunc of core_security_function_param list * cmd
-  | Syscall of core_security_function_param list * cmd
-
-
-
 
 (* a Map from Ident.t to core_security_ty *)
 (* because we Map from Ident.t (which is unique in the entire program), we should not encounter any problems with name shadowing *)
 type typing_env = t_env_typ Maps.IdentMap.t
 
 
-(* a core Rabbit program is a list of processes and an initial typing environment for each process *)
-type core_rabbit_prog = (process * typing_env) list
+
+(* a 'system' is a list of (<process_ident>, <process_parameter>* ) *)
+type system = (Ident.t * Ident.t list) list * Location.t
+
+
+(* a core rabbit program is a single system declaration and an initial typing environment which contains all global constants *)
+type core_rabbit_prog = system * typing_env
+
+
+
 
 
 

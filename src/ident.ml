@@ -7,6 +7,7 @@ let compare ((s1, i1) : t) ((s2, i2) : t) =
   else Int.compare i1 i2
 
 
+(* Declaring IdentOrd is necessary to be able to use an Ident.t as the key of a Map, or as member of a Set *)
 module IdentOrd = struct
   type t = string * int 
   let compare = compare

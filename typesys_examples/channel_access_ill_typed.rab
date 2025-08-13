@@ -53,7 +53,7 @@ process alice(ch_net : udp_t) : alice_t
   	main 
   	{
         new msg : message in (* alice_t creates a message *)
-        _ := send(ch_net, msg); (* if alice was allowd to access this channel, it would be well-typed *)
+        _ := send(ch_net, msg); (* if alice were allowed to access this channel, it would be well-typed *)
 
         event [::AliceClose ()]
   	}

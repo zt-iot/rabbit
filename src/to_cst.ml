@@ -5,25 +5,6 @@ open Maps
 exception CstConversionException of string
 
 
-let rec coerce_fun_param (param : Cst_syntax.core_security_function_param) : Cst_syntax.core_security_type =
-  match param with
-  | (CFP_Unit, lvl) -> (TUnit, lvl)
-  | (CFP_Chan ps, lvl) ->
-      let tys = List.map coerce_fun_param ps in
-      (TChan tys, lvl)
-  | (CFP_Simple (id, ps), lvl) ->
-      let tys = List.map coerce_fun_param ps in
-      (TSimple (id, tys), lvl)
-  | (CFP_Product (p1, p2), lvl) ->
-      let t1 = coerce_fun_param p1 in
-      let t2 = coerce_fun_param p2 in
-      (TProd (t1, t2), lvl)
-  (* currently fails if the function parameter is polymorphic. Eventually, we'd want to implement proper conversion *)
-  | (CFP_Poly _, _) ->
-      raise (CstConversionException "CFP_Poly cannot be coerced to core_security_type")
-
-
-
 type relation = 
   | LessThanOrEqual
   | GreaterThanOrEqual
@@ -35,101 +16,6 @@ let raise_conv_exception_with_location msg loc =
     Location.print loc Format.std_formatter;
     Format.pp_print_newline Format.std_formatter ();
     raise (CstConversionException msg)
-
-
-
-
-(* reads whether lvl_a is less than or equal to lvl_b *)
-let leq_secrecy (secrecy_lattice : cst_access_policy) (lvl_a : Cst_syntax.secrecy_lvl) (lvl_b : Cst_syntax.secrecy_lvl) = 
-  match lvl_a, lvl_b with 
-  (* Public is smaller than every secrecy lvl *)
-  | Cst_syntax.Public, _ -> true 
-  | Cst_syntax.SNode(a_set), Cst_syntax.SNode(b_set) -> 
-    let comparison, rel = secrecy_lattice in
-    begin match rel with 
-    | GreaterThanOrEqual -> 
-      (* This is a sub-optimal way to compute, but for now we need it due to the way that secrecy_lattice is built *)
-      let eq = ProcTySet.equal a_set b_set in 
-      let a_set_geq_b_set = (List.assoc (a_set, b_set) comparison) in 
-      (not a_set_geq_b_set) || eq
-    | LessThanOrEqual -> (raise (CstConversionException "cannot call leq_secrecy on an integrity lattice"))
-    end 
-  | _, _ -> false 
-
-
-(* reads whether integrity lvl a is less than or equal to integrity lvl b *)
-let leq_integrity (integrity_lattice : cst_access_policy) (lvl_a : Cst_syntax.integrity_lvl) (lvl_b : Cst_syntax.integrity_lvl) = 
-  match lvl_a, lvl_b with 
-  (* Every element is less than or equal to Untrusted *)
-  | _, Cst_syntax.Untrusted -> true 
-
-
-  | Cst_syntax.INode(a_set), Cst_syntax.INode(b_set) -> 
-    let comparison, rel = integrity_lattice in 
-
-    begin match rel with 
-    | LessThanOrEqual -> 
-      (List.assoc (a_set, b_set) comparison)
-    | GreaterThanOrEqual -> 
-      (raise (CstConversionException "cannot call leq_integrity on a secrecy lattice"))
-    end
-  | _, _ -> false
-
-
-
-(* Whether two `core_security_type`'s hold the same data, ignoring any (secrecy_lvl * integrity_lvl) *)
-let rec equals_datatype (ty1 : Cst_syntax.core_security_type) (ty2 : Cst_syntax.core_security_type) (loc : Location.t) : bool =
-  let (ct1, _) = ty1 in
-  let (ct2, _) = ty2 in
-  match ct1, ct2 with
-  | TUnit, TUnit -> true
-  | Dummy, Dummy -> true
-  | TChan lst1, TChan lst2 -> 
-      let same_length = (List.length lst1 = List.length lst2) in 
-      if not same_length then
-        (raise_conv_exception_with_location "channels do not have the same amount of type parameters" loc);
-      let same_typ_params = List.for_all2 (fun typ1 typ2 -> equals_datatype typ1 typ2 loc) lst1 lst2 in 
-      same_length && same_typ_params
-  | TSimple (id1, lst1), TSimple (id2, lst2) ->
-      let same_type = Ident.equal id1 id2 in 
-      let same_length = (List.length lst1 = List.length lst2) in 
-      if not same_length then
-        (raise_conv_exception_with_location "simple types do not have the same amount of type parameters" loc);
-      let same_typ_params = List.for_all2 (fun typ1 typ2 -> equals_datatype typ1 typ2 loc) lst1 lst2 in 
-      same_type && same_length && same_typ_params
-  | TProd (a1, b1), TProd (a2, b2) ->
-      equals_datatype a1 a2 loc && equals_datatype b1 b2 loc
-  | _, _ -> false
-
-
-
-(* Determines whether security type t1 is a subtype of security type t2 (i.e. whether t1 <: t2) *)
-let is_subtype (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) 
-  (t1 : Cst_syntax.core_security_type) (t2 : Cst_syntax.core_security_type) (loc : Location.t) : bool = 
-  (* for t1 to be a subtype of t2, it must hold that: 
-    1.) t1 is of the same datatype as t2, and:
-    2.) t1's secrecy level is smaller than or equal to the secrecy level of t2, and:
-    3.) t1's integrity level is smaller than or equal to the integrity level of t2
-  *)
-
-  let (_, (t1_secrecy, t1_integrity)) = t1 in 
-  let (_, (t2_secrecy, t2_integrity)) = t2 in 
-  let same_datatype = equals_datatype t1 t2 loc in 
-  let secrecy_cnd = begin match (t1, t2) with 
-    (* For channel types, we currently do not care about secrecy levels *)
-    | ((TChan _, _), (TChan _, _)) -> true 
-    (* For the Dummy constructor, we do not care about secrecy levels *)
-    | ((Dummy, _), (Dummy, _)) -> true
-    | _ -> leq_secrecy secrecy_lattice t1_secrecy t2_secrecy 
-  end in 
-  let integrity_cnd = begin match (t1, t2) with 
-    (* For channel types, we currently do not care about integrity levels *)
-    | ((TChan _, _), (TChan _, _)) -> true 
-    (* For the Dummy constructor, we do not care about integrity levels *)
-    | ((Dummy, _), (Dummy, _)) -> true
-    | _ -> leq_integrity integrity_lattice t1_integrity t2_integrity
-  end in 
-  same_datatype && secrecy_cnd && integrity_cnd
 
 
 
@@ -220,8 +106,6 @@ let find_extremum_in_intersect
 *)
 let join_of_secrecy_lvls (pol : cst_access_policy) (a : Cst_syntax.secrecy_lvl) (b : Cst_syntax.secrecy_lvl) : Cst_syntax.secrecy_lvl option = 
   match (a, b) with
-  | Cst_syntax.S_Ignore, _ -> None 
-  | _, Cst_syntax.S_Ignore -> None 
   (* If one secrecy_lvl is Public, the least upper bound is the other secrecy_lvl *)
   | Cst_syntax.Public, _ -> Some b 
   | _, Cst_syntax.Public -> Some a 
@@ -245,8 +129,6 @@ let join_of_secrecy_lvls (pol : cst_access_policy) (a : Cst_syntax.secrecy_lvl) 
 *)
 let meet_of_integrity_lvls (pol : cst_access_policy) (a : Cst_syntax.integrity_lvl) (b : Cst_syntax.integrity_lvl) : Cst_syntax.integrity_lvl option = 
   match (a, b) with 
-  | Cst_syntax.I_Ignore, _ -> None
-  | _, Cst_syntax.I_Ignore -> None
   (* if one integrity_lvl is Untrusted, the greatest lower bound is the other integrity_lvl *)
   | Cst_syntax.Untrusted, _ -> Some b
   | _, Cst_syntax.Untrusted -> Some a 
@@ -267,18 +149,7 @@ let meet_of_integrity_lvls (pol : cst_access_policy) (a : Cst_syntax.integrity_l
 ****)
 
 
-let proc_ty_set_to_secrecy_lvl readers all_process_typs = 
-  if readers = all_process_typs then 
-    Cst_syntax.Public 
-  else
-    Cst_syntax.SNode readers  
 
-
-let proc_ty_set_to_integrity_lvl providers all_process_typs = 
-  if providers = all_process_typs then
-    Cst_syntax.Untrusted
-  else 
-    Cst_syntax.INode providers
 
 
 
@@ -304,29 +175,6 @@ type sec_ty = Ident.t
 type syscall_desc = Typed.syscall_desc
 
 
-module MapAccessTable = struct
-  module Key = struct
-    type t = proc_ty * sec_ty * syscall_desc
-    let compare = compare
-  end
-
-  module MapTable = Map.Make(Key)
-
-  type t = bool MapTable.t
-
-  let empty = MapTable.empty
-  
-  let add proc sec_ty syscall value table = 
-    MapTable.add (proc, sec_ty, syscall) value table
-  let find proc sec_ty syscall table = 
-    MapTable.find_opt (proc, sec_ty, syscall) table
-  
-  let bindings table = MapTable.bindings table
-end
-
-
-
-
 let induces_read_effect (syscall_desc : Typed.syscall_desc) : bool = match syscall_desc with 
   | Typed.Read -> true 
   | Typed.Provide -> false 
@@ -344,10 +192,19 @@ let induces_provide_effect (syscall_desc : Typed.syscall_desc) : bool = match sy
       | _ -> false
 
       
-(* A map from SecurityType (=string) to ProcTySet.t, which tells us which security type is allowed to be read by which process *)
-type access_map = (proc_ty_set) security_type_map
+(* A map from SecurityType (=string) to ProcTySet.t, which tells us which security type is allowed to be accessed by which process *)
+type access_map = (proc_ty_set) SecurityTypeMap.t
 
-type access_map_two = ProcSyscallSet.t security_type_map
+type conversion_context = {
+  read_access_map : access_map   
+  ; provide_access_map : access_map
+  ; all_process_typs : proc_ty_set
+  ; secrecy_lattice : cst_access_policy
+  ; integrity_lattice : cst_access_policy 
+  ; env : Env.t
+}
+
+
 
 (* For all target_typ in target_typs, register the connection (target_typ, proc_ty) in map *)
 let update_access_map map target_typs proc_ty = 
@@ -371,17 +228,16 @@ let create_access_maps (decls : Typed.decl list) : access_map * access_map =
       (* check if there is a syscall in the provided syscall list that gives a read effect *)
       let is_read_effect = (List.exists induces_read_effect syscall_descs) in 
       let is_provide_effect = (List.exists induces_provide_effect syscall_descs) in
-      let target_typs_names = List.map fst target_typs in 
 
       let read_access' = begin
         if (is_read_effect) then 
-          (update_access_map acc_read_access target_typs_names (Ident.string_part proc_ty))
+          (update_access_map acc_read_access target_typs (Ident.string_part proc_ty))
         else 
           acc_read_access
         end in 
       let provide_access' = begin
         if (is_provide_effect) then 
-          (update_access_map acc_provide_access target_typs_names (Ident.string_part proc_ty))
+          (update_access_map acc_provide_access target_typs (Ident.string_part proc_ty))
         else 
           acc_provide_access
       end in 
@@ -391,12 +247,8 @@ let create_access_maps (decls : Typed.decl list) : access_map * access_map =
   ) (SecurityTypeMap.empty, SecurityTypeMap.empty) decls
 
 
-
-
-
-
-
-let create_access_map_2 (decls : Typed.decl list) : access_map_two = 
+(* for each security_ty, register the pairs of (proc, syscall_desc) which are allowed to have access to that security_ty *)
+let tripartite_access (decls : Typed.decl list) : (ProcSyscallSet.t) SecurityTypeMap.t = 
   List.fold_left (fun acc_map decl -> match decl.Typed.desc with 
     | Typed.Allow{process_typ = proc_ty; target_typs; syscall_descs} -> 
       (* add binding for all syscall_desc \in syscall_descs *)
@@ -415,11 +267,24 @@ let create_access_map_2 (decls : Typed.decl list) : access_map_two =
             let new_set = ProcSyscallSet.add (proc_ty, syscall_desc) old_set in 
             SecurityTypeMap.add target_typ new_set acc_map_3
           ) acc_map_2 syscall_descs
-      ) acc_map (List.map (fun target_typ -> Ident.string_part target_typ) target_typs)
+      ) acc_map target_typs
     | _ -> acc_map
   ) SecurityTypeMap.empty decls
 
 
+(* transforms the SecurityTypeMap to a ProcTyMap instead, which contains the same information *)
+let compute_proc_ty_to_syscalls_set_map (tripartite_access : (ProcSyscallSet.t) SecurityTypeMap.t) : (SecSyscallSet.t) ProcTyMap.t = 
+  (* for each pair (proc_ty, syscall) occuring throughout tripartite_access, register that 'proc_ty' is allowed to call 'syscall' *) 
+  Maps.SecurityTypeMap.fold (fun sec_ty proc_syscall_set acc_proc_ty_map_1 -> 
+      Sets.ProcSyscallSet.fold (fun (proc_ty, syscall_desc) acc_proc_ty_map_2 -> 
+          let old_set = match Maps.ProcTyMap.find_opt proc_ty acc_proc_ty_map_2 with 
+            | None -> SecSyscallSet.empty
+            | Some s -> s 
+          in 
+          let new_set = SecSyscallSet.add (sec_ty, syscall_desc) old_set in 
+          Maps.ProcTyMap.add proc_ty new_set acc_proc_ty_map_2
+        ) proc_syscall_set acc_proc_ty_map_1
+    ) tripartite_access Maps.ProcTyMap.empty
 
 
 (* COMPUTING a <= b FOR EACH PAIR OF ELEMENTS OF `all_process_typs` *)
@@ -462,26 +327,28 @@ let compute_access_relation (access_map : access_map) : ((proc_ty_set * proc_ty_
 
 
 
+(* for each proc_ty, this datastructure tells us which core security types and syscall_desc are allowed combinations for proc_ty *)
+type cst_per_syscall = ((Cst_syntax.core_security_ty * syscall_desc) list) ProcTyMap.t
+
+(*****
+Converter functions from typed.ml and env.ml to cst_syntax.ml
+*)
+let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.instantiated_ty) 
+   : (Cst_syntax.core_security_ty) = 
 
 
-  
-let rec convert_instantiated_ty_to_core (read_access_map : access_map) 
-  (provide_access_map : access_map) (all_process_typs : proc_ty_set)
-  (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy)
-  (t : Env.instantiated_ty) 
-   : (Cst_syntax.core_security_type) = 
+  let read_access_map = ctx.read_access_map in
+  let provide_access_map = ctx.provide_access_map in
+  let all_process_typs = ctx.all_process_typs in
+  let secrecy_lattice = ctx.secrecy_lattice in
+  let integrity_lattice = ctx.integrity_lattice in
+  let env = ctx.env in
 
-
-(*    let _ = print_endline "Converting instantiated_ty" in *)
-
-   let convert_instantiated_ty_to_core_rec = (convert_instantiated_ty_to_core 
-    read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice)
-   in 
    match t with
     | Env.TySecurity (sec_ty_name, simple_ty_id, simple_ty_instantiated_tys) ->
       
       
-        let converted_simple_ty_params = List.map convert_instantiated_ty_to_core_rec simple_ty_instantiated_tys in
+        let converted_simple_ty_params = List.map convert_instantiated_ty_to_core ctx simple_ty_instantiated_tys in
         let ct = Cst_syntax.TSimple (simple_ty_id, converted_simple_ty_params) in 
 
         let readers = begin match SecurityTypeMap.find_opt sec_ty_name read_access_map with 
@@ -503,15 +370,15 @@ let rec convert_instantiated_ty_to_core (read_access_map : access_map)
         
     | Env.TySimple (ty_name, param_list) ->
         (* Convert parameter list recursively *)
-        let converted_params = List.map convert_instantiated_ty_to_core_rec param_list in
+        let converted_params = List.map convert_instantiated_ty_to_core ctx param_list in
         let ct = Cst_syntax.TSimple (ty_name, converted_params) in 
         
         (* A simple type is always (Public, Untrusted) as every party has read/provide access to it *)
         ct, (Cst_syntax.Public, Cst_syntax.Untrusted)
         
     | Env.TyProduct (ty1, ty2) ->
-        let converted_ty1 = convert_instantiated_ty_to_core_rec ty1 in
-        let converted_ty2 = convert_instantiated_ty_to_core_rec ty2 in
+        let converted_ty1 = convert_instantiated_ty_to_core ctx ty1 in
+        let converted_ty2 = convert_instantiated_ty_to_core ctx ty2 in
         let ct = Cst_syntax.TProd (converted_ty1, converted_ty2) in
 
         (* the secrecy lvl of a product is the greatest lower bound, i.e. the meet of the two secrecy levels *)
@@ -528,199 +395,64 @@ let rec convert_instantiated_ty_to_core (read_access_map : access_map)
           (* XXX : Don't know what to do if there is no join or meet *)
           | (_, _) -> ct, (secrecy_lvl1, integrity_lvl1)
         end
+
+
+    | Env.TyChanPlain(param_list) -> 
+      let converted_params = List.map (convert_instantiated_ty_to_core ctx ) param_list in 
+      let ct = Cst_syntax.TChan converted_params in 
+      ct, (Cst_syntax.Public, Cst_syntax.Untrusted)
         
-    | Env.TyChan (_, param_list) ->
+    | Env.TyChan (chan_ty_ident) ->
+        (* look up the security type *)
+
+        let param_list = match Env.find_opt_by_id env chan_ty_ident with 
+          | Some Env.ChanTypeDef(instantiated_tys) -> instantiated_tys
+          | _ -> raise (CstConversionException "There is a an Env.TyChan declared which does not point to a channel type definition: this should not be possible")
+        in
+
         (* Convert channel parameter list *)
         let converted_params = 
-          List.map convert_instantiated_ty_to_core_rec param_list in 
+          List.map convert_instantiated_ty_to_core ctx param_list in 
         let ct = Cst_syntax.TChan converted_params in 
-        (* We ignore the security level of a channel type for now when typechecking *)
-        ct, (Cst_syntax.S_Ignore, Cst_syntax.I_Ignore)
+
+        ct, (Cst_syntax.Public, Cst_syntax.Untrusted)
+
+    (* this case is impossible *)
+    | Env.TyPoly _ -> .
+
+let convert_function_param_to_core (ctx : conversion_context) (param : Env.function_param) : Cst_syntax.core_security_function_param = match param with 
+    | Env.TyPoly str -> (Cst_syntax.TPoly str, (Cst_syntax.Public, Cst_syntax.Untrusted))
+    | p -> 
+        let cst = 
+          (convert_instantiated_ty_to_core read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice env 
+            (Env.function_param_to_inst_ty p)) in
+        Cst_syntax.core_sec_ty_to_core_sec_f_param cst
+
+
+
 
   
 
 
-(* Boilerplate conversion necesary for `convert_function_param_to_core(Env.FParamSecurity(...)) *)
-let rec cst_to_csfp (cst : Cst_syntax.core_security_type) : Cst_syntax.core_security_function_param = 
-  let (core_ty, security_info) = cst in
-  let converted_core_function_param = match core_ty with
-    | TUnit -> Cst_syntax.CFP_Unit
-    | TChan core_security_types -> 
-        CFP_Chan (List.map cst_to_csfp core_security_types)
-    | TSimple (ident, core_security_types) -> 
-        CFP_Simple (ident, List.map cst_to_csfp core_security_types)
-    | TProd (cst1, cst2) -> 
-        CFP_Product (cst_to_csfp cst1, cst_to_csfp cst2)
-    | Dummy -> Cst_syntax.CFP_Dummy
-    
-  in
-  (converted_core_function_param, security_info)
-
-let rec convert_function_param_to_core (read_access_map : access_map) 
-  (provide_access_map : access_map) (all_process_typs : proc_ty_set)
-  (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) 
-  (env_fun_param : Env.function_param) : (Cst_syntax.core_security_function_param) = 
-(*   let _ = print_endline "Converting function_param" in *)
-  let convert_instantiated_ty_to_core_rec = (convert_instantiated_ty_to_core 
-    read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice) in 
-  let convert_function_param_to_core_rec = (convert_function_param_to_core 
-    read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice) in
-    match env_fun_param with 
-    | Env.FParamChan(f_param_ty_params) -> 
-(*       let _ = print_endline "Converting FParamChan" in *)
-      (* Convert channel parameter list *)
-        let converted_params = 
-          List.map convert_function_param_to_core_rec f_param_ty_params in 
-        let ct = Cst_syntax.CFP_Chan converted_params in 
-        (* We ignore the security level of a channel type for now when type-checking *)
-        ct, (Cst_syntax.S_Ignore, Cst_syntax.I_Ignore)
-    | Env.FParamSecurity(sec_ty_name, simpletyp_name, simple_ty_instantiated_tys) -> 
-
-(*         let _ = print_endline "Converting FParamSecurity" in *)
-
-        let cst_simple_ty_params = List.map convert_instantiated_ty_to_core_rec simple_ty_instantiated_tys in
-        let csfp_simple_ty_params = List.map Cst_syntax.cst_to_csfp cst_simple_ty_params in 
-        let ct = Cst_syntax.CFP_Simple (simpletyp_name, csfp_simple_ty_params) in 
-
-        let readers = begin match SecurityTypeMap.find_opt sec_ty_name read_access_map with 
-          | (Some s) -> s
-          | None -> ProcTySet.empty
-        end in 
-        
-
-        let providers = begin match SecurityTypeMap.find_opt sec_ty_name provide_access_map with
-          | (Some s) -> s 
-          | None -> ProcTySet.empty
-        end in 
-
-        
-
-        let secrecy_lvl = Cst_syntax.proc_ty_set_to_secrecy_lvl readers all_process_typs in 
-        let integrity_lvl = Cst_syntax.proc_ty_set_to_integrity_lvl providers all_process_typs in 
-
-        ct, (secrecy_lvl, integrity_lvl)
-
-    | Env.FParamSimple(simple_ty_name, f_param_ty_params) -> 
-
-(*       let _ = print_endline "Converting FParamSimple" in *)
-      (* Convert parameter list recursively *)
-        let converted_params = List.map convert_function_param_to_core_rec f_param_ty_params in
-        let ct = Cst_syntax.CFP_Simple (simple_ty_name, converted_params) in 
-        
-        (* A simple type is always (Public, Untrusted) as every party has read/provide access to it *)
-        ct, (Cst_syntax.Public, Cst_syntax.Untrusted)
-
-    | Env.FParamProduct(f_param1, f_param2) -> 
-
-(*         let _ = print_endline "Converting FParamProduct" in *)
-      
-        let converted_ty1 = convert_function_param_to_core_rec f_param1 in
-        let converted_ty2 = convert_function_param_to_core_rec f_param2 in
-        let ct = Cst_syntax.CFP_Product (converted_ty1, converted_ty2) in 
-
-
-        (* the secrecy lvl of a product is the greatest lower bound, i.e. the meet of the two secrecy levels *)
-        let (_, (secrecy_lvl1, _)) = converted_ty1 in 
-        let (_, (secrecy_lvl2, _)) = converted_ty2 in 
-        let (_, (_, integrity_lvl1)) = converted_ty1 in 
-        let (_, (_, integrity_lvl2)) = converted_ty2 in 
-
-        let secrecy_lvl = join_of_secrecy_lvls secrecy_lattice secrecy_lvl1 secrecy_lvl2 in 
-        let integrity_lvl = meet_of_integrity_lvls integrity_lattice integrity_lvl1 integrity_lvl2 in 
-
-        begin match (secrecy_lvl, integrity_lvl) with 
-          | (Some s, Some i) -> ct, (s, i)
-
-          (* XXX : Don't know what to do if there is no join or meet *)
-          | (_, _) -> ct, (secrecy_lvl1, integrity_lvl1)
-        end 
-
-    | Env.FParamPoly(id) -> 
-(*         let _ = print_endline "Converting FParamPoly" in *)
-        (* Ignore this secrecy/integrity level when type-checking *)
-        CFP_Poly(id), (Cst_syntax.S_Ignore, Cst_syntax.I_Ignore)
 
 
 
 
-let convert_env_desc (read_access_map : access_map) 
-  (provide_access_map : access_map) (all_process_typs : proc_ty_set)
-  (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) 
-  (env_desc : Env.desc) : Cst_syntax.desc =
+let rec convert_expr (ctx : conversion_context) (e : Typed.expr) : Cst_syntax.expr = 
 
-(*   let _ = print_endline "Converting env_desc" in *)
-  let convert_function_param_to_core_rec = 
-    (convert_function_param_to_core read_access_map provide_access_map all_process_typs secrecy_lattice
-      integrity_lattice
-    ) in 
-  let convert_instantiated_ty_to_core_rec = 
-    (convert_instantiated_ty_to_core read_access_map provide_access_map all_process_typs secrecy_lattice
-      integrity_lattice) in 
-  match env_desc with
-  | SimpleTypeDef name_list -> SimpleTypeDef name_list
-  | Var (var_desc) -> Var (var_desc)
-    
-    (* ExtFuns without typing information are only allowed if no typechecking happens *)
-  | ExtFun (DesugaredArity _) -> raise (CstConversionException "Cannot convert ExtFun without type information to Cst_syntax.desc")
-  | ExtFun (DesugaredTypeSig function_params) -> 
-      ExtFun (List.map convert_function_param_to_core_rec function_params)
-
-  (* ExtSyscalls without typing information are only allowed if no typechecking happens *)
-  | ExtSyscall (DesSMFunUntyped _) -> raise (CstConversionException "Cannot convert ExtSyscall without type information to Cst_syntax.desc")
-  | ExtSyscall (DesSMFunTyped (_, function_params)) ->
-      ExtSyscall (List.map convert_function_param_to_core_rec function_params)
-  (* Functions without typing information are only allowed if no typechecking happens *)
-  | Function (DesSMFunUntyped _) -> raise (CstConversionException "Cannot convert Function without type information to Cst_syntax.desc")
-  | Function (DesSMFunTyped (_, function_params)) ->
-      MemberFunc (List.map convert_function_param_to_core_rec function_params)
-
-  (* Const without typing information is only allowed if no typechecking happens *)
-  | Const (_, None) -> 
-      raise (CstConversionException "Cannot convert Const without type information to Cst_syntax.desc")
-  | Const (is_param, Some instantiated_ty) ->
-      Const (is_param, convert_instantiated_ty_to_core_rec instantiated_ty)
-  | Channel (is_param, ident) -> ChannelDecl (is_param, ident)
-  | Attack -> Attack
-  | ProcTypeDef -> ProcTypeDef
-  | FilesysTypeDef -> FilesysTypeDef
-  | ChanTypeDef instantiated_ty_list ->
-      ChanTypeDef (List.map convert_instantiated_ty_to_core_rec instantiated_ty_list)
-  | SecurityTypeDef (name, instantiated_ty_list) ->
-      SecurityTypeDef (name, List.map convert_instantiated_ty_to_core_rec instantiated_ty_list)
-  | Process -> Process
-
-
-
-
-
-
-let convert_env (read_access_map : access_map) 
-    (provide_access_map : access_map) (all_process_typs : proc_ty_set)
-    (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy)
-  (env : Env.t) : Cst_syntax.t = 
-
-  let convert_env_desc_rec = convert_env_desc read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
-  let cst_vars = 
-    List.map (fun (id, env_desc) -> (id, (convert_env_desc_rec env_desc))) env.vars in
-  let cst_facts = env.facts in 
-  {vars = cst_vars ; facts = cst_facts}
-
-
-
-
-
-
-let rec convert_expr (read_access_map : access_map) 
-    (provide_access_map : access_map) (all_process_typs : proc_ty_set)
-    (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) (e : Typed.expr) : Cst_syntax.expr = 
-    let convert_expr_rec = convert_expr read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
+    let read_access_map = ctx.read_access_map in
+    let provide_access_map = ctx.provide_access_map in
+    let all_process_typs = ctx.all_process_typs in
+    let secrecy_lattice = ctx.secrecy_lattice in
+    let integrity_lattice = ctx.integrity_lattice in
+    let env = ctx.env in
 
 (*     let _ = print_endline "Converting expr" in *)
 
     let converted_desc = match e.desc with
     | Typed.Ident { id; desc; param } ->
         let converted_desc = convert_env_desc read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice desc in
-        let converted_param = Option.map convert_expr_rec param in
+        let converted_param = Option.map (convert_expr ctx) param in
         Cst_syntax.Ident { id; desc = converted_desc; param = converted_param }
     
     | Typed.Boolean b -> Cst_syntax.Boolean b
@@ -734,37 +466,31 @@ let rec convert_expr (read_access_map : access_map)
     | Typed.Apply (id, exprs) -> 
         (* we need to check whether the process type calling this function has the permission to call this system call *)
 
-        Cst_syntax.Apply (id, List.map convert_expr_rec exprs)
+        Cst_syntax.Apply (id, List.map convert_expr ctx exprs)
     
     | Typed.Tuple exprs -> 
-        Cst_syntax.Tuple (List.map convert_expr_rec exprs)
+        Cst_syntax.Tuple (List.map (convert_expr ctx) exprs)
     
     | Typed.Unit -> Cst_syntax.Unit
   in
-  
-  { desc = converted_desc
-  ; loc = e.loc
-  ; env = convert_env read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice e.env
-  }
+  converted_desc, e.loc
 
 
-let rec convert_cmd (read_access_map : access_map) 
-    (provide_access_map : access_map) (all_process_typs : proc_ty_set)
-    (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy)
+let rec convert_cmd (ctx : conversion_context)
     (cmd : Typed.cmd) : Cst_syntax.cmd =
-  
-  (* short-hand for recursion, so we don't have give the entire list of 6 arguments every time *)
-  let convert_expr_rec = convert_expr read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
-  let convert_fact_rec = convert_fact read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
-  let convert_cmd_rec = convert_cmd read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
-  
-  let convert_env_rec = convert_env read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in 
+
+  let read_access_map = ctx.read_access_map in
+  let provide_access_map = ctx.provide_access_map in
+  let all_process_typs = ctx.all_process_typs in
+  let secrecy_lattice = ctx.secrecy_lattice in
+  let integrity_lattice = ctx.integrity_lattice in
+  let env = ctx.env in    
   
   (* Helper function to convert case statements inside of a cmd *)
   let convert_case (case : Typed.case) : Cst_syntax.case =
     { fresh = case.fresh
-    ; facts = List.map convert_fact_rec case.facts
-    ; cmd = convert_cmd_rec case.cmd
+    ; facts = List.map (convert_fact ctx) case.facts
+    ; cmd = (convert_cmd ctx) case.cmd
     }
   in
 
@@ -774,16 +500,16 @@ let rec convert_cmd (read_access_map : access_map)
     | Typed.Skip -> Cst_syntax.Skip
     
     | Typed.Sequence (c1, c2) -> 
-        Cst_syntax.Sequence (convert_cmd_rec c1, convert_cmd_rec c2)
+        Cst_syntax.Sequence ((convert_cmd ctx) c1, (convert_cmd ctx) c2)
     
     | Typed.Put facts -> 
-        Cst_syntax.Put (List.map convert_fact_rec facts)
+        Cst_syntax.Put (List.map (convert_fact ctx) facts)
     
     | Typed.Let (id, expr, c) -> 
-        Cst_syntax.Let (id, convert_expr_rec expr, convert_cmd_rec c)
+        Cst_syntax.Let (id, (convert_expr ctx) expr, (convert_cmd ctx) c)
     
     | Typed.Assign (id_opt, expr) -> 
-        Cst_syntax.Assign (id_opt, convert_expr_rec expr)
+        Cst_syntax.Assign (id_opt, (convert_expr ctx) expr)
     
     | Typed.Case cases -> 
         Cst_syntax.Case (List.map convert_case cases)
@@ -792,41 +518,37 @@ let rec convert_cmd (read_access_map : access_map)
         Cst_syntax.While (List.map convert_case cases1, List.map convert_case cases2)
     
     | Typed.Event facts -> 
-        Cst_syntax.Event (List.map convert_fact_rec facts)
+        Cst_syntax.Event (List.map (convert_fact ctx) facts)
     
     | Typed.Return expr -> 
-        Cst_syntax.Return (convert_expr_rec expr)
+        Cst_syntax.Return ((convert_expr ctx) expr)
     
     | Typed.New (id, instantiated_ty_opt, name_expr_opt, c) -> 
-        let core_security_type_opt = Option.map (convert_instantiated_ty_to_core 
-          read_access_map provide_access_map all_process_typs
-          secrecy_lattice integrity_lattice) instantiated_ty_opt in
+        let core_security_ty_opt = Option.map (convert_instantiated_ty_to_core ctx) instantiated_ty_opt in
 
         (* XXX why is name_expr_opt an Option? *)
         let converted_name_expr_opt = Option.map (fun (name, exprs) -> 
-          (name, List.map convert_expr_rec exprs)) name_expr_opt in
+          (name, List.map (convert_expr ctx) exprs)) name_expr_opt in
 
-        Cst_syntax.New (id, core_security_type_opt, converted_name_expr_opt, convert_cmd_rec c)
+        Cst_syntax.New (id, core_security_ty_opt, converted_name_expr_opt, (convert_cmd ctx) c)
     
     | Typed.Get (ids, expr, name, c) -> 
-        Cst_syntax.Get (ids, convert_expr_rec expr, name, convert_cmd_rec c)
+        Cst_syntax.Get (ids, (convert_expr ctx) expr, name, (convert_cmd ctx) c)
     
     | Typed.Del (expr, name) -> 
-        Cst_syntax.Del (convert_expr_rec expr, name)
+        Cst_syntax.Del ((convert_expr ctx) expr, name)
   in
   
-  { desc = converted_cmd'
-  ; loc = cmd.loc
-  ; env = convert_env_rec cmd.env 
-  }
+  converted_cmd', cmd.loc 
 
-and convert_fact (read_access_map : access_map) 
-    (provide_access_map : access_map) (all_process_typs : proc_ty_set)
-    (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy)
-    (fact : Typed.fact) : Cst_syntax.fact =
-  
-  let convert_expr_rec = convert_expr read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in
-  let convert_env_rec = convert_env read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in 
+and convert_fact (ctx : conversion_context) (fact : Typed.fact) : Cst_syntax.fact =
+
+  let read_access_map = ctx.read_access_map in
+  let provide_access_map = ctx.provide_access_map in
+  let all_process_typs = ctx.all_process_typs in
+  let secrecy_lattice = ctx.secrecy_lattice in
+  let integrity_lattice = ctx.integrity_lattice in
+  let env = ctx.env in 
 
 
 (*   let _ = print_endline "Converting fact" in *)
@@ -834,53 +556,51 @@ and convert_fact (read_access_map : access_map)
   let converted_desc = match fact.desc with
     | Typed.Channel { channel; name; args } -> 
         Cst_syntax.Channel 
-          { channel = convert_expr_rec channel
+          { channel = (convert_expr ctx) channel
           ; name = name
-          ; args = List.map convert_expr_rec args
+          ; args = List.map (convert_expr ctx) args
           }
     
-    | Typed.Out expr -> Cst_syntax.Out (convert_expr_rec expr)
+    | Typed.Out expr -> Cst_syntax.Out ((convert_expr ctx) expr)
     
-    | Typed.In expr -> Cst_syntax.In (convert_expr_rec expr)
+    | Typed.In expr -> Cst_syntax.In ((convert_expr ctx) expr)
     
     | Typed.Plain (name, exprs) -> 
-        Cst_syntax.Plain (name, List.map convert_expr_rec exprs)
+        Cst_syntax.Plain (name, List.map (convert_expr ctx) exprs)
     
     | Typed.Eq (e1, e2) -> 
-        Cst_syntax.Eq (convert_expr_rec e1, convert_expr_rec e2)
+        Cst_syntax.Eq ((convert_expr ctx) e1, (convert_expr ctx) e2)
     
     | Typed.Neq (e1, e2) -> 
-        Cst_syntax.Neq (convert_expr_rec e1, convert_expr_rec e2)
+        Cst_syntax.Neq ((convert_expr ctx) e1, (convert_expr ctx) e2)
     
     | Typed.File { path; contents } -> 
         Cst_syntax.File 
-          { path = convert_expr_rec path
-          ; contents = convert_expr_rec contents
+          { path = (convert_expr ctx) path
+          ; contents = (convert_expr ctx) contents
           }
     
     | Typed.Global (name, exprs) -> 
-        Cst_syntax.Global (name, List.map convert_expr_rec exprs)
+        Cst_syntax.Global (name, List.map (convert_expr ctx) exprs)
   in
   
-  { desc = converted_desc
-  ; loc = fact.loc
-  ; env = convert_env_rec fact.env
-  }
+  converted_desc, fact.loc
 
 
-let make_loc_env_for_decl  (read_access_map : access_map) 
-    (provide_access_map : access_map) (all_process_typs : proc_ty_set)
-    (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy)
-    loc env desc : 'a Cst_syntax.loc_env =
-  let convert_env_rec = convert_env read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in 
-  { desc; loc; 
-  env = convert_env_rec env }
 
 
-(* Boilerplate, but necessary if Cst_syntax.chan_param is ever going to be different 
-  from Typed.chan_param *)
-let convert_chan_param (p : Typed.chan_param) : Cst_syntax.chan_param =
-  { channel = p.channel; param = p.param; typ = p.typ }
+let convert_chan_param (ctx : conversion_context) (p : Typed.chan_param) : Cst_syntax.process_param =
+
+  let read_access_map = ctx.read_access_map in
+  let provide_access_map = ctx.provide_access_map in
+  let all_process_typs = ctx.all_process_typs in
+  let secrecy_lattice = ctx.secrecy_lattice in
+  let integrity_lattice = ctx.integrity_lattice in
+  let env = ctx.env in    
+    let converted_proc_param_typ = 
+      (convert_function_param_to_core read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice env
+        Typed.TyChan(p.typ)) in  
+  { proc_param_id = p.channel ; proc_param_typ = converted_proc_param_typ} 
 
 
 
@@ -921,12 +641,9 @@ let extract_process_typs_from_decls procs decls =
   List.fold_left add_typ_to_set ProcTySet.empty proc_strs
 
 
-  
 
-let convert_env_to_typing_env (read_access_map : access_map) (provide_access_map : access_map) (all_process_typs : proc_ty_set) 
-  (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy) (env : Env.t) (other_decls : Typed.decl list) : Cst_syntax.typing_env = 
-  let convert_instantiated_ty_to_core_rec = (convert_instantiated_ty_to_core 
-    read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice) in 
+
+let convert_env_to_typing_env (ctx : conversion_context) (other_decls : Typed.decl list) : Cst_syntax.typing_env = 
   let convert_function_param_to_core_rec = 
     (convert_function_param_to_core read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice) in 
   let resulting_typing_env = List.fold_left (fun acc_t_env (ident, desc) -> match desc with 
@@ -937,10 +654,10 @@ let convert_env_to_typing_env (read_access_map : access_map) (provide_access_map
     | Env.Var _ -> acc 
     | Env.ExtFun (DesugaredArity _) -> raise (CstConversionException "Cannot convert Env.ExtFun without type information ")
     | Env.ExtFun (DesugaredTypeSig function_params) -> 
-        let typ = Cst_syntax.EqThyFunc (List.map (convert_function_param_to_core_rec) function_params) in 
+        let typ = Cst_syntax.EqThyFunc (List.map (convert_function_param_to_core ctx ) function_params) in 
         Maps.IdentMap.add ident typ acc_t_env
     | Env.ExtSyscall (DesSMFunTyped (_, f_params)) -> 
-        let core_f_params = List.map (convert_function_param_to_core_rec f_params) in 
+        let core_f_params = List.map (convert_function_param_to_core ctx f_params) in 
         (* we need to find the syscall's command by searching through our list of declarations *)
         let syscall_decl_opt = List.find_opt (fun decl -> match decl with 
           | Typed.Syscall {id = syscall_id ; _ } -> 
@@ -957,7 +674,7 @@ let convert_env_to_typing_env (read_access_map : access_map) (provide_access_map
     | Env.Function _ ->
         raise (CstConversionException "An Env.Function should not be present in an Env.t, if the Env.t is the environment of a process declaration")
     | Env.Const (_, instantiated_ty) -> 
-        let converted_ty = (convert_instantiated_ty_to_core_rec instantiated_ty) in 
+        let converted_ty = (convert_instantiated_ty_to_core ctx instantiated_ty) in 
         Maps.IdentMap.add ident (Cst_syntax.CST converted_ty) acc_t_env
 
     (* TODO I don't understand how to convert an Env.Channel *)
@@ -971,36 +688,30 @@ let convert_env_to_typing_env (read_access_map : access_map) (provide_access_map
     | Env.FilesysTypeDef -> 
         Maps.IdentMap.add ident Cst_syntax.FilesysTypeDef acc_t_env
     | Env.ChanTypeDef (instantiated_tys) -> 
-        let converted_tys = List.map (convert_instantiated_ty_to_core_rec) instantiated_tys in 
+        let converted_tys = List.map (convert_instantiated_ty_to_core ctx ) instantiated_tys in 
         Maps.IdentMap.add ident (Cst_syntax.CST (Cst_syntax.ChanTypeDef converted_tys)) acc_t_env
     | Env.SecurityTypeDef (simple_ty_name, instantied_tys) -> 
-        let converted_tys = List.map (convert_instantiated_ty_to_core_rec) instantiated_tys in 
+        let converted_tys = List.map (convert_instantiated_ty_to_core ctx ) instantiated_tys in 
         let typ = (Cst_syntax.SecurityTypeDef (simple_ty_name, converted_tys)) in 
         Maps.IdentMap.add ident typ acc_t_env
     ) Maps.IdentMap.empty env.vars in 
     resulting_typing_env
 
 
-let convert_proc_decls (read_access_map : access_map) (provide_access_map : access_map) (all_process_typs : proc_ty_set) 
-  (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy)
-  (process_decls : Typed.decl list) (other_decls : Typed.decl list) : Cst_syntax.core_rabbit_prog = 
-    let convert_expr_rec = convert_expr read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in 
-    let convert_cmd_rec = (convert_cmd read_access_map provide_access_map all_process_typs 
-          secrecy_lattice integrity_lattice) in 
-    let convert_function_param_to_core_rec = (convert_function_param_to_core read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice) in
+let convert_proc_decls (ctx : conversion_context) (other_decls : Typed.decl list) : Cst_syntax.core_rabbit_prog = 
 
     let converted_procs_and_envs = List.map (fun (decl, loc) -> match decl.Typed.desc with 
       | Typed.Process { id; param; args; typ; files; vars; funcs; main } ->
-        let converted_args = List.map convert_chan_param args in 
+        let converted_proc_params = List.map convert_chan_param args in 
         let converted_files = List.map (fun (x, y, z) -> 
-          (convert_expr_rec x, y, convert_expr_rec z)) files in 
+          ((convert_expr ctx) x, y, (convert_expr ctx) z)) files in 
         let converted_vars = List.map (fun (x, _, z) -> 
-          (x, convert_expr_rec z)) vars in 
+          (x, (convert_expr ctx) z)) vars in 
 
         let convert_func_sig (member_fun_id : Ident.t) (y : Env.syscall_member_fun_sig) : (Ident.t * Cst_syntax.core_security_function_param) list = 
           begin match y with 
           | DesSMFunTyped(ids, fun_params) ->   
-            let converted_fun_params = List.map convert_function_param_to_core_rec fun_params in 
+            let converted_fun_params = List.map convert_function_param_to_core ctx fun_params in 
 
             (* I'm assuming the arity check has already happened *)
             List.combine ids converted_fun_params 
@@ -1012,15 +723,15 @@ let convert_proc_decls (read_access_map : access_map) (provide_access_map : acce
           end in 
       
       let converted_funcs = List.map (fun (x, y, z) -> 
-        (x, (convert_func_sig x y), convert_cmd_rec z)
+        (x, (convert_func_sig x y), (convert_cmd ctx) z)
         ) funcs in 
 
-      let converted_main = convert_cmd_rec main in 
+      let converted_main = (convert_cmd ctx) main in 
 
       let converted_process = Cst_syntax.Process{
           id 
           ; param
-          ; args = converted_args
+          ; args = converted_proc_params
           ; typ 
           ; files = converted_files
           ; vars = converted_vars
@@ -1036,121 +747,147 @@ let convert_proc_decls (read_access_map : access_map) (provide_access_map : acce
     converted_procs_and_envs
 
 
-(* let convert_decl (read_access_map : access_map) 
-    (provide_access_map : access_map) (all_process_typs : proc_ty_set)
-    (secrecy_lattice : cst_access_policy) (integrity_lattice : cst_access_policy)
-  (td : Typed.decl) : Cst_syntax.decl list =
 
-  let convert_expr_rec = convert_expr read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice in 
-  let convert_cmd_rec = (convert_cmd read_access_map provide_access_map all_process_typs 
-          secrecy_lattice integrity_lattice) in 
 
-  let convert_function_param_to_core_rec = (convert_function_param_to_core read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice) in 
-  let { Typed.loc; env; desc; _ } = td in
-  let make_loc_env_for_decl_rec = 
-    make_loc_env_for_decl read_access_map provide_access_map all_process_typs secrecy_lattice integrity_lattice loc env in   
-  match desc with
-  | Typed.Syscall { id; fun_sig; cmd } ->
 
-      (* let _ = print_endline (Format.sprintf "convert_decl syscall with id: %s" (fst id)) in *)
 
-      let args = Env.syscall_member_fun_desc_to_ident_list fun_sig in
-      let non_converted_function_params = begin match fun_sig with 
-        | Env.DesSMFunUntyped(_) -> (raise_conv_exception_with_location "A syscall must have typing information in order to be typechecked" loc)
-        | Env.DesSMFunTyped(_, fps) -> fps
-      end in 
-      
-      let converted_function_params = List.map (convert_function_param_to_core_rec) non_converted_function_params in 
-      
-      let cst_cmd = (convert_cmd_rec cmd) in 
-      let cst_decl = Cst_syntax.Syscall{id ; args ; fun_params = converted_function_params ; cmd = cst_cmd} in 
-
-      [make_loc_env_for_decl_rec cst_decl]
-
-  | Typed.Attack { id; syscall; args; cmd } ->
-      (* let _ = print_endline (Format.sprintf "convert_decl attack with id: %s" (fst id)) in  *)
+let convert_env_desc (desc : Env.desc) (loc : Location.t) : Cst_syntax.t_env_typ option = match desc with 
+  | ExtFun (DesugaredArity _) -> raise (CstConversionException "Cannot convert Env.ExtFun without type information ")
+  | ExtFun (DesugaredTypeSig function_params) -> 
+      let typ = Cst_syntax.EqThyFunc (List.map (convert_function_param_to_core ctx) function_params) in
+      Some typ
+  | Const (_, ty_opt) -> begin match ty_opt with 
+      | Some instantiated_ty -> 
+          let converted_ty = (convert_instantiated_ty_to_core ctx instantiated_ty) in 
+          Some (CST (converted_ty))
+      | None -> 
+          (raise_conv_exception_with_location "Each global constant has to have an annotated type in order to typecheck a Rabbit program" loc)
+  | Channel (is_parameterized, chan_type_id) ->
+    (* TODO: Why is chan_type_id not of type instantiated_ty here? *)
+    (* for now, let the argument's type be 'TyChan(ch_param.typ)',
+    although creating new nodes like this is bad practice
+    *)
+    let inst_ch_ty = (Typed.TyChan chan_type_id) in 
+    let converted_ty = (convert_instantiated_ty_to_core ctx inst_ch_ty) in 
     
-      let cst_cmd = convert_cmd_rec cmd in 
-      let cst_decl = Cst_syntax.Attack{id ; syscall ; args ; cmd = cst_cmd} in 
+    Some (CST (converted_ty))
+  (* We do not need to do anything with ExtSyscall, since we have added all syscalls to our environment in the 
+  'initial_typing_env function
+  *)
+  | ExtSyscall _-> None
+  (* A member function cannot occur in a system environment, so we do not process it *)
+  | Function func_sig ->
+      raise_conv_exception_with_location "A member function cannot be present in a system environment" loc
+  (* A Var desc cannot occur in the system environment anyway, so we do not process it now *)
+  | Var _ -> None
+  (* We do not need any of the following information in our typing_env *)
+  | Process | SimpleTypeDef _ | SecurityTypeDef _ | ChanTypeDef _ | FilesysTypeDef _ | ProcTypeDef | Attack | ->
+      None
 
-      [make_loc_env_for_decl_rec cst_decl]
 
-  | Typed.Process { id; param; args; typ; files; vars; funcs; main } ->
-      (* let _ = print_endline (Format.sprintf "convert_decl process with id: %s" (fst id)) in  *)
-      let converted_args = List.map convert_chan_param args in 
-      let converted_files = List.map (fun (x, y, z) -> 
-        (convert_expr_rec x, y, convert_expr_rec z)) files in 
-      let converted_vars = List.map (fun (x, _, z) -> 
-        (x, convert_expr_rec z)) vars in 
+(* the initial typing environment for all process declarations and the single system declaration *)
+let initial_typing_env (proc_and_syscall_decls : Typed.decl list) 
+  (ctx : conversion_context) : Cst_syntax.typing_env = 
+  let system_env = ctx.env in 
 
+  (* first, we add all the process and syscalls declarations *)
+  let initial_env = List.fold_left (fun acc_t_env decl -> begin match decl.Typed.desc with 
+      | Typed.Syscall { id = syscall_id ; fun_sig ; cmd } -> begin match fun_sig with 
+            | DesSMFunUntyped _ -> 
+              (raise_conv_exception_with_location 
+                (Format.sprintf "Member function %s cannot be typechecked if it does not have a typing annotation" (Ident.string_part member_fun_id))
+                decl.loc)
+            | DesSMFunTyped(ids, f_params) -> 
+              let core_f_params = List.map (convert_function_param_to_core ctx f_params) in
+              let core_cmd = (convert_cmd ctx cmd) in 
+              let binding_value = Cst_syntax.Syscall(core_f_params, core_cmd) in 
+              
+              Maps.IdentMap.add syscall_id binding_value acc_t_env
+            end
+        
+      | Typed.Process { id; param; args; typ; files; vars; funcs; main } -> 
+        (* convert args *)
+        let chan_param_to_core_process_param ch_param = 
+          
+          (* TODO: Why is ch_param not of type function_param here? *)
+          (* for now, let the argument's type be 'TyChan(ch_param.typ)',
+          although creating new nodes like this is bad practice
+          *)
+          let ch_typ_ident = ch_param.typ in
+          let core_function_param = 
+            convert_function_param_to_core (Typed.TyChan ch_typ_ident)
+          in
+          (ch_typ_ident, core_function_param)
+        let converted_args = List.map (chan_param_to_core_process_param) args in 
 
+        (* convert files *)
+        let converted_files = List.map (fun (file_path, file_ident, file_contents) -> 
+            (convert_expr ctx file_path), file_ident, (convert_expr ctx file_contents)
+          ) files 
+        in
 
-      let convert_func_sig (member_fun_id : Ident.t) (y : Env.syscall_member_fun_sig) : 
-        (Ident.t * Cst_syntax.core_security_function_param) list = 
-        begin match y with 
-        | DesSMFunTyped(ids, fun_params) ->   
-          let converted_fun_params = List.map convert_function_param_to_core_rec fun_params in 
+        (* convert vars *)
+        let converted_vars = List.map (fun (var_id, var_contents) -> 
+            (var_id, (convert_expr ctx var_contents))
+          ) vars in 
+        
+        (* convert member funcs *)
+        let converted_member_funcs = List.map (fun (member_fun_ident, member_fun_sig, cmd) -> 
+          begin match member_fun_sig with 
+            | DesSMFunUntyped -> 
+              (raise_conv_exception_with_location 
+                (Format.sprintf "Member function %s cannot be typechecked if it does not have a typing annotation" (Ident.string_part member_fun_ident))
+                cmd.loc)
+            | DesSMFunTyped (param_idents, f_params) -> 
+                let core_f_params = List.map (convert_function_param_to_core ctx f_params) in
 
-          (* I'm assuming the arity check has already happened *)
-          List.combine ids converted_fun_params 
-        | _ -> 
-          (raise_conv_exception_with_location 
-            (Format.sprintf "Member function %s cannot be typechecked if it does not have a typing annotation" (Ident.string_part member_fun_id))
-            td.loc   
-          )
-        end in 
-      
-      let converted_funcs = List.map (fun (x, y, z) -> 
-        (x, (convert_func_sig x y), convert_cmd_rec z)
-        ) funcs in 
+                let param_idents_x_core_f_params = List.combine param_idents core_f_params in 
+                let core_cmd = (convert_cmd ctx cmd) in 
+                let converted_member_func = 
+                  (member_fun_ident, param_idents_x_core_f_params, core_cmd)
+                
+                converted_member_func
+          end
+        ) in 
 
-      let converted_main = convert_cmd_rec main in 
-      let cst_decl = 
-        Cst_syntax.Process{
-          id 
-          ; param
+        (* convert main function *)
+        let converted_main = (convert_cmd ctx main) in 
+
+        (* add converted process to environment *)
+        let binding_value = Cst_syntax.Process{
+          id = id
+          ; param = param
           ; args = converted_args
-          ; typ 
+          ; typ = typ 
           ; files = converted_files
           ; vars = converted_vars
-          ; funcs = converted_funcs
+          ; funcs = converted_member_funcs
           ; main = converted_main
         } in 
-      [make_loc_env_for_decl_rec cst_decl]
 
-  | Typed.System (procs, _) ->
-      (* let _ = print_endline (Format.sprintf "convert_decl system") in  *)
+        Maps.IdentMap.add id binding_value acc_t_env
+      (* it is not necessary to add any other Typed.decl to our typing_env *)
+      | _ -> acc_t_env
+      end
+    ) Maps.IdentMap.empty proc_and_syscall_decls in 
 
-      (* we will only need the process names when typechecking *)
-
-
-      let proc_strs = extract_proc_strings(procs) in 
-
-      let cst_decl = Cst_syntax.System(proc_strs) in 
-      [make_loc_env_for_decl_rec cst_decl]
-  (* we do not give a corresponding Cst_syntax.decl for the following Typed.decl: *)
-  | Typed.Equation _ -> []
-  | Typed.Type _ -> []
-  | Typed.Allow _ -> []
-  | Typed.AllowAttack _ -> []
-  | Typed.Init _ -> []
-  | Typed.Channel _ -> []
-  | Typed.Load _ -> [] *)
+    (* Then, we add all bindings within the Env.t to our typing_env *)
+    let initial_env' = initial_env in 
+    initial_env'
 
 
 
+let convert_pproc (pproc : Typed.pproc) = 
+  (pproc.desc.id, pproc.desc.args)
 
-
-
-
-let convert (decls : Typed.decl list) 
-  : Cst_syntax.core_rabbit_prog * cst_access_policy * cst_access_policy = 
+let convert (decls : Typed.decl list)
+  : Cst_syntax.core_rabbit_prog * cst_access_policy * cst_access_policy * cst_per_syscall = 
   
   (* check that the last declaration is a `Typed.System` declaration *)
   match List.rev decls with
   | [] ->
       raise (CstConversionException "Expected a System declaration at the end, but the list is empty")
-  | {desc = System(procs, _) ; _ } as sys_decl :: decls_rev ->
+  | {desc = System(procs, _) ; loc = system_location ; env = system_env } as sys_decl :: decls_rev ->
 
     (* check that there is only a _single_ system declaration in our entire Rabbit program *)
     (List.iter (fun decl -> match decl.Typed.desc with 
@@ -1158,6 +895,15 @@ let convert (decls : Typed.decl list)
         raise (CstConversionException "There can only be a single system declaration in a Rabbit program")
       | _ -> ()
     )) decls_rev;
+
+    let system_proc_idents = List.fold_left (fun acc proc -> match proc with 
+      | Typed.Unbounded(pproc) -> 
+          (convert_pproc pproc) :: acc
+      | Typed.Bounded(_, pprocs) -> 
+          (List.map (convert_pproc)) @ pprocs
+    ) [] procs in 
+
+    let sys = (system_proc_idents, system_location) in 
 
     (* Based on all Typed.Allow declarations, create the read_access_map and provide_access_map *)
     let allow_decls = List.filter (fun decl -> match decl with 
@@ -1171,31 +917,31 @@ let convert (decls : Typed.decl list)
     let secrecy_lattice = ((compute_access_relation read_access_map), GreaterThanOrEqual) in (* the relation is '>=' *)
     let integrity_lattice = ((compute_access_relation provide_access_map), LessThanOrEqual) in (* the relation is '<=' *)
 
-
     (* To be able to insert 'Public' or 'Untrusted' at every security type, we need to know the set of all process types in our Rabbit program *)
     let all_process_typs = extract_process_typs_from_decls procs (List.map (fun (d : Typed.decl) -> d.desc) decls_rev) in
 
+    
     (* we will only convert the process templates which are actually occurring in the system declaration, 
     because we do not need to typecheck any process code that is not being executed *)
     let system_proc_strings = extract_proc_strings procs in
-
-    let proc_decls = List.filter (fun decl -> match decl with 
+    let proc_and_syscall_decls = List.filter (fun decl -> match decl with 
       | Typed.Process { id ; _} -> 
         let proc_name = Ident.string_part id in 
         List.mem proc_name system_proc_strings
+      | Typed.Syscall _ -> true 
       | _ -> false 
     ) in 
-    let other_decls = List.filter (fun decl -> match decl with 
-        | Typed.Process _ -> false 
-        | _ -> true 
-    ) in 
 
-    (* Convert our Rabbit program from `typed.ml` to a core Rabbit program *)
-    (** - The 'access_map's are necessary to insert the correct secrecy/integrity level at every typing information location 
-        - The 'lattice's are necessary to compute the least-upper bound and greatest-lower bound for product types
-    *)
-    let converted_rabbit_prog = convert_proc_decls read_access_map provide_access_map all_process_typs 
-      secrecy_lattice integrity_lattice proc_decls other_decls in 
+    let conversion_ctx = 
+      { read_access_map = read_access_map   
+      ; provide_access_map = provide_access_map
+      ; all_process_typs = all_process_typs
+      ; secrecy_lattice = secrecy_lattice
+      ; integrity_lattice = integrity_lattice 
+      ; env = system_env
+      }  
+    in
 
-    converted_rabbit_prog, secrecy_lattice, integrity_lattice
+    let init_typing_env = (initial_typing_env proc_and_syscall_decls conversion_ctx) in  
+    (sys, init_typing_env)
   | _ -> raise (CstConversionException "Expected a System declaration at the the end, but there is a different declaration")

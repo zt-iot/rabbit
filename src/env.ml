@@ -1,4 +1,5 @@
 
+exception EnvException of string
 
 
 type var_desc = Syntax.variable_desc =
@@ -53,6 +54,18 @@ let rec inst_ty_to_function_param : instantiated_ty -> function_param = function
   | TyChan ch_ident -> TyChan ch_ident
   (* This case is impossible, because we cannot construct members of void *)
   | TyPoly _ -> .
+
+let rec function_param_to_inst_ty : function_param -> instantiated_ty = function
+  | TySecurity (sec_ident, simple_ident, ty_params) ->
+      TySecurity (sec_ident, simple_ident, List.map function_param_to_inst_ty ty_params)
+  | TySimple (simple_ty_ident, ty_params) -> 
+      TySimple (simple_ty_ident, List.map function_param_to_inst_ty ty_params)
+  | TyProduct (t1, t2) -> 
+      TyProduct (function_param_to_inst_ty t1, function_param_to_inst_ty t2)
+  | TyChanPlain ty_params -> 
+      TyChanPlain (List.map function_param_to_inst_ty ty_params)
+  | TyChan ch_ident -> TyChan ch_ident
+  | TyPoly _ -> raise (EnvException "Currently, Rabbit cannot convert function parameters with polymorphic types to instantiated types")
 
 
 
