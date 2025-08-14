@@ -5,12 +5,7 @@ open Maps
 exception CstConversionException of string
 
 
-type relation = 
-  | LessThanOrEqual
-  | GreaterThanOrEqual
 
-
-type cst_access_policy = ((proc_ty_set * proc_ty_set) * bool) list * relation
 
 let raise_conv_exception_with_location msg loc = 
     Location.print loc Format.std_formatter;
@@ -22,8 +17,8 @@ let raise_conv_exception_with_location msg loc =
 
 
 (* Given an `u : proc_ty_set`, return 'vs', a set of all `proc_ty_set`s such that for each v \in vs, v <= u *)
-let elements_less_than_or_equal_to_u (pol : cst_access_policy) (u : proc_ty_set) : ProcTySetSet.t =
-  if (snd pol) = LessThanOrEqual then   
+let elements_less_than_or_equal_to_u (pol : Cst_syntax.cst_access_policy) (u : proc_ty_set) : ProcTySetSet.t =
+  if (snd pol) = Cst_syntax.LessThanOrEqual then   
     List.fold_left (fun acc ((v, u'), rel_holds) ->
       if ProcTySet.equal u u' && rel_holds then
         ProcTySetSet.add v acc
@@ -40,8 +35,8 @@ let elements_less_than_or_equal_to_u (pol : cst_access_policy) (u : proc_ty_set)
 
 
 (* Given an `a : proc_ty_set`, return bs, a set of all `proc_ty_set`s such that for each b \in bs, b >= a *)
-let elements_greater_than_or_equal_to_u (pol : cst_access_policy) (u : proc_ty_set) : ProcTySetSet.t =
-  if (snd pol) = GreaterThanOrEqual then   
+let elements_greater_than_or_equal_to_u (pol : Cst_syntax.cst_access_policy) (u : proc_ty_set) : ProcTySetSet.t =
+  if (snd pol) = Cst_syntax.GreaterThanOrEqual then   
     List.fold_left (fun acc ((v, u'), rel_holds) ->
       if ProcTySet.equal u u' && rel_holds then
         ProcTySetSet.add v acc
@@ -67,7 +62,7 @@ FUNCTIONS TO COMPUTE LEAST UPPER BOUND AND GREATEST LOWER BOUND
 ****)
 let find_extremum_in_intersect
     ~(find_max : bool)
-    (pol : cst_access_policy)
+    (pol : Cst_syntax.cst_access_policy)
     (intersect : ProcTySetSet.t) : proc_ty_set option =
 
   let (rel, relation_kind) = pol in
@@ -86,10 +81,10 @@ let find_extremum_in_intersect
 
       (* otherwise, check if `rel` holds depending on `relation_kind` *)
       else match (find_max, relation_kind) with
-        | (true, LessThanOrEqual) -> rel_holds other candidate  (* other <= candidate <-> candidate is max *)
-        | (false, LessThanOrEqual) -> rel_holds candidate other  (* candidate <= other <-> candidate is min *)
-        | (true, GreaterThanOrEqual) -> rel_holds candidate other (* candidate >= other <-> candidate is max *)
-        | (false, GreaterThanOrEqual) -> rel_holds other candidate (* other >= candidate <-> candidate is min *)
+        | (true, Cst_syntax.LessThanOrEqual) -> rel_holds other candidate  (* other <= candidate <-> candidate is max *)
+        | (false, Cst_syntax.LessThanOrEqual) -> rel_holds candidate other  (* candidate <= other <-> candidate is min *)
+        | (true, Cst_syntax.GreaterThanOrEqual) -> rel_holds candidate other (* candidate >= other <-> candidate is max *)
+        | (false, Cst_syntax.GreaterThanOrEqual) -> rel_holds other candidate (* other >= candidate <-> candidate is min *)
     ) intersect
   in
 
@@ -104,7 +99,7 @@ let find_extremum_in_intersect
 - return the secrecy lvl which is the least upper bound of a and b, if it exists
 - otherwise, return None
 *)
-let join_of_secrecy_lvls (pol : cst_access_policy) (a : Cst_syntax.secrecy_lvl) (b : Cst_syntax.secrecy_lvl) : Cst_syntax.secrecy_lvl option = 
+let join_of_secrecy_lvls (pol : Cst_syntax.cst_access_policy) (a : Cst_syntax.secrecy_lvl) (b : Cst_syntax.secrecy_lvl) : Cst_syntax.secrecy_lvl option = 
   match (a, b) with
   (* If one secrecy_lvl is Public, the least upper bound is the other secrecy_lvl *)
   | Cst_syntax.Public, _ -> Some b 
@@ -127,7 +122,7 @@ let join_of_secrecy_lvls (pol : cst_access_policy) (a : Cst_syntax.secrecy_lvl) 
 - return the integrity lvl which is the greatest lower bound of a and b, if it exists
 - otherwsie, return None
 *)
-let meet_of_integrity_lvls (pol : cst_access_policy) (a : Cst_syntax.integrity_lvl) (b : Cst_syntax.integrity_lvl) : Cst_syntax.integrity_lvl option = 
+let meet_of_integrity_lvls (pol : Cst_syntax.cst_access_policy) (a : Cst_syntax.integrity_lvl) (b : Cst_syntax.integrity_lvl) : Cst_syntax.integrity_lvl option = 
   match (a, b) with 
   (* if one integrity_lvl is Untrusted, the greatest lower bound is the other integrity_lvl *)
   | Cst_syntax.Untrusted, _ -> Some b
@@ -199,8 +194,8 @@ type conversion_context = {
   read_access_map : access_map   
   ; provide_access_map : access_map
   ; all_process_typs : proc_ty_set
-  ; secrecy_lattice : cst_access_policy
-  ; integrity_lattice : cst_access_policy 
+  ; secrecy_lattice : Cst_syntax.cst_access_policy
+  ; integrity_lattice : Cst_syntax.cst_access_policy 
   ; env : Env.t
 }
 
@@ -752,7 +747,7 @@ let convert_process ctx id param (args : Typed.chan_param list) typ files vars f
   let binding_value = Cst_syntax.Process{
     id = id
     ; param = param
-    ; args = converted_args
+    ; process_params = converted_args
     ; typ = typ 
     ; files = converted_files
     ; vars = converted_vars
@@ -815,7 +810,7 @@ let convert_pproc (pproc : Typed.pproc) : (Ident.t * Ident.t list) =
   (pproc.Location.data.id, args_idents) 
 
 let convert (decls : Typed.decl list)
-  : Cst_syntax.core_rabbit_prog * cst_access_policy * cst_access_policy * cst_per_syscall = 
+  : Cst_syntax.core_rabbit_prog * Cst_syntax.cst_access_policy * Cst_syntax.cst_access_policy * cst_per_syscall = 
   
   (* check that the last declaration is a `Typed.System` declaration *)
   match List.rev decls with
@@ -848,8 +843,8 @@ let convert (decls : Typed.decl list)
 
     (* Compute the secrecy lattice and integrity lattice, from the read_access_map and provide_access_map *)
     (* The method to compute the relation is the same for both reading/providing *)
-    let secrecy_lattice = ((compute_access_relation read_access_map), GreaterThanOrEqual) in (* the relation is '>=' *)
-    let integrity_lattice = ((compute_access_relation provide_access_map), LessThanOrEqual) in (* the relation is '<=' *)
+    let secrecy_lattice = ((compute_access_relation read_access_map), Cst_syntax.GreaterThanOrEqual) in (* the relation is '>=' *)
+    let integrity_lattice = ((compute_access_relation provide_access_map), Cst_syntax.LessThanOrEqual) in (* the relation is '<=' *)
 
     (* To be able to insert 'Public' or 'Untrusted' at every security type, we need to know the set of all process types in our Rabbit program *)
     let all_process_typs = extract_process_typs_from_decls procs (List.map (fun (d : Typed.decl) -> d.desc) decls_rev) in

@@ -45,6 +45,14 @@ let proc_ty_set_to_integrity_lvl providers all_process_typs =
     INode providers
 
 
+type relation = 
+  | LessThanOrEqual
+  | GreaterThanOrEqual
+
+
+type cst_access_policy = ((proc_ty_set * proc_ty_set) * bool) list * relation
+
+
 (* This datatype has 0 constructors, and thus cannot be instantiated *)
 type void = | [@@deriving eq]
 
@@ -219,7 +227,7 @@ type t_env_typ =
   | Process of
       { id : Ident.t
       ; param : Ident.t option
-      ; args : (Ident.t * core_security_function_param) list
+      ; process_params : (Ident.t * core_security_function_param) list
       ; typ : Ident.t
       ; files : (expr * Ident.t * expr) list
       ; vars : (Ident.t * expr) list 
@@ -232,6 +240,11 @@ type t_env_typ =
 (* a Map from Ident.t to core_security_ty *)
 (* because we Map from Ident.t (which is unique in the entire program), we should not encounter any problems with name shadowing *)
 type typing_env = t_env_typ Maps.IdentMap.t
+
+let coerce_tenv_typ (typ : t_env_typ) (loc : Location.t) : core_security_ty = 
+  match typ with 
+    | CST (ty) -> ty 
+    | _ -> (raise_cst_syntax_exception_with_location "this type is expected to be a core security type, but it unexpectedly is of a function or process type" loc)
 
 
 

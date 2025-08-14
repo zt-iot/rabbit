@@ -1,4 +1,6 @@
-(* exception TypeException of string
+
+open Typechecker_lattice_util
+
 
 let raise_type_exception_with_location msg loc = 
     Location.print loc Format.std_formatter;
@@ -17,7 +19,7 @@ let init_and_last generic_list loc =
 
 
 
-
+(*
 let rec typeof_expr (secrecy_lattice : cst_access_policy)
   (integrity_lattice : cst_access_policy) (expr : Cst_syntax.expr) (t_env : typing_env) : core_security_type = 
   let typeof_expr_rec = typeof_expr secrecy_lattice integrity_lattice in 
@@ -405,11 +407,11 @@ let create_initial_t_env (cst_env : Cst_env.t) : typing_env =
 
 
 (* let extend_t_env_with_args (t_env : typing_env) : typing_env =  *)
+*)
 
 
 
-
-let typecheck_decl (secrecy_lattice : cst_access_policy)
+(* let typecheck_decl (secrecy_lattice : cst_access_policy)
   (integrity_lattice : cst_access_policy) (decl : Cst_syntax.decl) : unit = 
   let typeof_expr_rec = (typeof_expr secrecy_lattice integrity_lattice) in 
   let typeof_cmd_rec = (typeof_cmd secrecy_lattice integrity_lattice) in 
@@ -447,7 +449,7 @@ let typecheck_decl (secrecy_lattice : cst_access_policy)
       (* For now, we consider all active attacks to be well-typed *)
       ()
 
-  | Cst_syntax.Process { id; args; vars; funcs; main; _ } ->
+  | Cst_syntax.Process { id; process_params; vars; funcs; main; _ } ->
 
 
       (* we need to update the `t_env` such that: 
@@ -509,12 +511,71 @@ let typecheck_decl (secrecy_lattice : cst_access_policy)
 
   | Cst_syntax.System _ ->
       raise (TypeException "A Rabbit program with multiple `system` declarations is ill-typed ")
-  end
+  end *)
 
 
-let typecheck_sys (cst_decls : Cst_syntax.decl list) 
-  (sys : Cst_syntax.decl) (secrecy_lattice : cst_access_policy)
-  (integrity_lattice : cst_access_policy) : unit = match sys.Cst_syntax.desc with 
+
+
+let typecheck_process vars funcs typ main env : unit = 
+  (* add all vars to the environment *)
+  let env' = List.fold_left (fun acc_t_env (var_ident, var_expr) -> 
+      let type_of_var = typeof_expr var_expr acc_t_env in 
+      Maps.IdentMap.add var_ident type_of_var acc_t_env
+    ) env vars in 
+
+  (* add all member funcs to the environment *)
+  let env'' = List.fold_left (fun acc_t_env (fun_ident, idents_x_params, ret_param, cmd) -> 
+      (* We do not typecheck the body cmd here, but only typecheck it when the 
+      process code calls it
+      *)
+      let member_func_t_env_typ = Cst_syntax.MemberFunc(idents_x_params, ret_param, cmd) in 
+      Maps.IdentMap.add fun_ident member_func_t_env_typ acc_t_env
+    ) env' funcs in
+  
+  (* typecheck the cmd of the process under the update env'' *)
+  let _ = typeof_cmd main env'' in 
+  ()
+
+
+let typecheck_sys (prog : Cst_syntax.core_rabbit_prog) (secrecy_lattice : Cst_syntax.cst_access_policy)
+  (integrity_lattice : Cst_syntax.cst_access_policy) : unit = 
+    
+  
+  let ((proc_instantiations, system_loc), system_env) = prog in 
+
+  List.iter (fun proc_instantiation -> 
+    let (proc_ident, arg_idents) = proc_instantiation in 
+    
+    (* lookup proc_ident in environment *)
+    match Maps.IdentMap.find_opt proc_ident system_env with
+      | Some (Cst_syntax.Process { id ; process_params ; typ ; vars ; funcs ; main ; _ }) -> 
+          if (List.length arg_idents != List.length process_params) then
+            (raise_type_exception_with_location 
+              (Format.sprintf "The amount of arguments supplied to process %s does not match the amount of process parameters" (Ident.string_part id)) system_loc);
+          let args_idents_x_proc_params = List.combine arg_idents process_params in 
+          
+          (* for each ident \in arg_idents, we need to check that its type is a subtype of the parameter type of the process *)
+          let env' = List.fold_left (fun acc_env (arg_ident, (proc_param_ident, proc_param_typ)) ->  
+              begin match (Maps.IdentMap.find_opt arg_ident system_env) with 
+                | Some (arg_ident_typ) -> 
+                  (* check that arg_ident_typ is a subtype of proc_param_typ *)
+
+                  let proc_param_cst = 
+                    Cst_syntax.core_sec_f_param_to_core_sec_ty proc_param_typ in 
+                  let arg_ident_typ_cst = Cst_syntax.coerce_tenv_typ arg_ident_typ system_loc in 
+
+                  if not (is_subtype secrecy_lattice integrity_lattice arg_ident_typ_cst proc_param_cst system_loc) then 
+                    (raise_type_exception_with_location "An argument type is not a subtype of the type of the channel" system_loc);
+                  Maps.IdentMap.add proc_param_ident (Cst_syntax.CST proc_param_cst) acc_env
+
+                | None -> raise (TypeException "An argument in the system declaration was not found in the system_env")
+              end
+            ) system_env args_idents_x_proc_params in 
+          (typecheck_process vars funcs typ main env');
+      | _ -> (raise_type_exception_with_location "This proc_ident does not exist in the system environment" system_loc)
+  ) proc_instantiations;
+
+  (* match sys.Cst_syntax.desc with 
   | Cst_syntax.System(proc_strs) ->
 
     (* for all `proc_name` \in `procs`, we need to check that `proc_name` is well-typed *)
@@ -528,4 +589,4 @@ let typecheck_sys (cst_decls : Cst_syntax.decl list)
 
     (* typecheck each decl of filtered_decls with computed secrecy_lattice and integrity_lattice from previous pass *)
     List.iter (fun decl -> typecheck_decl secrecy_lattice integrity_lattice decl) filtered_cst_decls;
-  | _ -> (raise_type_exception_with_location "this declaration is not a system declaration" sys.loc) *)
+  | _ -> (raise_type_exception_with_location "this declaration is not a system declaration" sys.loc)  *)
