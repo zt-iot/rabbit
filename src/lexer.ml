@@ -49,7 +49,15 @@ let reserved = [
   ("Untrusted", UNTRUSTED) ; 
   (* for dealing with access control rules *)
   ("read", READ) ;
-  ("provide", PROVIDE)
+  ("provide", PROVIDE) ; 
+
+  (* these four symbols are not going to be parsed. 
+  They exist simply to disallow the programmer from creating user-defined names with these names *)
+  ("bool", BOOL_TYP) ;
+  ("int", INT_TYP) ; 
+  ("string", STRING_TYP ) ;
+  ("float", FLOAT_TYP)
+
   ]
 
 let name =

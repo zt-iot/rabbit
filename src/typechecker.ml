@@ -19,59 +19,42 @@ let init_and_last generic_list loc =
 
 
 
-(*
-let rec typeof_expr (secrecy_lattice : cst_access_policy)
-  (integrity_lattice : cst_access_policy) (expr : Cst_syntax.expr) (t_env : typing_env) : core_security_type = 
+
+let rec typeof_expr (secrecy_lattice : Cst_syntax.cst_access_policy)
+  (integrity_lattice : Cst_syntax.cst_access_policy) (expr : Cst_syntax.expr) (t_env : Cst_syntax.typing_env) : Cst_syntax.core_security_ty = 
   let typeof_expr_rec = typeof_expr secrecy_lattice integrity_lattice in 
-  match expr.desc with
+  let (expr_desc, expr_loc) = expr in 
+  match expr_desc with
 
     (* Need to look up type in `t_env` *)
-    | Ident { id; desc; param } ->
+    | Ident { id; param } ->
         (* Look up the type of `id` in the typing environment t_env *)
          begin match Maps.IdentMap.find_opt id t_env with 
-          | Some t -> (coerce_tenv_typ t) 
-          | None -> (raise_type_exception_with_location (Format.sprintf "No entry for the following Ident.t: %s" (Ident.name id)) expr.loc)
+          | Some t -> (Cst_syntax.coerce_tenv_typ t expr_loc) 
+          | None -> (raise_type_exception_with_location (Format.sprintf "No entry for the following Ident.t: %s" (Ident.name id)) expr_loc)
          end
     (* Return type bool for both options IF it was declared as simple type *)
     | Boolean _ -> 
-
-        (* Need to check that `bool` was actually declared as a simple type *)
-        let (ident, _) = begin match (Cst_env.find_opt expr.env "bool") with 
-          | Some ((_, Cst_env.SimpleTypeDef([]))) -> ()
-          | _ -> (raise_type_exception_with_location "type bool was not declared as a simple type in this program" expr.Cst_syntax.loc)
-        end in 
-
-        (Cst_env.TSimple(ident, []), (Public, Untrusted))
+        let bool_ident = (Cst_syntax.t_env_lookup_by_name "bool" t_env) in 
+        (Cst_syntax.TSimple(bool_ident, []), (Public, Untrusted))
     
     (* Return type string for both options IF it was declared as a simple type *)
     | String _ ->
-        (* Need to check that `string` was actually declared as a simple type *)
-        let _ = begin match (Cst_env.find_opt expr.env "string") with 
-          | Some ((_, Cst_env.SimpleTypeDef([]))) -> ()
-          | _ -> (raise_type_exception_with_location "type string was not declared as a simple type in this program" expr.Cst_syntax.loc)
-        end in 
+        let string_ident = (Cst_syntax.t_env_lookup_by_name "string" t_env) in 
 
-        (Cst_env.TSimple(ident, []), (Public, Untrusted))
+        (Cst_syntax.TSimple(string_ident, []), (Public, Untrusted))
 
     (* Return type int for both options IF it was declared as a simple type *)
     | Integer _ ->
-        (* Need to check that `int` was actually declared as a simple type *)
-        let _ = begin match (Cst_env.find_opt expr.env "int") with 
-          | Some ((_, Cst_env.SimpleTypeDef([]))) -> ()
-          | _ -> (raise_type_exception_with_location "type int was not declared as a simple type in this program" expr.Cst_syntax.loc)
-        end in 
+        let int_ident = (Cst_syntax.t_env_lookup_by_name "int" t_env) in 
 
-        (Cst_env.TSimple(ident, []), (Public, Untrusted))
+        (Cst_syntax.TSimple(int_ident, []), (Public, Untrusted))
 
     (* Return type float for both options IF it was declared as a simple type *)
     | Float _ ->
-        (* Need to check that `float` was actually declared as a simple type *)
-        let _ = begin match (Cst_env.find_opt expr.env "float") with 
-          | Some ((_, Cst_env.SimpleTypeDef([]))) -> ()
-          | _ -> (raise_type_exception_with_location "type float was not declared as a simple type in this program" expr.Cst_syntax.loc)
-        end in 
+        let float_ident = (Cst_syntax.t_env_lookup_by_name "float" t_env) in 
 
-        (Cst_env.TSimple(ident, []), (Public, Untrusted))
+        (Cst_syntax.TSimple(float_ident, []), (Public, Untrusted))
 
 
     | Apply (id, args) ->
@@ -84,7 +67,7 @@ let rec typeof_expr (secrecy_lattice : cst_access_policy)
                         because it is not an equational theory function syscall or member function" (Ident.name id)))
         end in 
         
-        let function_params_input, ret_ty = init_and_last function_params expr.loc in 
+        let function_params_input, ret_ty = init_and_last function_params expr_loc in 
 
         (* arity check *)
         let arity_expected = (List.length function_params) - 1 (* minus one, because we don't count the return type as input type *) in 
@@ -292,7 +275,7 @@ and typeof_cmd  (secrecy_lattice : cst_access_policy)
 
         (* if the variable we are assigning to is `msg` *)
         let cst_type = (typeof_expr_rec e t_env) in
-        let t_env' = Maps.IdentMap.add id (cst_to_tenv_typ cst_type) t_env in 
+        let t_env' = Maps.IdentMap.add id (CST cst_type) t_env in 
         (typeof_cmd_rec c t_env')
     (* Look up `id` in `t_env` and check if typeof_expr(e) = the same *)
     (* then return unit *)
@@ -376,150 +359,12 @@ and typeof_cmd  (secrecy_lattice : cst_access_policy)
         (TUnit, (Public, Untrusted))
 
 
-let create_initial_t_env (cst_env : Cst_env.t) : typing_env = 
-  let handle_desc (d : Cst_env.desc) : t_env_typ option =
-    begin match d with
-    | SimpleTypeDef _ -> None
-    | Var (_, cst_ty_opt) -> Option.map cst_to_tenv_typ cst_ty_opt
-    | ExtFun fps -> Some (FunT (List.map coerce_fun_param fps))
-    | ExtSyscall fps -> Some (FunT (List.map coerce_fun_param fps))
-    | MemberFunc fps -> Some (FunT (List.map coerce_fun_param fps))
-    | Const (_, cst_ty) -> Some (cst_to_tenv_typ cst_ty)
-
-    (* TODO: I don't understand if I need to return a `Some` here *)
-    | ChannelDecl (_, chan_ty_ident) -> None
-    | Attack -> None
-    | ProcTypeDef -> None
-    | FilesysTypeDef -> None
-
-    (* TODO: I don't understand if I need to return a `Some` here *)
-    | ChanTypeDef _ -> None
-    | SecurityTypeDef _ -> None
-    | Process -> None
-  end in 
-  List.fold_left (fun acc_t_env (id, desc) -> 
-    let t_env_typ_opt = (handle_desc desc) in 
-    begin match t_env_typ_opt with 
-      | Some typ -> (Maps.IdentMap.add id typ acc_t_env)
-      | None -> acc_t_env
-    end
-    ) Maps.IdentMap.empty cst_env.vars
 
 
-(* let extend_t_env_with_args (t_env : typing_env) : typing_env =  *)
-*)
-
-
-
-(* let typecheck_decl (secrecy_lattice : cst_access_policy)
-  (integrity_lattice : cst_access_policy) (decl : Cst_syntax.decl) : unit = 
-  let typeof_expr_rec = (typeof_expr secrecy_lattice integrity_lattice) in 
-  let typeof_cmd_rec = (typeof_cmd secrecy_lattice integrity_lattice) in 
-
-
-  let initial_tenv = create_initial_t_env decl.env in 
-  begin match decl.Cst_syntax.desc with 
-  | Cst_syntax.Syscall {id; args; fun_params; cmd} ->
-    
-      (* It is necessary to typecheck the cmd of syscall:
-       1.) To ensure that there are no typing violations happening within the syscall's code
-       2.) To ensure that the return type is equal to the type that was put in the function signature *)
-      
-      let fun_params_init, _ = init_and_last fun_params decl.loc in 
-
-      let bindings = List.combine args (List.map (fun x -> cst_to_tenv_typ (coerce_fun_param x)) fun_params_init) in 
-
-      
-      let t_env = List.fold_left (fun acc_t_env (id, t_env_typ) ->  
-        Maps.IdentMap.add id t_env_typ acc_t_env
-        ) initial_tenv bindings in 
-
-
-      
-      let s = Format.sprintf "Running typeof_cmd on syscall with id %s" (Ident.string_part id) in 
-      print_endline s;
-      (* CURRENT SETUP: we typecheck the body of a Cst_syntax.Syscall at this point ONCE under the assumption that we trust the typing signature *)
-      (* then in `typeof_cmd` we only check whether the list of arguments matches the list of function parameters  *)
-      let _ = typeof_cmd_rec cmd t_env 
-      in () 
-
-
-  | Cst_syntax.Attack _ ->
-      (* failwith "TODO: not sure if Cst_syntax.Attack needs to be typechecked"; *)
-      (* For now, we consider all active attacks to be well-typed *)
-      ()
-
-  | Cst_syntax.Process { id; process_params; vars; funcs; main; _ } ->
-
-
-      (* we need to update the `t_env` such that: 
-        - channel args are added to t_env
-           (let's see _which_ type I need to add in order to make this work... )
-        - each var is added to `t_env` with the type of its expression
-        - each member `func` is added to `t_env` with its typing signature
-      *)
-
-      (* add `args` channel args to t_env *)
-      let t_env' = List.fold_left (fun acc_t_env (arg : Typed.chan_param) -> 
-        (* For some reason, OCaml will keep complaining that `channel` is not part of a Typed.chan_param, so I have to do a useless pattern match like this *)
-        begin match arg with
-          | {channel = channel_id ; typ = typ_id ; _ } -> 
-            let t_params = begin match Cst_env.find_opt decl.env (Ident.string_part typ_id) with 
-              | Some (_, Cst_env.ChanTypeDef(params)) -> params 
-              | _ -> (raise_type_exception_with_location 
-                      (Format.sprintf "%s was not created as a channel type definition" (Ident.string_part typ_id))
-                      decl.loc
-                      )
-            end in 
-            (* add binding to the t_env_acc *)
-            let resulting_typ = CST (Cst_env.TChan t_params, (Public, Untrusted)) in 
-            Maps.IdentMap.add channel_id resulting_typ acc_t_env
-        end
-        ) initial_tenv args in 
-
-      (* add each var \in vars to t_env *)
-
-      let t_env'' = List.fold_left (fun acc_t_env (var_ident, var_expr) -> 
-        (* Use the accumulated env to type the expression *)
-        let resulting_typ = CST ((typeof_expr_rec var_expr acc_t_env)) in 
-          Maps.IdentMap.add var_ident resulting_typ acc_t_env  
-        ) t_env' vars in 
-
-      
-      (* CURRENT SETUP: we typecheck the body of a member function ONCE, under the assumption that we trust the typing signature*)
-      (* then in `typeof_cmd`, we only check whether the list of arguments matches the list of function parameters *)
-
-      (* typecheck the cmd of each member function *)
-      let typeof_member_func (func : Ident.t * (Ident.t * Cst_env.core_security_function_param) list * Cst_syntax.cmd) 
-        : core_security_type = 
-         let (_, fun_ids_and_param_typs, fun_cmd) = func in 
-         let t_env''' = List.fold_left (fun acc_t_env (member_fun_param_id, member_fun_param_typ) -> 
-           let t_env_typ = cst_to_tenv_typ (coerce_fun_param (member_fun_param_typ)) in 
-           Maps.IdentMap.add member_fun_param_id t_env_typ acc_t_env
-         ) t_env'' fun_ids_and_param_typs in 
-         (typeof_cmd_rec fun_cmd t_env''')
-      in
-
-      let _ = List.map (typeof_member_func) funcs in 
-
-      (* it is not necessary to add the typing signature of a function to the t_env *)
-      (* that information is already present in the Cst_env.t *)
-      
-      (print_endline (Format.sprintf "Running typeof_cmd on process name %s" (Ident.string_part id)));
-
-      let _ = (typeof_cmd_rec main t_env'') in ()
-
-  | Cst_syntax.System _ ->
-      raise (TypeException "A Rabbit program with multiple `system` declarations is ill-typed ")
-  end *)
-
-
-
-
-let typecheck_process vars funcs typ main env : unit = 
+let typecheck_process secrecy_lattice integrity_lattice vars funcs typ main env : unit = 
   (* add all vars to the environment *)
   let env' = List.fold_left (fun acc_t_env (var_ident, var_expr) -> 
-      let type_of_var = typeof_expr var_expr acc_t_env in 
+      let type_of_var = typeof_expr secrecy_lattice integrity_lattice var_expr acc_t_env in 
       Maps.IdentMap.add var_ident type_of_var acc_t_env
     ) env vars in 
 
@@ -533,7 +378,7 @@ let typecheck_process vars funcs typ main env : unit =
     ) env' funcs in
   
   (* typecheck the cmd of the process under the update env'' *)
-  let _ = typeof_cmd main env'' in 
+  let _ = typeof_cmd secrecy_lattice integrity_lattice main env'' in 
   ()
 
 
@@ -558,8 +403,8 @@ let typecheck_sys (prog : Cst_syntax.core_rabbit_prog) (secrecy_lattice : Cst_sy
           let env' = List.fold_left (fun acc_env (arg_ident, (proc_param_ident, proc_param_typ)) ->  
               begin match (Maps.IdentMap.find_opt arg_ident system_env) with 
                 | Some (arg_ident_typ) -> 
-                  (* check that arg_ident_typ is a subtype of proc_param_typ *)
 
+                  (* check that arg_ident_typ is a subtype of proc_param_typ *)
                   let proc_param_cst = 
                     Cst_syntax.core_sec_f_param_to_core_sec_ty proc_param_typ in 
                   let arg_ident_typ_cst = Cst_syntax.coerce_tenv_typ arg_ident_typ system_loc in 
@@ -571,7 +416,7 @@ let typecheck_sys (prog : Cst_syntax.core_rabbit_prog) (secrecy_lattice : Cst_sy
                 | None -> raise (TypeException "An argument in the system declaration was not found in the system_env")
               end
             ) system_env args_idents_x_proc_params in 
-          (typecheck_process vars funcs typ main env');
+          (typecheck_process secrecy_lattice integrity_lattice vars funcs typ main env');
       | _ -> (raise_type_exception_with_location "This proc_ident does not exist in the system environment" system_loc)
   ) proc_instantiations;
 

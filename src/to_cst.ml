@@ -341,8 +341,7 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
 
    match t with
     | Env.TySecurity (sec_ty_name, simple_ty_id, simple_ty_instantiated_tys) ->
-      
-      
+        
         let converted_simple_ty_params = List.map (convert_instantiated_ty_to_core ctx) simple_ty_instantiated_tys in
         let ct = Cst_syntax.TSimple (simple_ty_id, converted_simple_ty_params) in 
 
@@ -526,9 +525,13 @@ let rec convert_cmd (ctx : conversion_context)
     | Typed.New (id, instantiated_ty_opt, name_expr_opt, c) -> 
         let core_security_ty_opt = Option.map (convert_instantiated_ty_to_core ctx) instantiated_ty_opt in
 
+
+
         (* TODO: I'm not sure if I need to do anything with the 'name_expr_opt' here *)
         let converted_name_expr_opt = Option.map (fun (name, exprs) -> 
           (name, List.map (convert_expr ctx) exprs)) name_expr_opt in
+
+        
 
         Cst_syntax.New (id, core_security_ty_opt, converted_name_expr_opt, (convert_cmd ctx) c)
     
@@ -762,8 +765,8 @@ let initial_typing_env (proc_and_syscall_decls : Typed.decl list)
   (ctx : conversion_context) (system_loc : Location.t) : Cst_syntax.typing_env = 
   let system_env = ctx.env in 
 
-  (* first, we add all the process and syscalls declarations *)
-  let initial_env = List.fold_left (fun acc_t_env decl -> begin match decl.Typed.desc with 
+  (* First, we add all the process and syscalls declarations *)
+  let initial_env' = List.fold_left (fun acc_t_env decl -> begin match decl.Typed.desc with 
       | Typed.Syscall { id = syscall_id ; fun_sig ; cmd } -> begin match fun_sig with 
             (* every syscall has to have explicit typing information in order to apply the typechecker *)
             | Env.DesSMFunUntyped _ -> 
@@ -793,15 +796,14 @@ let initial_typing_env (proc_and_syscall_decls : Typed.decl list)
     ) Maps.IdentMap.empty proc_and_syscall_decls in 
 
     (* Then, we add all bindings within the Env.t to our typing_env *)
-
-    let initial_env' = List.fold_left (fun acc_t_env (ident, env_desc) -> 
+    let initial_env'' = List.fold_left (fun acc_t_env (ident, env_desc) -> 
       match (convert_env_desc ctx env_desc system_loc) with 
         | None -> acc_t_env 
         | Some (converted_to_t_env_typ) -> 
           Maps.IdentMap.add ident converted_to_t_env_typ acc_t_env
-      ) initial_env system_env.vars 
+      ) initial_env' system_env.vars 
     in 
-    initial_env'
+    initial_env''
 
 
 let convert_pproc (pproc : Typed.pproc) : (Ident.t * Ident.t list) = 

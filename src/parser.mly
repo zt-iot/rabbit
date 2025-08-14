@@ -28,6 +28,11 @@
 (* special names for access control instead of a syscall *)
 %token READ PROVIDE
 
+(* these tokens only exist because we do not want the programmer to create names 
+'bool', 'int', 'string' and 'float' 
+*)
+%token BOOL_TYP STRING_TYP INT_TYP FLOAT_TYP
+
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
 
 (* Secrecy and integrity levels within function typing signature *)

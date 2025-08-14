@@ -215,8 +215,8 @@ type init_desc =
 
 type t_env_typ = 
   | CST of core_security_ty
-  | EqThyFunc of core_security_function_param list 
 
+  | EqThyFunc of core_security_function_param list 
   (* (<ident> : <param_type>)* <ret_ty> <cmd> *)
   | Syscall of (Ident.t * core_security_function_param) list * core_security_function_param 
       * cmd
@@ -240,6 +240,12 @@ type t_env_typ =
 (* a Map from Ident.t to core_security_ty *)
 (* because we Map from Ident.t (which is unique in the entire program), we should not encounter any problems with name shadowing *)
 type typing_env = t_env_typ Maps.IdentMap.t
+
+(* Use with care, because this returns the first Ident.t which matches the given string, which can cause name shadowing problems if used incorrectly *)
+let t_env_lookup_by_name (str : string) (t_env : typing_env) : Ident.t = 
+  let binding = Maps.SecurityTypeMap.find_first (fun key -> (Ident.string_part key) == str) t_env in 
+  (fst binding)
+
 
 let coerce_tenv_typ (typ : t_env_typ) (loc : Location.t) : core_security_ty = 
   match typ with 

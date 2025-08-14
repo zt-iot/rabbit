@@ -710,6 +710,21 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
   env', (id, lemma)
 ;;
 
+
+
+let env_initial_bindings (env : Env.t) : Env.t = 
+  (* a list of hardcoded environment bindings which are built-in to Rabbit 
+  and which the user shouldn't supply *)
+  let initial_bindings = [("bool", Env.SimpleTypeDef([])) ;
+    ("int", Env.SimpleTypeDef([])) ; ("string", Env.SimpleTypeDef([])) ; 
+    ("float", Env.SimpleTypeDef([]))] in 
+  
+  List.fold_left (fun acc_env (str, env_desc) -> 
+      let (env', _) = (Env.add_global ~loc:Location.Nowhere acc_env str env_desc) in 
+      env'
+    ) env initial_bindings
+
+
 let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   let loc = d.loc in
   match d.data with
@@ -1016,7 +1031,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
           lemmas
       in
       let lemmas = List.rev rev_lemmas in
-      env, [{ env; loc; desc = System (procs, lemmas) }]
+      env, [{ env; loc; desc = System (procs, lemmas) }]      
 
 and load env fn : Env.t * Typed.decl list =
 
