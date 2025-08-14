@@ -1,7 +1,5 @@
 (* Syntax to which we are converting a Rabbit program from typed.ml *)
 
-open Sets
-
 exception CstSyntaxException of string
 
 let raise_cst_syntax_exception_with_location msg loc = 
@@ -19,39 +17,6 @@ let pp_loc_env pp_desc fmt { desc; loc = _ } =
     pp_desc desc *)
 
 
-type secrecy_lvl = 
-  | Public 
-  | SNode of proc_ty_set
-[@@deriving eq]
-
-
-type integrity_lvl = 
-  | Untrusted
-  | INode of proc_ty_set
-[@@deriving eq]
-
-(* convert from all process types to 'Public' *)
-let proc_ty_set_to_secrecy_lvl readers all_process_typs = 
-  if readers = all_process_typs then 
-    Public 
-  else
-    SNode readers  
-
-(* convert from all process types to 'Untrusted'*)
-let proc_ty_set_to_integrity_lvl providers all_process_typs = 
-  if providers = all_process_typs then
-    Untrusted
-  else 
-    INode providers
-
-
-type relation = 
-  | LessThanOrEqual
-  | GreaterThanOrEqual
-
-
-type cst_access_policy = ((proc_ty_set * proc_ty_set) * bool) list * relation
-
 
 (* This datatype has 0 constructors, and thus cannot be instantiated *)
 type void = | [@@deriving eq]
@@ -65,13 +30,13 @@ type 'poly abstract_core_ty =
   | TPoly of 'poly (* this constructor is only used when 'poly is meaningful *)
 [@@deriving eq]
 
-and 'poly abstract_core_security_ty = 'poly abstract_core_ty * (secrecy_lvl * integrity_lvl) [@@deriving eq]
+and 'poly abstract_core_security_ty = 'poly abstract_core_ty * (Lattice_util.secrecy_lvl * Lattice_util.integrity_lvl) [@@deriving eq]
 
 type core_ty = void abstract_core_ty [@@deriving eq]
 type core_function_param = string abstract_core_ty [@@deriving eq]
 
-type core_security_ty = core_ty * (secrecy_lvl * integrity_lvl)
-type core_security_function_param = core_function_param * (secrecy_lvl * integrity_lvl)
+type core_security_ty = core_ty * (Lattice_util.secrecy_lvl * Lattice_util.integrity_lvl)
+type core_security_function_param = core_function_param * (Lattice_util.secrecy_lvl * Lattice_util.integrity_lvl)
 
 
 
@@ -100,7 +65,7 @@ and core_sec_f_param_to_core_sec_ty : core_security_function_param -> core_secur
  = fun (ty, lvls) -> (core_f_param_to_core_ty ty, lvls)
 
 
- (* Whether two `core_security_ty`'s hold the same data, ignoring any (secrecy_lvl * integrity_lvl) *)
+ (* Whether two `core_security_ty`'s hold the same data, ignoring any (Lattice_util.secrecy_lvl * Lattice_util.integrity_lvl) *)
 let rec equals_datatype (ty1 : core_security_ty) (ty2 : core_security_ty) (loc : Location.t) : bool =
   let (ct1, _) = ty1 in
   let (ct2, _) = ty2 in
@@ -122,6 +87,32 @@ let rec equals_datatype (ty1 : core_security_ty) (ty2 : core_security_ty) (loc :
   | TProd (a1, b1), TProd (a2, b2) ->
       equals_datatype a1 a2 loc && equals_datatype b1 b2 loc
   | _, _ -> false
+
+
+
+
+let is_subtype (secrecy_lattice : Lattice_util.cst_access_policy) (integrity_lattice : Lattice_util.cst_access_policy) 
+  (t1 : core_security_ty) (t2 : core_security_ty) (loc : Location.t) : bool = 
+  (* for t1 to be a subtype of t2, it must hold that: 
+    1.) t1 is of the same datatype as t2, and:
+    2.) t1's secrecy level is smaller than or equal to the secrecy level of t2, and:
+    3.) t1's integrity level is smaller than or equal to the integrity level of t2
+  *)
+
+  let (_, (t1_secrecy, t1_integrity)) = t1 in 
+  let (_, (t2_secrecy, t2_integrity)) = t2 in 
+  let same_datatype = equals_datatype t1 t2 loc in 
+  let secrecy_cnd = begin match (t1, t2) with 
+    (* For channel types, we currently do not care about secrecy levels *)
+    | ((TChan _, _), (TChan _, _)) -> true 
+    | _ -> Lattice_util.leq_secrecy secrecy_lattice t1_secrecy t2_secrecy 
+  end in 
+  let integrity_cnd = begin match (t1, t2) with 
+    (* For channel types, we currently do not care about integrity levels *)
+    | ((TChan _, _), (TChan _, _)) -> true
+    | _ -> Lattice_util.leq_integrity integrity_lattice t1_integrity t2_integrity
+  end in 
+  same_datatype && secrecy_cnd && integrity_cnd
 
 
 type expr = expr' * Location.t 

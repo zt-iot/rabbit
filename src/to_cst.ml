@@ -16,132 +16,7 @@ let raise_conv_exception_with_location msg loc =
 
 
 
-(* Given an `u : proc_ty_set`, return 'vs', a set of all `proc_ty_set`s such that for each v \in vs, v <= u *)
-let elements_less_than_or_equal_to_u (pol : Cst_syntax.cst_access_policy) (u : proc_ty_set) : ProcTySetSet.t =
-  if (snd pol) = Cst_syntax.LessThanOrEqual then   
-    List.fold_left (fun acc ((v, u'), rel_holds) ->
-      if ProcTySet.equal u u' && rel_holds then
-        ProcTySetSet.add v acc
-      else
-        acc
-    ) ProcTySetSet.empty (fst pol)
-   else
-    List.fold_left (fun acc ((u', v), rel_holds) ->
-      if ProcTySet.equal u u' && rel_holds then
-        ProcTySetSet.add v acc
-      else
-        acc
-    ) ProcTySetSet.empty (fst pol)
 
-
-(* Given an `a : proc_ty_set`, return bs, a set of all `proc_ty_set`s such that for each b \in bs, b >= a *)
-let elements_greater_than_or_equal_to_u (pol : Cst_syntax.cst_access_policy) (u : proc_ty_set) : ProcTySetSet.t =
-  if (snd pol) = Cst_syntax.GreaterThanOrEqual then   
-    List.fold_left (fun acc ((v, u'), rel_holds) ->
-      if ProcTySet.equal u u' && rel_holds then
-        ProcTySetSet.add v acc
-      else
-        acc
-    ) ProcTySetSet.empty (fst pol)
-   else
-    List.fold_left (fun acc ((u', v), rel_holds) ->
-      if ProcTySet.equal u u' && rel_holds then
-        ProcTySetSet.add v acc
-      else
-        acc
-    ) ProcTySetSet.empty (fst pol)
-
-
-
-    
-
-
-
-(****
-FUNCTIONS TO COMPUTE LEAST UPPER BOUND AND GREATEST LOWER BOUND
-****)
-let find_extremum_in_intersect
-    ~(find_max : bool)
-    (pol : Cst_syntax.cst_access_policy)
-    (intersect : ProcTySetSet.t) : proc_ty_set option =
-
-  let (rel, relation_kind) = pol in
-
-  let rel_holds a b =
-    List.exists (fun ((x, y), holds) ->
-       ProcTySet.equal x a && ProcTySet.equal y b && holds
-    ) rel
-  in
-
-  let is_extremum candidate =
-    (* check if candidate is _relation_ for all `other \in intersect` *)
-    ProcTySetSet.for_all (fun other ->
-      (* the relation always holds on the candidate itself *)
-      if ProcTySet.equal candidate other then true
-
-      (* otherwise, check if `rel` holds depending on `relation_kind` *)
-      else match (find_max, relation_kind) with
-        | (true, Cst_syntax.LessThanOrEqual) -> rel_holds other candidate  (* other <= candidate <-> candidate is max *)
-        | (false, Cst_syntax.LessThanOrEqual) -> rel_holds candidate other  (* candidate <= other <-> candidate is min *)
-        | (true, Cst_syntax.GreaterThanOrEqual) -> rel_holds candidate other (* candidate >= other <-> candidate is max *)
-        | (false, Cst_syntax.GreaterThanOrEqual) -> rel_holds other candidate (* other >= candidate <-> candidate is min *)
-    ) intersect
-  in
-
-  let extremums = Seq.filter is_extremum (ProcTySetSet.to_seq intersect) in 
-  let extremum_opt = Seq.uncons extremums in
-  match extremum_opt with
-  | Some (proc_ty_set, _) -> Some proc_ty_set
-  | None -> None 
-
-
-(* Given two secrecy levels a and b: 
-- return the secrecy lvl which is the least upper bound of a and b, if it exists
-- otherwise, return None
-*)
-let join_of_secrecy_lvls (pol : Cst_syntax.cst_access_policy) (a : Cst_syntax.secrecy_lvl) (b : Cst_syntax.secrecy_lvl) : Cst_syntax.secrecy_lvl option = 
-  match (a, b) with
-  (* If one secrecy_lvl is Public, the least upper bound is the other secrecy_lvl *)
-  | Cst_syntax.Public, _ -> Some b 
-  | _, Cst_syntax.Public -> Some a 
-  | Cst_syntax.SNode(a_set), Cst_syntax.SNode(b_set) -> 
-    
-    let elements_greater_than_a = elements_greater_than_or_equal_to_u pol a_set in 
-    let elements_greater_than_b = elements_greater_than_or_equal_to_u pol b_set in 
-
-    (* find the maximum element in the set of elements greater than both a and b *)
-    let intersect = ProcTySetSet.inter elements_greater_than_a elements_greater_than_b in 
-    let candidate = find_extremum_in_intersect ~find_max:true pol intersect in 
-
-    match candidate with 
-    | Some res -> Some (SNode res)
-    | None -> None 
-    
-
-(* Given two integrity levels a and b:
-- return the integrity lvl which is the greatest lower bound of a and b, if it exists
-- otherwsie, return None
-*)
-let meet_of_integrity_lvls (pol : Cst_syntax.cst_access_policy) (a : Cst_syntax.integrity_lvl) (b : Cst_syntax.integrity_lvl) : Cst_syntax.integrity_lvl option = 
-  match (a, b) with 
-  (* if one integrity_lvl is Untrusted, the greatest lower bound is the other integrity_lvl *)
-  | Cst_syntax.Untrusted, _ -> Some b
-  | _, Cst_syntax.Untrusted -> Some a 
-  | Cst_syntax.INode(a_set), Cst_syntax.INode(b_set) -> 
-    
-    let elements_less_than_or_equal_to_a = elements_less_than_or_equal_to_u pol a_set in 
-    let elements_less_than_or_equal_to_b = elements_less_than_or_equal_to_u pol b_set in 
-
-    (* find the minimum element in the set of elements less than both a and b *)
-    let intersect = ProcTySetSet.inter elements_less_than_or_equal_to_a elements_less_than_or_equal_to_b in 
-
-    let candidate = find_extremum_in_intersect ~find_max:false pol intersect in 
-
-    match candidate with 
-    | Some (res) -> Some (INode res)
-    | None -> None
-(****
-****)
 
 
 
@@ -194,8 +69,8 @@ type conversion_context = {
   read_access_map : access_map   
   ; provide_access_map : access_map
   ; all_process_typs : proc_ty_set
-  ; secrecy_lattice : Cst_syntax.cst_access_policy
-  ; integrity_lattice : Cst_syntax.cst_access_policy 
+  ; secrecy_lattice : Lattice_util.cst_access_policy
+  ; integrity_lattice : Lattice_util.cst_access_policy 
   ; env : Env.t
 }
 
@@ -321,10 +196,6 @@ let compute_access_relation (access_map : access_map) : ((proc_ty_set * proc_ty_
   )
 
 
-
-(* for each proc_ty, this datastructure tells us which core security types and syscall_desc are allowed combinations for proc_ty *)
-type cst_per_syscall = ((Cst_syntax.core_security_ty * syscall_desc) list) ProcTyMap.t
-
 (*****
 Converter functions from typed.ml and env.ml to cst_syntax.ml
 *)
@@ -356,8 +227,8 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
           | None -> ProcTySet.empty
         end in 
 
-        let secrecy_lvl = Cst_syntax.proc_ty_set_to_secrecy_lvl readers all_process_typs in 
-        let integrity_lvl = Cst_syntax.proc_ty_set_to_integrity_lvl providers all_process_typs in 
+        let secrecy_lvl = Lattice_util.proc_ty_set_to_secrecy_lvl readers all_process_typs in 
+        let integrity_lvl = Lattice_util.proc_ty_set_to_integrity_lvl providers all_process_typs in 
 
         ct, (secrecy_lvl, integrity_lvl)
         
@@ -367,7 +238,7 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
         let ct = Cst_syntax.TSimple (ty_name, converted_params) in 
         
         (* A simple type is always (Public, Untrusted) as every party has read/provide access to it *)
-        ct, (Cst_syntax.Public, Cst_syntax.Untrusted)
+        ct, (Lattice_util.Public, Lattice_util.Untrusted)
         
     | Env.TyProduct (ty1, ty2) ->
         let converted_ty1 = convert_instantiated_ty_to_core ctx ty1 in
@@ -380,8 +251,8 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
         let (_, (_, integrity_lvl1)) = converted_ty1 in 
         let (_, (_, integrity_lvl2)) = converted_ty2 in 
 
-        let secrecy_lvl = join_of_secrecy_lvls secrecy_lattice secrecy_lvl1 secrecy_lvl2 in 
-        let integrity_lvl = meet_of_integrity_lvls integrity_lattice integrity_lvl1 integrity_lvl2 in 
+        let secrecy_lvl = Lattice_util.join_of_secrecy_lvls secrecy_lattice secrecy_lvl1 secrecy_lvl2 in 
+        let integrity_lvl = Lattice_util.meet_of_integrity_lvls integrity_lattice integrity_lvl1 integrity_lvl2 in 
 
         begin match (secrecy_lvl, integrity_lvl) with 
           | (Some s, Some i) -> ct, (s, i)
@@ -393,7 +264,7 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
     | Env.TyChanPlain(param_list) -> 
       let converted_params = List.map (convert_instantiated_ty_to_core ctx ) param_list in 
       let ct = Cst_syntax.TChan converted_params in 
-      ct, (Cst_syntax.Public, Cst_syntax.Untrusted)
+      ct, (Lattice_util.Public, Lattice_util.Untrusted)
         
     | Env.TyChan (chan_ty_ident) ->
       
@@ -420,8 +291,8 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
           | None -> ProcTySet.empty
         end in 
 
-        let secrecy_lvl = Cst_syntax.proc_ty_set_to_secrecy_lvl readers all_process_typs in 
-        let integrity_lvl = Cst_syntax.proc_ty_set_to_integrity_lvl providers all_process_typs in 
+        let secrecy_lvl = Lattice_util.proc_ty_set_to_secrecy_lvl readers all_process_typs in 
+        let integrity_lvl = Lattice_util.proc_ty_set_to_integrity_lvl providers all_process_typs in 
 
         ct, (secrecy_lvl, integrity_lvl)
 
@@ -429,7 +300,7 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
     | Env.TyPoly _ -> .
 
 let convert_function_param_to_core (ctx : conversion_context) (param : Env.function_param) : Cst_syntax.core_security_function_param = match param with 
-    | Env.TyPoly str -> (Cst_syntax.TPoly str, (Cst_syntax.Public, Cst_syntax.Untrusted))
+    | Env.TyPoly str -> (Cst_syntax.TPoly str, (Lattice_util.Public, Lattice_util.Untrusted))
     | p -> 
         let cst = 
           (convert_instantiated_ty_to_core ctx (Env.function_param_to_inst_ty p)) in
@@ -812,7 +683,7 @@ let convert_pproc (pproc : Typed.pproc) : (Ident.t * Ident.t list) =
   (pproc.Location.data.id, args_idents) 
 
 let convert (decls : Typed.decl list)
-  : Cst_syntax.core_rabbit_prog * Cst_syntax.cst_access_policy * Cst_syntax.cst_access_policy * cst_per_syscall = 
+  : Cst_syntax.core_rabbit_prog * Lattice_util.cst_access_policy * Lattice_util.cst_access_policy * SyscallDescSet.t ProcTyMap.t = 
   
   (* check that the last declaration is a `Typed.System` declaration *)
   match List.rev decls with
@@ -843,15 +714,22 @@ let convert (decls : Typed.decl list)
     ) decls in 
     let (read_access_map, provide_access_map) = create_access_maps allow_decls in 
 
+    let tripartite_access = (tripartite_access allow_decls) in 
+    let secsyscall_per_proc_ty = (compute_proc_ty_to_syscalls_set_map tripartite_access) in 
+    let (syscall_per_proc_ty : SyscallDescSet.t ProcTyMap.t) = Maps.ProcTyMap.map (fun pairs_value_set -> 
+        Sets.SecSyscallSet.fold (fun (_, syscall_desc) acc -> 
+            Sets.SyscallDescSet.add syscall_desc acc 
+          ) pairs_value_set Sets.SyscallDescSet.empty
+      ) secsyscall_per_proc_ty  in 
+
     (* Compute the secrecy lattice and integrity lattice, from the read_access_map and provide_access_map *)
     (* The method to compute the relation is the same for both reading/providing *)
-    let secrecy_lattice = ((compute_access_relation read_access_map), Cst_syntax.GreaterThanOrEqual) in (* the relation is '>=' *)
-    let integrity_lattice = ((compute_access_relation provide_access_map), Cst_syntax.LessThanOrEqual) in (* the relation is '<=' *)
+    let secrecy_lattice = ((compute_access_relation read_access_map), Lattice_util.GreaterThanOrEqual) in (* the relation is '>=' *)
+    let integrity_lattice = ((compute_access_relation provide_access_map), Lattice_util.LessThanOrEqual) in (* the relation is '<=' *)
 
     (* To be able to insert 'Public' or 'Untrusted' at every security type, we need to know the set of all process types in our Rabbit program *)
     let all_process_typs = extract_process_typs_from_decls procs (List.map (fun (d : Typed.decl) -> d.desc) decls_rev) in
 
-    
     (* we will only convert the process templates which are actually occurring in the system declaration, 
     because we do not need to typecheck any process code that is not being executed *)
     let system_proc_strings = extract_proc_strings procs in
@@ -879,5 +757,5 @@ let convert (decls : Typed.decl list)
     let init_typing_env = (initial_typing_env proc_and_syscall_decls conversion_ctx system_location) in  
 
     let core_rabbit_prog = (sys, init_typing_env) in 
-    (core_rabbit_prog, secrecy_lattice, integrity_lattice, cst_per_syscall)
+    (core_rabbit_prog, secrecy_lattice, integrity_lattice, syscall_per_proc_ty)
   | _ -> raise (CstConversionException "Expected a System declaration at the the end, but there is a different declaration")
