@@ -94,13 +94,19 @@ let rec typeof_expr (ctx : typechecking_context)
         let float_ident = (Cst_syntax.t_env_lookup_by_name "float" t_env) in 
         (Cst_syntax.TSimple(float_ident, []), (Public, Untrusted))
     | Apply (id, args) ->
-
+      
         (* obtain the list of function parameters that `id` takes *)
         let function_input_params, ret_ty, idents_cmd_opt = begin match IdentMap.find_opt id t_env with 
           | Some (Cst_syntax.EqThyFunc(params)) -> 
               let input_params, ret_ty = init_and_last params expr_loc in 
               input_params, ret_ty,  None
           | Some (Cst_syntax.Syscall(idents_x_param_tys, ret_ty, cmd)) -> 
+              (* we additionally need to check that this process type is allowed to call this system call `id` *)
+              if (not (Sets.SyscallDescSet.mem (Typed.SyscallId id) allowed_syscalls)) then 
+                raise_type_exception_with_location (Format.sprintf 
+                "syscall %s is not allowed to be called by this process type" (Ident.string_part id)) expr_loc;
+
+
               let param_idents = List.map (fst) idents_x_param_tys in 
               let input_params = List.map (snd) idents_x_param_tys in 
               input_params, ret_ty, Some (param_idents, cmd)
