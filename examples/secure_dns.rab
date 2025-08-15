@@ -1,0 +1,217 @@
+(* security primitives *)
+function pk:1
+function enc:2 
+function sign:2
+function dec:2
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+function true:0
+function verify:3
+equation dec(enc(x, y), y) = x
+equation verify (sign(d, k), d, pk(k)) = true
+function hash:1
+
+(*clientとserver*)
+type client: process
+type dnscache: process
+type dnsauth: process
+
+type eve: process
+
+(*channel*)
+type udp: channel
+type https: channel
+
+channel ch_cache2client: udp
+channel ch_client2cache: udp
+channel ch_cache2auth: udp
+channel ch_auth2cache: udp
+
+
+syscall send(c, v) {
+  put [c::store(v)]
+}
+
+syscall recv(c) {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+allow client udp [send, recv]
+allow dnscache udp [send, recv]
+allow dnsauth udp [send, recv]
+
+allow eve udp [recv]
+
+
+(*filesystem *)
+
+type dns_records: filesys
+
+syscall fopen (p) {
+  case [p.x] ->
+    new y = Fd(x) in 
+    put [p.x]; y 
+  end
+}
+
+syscall fread (y){
+  let x = y.Fd in
+  x
+}
+
+syscall fclose (y) {
+  delete y.Fd 
+  }
+
+allow dnsauth dns_records  [fopen, fread, fclose] 
+
+(* dnscacheやclientが受け取るパケッは改ざんされている可能性がある *)
+attack tamper_channel on recv (c) {
+  case [c::store(j), ::In(w)] ->
+    w
+  end
+}
+
+attack eaves_channel on send (c, v) {
+  put [c::store(v), ::Out(v)]
+}
+
+
+(* dnscacheやclientが受け取るときに，値が書き換えられてる可能性がある *)
+(* allow attack client [tamper_channel] *)
+allow attack dnscache [eaves_channel]
+allow attack dnscache [tamper_channel]
+
+(* 鍵の生成 *)
+(* DNSSEC用の権威サーバーの鍵 *)
+const fresh auth_pubk
+const fresh auth_privk
+
+(*TLSのための共有鍵*)
+const fresh tls_symk
+
+
+(*クライアントの通信を覗き見する第三者*)
+
+
+process Client(ch_cache_in: udp, ch_cache_out: udp) : client {
+
+    main {
+      (*IPアドレスを知りたいドメイン*)
+      var domain = "example.com" in
+      
+      (* ========== クエリの送信処理 ============================== *)
+      (* クエリのハッシュを計算 *)
+      var query_fingerprint = hash(domain) in
+      (* クエリとハッシュを共通鍵で暗号化 *)
+      var query_cipher = enc((domain, query_fingerprint), tls_symk) in
+      (* 暗号化したメッセージを送信する *)
+      event [::ClientSendQuery(domain)];
+      _ :=send(ch_cache_out, query_cipher);
+      (* ========== クエリの送信完了 ============================== *)
+
+
+      (* ========== 受け取ったクエリの処理 ======================== *)
+
+      var cipher = recv(ch_cache_in) in
+      var response = dec(cipher, tls_symk) in
+      var message = fst(response) in
+      var fingerprint = snd(response) in
+
+      (*再計算したハッシュと，受け取ったハッシュを比べて改ざん検知*)
+      case
+      | [fingerprint = hash(message)] ->
+          var res_domain = fst(message) in
+          var res_address = snd(message) in
+          event [::ClientRecvResponse(res_domain, res_address)]
+      end
+      (* ========== 名前解決完了 ======================== *)
+
+    }
+}
+
+process DNScache(ch_client_in: udp, ch_client_out: udp, ch_auth_out: udp, ch_auth_in: udp) : dnscache {
+
+    main {
+
+        (* クライアントからのクエリを受け取る *)
+        var cipher_query = recv(ch_client_in) in
+        var query = dec(cipher_query, tls_symk) in
+        var query_fingerprint = snd(query) in
+        var domain = fst(query) in
+        
+        case 
+        | [query_fingerprint = hash(domain)] ->
+          (* 権威サーバーに問い合わせ *)
+          _ := send(ch_auth_out, domain)
+        end;
+
+        (* 権威サーバーからの応答を受け取る *)
+        var response = recv(ch_auth_in) in
+        var address = fst(response) in
+        var sig_record = snd(response) in
+
+        (* DNSSECでレコードを検証 *)
+        var res = verify(sig_record, address, auth_pubk) in
+
+        (* 検証が成功した場合、キャッシュに保存し、クライアントに返す *)
+        case
+        | [res = true] ->
+          event [::Cached(domain, address)];
+
+          (*クライアントとのTLS通信*)
+          var message = (domain, address) in
+          var fingerprint = hash(message) in
+          var cipher = enc((message, fingerprint), tls_symk) in
+          _ := send(ch_client_out, cipher)
+        end
+
+    }
+}
+        
+        
+process DNSauth (ch_cache_in: udp, ch_cache_out: udp): dnsauth {
+  file "/data/record": dns_records = ("example.com", "192.0.2.1")
+  var recordpath = "/data/record"
+
+    main {
+        (* DNSレコードをファイルから読み込む *)
+        var recordfile = fopen(recordpath) in
+        var record = fread(recordfile) in
+
+        (* DNSレコードをパース *)
+        var domain = fst(record) in
+        var address = snd(record) in
+        event [::Record(domain, address)];
+
+        (* クエリを待機 *)
+        var query = recv(ch_cache_in) in
+
+        (* クエリが一致するか確認 *)
+        case 
+        | [query = domain] -> 
+          (* DNSSECの署名を作成 *)
+            var sig = sign(address, auth_privk) in
+            _ := send(ch_cache_out, (address, sig))
+        end
+    }
+}
+
+
+
+system
+    Client(ch_cache2client, ch_client2cache)
+    | DNScache(ch_client2cache, ch_cache2client, ch_cache2auth, ch_auth2cache)
+    | DNSauth(ch_cache2auth, ch_auth2cache)
+requires [
+  lemma x: (* verified *)
+  corresponds ::Cached(x, y) ~> ::Record(x, y);
+  lemma y: (* verified *)
+  corresponds ::ClientRecvResponse(x, y) ~> ::Cached(x, y);
+  lemma z: (* verified *)
+  corresponds ::ClientRecvResponse(x, y) ~> ::Record(x, y)
+]
