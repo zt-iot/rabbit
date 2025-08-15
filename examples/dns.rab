@@ -1,0 +1,172 @@
+(* security primitives *)
+function pk:1
+function enc:2 
+function sign:2
+function dec:2
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+function true:0
+function verify:3
+equation dec(enc(x, y), y) = x
+equation verify (sign(d, k), d, pk(k)) = true
+
+(*clientとserver*)
+type client: process
+type dnscache: process
+type dnsauth: process
+
+(*channel*)
+type udp: channel
+type https: channel
+
+channel ch_cache2client: udp
+channel ch_client2cache: udp
+channel ch_cache2auth: udp
+channel ch_auth2cache: udp
+
+
+
+syscall send(c, v) {
+  put [c::store(v)]
+}
+
+syscall recv(c) {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+allow client udp [send, recv]
+allow dnscache udp [send, recv]
+allow dnsauth udp [send, recv]
+
+(*filesystem *)
+
+type dns_records: filesys
+
+syscall fopen (p) {
+  (* x はpに束縛されたvalue *)
+  case [p.x] ->
+    new y = Fd(x) in  (* xを格納したあどれすがy *)
+    put [p.x]; y (* caseで[p.x]がなくなってしまうので戻している，そしてyを返す *)
+  end
+}
+
+syscall fread (y){
+  let x = y.Fd in (*p．xのxが取り出せる*)
+  x
+}
+
+syscall fclose (y) {
+  (* これはfree *)
+  delete y.Fd 
+  }
+
+allow dnsauth dns_records  [fopen, fread, fclose] 
+
+(* attacker *)
+attack tamper_channel on recv (c) {
+  case [c::store(j), ::In(w)] ->
+    w
+  end
+}
+
+attack eaves_channel on send (c, v) {
+  put [c::store(v), ::Out(v)]
+}
+
+
+(* dnscacheやclientが受け取るときに，値が書き換えられてる可能性がある *)
+(* allow attack client [tamper_channel] *)
+allow attack dnscache [tamper_channel]
+allow attack dnscache [eaves_channel]
+
+
+process Client(ch_cache_in: udp, ch_cahce_out: udp) : client {
+
+    main {
+      var domain = "example.com" in
+      
+        event [::ClientSendQuery(domain)];
+      _ :=send(ch_cahce_out, domain);
+
+      var response = recv(ch_cache_in) in
+      var address = snd(response) in
+      var response_domain = fst(response) in
+      event [::ClientRecvResponse(response_domain, address)]
+
+    }
+}
+
+process DNScache(ch_client_in: udp, ch_client_out: udp, ch_auth_out: udp, ch_auth_in: udp) : dnscache {
+
+    main {
+
+        new id in
+
+        (* クライアントからのクエリを受け取る *)
+        var query = recv(ch_client_in) in
+        var domain = query in
+
+        (* 権威サーバーに問い合わせ *)
+        _ := send(ch_auth_out, (domain, id));
+
+        (* 権威サーバーからの応答を受け取る *)
+        var response = recv(ch_auth_in) in
+        var address = fst(response) in
+        var response_id = snd(response) in
+        event [::Cached(domain, address)];
+
+        (* クライアントに応答を返す *)
+        case 
+        | [response_id = id] ->
+          _ := send(ch_client_out, (domain, address))
+        end
+    }
+}
+        
+        
+process DNSauth (ch_cache_in: udp, ch_cache_out: udp): dnsauth {
+  file "/data/record": dns_records = ("example.com", "192.0.2.1")
+  var recordpath = "/data/record"
+
+    main {
+        (* DNSレコードをファイルから読み込む *)
+        var recordfile = fopen(recordpath) in
+        var record = fread(recordfile) in
+
+        (* DNSレコードをパース *)
+        var domain = fst(record) in
+        var address = snd(record) in
+        event [::Record(domain, address)];
+
+        (* クエリを待機 *)
+        var req = recv(ch_cache_in) in
+        var query = fst(req) in
+        var id = snd(req) in
+
+        (* クエリが一致するか確認 *)
+        case 
+        | [query = domain] -> 
+            (* 一致する場合、応答を生成 *)
+            _ := send(ch_cache_out, (address, id))
+        end
+    }
+}
+
+
+
+system
+    Client(ch_cache2client, ch_client2cache)
+    | DNScache(ch_client2cache, ch_cache2client, ch_cache2auth, ch_auth2cache)
+    | DNSauth(ch_cache2auth, ch_auth2cache)
+requires [
+  lemma x: (* falsified *)
+  corresponds ::Cached(x, y) ~> ::Record(x, y);
+  lemma y: (* verified *)
+  corresponds ::ClientRecvResponse(x, y) ~> ::Cached(x, y);
+  lemma z: (* falsified *)
+  corresponds ::ClientRecvResponse(x, y) ~> ::Record(x, y)
+]
