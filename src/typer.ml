@@ -516,7 +516,8 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         Correspondence { fresh = fresh_ids; premise = f1; conclusion = f2 }
   in
   let lemma : Typed.lemma = { env; loc; desc } in
-  let env, id = Env.add_global ~loc env name Process in
+  (* Lemma names must be handled in different name space *)
+  let id = Ident.global name in
   env, (id, lemma)
 ;;
 
