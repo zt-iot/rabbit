@@ -572,12 +572,14 @@ let convert_process ctx id param (args : Typed.chan_param list) typ files vars f
     (* for now, let the argument's type be 'TyChan(ch_param.typ)',
     although creating new nodes like this is bad practice
     *)
-    let ch_typ_ident = ch_param.typ in
-    let core_function_param = 
-      convert_function_param_to_core ctx (Env.TyChan ch_typ_ident)
+    let ch_param_ident = ch_param.channel in
+    let core_function_param_typ = 
+      convert_function_param_to_core ctx (Env.TyChan ch_param.typ)
     in
-    (ch_typ_ident, core_function_param)
+    (ch_param_ident, core_function_param_typ)
   ) in
+
+
   let converted_args = List.map (chan_param_to_core_process_param) args in 
 
   (* convert files *)

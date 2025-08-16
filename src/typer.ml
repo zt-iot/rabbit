@@ -652,8 +652,6 @@ let type_process
         funcs
     in
     let funcs = List.rev rev_funcs in
-    if (name = "client_ta") then
-      print_endline "running cmd code of client_ta through typer.ml";
     let main = type_cmd env' main in
     param_opt, args, proc_ty, files, vars, funcs, main
   in

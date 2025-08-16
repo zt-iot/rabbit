@@ -442,7 +442,7 @@ let typecheck_sys (prog : Cst_syntax.core_rabbit_prog) (secrecy_lattice : Lattic
           if (List.length arg_idents != List.length process_params) then
             (raise_type_exception_with_location 
               (Format.sprintf "The amount of arguments supplied to process %s does not match the amount of process parameters" (Ident.string_part id)) system_loc);
-          let args_idents_x_proc_params = List.combine arg_idents process_params in 
+          let args_idents_x_proc_params = List.combine arg_idents process_params in
           
           (* for each ident \in arg_idents, we need to check that its type is a subtype of the parameter type of the process *)
           let env' = List.fold_left (fun acc_env (arg_ident, (proc_param_ident, proc_param_typ)) ->  
