@@ -15,16 +15,6 @@ syscall generate_message() : message {
 }
 
 
-(** Temporary solution to have read and provide as bound names *)
-syscall read () : unit {
-  skip
-}
-
-syscall provide () : unit {
-  skip
-}
-
-
 (* alice_t is not allowed to invoke any syscalls *)
 
 

@@ -1,5 +1,3 @@
-data string
-data bool
 data unit
 data connection
 

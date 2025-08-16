@@ -1,6 +1,4 @@
 data unit 
-data bool
-data string
 data connection
 
 data signature
