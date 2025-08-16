@@ -104,7 +104,7 @@ let rec typeof_expr (ctx : typechecking_context)
               (* we additionally need to check that this process type is allowed to call this system call `id` *)
               if (not (Sets.SyscallDescSet.mem (Typed.SyscallId id) allowed_syscalls)) then 
                 raise_type_exception_with_location (Format.sprintf 
-                "syscall %s is not allowed to be called by this process type" (Ident.string_part id)) expr_loc;
+                "syscall '%s' is not allowed to be called by this process type" (Ident.string_part id)) expr_loc;
 
 
               let param_idents = List.map (fst) idents_x_param_tys in 
@@ -406,7 +406,9 @@ let typecheck_process secrecy_lattice integrity_lattice syscall_per_proc_ty vars
   let ctx = {
     secrecy_lattice 
     ; integrity_lattice
-    ; allowed_syscalls = (Maps.IdentMap.find typ syscall_per_proc_ty)
+    ; allowed_syscalls = match (Maps.IdentMap.find_opt typ syscall_per_proc_ty) with 
+      | Some res -> res 
+      | None -> Sets.SyscallDescSet.empty
   } in 
   let env' = List.fold_left (fun acc_t_env (var_ident, var_expr) -> 
       let type_of_var = (Cst_syntax.CST (typeof_expr ctx var_expr acc_t_env)) in 
