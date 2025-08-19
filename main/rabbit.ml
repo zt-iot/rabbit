@@ -1,3 +1,5 @@
+(* 
+
 (** Clerial main program *)
 
 (** The usage message. *)
@@ -218,4 +220,4 @@ let _main =
       exit 1
   | Postprocessing.Error err ->
       Print.message ~loc:Location.Nowhere "Translate error" "%t" (Postprocessing.print_error err);
-      exit 1
+      exit 1 *)

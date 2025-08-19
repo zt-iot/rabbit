@@ -1,6 +1,6 @@
-(executable
-  (name "rabbit")
-  (public_name "rabbit")
+(library
+  (name rabbit_lib)
+  (public_name rabbit.lib)
   (flags -w +a-4-40-41-42-70 -warn-error +a-4-26-27-40-42-70)
   (libraries sedlex menhirLib str ocamlgraph unix ppx_deriving)
   (preprocess (pps ppx_deriving.show ppx_deriving.eq sedlex.ppx)))

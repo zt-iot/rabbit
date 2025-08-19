@@ -1,3 +1,5 @@
+open Rabbit_lib
+
 (* XXX not used at all *)
 (* let print_type_class c =
    match c with
