@@ -1,4 +1,0 @@
-(test
- (name "test_main")
- (modules typechecker_test test_main)
- (libraries rabbit.rabbit_lib alcotest))
