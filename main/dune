@@ -1,0 +1,6 @@
+(executable
+  (name "rabbit")
+  (public_name "rabbit")
+  (flags -w +a-4-40-41-42-70 -warn-error +a-4-26-27-40-42-70)
+  (libraries rabbit.rabbit_lib)
+  (preprocess (pps sedlex.ppx)))
