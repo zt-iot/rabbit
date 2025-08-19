@@ -32,8 +32,6 @@ syscall recv(c : channel[message]) : message {
 (* In this example, we do not allow anyone access to the `udp_t` channel. This means this program should get rejected by typechecker *)
 
 
-
-
 (* we give alice_t and bob_t permission to call send and recv, but importantly, they are not allowed access to the `udp_t` channel *)
 allow alice_t client_msg [send, recv]
 allow bob_t client_msg [send, recv]

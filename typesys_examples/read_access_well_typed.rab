@@ -39,7 +39,7 @@ process alice() : alice_t
 {
   	main 
   	{
-        new msg : client_msg in (* alice_t attemtps to read client_msg, while this is not allowed according to access control *)
+        new msg : client_msg in (* alice_t attemtps to read client_msg, which is allowed by access control *)
         event [::AliceClose ()]
   	}
 }

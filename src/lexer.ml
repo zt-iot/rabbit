@@ -50,9 +50,9 @@ let reserved = [
   (* for dealing with access control rules *)
   ("read", READ) ;
   ("provide", PROVIDE) ; 
-
-  (* these four symbols are not going to be parsed. 
-  They exist simply to disallow the programmer from creating user-defined names with these names *)
+  (* we parse these symbols whenever we want to parse a type. The reason these exist is because we do not expect the programmer to create types 
+  'bool', 'int', 'string' and 'float'
+  *)
   ("bool", BOOL_TYP) ;
   ("int", INT_TYP) ; 
   ("string", STRING_TYP ) ;

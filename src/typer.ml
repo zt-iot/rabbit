@@ -1033,6 +1033,8 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
 
 and load env fn : Env.t * Typed.decl list =
 
+  let env' = env_initial_bindings env in 
+
   let decls, (_used_idents, _used_strings) = Lexer.read_file Parser.file fn in
   let env, rev_decls =
     List.fold_left
@@ -1041,7 +1043,7 @@ and load env fn : Env.t * Typed.decl list =
          
          (* first reverses new_decls, then prepends it to acc_decls *)
          env', List.rev_append new_decls acc_decls)
-      (env, [])
+      (env', [])
       decls
   in
   

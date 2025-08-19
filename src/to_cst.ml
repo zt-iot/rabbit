@@ -536,17 +536,14 @@ let convert_env_desc (ctx : conversion_context) (desc : Env.desc) (loc : Locatio
           (raise_conv_exception_with_location "Each global constant has to have an annotated type in order to typecheck a Rabbit program" loc)
       end
   | Env.Channel (is_parameterized, chan_type_id) ->
-
-    (* TODO: Why is chan_type_id not of type instantiated_ty here? *)
+    (* XXX: Why is chan_type_id not of type instantiated_ty here? *)
     (* for now, let the argument's type be 'TyChan(ch_param.typ)',
     although creating new nodes like this is bad practice
     *)
     let inst_ch_ty = (Env.TyChan chan_type_id) in 
     let converted_ty = (convert_instantiated_ty_to_core ctx inst_ch_ty) in 
-    
+
     Some (CST (converted_ty))
-
-
   (* For all of the following Env.desc constructs : we do _not_ need to add them to our typing_env here *)
 
   (* We do not need to do anything with ExtSyscall, since we have added all syscalls to our environment in the 
@@ -679,6 +676,7 @@ let initial_typing_env (proc_and_syscall_decls : Typed.decl list)
     initial_env''
 
 
+(* For a process instantiation pproc, return the Ident.t of the process and the Ident.t's of the arguments given to the process *)
 let convert_pproc (pproc : Typed.pproc) : (Ident.t * Ident.t list) = 
   let args_idents = List.map (fun ch_arg -> 
     ch_arg.Typed.channel) pproc.Location.data.args in 
@@ -752,9 +750,6 @@ let convert (decls : Typed.decl list)
       ; env = system_env
       }  
     in
-
-    (* XXX: possibly fill this in with security access info per syscall *)
-    let cst_per_syscall = Maps.SecurityTypeMap.empty in 
 
     let init_typing_env = (initial_typing_env proc_and_syscall_decls conversion_ctx system_location) in  
 

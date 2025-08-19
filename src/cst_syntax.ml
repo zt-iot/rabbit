@@ -19,7 +19,7 @@ let pp_loc_env pp_desc fmt { desc; loc = _ } =
 
 
 (* This datatype has 0 constructors, and thus cannot be instantiated *)
-type void = | [@@deriving eq]
+type void = | [@@deriving show, eq]
 
 
 type 'poly abstract_core_ty = 
@@ -28,15 +28,15 @@ type 'poly abstract_core_ty =
   | TSimple of Ident.t * ('poly abstract_core_security_ty) list 
   | TProd of 'poly abstract_core_security_ty * 'poly abstract_core_security_ty
   | TPoly of 'poly (* this constructor is only used when 'poly is meaningful *)
-[@@deriving eq]
+[@@deriving show, eq]
 
 and 'poly abstract_core_security_ty = 'poly abstract_core_ty * (Lattice_util.secrecy_lvl * Lattice_util.integrity_lvl) [@@deriving eq]
 
-type core_ty = void abstract_core_ty [@@deriving eq]
-type core_function_param = string abstract_core_ty [@@deriving eq]
+type core_ty = void abstract_core_ty [@@deriving show, eq]
+type core_function_param = string abstract_core_ty [@@deriving show, eq]
 
-type core_security_ty = core_ty * (Lattice_util.secrecy_lvl * Lattice_util.integrity_lvl)
-type core_security_function_param = core_function_param * (Lattice_util.secrecy_lvl * Lattice_util.integrity_lvl)
+type core_security_ty = core_ty * (Lattice_util.secrecy_lvl * Lattice_util.integrity_lvl) [@@deriving show]
+type core_security_function_param = core_function_param * (Lattice_util.secrecy_lvl * Lattice_util.integrity_lvl)[@@deriving show]
 
 
 
@@ -131,6 +131,7 @@ and expr' =
   | Apply of Ident.t * expr list (** application, [f(e1,..,en)]   /  [e1 op e2] *)
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Unit
+[@@deriving show]
 
 
 
@@ -152,6 +153,7 @@ and fact' =
       ; contents : expr
       } (** File fact [path.contents] *)
   | Global of string * expr list
+[@@deriving show]
 
 
 (* Cst_synax.cmd = Typed.cmd but with an embedded Cst_env.t 
@@ -163,7 +165,7 @@ and case =
   { fresh : Ident.t list
   ; facts : fact list
   ; cmd : cmd
-  } 
+  } [@@deriving show]
 
 and cmd' =
   | Skip (** doing nothing *)
@@ -184,6 +186,7 @@ and cmd' =
   (** allocation, new x := S(e1,..en) in c *)
   | Get of Ident.t list * expr * Name.t * cmd (** fetch, let x1,..,xn := e.S in c *)
   | Del of expr * Name.t (** deletion , delete e.S *)
+[@@deriving show]
 
 
 
@@ -227,6 +230,7 @@ type t_env_typ =
         * core_security_function_param * cmd) list
       ; main : cmd
       }
+[@@deriving show]
 
 (* a Map from Ident.t to core_security_ty *)
 (* because we Map from Ident.t (which is unique in the entire program), we should not encounter any problems with name shadowing *)

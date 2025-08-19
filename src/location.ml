@@ -2,11 +2,13 @@ type t =
   | Location of Lexing.position * Lexing.position (** delimited location *)
   | Nowhere (** no location *)
 
+
 type 'a located = { data : 'a ; loc : t }
 
-(* let pp_t _fmt _ = ()
-let show_t _ = "" *)
-  
+
+
+let pp fmt (_ : t) =
+  ()
 
 let pp_located pp fmt x =
   pp fmt x.data

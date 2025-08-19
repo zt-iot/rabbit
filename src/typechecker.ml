@@ -196,6 +196,16 @@ and typeof_cmd (ctx : typechecking_context) (cmd : Cst_syntax.cmd) (t_env : Cst_
 
   let (cmd_desc, cmd_loc) = cmd in 
 
+  (* lookup msg_with_sig in environment, and print its type if it exists in the environment *)
+  
+  
+    
+  (* begin match (IdentMap.find_first_opt (fun ident -> (Ident.string_part ident) == "msg_with_sig") t_env) with 
+    | None -> print_endline "msg_with_sig not in environment"
+    | Some (_, typ) -> print_endline (Cst_syntax.show_t_env_typ typ)
+  end; *)
+
+
   match cmd_desc with 
 
     (* Both options: (unit, (Public, Untrusted)) *)
@@ -220,8 +230,18 @@ and typeof_cmd (ctx : typechecking_context) (cmd : Cst_syntax.cmd) (t_env : Cst_
 
         (* if the variable we are assigning to is `msg` *)
         let cst_type = (typeof_expr_rec e t_env) in
+
+        print_endline (Ident.string_part id);  
         let t_env' = IdentMap.add id (Cst_syntax.CST cst_type) t_env in 
-        (typeof_cmd_rec c t_env')
+
+
+        begin match (IdentMap.find_opt id t_env') with 
+          | None -> print_endline "msg_with_sig not in environment"
+          | Some typ -> print_endline (Cst_syntax.show_t_env_typ typ)
+        end;
+
+
+        (typeof_cmd ctx c t_env')
     (* Look up `id` in `t_env` and check if typeof_expr(e) = the same *)
     (* then return unit *)
     | Assign (Some id, e) -> 

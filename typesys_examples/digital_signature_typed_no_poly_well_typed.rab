@@ -72,17 +72,6 @@ syscall gen_message () : client_msg {
 }
 
 
-(** Temporary solution *)
-syscall read () : unit {
-  skip
-}
-
-syscall provide () : unit {
-  skip
-}
-(** Temporary solution *)
-
-
 
 
 (***********)

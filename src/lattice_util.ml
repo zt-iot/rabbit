@@ -8,13 +8,13 @@ exception LatticeException of string
 type secrecy_lvl = 
   | Public 
   | SNode of proc_ty_set
-[@@deriving eq]
+[@@deriving show, eq]
 
 
 type integrity_lvl = 
   | Untrusted
   | INode of proc_ty_set
-[@@deriving eq]
+[@@deriving show, eq]
 
 (* convert from all process types to 'Public' *)
 let proc_ty_set_to_secrecy_lvl readers all_process_typs = 
@@ -177,6 +177,7 @@ let leq_secrecy (secrecy_lattice : cst_access_policy) (lvl_a : secrecy_lvl) (lvl
     let comparison, rel = secrecy_lattice in
     begin match rel with 
     | GreaterThanOrEqual -> 
+      (* we need that a_set <= b_set, hence a ≯ b or a = b *)
       (* This is a sub-optimal way to compute, but for now we need it due to the way that secrecy_lattice is built *)
       let eq = ProcTySet.equal a_set b_set in 
       let a_set_geq_b_set = (List.assoc (a_set, b_set) comparison) in 

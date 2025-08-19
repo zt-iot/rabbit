@@ -28,9 +28,7 @@
 (* special names for access control instead of a syscall *)
 %token READ PROVIDE
 
-(* these tokens only exist because we do not want the programmer to create names 
-'bool', 'int', 'string' and 'float' 
-*)
+(* these tokens only exist because we do not want the programmer to create simple types 'bool', 'int', 'string' and 'float' *)
 %token BOOL_TYP STRING_TYP INT_TYP FLOAT_TYP
 
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
@@ -94,7 +92,6 @@ plain_decl:
 
   (* special case for reading/providing directly *)
   | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)}
-  | READ { DeclAccess("hello", ["hello"], None) }
 
   // | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
 
@@ -285,6 +282,16 @@ opt_simpletype_params:
   | LBRACKET ps=separated_nonempty_list(COMMA, typ) RBRACKET { ps }
   | /* empty */                                         { [] }
 
+
+
+
+typ_name:
+  | BOOL_TYP { "bool" }
+  | FLOAT_TYP { "float" }
+  | INT_TYP { "int" }
+  | STRING_TYP { "string" }
+  | t=NAME { t }
+
 typ:
   | PROCESS { CProc }
   | FILESYS { CFsys }
@@ -293,7 +300,8 @@ typ:
   | t1=typ STAR t2=typ { CProd(t1, t2) }
 
   | CHANNEL opt_params=opt_channel_params { CChan(opt_params) }
-  | t=NAME opt_params=opt_simpletype_params { CGeneric(t, opt_params) }
+
+  | t=typ_name opt_params=opt_simpletype_params { CGeneric(t, opt_params) }
 
 
 func_param:

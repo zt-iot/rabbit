@@ -139,8 +139,7 @@ let _main =
                 raise exn
               | _ -> ()
             );
-
-
+              
             (* Running typechecker.ml *)
             (match typer_result with
              | Error _ -> ()
