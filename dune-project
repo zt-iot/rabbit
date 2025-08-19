@@ -18,5 +18,6 @@
     menhirLib
     sedlex
     re
+    alcotest
     (ppxlib (>= 0.33.0))
   ))
