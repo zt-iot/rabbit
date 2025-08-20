@@ -288,7 +288,9 @@ let rec print_expr e =
   | TopVar i -> "top"^ !separator ^string_of_int i
   | Apply (s, el) -> s ^ "(" ^ (mult_list_with_concat (List.map (print_expr) el) ", ") ^ ")"
   | String s -> "\'rab" ^  !separator  ^ (replace_string '/'  !separator  s)^"\'"
-  | Integer i -> "\'"^string_of_int i^"\'"
+  | Integer i -> 
+    if i <= 0 then error ~loc:Location.Nowhere (UnintendedError "translating non-positive Integer")
+    else String.concat " %+ " (List.init i (fun _ -> "%1"))
   | List el -> 
      (match el with
      | [] -> "\'rab"^ !separator ^"\'"

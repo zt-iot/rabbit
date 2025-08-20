@@ -23,6 +23,7 @@ type desugar_error =
   | WrongChannelType of string * string
   | UnstagedConst of string
   | UnstagedParamConst of string  
+  | NonpositiveInteger of int
 
 exception Error of desugar_error Location.located
 
@@ -51,7 +52,7 @@ let print_error err ppf =
   | OtherError x -> Format.fprintf ppf "Uncategorized error: %s" x
   | UnstagedConst x -> Format.fprintf ppf "This is unintended error. Contact the developper. Hint: %s" x
   | UnstagedParamConst x -> Format.fprintf ppf "This is unintended error. Contact the developper. Hint: %s" x
-
+  | NonpositiveInteger x -> Format.fprintf ppf "Non-positive integer is given: %d" x
 
 let find_index f lst =
   let rec aux i = function
@@ -84,7 +85,10 @@ let rec process_expr ?(param="") ctx lctx {Location.data=c; Location.loc=loc} =
       end
    | Input.Boolean b -> Syntax.Boolean b
    | Input.String s -> Syntax.String s 
-   | Input.Integer z -> Syntax.Integer z
+   | Input.Integer z -> 
+      if z > 0 then Syntax.Integer z else
+      error ~loc (NonpositiveInteger z)
+
    | Input.Float f -> Syntax.Float f
    | Input.Apply(o, el) ->
       if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o) else
@@ -127,7 +131,10 @@ let rec process_expr2 new_meta_vars ctx lctx {Location.data=c; Location.loc=loc}
       end
    | Input.Boolean b -> Syntax.Boolean b
    | Input.String s -> Syntax.String s 
-   | Input.Integer z -> Syntax.Integer z
+   | Input.Integer z ->       
+      if z > 0 then Syntax.Integer z else
+      error ~loc (NonpositiveInteger z)
+
    | Input.Float f -> Syntax.Float f
    | Input.Apply(o, el) ->
       if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o) else
@@ -221,7 +228,10 @@ let rec process_expr3 used_const used_param_const new_meta_vars ctx lctx {Locati
       end
    | Input.Boolean b -> Syntax.Boolean b
    | Input.String s -> Syntax.String s 
-   | Input.Integer z -> Syntax.Integer z
+   | Input.Integer z -> 
+      if z > 0 then Syntax.Integer z else
+      error ~loc (NonpositiveInteger z)
+
    | Input.Float f -> Syntax.Float f
    | Input.Apply(o, el) ->
       if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o) else
