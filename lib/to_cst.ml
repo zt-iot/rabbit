@@ -65,6 +65,17 @@ let induces_provide_effect (syscall_desc : Typed.syscall_desc) : bool = match sy
 (* A map from SecurityType (=string) to ProcTySet.t, which tells us which security type is allowed to be accessed by which process *)
 type access_map = (proc_ty_set) SecurityTypeMap.t
 
+let pp_access_map fmt map = 
+  Format.fprintf fmt "%s" "{";
+  Maps.SecurityTypeMap.iter (fun sec_ty proc_ty_set -> 
+      Format.fprintf fmt "%s" "(";
+      Format.fprintf fmt "%s" (Ident.to_string sec_ty);
+      Format.fprintf fmt "%s" ", ";
+      Sets.pp_proc_ty_set fmt proc_ty_set;
+      Format.fprintf fmt "%s" "); ";
+    ) map;
+  Format.fprintf fmt "%s\n" "}";
+
 type conversion_context = {
   read_access_map : access_map   
   ; provide_access_map : access_map
@@ -251,8 +262,8 @@ let rec convert_instantiated_ty_to_core (ctx : conversion_context) (t : Env.inst
         let (_, (_, integrity_lvl1)) = converted_ty1 in 
         let (_, (_, integrity_lvl2)) = converted_ty2 in 
 
-        let secrecy_lvl = Lattice_util.join_of_secrecy_lvls secrecy_lattice secrecy_lvl1 secrecy_lvl2 in 
-        let integrity_lvl = Lattice_util.meet_of_integrity_lvls integrity_lattice integrity_lvl1 integrity_lvl2 in 
+        let secrecy_lvl = Lattice_util.join_of_secrecy_lvls ctx.all_process_typs secrecy_lattice secrecy_lvl1 secrecy_lvl2 in 
+        let integrity_lvl = Lattice_util.meet_of_integrity_lvls ctx.all_process_typs integrity_lattice integrity_lvl1 integrity_lvl2 in 
 
         begin match (secrecy_lvl, integrity_lvl) with 
           | (Some s, Some i) -> ct, (s, i)
@@ -515,11 +526,11 @@ let extract_process_typs_from_decls procs decls =
      (* raise exception when user tries to use a non-existing process in the system declaration *)
      | None -> raise (CstConversionException "There is a non-existing process in the system declaration") 
   in
+  (* the attacker_ty needs to be explicitly added as a process type, because it does not have a `process` declaration *)
+  let all_process_typs_initial = ProcTySet.empty |> ProcTySet.add "attacker_ty" in 
+
   (* return a set of all unique process types *)
-  List.fold_left add_typ_to_set ProcTySet.empty proc_strs
-
-
-
+  List.fold_left add_typ_to_set all_process_typs_initial proc_strs
 
 
 
@@ -683,7 +694,7 @@ let convert_pproc (pproc : Typed.pproc) : (Ident.t * Ident.t list) =
   (pproc.Location.data.id, args_idents) 
 
 let convert (decls : Typed.decl list)
-  : Cst_syntax.core_rabbit_prog * Lattice_util.cst_access_policy * Lattice_util.cst_access_policy * SyscallDescSet.t ProcTyMap.t = 
+  : Cst_syntax.core_rabbit_prog = 
   
   (* check that the last declaration is a `Typed.System` declaration *)
   match List.rev decls with
@@ -697,6 +708,8 @@ let convert (decls : Typed.decl list)
         raise (CstConversionException "There can only be a single system declaration in a Rabbit program")
       | _ -> ()
     )) decls_rev;
+
+
 
     let system_proc_idents = List.fold_left (fun acc proc -> match proc with 
       | Typed.Unbounded(pproc) -> 
@@ -751,8 +764,18 @@ let convert (decls : Typed.decl list)
       }  
     in
 
+    print_endline "all_process_typs:";
+    Sets.ProcTySet.iter (fun proc_ty -> (print_endline (proc_ty ^ ", "))) all_process_typs;
+
     let init_typing_env = (initial_typing_env proc_and_syscall_decls conversion_ctx system_location) in  
 
-    let core_rabbit_prog = (sys, init_typing_env) in 
-    (core_rabbit_prog, secrecy_lattice, integrity_lattice, syscall_per_proc_ty)
+    let core_rabbit_prog = {
+      Cst_syntax.system = sys
+      ; Cst_syntax.typing_env = init_typing_env
+      ; Cst_syntax.all_process_typs = all_process_typs
+      ; Cst_syntax.secrecy_lattice = secrecy_lattice 
+      ; Cst_syntax.integrity_lattice = integrity_lattice
+      ; Cst_syntax.syscall_per_proc_ty = syscall_per_proc_ty
+    } in 
+    core_rabbit_prog
   | _ -> raise (CstConversionException "Expected a System declaration at the the end, but there is a different declaration")

@@ -6,7 +6,8 @@ exception TypeException of string
 
 type typechecking_context = 
 {
-  secrecy_lattice : Lattice_util.cst_access_policy
+  all_process_typs : Sets.proc_ty_set
+  ; secrecy_lattice : Lattice_util.cst_access_policy
   ; integrity_lattice : Lattice_util.cst_access_policy
   ; allowed_syscalls : SyscallDescSet.t
 }
@@ -118,6 +119,13 @@ let rec typeof_expr (ctx : typechecking_context)
                         because it is not an equational theory function syscall or member function" (Ident.name id)))
         end in 
 
+        if Ident.string_part id = "snd" then (
+          print_endline "function_input_params for snd:";
+          List.iter (fun param_ty -> 
+              print_endline ((Cst_syntax.show_core_security_function_param param_ty) ^ "; ");
+            ) function_input_params;
+        );
+
         (* arity check *)
         let arity_expected = (List.length function_input_params) in 
         let arity_actual = List.length args in 
@@ -127,8 +135,17 @@ let rec typeof_expr (ctx : typechecking_context)
         (* Check whether each argument is a subtype of the function parameter type, modulo the return type of function params *)
         let types_of_args = List.map (fun e -> (typeof_expr_rec e t_env)) args in 
 
+        if Ident.string_part id = "snd" then (
+          print_endline "types of arguments given to snd:";
+
+          List.iter (fun arg_ty -> 
+              print_endline ((Cst_syntax.show_core_security_ty arg_ty) ^ "; ");
+            ) types_of_args;
+        );
+
         (* for now, we coerce the function parameters to `Cst_syntax.core_security_ty`'s *)
         let input_params_cst = List.map (Cst_syntax.core_sec_f_param_to_core_sec_ty) function_input_params in 
+
         let args_x_f_params = List.combine types_of_args input_params_cst in
         let all_subtypes = List.for_all (fun (x, y) -> 
           (* print_endline (Cst_syntax.show_Cst_syntax.core_security_ty x);
@@ -167,8 +184,8 @@ let rec typeof_expr (ctx : typechecking_context)
         (* TODO: _it is really not that ideal that we are computing this information again here_. 
             Ideally, we should just be able to look it up after the pass `To_cst` *)
         (* TODO: don't know what to do in case there is no upper/lower bound *)
-        let init_secrecy_lvl = Option.value ~default:secrecy_lvl1 (Lattice_util.join_of_secrecy_lvls secrecy_lattice secrecy_lvl1 secrecy_lvl2) in 
-        let init_integrity_lvl = Option.value ~default:integrity_lvl1 (Lattice_util.meet_of_integrity_lvls integrity_lattice integrity_lvl1 integrity_lvl2) in 
+        let init_secrecy_lvl = Option.value ~default:secrecy_lvl1 (Lattice_util.join_of_secrecy_lvls ctx.all_process_typs secrecy_lattice secrecy_lvl1 secrecy_lvl2) in 
+        let init_integrity_lvl = Option.value ~default:integrity_lvl1 (Lattice_util.meet_of_integrity_lvls ctx.all_process_typs integrity_lattice integrity_lvl1 integrity_lvl2) in 
 
         let init_tuple_typ = (Cst_syntax.TProd(List.hd es_typs, List.hd (List.tl es_typs)), (init_secrecy_lvl, init_integrity_lvl)) in 
 
@@ -177,8 +194,8 @@ let rec typeof_expr (ctx : typechecking_context)
                 let (_, (secrecy_lvl_acc, integrity_lvl_acc)) = acc_tup_type in 
                 let (_, (e_typ_secrecy_lvl, e_typ_integrity_lvl)) = e_typ in 
 
-                let secrecy_lvl' = Option.value ~default:secrecy_lvl_acc (Lattice_util.join_of_secrecy_lvls secrecy_lattice secrecy_lvl_acc e_typ_secrecy_lvl) in 
-                let integrity_lvl' = Option.value ~default:integrity_lvl_acc (Lattice_util.meet_of_integrity_lvls integrity_lattice integrity_lvl_acc e_typ_integrity_lvl) in 
+                let secrecy_lvl' = Option.value ~default:secrecy_lvl_acc (Lattice_util.join_of_secrecy_lvls ctx.all_process_typs secrecy_lattice secrecy_lvl_acc e_typ_secrecy_lvl) in 
+                let integrity_lvl' = Option.value ~default:integrity_lvl_acc (Lattice_util.meet_of_integrity_lvls ctx.all_process_typs integrity_lattice integrity_lvl_acc e_typ_integrity_lvl) in 
 
                 (Cst_syntax.TProd(acc_tup_type, e_typ), (secrecy_lvl', integrity_lvl'))
             ) init_tuple_typ (List.tl (List.tl es_typs)) in 
@@ -230,16 +247,8 @@ and typeof_cmd (ctx : typechecking_context) (cmd : Cst_syntax.cmd) (t_env : Cst_
 
         (* if the variable we are assigning to is `msg` *)
         let cst_type = (typeof_expr_rec e t_env) in
-
-        print_endline (Ident.string_part id);  
+  
         let t_env' = IdentMap.add id (Cst_syntax.CST cst_type) t_env in 
-
-
-        begin match (IdentMap.find_opt id t_env') with 
-          | None -> print_endline "msg_with_sig not in environment"
-          | Some typ -> print_endline (Cst_syntax.show_t_env_typ typ)
-        end;
-
 
         (typeof_cmd ctx c t_env')
     (* Look up `id` in `t_env` and check if typeof_expr(e) = the same *)
@@ -421,10 +430,11 @@ and typecheck_fact (ctx : typechecking_context) (fact : Cst_syntax.fact)
 
 
 
-let typecheck_process secrecy_lattice integrity_lattice syscall_per_proc_ty vars funcs typ main env : unit = 
+let typecheck_process all_process_typs secrecy_lattice integrity_lattice syscall_per_proc_ty vars funcs typ main env : unit = 
   (* add all vars to the environment *)
   let ctx = {
-    secrecy_lattice 
+    all_process_typs
+    ; secrecy_lattice 
     ; integrity_lattice
     ; allowed_syscalls = match (Maps.IdentMap.find_opt typ syscall_per_proc_ty) with 
       | Some res -> res 
@@ -449,11 +459,23 @@ let typecheck_process secrecy_lattice integrity_lattice syscall_per_proc_ty vars
   ()
 
 
-let typecheck_sys (prog : Cst_syntax.core_rabbit_prog) (secrecy_lattice : Lattice_util.cst_access_policy)
-  (integrity_lattice : Lattice_util.cst_access_policy) (syscall_per_proc_ty : SyscallDescSet.t ProcTyMap.t) : unit = 
-    
+let typecheck_sys (prog : Cst_syntax.core_rabbit_prog) : unit = 
+
+  (* print_endline "secrecy lattice for this typechecking problem:";
+  Lattice_util.pp_cst_access_policy (Format.get_std_formatter ()) secrecy_lattice;
+
+  print_endline "integrity lattice for this typechecking problem:";
+  Lattice_util.pp_cst_access_policy (Format.get_std_formatter ()) integrity_lattice;     *)
+
+  let (proc_instantiations, system_loc) = prog.system in 
+
   
-  let ((proc_instantiations, system_loc), system_env) = prog in 
+  let (proc_instantiations, system_loc) = prog.system in 
+  let system_env = prog.typing_env in 
+  let all_process_typs = prog.all_process_typs in 
+  let secrecy_lattice = prog.secrecy_lattice in 
+  let integrity_lattice = prog.integrity_lattice in 
+  let syscall_per_proc_ty = prog.syscall_per_proc_ty in 
 
   List.iter (fun proc_instantiation -> 
     let (proc_ident, arg_idents) = proc_instantiation in 
@@ -483,6 +505,6 @@ let typecheck_sys (prog : Cst_syntax.core_rabbit_prog) (secrecy_lattice : Lattic
                 | None -> raise (TypeException "An argument in the system declaration was not found in the system_env")
               end
             ) system_env args_idents_x_proc_params in 
-          (typecheck_process secrecy_lattice integrity_lattice syscall_per_proc_ty vars funcs typ main env');
+          (typecheck_process all_process_typs secrecy_lattice integrity_lattice syscall_per_proc_ty vars funcs typ main env');
       | _ -> (raise_type_exception_with_location "This proc_ident does not exist in the system environment" system_loc)
   ) proc_instantiations;

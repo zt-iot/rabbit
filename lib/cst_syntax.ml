@@ -254,7 +254,14 @@ type system = (Ident.t * Ident.t list) list * Location.t
 
 
 (* a core rabbit program is a single system declaration and an initial typing environment which contains all global constants *)
-type core_rabbit_prog = system * typing_env
+type core_rabbit_prog = {
+  system : system
+  ; typing_env : typing_env
+  ; all_process_typs : Sets.proc_ty_set
+  ; secrecy_lattice : Lattice_util.cst_access_policy
+  ; integrity_lattice : Lattice_util.cst_access_policy
+  ; syscall_per_proc_ty : Sets.SyscallDescSet.t Maps.ProcTyMap.t
+}
 
 
 

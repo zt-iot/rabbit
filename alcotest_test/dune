@@ -1,5 +1,5 @@
 (test
  (name test_main)
  (flags -w +a-4-40-41-42-70 -warn-error +a-4-26-27-40-42-70)
- (modules typechecker_test test_main)
+ (modules to_cst_test typechecker_test test_main)
  (libraries rabbit.lib alcotest))

@@ -146,11 +146,11 @@ let _main =
             (match typer_result with
              | Error _ -> ()
              | Ok decls ->
-                let core_rabbit_prog, secrecy_lattice, integrity_lattice, allowed_syscalls_per_proc_ty = 
+                let core_rabbit_prog = 
                   To_cst.convert(decls) in 
                 prerr_endline "ConverterSuccess";
                 
-                let _ = Typechecker.typecheck_sys core_rabbit_prog secrecy_lattice integrity_lattice allowed_syscalls_per_proc_ty in
+                let _ = Typechecker.typecheck_sys core_rabbit_prog in
                 prerr_endline "TypecheckerSuccess";
             );
 

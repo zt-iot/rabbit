@@ -4,6 +4,8 @@ module StringSet = Set.Make(String)
 module ProcTySet = Set.Make(String)
 
 type proc_ty_set = ProcTySet.t
+
+
 let equal_proc_ty_set = ProcTySet.equal
 
 let pp_proc_ty_set fmt set =
@@ -11,12 +13,15 @@ let pp_proc_ty_set fmt set =
   ProcTySet.iter (fun s -> Format.fprintf fmt "%s; " s) set;
   Format.fprintf fmt "}"
 
+let show_proc_ty_set x =
+  Format.asprintf "%a" pp_proc_ty_set x
+
+
+let compare : proc_ty_set -> proc_ty_set -> int = ProcTySet.compare
+
 
 module SecurityTypeSet = Set.Make(Ident.IdentOrd)
 module ProcTySetSet = Set.Make(ProcTySet)
-
-
-
 
 
 type proc_ty = Ident.t
@@ -48,6 +53,18 @@ module SecSyscallPair = struct
     else
       proc_cmp
 end
+
+
+
+module ProcTySetPair = struct
+  type t = proc_ty_set * proc_ty_set 
+
+  let compare (a_set1, a_set2) (b_set1, b_set2) = 
+    let c = ProcTySet.compare a_set1 b_set1 in
+    if c <> 0 then c else ProcTySet.compare a_set2 b_set2
+end
+
+
 
 module ProcSyscallSet = Set.Make(ProcSyscallPair)
 

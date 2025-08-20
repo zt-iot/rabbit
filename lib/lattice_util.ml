@@ -18,24 +18,65 @@ type integrity_lvl =
 
 (* convert from all process types to 'Public' *)
 let proc_ty_set_to_secrecy_lvl readers all_process_typs = 
-  if readers = all_process_typs then 
+  if Sets.equal_proc_ty_set readers all_process_typs then 
     Public 
   else
     SNode readers  
 
 (* convert from all process types to 'Untrusted'*)
 let proc_ty_set_to_integrity_lvl providers all_process_typs = 
-  if providers = all_process_typs then
+  if Sets.equal_proc_ty_set providers all_process_typs then
     Untrusted
   else 
     INode providers
 
 type relation = 
   | LessThanOrEqual
-  | GreaterThanOrEqual
+  | GreaterThanOrEqual 
+[@@deriving eq]
 
 
-type cst_access_policy = ((proc_ty_set * proc_ty_set) * bool) list * relation
+type cst_access_policy = ((proc_ty_set * proc_ty_set) * bool) list * relation [@@deriving eq]
+
+let pp_cst_access_policy fmt cst_access_pol = 
+  let (lattice_pairs, lattice_rel) = cst_access_pol in 
+
+  let rel_symbol = begin match lattice_rel with 
+    | GreaterThanOrEqual -> "=>"
+    | LessThanOrEqual -> "<="
+  end in
+
+  List.iter (fun ((a, b), rel_holds) ->
+    if rel_holds then (
+      (Sets.pp_proc_ty_set fmt a);
+      Format.fprintf fmt "%s" rel_symbol; 
+      (Sets.pp_proc_ty_set fmt b);
+
+      Format.fprintf fmt "\n"
+    )
+  ) lattice_pairs
+
+
+
+
+let pp_pair fmt ((a, b), rel_holds) =
+  Format.fprintf fmt "((%s, %s), %b)"
+    (Sets.show_proc_ty_set a)
+    (Sets.show_proc_ty_set b)
+    rel_holds
+
+let show_pair ((a, b), rel_holds) = 
+  Format.asprintf "%a" pp_pair ((a, b), rel_holds)
+
+let eq_pair_no_order ((a11, a12), rel_holds1) ((a21, a22), rel_holds2) = 
+  ProcTySet.equal a11 a21 && ProcTySet.equal a12 a22
+
+let equal_cst_access_policy_no_order (pairs1, rel1) (pair2, rel2) = 
+  let sort_func = List.sort (fun pair1 pair2 -> 
+    String.compare (Format.asprintf "%a" pp_pair pair1) (Format.asprintf "%a" pp_pair pair2)) in 
+  let pol1_sorted = (sort_func pairs1) in 
+  let pol2_sorted = (sort_func pair2) in 
+  List.equal (eq_pair_no_order) pol1_sorted pol2_sorted && (equal_relation rel1 rel2)
 
 
 
@@ -122,7 +163,7 @@ let find_extremum_in_intersect
 - return the secrecy lvl which is the least upper bound of a and b, if it exists
 - otherwise, return None
 *)
-let join_of_secrecy_lvls (pol : cst_access_policy) (a : secrecy_lvl) (b : secrecy_lvl) : secrecy_lvl option = 
+let join_of_secrecy_lvls (all_process_typs : proc_ty_set) (pol : cst_access_policy) (a : secrecy_lvl) (b : secrecy_lvl) : secrecy_lvl option = 
   match (a, b) with
   (* If one secrecy_lvl is Public, the least upper bound is the other secrecy_lvl *)
   | Public, _ -> Some b 
@@ -137,7 +178,7 @@ let join_of_secrecy_lvls (pol : cst_access_policy) (a : secrecy_lvl) (b : secrec
     let candidate = find_extremum_in_intersect ~find_max:true pol intersect in 
 
     match candidate with 
-    | Some res -> Some (SNode res)
+    | Some res -> Some (proc_ty_set_to_secrecy_lvl res all_process_typs)
     | None -> None 
     
 
@@ -145,7 +186,7 @@ let join_of_secrecy_lvls (pol : cst_access_policy) (a : secrecy_lvl) (b : secrec
 - return the integrity lvl which is the greatest lower bound of a and b, if it exists
 - otherwsie, return None
 *)
-let meet_of_integrity_lvls (pol : cst_access_policy) (a : integrity_lvl) (b : integrity_lvl) : integrity_lvl option = 
+let meet_of_integrity_lvls (all_process_typs : Sets.proc_ty_set) (pol : cst_access_policy) (a : integrity_lvl) (b : integrity_lvl) : integrity_lvl option = 
   match (a, b) with 
   (* if one integrity_lvl is Untrusted, the greatest lower bound is the other integrity_lvl *)
   | Untrusted, _ -> Some b
@@ -161,7 +202,7 @@ let meet_of_integrity_lvls (pol : cst_access_policy) (a : integrity_lvl) (b : in
     let candidate = find_extremum_in_intersect ~find_max:false pol intersect in 
 
     match candidate with 
-    | Some (res) -> Some (INode res)
+    | Some (res) -> Some (proc_ty_set_to_integrity_lvl res all_process_typs)
     | None -> None
 (****
 ****)
