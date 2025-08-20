@@ -152,7 +152,7 @@ let tripartite_access (decls : Typed.decl list) : (ProcSyscallSet.t) SecurityTyp
     | _ -> acc_map
   ) SecurityTypeMap.empty decls
 
-
+(* 
 (* transforms the SecurityTypeMap to a ProcTyMap instead, which contains the same information *)
 let compute_proc_ty_to_syscalls_set_map (tripartite_access : (ProcSyscallSet.t) SecurityTypeMap.t) : (SecSyscallSet.t) ProcTyMap.t = 
   (* for each pair (proc_ty, syscall) occuring throughout tripartite_access, register that 'proc_ty' is allowed to call 'syscall' *) 
@@ -165,7 +165,22 @@ let compute_proc_ty_to_syscalls_set_map (tripartite_access : (ProcSyscallSet.t) 
           let new_set = SecSyscallSet.add (sec_ty, syscall_desc) old_set in 
           Maps.ProcTyMap.add proc_ty new_set acc_proc_ty_map_2
         ) proc_syscall_set acc_proc_ty_map_1
-    ) tripartite_access Maps.ProcTyMap.empty
+    ) tripartite_access Maps.ProcTyMap.empty *)
+
+let syscall_per_proc_ty_from_allow_rules (decls : Typed.decl list) : (SyscallDescSet.t ProcTyMap.t) = 
+  List.fold_left (fun acc_map decl -> match decl.Typed.desc with 
+    | Typed.Allow{process_typ = proc_ty; syscall_descs; _} -> 
+      List.fold_left (fun acc_map_2 syscall_desc -> 
+        let syscalls_in_access_opt = Maps.IdentMap.find_opt proc_ty acc_map_2 in  
+        let old_set = begin match syscalls_in_access_opt with 
+            | None -> SyscallDescSet.empty
+            | Some (s) -> s
+            end in 
+       let new_set = Sets.SyscallDescSet.add syscall_desc old_set in 
+       Maps.IdentMap.add proc_ty new_set acc_map
+      ) acc_map syscall_descs
+    | _ -> acc_map
+  ) ProcTyMap.empty decls
 
 
 (* COMPUTING a <= b FOR EACH PAIR OF ELEMENTS OF `all_process_typs` *)
@@ -727,13 +742,7 @@ let convert (decls : Typed.decl list)
     ) decls in 
     let (read_access_map, provide_access_map) = create_access_maps allow_decls in 
 
-    let tripartite_access = (tripartite_access allow_decls) in 
-    let secsyscall_per_proc_ty = (compute_proc_ty_to_syscalls_set_map tripartite_access) in 
-    let (syscall_per_proc_ty : SyscallDescSet.t ProcTyMap.t) = Maps.ProcTyMap.map (fun pairs_value_set -> 
-        Sets.SecSyscallSet.fold (fun (_, syscall_desc) acc -> 
-            Sets.SyscallDescSet.add syscall_desc acc 
-          ) pairs_value_set Sets.SyscallDescSet.empty
-      ) secsyscall_per_proc_ty  in 
+    let syscall_per_proc_ty = syscall_per_proc_ty_from_allow_rules allow_decls in 
 
     (* Compute the secrecy lattice and integrity lattice, from the read_access_map and provide_access_map *)
     (* The method to compute the relation is the same for both reading/providing *)
