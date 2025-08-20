@@ -9,6 +9,7 @@ and expr' =
   | String of string  
   (* | Integer of Mpzf.t *)
   | Integer of int
+  | IntegerPlus of expr * expr
   | Float of string (* store the string so we can correctly round later *)
   | Apply of operator * expr list
   | Tuple of expr list
@@ -21,7 +22,13 @@ and fact' =
   | GlobalFact of Name.ident * expr list
   | ChannelFact of expr * Name.ident * expr list
   | ProcessFact of expr * Name.ident * expr list
-  | ResFact of int * expr list (* 0: eq 1: neq 3 : FILE*)
+  | ResFact of int * expr list (* 
+  0: eq 
+  1: neq 
+  3 : FILE
+  4 : LT
+  5 : LE
+  *)
   (* | InjFact of  *)
 
 type cmd = cmd' Location.located

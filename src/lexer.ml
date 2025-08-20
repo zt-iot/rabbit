@@ -58,10 +58,10 @@ let numeral = [%sedlex.regexp? Opt '-', Plus digit]
 let hexdigit = [%sedlex.regexp? ('0'..'9' | 'a'..'f' | 'A'..'F')]
 let float = [%sedlex.regexp? Opt '-', Opt ("0x" | "0X" | "0b" | "0B"), Plus hexdigit, '.', Star hexdigit]
 
-let symbolchar = [%sedlex.regexp?  ('!' | '$' | '%' | '&' | '*' | '+' | '-' | '.' | '/' | ':' | '<' | '=' | '>' | '?'  | '^' | '|' | '~')]
+let symbolchar = [%sedlex.regexp?  ('!' | '$' | '%' | '&' | '*' | '+' | '-' | '.' | '/' | ':' | '?'  | '^' | '|' | '~')]
 
 let prefixop = [%sedlex.regexp? ('~' | '?' | '!'), Star symbolchar ]
-let infixop0 = [%sedlex.regexp? ('=' | '<' | '>' | '|' | '&' | '$'), Star symbolchar]
+let infixop0 = [%sedlex.regexp? ('|' | '&' | '$'), Star symbolchar]
 let infixop1 = [%sedlex.regexp? ('@' | '^'), Star symbolchar ]
 let infixop2 = [%sedlex.regexp? ('+' | '-'), Star symbolchar ]
 let infixop3 = [%sedlex.regexp? ('*' | '/' | '%'), Star symbolchar ]
@@ -124,8 +124,16 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | "!=" | 8800              -> f (); NEQ
   | "!"                      -> f (); EXCL
   | "<>"                     -> f (); LTGT
+  | "<="                     -> f (); LE
+  | ">="                     -> f (); GE
   | "<"                      -> f (); LT
   | ">"                      -> f (); GT
+  | "%<="                     -> f (); LLE
+  | "%>="                     -> f (); GGE
+  | "%<"                      -> f (); LLT
+  | "%>"                      -> f (); GGT
+  | "%+"                      -> f (); PPLUS
+  
   | "||"                     -> f (); BBAR
   | '|'                      -> f (); BAR
   | "=>" | 8658 | 10233      -> f (); DARROW

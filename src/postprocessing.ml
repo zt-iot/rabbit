@@ -74,6 +74,7 @@ let rec expr_unify_vars e =
   | Apply (f, el) -> Apply (f, List.map expr_unify_vars el)
   | List el -> List (List.map expr_unify_vars el)
   | AddOne e -> AddOne (expr_unify_vars e)
+  | Plus (e1, e2) -> Plus (expr_unify_vars e1, expr_unify_vars e2)
   | FVar e -> FVar (expr_unify_vars e)
   | _ -> e
 
@@ -104,6 +105,7 @@ let rec expr_expand_var e ind =
   | Apply (f, el) -> Apply (f, List.map (fun e -> expr_expand_var e ind) el)
   | List el -> List (List.map (fun e -> expr_expand_var e ind) el)
   | AddOne e -> AddOne (expr_expand_var e ind)
+  | Plus (e1, e2) -> Plus (expr_expand_var e1 ind, expr_expand_var e2 ind)
   | FVar e -> FVar (expr_expand_var e ind)
   | MetaVar i | LocVar i | TopVar i -> error ~loc:Location.Nowhere (UnintendedError "variables should have been unified")
   | _ -> e
@@ -118,6 +120,7 @@ match e1 with
 | Apply (f, el) -> Apply (f, List.map (fun e -> expr_subst_var e s e2) el)
 | List el -> List (List.map (fun e -> expr_subst_var e s e2) el)
 | AddOne e -> AddOne (expr_subst_var e s e2)
+| Plus (e, e') -> Plus (expr_subst_var e s e2, expr_subst_var e' s e2)
 | FVar e -> FVar (expr_subst_var e s e2)
 | MetaVar i | LocVar i | TopVar i -> error ~loc:Location.Nowhere (UnintendedError "variables should have been unified")
 | _ -> e1

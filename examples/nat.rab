@@ -1,0 +1,33 @@
+type person_t : process
+
+process alice() : person_t 
+{
+    main {
+        var x = 1 in
+        repeat
+        | [x %< 42] → 
+          x := x %+ 1;
+          event[::Reachable1(x)]
+        | [x %< 30] →  
+          x := x %+ x
+        until				        
+        | [x %>= 42] →  
+          event[::Reachable2(x)]
+        end
+    }
+}
+
+system
+  alice()
+requires
+[
+  lemma Reachable1:
+    reachable ::Reachable1(10);
+  lemma Reachable2:
+    reachable ::Reachable2(42);
+  lemma Reachable3:
+    reachable ::Reachable2(30)
+]
+
+
+

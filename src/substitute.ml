@@ -27,6 +27,9 @@ let rec expr_chan_sub e f t  =
   | Syntax.Boolean b  -> e
   | Syntax.String s  -> e
   | Syntax.Integer k  -> e
+  | Syntax.IntegerPlus (e1, e2)  -> 
+    Location.locate ~loc:loc (Syntax.IntegerPlus (expr_chan_sub e1 f t, expr_chan_sub e2 f t))
+
   | Syntax.Float s -> e
   | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_chan_sub e f t ) el))
   | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_chan_sub e f t ) el))
@@ -102,6 +105,8 @@ let rec cmd_chan_sub c f t  =
    | Syntax.Boolean b  -> e
    | Syntax.String s  -> e
    | Syntax.Integer k  -> e
+   | Syntax.IntegerPlus (e1, e2) ->
+    Location.locate ~loc:loc (Syntax.IntegerPlus (expr_param_chan_sub e1 f t, expr_param_chan_sub e2 f t )) 
    | Syntax.Float s -> e
    | Syntax.Apply (o, el) -> Location.locate ~loc:loc (Syntax.Apply (o, List.map (fun e -> expr_param_chan_sub e f t ) el))
    | Syntax.Tuple el -> Location.locate ~loc:loc (Syntax.Tuple (List.map (fun e -> expr_param_chan_sub e f t ) el))

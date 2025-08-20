@@ -88,8 +88,12 @@ let rec process_expr ?(param="") ctx lctx {Location.data=c; Location.loc=loc} =
    | Input.Integer z -> 
       if z > 0 then Syntax.Integer z else
       error ~loc (NonpositiveInteger z)
+   | Input.IntegerPlus(e1, e2) ->
+      Syntax.IntegerPlus (process_expr ~param:param ctx lctx e1, process_expr ~param:param ctx lctx e2)
 
    | Input.Float f -> Syntax.Float f
+
+
    | Input.Apply(o, el) ->
       if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o) else
       if Context.ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr ~param:param ctx lctx a) el)) else
@@ -136,6 +140,11 @@ let rec process_expr2 new_meta_vars ctx lctx {Location.data=c; Location.loc=loc}
       error ~loc (NonpositiveInteger z)
 
    | Input.Float f -> Syntax.Float f
+
+   | Input.IntegerPlus(e1, e2) ->
+      Syntax.IntegerPlus (process_expr2 new_meta_vars ctx lctx e1, process_expr2 new_meta_vars ctx lctx e2)
+
+
    | Input.Apply(o, el) ->
       if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o) else
       if Context.ctx_check_ext_func_and_arity ctx (o, List.length el) then Syntax.Apply (o, (List.map (fun a -> process_expr2 new_meta_vars ctx lctx a) el)) else
@@ -231,6 +240,11 @@ let rec process_expr3 used_const used_param_const new_meta_vars ctx lctx {Locati
    | Input.Integer z -> 
       if z > 0 then Syntax.Integer z else
       error ~loc (NonpositiveInteger z)
+
+   | Input.IntegerPlus(e1, e2) ->
+      Syntax.IntegerPlus (process_expr3 used_const used_param_const new_meta_vars ctx lctx e1, 
+                           process_expr3 used_const used_param_const new_meta_vars ctx lctx e2)
+
 
    | Input.Float f -> Syntax.Float f
    | Input.Apply(o, el) ->

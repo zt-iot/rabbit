@@ -22,7 +22,8 @@
 (* constant tokens for rabbit *)
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
 %token CHANNEL PROCESS PATH DATA FILESYS FILE
-%token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LTGT
+%token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LE GE LTGT 
+%token LLT GGT LLE GGE PPLUS
 %token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL
 
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
@@ -33,7 +34,7 @@
 (* Precedence and fixity of infix operators *)
 %nonassoc IN
 %right    SEMICOLON
-
+%left PPLUS
 %left     INFIXOP0
 %right    INFIXOP1
 %left     INFIXOP2
@@ -119,8 +120,18 @@ plain_fact:
   | scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
   | DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact(id, es) }
   | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact(id, es) }
-  | e1=expr EQ e2=expr { ResFact(0, [e1; e2]) }
+  
+  
   | e1=expr NEQ e2=expr { ResFact(1, [e1; e2]) }
+  
+  | e1=expr EQ e2=expr { ResFact(0, [e1; e2]) }
+  
+  | e1=expr LLE e2=expr { ResFact(5, [e1; e2]) }
+  | e1=expr GGE e2=expr { ResFact(5, [e2; e1]) }
+  | e1=expr GGT e2=expr { ResFact(4, [e2; e1]) }
+  | e1=expr LLT e2=expr { ResFact(4, [e1; e2]) }
+  
+
   | scope=expr DOT e=expr { ResFact(3, [scope; e]) }
 
 typed_arg:
@@ -225,6 +236,8 @@ plain_expr:
   | f=NAME LT e=expr GT { Param (f, e) }
   | LPAREN es=separated_list(COMMA, expr) RPAREN { Tuple es } 
   | s=QUOTED_STRING { String s }
+  | e1=expr PPLUS e2=expr { IntegerPlus(e1, e2) }
+
 
 %inline infix:
   | op=INFIXOP0    { op }

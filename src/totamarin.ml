@@ -94,6 +94,7 @@ type expr =
   | List of expr list
   | One
   | Int of string
+  | Plus of expr * expr
   | AddOne of expr
   | Unit 
   | Param 
@@ -112,6 +113,7 @@ let rec expr_collect_vars e =
   | List el -> List.fold_left (fun vl e -> (expr_collect_vars e) @ vl) [] el
   | One -> []
   | Int _ -> []
+  | Plus (e1, e2) -> expr_collect_vars e1 @ expr_collect_vars e2
   | AddOne e -> expr_collect_vars e
   | Unit -> []
   | Param -> [Param]
@@ -197,6 +199,10 @@ let print_fact' (f : fact) : fact' =
   | ResFact (0, el) -> ("Eq"^ !separator , el, config_linear) (* linear because we will move this to tag and it wont be used as facts*)
   | ResFact (1, el) -> ("NEq"^ !separator , el, config_linear) (* linear because we will move this to tag and it wont be used as facts*)
   | ResFact (2, el) -> ("Fr", el, config_linear)
+
+  | ResFact (4, el) -> ("LT"^ !separator, el, config_persist)
+  | ResFact (5, el) -> ("LE"^ !separator, el, config_persist)
+
   | AccessFact (nsp, param, target, syscall) -> ("ACP"^ !separator, [List [String nsp; param]; target; String syscall], config_persist )
   | AttackFact (attack, target) ->  ("Attack"^ !separator, [String attack; target], config_persist )
   | FileFact (nsp, path, e) -> ("File"^ !separator ^ nsp, [Param;path; e], config_linear)
@@ -299,6 +305,7 @@ let rec print_expr e =
   | One -> "%1"
   | Int v -> "%"^v
   | AddOne e -> (print_expr e)^" %+ %1"
+  | Plus (e1, e2) -> (print_expr e1) ^ "%+" ^ (print_expr e2) 
   | Unit -> "\'rab"^ !separator ^"\'"
   | MetaNewVar i -> "new"^ !separator ^string_of_int i
   | Param -> !fresh_param
@@ -569,6 +576,16 @@ let print_tamarin ((si, mo_lst, r_lst, lem_lst) : tamarin) is_dev print_transiti
     (print_comment "The signature of our model:\n\n") ^
     print_signature si ^
 
+    (* print natural number rules *)
+    (print_comment "natural number rules:\n\n") ^
+    let lt_fact = "!LT"^ !separator in
+    let le_fact = "!LE"^ !separator in
+
+    "rule LT_GEN"^ !separator^": [] --> ["^ lt_fact ^"(%x, %x %+ %y)]\n" ^
+    "rule LE_GEN"^ !separator^": ["^ lt_fact ^"(%x, %y)] --> ["^ le_fact ^"(%x, %y)]\n"^
+    "rule LE_GEN2"^ !separator^": [] --> ["^ le_fact ^"(%x, %x)]\n"^
+
+
     (* print initializing rules *)
     (print_comment "Initializing the gloval constants and access policy rules:\n\n") ^
     (mult_list_with_concat (List.map (fun r -> print_rule r is_dev) (List.rev r_lst)) "\n")^
@@ -643,6 +660,7 @@ let rec translate_expr ?(ch=false) {Location.data=e; Location.loc=loc} =
     | Syntax.Boolean b -> error ~loc (UnintendedError "translating boolean")
     | Syntax.String s -> String s
     | Syntax.Integer z -> error ~loc (UnintendedError "translating Integer")
+    | Syntax.IntegerPlus (e1, e2) -> error ~loc (UnintendedError "translating Integer addition")
     | Syntax.Float f -> error ~loc (UnintendedError "translating float")
     | Syntax.Apply (o, el) -> Apply (o, List.map (translate_expr ~ch:ch) el)
     | Syntax.Tuple el -> 
@@ -667,6 +685,13 @@ let rec translate_expr2 ?(ch=false) ?(num=0) {Location.data=e; Location.loc=loc}
     | Syntax.Boolean b -> error ~loc (UnintendedError "translating boolean")
     | Syntax.String s -> String s, [], num
     | Syntax.Integer z -> Integer z, [], num
+    | Syntax.IntegerPlus (e1, e2) -> 
+        let ([e1;e2], sl, n) = List.fold_left (fun (el, sl, n) e -> 
+        let e, s, n = translate_expr2 ~ch:ch ~num:n e in 
+        (el @ [e], sl @ s, n)) ([], [], num) [e1;e2] in 
+
+        Plus (e1, e2), sl, n
+    
     | Syntax.Float f -> error ~loc (UnintendedError "translating float")
     | Syntax.Apply (o, el) -> 
        let (el, sl, n) = List.fold_left (fun (el, sl, n) e -> 
@@ -745,6 +770,18 @@ let translate_fact ?(num=0) namespace f =
     
     FileFact (namespace, p, d), g1@g2, [p], n
   
+  | Syntax.ResFact (4, el) -> 
+    let el, gv, n = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+                                  (el @ [e], gv @ g, n)) ([],[], num) el in    
+
+    ResFact (4, el), gv, [], n
+
+  | Syntax.ResFact (5, el) -> 
+    let el, gv, n = List.fold_left (fun (el, gv, n) e -> let e, g, n = translate_expr2 ~num:n e in
+                                  (el @ [e], gv @ g, n)) ([],[], num) el in    
+
+    ResFact (5, el), gv, [], n
+
 
   | _ -> 
     error ~loc:Location.Nowhere (UnintendedError "process fact")

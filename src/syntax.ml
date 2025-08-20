@@ -14,6 +14,7 @@ and expr' =
   | Boolean of bool
   | String of string
   | Integer of int
+  | IntegerPlus of expr * expr
   | Float of string (* store the string so we can correctly round later *)
   | Apply of operator * expr list
   | Tuple of expr list
