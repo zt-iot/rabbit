@@ -715,7 +715,7 @@ let env_initial_bindings (env : Env.t) : Env.t =
   and which the user shouldn't supply *)
   let initial_bindings = [("bool", Env.SimpleTypeDef([])) ;
     ("int", Env.SimpleTypeDef([])) ; ("string", Env.SimpleTypeDef([])) ; 
-    ("float", Env.SimpleTypeDef([]))] in 
+    ("float", Env.SimpleTypeDef([])) ; ("attacker_ty", Env.ProcTypeDef)] in 
   
   List.fold_left (fun acc_env (str, env_desc) -> 
       let (env', _) = (Env.add_global ~loc:Location.Nowhere acc_env str env_desc) in 

@@ -67,6 +67,9 @@ decls:
   |                                 { [] }
   | d=decl ds=decls       { d :: ds }
 
+
+
+
 decl: mark_location(plain_decl) { $1 }
 plain_decl:
   | DATA t=typ { DeclSimpleTyp(t) } 
@@ -83,14 +86,9 @@ plain_decl:
   | TYPE id=NAME COLON t=typ    { DeclType(id, t) }
   
   | ALLOW ATTACK t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAttack(t,a)}
+  | ALLOW s=proc_ty_name typs=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, syscall_name) RBRACKET { DeclAccess(s, typs, Some a) }
 
-  (* special cases for the attacker_ty *)
-  // | ALLOW s=NAME t=list(NAME) LBRACKET READ RBRACKET { DeclAccess(s, t, Some ["read"]) }
-  // | ALLOW s=NAME t=list(NAME) LBRACKET PROVIDE RBRACKET { DeclAccess(s, t, Some ["provide"]) }
-
-  | ALLOW s=NAME t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, syscall_name) RBRACKET { DeclAccess(s,t, Some a) }
-
-  (* special case for reading/providing directly *)
+  (* special case for all processes except attacker_ty reading/providing directly *)
   | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)}
 
   // | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
@@ -135,6 +133,9 @@ plain_decl:
   | CONST FRESH t=NAME LTGT COLON typ=typ { DeclInit(t, Some typ, Fresh_with_param) }
   | CONST FRESH t=NAME LTGT { DeclInit(t, None, Fresh_with_param) }
 
+proc_ty_name:
+  | ATTACKER_TYP { "attacker_ty" }
+  | n=NAME { n }
 
 syscall_name : 
   | READ { "read" }
