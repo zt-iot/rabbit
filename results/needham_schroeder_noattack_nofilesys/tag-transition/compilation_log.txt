@@ -1,0 +1,2 @@
+Translated into: results/needham_schroeder_noattack_nofilesys/tag-transition/compiled.spthy
+Loading complete..

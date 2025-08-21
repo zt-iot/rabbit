@@ -1,0 +1,21 @@
+{
+  "no_flags": {
+    "flags": []
+  },
+  "tag-transition": {
+    "flags": [
+      "--tag-transition"
+    ]
+  },
+  "post-process": {
+    "flags": [
+      "--post-process"
+    ]
+  },
+  "tag-transition_post-process": {
+    "flags": [
+      "--tag-transition",
+      "--post-process"
+    ]
+  }
+}
