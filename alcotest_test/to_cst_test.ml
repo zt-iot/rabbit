@@ -1,5 +1,4 @@
 open Rabbit_lib
-
 open Rabbit_lib.Sets
 
 open Alcotest
