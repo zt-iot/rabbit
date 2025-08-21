@@ -16,10 +16,6 @@ type alice_t      : process
 type bob_t        : process 
 
 
-(** temporary solution *)
-type attacker_ty : process
-
-
 
 (** single security type for this example *)
 type client_msg : message

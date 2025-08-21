@@ -56,8 +56,8 @@ let reserved = [
   ("bool", BOOL_TYP) ;
   ("int", INT_TYP) ; 
   ("string", STRING_TYP ) ;
-  ("float", FLOAT_TYP)
-
+  ("float", FLOAT_TYP) ; 
+  ("attacker_ty", ATTACKER_TY)
   ]
 
 let name =

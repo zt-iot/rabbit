@@ -14,9 +14,6 @@ type readonly_t   : filesys
 type alice_t      : process
 type bob_t        : process
 
-(* temporary solution *)
-type attacker_ty : process
-
 
 (** declare kinds, which are values which do not have any security information *)
 

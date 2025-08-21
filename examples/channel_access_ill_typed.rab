@@ -68,4 +68,4 @@ process bob(ch_net : udp_t) : bob_t
 }
 
 
-system alice(udp) | bob(udp) (* if alice were allowed to access this channel, it would be well-typed. *)
+system alice(udp) | bob(udp) (* unsure if well-typed *)

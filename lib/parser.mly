@@ -31,6 +31,8 @@
 (* these tokens only exist because we do not want the programmer to create simple types 'bool', 'int', 'string' and 'float' *)
 %token BOOL_TYP STRING_TYP INT_TYP FLOAT_TYP
 
+%token ATTACKER_TY
+
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
 
 (* Secrecy and integrity levels within function typing signature *)
@@ -86,10 +88,19 @@ plain_decl:
   | TYPE id=NAME COLON t=typ    { DeclType(id, t) }
   
   | ALLOW ATTACK t=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, NAME) RBRACKET { DeclAttack(t,a)}
-  | ALLOW s=proc_ty_name typs=list(NAME) LBRACKET a=separated_nonempty_list(COMMA, syscall_name) RBRACKET { DeclAccess(s, typs, Some a) }
-
-  (* special case for all processes except attacker_ty reading/providing directly *)
-  | ALLOW s=NAME t=list(NAME) LBRACKET DOT RBRACKET { DeclAccess(s, t, None)}
+  | ALLOW proc_ty_and_typs=att_ty_or_proc_ty_and_names LBRACKET a=separated_nonempty_list(COMMA, syscall_name) RBRACKET 
+      { 
+        let proc_ty = List.hd (proc_ty_and_typs) in 
+        let typs = List.tl (proc_ty_and_typs) in 
+        DeclAccess(proc_ty, typs, Some a) 
+      }
+  (* special case for processes reading/providing directly *)
+  | ALLOW proc_ty_and_typs=att_ty_or_proc_ty_and_names LBRACKET DOT RBRACKET 
+      { 
+        let proc_ty = List.hd (proc_ty_and_typs) in 
+        let typs = List.tl (proc_ty_and_typs) in 
+        DeclAccess(proc_ty, typs, None) 
+      }
 
   // | FILESYS t=NAME EQ LBRACKET f=separated_list(COMMA, fpath) RBRACKET { DeclFsys(t, f) }
 
@@ -133,9 +144,9 @@ plain_decl:
   | CONST FRESH t=NAME LTGT COLON typ=typ { DeclInit(t, Some typ, Fresh_with_param) }
   | CONST FRESH t=NAME LTGT { DeclInit(t, None, Fresh_with_param) }
 
-proc_ty_name:
-  | ATTACKER_TYP { "attacker_ty" }
-  | n=NAME { n }
+att_ty_or_proc_ty_and_names:
+  | ATTACKER_TY names=list(NAME) { "attacker_ty" :: names }
+  | names=nonempty_list(NAME) { names }
 
 syscall_name : 
   | READ { "read" }
