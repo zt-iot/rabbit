@@ -16,9 +16,6 @@ type alice_t      : process
 type bob_t        : process 
 
 
-(** temporary solution *)
-type attacker_ty : process
-
 (** single security type for this example *)
 type client_msg : message
 
@@ -77,4 +74,4 @@ process bob(ch_net : udp_t) : bob_t
 }
 
 
-system alice(udp) | bob(udp)
+system alice(udp) | bob(udp) (* rejected by typechecker *)

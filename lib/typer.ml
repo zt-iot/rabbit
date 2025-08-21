@@ -187,6 +187,19 @@ end = struct
   ;;
 end
 
+
+let env_initial_bindings (env : Env.t) : Env.t = 
+  (* a list of hardcoded environment bindings which are built-in to Rabbit 
+  and which the user shouldn't supply *)
+  let initial_bindings = [("bool", Env.SimpleTypeDef([])) ;
+    ("int", Env.SimpleTypeDef([])) ; ("string", Env.SimpleTypeDef([])) ; 
+    ("float", Env.SimpleTypeDef([])) ; ("attacker_ty", Env.ProcTypeDef)] in 
+  
+  List.fold_left (fun acc_env (str, env_desc) -> 
+      let (env', _) = (Env.add_global ~loc:Location.Nowhere acc_env str env_desc) in 
+      env'
+    ) env initial_bindings
+
 let check_arity ~loc ~arity ~use =
   if arity <> use then error ~loc @@ ArityMismatch { arity; use }
 ;;
@@ -709,20 +722,6 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
 ;;
 
 
-
-let env_initial_bindings (env : Env.t) : Env.t = 
-  (* a list of hardcoded environment bindings which are built-in to Rabbit 
-  and which the user shouldn't supply *)
-  let initial_bindings = [("bool", Env.SimpleTypeDef([])) ;
-    ("int", Env.SimpleTypeDef([])) ; ("string", Env.SimpleTypeDef([])) ; 
-    ("float", Env.SimpleTypeDef([])) ; ("attacker_ty", Env.ProcTypeDef)] in 
-  
-  List.fold_left (fun acc_env (str, env_desc) -> 
-      let (env', _) = (Env.add_global ~loc:Location.Nowhere acc_env str env_desc) in 
-      env'
-    ) env initial_bindings
-
-
 let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   let loc = d.loc in
   match d.data with
@@ -1033,8 +1032,6 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
 
 and load env fn : Env.t * Typed.decl list =
 
-  let env' = env_initial_bindings env in 
-
   let decls, (_used_idents, _used_strings) = Lexer.read_file Parser.file fn in
   let env, rev_decls =
     List.fold_left
@@ -1043,7 +1040,7 @@ and load env fn : Env.t * Typed.decl list =
          
          (* first reverses new_decls, then prepends it to acc_decls *)
          env', List.rev_append new_decls acc_decls)
-      (env', [])
+      (env, [])
       decls
   in
   
@@ -1055,3 +1052,9 @@ and load env fn : Env.t * Typed.decl list =
 
   (env, decls)
 ;;
+
+
+
+let load_with_empty_environment fn : Env.t * Typed.decl list = 
+  let initial_nv = env_initial_bindings (Env.empty ()) in 
+  load initial_nv fn 

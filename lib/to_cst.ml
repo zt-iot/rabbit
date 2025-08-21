@@ -773,9 +773,6 @@ let convert (decls : Typed.decl list)
       }  
     in
 
-    print_endline "all_process_typs:";
-    Sets.ProcTySet.iter (fun proc_ty -> (print_endline (proc_ty ^ ", "))) all_process_typs;
-
     let init_typing_env = (initial_typing_env proc_and_syscall_decls conversion_ctx system_location) in  
 
     let core_rabbit_prog = {

@@ -66,6 +66,9 @@ let write_svg (t : Tamarin.tamarin) =
   | None -> ()
   | Some fn -> Tamarin_debug.write_tamarin_svg fn t
 
+
+
+
 (** Main program *)
 let _main =
   Sys.catch_break true ;
@@ -98,8 +101,8 @@ let _main =
             let typer_result =
               try
 
-                let _ = print_endline (Format.sprintf "Running Typer.load on %s" fn) in 
-                let _, decls = Typer.load (Env.empty ()) fn in
+                let _ = print_endline (Format.sprintf "Running Typer.load_with_empty_environment on %s" fn) in 
+                let _, decls = Typer.load_with_empty_environment fn in
                 
                 prerr_endline "TyperSuccess";
                 Ok decls 

@@ -80,4 +80,4 @@ process bob(ch_net : udp_t) : bob_t
 
 
 
-system alice(udp) | bob(udp)
+system alice(udp) | bob(udp) (* accepted by typechecker *)
