@@ -216,6 +216,7 @@ type t_env_typ =
       * cmd
   | MemberFunc of (Ident.t * core_security_function_param) list * core_security_function_param 
       * cmd
+  | PassiveAttack 
   
   (* preparation for when we might want to add mobile processes to Rabbit *)
   | Process of

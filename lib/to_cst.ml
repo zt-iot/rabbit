@@ -360,7 +360,6 @@ let rec convert_expr (ctx : conversion_context) (e : Typed.expr) : Cst_syntax.ex
     | Typed.Float f -> Cst_syntax.Float f
     
     | Typed.Apply (id, exprs) -> 
-        (* we need to check whether the process type calling this function has the permission to call this system call *)
 
         Cst_syntax.Apply (id, List.map (convert_expr ctx) exprs)
     
@@ -681,6 +680,11 @@ let initial_typing_env (proc_and_syscall_decls : Typed.decl list)
               
               Maps.IdentMap.add syscall_id binding_value acc_t_env
             end
+      (* we only need to translate a passive attack, to ensure that the name is bound when typechecking *)
+      | Typed.Syscall { is_passive_attack = true ; id = syscall_id ; _ } -> 
+          let binding_value = Cst_syntax.PassiveAttack in 
+
+          Maps.IdentMap.add syscall_id binding_value acc_t_env
         
       | Typed.Process { id; param; args; typ; files; vars; funcs; main } -> 
         let converted_process = convert_process ctx id param args typ files vars funcs main in 

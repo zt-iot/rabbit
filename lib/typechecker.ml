@@ -95,83 +95,75 @@ let rec typeof_expr (ctx : typechecking_context)
         let float_ident = (Cst_syntax.t_env_lookup_by_name "float" t_env) in 
         (Cst_syntax.TSimple(float_ident, []), (Public, Untrusted))
     | Apply (id, args) ->
-      
-        (* obtain the list of function parameters that `id` takes *)
-        let function_input_params, ret_ty, idents_cmd_opt = begin match IdentMap.find_opt id t_env with 
-          | Some (Cst_syntax.EqThyFunc(params)) -> 
-              let input_params, ret_ty = init_and_last params expr_loc in 
-              input_params, ret_ty,  None
-          | Some (Cst_syntax.Syscall(idents_x_param_tys, ret_ty, cmd)) -> 
-              (* we additionally need to check that this process type is allowed to call this system call `id` *)
-              if (not (Sets.SyscallDescSet.mem (Typed.SyscallId id) allowed_syscalls)) then 
-                raise_type_exception_with_location (Format.sprintf 
-                "syscall '%s' is not allowed to be called by this process type" (Ident.string_part id)) expr_loc;
+        (* if id points to a (Cst_syntax.PassiveAttack), immediately return, 
+            as we do not care about typechecking an application of a passive attack *)
+        begin match IdentMap.find_opt id t_env with 
+        | Some (Cst_syntax.PassiveAttack ) ->
+            (Cst_syntax.TUnit, (Lattice_util.Public, Lattice_util.Untrusted))
+        | _ -> (
+          (* obtain the list of function parameters that `id` takes *)
+          let function_input_params, ret_ty, idents_cmd_opt = begin match IdentMap.find_opt id t_env with 
+            | Some (Cst_syntax.EqThyFunc(params)) -> 
+                let input_params, ret_ty = init_and_last params expr_loc in 
+                input_params, ret_ty,  None
+            | Some (Cst_syntax.Syscall(idents_x_param_tys, ret_ty, cmd)) -> 
+                (* we additionally need to check that this process type is allowed to call this system call `id` *)
+                if (not (Sets.SyscallDescSet.mem (Typed.SyscallId id) allowed_syscalls)) then 
+                  raise_type_exception_with_location (Format.sprintf 
+                  "syscall '%s' is not allowed to be called by this process type" (Ident.string_part id)) expr_loc;
 
 
-              let param_idents = List.map (fst) idents_x_param_tys in 
-              let input_params = List.map (snd) idents_x_param_tys in 
-              input_params, ret_ty, Some (param_idents, cmd)
-          | Some (Cst_syntax.MemberFunc(idents_x_param_tys, ret_ty, cmd)) -> 
-              let param_idents = List.map (fst) idents_x_param_tys in 
-              let input_params = List.map (snd) idents_x_param_tys in 
-              input_params, ret_ty, Some (param_idents, cmd)  
-          | _ -> raise (TypeException (Format.sprintf "The symbol %s cannot be applied ; 
-                        because it is not an equational theory function syscall or member function" (Ident.name id)))
-        end in 
+                let param_idents = List.map (fst) idents_x_param_tys in 
+                let input_params = List.map (snd) idents_x_param_tys in 
+                input_params, ret_ty, Some (param_idents, cmd)
+            | Some (Cst_syntax.MemberFunc(idents_x_param_tys, ret_ty, cmd)) -> 
+                let param_idents = List.map (fst) idents_x_param_tys in 
+                let input_params = List.map (snd) idents_x_param_tys in 
+                input_params, ret_ty, Some (param_idents, cmd)
+              (* there is no need to typecheck applications of passive attacks, as they are not considered part of the type system *) 
+            | _ -> raise (TypeException (Format.sprintf "The symbol %s cannot be applied ; 
+                          because it is not an equational theory function syscall or member function" (Ident.name id)))
+          end in
 
-        if Ident.string_part id = "snd" then (
-          print_endline "function_input_params for snd:";
-          List.iter (fun param_ty -> 
-              print_endline ((Cst_syntax.show_core_security_function_param param_ty) ^ "; ");
-            ) function_input_params;
-        );
+          (* arity check *)
+          let arity_expected = (List.length function_input_params) in 
+          let arity_actual = List.length args in 
+          if (arity_expected <> arity_actual) then
+              raise (TypeException (Format.sprintf "symbol %s is expected to receive %i arguments but it received %i arguments" (Ident.string_part id) arity_expected arity_actual));
+          
+          (* Check whether each argument is a subtype of the function parameter type, modulo the return type of function params *)
+          let types_of_args = List.map (fun e -> (typeof_expr_rec e t_env)) args in 
 
-        (* arity check *)
-        let arity_expected = (List.length function_input_params) in 
-        let arity_actual = List.length args in 
-        if (arity_expected <> arity_actual) then
-            raise (TypeException (Format.sprintf "symbol %s is expected to receive %i arguments but it received %i arguments" (Ident.string_part id) arity_expected arity_actual));
-        
-        (* Check whether each argument is a subtype of the function parameter type, modulo the return type of function params *)
-        let types_of_args = List.map (fun e -> (typeof_expr_rec e t_env)) args in 
+          (* for now, we coerce the function parameters to `Cst_syntax.core_security_ty`'s *)
+          let input_params_cst = List.map (Cst_syntax.core_sec_f_param_to_core_sec_ty) function_input_params in 
 
-        if Ident.string_part id = "snd" then (
-          print_endline "types of arguments given to snd:";
+          let args_x_f_params = List.combine types_of_args input_params_cst in
+          let all_subtypes = List.for_all (fun (x, y) -> 
+            (* print_endline (Cst_syntax.show_Cst_syntax.core_security_ty x);
+            print_endline (Cst_syntax.show_Cst_syntax.core_security_ty y); *)
+            Cst_syntax.is_subtype secrecy_lattice integrity_lattice x y expr_loc) args_x_f_params in
 
-          List.iter (fun arg_ty -> 
-              print_endline ((Cst_syntax.show_core_security_ty arg_ty) ^ "; ");
-            ) types_of_args;
-        );
+          if all_subtypes then
+            begin match idents_cmd_opt with 
+                (* in the case of an equational theory function, simply return the return type *)
+                (* TODO infer the return type of a function if it happens to be polymorphic *)
+                (* for now, we coerce the return type to `Cst_syntax.core_security_ty` *)
+              | None -> Cst_syntax.core_sec_f_param_to_core_sec_ty ret_ty
+              | Some (idents, cmd) -> 
+                (* we need to add the list of param_idents zipped with the list of types to our environment *)
+                (* and then typecheck the cmd under that environment *)
 
-        (* for now, we coerce the function parameters to `Cst_syntax.core_security_ty`'s *)
-        let input_params_cst = List.map (Cst_syntax.core_sec_f_param_to_core_sec_ty) function_input_params in 
-
-        let args_x_f_params = List.combine types_of_args input_params_cst in
-        let all_subtypes = List.for_all (fun (x, y) -> 
-          (* print_endline (Cst_syntax.show_Cst_syntax.core_security_ty x);
-          print_endline (Cst_syntax.show_Cst_syntax.core_security_ty y); *)
-          Cst_syntax.is_subtype secrecy_lattice integrity_lattice x y expr_loc) args_x_f_params in
-
-        if all_subtypes then
-          begin match idents_cmd_opt with 
-              (* in the case of an equational theory function, simply return the return type *)
-              (* TODO infer the return type of a function if it happens to be polymorphic *)
-              (* for now, we coerce the return type to `Cst_syntax.core_security_ty` *)
-            | None -> Cst_syntax.core_sec_f_param_to_core_sec_ty ret_ty
-            | Some (idents, cmd) -> 
-              (* we need to add the list of param_idents zipped with the list of types to our environment *)
-              (* and then typecheck the cmd under that environment *)
-
-              let t_env' = List.fold_left (fun acc_env (ident, f_param_typ) -> 
-                IdentMap.add ident (Cst_syntax.CST f_param_typ) acc_env
-              ) t_env (List.combine idents input_params_cst) in 
-              (typeof_cmd ctx cmd t_env')
-          end
-        else
-            (raise_type_exception_with_location 
-              (Format.sprintf "some arguments of function application of %s cannot be coerced to the function's parameters" (Ident.string_part id))
-              expr_loc)
-
+                let t_env' = List.fold_left (fun acc_env (ident, f_param_typ) -> 
+                  IdentMap.add ident (Cst_syntax.CST f_param_typ) acc_env
+                ) t_env (List.combine idents input_params_cst) in 
+                (typeof_cmd ctx cmd t_env')
+            end
+          else
+              (raise_type_exception_with_location 
+                (Format.sprintf "some arguments of function application of %s cannot be coerced to the function's parameters" (Ident.string_part id))
+                expr_loc)
+      )
+      end
     | Tuple exprs ->
         if (List.length exprs < 2) then
             (raise_type_exception_with_location "A tuple expression must have at least two expressions" expr_loc);
