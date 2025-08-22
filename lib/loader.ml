@@ -652,7 +652,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         definition =
           Context.def_add_ext_eq env.definition (lctx.Context.lctx_loc_var, e1', e2')
       }
-  | Input.DeclExtSyscall (f, signature, c) ->
+  | Input.DeclExtSyscall (_, f, signature, c) ->
       let args = Input.syscall_member_fun_desc_to_ident_list signature in 
       (* [syscall f(a1,..,an) { c }] or [passive attack f(a1,..,an) { c }] *)
       if Context.check_used env.context f then error ~loc (AlreadyDefined f);

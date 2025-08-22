@@ -48,6 +48,11 @@ let options = Arg.align [
      Arg.Set Config.tag_transition,
      "post-process to optimize the produced tamarin model");
 
+     ("--type-check", 
+     Arg.Set Config.type_check,
+     "run security typechecker on the given Rabbit model"
+     );
+
     ("-o",
      Arg.String (fun str -> add_ofile true str),
      "<file> Printing the translated program into <file>");
@@ -144,17 +149,20 @@ let _main =
                 raise exn
               | _ -> ()
             );
-              
-            (* Running typechecker.ml *)
-            (match typer_result with
-             | Error _ -> ()
-             | Ok decls ->
-                let core_rabbit_prog = 
-                  To_cst.convert(decls) in 
-                prerr_endline "ConverterSuccess";
-                
-                let _ = Typechecker.typecheck_sys core_rabbit_prog in
-                prerr_endline "TypecheckerSuccess";
+
+            (* run typechecker if the cmd-line option was given *)
+            if !Config.type_check then (  
+              (* Running typechecker.ml *)
+              (match typer_result with
+              | Error _ -> ()
+              | Ok decls ->
+                  let core_rabbit_prog = 
+                    To_cst.convert(decls) in 
+                  prerr_endline "ConverterSuccess";
+                  
+                  let _ = Typechecker.typecheck_sys core_rabbit_prog in
+                  prerr_endline "TypecheckerSuccess";
+              );
             );
 
             (* Running semantic graph generation *)

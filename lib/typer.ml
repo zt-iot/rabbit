@@ -770,7 +770,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let e2 = desugar_expr env' e2 in
       ( env
       , [{ env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *) }] )
-  | DeclExtSyscall (name, syscall_desc_input, c) ->
+  | DeclExtSyscall (is_passive_attack, name, syscall_desc_input, c) ->
 
       
       let args = Input.syscall_member_fun_desc_to_ident_list syscall_desc_input in 
@@ -796,7 +796,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
             Env.DesSMFunTyped(converted_fun_params_types, converted_ret_ty)
       end in 
       let env', id = Env.add_global ~loc env name (ExtSyscall converted_syscall_sig) in
-      env', [{ env; loc; desc = Typed.Syscall { id; fun_sig = converted_syscall_sig; cmd } }]
+      env', [{ env; loc; desc = Typed.Syscall { is_passive_attack; id; fun_sig = converted_syscall_sig; cmd } }]
   | DeclExtAttack (name, syscall, args, c) ->
       (* [attack id on syscall (a1,..,an) { c }] *)
       let syscall =

@@ -180,8 +180,8 @@ syscall_tk:
   | PASSIVE ATTACK {()}
 
 external_syscall:
-  | syscall_tk f=NAME signature=fun_signature c=cmd { DeclExtSyscall(f, signature, c) }
-
+  | SYSCALL f=NAME signature=fun_signature c=cmd { DeclExtSyscall(false, f, signature, c) }
+  | PASSIVE ATTACK f=NAME signature=fun_signature c=cmd { DeclExtSyscall(true, f, signature, c) }
 
 fact : mark_location(plain_fact) { $1 }
 plain_fact:

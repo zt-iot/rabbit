@@ -59,8 +59,7 @@ channel udp : udp_t
 
 process alice(ch_net : udp_t) : alice_t
 {
-  	main 
-  	{
+  	main {
         new msg : client_msg in (* alice_t creates a client_msg *)
         _ := send(ch_net, msg);
 

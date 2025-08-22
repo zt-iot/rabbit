@@ -787,7 +787,7 @@ let graphs_system (decls : decl list) (sys : decl) =
   let syscalls =
     List.filter_map (fun decl ->
         match decl.desc with
-        | Syscall { id; fun_sig; cmd } ->
+        | Syscall { id; fun_sig; cmd; _ } ->
           let args = Env.syscall_member_fun_desc_to_ident_list fun_sig in  
           Some (id, (args, cmd))
         | _ -> None) decls

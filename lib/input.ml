@@ -163,7 +163,7 @@ and decl' =
   | DeclSimpleTyp of rabbit_typ
   | DeclEqThyFunc of Name.ident * eq_thy_func_desc
   | DeclEqThyEquation of expr * expr
-  | DeclExtSyscall of Name.ident * syscall_member_fun_desc * cmd
+  | DeclExtSyscall of bool (* bool=true if this system call is a passive attack *) * Name.ident * syscall_member_fun_desc * cmd
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
   | DeclType of Name.ident * rabbit_typ
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option

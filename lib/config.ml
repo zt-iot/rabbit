@@ -10,6 +10,8 @@ let optimize = ref false
 
 let tag_transition = ref false
 
+let type_check = ref false
+
 (* unused
 type prelude =
   | PreludeNone

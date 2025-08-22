@@ -573,7 +573,7 @@ let convert_env_desc (ctx : conversion_context) (desc : Env.desc) (loc : Locatio
   (* For all of the following Env.desc constructs : we do _not_ need to add them to our typing_env here *)
 
   (* We do not need to do anything with ExtSyscall, since we have added all syscalls to our environment in the 
-  'initial_typing_env function
+  'initial_typing_env function, as all the information is already in a Typed.Syscall declaration
   *)
   | ExtSyscall _-> None
   (* A member function cannot occur in a system environment, so we do not process it *)
@@ -663,11 +663,11 @@ let initial_typing_env (proc_and_syscall_decls : Typed.decl list)
 
   (* First, we add all the process and syscalls declarations *)
   let initial_env' = List.fold_left (fun acc_t_env decl -> begin match decl.Typed.desc with 
-      | Typed.Syscall { id = syscall_id ; fun_sig ; cmd } -> begin match fun_sig with 
+      | Typed.Syscall { is_passive_attack = false ; id = syscall_id ; fun_sig ; cmd } -> begin match fun_sig with 
             (* every syscall has to have explicit typing information in order to apply the typechecker *)
             | Env.DesSMFunUntyped _ -> 
               (raise_conv_exception_with_location 
-                (Format.sprintf "Member function %s cannot be typechecked if it does not have a typing annotation" (Ident.string_part syscall_id))
+                (Format.sprintf "System call %s cannot be typechecked if it does not have a typing annotation" (Ident.string_part syscall_id))
                 decl.loc)
             | Env.DesSMFunTyped(ids_x_params, ret_ty) -> 
               let (_, f_params) = (List.map fst ids_x_params, List.map snd ids_x_params) in 

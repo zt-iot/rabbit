@@ -178,7 +178,8 @@ type decl = decl' loc_env
 and decl' =
   | Equation of expr * expr
   | Syscall of
-      { id : ident
+      { is_passive_attack : bool
+      ; id : ident
       ; fun_sig : Env.syscall_member_fun_sig
       ; cmd : cmd
       }
