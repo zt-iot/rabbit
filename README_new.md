@@ -24,13 +24,28 @@ When `--svg` option is given with `-o xxx.spthy` option, the transition graph
 is rendered to a SVG file `xxx.spthy.svg`. With `--test-new` option, another
 graph `xxx.spthy.2.svg` is generated for the new compilation `xxx.spthy.2`.
 
-## New compilation stages
+## New compiler pippeline stages
 
 The new compiler pipeline consists of the following stages:
 
 - `Typer`: Name-checking
 - `Sem`: Compilation to a transition graph
 - `Spthy`: The final output to Tamarin's spthy code.
+
+Here is a diagram of the original and new compilation pipelines:
+
+```mermaid
+graph TD
+  rab(.rab file)  -- Parser --> Input
+  Input -- Loader --> Context(Context /w Syntax)
+  Context -- Totamarin --> Tamarin(Tamarin /w Postprocessing)
+  Tamarin -- Tamarin.print_tamarin --> spthy(.spthy file)
+  Input -- Typer --> Typed
+  Typed -- Sem.compile --> Sem(Sem /w Sem.optimize)
+  Sem -- Spthy.compile_sem --> Spthy
+  Spthy -- Spthy.print --> spthy2(.spthy file)
+```
+
 
 ### Typer, name checker
 
