@@ -1,0 +1,102 @@
+Loading complete..
+Merging
+- rule Bob__event_____2_____3__6[role="Bob"] : [State__Bob(<'rab_____2', param>, return__var__6, 'rab__', l__0__6, 'rab__')]--[SharedSecret(l__0__6)]->[State__Bob(<'rab_____3', param>, 'rab__', 'rab__', l__0__6, 'rab__')] 
+
+- rule Bob__let_out_____3_____4__7[role="Bob"] : [State__Bob(<'rab_____3', param>, return__var__7, 'rab__', l__0__7, 'rab__')]-->[State__Bob(<'rab_____4', param>, return__var__7, 'rab__', 'rab__', 'rab__')] 
+
+Merged into:
+- rule Bob__merged_____2_____4__8[role="Bob"] : [State__Bob(<'rab_____2', param>, return__var__6, 'rab__', l__0__6, 'rab__')]--[SharedSecret(l__0__6)]->[State__Bob(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merging
+- rule Bob__scall_out_____1__0_1_____2__5[role="Bob"] : [State__Bob(<'rab_____1__0_1', param>, return__var__5, 'rab__', <l__0__5, l__1__5>, 'rab__')]-->[State__Bob(<'rab_____2', param>, 'rab__', 'rab__', return__var__5, 'rab__')] 
+
+- rule Bob__merged_____2_____4__8[role="Bob"] : [State__Bob(<'rab_____2', param>, return__var__6, 'rab__', l__0__6, 'rab__')]--[SharedSecret(l__0__6)]->[State__Bob(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merged into:
+- rule Bob__merged_____1__0_1_____4__9[role="Bob"] : [State__Bob(<'rab_____1__0_1', param>, return__var__5, 'rab__', <l__0__5, l__1__5>, 'rab__')]--[SharedSecret(return__var__5)]->[State__Bob(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merging
+- rule Bob__case_out_____1__0_0__0_1_____1__0_1__4[role="Bob"] : [State__Bob(<'rab_____1__0_0__0_1', param>, return__var__4, m__0__4, <l__0__4, l__1__4>, 'rab__')]-->[State__Bob(<'rab_____1__0_1', param>, return__var__4, 'rab__', <l__0__4, l__1__4>, 'rab__')] 
+
+- rule Bob__merged_____1__0_1_____4__9[role="Bob"] : [State__Bob(<'rab_____1__0_1', param>, return__var__5, 'rab__', <l__0__5, l__1__5>, 'rab__')]--[SharedSecret(return__var__5)]->[State__Bob(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merged into:
+- rule Bob__merged_____1__0_0__0_1_____4__10[role="Bob"] : [State__Bob(<'rab_____1__0_0__0_1', param>, return__var__4, m__0__4, <l__0__4, l__1__4>, 'rab__')]--[SharedSecret(return__var__4)]->[State__Bob(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merging
+- rule Bob__return_____1__0_0__0_0_____1__0_0__0_1__3[role="Bob"] : [State__Bob(<'rab_____1__0_0__0_0', param>, return__var__3, m__0__3, <l__0__3, l__1__3>, 'rab__')]-->[State__Bob(<'rab_____1__0_0__0_1', param>, m__0__3, m__0__3, <l__0__3, l__1__3>, 'rab__')] 
+
+- rule Bob__merged_____1__0_0__0_1_____4__10[role="Bob"] : [State__Bob(<'rab_____1__0_0__0_1', param>, return__var__4, m__0__4, <l__0__4, l__1__4>, 'rab__')]--[SharedSecret(return__var__4)]->[State__Bob(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merged into:
+- rule Bob__merged_____1__0_0__0_0_____4__11[role="Bob"] : [State__Bob(<'rab_____1__0_0__0_0', param>, return__var__3, m__0__3, <l__0__3, l__1__3>, 'rab__')]--[SharedSecret(m__0__3)]->[State__Bob(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merging
+- rule Bob__guarded_____1__0_0_____1__0_0__0_0__2[role="Bob"] : [State__Bob(<'rab_____1__0_0', param>, return__var__2, 'rab__', <l__0__2, l__1__2>, 'rab__'), Store(l__0__2, n__0__2), !ACP__(<'rab__Bob', param>, l__0__2, 'rab__recv')]-->[State__Bob(<'rab_____1__0_0__0_0', param>, 'rab__', n__0__2, <l__0__2, l__1__2>, 'rab__')] 
+
+- rule Bob__merged_____1__0_0__0_0_____4__11[role="Bob"] : [State__Bob(<'rab_____1__0_0__0_0', param>, return__var__3, m__0__3, <l__0__3, l__1__3>, 'rab__')]--[SharedSecret(m__0__3)]->[State__Bob(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merged into:
+- rule Bob__merged_____1__0_0_____4__12[role="Bob"] : [State__Bob(<'rab_____1__0_0', param>, return__var__2, 'rab__', <l__0__2, l__1__2>, 'rab__'), Store(l__0__2, n__0__2), !ACP__(<'rab__Bob', param>, l__0__2, 'rab__recv')]--[SharedSecret(n__0__2)]->[State__Bob(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Not Merging
+- rule Bob__scall_intro_____1_____1__0_0__1[role="Bob"] : [State__Bob(<'rab_____1', param>, return__var__1, 'rab__', l__0__1, 'rab__')]-->[State__Bob(<'rab_____1__0_0', param>, 'rab__', 'rab__', <'rab__udp', l__0__1>, 'rab__')] 
+
+- rule Bob__merged_____1__0_0_____4__12[role="Bob"] : [State__Bob(<'rab_____1__0_0', param>, return__var__2, 'rab__', <l__0__2, l__1__2>, 'rab__'), Store(l__0__2, n__0__2), !ACP__(<'rab__Bob', param>, l__0__2, 'rab__recv')]--[SharedSecret(n__0__2)]->[State__Bob(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merging
+- rule Bob__let_intro_____0_____1__0[role="Bob"] : [State__Bob(<'rab_____0', param>, return__var__0, 'rab__', 'rab__', 'rab__')]-->[State__Bob(<'rab_____1', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+- rule Bob__scall_intro_____1_____1__0_0__1[role="Bob"] : [State__Bob(<'rab_____1', param>, return__var__1, 'rab__', l__0__1, 'rab__')]-->[State__Bob(<'rab_____1__0_0', param>, 'rab__', 'rab__', <'rab__udp', l__0__1>, 'rab__')] 
+
+Merged into:
+- rule Bob__merged_____0_____1__0_0__13[role="Bob"] : [State__Bob(<'rab_____0', param>, return__var__0, 'rab__', 'rab__', 'rab__')]-->[State__Bob(<'rab_____1__0_0', param>, 'rab__', 'rab__', <'rab__udp', 'rab__'>, 'rab__')] 
+
+Not Merging
+- rule Bob__merged_____0_____1__0_0__13[role="Bob"] : [State__Bob(<'rab_____0', param>, return__var__0, 'rab__', 'rab__', 'rab__')]-->[State__Bob(<'rab_____1__0_0', param>, 'rab__', 'rab__', <'rab__udp', 'rab__'>, 'rab__')] 
+
+- rule Bob__merged_____1__0_0_____4__12[role="Bob"] : [State__Bob(<'rab_____1__0_0', param>, return__var__2, 'rab__', <l__0__2, l__1__2>, 'rab__'), Store(l__0__2, n__0__2), !ACP__(<'rab__Bob', param>, l__0__2, 'rab__recv')]--[SharedSecret(n__0__2)]->[State__Bob(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merging
+- rule Alice__event_____2_____3__4[role="Alice"] : [State__Alice(<'rab_____2', param>, return__var__4, m__0__4, 'rab__', 'rab__')]--[AliceSend(m__0__4)]->[State__Alice(<'rab_____3', param>, 'rab__', m__0__4, 'rab__', 'rab__')] 
+
+- rule Alice__new_out_____3_____4__5[role="Alice"] : [State__Alice(<'rab_____3', param>, return__var__5, m__0__5, 'rab__', 'rab__')]-->[State__Alice(<'rab_____4', param>, return__var__5, 'rab__', 'rab__', 'rab__')] 
+
+Merged into:
+- rule Alice__merged_____2_____4__6[role="Alice"] : [State__Alice(<'rab_____2', param>, return__var__4, m__0__4, 'rab__', 'rab__')]--[AliceSend(m__0__4)]->[State__Alice(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merging
+- rule Alice__scall_out_____1__0_1_____2__3[role="Alice"] : [State__Alice(<'rab_____1__0_1', param>, return__var__3, m__0__3, <l__0__3, l__1__3>, 'rab__')]-->[State__Alice(<'rab_____2', param>, return__var__3, m__0__3, 'rab__', 'rab__')] 
+
+- rule Alice__merged_____2_____4__6[role="Alice"] : [State__Alice(<'rab_____2', param>, return__var__4, m__0__4, 'rab__', 'rab__')]--[AliceSend(m__0__4)]->[State__Alice(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merged into:
+- rule Alice__merged_____1__0_1_____4__7[role="Alice"] : [State__Alice(<'rab_____1__0_1', param>, return__var__3, m__0__3, <l__0__3, l__1__3>, 'rab__')]--[AliceSend(m__0__3)]->[State__Alice(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Not Merging
+- rule Alice__put_____1__0_0_____1__0_1__2[role="Alice"] : [State__Alice(<'rab_____1__0_0', param>, return__var__2, m__0__2, <l__0__2, l__1__2>, 'rab__'), !ACP__(<'rab__Alice', param>, l__1__2, 'rab__send')]-->[State__Alice(<'rab_____1__0_1', param>, 'rab__', m__0__2, <l__0__2, l__1__2>, 'rab__'), Store(l__1__2, l__0__2)] 
+
+- rule Alice__merged_____1__0_1_____4__7[role="Alice"] : [State__Alice(<'rab_____1__0_1', param>, return__var__3, m__0__3, <l__0__3, l__1__3>, 'rab__')]--[AliceSend(m__0__3)]->[State__Alice(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Merging
+- rule Alice__scall_intro_____1_____1__0_0__1[role="Alice"] : [State__Alice(<'rab_____1', param>, return__var__1, m__0__1, 'rab__', 'rab__')]-->[State__Alice(<'rab_____1__0_0', param>, 'rab__', m__0__1, <m__0__1, 'rab__udp'>, 'rab__')] 
+
+- rule Alice__put_____1__0_0_____1__0_1__2[role="Alice"] : [State__Alice(<'rab_____1__0_0', param>, return__var__2, m__0__2, <l__0__2, l__1__2>, 'rab__'), !ACP__(<'rab__Alice', param>, l__1__2, 'rab__send')]-->[State__Alice(<'rab_____1__0_1', param>, 'rab__', m__0__2, <l__0__2, l__1__2>, 'rab__'), Store(l__1__2, l__0__2)] 
+
+Merged into:
+- rule Alice__merged_____1_____1__0_1__8[role="Alice"] : [State__Alice(<'rab_____1', param>, return__var__1, m__0__1, 'rab__', 'rab__'), !ACP__(<'rab__Alice', param>, 'rab__udp', 'rab__send')]-->[State__Alice(<'rab_____1__0_1', param>, 'rab__', m__0__1, <m__0__1, 'rab__udp'>, 'rab__'), Store('rab__udp', m__0__1)] 
+
+Merging
+- rule Alice__new_intro_____0_____1__0[role="Alice"] : [State__Alice(<'rab_____0', param>, return__var__0, 'rab__', 'rab__', 'rab__'), Fr(n__0__0)]-->[State__Alice(<'rab_____1', param>, 'rab__', n__0__0, 'rab__', 'rab__')] 
+
+- rule Alice__merged_____1_____1__0_1__8[role="Alice"] : [State__Alice(<'rab_____1', param>, return__var__1, m__0__1, 'rab__', 'rab__'), !ACP__(<'rab__Alice', param>, 'rab__udp', 'rab__send')]-->[State__Alice(<'rab_____1__0_1', param>, 'rab__', m__0__1, <m__0__1, 'rab__udp'>, 'rab__'), Store('rab__udp', m__0__1)] 
+
+Merged into:
+- rule Alice__merged_____0_____1__0_1__9[role="Alice"] : [State__Alice(<'rab_____0', param>, return__var__0, 'rab__', 'rab__', 'rab__'), Fr(n__0__0), !ACP__(<'rab__Alice', param>, 'rab__udp', 'rab__send')]-->[State__Alice(<'rab_____1__0_1', param>, 'rab__', n__0__0, <n__0__0, 'rab__udp'>, 'rab__'), Store('rab__udp', n__0__0)] 
+
+Not Merging
+- rule Alice__merged_____0_____1__0_1__9[role="Alice"] : [State__Alice(<'rab_____0', param>, return__var__0, 'rab__', 'rab__', 'rab__'), Fr(n__0__0), !ACP__(<'rab__Alice', param>, 'rab__udp', 'rab__send')]-->[State__Alice(<'rab_____1__0_1', param>, 'rab__', n__0__0, <n__0__0, 'rab__udp'>, 'rab__'), Store('rab__udp', n__0__0)] 
+
+- rule Alice__merged_____1__0_1_____4__7[role="Alice"] : [State__Alice(<'rab_____1__0_1', param>, return__var__3, m__0__3, <l__0__3, l__1__3>, 'rab__')]--[AliceSend(m__0__3)]->[State__Alice(<'rab_____4', param>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+Translated into: results/send_well_typed_tmrn/tag-transition_post-process/compiled.spthy

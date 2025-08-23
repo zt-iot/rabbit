@@ -1,0 +1,74 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+
+
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Global Constants:
+
+
+
+// Parametric global Constants:
+
+
+
+// Access control:
+
+
+rule Init__system[role="system"] : []--[Init__('rab__system')]->[State__Alice(<'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__', 'rab__'), State__Bob(<'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__', 'rab__'), !ACP__GEN__('rab__system__', 'rab__rab')] 
+
+rule Init__system__ACP__0[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__0')]->[!ACP__(<'rab__Bob', 'rab__rab'>, 'rab__udp', 'rab__recv')] 
+
+rule Init__system__ACP__1[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__1')]->[!ACP__(<'rab__Bob', 'rab__rab'>, 'rab__udp', 'rab__send')] 
+
+rule Init__system__ACP__2[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__2')]->[!ACP__(<'rab__Alice', 'rab__rab'>, 'rab__udp', 'rab__recv')] 
+
+rule Init__system__ACP__3[role="system"] : [!ACP__GEN__('rab__system__', 'rab__rab')]--[Init__('rab__system__ACP__3')]->[!ACP__(<'rab__Alice', 'rab__rab'>, 'rab__udp', 'rab__send')] 
+
+// Model:  Alice
+
+
+
+rule Alice__merged_____0_____1__0_1__9[role="Alice"] : [State__Alice(<'rab_____0', param, %v__>, return__var__0, 'rab__', 'rab__', 'rab__'), Fr(n__0__0), !ACP__(<'rab__Alice', param>, 'rab__udp', 'rab__send')]--[Transition__(<'rab__Alice', param>, 'rab_____0', %v__)]->[State__Alice(<'rab_____1__0_1', param, %v__>, 'rab__', n__0__0, <n__0__0, 'rab__udp'>, 'rab__'), Store('rab__udp', n__0__0)] 
+
+rule Alice__merged_____1__0_1_____4__7[role="Alice"] : [State__Alice(<'rab_____1__0_1', param, %v__>, return__var__3, m__0__3, <l__0__3, l__1__3>, 'rab__')]--[Transition__(<'rab__Alice', param>, 'rab_____1__0_1', %v__), AliceSend(m__0__3)]->[State__Alice(<'rab_____4', param, %v__>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+
+// Model:  Bob
+
+
+
+rule Bob__merged_____0_____1__0_0__13[role="Bob"] : [State__Bob(<'rab_____0', param, %v__>, return__var__0, 'rab__', 'rab__', 'rab__')]--[Transition__(<'rab__Bob', param>, 'rab_____0', %v__)]->[State__Bob(<'rab_____1__0_0', param, %v__>, 'rab__', 'rab__', <'rab__udp', 'rab__'>, 'rab__')] 
+
+rule Bob__merged_____1__0_0_____4__12[role="Bob"] : [State__Bob(<'rab_____1__0_0', param, %v__>, return__var__2, 'rab__', <l__0__2, l__1__2>, 'rab__'), Store(l__0__2, n__0__2), !ACP__(<'rab__Bob', param>, l__0__2, 'rab__recv')]--[Transition__(<'rab__Bob', param>, 'rab_____1__0_0', %v__), SharedSecret(n__0__2)]->[State__Bob(<'rab_____4', param, %v__>, 'rab__', 'rab__', 'rab__', 'rab__')] 
+
+restriction Init__ : " All x #i #j . Init__(x) @ #i & Init__(x) @ #j ==> #i = #j "
+rule Equality_gen: [] --> [!Eq__(x,x)]
+rule NEquality_gen: [] --[NEq___(x,y)]-> [!NEq__(x,y)]
+restriction NEquality_rule: "All x #i. NEq___(x,x) @ #i ==> F"
+lemma AlwaysStarts__[reuse,use_induction]:
+
+      "All x p #i. Loop__Back(x, p) @i ==> Ex #j. Loop__Start(x, p) @j & j < i"
+lemma AlwaysStartsWhenEnds__[reuse,use_induction]:
+
+      "All x p #i. Loop__Finish(x, p) @i ==> Ex #j. Loop__Start(x, p) @j & j < i"
+lemma TransitionOnce__[reuse,use_induction]:
+
+      "All x p %i #j #k . Transition__(x, p, %i) @#j &
+        Transition__(x, p, %i) @ #k ==> #j = #k"
+
+lemma MsgSecret : all-traces "not(Ex msg #k #l . SharedSecret(msg) @ #k & K(msg) @ #l)"
+end
+

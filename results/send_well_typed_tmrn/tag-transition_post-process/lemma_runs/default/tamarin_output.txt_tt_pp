@@ -1,0 +1,488 @@
+maude tool: 'maude'
+ checking version: 3.5. OK.
+ checking installation: OK.
+[Theory rabbit] Theory loaded
+[Theory rabbit] Theory translated
+[Theory rabbit] Derivation checks started
+[Theory rabbit] Derivation checks ended
+[Theory rabbit] Theory closed
+[Saturating Sources] Step 1 (Max 5)
+[Saturating Sources] Done
+theory rabbit begin
+
+// Function signature and definition of the equational theory E
+
+builtins: natural-numbers
+functions: fst/1, pair/2, snd/1
+equations: fst(<x.1, x.2>) = x.1, snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+rule (modulo E) Init__system[role=system]:
+   [ ]
+  --[ Init__( 'rab__system' ) ]->
+   [
+   State__Alice( <'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__',
+                 'rab__'
+   ),
+   State__Bob( <'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__',
+               'rab__'
+   ),
+   !ACP__GEN__( 'rab__system__', 'rab__rab' )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system__ACP__0[role=system]:
+   [ !ACP__GEN__( 'rab__system__', 'rab__rab' ) ]
+  --[ Init__( 'rab__system__ACP__0' ) ]->
+   [ !ACP__( <'rab__Bob', 'rab__rab'>, 'rab__udp', 'rab__recv' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system__ACP__1[role=system]:
+   [ !ACP__GEN__( 'rab__system__', 'rab__rab' ) ]
+  --[ Init__( 'rab__system__ACP__1' ) ]->
+   [ !ACP__( <'rab__Bob', 'rab__rab'>, 'rab__udp', 'rab__send' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system__ACP__2[role=system]:
+   [ !ACP__GEN__( 'rab__system__', 'rab__rab' ) ]
+  --[ Init__( 'rab__system__ACP__2' ) ]->
+   [ !ACP__( <'rab__Alice', 'rab__rab'>, 'rab__udp', 'rab__recv' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system__ACP__3[role=system]:
+   [ !ACP__GEN__( 'rab__system__', 'rab__rab' ) ]
+  --[ Init__( 'rab__system__ACP__3' ) ]->
+   [ !ACP__( <'rab__Alice', 'rab__rab'>, 'rab__udp', 'rab__send' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__merged_____0_____1__0_1__9[role=Alice]:
+   [
+   State__Alice( <'rab_____0', param, %v__>, return__var__0, 'rab__',
+                 'rab__', 'rab__'
+   ),
+   Fr( n__0__0 ), !ACP__( <'rab__Alice', param>, 'rab__udp', 'rab__send' )
+   ]
+  --[ Transition__( <'rab__Alice', param>, 'rab_____0', %v__ ) ]->
+   [
+   State__Alice( <'rab_____1__0_1', param, %v__>, 'rab__', n__0__0,
+                 <n__0__0, 'rab__udp'>, 'rab__'
+   ),
+   Store( 'rab__udp', n__0__0 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Alice__merged_____1__0_1_____4__7[role=Alice]:
+   [
+   State__Alice( <'rab_____1__0_1', param, %v__>, return__var__3, m__0__3,
+                 <l__0__3, l__1__3>, 'rab__'
+   )
+   ]
+  --[
+  Transition__( <'rab__Alice', param>, 'rab_____1__0_1', %v__ ),
+  AliceSend( m__0__3 )
+  ]->
+   [
+   State__Alice( <'rab_____4', param, %v__>, 'rab__', 'rab__', 'rab__',
+                 'rab__'
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__merged_____0_____1__0_0__13[role=Bob]:
+   [
+   State__Bob( <'rab_____0', param, %v__>, return__var__0, 'rab__', 'rab__',
+               'rab__'
+   )
+   ]
+  --[ Transition__( <'rab__Bob', param>, 'rab_____0', %v__ ) ]->
+   [
+   State__Bob( <'rab_____1__0_0', param, %v__>, 'rab__', 'rab__',
+               <'rab__udp', 'rab__'>, 'rab__'
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Bob__merged_____1__0_0_____4__12[role=Bob]:
+   [
+   State__Bob( <'rab_____1__0_0', param, %v__>, return__var__2, 'rab__',
+               <l__0__2, l__1__2>, 'rab__'
+   ),
+   Store( l__0__2, n__0__2 ),
+   !ACP__( <'rab__Bob', param>, l__0__2, 'rab__recv' )
+   ]
+  --[
+  Transition__( <'rab__Bob', param>, 'rab_____1__0_0', %v__ ),
+  SharedSecret( n__0__2 )
+  ]->
+   [
+   State__Bob( <'rab_____4', param, %v__>, 'rab__', 'rab__', 'rab__',
+               'rab__'
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+restriction Init__:
+  "∀ x #i #j. ((Init__( x ) @ #i) ∧ (Init__( x ) @ #j)) ⇒ (#i = #j)"
+  // safety formula
+
+rule (modulo E) Equality_gen:
+   [ ] --> [ !Eq__( x, x ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) NEquality_gen:
+   [ ] --[ NEq___( x, y ) ]-> [ !NEq__( x, y ) ]
+
+  /* has exactly the trivial AC variant */
+
+restriction NEquality_rule:
+  "∀ x #i. (NEq___( x, x ) @ #i) ⇒ (⊥)"
+  // safety formula
+
+lemma AlwaysStarts__ [reuse, use_induction]:
+  all-traces
+  "∀ x p #i.
+    (Loop__Back( x, p ) @ #i) ⇒
+    (∃ #j. (Loop__Start( x, p ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x p #i.
+  (Loop__Back( x, p ) @ #i)
+ ∧
+  ∀ #j. (Loop__Start( x, p ) @ #j) ⇒ ¬(#j < #i)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( (last(#i))  ∥
+         (∃ #j. (Loop__Start( x, p ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i)) )
+    case case_1
+    by solve( Loop__Back( x, p ) @ #i )
+  next
+    case case_2
+    by contradiction /* from formulas */
+  qed
+qed
+
+lemma AlwaysStartsWhenEnds__ [reuse, use_induction]:
+  all-traces
+  "∀ x p #i.
+    (Loop__Finish( x, p ) @ #i) ⇒
+    (∃ #j. (Loop__Start( x, p ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x p #i.
+  (Loop__Finish( x, p ) @ #i)
+ ∧
+  ∀ #j. (Loop__Start( x, p ) @ #j) ⇒ ¬(#j < #i)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( (last(#i))  ∥
+         (∃ #j. (Loop__Start( x, p ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i)) )
+    case case_1
+    by solve( Loop__Finish( x, p ) @ #i )
+  next
+    case case_2
+    by contradiction /* from formulas */
+  qed
+qed
+
+lemma TransitionOnce__ [reuse, use_induction]:
+  all-traces
+  "∀ x p %i #j #k.
+    ((Transition__( x, p, %i ) @ #j) ∧ (Transition__( x, p, %i ) @ #k)) ⇒
+    (#j = #k)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x p %i #j #k.
+  (Transition__( x, p, %i ) @ #j) ∧ (Transition__( x, p, %i ) @ #k)
+ ∧
+  ¬(#j = #k)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( (#j < #k)  ∥ (#k < #j) )
+    case case_1
+    solve( Transition__( x, p, %i ) @ #j )
+      case Alice__merged_____0_____1__0_1__9
+      solve( State__Alice( <'rab_____0', param, %i>, return__var__0, 'rab__',
+                           'rab__', 'rab__'
+             ) ▶₀ #j )
+        case Init__system
+        solve( !ACP__( <'rab__Alice', 'rab__rab'>, 'rab__udp', 'rab__send'
+               ) ▶₂ #j )
+          case Init__system__ACP__3
+          solve( Transition__( <'rab__Alice', 'rab__rab'>, 'rab_____0', %1 ) @ #k )
+            case Alice__merged_____0_____1__0_1__9
+            solve( State__Alice( <'rab_____0', 'rab__rab', %1>, return__var__0,
+                                 'rab__', 'rab__', 'rab__'
+                   ) ▶₀ #k )
+              case Init__system
+              by contradiction /* cyclic */
+            qed
+          qed
+        qed
+      qed
+    next
+      case Alice__merged_____1__0_1_____4__7
+      solve( State__Alice( <'rab_____1__0_1', param, %i>, return__var__3,
+                           m__0__3, <l__0__3, l__1__3>, 'rab__'
+             ) ▶₀ #j )
+        case Alice__merged_____0_____1__0_1__9
+        solve( Transition__( <'rab__Alice', 'rab__rab'>, 'rab_____1__0_1', %1
+               ) @ #k )
+          case Alice__merged_____1__0_1_____4__7
+          solve( State__Alice( <'rab_____1__0_1', 'rab__rab', %1>, return__var__3,
+                               m__0__3, <l__0__3, l__1__3>, 'rab__'
+                 ) ▶₀ #k )
+            case Alice__merged_____0_____1__0_1__9
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____0_____1__0_0__13
+      solve( State__Bob( <'rab_____0', param, %i>, return__var__0, 'rab__',
+                         'rab__', 'rab__'
+             ) ▶₀ #j )
+        case Init__system
+        solve( Transition__( <'rab__Bob', 'rab__rab'>, 'rab_____0', %1 ) @ #k )
+          case Bob__merged_____0_____1__0_0__13
+          solve( State__Bob( <'rab_____0', 'rab__rab', %1>, return__var__0,
+                             'rab__', 'rab__', 'rab__'
+                 ) ▶₀ #k )
+            case Init__system
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____1__0_0_____4__12
+      solve( State__Bob( <'rab_____1__0_0', param, %i>, return__var__2,
+                         'rab__', <l__0__2, l__1__2>, 'rab__'
+             ) ▶₀ #j )
+        case Bob__merged_____0_____1__0_0__13
+        solve( Store( 'rab__udp', n__0__2 ) ▶₁ #j )
+          case Alice__merged_____0_____1__0_1__9
+          solve( !ACP__( <'rab__Bob', 'rab__rab'>, 'rab__udp', 'rab__recv'
+                 ) ▶₂ #j )
+            case Init__system__ACP__0
+            solve( Transition__( <'rab__Bob', 'rab__rab'>, 'rab_____1__0_0', %1
+                   ) @ #k )
+              case Bob__merged_____1__0_0_____4__12
+              solve( State__Bob( <'rab_____1__0_0', 'rab__rab', %1>, return__var__2,
+                                 'rab__', <l__0__2, l__1__2>, 'rab__'
+                     ) ▶₀ #k )
+                case Bob__merged_____0_____1__0_0__13
+                by contradiction /* cyclic */
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  next
+    case case_2
+    solve( Transition__( x, p, %i ) @ #j )
+      case Alice__merged_____0_____1__0_1__9
+      solve( State__Alice( <'rab_____0', param, %i>, return__var__0, 'rab__',
+                           'rab__', 'rab__'
+             ) ▶₀ #j )
+        case Init__system
+        solve( !ACP__( <'rab__Alice', 'rab__rab'>, 'rab__udp', 'rab__send'
+               ) ▶₂ #j )
+          case Init__system__ACP__3
+          solve( Transition__( <'rab__Alice', 'rab__rab'>, 'rab_____0', %1 ) @ #k )
+            case Alice__merged_____0_____1__0_1__9
+            solve( State__Alice( <'rab_____0', 'rab__rab', %1>, return__var__0,
+                                 'rab__', 'rab__', 'rab__'
+                   ) ▶₀ #k )
+              case Init__system
+              by contradiction /* cyclic */
+            qed
+          qed
+        qed
+      qed
+    next
+      case Alice__merged_____1__0_1_____4__7
+      solve( State__Alice( <'rab_____1__0_1', param, %i>, return__var__3,
+                           m__0__3, <l__0__3, l__1__3>, 'rab__'
+             ) ▶₀ #j )
+        case Alice__merged_____0_____1__0_1__9
+        solve( Transition__( <'rab__Alice', 'rab__rab'>, 'rab_____1__0_1', %1
+               ) @ #k )
+          case Alice__merged_____1__0_1_____4__7
+          solve( State__Alice( <'rab_____1__0_1', 'rab__rab', %1>, return__var__3,
+                               m__0__3, <l__0__3, l__1__3>, 'rab__'
+                 ) ▶₀ #k )
+            case Alice__merged_____0_____1__0_1__9
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____0_____1__0_0__13
+      solve( State__Bob( <'rab_____0', param, %i>, return__var__0, 'rab__',
+                         'rab__', 'rab__'
+             ) ▶₀ #j )
+        case Init__system
+        solve( Transition__( <'rab__Bob', 'rab__rab'>, 'rab_____0', %1 ) @ #k )
+          case Bob__merged_____0_____1__0_0__13
+          solve( State__Bob( <'rab_____0', 'rab__rab', %1>, return__var__0,
+                             'rab__', 'rab__', 'rab__'
+                 ) ▶₀ #k )
+            case Init__system
+            by contradiction /* cyclic */
+          qed
+        qed
+      qed
+    next
+      case Bob__merged_____1__0_0_____4__12
+      solve( State__Bob( <'rab_____1__0_0', param, %i>, return__var__2,
+                         'rab__', <l__0__2, l__1__2>, 'rab__'
+             ) ▶₀ #j )
+        case Bob__merged_____0_____1__0_0__13
+        solve( Store( 'rab__udp', n__0__2 ) ▶₁ #j )
+          case Alice__merged_____0_____1__0_1__9
+          solve( !ACP__( <'rab__Bob', 'rab__rab'>, 'rab__udp', 'rab__recv'
+                 ) ▶₂ #j )
+            case Init__system__ACP__0
+            solve( Transition__( <'rab__Bob', 'rab__rab'>, 'rab_____1__0_0', %1
+                   ) @ #k )
+              case Bob__merged_____1__0_0_____4__12
+              solve( State__Bob( <'rab_____1__0_0', 'rab__rab', %1>, return__var__2,
+                                 'rab__', <l__0__2, l__1__2>, 'rab__'
+                     ) ▶₀ #k )
+                case Bob__merged_____0_____1__0_0__13
+                by contradiction /* cyclic */
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma MsgSecret:
+  all-traces "¬(∃ msg #k #l. (SharedSecret( msg ) @ #k) ∧ (K( msg ) @ #l))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ msg #k #l. (SharedSecret( msg ) @ #k) ∧ (K( msg ) @ #l)"
+*/
+simplify
+solve( State__Bob( <'rab_____1__0_0', param, %v__>, return__var__2,
+                   'rab__', <l__0__2, l__1__2>, 'rab__'
+       ) ▶₀ #k )
+  case Bob__merged_____0_____1__0_0__13
+  solve( Store( 'rab__udp', msg ) ▶₁ #k )
+    case Alice__merged_____0_____1__0_1__9
+    solve( !ACP__( <'rab__Bob', 'rab__rab'>, 'rab__udp', 'rab__recv'
+           ) ▶₂ #k )
+      case Init__system__ACP__0
+      by solve( !KU( ~n ) @ #vk )
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Unbound variables
+=================
+
+  rule `Equality_gen' has unbound variables: 
+    x
+  
+  rule `NEquality_gen' has unbound variables: 
+    x, y
+
+Inexistant lemma actions
+========================
+
+  lemma `AlwaysStarts__' references action 
+    fact "Loop__Back" (arity 2, Linear) 
+  but no rule has such an action.
+  
+  lemma `AlwaysStarts__' references action 
+    fact "Loop__Start" (arity 2, Linear) 
+  but no rule has such an action.
+  
+  lemma `AlwaysStartsWhenEnds__' references action 
+    fact "Loop__Finish" (arity 2, Linear) 
+  but no rule has such an action.
+  
+  lemma `AlwaysStartsWhenEnds__' references action 
+    fact "Loop__Start" (arity 2, Linear) 
+  but no rule has such an action.
+
+Message Derivation Checks
+=========================
+
+  The variables of the following rule(s) are not derivable from their premises, you may be performing unintended pattern matching.
+
+Rule Equality_gen: 
+Failed to derive Variable(s): x
+
+Rule NEquality_gen: 
+Failed to derive Variable(s): x, y
+*/
+
+/*
+Generated from:
+Tamarin version 1.10.0
+Maude version 3.5
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2025-08-17 18:54:16.78386799 UTC
+*/
+
+end
+
+==============================================================================
+summary of summaries:
+
+analyzed: results/send_well_typed_tmrn/tag-transition_post-process/compiled.spthy
+
+  processing time: 0.50s
+  
+  WARNING: 7 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  AlwaysStarts__ (all-traces): verified (6 steps)
+  AlwaysStartsWhenEnds__ (all-traces): verified (6 steps)
+  TransitionOnce__ (all-traces): verified (44 steps)
+  MsgSecret (all-traces): verified (5 steps)
+
+==============================================================================

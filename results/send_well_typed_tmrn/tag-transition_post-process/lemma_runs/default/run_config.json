@@ -1,0 +1,8 @@
+{
+  "lemmas": "all",
+  "timestamp": "2025-08-23T14:40:47.436449",
+  "tamarin_args": [
+    "--prove"
+  ],
+  "timeout": 3600
+}
