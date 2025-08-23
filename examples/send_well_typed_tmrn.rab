@@ -34,9 +34,6 @@ attack tamper_channel on recv (c) {
 
 allow alice_t [eaves_mem]
 allow bob_t [eaves_mem]
-
-allow attack alice_t [tamper_channel]
-allow attack bob_t [tamper_channel]
 (* END TAMARIN access control *)
 
 
@@ -69,8 +66,9 @@ process bob(ch_net : udp_t) : bob_t
     main {
       var msg = recv(ch_net) in 
 
+      (* _ := eaves_mem(msg); *)
       event [::SharedSecret (msg) ]
-      (* _ := eaves_mem(msg) *)
+
     }
 }
 
@@ -81,5 +79,5 @@ system alice(udp) | bob(udp)
 requires
 [
     lemma MsgSecret : 
-      all-traces "not(Ex #msg #k #l . ::SharedSecret(msg) @ #k & K(msg) @ #l)" 
+      all-traces "not(Ex msg #k #l . SharedSecret(msg) @ #k & K(msg) @ #l)" 
 ]
