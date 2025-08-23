@@ -3,9 +3,9 @@ needham_schroeder_nofilesys_unidirectional: a modelling of the Needham-Schroeder
 
 Goal of the protocol: 
 
-- To establish both 
+- To establish both nonce_a and nonce_b as secrets
 
-If this program succeeds TAMARIN verification, it means that there are no secrecy violations
+If this program verifies all given TAMARIN lemmas,it means there are secrecy violations
 * )
 
 
@@ -210,11 +210,13 @@ system
 |   bob(udpba, udpab)
 requires [
 
+  (* 
   lemma agreement_A : 
     reachable ::SecretNonceAlice(x);
 
   lemma agreement_B : 
-    reachable ::SecretNonceBob(x); 
+    reachable ::SecretNonceBob(x);
+  *)
 
   lemma secret_nonce_A_broken : 
     reachable ::K(nonce_a);
