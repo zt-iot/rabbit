@@ -1,3 +1,14 @@
+(**
+needham_schroeder_nofilesys_unidirectional: a modelling of the Needham-Schroeder protocol
+
+Goal of the protocol: 
+
+- To establish both 
+
+If this program succeeds TAMARIN verification, it means that there are no secrecy violations
+* )
+
+
 (* security primitives *)
 function pk:1
 function aenc:2
@@ -119,8 +130,6 @@ process alice(ch_send : udp_t, ch_recv : udp_t, ch_key_net : udp_t) : client_t
     (* UNCOMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
     (* file "/secret/pub_bob" : readonly_t = pk(priv_key_bob) *)
 
-    (* var loc_nonce_a = nonce_a *)
-
   	main 
   	{
       (* UNCOMMENT TO TURN ON FILESYSTEM *)
@@ -166,7 +175,6 @@ process alice(ch_send : udp_t, ch_recv : udp_t, ch_key_net : udp_t) : client_t
 
 process bob(ch_send : udp_t, ch_recv : udp_t) : client_t
 {
-  (* var loc_nonce_b = nonce_b *)
 
   main 
   {
