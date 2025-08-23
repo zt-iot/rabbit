@@ -1,37 +1,20 @@
 
 
-(** 
-send_well_typed: alice tries to send a message with "high" security to bob:
-- The message with high security has type "client_msg"
-- The attacker is not able to read or provide "client_msg"
-
-If this program typechecks, it means that there are no secrecy or integrity violations for any variables existing in the program
-*)
-
-
-data unit
-data message 
-
 type alice_t      : process
 type bob_t        : process 
 
 
-
-(** single security type for this example *)
-type client_msg : message
-
-
-type udp_t : channel[client_msg]
+type udp_t : channel
 
 
 
-syscall send(c : channel[client_msg], v : client_msg) : unit {
+syscall send(c, v) {
   put [c::store(v)]
 }
 
-syscall recv(c : channel[client_msg]) : client_msg {
+syscall recv(c) {
   case 
-  | [c::store(v)] →   v
+  | [c::store(v)] → v
   end
 }
 
@@ -63,13 +46,6 @@ allow alice_t udp_t [send, recv]
 allow bob_t udp_t [send, recv]
 
 
-(* BEGIN Type system access control *)
-(* This section is only needed for type system access control *)
-allow alice_t client_msg [send, recv] (* alice_t is allowed to read and provide client_msg *)
-allow bob_t client_msg [recv] (* bob_t is allowed to read client_msg *)
-(* END Type system access control *)
-
-
 
 
 (* The attacker is not able to do anything ; i.e. we give 0 permissions to the attacker_ty *)
@@ -78,12 +54,12 @@ allow bob_t client_msg [recv] (* bob_t is allowed to read client_msg *)
 process alice(ch_net : udp_t) : alice_t
 {
   	main {
-        new msg : client_msg in (* alice_t creates a client_msg *)
+        new msg in (* alice_t creates a client_msg *)
 
-        _ := eaves_mem(msg);
+        (* _ := eaves_mem(msg); *)
         _ := send(ch_net, msg);
 
-        event [::AliceClose ()]
+        event [::AliceSend (msg) ]
   	}
 }
 
@@ -92,19 +68,18 @@ process bob(ch_net : udp_t) : bob_t
 {
     main {
       var msg = recv(ch_net) in 
-      _ := eaves_mem(msg)
+
+      event [::SharedSecret (msg) ]
+      (* _ := eaves_mem(msg) *)
     }
 }
 
 
 channel udp : udp_t
 
-system alice(udp) | bob(udp) (* accepted by typechecker *)
+system alice(udp) | bob(udp)
 requires
 [
-    lemma Reachable :
-        reachable ::ClientClose(), ::ClientTAClose(), ::ImgRecvValid(x) ;
-
-    lemma Correspondence :
-        corresponds ::ImgRecvValid(x) ~> ::ImgSend (x)
+    lemma MsgSecret : 
+      all-traces "not(Ex #msg #k #l . ::SharedSecret(msg) @ #k & K(msg) @ #l)" 
 ]
