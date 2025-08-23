@@ -1,11 +1,11 @@
 
 
 (** 
-send_well_typed: alice tries to send a message with "high" security to bob:
+send_good_weather: alice tries to send a message with "high" secrecy to bob:
 - The message with high security has type "client_msg"
-- The attacker is not able to read or provide "client_msg"
+- The attacker is not able to read "client_msg"
 
-If this program typechecks, it means that there are no secrecy or integrity violations for any variables existing in the program
+If this program typechecks, it means that there are no secrecy violations
 *)
 
 
