@@ -1,0 +1,319 @@
+(**
+needham_schroeder_nofilesys: a model of the Needham-Schroeder protocol
+
+Goal of the protocol: 
+
+- To establish both nonce_a and nonce_b as secrets
+
+
+This version:
+  - Alice retrieves the public key of Bob by receiving it from the Keyprovider process 
+    This _decreases_ complexity of the compiled TAMARIN model 
+  - There is a single bidirectional channel between Alice and Bob, which is used for all message exchanges between Alice and Bob
+    This _increases_ the complexity of the compiled TAMARIN model as opposed to having separate, unidirectional channels.
+*)
+
+
+
+
+
+
+
+data nonce (* nonces generated both by alice and bob *)
+data enckey['a] (* asymmetric encryption key type, used by Alice and Bob to exchange messages *)
+data deckey['a] (* asymmetric decryption key type, used by Alice and Bob to exchange messages *)
+data cipher['a] (* generic datatype to denote a ciphertext which when decrypted returns data of type 'a *)
+
+
+(***********)
+(** declare types with their classes *)
+type readonly_t   : filesys
+
+type client_t 	  : process
+
+
+type secret_nonce_a : nonce 
+type secret_nonce_b : nonce
+
+
+
+type nonce_chan_t  :  channel[cipher[nonce * string] + cipher[nonce * nonce] + cipher[nonce]]
+type key_chan_t :  channel[enckey[nonce * string]]
+
+
+type secret_key_alice : deckey[secret_nonce_a * secret_nonce_b]
+
+type secret_key_bob_1 : deckey[secret_nonce_a * string]
+type secret_key_bob_2 : deckey[secret_nonce_b]
+
+
+
+
+(* security primitives *)
+function pk_1 : secret_key_alice -> enckey[...]
+function pk_2 : secret_key_bob -> enckey[...]
+
+function enc_1 : secret_nonce_a * string -> enckey[secret_nonce_a * string] -> cipher[secret_nonce_a * string]
+function enc_2 : secret_nonce_a * secret_nonce_b -> enckey[secret_nonce_a * secret_nonce_b] -> cipher[secret_nonce_a * secret_nonce_b]
+function enc_3 : secret_nonce_b -> enckey[secret_nonce_b] -> cipher[secret_nonce_b]
+
+function dec_1 : cipher[secret_nonce_a * string] -> secret_key_bob_1 -> secret_nonce_a * string
+function dec_2 : cipher[secret_nonce_a * secret_nonce_b] -> secret_key_alice -> secret_nonce_a * secret_nonce_b
+function dec_3 : cipher[secret_nonce_b] -> secret_key_bob_2 -> secret_nonce_b 
+
+
+function fst_1 : secret_nonce_a * secret_nonce_b -> secret_nonce_a
+function fst_2 : secret_nonce_a * string -> secret_nonce_a
+
+function snd_1 : secret_nonce_a * secret_nonce_b -> secret_nonce_b
+
+
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+function true:0
+equation dec(enc(x, pk(d)), d) = x
+
+
+
+
+
+
+syscall send_key(c : channel[enckey[nonce * string]], v : enckey[nonce * string]) : unit {
+  put [c::store(v)]
+}
+
+syscall recv_key(c : channel[enckey[nonce * string]]) : enckey[nonce * string] {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+
+syscall send_1(c : channel[cipher[secret_nonce_a * string]], v : cipher[secret_nonce_a * string]) : unit {
+  put [c::store(v)]
+}
+
+syscall recv_1(c : channel[cipher[secret_nonce_a * string]]) : cipher[secret_nonce_a * string] {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+
+syscall send_2(c : channel[cipher[secret_nonce_a * secret_nonce_b]], v : cipher[secret_nonce_a * secret_nonce_b]) : unit {
+  put [c::store(v)]
+}
+
+syscall recv_2(c : channel[cipher[secret_nonce_a * secret_nonce_b]]) : cipher[secret_nonce_a * secret_nonce_b] {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+
+syscall send_3(c : channel[cipher[secret_nonce_b]], v : cipher[secret_nonce_b]) : unit {
+  put [c::store(v)]
+}
+
+syscall recv_3(c : channel[cipher[secret_nonce_b]]) : cipher[secret_nonce_b] {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+
+
+
+syscall fopen (p) {
+  case [p.x] ->
+    new y = Fd(x) in 
+    put [p.x]; y
+  end
+}
+
+syscall fread (y) {
+  let x = y.Fd in
+  x
+}
+
+syscall fclose (y) {
+  delete y.Fd
+}
+
+
+
+(***********)
+(** access control *)
+allow client_t udp_t [send, recv]
+allow client_t readonly_t  [fopen, fread, fclose]
+
+
+
+
+(** declare passive and active attacks *)
+
+passive attack eaves_mem (v) {
+  put [::Out(v)]
+}
+
+attack tamper_channel on recv (c) {
+  case [c::store(j), ::In(w)] ->
+    w
+  end
+}
+
+attack tamper_file on fopen (p) {
+  case [p.x, ::In(w)] -> 
+    new y = Fd(w) in 
+    put [p.w]; y
+  end
+}
+
+(***********)
+(** attacker model *)
+
+(* UNCOMMENT FOLLOWING LINE TO TURN ON PASSIVE ATTACKS *)
+ 
+allow client_t [eaves_mem]
+
+
+(* UNCOMMENT FOLLOWING TWO LINES TO TURN ON ACTIVE ATTACKS *)
+
+allow attack client_t [tamper_channel]
+(* allow attack client_t [tamper_file] *)
+
+
+(***********)
+(** global constants *)
+const fresh nonce_a : secret_nonce_a
+const fresh nonce_b : secret_nonce_b
+const fresh priv_key_alice : secret_key_alice
+const fresh priv_key_bob : secret_key_bob
+
+(***********)
+(** process templates *)
+
+process keyprovider(ch_key_net : udp_t) : client_t {
+  var pub_key_bob_mem = pk_2(priv_key_bob)
+
+  (* the only thing that keyprovider does is putting public key of bob to ch_key_net *)
+  main {
+    _ := eaves_mem(pub_key_bob_mem);
+    _ := send_key(ch_key_net, pub_key_bob_mem)
+  }
+}
+
+process alice(ch_net : nonce_chan_t, ch_key_net : udp_t) : client_t
+{
+    (* UNCOMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
+    (* file "/secret/pub_bob" : readonly_t = pk_2(priv_key_bob) *)
+
+    (* var loc_nonce_a = nonce_a *)
+
+  	main 
+  	{
+      (* UNCOMMENT TO TURN ON FILESYSTEM *)
+      (*
+      var pub_key_bob_fd = fopen("/secret/pub_bob") in
+      var pub_key_bob = fread(pub_key_bob_fd) in 
+      *)
+      
+      (* COMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
+      var pub_key_bob = recv_key(ch_key_net) in 
+
+      var c_txt1 = enc_1((nonce_a, "Alice"), pub_key_bob) in (* pub_key_bob is tampered, therefore, nonce_a is readable by the attacker *)
+
+      _ := eaves_mem(c_txt1);
+      _ := send_1(ch_net, c_txt1);
+      put [::AliceSendNonceA(nonce_a)];
+      event [::AliceSendNonceATag(nonce_a)];
+
+      var c_txt2 = recv_2(ch_net) in
+      var p_txt2 = dec_2(c_txt2, priv_key_alice) in
+
+      var echo_nonce_a = fst_1(p_txt2) in 
+      var loc_nonce_b = snd_1(p_txt2) in 
+
+      (* In principle, Alice should only send the final message if nonce_a == echo_nonce_a *)
+      case 
+      | [echo_nonce_a = nonce_a] →
+        event [::SecretNonceAlice(nonce_a)]; (* declares that `nonce_a` has been established as a shared secret *)
+
+        var c_txt3 = enc_3(loc_nonce_b, pub_key_bob) in (* pub_key_bob is tampered, therefore, loc_nonce_b is readable by the attacker *)
+        _ := eaves_mem(c_txt3);
+        _ := send_3(ch_net, c_txt3);
+        event [::AliceSendNonceBTag(loc_nonce_b)]
+        
+      end;
+      
+      (* UNCOMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
+      (* _ := fclose(pub_key_bob_fd); *)
+
+      event [::AliceClose()]
+  	}
+}
+
+process bob(ch_net : nonce_chan_t) : client_t
+{
+  (* var loc_nonce_b = nonce_b *)
+
+  main 
+  {
+    event [::BobOpen ()];
+
+    var c_txt1 = recv_1(ch_net) in 
+
+    var loc_nonce_a = fst_2(dec_1(c_txt1, priv_key_bob)) in 
+    var c_txt2 = enc_2((loc_nonce_a, nonce_b), pk_1(priv_key_alice)) in 
+
+    _ := eaves_mem(c_txt2);
+    _ := send_2(ch_net, c_txt2); 
+    put [::BobSendNonceB(nonce_b)]; 
+    event [::BobSendNonceBTag(nonce_b)];
+
+    var c_txt3 = recv_3(ch_net) in 
+    var echo_nonce_b = dec_3(c_txt3, priv_key_bob) in 
+
+    (* output SecretNonceBob event if the nonce that Bob receives equals the one he sent *)
+    case 
+    | [echo_nonce_b = nonce_b] →
+      event [::SecretNonceBob(nonce_b)] (* declares that `echo_loc_nonce_b` has been established as a shared secret *)
+    end;
+
+    event [::BobClose()]
+  }
+}
+
+
+(***********)
+(** installed channels *)
+channel nonce_chan : nonce_chan_t 
+channel key_chan : key_chan_t
+
+
+system 
+    keyprovider(key_chan)
+|   alice(nonce_chan, key_chan)
+|   bob(nonce_chan)
+requires [
+
+  lemma agreement_A : 
+  reachable ::SecretNonceAlice(x);
+
+  lemma agreement_B : 
+    reachable ::SecretNonceBob(x); 
+
+  lemma secret_nonce_A_broken : 
+    reachable ::K(nonce_a);
+
+  lemma secret_nonce_B_broken : 
+    reachable ::K(nonce_b);
+
+  lemma secret_nonce_A_broken_upon_agreement : 
+    reachable ::K(x), ::SecretNonceAlice(x);
+
+  lemma secret_nonce_B_broken_upon_agreement : 
+    reachable ::K(x), ::SecretNonceBob(x)
+] (* the requires [...] part is ignored by the typechecker *)
