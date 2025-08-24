@@ -2,11 +2,16 @@
 needham_schroeder_nofilesys_unidirectional: a model of the Needham-Schroeder protocol
 
 Goal of the protocol: 
-
 - To establish both nonce_a and nonce_b as secrets
 
-However, since Needham-Schroeder is a flawed protocol, we have formulated lemma's which model the fact that the secrecy of both nonces is broken 
-Therefore, this program verifies all given TAMARIN lemmas, it means there are secrecy violations
+This version:
+- Alice retrieves the public key of Bob by receiving it from the Keyprovider process
+  This _decreases_ complexity of the compiled TAMARIN model
+- There exist separate channels between Alice, Bob and Keyprovider for each direction of communication. 
+  This _decreases_ the complexity of the compiled TAMARIN model
+
+However, since Needham-Schroeder is a flawed protocol, we have formulated lemmas which model the fact that the secrecy of both nonces is broken 
+Therefore, if this program verifies all given TAMARIN lemmas, it means there are secrecy violations
 * )
 
 

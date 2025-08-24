@@ -5,6 +5,12 @@ Goal of the protocol:
 
 - To establish both nonce_a and nonce_b as secrets
 
+
+This version:
+- We assume Alice already knows the public key of Bob. There is no Keyprovider process or filesystem to retrieve the key. 
+  So there is no way for the attacker to attack the protocol.
+  This means the TAMARIN-translated version of this model is the _least complex_ out of all the other needham-schroeder protocol versions in Rabbit
+
 This program is expected to verify all lemmas, because we have turned off attacks
 * )
 

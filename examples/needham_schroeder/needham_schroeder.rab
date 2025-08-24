@@ -1,3 +1,23 @@
+(**
+needham_schroeder: a model of the Needham-Schroeder protocol
+
+Goal of the protocol: 
+- To establish both nonce_a and nonce_b as secrets
+
+This version:
+- Alice retrieves the public key of Bob by reading it from their filesystem
+  This _increases_ complexity of the compiled TAMARIN model, as opposed to a Keyprovider process providing it
+- There is a single bidirectional communication channel between Alice and Bob 
+  This _increases_ complexity of the compiled TAMARIN model, as opposed to having multiple unidrectional channels between Alice and Bob
+  
+
+However, since Needham-Schroeder is a flawed protocol, we have formulated lemmas which model the fact that the secrecy of both nonces is broken 
+Therefore, if this program verifies all given TAMARIN lemmas, it means there are secrecy violations
+* )
+
+
+
+
 (* security primitives *)
 function pk:1
 function enc:2
@@ -88,12 +108,6 @@ const fresh priv_key_bob
 
 
 (***********)
-(** installed channels and filesystems *)
-
-channel udp : udp_t (* Only a single UDP channel *)
-
-
-(***********)
 (** process templates *)
 
 process alice(ch_net : udp_t) : client_t
@@ -172,6 +186,12 @@ process bob(ch_net : udp_t) : client_t
 }
 
 
+(***********)
+(** installed channels *)
+
+channel udp : udp_t (* Only a single UDP channel *)
+
+
 system 
     alice(udp)
 |   bob(udp)
@@ -195,6 +215,14 @@ requires [
   lemma secret_nonce_B_broken_upon_agreement : 
     reachable ::K(x), ::SecretNonceBob(x)
   
+
+
+
+
+
+  (* These commented lemmas below are formulations of the _same properties_ as above, 
+    but which take more time and resources for TAMARIN to verify, 
+    for some reason *)
     (*
 
     lemma tautology :

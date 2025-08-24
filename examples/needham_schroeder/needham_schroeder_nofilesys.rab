@@ -1,3 +1,21 @@
+(**
+needham_schroeder_nofilesys: a model of the Needham-Schroeder protocol
+
+Goal of the protocol: 
+
+- To establish both nonce_a and nonce_b as secrets
+
+
+This version:
+  - Alice retrieves the public key of Bob by receiving it from the Keyprovider process 
+    This _decreases_ complexity of the compiled TAMARIN model 
+  - There is a single bidirectional channel between Alice and Bob, which is used for all message exchanges between Alice and Bob
+    This _increases_ the complexity of the compiled TAMARIN model as opposed to having separate, unidirectional channels.
+
+However, since Needham-Schroeder is a flawed protocol, we have formulated lemmas which model the fact that the secrecy of both nonces is broken 
+Therefore, if this program verifies all given TAMARIN lemmas, it means there are secrecy violations
+* )
+
 (* security primitives *)
 function pk:1
 function enc:2
