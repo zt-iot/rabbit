@@ -14,7 +14,8 @@ This version:
 
 However, since Needham-Schroeder is a flawed protocol, we have formulated lemmas which model the fact that the secrecy of both nonces is broken 
 Therefore, if this program verifies all given TAMARIN lemmas, it means there are secrecy violations
-* )
+
+*)
 
 (* security primitives *)
 function pk:1
