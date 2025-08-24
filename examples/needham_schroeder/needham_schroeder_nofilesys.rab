@@ -219,55 +219,5 @@ requires [
   lemma secret_nonce_B_broken_upon_agreement : 
     reachable ::K(x), ::SecretNonceBob(x)
 
-    (*
-    lemma BobOpenReachable : 
-      reachable ::BobOpen() ;
-
-    lemma NonceAIsSent : 
-      reachable ::AliceSendNonceATag(nonce_a);
-
-    lemma NonceBIsSent : 
-      reachable ::BobSendNonceBTag(nonce_b) ;
-    
-
-    (* lemma: 3rd message gets sent in some trace *)
-    lemma NonceBIsSentByAlice : 
-      reachable ::AliceSendNonceBTag(nonce_b) ;
-    
-    lemma SecrecyCanBeEstablishedA : 
-      reachable ::SecretNonceAlice(nonce_a) ;
-    lemma SecrecyCanBeEstablishedB : 
-      reachable ::SecretNonceBob(nonce_b) ; 
-    
-
-    lemma NonceSecrecyA : 
-      all-traces "All na #i . SecretNonceAlice(na) @ i ==> not(Ex #l . K(na) @ l)" ;
-
-    lemma NonceSecrecyB : 
-      all-traces "All nb #i . SecretNonceBob(nb) @ i ==> not(Ex #m . K(nb) @ m)"  ;
-
-    (* it cannot be that na is established as a secret and attacker knows it *)
-    lemma NonceSecrecyA_alt : 
-      all-traces "not(Ex na #i #j . SecretNonceAlice(na) @ i & K(na) @ j)" ;
-
-    (* it cannot be that nb is established as a secret and attacker knows it *)
-    lemma NonceSecrecyB_alt : 
-      all-traces "not(Ex nb #i #j . SecretNonceBob(nb) @ i & K(nb) @ j)" ;
   
-
-    (* TAMARIN VERSIONS OF ABOVE LEMMAS *)
-    lemma BobOpenReachable_tmrn : 
-      exists-trace "Ex #i . BobOpen() @ #i " ;
-    lemma NonceAIsSent_tmrn : 
-      exists-trace "Ex na #i . AliceSendNonceATag(na) @ i" ;
-    lemma NonceBIsSent_tmrn : 
-      exists-trace "Ex nb #j . BobSendNonceBTag(nb) @ j" ;
-
-    lemma SecrecyCanBeEstablishedA_tmrn : 
-      exists-trace "Ex na #i  . SecretNonceAlice(na) @ i" ; 
-    lemma SecrecyCanBeEstablishedB_tmrn : 
-      exists-trace "Ex nb #j . SecretNonceBob(nb) @ j" ; 
-
-
-    *)
 ]

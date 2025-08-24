@@ -1,3 +1,14 @@
+(**
+needham_schroeder_noattack_nofilesys: a model of the Needham-Schroeder protocol
+
+Goal of the protocol: 
+
+- To establish both nonce_a and nonce_b as secrets
+
+This program is expected to verify all lemmas, because we have turned off attacks
+* )
+
+
 (* security primitives *)
 function pk:1
 function enc:2
