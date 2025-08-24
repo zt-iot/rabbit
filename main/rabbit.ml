@@ -53,6 +53,11 @@ let options = Arg.align [
      "run security typechecker on the given Rabbit model"
      );
 
+     ("--typecheck", 
+     Arg.Set Config.type_check,
+     "run security typechecker on the given Rabbit model (alias)"
+     );
+
     ("-o",
      Arg.String (fun str -> add_ofile true str),
      "<file> Printing the translated program into <file>");

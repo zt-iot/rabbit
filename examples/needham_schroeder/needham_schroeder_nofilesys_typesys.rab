@@ -13,7 +13,7 @@ This version:
     This _increases_ the complexity of the compiled TAMARIN model as opposed to having separate, unidirectional channels.
 *)
 
-
+data unit
 data nonce (* nonces generated both by alice and bob *)
 data enckey['a] (* asymmetric encryption key type, used by Alice and Bob to exchange messages *)
 data deckey['a] (* asymmetric decryption key type, used by Alice and Bob to exchange messages *)
@@ -24,15 +24,19 @@ data cipher['a] (* generic datatype to denote a ciphertext which when decrypted 
 (** declare types with their classes *)
 type readonly_t   : filesys
 
-type client_t 	  : process
+type keyprovider : process 
+
+type alice_t : process
+type bob_t : process
 
 
 type secret_nonce_a : nonce 
 type secret_nonce_b : nonce
 
+
+
 type nonce_chan_t  :  channel[cipher[nonce * string] + cipher[nonce * nonce] + cipher[nonce]]
 type key_chan_t :  channel[enckey[nonce * string]]
-
 
 
 type secret_key_alice : deckey[secret_nonce_a * secret_nonce_b]
@@ -41,9 +45,13 @@ type secret_key_bob_1 : deckey[secret_nonce_a * string]
 type secret_key_bob_2 : deckey[secret_nonce_b]
 
 
+
+
 (* security primitives *)
-function pk_1 : secret_key_alice -> enckey[...]
-function pk_2 : secret_key_bob_1 -> enckey[...]
+function pka : secret_key_alice -> enckey[secret_nonce_a * string]
+
+function pkb_1 : secret_key_bob_1 -> enckey[secret_nonce_a * secret_nonce_b]
+function pkb_2 : secret_key_bob_2 -> enckey[secret_nonce_b]
 
 function enc_1 : secret_nonce_a * string -> enckey[secret_nonce_a * string] -> cipher[secret_nonce_a * string]
 function enc_2 : secret_nonce_a * secret_nonce_b -> enckey[secret_nonce_a * secret_nonce_b] -> cipher[secret_nonce_a * secret_nonce_b]
@@ -128,38 +136,27 @@ syscall fclose (y) {
 
 
 
-
-
-
-
 (** declare passive and active attacks *)
 
-passive attack eaves_mem (v) {
-  put [::Out(v)]
-}
-
-attack tamper_channel on recv (c) {
-  case [c::store(j), ::In(w)] ->
-    w
-  end
-}
-
-attack tamper_file on fopen (p) {
-  case [p.x, ::In(w)] -> 
-    new y = Fd(w) in 
-    put [p.w]; y
-  end
-}
 
 (***********)
 (** access control *)
 
+allow alice_t key_chan_t [recv_key]
 
+allow alice_t secret_nonce_a [read, provide]
+allow alice_t secret_nonce_b [read, provide]
 
+allow alice_t nonce_chan_t [send_1, send_3, recv_1, recv_3]
+allow bob_t nonce_chan_t [send_2, recv_2]
 
+allow alice_t secret_key_alice [read]
 
+allow bob_t secret_nonce_b [read, provide]
+allow bob_t secret_nonce_a [read, provide]
 
-
+allow bob_t secret_key_bob_1 [read]
+allow bob_t secret_key_bob_2 [read]
 
 
 
@@ -168,25 +165,33 @@ attack tamper_file on fopen (p) {
 const fresh nonce_a : secret_nonce_a
 const fresh nonce_b : secret_nonce_b
 const fresh priv_key_alice : secret_key_alice
-const fresh priv_key_bob : secret_key_bob
+
+const fresh priv_key_bob_1 : secret_key_bob_1
+const fresh priv_key_bob_2 : secret_key_bob_2
 
 (***********)
 (** process templates *)
 
-process keyprovider(ch_key_net : udp_t) : client_t {
-  var pub_key_bob_mem = pk_2(priv_key_bob)
+process keyprovider(ch_1 : key_chan_1_t, ch_2 : key_chan_2_t) : keyprovider_t {
+
+  var pub_key_bob_mem_1 = pkb_1(priv_key_bob_1)
+  var pub_key_bob_mem_2 = pkb_2(priv_key_bob_2)
 
   (* the only thing that keyprovider does is putting public key of bob to ch_key_net *)
   main {
-    _ := eaves_mem(pub_key_bob_mem);
-    _ := send_key(ch_key_net, pub_key_bob_mem)
+    _ := eaves_mem(pub_key_bob_mem_1);
+    _ := eaves_mem(pub_key_bob_mem_2);
+
+    _ := send_key_1(ch_1, pub_key_bob_mem_1);
+    _ := send_key_2(ch_2, pub_key_bob_mem_2)
   }
 }
 
-process alice(ch_net : nonce_chan_t, ch_key_net : udp_t) : alice_t
+process alice(ch_net : nonce_chan_t, ch_key_net_1 : key_chan_1_t, ch_key_net_2 : key_chan_2_t) : alice_t
 {
     (* UNCOMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
-    (* file "/secret/pub_bob" : readonly_t = pk_2(priv_key_bob) *)
+    (* file "/secret/pub_bob_1" : readonly_t = pk_1(priv_key_bob_1) *)
+    (* file "/secret/pub_bob_2" : readonly_t = pk_2(priv_key_bob_2) *)
 
     (* var loc_nonce_a = nonce_a *)
 
@@ -199,9 +204,10 @@ process alice(ch_net : nonce_chan_t, ch_key_net : udp_t) : alice_t
       *)
       
       (* COMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
-      var pub_key_bob = recv_key(ch_key_net) in 
+      var pub_key_bob_1 = recv_key_1(ch_key_net_1) in 
+      var pub_key_bob_2 = recv_key_2(ch_key_net_2) in 
 
-      var c_txt1 = enc_1((nonce_a, "Alice"), pub_key_bob) in (* pub_key_bob is tampered, therefore, nonce_a is readable by the attacker *)
+      var c_txt1 = enc_1((nonce_a, "Alice"), pub_key_bob_1) in (* pub_key_bob_1 is tampered, therefore, nonce_a is readable by the attacker *)
 
       _ := eaves_mem(c_txt1);
       _ := send_1(ch_net, c_txt1);
@@ -219,7 +225,7 @@ process alice(ch_net : nonce_chan_t, ch_key_net : udp_t) : alice_t
       | [echo_nonce_a = nonce_a] →
         event [::SecretNonceAlice(nonce_a)]; (* declares that `nonce_a` has been established as a shared secret *)
 
-        var c_txt3 = enc_3(loc_nonce_b, pub_key_bob) in (* pub_key_bob is tampered, therefore, loc_nonce_b is readable by the attacker *)
+        var c_txt3 = enc_3(loc_nonce_b, pub_key_bob_2) in (* pub_key_bob_2 is tampered, therefore, loc_nonce_b is readable by the attacker *)
         _ := eaves_mem(c_txt3);
         _ := send_3(ch_net, c_txt3);
         event [::AliceSendNonceBTag(loc_nonce_b)]
@@ -243,8 +249,8 @@ process bob(ch_net : nonce_chan_t) : bob_t
 
     var c_txt1 = recv_1(ch_net) in 
 
-    var loc_nonce_a = fst_2(dec_1(c_txt1, priv_key_bob)) in 
-    var c_txt2 = enc_2((loc_nonce_a, nonce_b), pk_1(priv_key_alice)) in 
+    var loc_nonce_a = fst_2(dec_1(c_txt1, priv_key_bob_1)) in 
+    var c_txt2 = enc_2((loc_nonce_a, nonce_b), pka(priv_key_alice)) in 
 
     _ := eaves_mem(c_txt2);
     _ := send_2(ch_net, c_txt2); 
@@ -252,7 +258,7 @@ process bob(ch_net : nonce_chan_t) : bob_t
     event [::BobSendNonceBTag(nonce_b)];
 
     var c_txt3 = recv_3(ch_net) in 
-    var echo_nonce_b = dec_3(c_txt3, priv_key_bob) in 
+    var echo_nonce_b = dec_3(c_txt3, priv_key_bob_2) in 
 
     (* output SecretNonceBob event if the nonce that Bob receives equals the one he sent *)
     case 
