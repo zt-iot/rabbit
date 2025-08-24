@@ -14,11 +14,6 @@ This version:
 *)
 
 
-
-
-
-
-
 data nonce (* nonces generated both by alice and bob *)
 data enckey['a] (* asymmetric encryption key type, used by Alice and Bob to exchange messages *)
 data deckey['a] (* asymmetric decryption key type, used by Alice and Bob to exchange messages *)
@@ -35,10 +30,9 @@ type client_t 	  : process
 type secret_nonce_a : nonce 
 type secret_nonce_b : nonce
 
-
-
 type nonce_chan_t  :  channel[cipher[nonce * string] + cipher[nonce * nonce] + cipher[nonce]]
 type key_chan_t :  channel[enckey[nonce * string]]
+
 
 
 type secret_key_alice : deckey[secret_nonce_a * secret_nonce_b]
@@ -47,11 +41,9 @@ type secret_key_bob_1 : deckey[secret_nonce_a * string]
 type secret_key_bob_2 : deckey[secret_nonce_b]
 
 
-
-
 (* security primitives *)
 function pk_1 : secret_key_alice -> enckey[...]
-function pk_2 : secret_key_bob -> enckey[...]
+function pk_2 : secret_key_bob_1 -> enckey[...]
 
 function enc_1 : secret_nonce_a * string -> enckey[secret_nonce_a * string] -> cipher[secret_nonce_a * string]
 function enc_2 : secret_nonce_a * secret_nonce_b -> enckey[secret_nonce_a * secret_nonce_b] -> cipher[secret_nonce_a * secret_nonce_b]
@@ -66,17 +58,6 @@ function fst_1 : secret_nonce_a * secret_nonce_b -> secret_nonce_a
 function fst_2 : secret_nonce_a * string -> secret_nonce_a
 
 function snd_1 : secret_nonce_a * secret_nonce_b -> secret_nonce_b
-
-
-function fst:1
-function snd:1
-equation fst ((x, y)) = x
-equation snd ((x, y)) = y
-function true:0
-equation dec(enc(x, pk(d)), d) = x
-
-
-
 
 
 
@@ -144,10 +125,9 @@ syscall fclose (y) {
 
 
 
-(***********)
-(** access control *)
-allow client_t udp_t [send, recv]
-allow client_t readonly_t  [fopen, fread, fclose]
+
+
+
 
 
 
@@ -172,17 +152,15 @@ attack tamper_file on fopen (p) {
 }
 
 (***********)
-(** attacker model *)
-
-(* UNCOMMENT FOLLOWING LINE TO TURN ON PASSIVE ATTACKS *)
- 
-allow client_t [eaves_mem]
+(** access control *)
 
 
-(* UNCOMMENT FOLLOWING TWO LINES TO TURN ON ACTIVE ATTACKS *)
 
-allow attack client_t [tamper_channel]
-(* allow attack client_t [tamper_file] *)
+
+
+
+
+
 
 
 (***********)
@@ -205,7 +183,7 @@ process keyprovider(ch_key_net : udp_t) : client_t {
   }
 }
 
-process alice(ch_net : nonce_chan_t, ch_key_net : udp_t) : client_t
+process alice(ch_net : nonce_chan_t, ch_key_net : udp_t) : alice_t
 {
     (* UNCOMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
     (* file "/secret/pub_bob" : readonly_t = pk_2(priv_key_bob) *)
@@ -255,7 +233,7 @@ process alice(ch_net : nonce_chan_t, ch_key_net : udp_t) : client_t
   	}
 }
 
-process bob(ch_net : nonce_chan_t) : client_t
+process bob(ch_net : nonce_chan_t) : bob_t
 {
   (* var loc_nonce_b = nonce_b *)
 
