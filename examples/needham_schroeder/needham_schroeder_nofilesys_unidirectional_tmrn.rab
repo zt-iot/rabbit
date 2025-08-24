@@ -1,11 +1,12 @@
 (**
-needham_schroeder_nofilesys_unidirectional: a modelling of the Needham-Schroeder protocol
+needham_schroeder_nofilesys_unidirectional: a model of the Needham-Schroeder protocol
 
 Goal of the protocol: 
 
 - To establish both nonce_a and nonce_b as secrets
 
-If this program verifies all given TAMARIN lemmas,it means there are secrecy violations
+However, since Needham-Schroeder is a flawed protocol, we have formulated lemma's which model the fact that the secrecy of both nonces is broken 
+Therefore, this program verifies all given TAMARIN lemmas, it means there are secrecy violations
 * )
 
 
