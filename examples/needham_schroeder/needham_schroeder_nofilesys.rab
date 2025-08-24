@@ -1,27 +1,34 @@
 (**
-needham_schroeder_nofilesys_unidirectional: a model of the Needham-Schroeder protocol
+needham_schroeder_nofilesys: a model of the Needham-Schroeder protocol
 
 Goal of the protocol: 
 
 - To establish both nonce_a and nonce_b as secrets
 
-However, since Needham-Schroeder is a flawed protocol, we have formulated lemma's which model the fact that the secrecy of both nonces is broken 
-Therefore, this program verifies all given TAMARIN lemmas, it means there are secrecy violations
-* )
 
+This version:
+  - Alice retrieves the public key of Bob by receiving it from the Keyprovider process 
+    This _decreases_ complexity of the compiled TAMARIN model 
+  - There is a single bidirectional channel between Alice and Bob, which is used for all message exchanges between Alice and Bob
+    This _increases_ the complexity of the compiled TAMARIN model as opposed to having separate, unidirectional channels.
+
+However, since Needham-Schroeder is a flawed protocol, we have formulated lemmas which model the fact that the secrecy of both nonces is broken 
+Therefore, if this program verifies all given TAMARIN lemmas, it means there are secrecy violations
+
+*)
 
 (* security primitives *)
 function pk:1
-function aenc:2
+function enc:2
 function sign:2
-function adec:2
+function dec:2
 function fst:1
 function snd:1
 equation fst ((x, y)) = x
 equation snd ((x, y)) = y
 function true:0
 function verify:3
-equation adec(aenc(x, pk(d)), d) = x
+equation dec(enc(x, pk(d)), d) = x
 equation verify (sign(d, k), d, pk(k)) = true
 
 
@@ -108,8 +115,7 @@ const fresh priv_key_bob
 (***********)
 (** installed channels and filesystems *)
 
-channel udpab : udp_t 
-channel udpba : udp_t 
+channel udp : udp_t 
 channel key_chan : udp_t
 
 
@@ -126,10 +132,12 @@ process keyprovider(ch_key_net : udp_t) : client_t {
   }
 }
 
-process alice(ch_send : udp_t, ch_recv : udp_t, ch_key_net : udp_t) : client_t
+process alice(ch_net : udp_t, ch_key_net : udp_t) : client_t
 {
     (* UNCOMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
     (* file "/secret/pub_bob" : readonly_t = pk(priv_key_bob) *)
+
+    (* var loc_nonce_a = nonce_a *)
 
   	main 
   	{
@@ -142,15 +150,15 @@ process alice(ch_send : udp_t, ch_recv : udp_t, ch_key_net : udp_t) : client_t
       (* COMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
       var pub_key_bob = recv(ch_key_net) in 
 
-      var c_txt1 = aenc((nonce_a, "Alice"), pub_key_bob) in (* pub_key_bob is tampered, therefore, nonce_a is readable by the attacker *)
+      var c_txt1 = enc((nonce_a, "Alice"), pub_key_bob) in (* pub_key_bob is tampered, therefore, nonce_a is readable by the attacker *)
 
       _ := eaves_mem(c_txt1);
-      _ := send(ch_send, c_txt1);
-
+      _ := send(ch_net, c_txt1);
+      put [::AliceSendNonceA(nonce_a)];
       event [::AliceSendNonceATag(nonce_a)];
 
-      var c_txt2 = recv(ch_recv) in
-      var p_txt2 = adec(c_txt2, priv_key_alice) in
+      var c_txt2 = recv(ch_net) in
+      var p_txt2 = dec(c_txt2, priv_key_alice) in
 
       var echo_nonce_a = fst(p_txt2) in 
       var loc_nonce_b = snd(p_txt2) in 
@@ -160,9 +168,9 @@ process alice(ch_send : udp_t, ch_recv : udp_t, ch_key_net : udp_t) : client_t
       | [echo_nonce_a = nonce_a] →
         event [::SecretNonceAlice(nonce_a)]; (* declares that `nonce_a` has been established as a shared secret *)
 
-        var c_txt3 = aenc(loc_nonce_b, pub_key_bob) in (* pub_key_bob is tampered, therefore, loc_nonce_b is readable by the attacker *)
+        var c_txt3 = enc(loc_nonce_b, pub_key_bob) in (* pub_key_bob is tampered, therefore, loc_nonce_b is readable by the attacker *)
         _ := eaves_mem(c_txt3);
-        _ := send(ch_send, c_txt3);
+        _ := send(ch_net, c_txt3);
         event [::AliceSendNonceBTag(loc_nonce_b)]
         
       end;
@@ -174,25 +182,26 @@ process alice(ch_send : udp_t, ch_recv : udp_t, ch_key_net : udp_t) : client_t
   	}
 }
 
-process bob(ch_send : udp_t, ch_recv : udp_t) : client_t
+process bob(ch_net : udp_t) : client_t
 {
+  (* var loc_nonce_b = nonce_b *)
 
   main 
   {
     event [::BobOpen ()];
 
-    var c_txt1 = recv(ch_recv) in 
+    var c_txt1 = recv(ch_net) in 
 
-    var loc_nonce_a = fst(adec(c_txt1, priv_key_bob)) in 
-    var c_txt2 = aenc((loc_nonce_a, nonce_b), pk(priv_key_alice)) in 
+    var loc_nonce_a = fst(dec(c_txt1, priv_key_bob)) in 
+    var c_txt2 = enc((loc_nonce_a, nonce_b), pk(priv_key_alice)) in 
 
     _ := eaves_mem(c_txt2);
-    _ := send(ch_send, c_txt2); 
-
+    _ := send(ch_net, c_txt2); 
+    put [::BobSendNonceB(nonce_b)]; 
     event [::BobSendNonceBTag(nonce_b)];
 
-    var c_txt3 = recv(ch_recv) in 
-    var echo_nonce_b = adec(c_txt3, priv_key_bob) in 
+    var c_txt3 = recv(ch_net) in 
+    var echo_nonce_b = dec(c_txt3, priv_key_bob) in 
 
     (* output SecretNonceBob event if the nonce that Bob receives equals the one he sent *)
     case 
@@ -207,17 +216,15 @@ process bob(ch_send : udp_t, ch_recv : udp_t) : client_t
 
 system 
     keyprovider(key_chan)
-|   alice(udpab, udpba, key_chan)
-|   bob(udpba, udpab)
+|   alice(udp, key_chan)
+|   bob(udp)
 requires [
 
-  (* 
   lemma agreement_A : 
-    reachable ::SecretNonceAlice(x);
+  reachable ::SecretNonceAlice(x);
 
   lemma agreement_B : 
-    reachable ::SecretNonceBob(x);
-  *)
+    reachable ::SecretNonceBob(x); 
 
   lemma secret_nonce_A_broken : 
     reachable ::K(nonce_a);
@@ -231,4 +238,5 @@ requires [
   lemma secret_nonce_B_broken_upon_agreement : 
     reachable ::K(x), ::SecretNonceBob(x)
 
+  
 ]
