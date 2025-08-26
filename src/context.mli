@@ -42,7 +42,7 @@ type context =
   ; ctx_proctmpl : ctx_process_template list
     (** process templates, by [DeclParamProc] and [DeclProc] *)
   ; ctx_event : (Name.ident * int) list
-    (** event predicate name, its arity, probably unused. Not used... *)
+    (** event predicate name, its arity, probably unused. *)
   ; ctx_fact : (Name.ident * int * bool) list (** facts, not used *)
   ; ctx_inj_fact : (Name.ident * int) list (** structure by [new x := S(es) in c] *)
   }

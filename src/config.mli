@@ -14,26 +14,3 @@ val optimize : bool ref
 
 (** Flag to enable transition tagging in output *)
 val tag_transition : bool ref
-
-(* unused
-(** Type representing different prelude options
-    - PreludeNone: No prelude file loaded
-    - PreludeDefault: Load default prelude
-    - PreludeFile: Load custom prelude file *)
-type prelude = PreludeNone | PreludeDefault | PreludeFile of string
-
-(** Reference to store the prelude configuration *)
-val prelude_file : prelude ref
-
-(** Flag to enable/disable interactive shell mode *)
-val interactive_shell : bool ref
-
-(** Optional wrapper command to run Rabbit with *)
-val wrapper : string list option ref
-
-(** Flag to enable/disable tracing *)
-val trace : bool ref
-
-(** Flag to enable/disable verbose output *)
-val verbose : bool ref
-*)

@@ -90,7 +90,6 @@ and decl' =
   | DeclAccess of Name.ident * Name.ident list * Name.ident list option
   | DeclAttack of Name.ident list * Name.ident list
   | DeclInit of Name.ident * init_desc
-  | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
   | DeclChan of chan_param
   | DeclProc of { id : Name.ident
                 ; param : Name.ident option

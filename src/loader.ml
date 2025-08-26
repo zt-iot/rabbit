@@ -932,17 +932,6 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
              let tmp =
                match l.Location.data with
                | Input.Lemma (l, p) ->
-                   (* unused
-                      let rec collect_vars e lctx =
-                      try let e = process_expr ctx lctx e in (e, lctx)
-                      with
-                      | Error {Location.data=err; Location.loc=locc} ->
-                         begin match err with
-                         | UnknownIdentifier id -> collect_vars e (Context.lctx_add_new_var ~loc lctx id)
-                         | _ -> error ~loc:locc err
-                         end
-                      in
-                   *)
                    (match p.Location.data with
                     | Input.PlainString s -> Syntax.PlainLemma { name=l; desc= s }
                     | Input.Reachability evs ->

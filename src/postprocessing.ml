@@ -114,10 +114,6 @@ match e1 with
 | MetaVar _i | LocVar _i | TopVar _i -> assert false
 | _ -> e1
 
-(* xxx unused *)
-let _fact_subst_var f s e =
-  fact_rec_on_expr f (fun e' -> expr_subst_var e' s e)
-
 let rec expr_subst_vars e1 substs =
   match substs with
   | (s, e) :: substs -> expr_subst_vars (expr_subst_var e1 s e) substs

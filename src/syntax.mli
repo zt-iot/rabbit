@@ -137,8 +137,6 @@ and decl' =
       [const fresh n]
       [const name<param> = e]
       [const fresh name<>] *)
-  | DeclFsys of Name.ident * ((Name.ident * expr * Name.ident) list)
-  (** [filesys n = [f1, .., fm]] XXX unused *)
   | DeclChan of chan_param
   (** [channel name : chan_ty] or [channel name<> : chan_ty] *)
   | DeclProc of { id : Name.ident
