@@ -229,7 +229,7 @@ let type_fact env (fact : Input.fact) : Typed.fact =
   let loc = fact.loc in
   let desc : Typed.fact' =
     match fact.data with
-    | ProcessFact _ -> assert false (* XXX ??? *)
+    | ProcessFact _ -> assert false (* Unused *)
     | Fact (name, es) ->
         (* Which fact? For strucure? *)
         let nes = List.length es in
@@ -388,7 +388,6 @@ and type_case env (facts, cmd) : Typed.case =
   Typed.{ fresh = fresh_ids; facts; cmd }
 ;;
 
-(* XXX global channels must be dropped fro the env *)
 let type_process
       ~loc
       env
@@ -539,13 +538,19 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let fresh =
         Name.Set.elements (Name.Set.filter (fun v -> not (Env.mem env v)) vars)
       in
-      let env', _fresh_ids (* XXX should be in the tree *) =
+      let env', _fresh_ids =
         extend_with_args env fresh @@ fun _id -> Var
       in
       let e1 = type_expr env' e1 in
       let e2 = type_expr env' e2 in
       ( env
-      , [{ env = env'; loc; desc = Equation (e1, e2) (* XXX fresh should be included *) }] )
+      , [{ env = env'
+         ; loc
+         ; desc =
+             (* [_fresh_ids] should be included,
+                but so far this information is not required in the later stages *)
+             Equation (e1, e2)
+         }] )
   | DeclExtSyscall (name, args, c, attack) ->
       let args, cmd =
         let env', args = extend_with_args env args @@ fun _id -> Var in

@@ -68,14 +68,17 @@ let rec cmd s (c : cmd) : cmd =
   { c with desc }
 
 type proc_group_id = Ident.t
+
 type proc_id = Ident.t
+
 type param_id = Ident.t
 
 let param_id = Fun.id
 
+type pid = proc_id * param_id option
+
 type proc =
-  { id : proc_id
-  ; param : param_id option
+  { pid : pid
   ; args : chan_arg list
   ; typ : ident
   ; files : (expr * ident * expr) list
@@ -86,6 +89,7 @@ type proc =
 
 let instantiate_proc_aux s ~id ~param ~args ~typ ~files ~vars ~funcs ~main =
   let id = Ident.local (fst id) in
+  let pid = id, param in
   let args =
     List.map (fun (chan_arg : chan_arg) ->
         { chan_arg with parameter = Option.map (Option.map (expr s)) chan_arg.parameter }) args
@@ -94,7 +98,7 @@ let instantiate_proc_aux s ~id ~param ~args ~typ ~files ~vars ~funcs ~main =
   let vars = List.map (fun (id, def) -> (id, expr s def)) vars in
   let funcs = List.map (fun (fn, vars, c) -> (fn, vars, cmd s c)) funcs in
   let main = cmd s main in
-  { id; param; args; typ; files; vars; funcs; main }
+  { pid; args; typ; files; vars; funcs; main }
 
 let instantiate_proc
     ~param_rewrite

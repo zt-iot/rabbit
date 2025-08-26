@@ -17,16 +17,23 @@ val cmd : t -> cmd -> cmd
     We use private types to distinguish the ids for different tpyes.
 *)
 
+(** Process group ident *)
 type proc_group_id = private Ident.t
+
+(** Process ident *)
 type proc_id = private Ident.t
+
+(** Parameter ident *)
 type param_id = private Ident.t
 
 val param_id : Ident.t -> param_id
 
+(** Process identification *)
+type pid = proc_id * param_id option
+
 (** Instantiated proc *)
 type proc =
-  { id : proc_id
-  ; param : param_id option
+  { pid : pid
   ; args : chan_arg list
   ; typ : ident
   ; files : (expr * ident * expr) list

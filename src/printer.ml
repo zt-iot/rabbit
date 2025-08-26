@@ -1,4 +1,5 @@
-(* XXX not used at all *)
+(* XXX This module is not used at all *)
+
 let print_type_class c =
    match c with
    | Input.CProc -> "Proc"

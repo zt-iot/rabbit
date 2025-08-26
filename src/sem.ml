@@ -1,6 +1,8 @@
 (* The semantics *)
 open Typed
 
+let debug = ref true
+
 (** Conversion errors *)
 type error =
   | NoSystem
@@ -18,8 +20,6 @@ exception Error of error Location.located
 
 (** [error ~loc err] raises the given runtime error. *)
 let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
-
-let debug = ref true
 
 let unit = { env= Env.empty (); loc= Location.nowhere; desc= Unit }
 
@@ -114,14 +114,14 @@ and fact' =
       ; args : expr list
       }
   | Plain of
-      { pid : Subst.proc_id * Subst.param_id option
+      { pid : Subst.pid
       ; name : name
       ; args : expr list
       }
   | Eq of expr * expr
   | Neq of expr * expr
   | File of
-      { pid : Subst.proc_id * Subst.param_id option
+      { pid : Subst.pid
       ; path : expr
       ; contents : expr
       }
@@ -131,19 +131,19 @@ and fact' =
 
   | Fresh of ident
   | Structure of
-      { pid : Subst.proc_id * Subst.param_id option
+      { pid : Subst.pid
       ; name : name
       ; address : expr
       ; args : expr list
       }
   | Loop of
-      { pid : Subst.proc_id * Subst.param_id option
+      { pid : Subst.pid
       ; mode : loop_mode
       ; index : Index.t
       }
   | Access of
-      { pid : Subst.proc_id * Subst.param_id option
-      ; channel: expr (* XXX it is also used for file path *)
+      { pid : Subst.pid
+      ; channel: expr (* XXX it is not only for channel but also for file path *)
       ; syscall: ident option
       }
 
@@ -513,7 +513,7 @@ let check_edge_invariants (e : edge) =
 type graph = edge list
 
 let channel_and_file_access ~proc:(proc : Subst.proc) ~syscaller (f : Typed.fact) =
-  let pid = proc.id, proc.param in
+  let pid = proc.pid in
   match f.desc with
   | Channel { channel; _ } ->
       Some { f with desc= Access { pid; channel; syscall= syscaller } }
@@ -527,7 +527,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
      Therefore, no worry of name crash of transition variables *)
   let env = c.env in
   let fact env desc : fact = { env; desc; loc = Location.nowhere } in
-  let pid = proc.id, proc.param in
+  let pid = proc.pid in
   let fact_of_typed = fact_of_typed (Some pid) in
   match c.desc with
   | Skip ->
@@ -546,7 +546,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_vars = vars
           ; loop_back = false
           ; attack = false
-          ; param = proc.param
+          ; param = snd pid
           }
         ]
       , i_1, env )
@@ -557,7 +557,6 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
       g1 @ g2, k, env_k
   | Put fs ->
       (* i =put=> i+1 *)
-      (* XXX ??? requires access policy check *)
       let i_1 = Index.add i 1 in
       let pre = List.filter_map (channel_and_file_access ~proc ~syscaller) fs in
       ( [ { id = Ident.local "put"
@@ -573,7 +572,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_vars = vars
           ; loop_back = false
           ; attack = false
-          ; param = proc.param
+          ; param = snd pid
           }
         ]
       , i_1, env )
@@ -601,7 +600,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_vars = x :: vars
               ; loop_back = false
               ; attack = false
-              ; param = proc.param
+              ; param = snd pid
               } ];
             g';
             [ { id = Ident.local ("let_exit_" ^ fst x)
@@ -617,7 +616,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_vars = vars
               ; loop_back = false
               ; attack = false
-              ; param = proc.param
+              ; param = snd pid
               } ]
           ]
       , k_1, env)
@@ -641,7 +640,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_vars = x :: vars
               ; loop_back = false
               ; attack = false
-              ; param = proc.param
+              ; param = snd pid
               } ];
             g;
             [ { id = Ident.local ("let_exit_" ^ fst x)
@@ -657,7 +656,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_vars = vars
               ; loop_back = false
               ; attack = false
-              ; param = proc.param
+              ; param = snd pid
               }
             ]
           ],
@@ -684,7 +683,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_vars = vars
               ; loop_back = false
               ; attack = false
-              ; param = proc.param
+              ; param = snd pid
               } ]
           ]
       , j_1, env )
@@ -708,7 +707,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_vars = vars
               ; loop_back = false
               ; attack = false
-              ; param = proc.param
+              ; param = snd pid
               } ]
           ]
       , j_1, env)
@@ -729,7 +728,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_vars = vars
           ; loop_back = false
           ; attack = false
-          ; param = proc.param
+          ; param = snd pid
           }
         ]
       , i_1, env)
@@ -752,7 +751,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_vars = vars
           ; loop_back = false
           ; attack = false
-          ; param = proc.param
+          ; param = snd pid
           }
         ]
       , i_1, env )
@@ -772,7 +771,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_vars = vars
           ; loop_back = false
           ; attack = false
-          ; param = proc.param
+          ; param = snd pid
           }
         ]
       , i_1, env )
@@ -804,7 +803,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_vars = x :: vars
               ; loop_back = false
               ; attack = false
-              ; param = proc.param
+              ; param = snd pid
               } ];
             g;
             [ { id = Ident.local "new_out"
@@ -820,7 +819,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_vars = vars
               ; loop_back = false
               ; attack = false
-              ; param = proc.param
+              ; param = snd pid
               }
             ]
           ]
@@ -851,7 +850,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_vars = xs @ vars
               ; loop_back = false
               ; attack = false
-              ; param = proc.param
+              ; param = snd pid
               } ];
             g;
             [ { id = Ident.local "get_out"
@@ -867,7 +866,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
               ; target_vars = vars
               ; loop_back = false
               ; attack = false
-              ; param = proc.param
+              ; param = snd pid
               } ]
           ]
       , j_1, env )
@@ -884,7 +883,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
         @@ fun i ->
         let id = Ident.local (Printf.sprintf "x%d" i) in
 
-        { env (* XXX id is not defied in env, which may cause problems later invariant check... *)
+        { env (* XXX id is not defined in env, which may cause problems later invariant check... *)
         ; loc = Location.nowhere
         ; desc = Ident { id; desc = Var; param = None }
         }
@@ -902,7 +901,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           ; target_vars = vars
           ; loop_back = false
           ; attack = false
-          ; param = proc.param
+          ; param = snd pid
           }
         ]
       , i_1, env )
@@ -932,7 +931,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                         ; target_vars = case.fresh @ vars
                         ; loop_back = false
                         ; attack = false
-                        ; param = proc.param
+                        ; param = snd pid
                         } ];
                       gj;
                       [ { id= Ident.local "case_out"
@@ -948,7 +947,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                         ; target_vars = vars
                         ; loop_back = false
                         ; attack = false
-                        ; param = proc.param
+                        ; param = snd pid
                         } ]
                     ]))
              cases
@@ -975,7 +974,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
          ; target_vars = vars
          ; loop_back = false
          ; attack = false
-         ; param = proc.param
+         ; param = snd pid
          }
          :: List.concat
               (List.mapi
@@ -999,7 +998,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                         ; target_vars = case.fresh @ vars
                         ; loop_back = false
                         ; attack = false
-                        ; param = proc.param
+                        ; param = snd pid
                         } ];
                       gj;
                       [ { id= Ident.local "case_out"
@@ -1018,7 +1017,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                         ; target_vars = vars
                         ; loop_back = true (* To increment the transition counter *)
                         ; attack = false
-                        ; param = proc.param
+                        ; param = snd pid
                         } ]
                     ])
                  cases))
@@ -1027,7 +1026,6 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                (fun j (case : case) ->
                   let i_1jn = Index.push i_1 (j + n) in
                   let gj, bj (* bold j *), env_bj = graph_cmd ~vars:(case.fresh @ vars) ~proc ~syscaller find_def decls i_1jn case.cmd in
-                  (* XXX ??? requires access policy check *)
                   List.concat [
                     [ { id= Ident.local "until_in"
                       ; source = i_1
@@ -1045,7 +1043,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                       ; target_vars = case.fresh @ vars
                       ; loop_back = false
                       ; attack = false
-                      ; param = proc.param
+                      ; param = snd pid
                       } ];
                     gj;
                     [ { id= Ident.local "until_out"
@@ -1065,7 +1063,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
                       ; target_vars = vars
                       ; loop_back = false
                       ; attack = false
-                      ; param = proc.param
+                      ; param = snd pid
                       }
                     ]
                   ])
@@ -1074,6 +1072,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
       es, i_2, env
 
 and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app : expr) : graph * Index.t * Env.t =
+  let param = snd proc.pid in
   match app.desc with
   | Apply (f, es) ->
       (match Env.find_opt_by_id app.env f with
@@ -1094,7 +1093,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                ; target_vars = vars
                ; loop_back = false
                ; attack = false
-               ; param = proc.param
+               ; param
                }
              ]
            , i_1, app.env)
@@ -1127,7 +1126,6 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                      let ik = Index.push i k in
                      (* XXX dupe: same as the normal applications *)
                      (* XXX Attacker is restricted by the syscaller?  Yes in Totamarin. So do we here. *)
-                     (* base_env must be extended! *)
                      let g', j, env_j = graph_cmd ~vars:(args @ vars) ~proc ~syscaller find_def decls ik cmd in
                      List.concat [
                        g;
@@ -1145,7 +1143,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                          ; target_vars = args @ vars
                          ; loop_back = false
                          ; attack = true
-                         ; param = proc.param
+                         ; param
                          } ];
                        g';
                        [ { id= Ident.local ((Ident.to_string attack_id) ^ "_attack_out")
@@ -1162,7 +1160,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                          ; target_vars = vars
                          ; loop_back = false
                          ; attack = false
-                         ; param = proc.param
+                         ; param
                          } ]
                      ])
                    [] attacks
@@ -1196,7 +1194,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                ; target_vars = args @ vars
                ; loop_back = false
                ; attack
-               ; param = proc.param
+               ; param
                } ];
              g;
              [ { id= Ident.local (Ident.to_string f ^ "_app_out")
@@ -1213,7 +1211,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                ; target_vars = vars
                ; loop_back = false
                ; attack = false
-               ; param = proc.param
+               ; param
                } ];
              g_attacks
            ], i_1, app.env
@@ -1248,7 +1246,7 @@ let graph_files_and_vars
   (proc : Subst.proc)
   (i : Index.t) =
   let fact fact' : fact = { env; desc=fact'; loc } in
-  let pid = proc.id, proc.param in
+  let pid = proc.pid in
   let files : fact list =
     List.concat_map (fun (path, fty, contents) ->
         let f = fact @@ File { pid; path; contents } in
@@ -1288,13 +1286,12 @@ let graph_files_and_vars
      ; target_vars = List.map fst proc.vars
      ; loop_back = false
      ; attack = false
-     ; param = proc.param
+     ; param = snd pid
      }],
     i_1
 
 type proc =
-  { id : Subst.proc_id
-  ; param : Subst.param_id option
+  { pid : Subst.pid
   ; edges : edge list
   }
 
@@ -1306,7 +1303,7 @@ let model_process ~loc env decls syscalls (proc : Subst.proc) =
     graph_cmd ~vars:(List.map fst proc.vars) ~proc ~syscaller:None find_def decls i proc.main in
   let g = g @ g' in
   ignore (check_edges g);
-  { id= proc.id; param= proc.param; edges= g }
+  { pid= proc.pid; edges= g }
 
 let instantiate_proc_groups (decls : decl list) (sys : decl) =
   match sys.desc with
@@ -1377,7 +1374,7 @@ let get_constants (decls : decl list) : (Typed.ident * Typed.init_desc) list =
 let get_access_controls (decls : decl list) (proc_group_id, proc_group_desc : Subst.proc_group)
   : Subst.proc_group_id * (Subst.proc_id * (Typed.chan_arg * Typed.ident option) list) list =
   let aux (proc : Subst.proc) =
-    proc.id,
+    fst proc.pid,
     List.concat @@ List.filter_map (fun (decl : decl) ->
         match decl.desc with
         | Allow { process_typ; target_typs; syscalls } when proc.typ = process_typ ->
@@ -1458,12 +1455,6 @@ let compressable edges e1 e2 =
   (* Consecutive *)
   (e1.target = e2.source)
   &&
-  let debug =
-    match (e1.source :> (int * int) list), (e1.target :> (int * int) list), (e2.target :> (int * int) list) with
-     (* index are reversed! *)
-    | [(0,4)], [(0,1); (0,4); (0,4)], [(0,2); (0,4); (0,4)] -> true
-    | _ -> false
-  in
 
   let tags =
     (* The tags *)
@@ -1473,7 +1464,6 @@ let compressable edges e1 e2 =
      | [], _ -> List.for_all (fun f -> not @@ is_nonlocal_fact f) e1.post
      | _, _ -> false
   in
-  if debug then Format.eprintf "tags %b@." tags;
   tags &&
 
   let topology =
@@ -1485,14 +1475,12 @@ let compressable edges e1 e2 =
     | _, [_] -> true
     | _ -> false
   in
-  if debug then Format.eprintf "topo %b@." topology;
   topology &&
 
   let preconditions_e2 =
     (* The preconditions of [e2]: τ2 has no nonlocal preconditions *)
     not (List.exists is_nonlocal_fact e2.pre)
   in
-  if debug then Format.eprintf "prec %b@." preconditions_e2;
   preconditions_e2 &&
 
   let not_effectful =
@@ -1503,15 +1491,6 @@ let compressable edges e1 e2 =
     in
     not (effectful e1 && effectful e2)
   in
-  if debug then Format.eprintf "not_eff %b@." not_effectful;
-  if debug then (
-    Format.eprintf "e1: non while %b@."
-      (List.exists (fun f -> match f.desc with Loop _ -> false | _ -> true) e1.tag);
-    Format.eprintf "e2: non while %b@."
-      (List.exists (fun f -> match f.desc with Loop _ -> false | _ -> true) e2.tag);
-    Format.eprintf "e1.post %s : %b@." (String.concat ", " (List.map string_of_fact e1.post)) (List.exists is_nonlocal_fact e1.post);
-    Format.eprintf "e2.post %s : %b@." (String.concat ", " (List.map string_of_fact e2.post)) (List.exists is_nonlocal_fact e2.post);
-  );
   not_effectful &&
 
   let file_facts =
@@ -1522,7 +1501,6 @@ let compressable edges e1 e2 =
     in
     not (has_file_fact e1.post && has_file_fact e2.pre)
   in
-  if debug then Format.eprintf "file %b@." file_facts;
   file_facts &&
 
   let structure =
@@ -1542,7 +1520,6 @@ let compressable edges e1 e2 =
                 | _ -> true) e1.post
         | _ -> true) e2_pre
   in
-  if debug then Format.eprintf "structure %b@." structure;
   structure
 
 let compress (e1 : edge) (e2 : edge) =
@@ -1626,9 +1603,7 @@ let compress e1 e2 =
       print_edge_summary e12
   );
 
-  (
-    check_edge_invariants e12;
-  );
+  check_edge_invariants e12;
 
   e12
 

@@ -17,7 +17,7 @@ and expr' =
       - const [n<e>] by [const name<param> = e] or [const fresh name<>] *)
   | ExtConst of Name.ident (** ext function by [function f:0] *)
   | Variable of string * variable_desc
-  | Boolean of bool (** boolean, XXX no constant available for now *)
+  | Boolean of bool (** boolean.  No constant available for now *)
   | String of string (** string, ["hello"] *)
   | Integer of int (** integer, [42] *)
   | Float of string (** float, [4.12]. Store the string so we can correctly round later *)
@@ -119,7 +119,6 @@ and decl' =
   | DeclExtSyscall of Name.ident * Name.ident list * cmd
   (** system call, [syscall name(args) { c }]
                    [passive attack name(args) { c }]
-      XXX what is passive attack for?  It is not distinguishable from syscall in Input.
   *)
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
   (** [attack name on syscall (args) { c }] *)
@@ -129,7 +128,7 @@ and decl' =
   (** [allow proc_ty target_ty1 .. target_tyn [syscall1, .., syscallm]]
       [allow proc_ty target_ty1 .. targe_t_tyn [.]]  for the direct accesses via [put] and [case], [repeat]
 
-      XXX the list [target_tyi] is either empty or singleton.  Should use option type?
+      XXX The list [target_tyi] is either empty or singleton.  Should use option type?
   *)
   | DeclAttack of Name.ident list * Name.ident list
   (** [allow attack proc_ty1 .. proc_tyn [attack1, .., attackn]] *)

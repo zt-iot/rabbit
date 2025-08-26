@@ -1,7 +1,7 @@
 open Sem
 
 module V = struct
-  type t = Subst.proc_id * Index.t
+  type t = Subst.pid * Index.t
   let compare = compare
   let hash = Hashtbl.hash
   let equal = (=)
@@ -31,18 +31,15 @@ module E = struct
 end
 module G = Graph.Persistent.Digraph.ConcreteLabeled(V)(E)
 
-(* XXX hack *)
-let graph_attribute = ref []
-
 let escape s = Printf.sprintf "%S" s
 
 module G' = struct
     include G
-    let graph_attributes _g = !graph_attribute (* XXX hack *)
+    let graph_attributes _g = []
     let default_vertex_attributes _g = []
-    let vertex_name (proc_id,v) =
+    let vertex_name ((pid : Subst.pid),v) =
       escape
-      @@ Ident.to_string (proc_id : Subst.proc_id :> Ident.t) ^ "_" ^ Index.to_string v
+      @@ Ident.to_string (fst pid :> Ident.t) ^ "_" ^ Index.to_string v
     let vertex_attributes _v = []
     let get_subgraph _v = None
     let default_edge_attributes _g = []
@@ -86,7 +83,7 @@ module Viz = Graph.Graphviz.Dot(G')
 let viz_of_models ms =
   List.fold_left (fun viz m ->
       List.fold_left (fun viz e ->
-          G'.add_edge_e viz ((m.id, e.source), e, (m.id, e.target))) viz m.edges) G'.empty ms
+          G'.add_edge_e viz ((m.pid, e.source), e, (m.pid, e.target))) viz m.edges) G'.empty ms
 
 let write_models_svg fn_svg ms =
   let fn_viz = fn_svg ^ ".viz" in

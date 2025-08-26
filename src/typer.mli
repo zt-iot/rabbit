@@ -5,7 +5,7 @@ val load : Env.t -> string -> Env.t * Typed.decl list
     occur in the code.
 
     If successful, it returns an updated environment and the list of
-    declaraitons foundin the code.
+    declaraitons found in the code.
 
     The function raises an exception [Error _] when the check fails.
 *)
