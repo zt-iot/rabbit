@@ -10,7 +10,7 @@ type expr =
   | String of string (** ['str:contents'] *)
   | Integer of int (** ['42'] *)
   | Ident of Ident.t (** [name__stamp] *)
-  | Tuple of expr list (** [<e1, .., en>] *)
+  | Tuple of expr list (** [<e1, .., en>]. Null is not allowed. *)
   | Apply of Ident.t * expr list (** [f(e1, .., en)] *)
   | Index of Sem.Index.t (** Node index ['index:1.2__3.4'] *)
   | Transition of transition (** Transition count *)
@@ -56,7 +56,8 @@ type fact =
       { pid : Subst.proc_id * Subst.param_id option
       ; channel : expr (** channel or file *)
       ; syscall : Ident.t option (** System call allowed the access.
-                                    [None] allows the access out of syscalls.   *)
+                                     [None] allows the access out of syscalls.
+                                 *)
       }
 
   (* New additions at Spthy level *)
@@ -70,9 +71,12 @@ type fact =
       { id : Ident.t
       ; param : Subst.param_id option
       } (** Constant initialization event *)
-  | Initing_proc_group of Subst.proc_group_id * Subst.param_id option (** Process group initialization event *)
-  | Initing_proc_access of Subst.proc_id * Subst.param_id option (** Process access initialization event *)
-  | Inited_proc_group of Subst.proc_group_id * Subst.param_id option (** Process group initialized *)
+  | Initing_proc_group of Subst.proc_group_id * Subst.param_id option
+    (** Process group initialization event *)
+  | Initing_proc_access of Subst.proc_id * Subst.param_id option
+    (** Process access initialization event *)
+  | Inited_proc_group of Subst.proc_group_id * Subst.param_id option
+    (** Process group initialized *)
   | State of
       { pid : Subst.proc_id * Subst.param_id option
       ; index : Sem.Index.t
@@ -86,13 +90,12 @@ type fact =
 
 val string_of_fact : fact -> string
 
-type fact'
-
+(** Compilation result of type ['a] and the extracted constant facts
+    from the compilation *)
 type 'a compiled =
   { deps : fact list (** Constants dependencies *)
   ; result : 'a;
   }
-(** Compilation result of type ['a] and the extracted constant fact' from the compilation *)
 
 (** Tamarin lemma *)
 type lemma =
@@ -102,6 +105,9 @@ type lemma =
       { premise : fact compiled
       ; conclusion : fact compiled
       }
+
+(** Type for Tamarin raw facts *)
+type fact'
 
 (** Tamarin rule *)
 type rule =

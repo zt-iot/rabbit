@@ -2,15 +2,6 @@
 
 open Typed
 
-type t =
-  { channels : (ident * (ident * expr option)) list
-  ; parameters : (ident * expr) list
-  }
-
-val expr : t -> expr -> expr
-val fact : t -> fact -> fact
-val cmd : t -> cmd -> cmd
-
 (** [proc] and [pproc] in [Syntax] and [Typed] are so confusing.
     [Subst] and later modules use different wordings, [proc_group] and [proc] respectively
 

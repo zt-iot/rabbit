@@ -35,9 +35,11 @@ module G' = struct
     let get_subgraph _v = None
     let default_edge_attributes _g = []
 
+(*
     let state_desc sd =
       String.concat "; "
         (List.map print_expr (sd.ret :: sd.metas @ sd.locs @ sd.tops))
+*)
 
     let cull n s =
       if String.length s <= n then s

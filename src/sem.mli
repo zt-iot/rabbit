@@ -76,13 +76,16 @@ and fact' =
 val string_of_fact : fact -> string
 
 val fact_of_typed : Subst.pid option -> Typed.fact -> fact
-(** Canonically maps [Typed.fact] to [fact] *)
+(** Canonically maps [Typed.fact] to [fact].
+    The funciton fails for local facts [Plain _]
+    without giving a process id for tagging.
+*)
 
 module Update : sig
   type desc =
-    | New of Typed.expr
-    | Update of Typed.expr
-    | Drop
+    | New of Typed.expr (** A fresh variable is introduced *)
+    | Update of Typed.expr (** An exiting variable is updated *)
+    | Drop (** A variable is dropped from the environment *)
 
   (** State update
 
@@ -96,7 +99,7 @@ module Update : sig
       (** The register value a.k.a the return value *)
 
     ; items : (Ident.t * desc) list
-      (** Value updates, if a variable is not listed here, it is not changed *)
+      (** Value updates, if a variable is not listed here, it is unchanged *)
     }
 
   val to_string : t -> string
@@ -116,12 +119,13 @@ val edge_id : Ident.t -> edge_id
      source source_vars                 target target_vars
             (source_env)                       (target_env)
 
-   Note that [source_env] and [target_env] are the environments used to name-check (Typer)
-   and they can be different from $\Gamma_i$ when in system call codes,
-   i.e. the process local variables in [source/target_vars] are not bound in [source/target_env]
+   Note that [source_env] and [target_env] are the environments used
+   to name-check (Typer) and they can be different from $\Gamma_i$
+   when in system call codes, i.e. the process local variables
+   in [source/target_vars] are not bound in [source/target_env]
    at system call cmds.
 
-   Now [source_env] and [target_env] are only used for debugging purposes.
+   Now [source_env] and [target_env] are only used for invariant checks.
    They can be safely dropped from this type.
 *)
 type edge =
@@ -136,7 +140,8 @@ type edge =
   ; target : Index.t (** target node index *)
   ; target_env : Env.t (** environment of the target node *)
   ; target_vars : Ident.t list (** mutable variables of the target node *)
-  ; loop_back : bool (** Loops back. Triggers an increment of transition counter if [true] *)
+  ; loop_back : bool (** Loops back. Triggers an increment of transition
+                         counter if [true] *)
   ; attack : bool (** Attack route. [true] if the edge to start an attack *)
   ; param : Subst.param_id option (** Process parameter *)
   }
@@ -146,7 +151,7 @@ type signature =
   ; equations : (Typed.expr * Typed.expr) list
   }
 
-(** Process, [id<parameter>(args)] *)
+(** Process semantics of [id(args)] and [id<parameter>(args)] *)
 type proc =
   { pid : Subst.pid
   ; edges : edge list }
@@ -156,9 +161,14 @@ type proc_group_desc =
   | Unbounded of proc
   | Bounded of Subst.param_id * proc list
 
-(** Named process group *)
+(** Named process group
+
+    Rabbit syntax has no explicit naming for process groups. They are given
+    automatically.
+*)
 type proc_group = Subst.proc_group_id * proc_group_desc
 
+(** System semantics *)
 type t =
   { signature : signature
   ; proc_groups : proc_group list
@@ -171,7 +181,7 @@ type t =
   }
 
 val compile : Typed.decl list -> t
-(** [compile decls] compiles [decls] to semantics [t].
+(** [compile decls] compiles [decls] to its semantics [t].
 
     If the function fails to compile [decls], it raises an exception
     [Error _].

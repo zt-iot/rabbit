@@ -269,10 +269,11 @@ let facts' fs = dedup_persistent @@ List.map fact' fs
 
 let string_of_fact f = string_of_fact' @@ fact' f
 
-(* It is a monad!
+(* It is a state monad!
 
-   Please bear with the use of the monad; it saves lots of LoCs to track down
-   constant dependencies extracted during the compilation stages.
+   Please bear with the use of the state monad;
+   it saves lots of LoCs to track down constant dependencies
+   extracted during the compilation stages.
 *)
 type 'a compiled = { deps : fact list; result : 'a }
 
@@ -388,11 +389,7 @@ let compile_fact (f : Sem.fact) : fact compiled =
       let+ channel = compile_expr channel in
       Access { pid; channel; syscall }
 
-let compile_facts (fs : Sem.fact list) : fact list compiled =
-  let fs_f_list = List.map compile_fact fs in
-  let deps = List.concat_map (fun x -> x.deps) fs_f_list in
-  let fs = List.map (fun x -> x.result) fs_f_list in
-  { deps; result= fs }
+let compile_facts = mapM compile_fact
 
 type lemma =
   | Plain of string
@@ -499,8 +496,9 @@ let print_rule ppf rule =
     (print_list ",@ " (fun ppf f -> fprintf ppf "%s" (string_of_fact' f)))
     rule.post
 
-(* move equality and inequality facts from precondition to tags because Tamarin cannot handle
-   (N)Eq fact generation rules correctly for fresh values *)
+(* move equality and inequality facts from precondition to tags
+   because Tamarin cannot handle (N)Eq fact generation rules correctly
+   for fresh values *)
 let facts_of_edge (e : Sem.edge) =
   let pre_eq_neq, pre_others =
     List.partition (function
@@ -542,8 +540,7 @@ let rule_of_edge (pid : Subst.pid) (edge : Sem.edge) =
       else None in
     State { pid; index= edge.target; mapping; transition }
   in
-  (* move equality and inequality facts from precondition to tags because Tamarin cannot handle
-     (N)Eq fact generation rules correctly for fresh values *)
+  (* move equality and inequality facts from precondition to tags *)
   let pre, label, post = facts_of_edge edge in
   let { deps= pre_deps; result= pre } = compile_facts pre in
   let { deps= label_deps; result= label } = compile_facts label in

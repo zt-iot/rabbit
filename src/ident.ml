@@ -10,13 +10,11 @@ let local s =
 
 let is_global id = snd id = 0
 
-let name (s, i) =
+let to_string (s, i) =
   if i = 0 then s
   else Printf.sprintf "%s__%d" s i
 
 let print id ppf = Format.fprintf ppf "%s" (fst id)
-
-let to_string = name
 
 let prefix s (name, idx) =
   assert (s <> "");

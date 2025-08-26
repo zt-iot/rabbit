@@ -6,11 +6,12 @@ type named_fact_desc =
 
 val string_of_named_fact_desc : named_fact_desc -> string
 
+(** Kinds of variables, or very weak types *)
 type desc =
   | Var (** mutable variable *)
   | Param (** parameter *)
   | ExtFun of int (** external function with arity *)
-  | ExtConst (** external function with arity = 0, ex.  function true 0 *)
+  | ExtConst (** external function with arity = 0, ex.  [function true 0] *)
   | ExtSyscall of int (** external system call with arity *)
   | Const of bool (* with param or not *)
   | Channel of bool (* with param or not *) * Ident.t (* channel type *)
@@ -22,6 +23,7 @@ type desc =
 
 val print_desc : desc -> Format.formatter -> unit
 
+(** Name checking environment *)
 type t = {
   vars : (Ident.t * desc) list;
   facts : (Name.ident * (named_fact_desc * int option)) list ref
@@ -29,7 +31,8 @@ type t = {
       if [delete e.S] first appear than [new x := S(args) in c]
       and [let xi := e.S in c].
 
-      The fact environment is a global singleton and shared, therefore a reference.
+      The fact environment is a global singleton and shared,
+      therefore implemented as a reference.
   *)
 }
 
