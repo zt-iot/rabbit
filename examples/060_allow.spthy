@@ -26,7 +26,8 @@ builtins: natural-numbers
 rule Init__system[role="system"]
   : [  ]
     --[ Init__('rab__system') ]->
-    [ !ACP__GEN__('rab__system__', 'rab__rab_str'), State__Alice(<'rab_____0', 'rab__rab_str', %1>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty') ] 
+    [ !ACP__GEN__('rab__system__', 'rab__rab_str'),
+      State__Alice(<'rab_____0', 'rab__rab_str', %1>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty') ]
 
 
 // Access control of Alice:chan
@@ -39,20 +40,23 @@ rule Init__system[role="system"]
 rule Init__system__ACP__0[role="system"]
   : [ !ACP__GEN__('rab__system__', 'rab__rab_str') ]
     --[ Init__('rab__system__ACP__0') ]->
-    [ !ACP__(<'rab__Alice', 'rab__rab_str'>, 'rab__chan', 'rab__send_one') ] 
+    [ !ACP__(<'rab__Alice', 'rab__rab_str'>, 'rab__chan', 'rab__send_one') ]
 
 // Model:  Alice
 
 
 rule Alice__scall_intro_put_____0_____0__0_1__5[role="Alice"]
-  : [ State__Alice(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'), !ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_one') ]
+  : [ State__Alice(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'),
+      !ACP__(<'rab__Alice', param>, 'rab__chan', 'rab__send_one') ]
     --[ Transition__(<'rab__Alice', param>, 'rab_____0', %v__) ]->
-    [ State__Alice(<'rab_____0__0_1', param, %v__>, 'rab__unit', 'rab__empty', 'rab__chan', 'rab__empty'), Send('rab__chan', '1') ] 
+    [ State__Alice(<'rab_____0__0_1', param, %v__>, 'rab__unit', 'rab__empty', 'rab__chan', 'rab__empty'),
+      Send('rab__chan', '1') ]
 
 rule Alice__scall_out_event_____0__0_1_____2__4[role="Alice"]
   : [ State__Alice(<'rab_____0__0_1', param, %v__>, return__var__2, 'rab__empty', l__0__2, 'rab__empty') ]
-    --[ Transition__(<'rab__Alice', param>, 'rab_____0__0_1', %v__), Valid() ]->
-    [ State__Alice(<'rab_____2', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty') ] 
+    --[ Transition__(<'rab__Alice', param>, 'rab_____0__0_1', %v__),
+        Valid() ]->
+    [ State__Alice(<'rab_____2', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty') ]
 
 restriction Init__ : " All x #i #j . Init__(x) @ #i & Init__(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq__(x,y) @ #i ==> x = y"

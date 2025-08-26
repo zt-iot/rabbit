@@ -26,7 +26,8 @@ builtins: natural-numbers
 rule Init_system[role="system"]
   : [  ]
     --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    [ !ACP_GEN_('rab_system_', 'rab_rab_str'),
+      State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 // Model:  Alice
 
@@ -34,27 +35,32 @@ rule Init_system[role="system"]
 rule Alice_guarded_skip___2___2_0_1_10[role="Alice"]
   : [ State_Alice(<'rab___2', param, %v_>, return_var_2, 'rab_empty', 'rab_empty', 'rab_empty') ]
     --[ Transition_(<'rab_Alice', param>, 'rab___2', %v_) ]->
-    [ State_Alice(<'rab___2_0_1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    [ State_Alice(<'rab___2_0_1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 rule Alice_guarded_skip_rep___2___3_9[role="Alice"]
-  : [ State_Alice(<'rab___2', param, %v_>, return_var_5, 'rab_empty', 'rab_empty', 'rab_empty'), False() ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___2', %v_), Loop_Finish(<'rab_Alice', param>, 'rab___1') ]->
-    [ State_Alice(<'rab___3', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+  : [ State_Alice(<'rab___2', param, %v_>, return_var_5, 'rab_empty', 'rab_empty', 'rab_empty'),
+      False() ]
+    --[ Transition_(<'rab_Alice', param>, 'rab___2', %v_),
+        Loop_Finish(<'rab_Alice', param>, 'rab___1') ]->
+    [ State_Alice(<'rab___3', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 rule Alice_repeat___2_0_1___2_4[role="Alice"]
   : [ State_Alice(<'rab___2_0_1', param, %v_>, return_var_4, 'rab_empty', 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___2_0_1', %v_), Loop_Back(<'rab_Alice', param>, 'rab___1') ]->
-    [ State_Alice(<'rab___2', param, %v_ %+ %1>, return_var_4, 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Transition_(<'rab_Alice', param>, 'rab___2_0_1', %v_),
+        Loop_Back(<'rab_Alice', param>, 'rab___1') ]->
+    [ State_Alice(<'rab___2', param, %v_ %+ %1>, return_var_4, 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 rule Alice_repeat_in___1___2_1[role="Alice"]
   : [ State_Alice(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___1', %v_), Loop_Start(<'rab_Alice', param>, 'rab___1') ]->
-    [ State_Alice(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Transition_(<'rab_Alice', param>, 'rab___1', %v_),
+        Loop_Start(<'rab_Alice', param>, 'rab___1') ]->
+    [ State_Alice(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 rule Alice_event___0___1_0[role="Alice"]
   : [ State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___0', %v_), Valid() ]->
-    [ State_Alice(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Transition_(<'rab_Alice', param>, 'rab___0', %v_),
+        Valid() ]->
+    [ State_Alice(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"

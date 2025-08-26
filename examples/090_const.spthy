@@ -25,17 +25,19 @@ builtins: natural-numbers
 
 rule Const_c
   : [ Fr(c) ]
-    --[ Init_('rab_Const_c'), !Const_('rab_c', c) ]->
-    [ !Const_('rab_c', c) ] 
+    --[ Init_('rab_Const_c'),
+        !Const_('rab_c', c) ]->
+    [ !Const_('rab_c', c) ]
 
 
 // const c2 = <c, c>
 
 
 rule Const_c2
-  : [ !Const_('rab_c', c), !Const_('rab_c', c) ]
+  : [ !Const_('rab_c', c),
+      !Const_('rab_c', c) ]
     --[ !Const_('rab_c2', <c, c>) ]->
-    [ !Const_('rab_c2', <c, c>) ] 
+    [ !Const_('rab_c2', <c, c>) ]
 
 
 // const fresh cp<>
@@ -43,17 +45,20 @@ rule Const_c2
 
 rule Const_cp
   : [ Fr(cp) ]
-    --[ Init_(<'rab_cp', param>), !Const_(<'rab_cp', param>, cp) ]->
-    [ !Const_(<'rab_cp', param>, cp) ] 
+    --[ Init_(<'rab_cp', param>),
+        !Const_(<'rab_cp', param>, cp) ]->
+    [ !Const_(<'rab_cp', param>, cp) ]
 
 
 // const fresh cp2<p> = <cp_0, cp_1>
 
 
 rule Const_cp2
-  : [ !Const_(<'rab_cp', param>, cp_0), !Const_(<'rab_cp', <param, param>>, cp_1) ]
-    --[ Init_(<'rab_cp2', param>), !Const_(<'rab_cp2', param>, <cp_0, cp_1>) ]->
-    [ !Const_(<'rab_cp2', param>, <cp_0, cp_1>) ] 
+  : [ !Const_(<'rab_cp', param>, cp_0),
+      !Const_(<'rab_cp', <param, param>>, cp_1) ]
+    --[ Init_(<'rab_cp2', param>),
+        !Const_(<'rab_cp2', param>, <cp_0, cp_1>) ]->
+    [ !Const_(<'rab_cp2', param>, <cp_0, cp_1>) ]
 
 
 // Add model inits: 
@@ -62,7 +67,7 @@ rule Const_cp2
 rule Init_system[role="system"]
   : [  ]
     --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str') ] 
+    [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
 
 
 // Add model inits: Proc
@@ -71,20 +76,26 @@ rule Init_system[role="system"]
 rule Init_system1[role="system1"]
   : [ Fr(param) ]
     --[ Init_(<'rab_system1', param>) ]->
-    [ !ACP_GEN_('rab_system1_', param), State_Proc(<'rab___0', param, %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    [ !ACP_GEN_('rab_system1_', param),
+      State_Proc(<'rab___0', param, %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 // Model:  Proc
 
 
 rule Proc_return___1___2_1[role="Proc"]
-  : [ State_Proc(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'), !Const_(<'rab_cp2', <param, param>>, cp2_1_1), !Const_(<'rab_cp', param>, cp_0_1), !Const_('rab_c2', c2_1), !Const_('rab_c', c_1) ]
+  : [ State_Proc(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'),
+      !Const_(<'rab_cp2', <param, param>>, cp2_1_1),
+      !Const_(<'rab_cp', param>, cp_0_1),
+      !Const_('rab_c2', c2_1),
+      !Const_('rab_c', c_1) ]
     --[ Transition_(<'rab_Proc', param>, 'rab___1', %v_) ]->
-    [ State_Proc(<'rab___2', param, %v_>, <c_1, c2_1, cp_0_1, cp2_1_1>, 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    [ State_Proc(<'rab___2', param, %v_>, <c_1, c2_1, cp_0_1, cp2_1_1>, 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 rule Proc_event___0___1_0[role="Proc"]
   : [ State_Proc(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Proc', param>, 'rab___0', %v_), Valid() ]->
-    [ State_Proc(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Transition_(<'rab_Proc', param>, 'rab___0', %v_),
+        Valid() ]->
+    [ State_Proc(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"

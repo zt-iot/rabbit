@@ -26,30 +26,39 @@ functions: succ/1
 rule Init_system[role="system"]
   : [  ]
     --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str'), State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    [ !ACP_GEN_('rab_system_', 'rab_rab_str'),
+      State_Alice(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 // Model:  Alice
 
 
 rule Alice_new_intro_event____0___4_33[role="Alice"]
-  : [ State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), Fr(n_0_0) ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___0', %v_), Send(n_0_0) ]->
-    [ State_Alice(<'rab___4', param, %v_>, 'rab_unit', n_0_0, n_0_0, 'rab_empty') ] 
+  : [ State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'),
+      Fr(n_0_0) ]
+    --[ Transition_(<'rab_Alice', param>, 'rab___0', %v_),
+        Send(n_0_0) ]->
+    [ State_Alice(<'rab___4', param, %v_>, 'rab_unit', n_0_0, n_0_0, 'rab_empty') ]
 
 rule Alice_new_intro_event____0___4_32[role="Alice"]
-  : [ State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), Fr(n_0_0) ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___0', %v_), Send(n_0_0) ]->
-    [ State_Alice(<'rab___4', param, %v_>, 'rab_unit', n_0_0, succ(n_0_0), 'rab_empty') ] 
+  : [ State_Alice(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'),
+      Fr(n_0_0) ]
+    --[ Transition_(<'rab_Alice', param>, 'rab___0', %v_),
+        Send(n_0_0) ]->
+    [ State_Alice(<'rab___4', param, %v_>, 'rab_unit', n_0_0, succ(n_0_0), 'rab_empty') ]
 
 rule Alice_guarded_event_ca___4___7_23[role="Alice"]
   : [ State_Alice(<'rab___4', param, %v_>, return_var_9, m_0_9, l_0_9, 'rab_empty') ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___4', %v_), Valid(m_0_9), Eq_(m_0_9, l_0_9) ]->
-    [ State_Alice(<'rab___7', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Transition_(<'rab_Alice', param>, 'rab___4', %v_),
+        Valid(m_0_9),
+        Eq_(m_0_9, l_0_9) ]->
+    [ State_Alice(<'rab___7', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 rule Alice_guarded_event_ca___4___7_22[role="Alice"]
   : [ State_Alice(<'rab___4', param, %v_>, return_var_12, m_0_12, l_0_12, 'rab_empty') ]
-    --[ Transition_(<'rab_Alice', param>, 'rab___4', %v_), Invalid(), NEq_(m_0_12, l_0_12) ]->
-    [ State_Alice(<'rab___7', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Transition_(<'rab_Alice', param>, 'rab___4', %v_),
+        Invalid(),
+        NEq_(m_0_12, l_0_12) ]->
+    [ State_Alice(<'rab___7', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"

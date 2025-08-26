@@ -25,8 +25,9 @@ builtins: natural-numbers
 
 rule Const_c
   : [ Fr(c) ]
-    --[ Init_(<'rab_c', param>), !Const_(<'rab_c', param>, c) ]->
-    [ !Const_(<'rab_c', param>, c) ] 
+    --[ Init_(<'rab_c', param>),
+        !Const_(<'rab_c', param>, c) ]->
+    [ !Const_(<'rab_c', param>, c) ]
 
 
 // Add model inits: 
@@ -35,7 +36,7 @@ rule Const_c
 rule Init_system[role="system"]
   : [  ]
     --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str') ] 
+    [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
 
 
 // Add model inits: Server
@@ -44,20 +45,23 @@ rule Init_system[role="system"]
 rule Init_system1[role="system1"]
   : [ Fr(param) ]
     --[ Init_(<'rab_system1', param>) ]->
-    [ !ACP_GEN_('rab_system1_', param), State_Server(<'rab___0', param, %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    [ !ACP_GEN_('rab_system1_', param),
+      State_Server(<'rab___0', param, %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 // Model:  Server
 
 
 rule Server_return___1___2_1[role="Server"]
-  : [ State_Server(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'), !Const_(<'rab_c', param>, c_0_1) ]
+  : [ State_Server(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'),
+      !Const_(<'rab_c', param>, c_0_1) ]
     --[ Transition_(<'rab_Server', param>, 'rab___1', %v_) ]->
-    [ State_Server(<'rab___2', param, %v_>, <param, c_0_1>, 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    [ State_Server(<'rab___2', param, %v_>, <param, c_0_1>, 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 rule Server_event___0___1_0[role="Server"]
   : [ State_Server(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty') ]
-    --[ Transition_(<'rab_Server', param>, 'rab___0', %v_), Valid() ]->
-    [ State_Server(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    --[ Transition_(<'rab_Server', param>, 'rab___0', %v_),
+        Valid() ]->
+    [ State_Server(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"

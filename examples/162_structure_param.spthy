@@ -26,7 +26,7 @@ builtins: natural-numbers
 rule Init_system[role="system"]
   : [  ]
     --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str') ] 
+    [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
 
 
 // Add model inits: Proc
@@ -35,30 +35,45 @@ rule Init_system[role="system"]
 rule Init_system1[role="system1"]
   : [ Fr(param) ]
     --[ Init_(<'rab_system1', param>) ]->
-    [ !ACP_GEN_('rab_system1_', param), State_Proc(<'rab___0', param, %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    [ !ACP_GEN_('rab_system1_', param),
+      State_Proc(<'rab___0', param, %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 // Model:  Proc
 
 
 rule Proc_new_intro_new_in___0___2_25[role="Proc"]
-  : [ State_Proc(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'), Fr(n_0_1), Fr(n_0_0) ]
+  : [ State_Proc(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'),
+      Fr(n_0_1),
+      Fr(n_0_0) ]
     --[ Transition_(<'rab_Proc', param>, 'rab___0', %v_) ]->
-    [ State_Proc(<'rab___2', param, %v_>, 'rab_unit', <n_0_1, n_0_0>, 'rab_empty', 'rab_empty'), S_Proc(param, n_0_0, <'1', '2', param>), S_Proc(param, n_0_1, <'1', '2', param>) ] 
+    [ State_Proc(<'rab___2', param, %v_>, 'rab_unit', <n_0_1, n_0_0>, 'rab_empty', 'rab_empty'),
+      S_Proc(param, n_0_0, <'1', '2', param>),
+      S_Proc(param, n_0_1, <'1', '2', param>) ]
 
 rule Proc_get_intro_guarde___3___9_24[role="Proc"]
-  : [ State_Proc(<'rab___3', param, %v_>, return_var_3, <m_0_3, m_1_3, m_2_3, m_3_3, m_4_3>, 'rab_empty', 'rab_empty'), S_Proc(param, m_3_3, <n_0_3, n_1_3, n_2_3>) ]
-    --[ Transition_(<'rab_Proc', param>, 'rab___3', %v_), Invalid(), NEq_(m_2_3, n_2_3) ]->
-    [ State_Proc(<'rab___9', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), S_Proc(param, m_3_3, <n_0_3, n_1_3, n_2_3>) ] 
+  : [ State_Proc(<'rab___3', param, %v_>, return_var_3, <m_0_3, m_1_3, m_2_3, m_3_3, m_4_3>, 'rab_empty', 'rab_empty'),
+      S_Proc(param, m_3_3, <n_0_3, n_1_3, n_2_3>) ]
+    --[ Transition_(<'rab_Proc', param>, 'rab___3', %v_),
+        Invalid(),
+        NEq_(m_2_3, n_2_3) ]->
+    [ State_Proc(<'rab___9', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'),
+      S_Proc(param, m_3_3, <n_0_3, n_1_3, n_2_3>) ]
 
 rule Proc_get_intro_guarde___3___9_23[role="Proc"]
-  : [ State_Proc(<'rab___3', param, %v_>, return_var_3, <m_0_3, m_1_3, m_2_3, m_3_3, m_4_3>, 'rab_empty', 'rab_empty'), S_Proc(param, m_3_3, <n_0_3, n_1_3, n_2_3>) ]
-    --[ Transition_(<'rab_Proc', param>, 'rab___3', %v_), Valid(), Eq_(m_2_3, n_2_3) ]->
-    [ State_Proc(<'rab___9', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), S_Proc(param, m_3_3, <n_0_3, n_1_3, n_2_3>) ] 
+  : [ State_Proc(<'rab___3', param, %v_>, return_var_3, <m_0_3, m_1_3, m_2_3, m_3_3, m_4_3>, 'rab_empty', 'rab_empty'),
+      S_Proc(param, m_3_3, <n_0_3, n_1_3, n_2_3>) ]
+    --[ Transition_(<'rab_Proc', param>, 'rab___3', %v_),
+        Valid(),
+        Eq_(m_2_3, n_2_3) ]->
+    [ State_Proc(<'rab___9', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'),
+      S_Proc(param, m_3_3, <n_0_3, n_1_3, n_2_3>) ]
 
 rule Proc_get_intro___2___3_2[role="Proc"]
-  : [ State_Proc(<'rab___2', param, %v_>, return_var_2, <m_0_2, m_1_2>, 'rab_empty', 'rab_empty'), S_Proc(param, m_1_2, <n_0_2, n_1_2, n_2_2>) ]
+  : [ State_Proc(<'rab___2', param, %v_>, return_var_2, <m_0_2, m_1_2>, 'rab_empty', 'rab_empty'),
+      S_Proc(param, m_1_2, <n_0_2, n_1_2, n_2_2>) ]
     --[ Transition_(<'rab_Proc', param>, 'rab___2', %v_) ]->
-    [ State_Proc(<'rab___3', param, %v_>, 'rab_unit', <n_0_2, n_1_2, n_2_2, m_0_2, m_1_2>, 'rab_empty', 'rab_empty'), S_Proc(param, m_1_2, <n_0_2, n_1_2, n_2_2>) ] 
+    [ State_Proc(<'rab___3', param, %v_>, 'rab_unit', <n_0_2, n_1_2, n_2_2, m_0_2, m_1_2>, 'rab_empty', 'rab_empty'),
+      S_Proc(param, m_1_2, <n_0_2, n_1_2, n_2_2>) ]
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"

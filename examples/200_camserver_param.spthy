@@ -1,0 +1,184 @@
+theory rabbit
+
+begin
+builtins: natural-numbers
+
+
+// The signature of our model:
+
+
+
+functions: h/1
+
+
+// Initializing the gloval constants and access policy rules:
+
+
+
+
+// Constants:
+
+
+
+// Add model inits: 
+
+
+rule Init__system[role="system"]
+  : [  ]
+    --[ Init__('rab__system') ]->
+    [ !ACP__GEN__('rab__system__', 'rab__rab_str') ]
+
+
+// Add model inits: Client_ta,Client
+
+
+rule Init__system1[role="system1"]
+  : [ Fr(param) ]
+    --[ Init__(<'rab__system1', param>) ]->
+    [ !ACP__GEN__('rab__system1__', param),
+      State__Client_ta(<'rab_____0', param, %1>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty'),
+      State__Client(<'rab_____0', param, %1>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty') ]
+
+
+// Access control of Client_ta:rpc
+
+
+
+// Fact: !ACP__(<'rab__Client_ta', param>, <'rab__rpc', param>, 'rab__accept_rpc')
+
+
+rule Init__system1__ACP__0[role="system1"]
+  : [ !ACP__GEN__('rab__system1__', param) ]
+    --[ Init__(<'rab__system1__ACP__0', param>) ]->
+    [ !ACP__(<'rab__Client_ta', param>, <'rab__rpc', param>, 'rab__accept_rpc') ]
+
+
+// Fact: !ACP__(<'rab__Client_ta', param>, <'rab__rpc', param>, 'rab__')
+
+
+rule Init__system1__ACP__1[role="system1"]
+  : [ !ACP__GEN__('rab__system1__', param) ]
+    --[ Init__(<'rab__system1__ACP__1', param>) ]->
+    [ !ACP__(<'rab__Client_ta', param>, <'rab__rpc', param>, 'rab__') ]
+
+
+// Access control of Client:rpc
+
+
+
+// Fact: !ACP__(<'rab__Client', param>, <'rab__rpc', param>, 'rab__invoke_rpc')
+
+
+rule Init__system1__ACP__2[role="system1"]
+  : [ !ACP__GEN__('rab__system1__', param) ]
+    --[ Init__(<'rab__system1__ACP__2', param>) ]->
+    [ !ACP__(<'rab__Client', param>, <'rab__rpc', param>, 'rab__invoke_rpc') ]
+
+
+// Fact: !ACP__(<'rab__Client', param>, <'rab__rpc', param>, 'rab__connect_rpc')
+
+
+rule Init__system1__ACP__3[role="system1"]
+  : [ !ACP__GEN__('rab__system1__', param) ]
+    --[ Init__(<'rab__system1__ACP__3', param>) ]->
+    [ !ACP__(<'rab__Client', param>, <'rab__rpc', param>, 'rab__connect_rpc') ]
+
+
+// Fact: !ACP__(<'rab__Client', param>, <'rab__rpc', param>, 'rab__')
+
+
+rule Init__system1__ACP__4[role="system1"]
+  : [ !ACP__GEN__('rab__system1__', param) ]
+    --[ Init__(<'rab__system1__ACP__4', param>) ]->
+    [ !ACP__(<'rab__Client', param>, <'rab__rpc', param>, 'rab__') ]
+
+// Model:  Client_ta
+
+
+rule Client_ta__guarded_put_case_____0__0_0_____1__13[role="Client_ta"]
+  : [ State__Client_ta(<'rab_____0__0_0', param, %v__>, return__var__1, 'rab__empty', l__0__1, 'rab__empty'),
+      !ACP__(<'rab__Client_ta', param>, l__0__1, 'rab__accept_rpc'),
+      !ACP__(<'rab__Client_ta', param>, l__0__1, 'rab__accept_rpc'),
+      Req(l__0__1) ]
+    --[ Transition__(<'rab__Client_ta', param>, 'rab_____0__0_0', %v__) ]->
+    [ State__Client_ta(<'rab_____1', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty'),
+      Ack(l__0__1) ]
+
+rule Client_ta__guarded_put_____1_____1__0_1__10[role="Client_ta"]
+  : [ State__Client_ta(<'rab_____1', param, %v__>, return__var__5, 'rab__empty', 'rab__empty', 'rab__empty'),
+      !ACP__(<'rab__Client_ta', param>, <'rab__rpc', param>, 'rab__'),
+      !ACP__(<'rab__Client_ta', param>, <'rab__rpc', param>, 'rab__'),
+      Invoke(<'rab__rpc', param>, n__0__5) ]
+    --[ Transition__(<'rab__Client_ta', param>, 'rab_____1', %v__) ]->
+    [ State__Client_ta(<'rab_____1__0_1', param, %v__>, 'rab__unit', n__0__5, 'rab__empty', 'rab__empty'),
+      Returned(<'rab__rpc', param>, '2') ]
+
+rule Client_ta__case_out_event_____1__0_1_____3__9[role="Client_ta"]
+  : [ State__Client_ta(<'rab_____1__0_1', param, %v__>, return__var__7, m__0__7, 'rab__empty', 'rab__empty') ]
+    --[ Transition__(<'rab__Client_ta', param>, 'rab_____1__0_1', %v__),
+        ClientTAClose() ]->
+    [ State__Client_ta(<'rab_____3', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty') ]
+
+rule Client_ta__scall_intro_____0_____0__0_0__0[role="Client_ta"]
+  : [ State__Client_ta(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty') ]
+    --[ Transition__(<'rab__Client_ta', param>, 'rab_____0', %v__) ]->
+    [ State__Client_ta(<'rab_____0__0_0', param, %v__>, 'rab__unit', 'rab__empty', <'rab__rpc', param>, 'rab__empty') ]
+
+
+// Model:  Client
+
+
+rule Client__let_intro_scall______0_____1__0_1__39[role="Client"]
+  : [ State__Client(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'),
+      !ACP__(<'rab__Client', param>, <'rab__rpc', param>, 'rab__connect_rpc') ]
+    --[ Transition__(<'rab__Client', param>, 'rab_____0', %v__) ]->
+    [ State__Client(<'rab_____1__0_1', param, %v__>, 'rab__unit', 'rab__empty', <<'rab__rpc', param>, 'rab__'>, 'rab__empty'),
+      Req(<'rab__rpc', param>) ]
+
+rule Client__guarded_new_intr_____1__0_1_____1__0_1__0_2__37[role="Client"]
+  : [ State__Client(<'rab_____1__0_1', param, %v__>, return__var__3, 'rab__empty', <l__0__3, l__1__3>, 'rab__empty'),
+      Fr(n__0__4),
+      !ACP__(<'rab__Client', param>, l__0__3, 'rab__connect_rpc'),
+      !ACP__(<'rab__Client', param>, l__0__3, 'rab__connect_rpc'),
+      Ack(l__0__3) ]
+    --[ Transition__(<'rab__Client', param>, 'rab_____1__0_1', %v__) ]->
+    [ State__Client(<'rab_____1__0_1__0_2', param, %v__>, 'rab__unit', n__0__4, <l__0__3, l__1__3>, 'rab__empty'),
+      Chid__Client(param, n__0__4, l__0__3),
+      Conn(l__0__3) ]
+
+rule Client__return_new_out_c_____1__0_1__0_2_____3__0_2__35[role="Client"]
+  : [ State__Client(<'rab_____1__0_1__0_2', param, %v__>, return__var__6, m__0__6, <l__0__6, l__1__6>, 'rab__empty'),
+      !ACP__(<'rab__Client', param>, n__0__12, 'rab__invoke_rpc'),
+      Chid__Client(param, m__0__6, n__0__12) ]
+    --[ Transition__(<'rab__Client', param>, 'rab_____1__0_1__0_2', %v__) ]->
+    [ State__Client(<'rab_____3__0_2', param, %v__>, 'rab__unit', n__0__12, <'1', m__0__6, 'rab__', m__0__6>, 'rab__empty'),
+      Chid__Client(param, m__0__6, n__0__12),
+      Invoke(n__0__12, '1') ]
+
+rule Client__guarded_return_c_____3__0_2_____7__28[role="Client"]
+  : [ State__Client(<'rab_____3__0_2', param, %v__>, return__var__14, m__0__14, <l__0__14, l__1__14, l__2__14, l__3__14>, 'rab__empty'),
+      !ACP__(<'rab__Client', param>, m__0__14, 'rab__invoke_rpc'),
+      Returned(m__0__14, n__0__14) ]
+    --[ Transition__(<'rab__Client', param>, 'rab_____3__0_2', %v__),
+        ClientClose() ]->
+    [ State__Client(<'rab_____7', param, %v__>, 'rab__unit', 'rab__empty', 'rab__empty', 'rab__empty') ]
+
+restriction Init__ : " All x #i #j . Init__(x) @ #i & Init__(x) @ #j ==> #i = #j "
+restriction Equality_rule: "All x y #i. Eq__(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq__(x,x) @ #i ==> F"
+
+lemma AlwaysStarts__[reuse,use_induction]:
+      "All x p #i. Loop__Back(x, p) @i ==> Ex #j. Loop__Start(x, p) @j & j < i"
+
+lemma AlwaysStartsWhenEnds__[reuse,use_induction]:
+      "All x p #i. Loop__Finish(x, p) @i ==> Ex #j. Loop__Start(x, p) @j & j < i"
+
+lemma TransitionOnce__[reuse,use_induction]:
+      "All x p %i #j #k . Transition__(x, p, %i) @#j &
+        Transition__(x, p, %i) @ #k ==> #j = #k"
+
+
+lemma ClientTAClose : exists-trace "Ex  #time__0 . ClientTAClose()@#time__0 "
+lemma ClientClose : exists-trace "Ex  #time__0 . ClientClose()@#time__0 "
+end
+

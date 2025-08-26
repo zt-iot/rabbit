@@ -26,7 +26,7 @@ builtins: natural-numbers
 rule Init_system[role="system"]
   : [  ]
     --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str') ] 
+    [ !ACP_GEN_('rab_system_', 'rab_rab_str') ]
 
 
 // Add model inits: Server
@@ -35,7 +35,8 @@ rule Init_system[role="system"]
 rule Init_system1[role="system1"]
   : [ Fr(param) ]
     --[ Init_(<'rab_system1', param>) ]->
-    [ !ACP_GEN_('rab_system1_', param), State_Server(<'rab___0', param, %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    [ !ACP_GEN_('rab_system1_', param),
+      State_Server(<'rab___0', param, %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 // Model:  Server
 
@@ -43,7 +44,7 @@ rule Init_system1[role="system1"]
 rule Server_skip___0___1_0[role="Server"]
   : [ State_Server(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty') ]
     --[ Transition_(<'rab_Server', param>, 'rab___0', %v_) ]->
-    [ State_Server(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    [ State_Server(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"

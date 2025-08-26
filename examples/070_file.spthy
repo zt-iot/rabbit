@@ -26,20 +26,31 @@ builtins: natural-numbers
 rule Init_system[role="system"]
   : [  ]
     --[ Init_('rab_system') ]->
-    [ !ACP_GEN_('rab_system_', 'rab_rab_str'), State_Server(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ] 
+    [ !ACP_GEN_('rab_system_', 'rab_rab_str'),
+      State_Server(<'rab___0', 'rab_rab_str', %1>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 // Model:  Server
 
 
 rule Server_let_intro_scall____1___9_41[role="Server"]
-  : [ State_Server(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'), Fr(n_0_4), !ACP_(<'rab_Server', param>, 'rab__secret_pub', 'rab_fopen'), !ACP_(<'rab_Server', param>, 'rab__secret_pub', 'rab_fopen'), File_Server(param, loc_0, n_0_3) ]
-    --[ Transition_(<'rab_Server', param>, 'rab___1', %v_), Valid(), Eq_(n_0_12, n_0_17), Eq_(n_0_3, n_0_12) ]->
-    [ State_Server(<'rab___9', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), File_Server(param, loc_0, n_0_3) ] 
+  : [ State_Server(<'rab___1', param, %v_>, return_var_1, 'rab_empty', 'rab_empty', 'rab_empty'),
+      Fr(n_0_4),
+      !ACP_(<'rab_Server', param>, 'rab__secret_pub', 'rab_fopen'),
+      !ACP_(<'rab_Server', param>, 'rab__secret_pub', 'rab_fopen'),
+      File_Server(param, loc_0, n_0_3) ]
+    --[ Transition_(<'rab_Server', param>, 'rab___1', %v_),
+        Valid(),
+        Eq_(n_0_12, n_0_17),
+        Eq_(n_0_3, n_0_12) ]->
+    [ State_Server(<'rab___9', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'),
+      File_Server(param, loc_0, n_0_3) ]
 
 rule Server_init_filesys___0___1_0[role="Server"]
   : [ State_Server(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty') ]
     --[ Transition_(<'rab_Server', param>, 'rab___0', %v_) ]->
-    [ State_Server(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'), File_Server(param, 'rab__secret_pub', 'rab_hello'), !ACP_(<'rab_Server', param>, 'rab__secret_pub', 'rab_fopen') ] 
+    [ State_Server(<'rab___1', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty'),
+      File_Server(param, 'rab__secret_pub', 'rab_hello'),
+      !ACP_(<'rab_Server', param>, 'rab__secret_pub', 'rab_fopen') ]
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"

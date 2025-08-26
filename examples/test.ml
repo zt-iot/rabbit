@@ -44,7 +44,7 @@ let verify specs spthy =
       print_endline @@ String.make 78 '=';
       true
     )
-  else
+  else (
     let rec skip = function
       | "summary of summaries:" :: ls -> String.make 78 '=' :: ls
       | _ :: ls -> skip ls
@@ -94,6 +94,7 @@ let verify specs spthy =
       Format.printf "%s: Ok, everything went fine@.@." spthy;
     );
     !fail
+  )
 
 let test_file rab =
   let module_ = Re.replace !!{|\.rab$|} ~f:(fun _ -> "") rab in
