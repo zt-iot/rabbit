@@ -24,19 +24,20 @@ data cipher['a] (* generic datatype to denote a ciphertext which when decrypted 
 (** declare types with their classes *)
 type readonly_t   : filesys
 
-type keyprovider : process 
+type keyprovider_t : process 
 
 type alice_t : process
 type bob_t : process
-
 
 type secret_nonce_a : nonce 
 type secret_nonce_b : nonce
 
 
+type key_chan_1_t : channel[enckey[secret_nonce_a * string]]
+type key_chan_2_t : channel[enckey[secret_nonce_b]]
 
-type nonce_chan_t  :  channel[cipher[nonce * string] + cipher[nonce * nonce] + cipher[nonce]]
-type key_chan_t :  channel[enckey[nonce * string]]
+
+type nonce_chan_t  :  channel[cipher[secret_nonce_a * string] + cipher[secret_nonce_a * secret_nonce_b] + cipher[secret_nonce_b]]
 
 
 type secret_key_alice : deckey[secret_nonce_a * secret_nonce_b]
@@ -69,11 +70,22 @@ function snd_1 : secret_nonce_a * secret_nonce_b -> secret_nonce_b
 
 
 
-syscall send_key(c : channel[enckey[nonce * string]], v : enckey[nonce * string]) : unit {
+syscall send_key_1(c : channel[enckey[secret_nonce_a * string]], v : enckey[secret_nonce_a * string]) : unit {
   put [c::store(v)]
 }
 
-syscall recv_key(c : channel[enckey[nonce * string]]) : enckey[nonce * string] {
+syscall send_key_2(c : channel[enckey[secret_nonce_b]], v : enckey[secret_nonce_b]) : unit {
+  put [c::store(v)]
+}
+
+
+syscall recv_key_1(c : channel[enckey[secret_nonce_a * string]]) : enckey[secret_nonce_a * string] {
+  case 
+  | [c::store(v)] →   v 
+  end
+}
+
+syscall recv_key_2(c : channel[enckey[secret_nonce_b]]) : enckey[secret_nonce_b] {
   case 
   | [c::store(v)] →   v 
   end
@@ -114,7 +126,8 @@ syscall recv_3(c : channel[cipher[secret_nonce_b]]) : cipher[secret_nonce_b] {
 
 
 
-
+(* these have to stay commented, else the typechecker will complain that they are missing a typing annotation *)
+(* 
 syscall fopen (p) {
   case [p.x] ->
     new y = Fd(x) in 
@@ -130,25 +143,30 @@ syscall fread (y) {
 syscall fclose (y) {
   delete y.Fd
 }
-
+*)
 
 
 
 
 
 (** declare passive and active attacks *)
+passive attack eaves_mem (v) {
+  put [::Out(v)]
+}
 
 
 (***********)
 (** access control *)
 
-allow alice_t key_chan_t [recv_key]
+allow alice_t key_chan_1_t [recv_key_1]
+allow alice_t key_chan_2_t [recv_key_2]
+
 
 allow alice_t secret_nonce_a [read, provide]
 allow alice_t secret_nonce_b [read, provide]
 
-allow alice_t nonce_chan_t [send_1, send_3, recv_1, recv_3]
-allow bob_t nonce_chan_t [send_2, recv_2]
+allow alice_t nonce_chan_t [send_1, send_3, recv_2]
+allow bob_t nonce_chan_t [send_2, recv_1, recv_3]
 
 allow alice_t secret_key_alice [read]
 
@@ -187,7 +205,8 @@ process keyprovider(ch_1 : key_chan_1_t, ch_2 : key_chan_2_t) : keyprovider_t {
   }
 }
 
-process alice(ch_net : nonce_chan_t, ch_key_net_1 : key_chan_1_t, ch_key_net_2 : key_chan_2_t) : alice_t
+process alice(ch_net : nonce_chan_t, 
+  ch_key_net_1 : key_chan_1_t, ch_key_net_2 : key_chan_2_t) : alice_t
 {
     (* UNCOMMENT FOLLOWING LINE TO TURN ON FILESYSTEM *)
     (* file "/secret/pub_bob_1" : readonly_t = pk_1(priv_key_bob_1) *)
@@ -274,12 +293,12 @@ process bob(ch_net : nonce_chan_t) : bob_t
 (***********)
 (** installed channels *)
 channel nonce_chan : nonce_chan_t 
-channel key_chan : key_chan_t
-
+channel key_chan_1 : key_chan_1_t
+channel key_chan_2 : key_chan_2_t
 
 system 
-    keyprovider(key_chan)
-|   alice(nonce_chan, key_chan)
+    keyprovider(key_chan_1, key_chan_2)
+|   alice(nonce_chan, key_chan_1, key_chan_2)
 |   bob(nonce_chan)
 requires [
 

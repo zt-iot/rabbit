@@ -116,9 +116,9 @@ let rec typeof_expr (ctx : typechecking_context)
                 let param_idents = List.map (fst) idents_x_param_tys in 
                 let input_params = List.map (snd) idents_x_param_tys in 
                 input_params, ret_ty, Some (param_idents, cmd)
-            | Some (Cst_syntax.MemberFunc(idents_x_param_tys, ret_ty, cmd)) -> 
+            | Some (Cst_syntax.MemberFunc(idents_x_param_tys, ret_ty, cmd)) ->
                 let param_idents = List.map (fst) idents_x_param_tys in 
-                let input_params = List.map (snd) idents_x_param_tys in 
+                let input_params = List.map (snd) idents_x_param_tys in
                 input_params, ret_ty, Some (param_idents, cmd)
               (* there is no need to typecheck applications of passive attacks, as they are not considered part of the type system *) 
             | _ -> raise (TypeException (Format.sprintf "The symbol %s cannot be applied ; 
@@ -131,16 +131,14 @@ let rec typeof_expr (ctx : typechecking_context)
           if (arity_expected <> arity_actual) then
               raise (TypeException (Format.sprintf "symbol %s is expected to receive %i arguments but it received %i arguments" (Ident.string_part id) arity_expected arity_actual));
           
-          (* Check whether each argument is a subtype of the function parameter type, modulo the return type of function params *)
           let types_of_args = List.map (fun e -> (typeof_expr_rec e t_env)) args in 
 
-          (* for now, we coerce the function parameters to `Cst_syntax.core_security_ty`'s *)
+          (* coerce each function parameter, which are of type 'Cst_syntax.core_security_function_param', to type `Cst_syntax.core_security_ty` *)
           let input_params_cst = List.map (Cst_syntax.core_sec_f_param_to_core_sec_ty) function_input_params in 
 
+          (* Check whether each argument is a subtype of the corresponding function parameter type, modulo the return type of function params *)
           let args_x_f_params = List.combine types_of_args input_params_cst in
           let all_subtypes = List.for_all (fun (x, y) -> 
-            (* print_endline (Cst_syntax.show_Cst_syntax.core_security_ty x);
-            print_endline (Cst_syntax.show_Cst_syntax.core_security_ty y); *)
             Cst_syntax.is_subtype secrecy_lattice integrity_lattice x y expr_loc) args_x_f_params in
 
           if all_subtypes then

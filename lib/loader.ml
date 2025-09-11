@@ -49,7 +49,7 @@ let find_index f lst =
 let rec process_expr ?(param = "") ctx lctx { Location.data = c; Location.loc } =
   let c =
     match c with
-    | Input.Var id ->
+    | Input.Var (id, _) ->
         if Context.ctx_check_const ctx id
         then Syntax.Const (id, None)
         else if Context.ctx_check_ext_const ctx id
@@ -97,7 +97,7 @@ let rec process_expr ?(param = "") ctx lctx { Location.data = c; Location.loc } 
 let rec process_expr2 new_meta_vars ctx lctx { Location.data = c; Location.loc } =
   let c =
     match c with
-    | Input.Var id ->
+    | Input.Var (id, _) ->
         if Context.ctx_check_const ctx id
         then Syntax.Const (id, None)
         else if Context.ctx_check_ext_const ctx id

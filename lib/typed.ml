@@ -29,6 +29,11 @@ and expr' =
       }
   (** [id] or [id<e>].
       [id<e>] is only possible either for [id] of [Channel {param=true}] or [Const {param=true}] *)
+  | IdentWithChanIndex of 
+    { id : ident 
+    ; desc : Env.desc
+    ; chan_param_index : int
+    }
   | Boolean of bool (** boolean, [true]/[false] *)
   | String of string (** string, ["hello"] *)
   | Integer of int (** integer, [42] *)

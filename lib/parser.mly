@@ -15,7 +15,7 @@
 (* Parentheses & punctuations *)
 %token LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE 
 %token COLONEQ EQ NEQ
-%token COMMA SEMICOLON COLON APOSTROPHE PLUS STAR
+%token COMMA SEMICOLON COLON APOSTROPHE PLUS STAR SLASH
 %token BBAR
 %token UNDERSCORE
 
@@ -66,7 +66,7 @@ file:
   | f=decls EOF            { f }
 
 decls:
-  |                                 { [] }
+  |                       { [] }
   | d=decl ds=decls       { d :: ds }
 
 
@@ -284,8 +284,6 @@ func_param_integrity_lvl:
   | APOSTROPHE i=NAME { IntegPoly(i) }
   | Iintegrity LPAREN p=typ RPAREN { I(p) }
 
-
-
 opt_channel_params:
   | LBRACKET ps=separated_nonempty_list(PLUS, typ) RBRACKET { ps }
   | /* empty */                                         { [] }
@@ -321,9 +319,14 @@ func_param:
   (* do nothing with annotated secrecy and integrity levels for now *)
   | t=typ AT LPAREN func_param_secrecy_lvl COMMA func_param_integrity_lvl RPAREN { t }
 
+
+opt_channel_param_index:
+  | SLASH i=NUMERAL { Some i }
+  | /* empty */ { None }
+
 expr : mark_location(plain_expr) { $1 }
 plain_expr:
-  | id=NAME                    { Var (id)  }
+  | id=NAME index_opt=opt_channel_param_index  { Var (id, index_opt) }
   | b=BOOLEAN                  { Boolean b }
   | k=NUMERAL                  { Integer k }
   | r=FLOAT                    { Float r   }

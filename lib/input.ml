@@ -33,7 +33,7 @@ and security_lvl = func_param_secrecy_lvl * func_param_integrity_lvl
 type expr = expr' Location.located
 
 and expr' =
-  | Var of Name.ident
+  | Var of Name.ident * int option
   | Boolean of bool
   | String of string
   (* | Integer of Mpzf.t *)
@@ -47,7 +47,7 @@ let vars_of_expr e =
   let module NS = Name.Set in
   let rec aux s (e : expr) =
     match e.data with
-    | Var id -> NS.add id s
+    | Var (id, _) -> NS.add id s
     | Boolean _ | String _ | Integer _ | Float _ -> s
     | Apply (_, es) | Tuple es -> List.fold_left aux s es
     | Param (id, e) -> NS.add id (aux s e)

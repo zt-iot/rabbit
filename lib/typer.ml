@@ -288,10 +288,14 @@ let rec desugar_expr env (e : Input.expr) : Typed.expr =
         Integer i
     | Float f -> 
         Float f
-    | Var name ->
+    | Var (name, None) ->
         let id, desc = Env.find ~loc env name in
 
         Ident { id; desc; param = None }
+    | Var (name, Some (chan_param_index)) -> 
+        let id, desc = Env.find ~loc env name in 
+        
+        IdentWithChanIndex {id; desc; chan_param_index }
     | Tuple es ->
         assert (List.length es > 0);
 
