@@ -266,7 +266,7 @@ process bob(ch_net : nonce_chan_t) : bob_t
   {
     event [::BobOpen ()];
 
-    var c_txt1 = recv_1(ch_net) in 
+    var c_txt1 = recv_1(ch_net/0) in 
 
     var loc_nonce_a = fst_2(dec_1(c_txt1, priv_key_bob_1)) in 
     var c_txt2 = enc_2((loc_nonce_a, nonce_b), pka(priv_key_alice)) in 

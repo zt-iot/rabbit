@@ -365,6 +365,7 @@ let check_apps e =
     match e.desc with
     | Boolean _ | String _ | Integer _ | Float _ | Unit -> ()
     | Ident _ -> ()
+    | IdentWithChanIndex _ -> ()
     | Apply (id, es) ->
         let desc = Option.get @@ Env.find_opt_by_id e.env id in
         (match desc with

@@ -351,6 +351,9 @@ let rec convert_expr (ctx : conversion_context) (e : Typed.expr) : Cst_syntax.ex
         let converted_param = Option.map (convert_expr ctx) param in
         Cst_syntax.Ident { id; param = converted_param }
     
+    | Typed.IdentWithChanIndex {id ; chan_param_index ; _ } -> 
+        Cst_syntax.IdentWithChanIndex {id; chan_index = chan_param_index }
+
     | Typed.Boolean b -> Cst_syntax.Boolean b
     
     | Typed.String s -> Cst_syntax.String s

@@ -47,6 +47,7 @@ let rec string_of_expr (e : expr) =
   match e.desc with
   | Ident { id; param= None; _ } -> Ident.to_string id
   | Ident { id; param= Some p; _ } -> Printf.sprintf "%s<%s>" (Ident.to_string id) (string_of_expr p)
+  | IdentWithChanIndex {id; chan_param_index; _} -> Printf.sprintf "%s/%i" (Ident.to_string id) (chan_param_index)
   | Apply (f, es) -> Printf.sprintf "%s(%s)" (Ident.to_string f) (String.concat ", " @@ List.map string_of_expr es)
   | Tuple es -> Printf.sprintf "(%s)" @@ String.concat ", " @@ List.map string_of_expr es
   | String s -> Printf.sprintf "%S" s
@@ -251,6 +252,7 @@ module Subst = struct
     | Ident { id=_; desc= Var (Param); param= Some _; _ } ->
         assert false
     | Ident _ -> e
+    | IdentWithChanIndex _ -> e
 
   let fact s (f : fact) : fact =
     let desc : fact' = match f.desc with

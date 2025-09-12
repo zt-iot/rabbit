@@ -73,6 +73,32 @@ let rec typeof_expr (ctx : typechecking_context)
           | Some t -> (Cst_syntax.coerce_tenv_typ t expr_loc) 
           | None -> (raise_type_exception_with_location (Format.sprintf "No entry for the following Ident.t: %s" (Ident.name id)) expr_loc)
          end
+    | IdentWithChanIndex { id; chan_index } -> 
+      (* Look up the type of `id` in the typing environment t_env *)
+      begin match IdentMap.find_opt id t_env with 
+        | Some t -> 
+          let cst = Cst_syntax.coerce_tenv_typ t expr_loc in 
+          begin match cst with 
+            | (TChan(ty_params), sec_and_integrity_lvl) -> 
+              (* use 0-based indexing *)
+              if chan_index < 0 then 
+                (raise_type_exception_with_location
+                  (Format.sprintf "%s/%i is ill-typed: %i must be non-negative" (Ident.string_part id) (chan_index) (chan_index)) 
+                  expr_loc
+                );
+              if chan_index >= List.length ty_params then 
+                (raise_type_exception_with_location
+                  (Format.sprintf "%s/%i is ill-typed: %i is greater than the amount of type parameters of the type of %s" (Ident.string_part id) (chan_index) (chan_index) (Ident.string_part id)) 
+                  expr_loc
+                );
+              let indexed_type_parameter = List.nth ty_params chan_index in
+
+              (Cst_syntax.TChan ([indexed_type_parameter]), sec_and_integrity_lvl)
+            | _ -> raise_type_exception_with_location (Format.sprintf 
+              "The expression %s/%i is ill-typed because %s is not of channel type" (Ident.string_part id) (chan_index) (Ident.string_part id)) expr_loc
+          end
+        | None -> (raise_type_exception_with_location (Format.sprintf "No entry for the following Ident.t: %s" (Ident.name id)) expr_loc)
+      end
     (* Return type bool for both options IF it was declared as simple type *)
     | Boolean _ -> 
         let bool_ident = (Cst_syntax.t_env_lookup_by_name "bool" t_env) in 
