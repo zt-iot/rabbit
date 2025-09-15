@@ -19,7 +19,7 @@ let test_subtype_1 () =
         ProcTySet.empty |> ProcTySet.add "alice_t" |> ProcTySet.add "bob_t" |> ProcTySet.add "attacker_ty"), true) (* {alice_t} >= {alice_t, bob_t, attacker_ty} *)
       :: ((ProcTySet.empty |> ProcTySet.add "alice_t", 
         ProcTySet.empty |> ProcTySet.add "alice_t" |> ProcTySet.add "bob_t"), true) (* {alice_t} >= {alice_t, bob_t} *)
-         :: [], Lattice_util.GreaterThanOrEqual) in 
+         :: [], Lattice_util.Secrecy) in 
 
 
   let integrity_lattice = 
@@ -29,7 +29,7 @@ let test_subtype_1 () =
         ProcTySet.empty |> ProcTySet.add "alice_t" |> ProcTySet.add "bob_t" |> ProcTySet.add "attacker_ty"), true) (* {alice_t} <= {alice_t, bob_t, attacker_ty} *)
       :: ((ProcTySet.empty |> ProcTySet.add "alice_t", 
         ProcTySet.empty |> ProcTySet.add "alice_t" |> ProcTySet.add "bob_t"), true) (* {alice_t} <= {alice_t, bob_t} *)
-        :: [], Lattice_util.LessThanOrEqual) in 
+        :: [], Lattice_util.Integrity) in 
 
   let arg_type = () in 
 

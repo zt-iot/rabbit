@@ -30,20 +30,20 @@ let proc_ty_set_to_integrity_lvl providers all_process_typs =
   else 
     INode providers
 
-type relation = 
-  | LessThanOrEqual
-  | GreaterThanOrEqual
+type lattice_type = 
+  | Integrity
+  | Secrecy
 [@@deriving eq]
 
 
-type cst_access_policy = ((proc_ty_set * proc_ty_set) * bool) list * relation [@@deriving eq]
+type cst_access_policy = ((proc_ty_set * proc_ty_set) * bool) list * lattice_type [@@deriving eq]
 
 let pp_cst_access_policy fmt cst_access_pol = 
   let (lattice_pairs, lattice_rel) = cst_access_pol in 
 
   let rel_symbol = begin match lattice_rel with 
-    | GreaterThanOrEqual -> "=>"
-    | LessThanOrEqual -> "<="
+    | Secrecy -> "=>"
+    | Integrity -> "<="
   end in
 
   List.iter (fun ((a, b), rel_holds) ->
@@ -82,7 +82,7 @@ let equal_cst_access_policy_no_order (pairs1, rel1) (pair2, rel2) =
 
 (* Given an `u : proc_ty_set`, return 'vs', a set of all `proc_ty_set`s such that for each v \in vs, v <= u *)
 let elements_less_than_or_equal_to_u (pol : cst_access_policy) (u : proc_ty_set) : ProcTySetSet.t =
-  if (snd pol) = LessThanOrEqual then   
+  if (snd pol) = Integrity then   
     List.fold_left (fun acc ((v, u'), rel_holds) ->
       if ProcTySet.equal u u' && rel_holds then
         ProcTySetSet.add v acc
@@ -100,7 +100,7 @@ let elements_less_than_or_equal_to_u (pol : cst_access_policy) (u : proc_ty_set)
 
 (* Given an `a : proc_ty_set`, return bs, a set of all `proc_ty_set`s such that for each b \in bs, b >= a *)
 let elements_greater_than_or_equal_to_u (pol : cst_access_policy) (u : proc_ty_set) : ProcTySetSet.t =
-  if (snd pol) = GreaterThanOrEqual then   
+  if (snd pol) = Secrecy then   
     List.fold_left (fun acc ((v, u'), rel_holds) ->
       if ProcTySet.equal u u' && rel_holds then
         ProcTySetSet.add v acc
@@ -140,15 +140,15 @@ let find_extremum_in_intersect
   let is_extremum candidate =
     (* check if candidate is _relation_ for all `other \in intersect` *)
     ProcTySetSet.for_all (fun other ->
-      (* the relation always holds on the candidate itself *)
+      (* the lattice_type always holds on the candidate itself *)
       if ProcTySet.equal candidate other then true
 
       (* otherwise, check if `rel` holds depending on `relation_kind` *)
       else match (find_max, relation_kind) with
-        | (true, LessThanOrEqual) -> rel_holds other candidate  (* other <= candidate <-> candidate is max *)
-        | (false, LessThanOrEqual) -> rel_holds candidate other  (* candidate <= other <-> candidate is min *)
-        | (true, GreaterThanOrEqual) -> rel_holds candidate other (* candidate >= other <-> candidate is max *)
-        | (false, GreaterThanOrEqual) -> rel_holds other candidate (* other >= candidate <-> candidate is min *)
+        | (true, Integrity) -> rel_holds other candidate  (* other <= candidate <-> candidate is max *)
+        | (false, Integrity) -> rel_holds candidate other  (* candidate <= other <-> candidate is min *)
+        | (true, Secrecy) -> rel_holds candidate other (* candidate >= other <-> candidate is max *)
+        | (false, Secrecy) -> rel_holds other candidate (* other >= candidate <-> candidate is min *)
     ) intersect
   in
 
@@ -217,13 +217,13 @@ let leq_secrecy (secrecy_lattice : cst_access_policy) (lvl_a : secrecy_lvl) (lvl
   | SNode(a_set), SNode(b_set) -> 
     let comparison, rel = secrecy_lattice in
     begin match rel with 
-    | GreaterThanOrEqual -> 
+    | Secrecy -> 
       (* we need that a_set <= b_set, hence a ≯ b or a = b *)
       (* This is a sub-optimal way to compute, but for now we need it due to the way that secrecy_lattice is built *)
       let eq = ProcTySet.equal a_set b_set in 
       let a_set_geq_b_set = (List.assoc (a_set, b_set) comparison) in 
       (not a_set_geq_b_set) || eq
-    | LessThanOrEqual -> (raise (LatticeException "cannot call leq_secrecy on an integrity lattice"))
+    | Integrity -> (raise (LatticeException "cannot call leq_secrecy on an integrity lattice"))
     end 
   | _, _ -> false 
 
@@ -237,16 +237,16 @@ let leq_integrity (integrity_lattice : cst_access_policy) (lvl_a : integrity_lvl
     let comparison, rel = integrity_lattice in 
 
     begin match rel with 
-    | LessThanOrEqual -> 
+    | Integrity -> 
       begin match List.assoc_opt (a_set, b_set) comparison with 
         | Some res -> res
         | None -> 
           raise (LatticeException (Format.sprintf 
-              "leq_integrity was called with the sets %s and %s, whose pair is not part of the integrity lattice relation"
+              "leq_integrity was called with the sets %s and %s, whose pair is not part of the integrity lattice lattice_type"
               (Sets.show_proc_ty_set a_set) (Sets.show_proc_ty_set b_set)
             ))
       end
-    | GreaterThanOrEqual -> 
+    | Secrecy -> 
       (raise (LatticeException "cannot call leq_integrity on a secrecy lattice"))
     end
   | _, _ -> false

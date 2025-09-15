@@ -33,7 +33,7 @@ let test_read_access_map_to_secrecy_lattice () =
 
     let actual_secrecy_lattice = () in 
 
-  let result = ((Rabbit_lib.To_cst.compute_access_relation read_access_map), Lattice_util.GreaterThanOrEqual) in 
+  let result = ((Rabbit_lib.To_cst.compute_access_relation read_access_map), Lattice_util.Secrecy) in 
   ()
 
 let suite = ("To_cst module", [test_case "test_read_access_map_to_secrecy_lattice" `Quick test_read_access_map_to_secrecy_lattice])

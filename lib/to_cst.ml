@@ -754,8 +754,8 @@ let convert (decls : Typed.decl list)
 
     (* Compute the secrecy lattice and integrity lattice, from the read_access_map and provide_access_map *)
     (* The method to compute the relation is the same for both reading/providing *)
-    let secrecy_lattice = ((compute_access_relation read_access_map), Lattice_util.GreaterThanOrEqual) in (* the relation is '>=' *)
-    let integrity_lattice = ((compute_access_relation provide_access_map), Lattice_util.LessThanOrEqual) in (* the relation is '<=' *)
+    let secrecy_lattice = ((compute_access_relation read_access_map), Lattice_util.Secrecy) in (* the lattice_type is '>=' *)
+    let integrity_lattice = ((compute_access_relation provide_access_map), Lattice_util.Integrity) in (* the lattice_type is '<=' *)
 
     (* To be able to insert 'Public' or 'Untrusted' at every security type, we need to know the set of all process types in our Rabbit program *)
     let all_process_typs = extract_process_typs_from_decls procs (List.map (fun (d : Typed.decl) -> d.desc) decls_rev) in
