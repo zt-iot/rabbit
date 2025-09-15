@@ -32,7 +32,7 @@ let proc_ty_set_to_integrity_lvl providers all_process_typs =
 
 type relation = 
   | LessThanOrEqual
-  | GreaterThanOrEqual 
+  | GreaterThanOrEqual
 [@@deriving eq]
 
 
@@ -233,14 +233,19 @@ let leq_integrity (integrity_lattice : cst_access_policy) (lvl_a : integrity_lvl
   match lvl_a, lvl_b with 
   (* Every element is less than or equal to Untrusted *)
   | _, Untrusted -> true 
-
-
   | INode(a_set), INode(b_set) -> 
     let comparison, rel = integrity_lattice in 
 
     begin match rel with 
     | LessThanOrEqual -> 
-      (List.assoc (a_set, b_set) comparison)
+      begin match List.assoc_opt (a_set, b_set) comparison with 
+        | Some res -> res
+        | None -> 
+          raise (LatticeException (Format.sprintf 
+              "leq_integrity was called with the sets %s and %s, whose pair is not part of the integrity lattice relation"
+              (Sets.show_proc_ty_set a_set) (Sets.show_proc_ty_set b_set)
+            ))
+      end
     | GreaterThanOrEqual -> 
       (raise (LatticeException "cannot call leq_integrity on a secrecy lattice"))
     end

@@ -14,20 +14,22 @@ let test_increment () =
 let test_subtype_1 () = 
   let secrecy_lattice = 
       (((ProcTySet.empty |> ProcTySet.add "alice_t", 
-        ProcTySet.empty |> ProcTySet.add "alice_t"), true)
+        ProcTySet.empty |> ProcTySet.add "alice_t"), true) (* {alice_t} >= {alice_t} *)
       :: ((ProcTySet.empty |> ProcTySet.add "alice_t", 
-        ProcTySet.empty |> ProcTySet.add "alice_t" |> ProcTySet.add "bob_t" |> ProcTySet.add "attacker_ty"), true)
+        ProcTySet.empty |> ProcTySet.add "alice_t" |> ProcTySet.add "bob_t" |> ProcTySet.add "attacker_ty"), true) (* {alice_t} >= {alice_t, bob_t, attacker_ty} *)
       :: ((ProcTySet.empty |> ProcTySet.add "alice_t", 
-        ProcTySet.empty |> ProcTySet.add "alice_t" |> ProcTySet.add "bob_t"), true) :: [], Lattice_util.GreaterThanOrEqual) in 
+        ProcTySet.empty |> ProcTySet.add "alice_t" |> ProcTySet.add "bob_t"), true) (* {alice_t} >= {alice_t, bob_t} *)
+         :: [], Lattice_util.GreaterThanOrEqual) in 
 
 
   let integrity_lattice = 
     (((ProcTySet.empty |> ProcTySet.add "alice_t", 
-        ProcTySet.empty |> ProcTySet.add "alice_t"), true)
+        ProcTySet.empty |> ProcTySet.add "alice_t"), true) (* {alice_t} <= {alice_t} *)
       :: ((ProcTySet.empty |> ProcTySet.add "alice_t", 
-        ProcTySet.empty |> ProcTySet.add "alice_t" |> ProcTySet.add "bob_t" |> ProcTySet.add "attacker_ty"), true)
+        ProcTySet.empty |> ProcTySet.add "alice_t" |> ProcTySet.add "bob_t" |> ProcTySet.add "attacker_ty"), true) (* {alice_t} <= {alice_t, bob_t, attacker_ty} *)
       :: ((ProcTySet.empty |> ProcTySet.add "alice_t", 
-        ProcTySet.empty |> ProcTySet.add "alice_t" |> ProcTySet.add "bob_t"), true) :: [], Lattice_util.LessThanOrEqual) in 
+        ProcTySet.empty |> ProcTySet.add "alice_t" |> ProcTySet.add "bob_t"), true) (* {alice_t} <= {alice_t, bob_t} *)
+        :: [], Lattice_util.LessThanOrEqual) in 
 
   let arg_type = () in 
 

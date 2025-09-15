@@ -194,7 +194,8 @@ let accessing_labels (access_map : access_map) (proc_ty : string) : SecurityType
       acc
   ) access_map SecurityTypeSet.empty
 
-(* 2. Define "a × b" based on access coverage *)
+(* 2. Define "a \rel b" based on access coverage. In other words, "a \rel b" 
+holds when all process types in 'a' are allowed to access as much or more than all process types in 'b' *)
 let proc_ty_set_rel (access_map : access_map)
                     (a : proc_ty_set)
                     (b : proc_ty_set) : bool =
@@ -209,7 +210,7 @@ let proc_ty_set_rel (access_map : access_map)
 
 (* 3. Iterate over all ordered pairs (a, b) of proc_ty_sets and evaluate whether "a × b" *)
 let compute_access_relation (access_map : access_map) : ((proc_ty_set * proc_ty_set) * bool) list =
-  (* first get the list of unique proc_ty_sets in access_map values *)
+  (* First get the list of unique proc_ty_sets in access_map values. *)
   let proc_ty_sets = SecurityTypeMap.bindings access_map |> List.map snd |> List.sort_uniq ProcTySet.compare in 
   (* Then compute whether a \rel b for all ordered pairs (a, b) of proc_ty_sets *)
   List.flatten (
@@ -743,13 +744,13 @@ let convert (decls : Typed.decl list)
     let sys = (system_proc_idents, system_location) in 
 
     (* Based on all Typed.Allow declarations, create the read_access_map and provide_access_map *)
-    let allow_decls = List.filter (fun decl -> match decl.Typed.desc with 
-      | Typed.Allow _ -> true 
-      | _ -> false 
-    ) decls in 
+    let allow_decls = List.filter (fun decl -> match decl.Typed.desc with
+      | Typed.Allow _ -> true
+      | _ -> false
+    ) decls in
     let (read_access_map, provide_access_map) = create_access_maps allow_decls in 
 
-    let syscall_per_proc_ty = syscall_per_proc_ty_from_allow_rules allow_decls in 
+    let syscall_per_proc_ty = syscall_per_proc_ty_from_allow_rules allow_decls in
 
     (* Compute the secrecy lattice and integrity lattice, from the read_access_map and provide_access_map *)
     (* The method to compute the relation is the same for both reading/providing *)
