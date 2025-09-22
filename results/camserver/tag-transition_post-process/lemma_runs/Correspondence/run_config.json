@@ -1,0 +1,10 @@
+{
+  "lemmas": [
+    "Correspondence"
+  ],
+  "timestamp": "2025-09-22T16:44:44.905031",
+  "tamarin_args": [
+    "--prove=Correspondence"
+  ],
+  "timeout": 3600
+}

@@ -1,0 +1,1091 @@
+maude tool: 'maude'
+ checking version: 3.5. OK.
+ checking installation: OK.
+[Theory rabbit] Theory loaded
+[Theory rabbit] Theory translated
+[Theory rabbit] Derivation checks started
+[Theory rabbit] Derivation checks ended
+[Theory rabbit] Theory closed
+[Saturating Sources] Step 1 (Max 5)
+[Saturating Sources] Done
+theory rabbit begin
+
+// Function signature and definition of the equational theory E
+
+builtins: natural-numbers
+functions: dec/2, enc/2, fst/1, h/1, pair/2, pk/1, sign/2, snd/1, true/0,
+           verify/3
+equations:
+    dec(enc(loc__1, loc__0), loc__0) = loc__1,
+    fst(<loc__1, loc__0>) = loc__1,
+    fst(<x.1, x.2>) = x.1,
+    snd(<loc__1, loc__0>) = loc__0,
+    snd(<x.1, x.2>) = x.2,
+    verify(sign(loc__1, loc__0), loc__1, pk(loc__0)) = true
+
+
+
+
+
+
+
+rule (modulo E) Const__priv_k:
+   [ Fr( priv_k ) ]
+  --[
+  Init__( 'rab__Const__priv_k' ), Init__( <'rab__Const__priv_k', priv_k> ),
+  !Const__( 'rab__priv_k', priv_k )
+  ]->
+   [ !Const__( 'rab__priv_k', priv_k ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Const__sym_k:
+   [ Fr( sym_k ) ]
+  --[
+  Init__( 'rab__Const__sym_k' ), Init__( <'rab__Const__sym_k', sym_k> ),
+  !Const__( 'rab__sym_k', sym_k )
+  ]->
+   [ !Const__( 'rab__sym_k', sym_k ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Const__init_data:
+   [ Fr( init_data ) ]
+  --[
+  Init__( 'rab__Const__init_data' ),
+  Init__( <'rab__Const__init_data', init_data> ),
+  !Const__( 'rab__init_data', init_data )
+  ]->
+   [ !Const__( 'rab__init_data', init_data ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system[role=system]:
+   [ ]
+  --[ Init__( 'rab__system' ) ]->
+   [
+   State__Client( <'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__',
+                  'rab__'
+   ),
+   State__Server( <'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__', 'rab__',
+                  'rab__'
+   ),
+   State__Client_ta( <'rab_____0', 'rab__rab', %1>, 'rab__', 'rab__',
+                     'rab__', 'rab__'
+   ),
+   !ACP__GEN__( 'rab__system__', 'rab__rab' )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system__ACP__0[role=system]:
+   [ !ACP__GEN__( 'rab__system__', 'rab__rab' ) ]
+  --[ Init__( 'rab__system__ACP__0' ) ]->
+   [ !ACP__( <'rab__Client_ta', 'rab__rab'>, 'rab__rpc', 'rab__accept_rpc' )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system__ACP__1[role=system]:
+   [ !ACP__GEN__( 'rab__system__', 'rab__rab' ) ]
+  --[ Init__( 'rab__system__ACP__1' ) ]->
+   [ !ACP__( <'rab__Client_ta', 'rab__rab'>, 'rab__rpc', 'rab__' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system__ACP__2[role=system]:
+   [ !ACP__GEN__( 'rab__system__', 'rab__rab' ) ]
+  --[ Init__( 'rab__system__ACP__2' ) ]->
+   [ !ACP__( <'rab__Server', 'rab__rab'>, 'rab__udp', 'rab__recv' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system__ACP__3[role=system]:
+   [ !ACP__GEN__( 'rab__system__', 'rab__rab' ) ]
+  --[ Init__( 'rab__system__ACP__3' ) ]->
+   [ !ACP__( <'rab__Client', 'rab__rab'>, 'rab__udp', 'rab__send' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system__ACP__4[role=system]:
+   [ !ACP__GEN__( 'rab__system__', 'rab__rab' ) ]
+  --[ Init__( 'rab__system__ACP__4' ) ]->
+   [ !ACP__( <'rab__Client', 'rab__rab'>, 'rab__rpc', 'rab__close_rpc' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system__ACP__5[role=system]:
+   [ !ACP__GEN__( 'rab__system__', 'rab__rab' ) ]
+  --[ Init__( 'rab__system__ACP__5' ) ]->
+   [ !ACP__( <'rab__Client', 'rab__rab'>, 'rab__rpc', 'rab__invoke_rpc' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system__ACP__6[role=system]:
+   [ !ACP__GEN__( 'rab__system__', 'rab__rab' ) ]
+  --[ Init__( 'rab__system__ACP__6' ) ]->
+   [ !ACP__( <'rab__Client', 'rab__rab'>, 'rab__rpc', 'rab__connect_rpc' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init__system__ACP__7[role=system]:
+   [ !ACP__GEN__( 'rab__system__', 'rab__rab' ) ]
+  --[ Init__( 'rab__system__ACP__7' ) ]->
+   [ !ACP__( <'rab__Client', 'rab__rab'>, 'rab__rpc', 'rab__' ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client__merged_____0_____4__0_1__96[role=Client]:
+   [
+   State__Client( <'rab_____0', param, %v__>, return__var__0, 'rab__',
+                  'rab__', 'rab__'
+   ),
+   !ACP__( <'rab__Client', param>, 'rab__rpc', 'rab__connect_rpc' )
+   ]
+  --[ Transition__( <'rab__Client', param>, 'rab_____0', %v__ ) ]->
+   [
+   State__Client( <'rab_____4__0_1', param, %v__>, 'rab__', 'rab__',
+                  <'rab__rpc', 'rab__'>,
+                  <'rab__sign_image', 'rab____secret__priv', 'rab____dev__camera'>
+   ),
+   Req( 'rab__rpc' )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client__merged_____4__0_1_____4__0_1__0_2__91[role=Client]:
+   [
+   State__Client( <'rab_____4__0_1', param, %v__>, return__var__6, 'rab__',
+                  <l__0__6, l__1__6>, <t__0__6, t__1__6, t__2__6>
+   ),
+   Ack( l__0__6 ),
+   !ACP__( <'rab__Client', param>, l__0__6, 'rab__connect_rpc' ),
+   !ACP__( <'rab__Client', param>, l__0__6, 'rab__connect_rpc' ),
+   Fr( n__0__7 )
+   ]
+  --[ Transition__( <'rab__Client', param>, 'rab_____4__0_1', %v__ ) ]->
+   [
+   State__Client( <'rab_____4__0_1__0_2', param, %v__>, 'rab__', n__0__7,
+                  <l__0__6, l__1__6>, <t__0__6, t__1__6, t__2__6>
+   ),
+   Chid__Client( param, n__0__7, l__0__6 ), Conn( l__0__6 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client__merged_____4__0_1__0_2_____6__89[role=Client]:
+   [
+   State__Client( <'rab_____4__0_1__0_2', param, %v__>, return__var__9,
+                  m__0__9, <l__0__9, l__1__9>, <t__0__9, t__1__9, t__2__9>
+   )
+   ]
+  --[
+  Transition__( <'rab__Client', param>, 'rab_____4__0_1__0_2', %v__ ),
+  Loop__Start( <'rab__Client', param>, 'rab_____5' )
+  ]->
+   [
+   State__Client( <'rab_____6', param, %v__>, 'rab__', 'rab__', m__0__9,
+                  <t__0__9, t__1__9, t__2__9>
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client__merged_____6_____6__0_4__0_2__85[role=Client]:
+   [
+   State__Client( <'rab_____6', param, %v__>, return__var__14, 'rab__',
+                  l__0__14, <t__0__14, t__1__14, t__2__14>
+   ),
+   Chid__Client( param, l__0__14, n__0__26 ),
+   !ACP__( <'rab__Client', param>, n__0__26, 'rab__invoke_rpc' ),
+   Fr( n__0__17 )
+   ]
+  --[ Transition__( <'rab__Client', param>, 'rab_____6', %v__ ) ]->
+   [
+   State__Client( <'rab_____6__0_4__0_2', param, %v__>, 'rab__', n__0__26,
+                  <t__1__14, n__0__17, t__0__14, l__0__14, 'rab__', n__0__17, l__0__14>,
+                  <t__0__14, t__1__14, t__2__14>
+   ),
+   Out( n__0__17 ), Chid__Client( param, l__0__14, n__0__26 ),
+   Invoke( n__0__26, t__0__14, n__0__17, t__1__14 )
+   ]
+
+  // loop breaker: [1]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client__merged_____6_____7__84[role=Client]:
+   [
+   State__Client( <'rab_____6', param, %v__>, return__var__43, 'rab__',
+                  l__0__43, <t__0__43, t__1__43, t__2__43>
+   )
+   ]
+  --[
+  Transition__( <'rab__Client', param>, 'rab_____6', %v__ ),
+  Loop__Finish( <'rab__Client', param>, 'rab_____5' )
+  ]->
+   [
+   State__Client( <'rab_____7', param, %v__>, 'rab__', 'rab__', l__0__43,
+                  <t__0__43, t__1__43, t__2__43>
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client__merged_____6__0_4__0_2_____6__0_5__0_1__71[role=Client]:
+   [
+   State__Client( <'rab_____6__0_4__0_2', param, %v__>, return__var__28,
+                  m__0__28,
+                  <l__0__28, l__1__28, l__2__28, l__3__28, l__4__28, l__5__28, l__6__28>,
+                  <t__0__28, t__1__28, t__2__28>
+   ),
+   Returned( m__0__28, n__0__28 ),
+   !ACP__( <'rab__Client', param>, m__0__28, 'rab__invoke_rpc' )
+   ]
+  --[ Transition__( <'rab__Client', param>, 'rab_____6__0_4__0_2', %v__ )
+  ]->
+   [
+   State__Client( <'rab_____6__0_5__0_1', param, %v__>, 'rab__', 'rab__',
+                  <n__0__28, n__0__28, l__5__28, l__6__28>, <t__0__28, t__1__28, t__2__28>
+   ),
+   Out( n__0__28 )
+   ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client__merged_____6__0_5__0_1_____6__0_7__65[role=Client]:
+   [
+   State__Client( <'rab_____6__0_5__0_1', param, %v__>, return__var__35,
+                  'rab__', <l__0__35, l__1__35, l__2__35, l__3__35>,
+                  <t__0__35, t__1__35, t__2__35>
+   )
+   ]
+  --[
+  Transition__( <'rab__Client', param>, 'rab_____6__0_5__0_1', %v__ ),
+  ImgSend( l__2__35 )
+  ]->
+   [
+   State__Client( <'rab_____6__0_7', param, %v__>, 'rab__', 'rab__',
+                  <l__1__35, l__2__35, l__3__35>, <t__0__35, t__1__35, t__2__35>
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client__merged_____6__0_7_____6__0_10__64[role=Client]:
+   [
+   State__Client( <'rab_____6__0_7', param, %v__>, return__var__37, 'rab__',
+                  <l__0__37, l__1__37, l__2__37>, <t__0__37, t__1__37, t__2__37>
+   ),
+   !ACP__( <'rab__Client', param>, 'rab__udp', 'rab__send' )
+   ]
+  --[ Transition__( <'rab__Client', param>, 'rab_____6__0_7', %v__ ) ]->
+   [
+   State__Client( <'rab_____6__0_10', param, %v__>, 'rab__', 'rab__',
+                  l__2__37, <t__0__37, t__1__37, t__2__37>
+   ),
+   Store( 'rab__udp', <l__0__37, l__1__37> )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client__merged_____7_____7__0_3__59[role=Client]:
+   [
+   State__Client( <'rab_____7', param, %v__>, return__var__46, 'rab__',
+                  l__0__46, <t__0__46, t__1__46, t__2__46>
+   ),
+   !Eq__( n__0__47, n__0__48 ),
+   !ACP__( <'rab__Client', param>, n__0__47, 'rab__close_rpc' ),
+   Chid__Client( param, l__0__46, n__0__47 )
+   ]
+  --[ Transition__( <'rab__Client', param>, 'rab_____7', %v__ ) ]->
+   [
+   State__Client( <'rab_____7__0_3', param, %v__>, 'rab__', n__0__47,
+                  <l__0__46, l__0__46>, <t__0__46, t__1__46, t__2__46>
+   ),
+   Exit( n__0__47 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client__merged_____7__0_3_____10__56[role=Client]:
+   [
+   State__Client( <'rab_____7__0_3', param, %v__>, return__var__50,
+                  m__0__50, <l__0__50, l__1__50>, <t__0__50, t__1__50, t__2__50>
+   )
+   ]
+  --[
+  Transition__( <'rab__Client', param>, 'rab_____7__0_3', %v__ ),
+  ClientClose( )
+  ]->
+   [
+   State__Client( <'rab_____10', param, %v__>, 'rab__', 'rab__', 'rab__',
+                  <t__0__50, t__1__50, t__2__50>
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client__repeat_____6__0_10_____6__42[role=Client]:
+   [
+   State__Client( <'rab_____6__0_10', param, %v__>, return__var__42,
+                  'rab__', l__0__42, <t__0__42, t__1__42, t__2__42>
+   )
+   ]
+  --[
+  Transition__( <'rab__Client', param>, 'rab_____6__0_10', %v__ ),
+  Loop__Back( <'rab__Client', param>, 'rab_____5' )
+  ]->
+   [
+   State__Client( <'rab_____6', param, (%v__%+%1)>, return__var__42,
+                  'rab__', l__0__42, <t__0__42, t__1__42, t__2__42>
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Server__merged_____1_____7__0_1__0_0__117[role=Server]:
+   [
+   State__Server( <'rab_____1', param, %v__>, return__var__1, 'rab__',
+                  'rab__', 'rab__'
+   ),
+   Fr( n__0__5 ), !Eq__( n__0__4, n__0__13 ),
+   !ACP__( <'rab__Server', param>, 'rab____secret__pub', 'rab__fopen' ),
+   !ACP__( <'rab__Server', param>, 'rab____secret__pub', 'rab__fopen' ),
+   File__Server( param, loc__0, n__0__4 )
+   ]
+  --[
+  Transition__( <'rab__Server', param>, 'rab_____1', %v__ ),
+  Loop__Start( <'rab__Server', param>, 'rab_____6' )
+  ]->
+   [
+   State__Server( <'rab_____7__0_1__0_0', param, %v__>, 'rab__', 'rab__',
+                  <'rab__udp', 'rab__', n__0__13, n__0__5>, 'rab____secret__pub'
+   ),
+   File__Server( param, loc__0, n__0__4 ),
+   Fd__Server( param, n__0__5, n__0__13 )
+   ]
+
+  // loop breaker: [5]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Server__merged_____1_____7__0_1__1_0__116[role=Server]:
+   [
+   State__Server( <'rab_____1', param, %v__>, return__var__1, 'rab__',
+                  'rab__', 'rab__'
+   ),
+   Fr( n__0__5 ), !Eq__( n__0__4, n__0__13 ),
+   !ACP__( <'rab__Server', param>, 'rab____secret__pub', 'rab__fopen' ),
+   !ACP__( <'rab__Server', param>, 'rab____secret__pub', 'rab__fopen' ),
+   File__Server( param, loc__0, n__0__4 )
+   ]
+  --[
+  Transition__( <'rab__Server', param>, 'rab_____1', %v__ ),
+  Loop__Start( <'rab__Server', param>, 'rab_____6' )
+  ]->
+   [
+   State__Server( <'rab_____7__0_1__1_0', param, %v__>, 'rab__', 'rab__',
+                  <'rab__udp', 'rab__', n__0__13, n__0__5>, 'rab____secret__pub'
+   ),
+   File__Server( param, loc__0, n__0__4 ),
+   Fd__Server( param, n__0__5, n__0__13 )
+   ]
+
+  // loop breaker: [5]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Server__merged_____1_____7__115[role=Server]:
+   [
+   State__Server( <'rab_____1', param, %v__>, return__var__1, 'rab__',
+                  'rab__', 'rab__'
+   ),
+   Fr( n__0__5 ), !Eq__( n__0__4, n__0__13 ),
+   !ACP__( <'rab__Server', param>, 'rab____secret__pub', 'rab__fopen' ),
+   !ACP__( <'rab__Server', param>, 'rab____secret__pub', 'rab__fopen' ),
+   File__Server( param, loc__0, n__0__4 )
+   ]
+  --[
+  Transition__( <'rab__Server', param>, 'rab_____1', %v__ ),
+  Loop__Start( <'rab__Server', param>, 'rab_____6' )
+  ]->
+   [
+   State__Server( <'rab_____7', param, %v__>, 'rab__', 'rab__',
+                  <n__0__13, n__0__5>, 'rab____secret__pub'
+   ),
+   File__Server( param, loc__0, n__0__4 ),
+   Fd__Server( param, n__0__5, n__0__13 )
+   ]
+
+  // loop breaker: [5]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Server__merged_____7_____10__65[role=Server]:
+   [
+   State__Server( <'rab_____7', param, %v__>, return__var__40, 'rab__',
+                  <l__0__40, l__1__40>, t__0__40
+   ),
+   False( )
+   ]
+  --[
+  Transition__( <'rab__Server', param>, 'rab_____7', %v__ ),
+  Loop__Finish( <'rab__Server', param>, 'rab_____6' )
+  ]->
+   [
+   State__Server( <'rab_____10', param, %v__>, 'rab__', 'rab__', 'rab__',
+                  t__0__40
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Server__merged_____7__0_1__0_0_____7__0_2__62[role=Server]:
+   [
+   State__Server( <'rab_____7__0_1__0_0', param, %v__>, return__var__21,
+                  'rab__', <l__0__21, l__1__21, l__2__21, l__3__21>, t__0__21
+   ),
+   Store( l__0__21, n__0__21 ),
+   !ACP__( <'rab__Server', param>, l__0__21, 'rab__recv' )
+   ]
+  --[ Transition__( <'rab__Server', param>, 'rab_____7__0_1__0_0', %v__ )
+  ]->
+   [
+   State__Server( <'rab_____7__0_2', param, %v__>, 'rab__', 'rab__',
+                  <n__0__21, l__2__21, l__3__21>, t__0__21
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Server__merged_____7__0_1__1_0_____7__0_2__59[role=Server]:
+   [
+   State__Server( <'rab_____7__0_1__1_0', param, %v__>, return__var__26,
+                  'rab__', <l__0__26, l__1__26, l__2__26, l__3__26>, t__0__26
+   ),
+   Store( l__0__26, n__0__26 ), In( n__1__26 ),
+   !ACP__( <'rab__Server', param>, l__0__26, 'rab__recv' )
+   ]
+  --[ Transition__( <'rab__Server', param>, 'rab_____7__0_1__1_0', %v__ )
+  ]->
+   [
+   State__Server( <'rab_____7__0_2', param, %v__>, 'rab__', 'rab__',
+                  <n__1__26, l__2__26, l__3__26>, t__0__26
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Server__merged_____7__0_2_____7__0_6__56[role=Server]:
+   [
+   State__Server( <'rab_____7__0_2', param, %v__>, return__var__30, 'rab__',
+                  <l__0__30, l__1__30, l__2__30>, t__0__30
+   ),
+   !NEq__( verify(fst(l__0__30), snd(l__0__30), l__1__30), true )
+   ]
+  --[
+  Transition__( <'rab__Server', param>, 'rab_____7__0_2', %v__ ),
+  ImgRecvInvalid( snd(l__0__30) )
+  ]->
+   [
+   State__Server( <'rab_____7__0_6', param, %v__>, 'rab__', 'rab__',
+                  <l__1__30, l__2__30>, t__0__30
+   )
+   ]
+
+  /*
+  rule (modulo AC) Server__merged_____7__0_2_____7__0_6__56[role=Server]:
+     [
+     State__Server( <'rab_____7__0_2', param, %v__>, return__var__30, 'rab__',
+                    <l__0__30, l__1__30, l__2__30>, t__0__30
+     ),
+     !NEq__( z, true )
+     ]
+    --[
+    Transition__( <'rab__Server', param>, 'rab_____7__0_2', %v__ ),
+    ImgRecvInvalid( z.1 )
+    ]->
+     [
+     State__Server( <'rab_____7__0_6', param, %v__>, 'rab__', 'rab__',
+                    <l__1__30, l__2__30>, t__0__30
+     )
+     ]
+    variants (modulo AC)
+    1. l__0__30
+             = l__0__30.16
+       l__1__30
+             = l__1__30.17
+       z     = verify(fst(l__0__30.16), snd(l__0__30.16), l__1__30.17)
+       z.1   = snd(l__0__30.16)
+    
+    2. l__0__30
+             = <x.99, z.62>
+       l__1__30
+             = l__1__30.51
+       z     = verify(x.99, z.62, l__1__30.51)
+       z.1   = z.62
+    
+    3. l__0__30
+             = <sign(z.19, x.24), z.19>
+       l__1__30
+             = pk(x.24)
+       z     = true
+       z.1   = z.19
+  */
+
+rule (modulo E) Server__merged_____7__0_2_____7__0_6__55[role=Server]:
+   [
+   State__Server( <'rab_____7__0_2', param, %v__>, return__var__30, 'rab__',
+                  <l__0__30, l__1__30, l__2__30>, t__0__30
+   ),
+   !Eq__( verify(fst(l__0__30), snd(l__0__30), l__1__30), true )
+   ]
+  --[
+  Transition__( <'rab__Server', param>, 'rab_____7__0_2', %v__ ),
+  ImgRecvValid( snd(l__0__30) )
+  ]->
+   [
+   State__Server( <'rab_____7__0_6', param, %v__>, 'rab__', 'rab__',
+                  <l__1__30, l__2__30>, t__0__30
+   )
+   ]
+
+  /*
+  rule (modulo AC) Server__merged_____7__0_2_____7__0_6__55[role=Server]:
+     [
+     State__Server( <'rab_____7__0_2', param, %v__>, return__var__30, 'rab__',
+                    <l__0__30, l__1__30, l__2__30>, t__0__30
+     ),
+     !Eq__( z, true )
+     ]
+    --[
+    Transition__( <'rab__Server', param>, 'rab_____7__0_2', %v__ ),
+    ImgRecvValid( z.1 )
+    ]->
+     [
+     State__Server( <'rab_____7__0_6', param, %v__>, 'rab__', 'rab__',
+                    <l__1__30, l__2__30>, t__0__30
+     )
+     ]
+    variants (modulo AC)
+    1. l__0__30
+             = l__0__30.16
+       l__1__30
+             = l__1__30.17
+       z     = verify(fst(l__0__30.16), snd(l__0__30.16), l__1__30.17)
+       z.1   = snd(l__0__30.16)
+    
+    2. l__0__30
+             = <x.99, z.62>
+       l__1__30
+             = l__1__30.51
+       z     = verify(x.99, z.62, l__1__30.51)
+       z.1   = z.62
+    
+    3. l__0__30
+             = <sign(z.19, x.24), z.19>
+       l__1__30
+             = pk(x.24)
+       z     = true
+       z.1   = z.19
+  */
+
+rule (modulo E) Server__repeat_____7__0_6_____7__39[role=Server]:
+   [
+   State__Server( <'rab_____7__0_6', param, %v__>, return__var__39, 'rab__',
+                  <l__0__39, l__1__39>, t__0__39
+   )
+   ]
+  --[
+  Transition__( <'rab__Server', param>, 'rab_____7__0_6', %v__ ),
+  Loop__Back( <'rab__Server', param>, 'rab_____6' )
+  ]->
+   [
+   State__Server( <'rab_____7', param, (%v__%+%1)>, return__var__39,
+                  'rab__', <l__0__39, l__1__39>, t__0__39
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Server__init_filesys_____0_____1__0[role=Server]:
+   [
+   State__Server( <'rab_____0', param, %v__>, return__var__0, 'rab__',
+                  'rab__', 'rab__'
+   ),
+   !Const__( 'rab__priv_k', priv_k__0 )
+   ]
+  --[ Transition__( <'rab__Server', param>, 'rab_____0', %v__ ) ]->
+   [
+   State__Server( <'rab_____1', param, %v__>, 'rab__', 'rab__', 'rab__',
+                  'rab__'
+   ),
+   File__Server( param, 'rab____secret__pub', pk(priv_k__0) ),
+   !ACP__( <'rab__Server', param>, 'rab____secret__pub', 'rab__fclose' ),
+   !ACP__( <'rab__Server', param>, 'rab____secret__pub', 'rab__fread' ),
+   !ACP__( <'rab__Server', param>, 'rab____secret__pub', 'rab__fopen' )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client_ta__merged_____4_____4__0_1__90[role=Client_ta]:
+   [
+   State__Client_ta( <'rab_____4', param, %v__>, return__var__8, 'rab__',
+                     'rab__', t__0__8
+   ),
+   Invoke( 'rab__rpc', n__2__8, n__1__8, n__0__8 ),
+   !ACP__( <'rab__Client_ta', param>, 'rab__rpc', 'rab__' ),
+   File__Client_ta( param, loc__0, n__0__14 ),
+   !ACP__( <'rab__Client_ta', param>, n__0__8, 'rab__fopen' ),
+   !ACP__( <'rab__Client_ta', param>, n__0__8, 'rab__fopen' ),
+   !Eq__( n__0__14, n__0__23 ), Fr( n__0__15 ),
+   !Eq__( n__2__8, 'rab__sign_image' ),
+   !ACP__( <'rab__Client_ta', param>, 'rab__rpc', 'rab__' ),
+   !Eq__( n__0__23, n__0__30 )
+   ]
+  --[ Transition__( <'rab__Client_ta', param>, 'rab_____4', %v__ ) ]->
+   [
+   State__Client_ta( <'rab_____4__0_1', param, %v__>, 'rab__',
+                     <n__0__8, n__1__8, n__2__8>, 'rab__', t__0__8
+   ),
+   File__Client_ta( param, loc__0, n__0__14 ),
+   Returned( 'rab__rpc', sign(n__1__8, dec(n__0__23, t__0__8)) )
+   ]
+
+  // loop breakers: [1,3]
+  /*
+  rule (modulo AC) Client_ta__merged_____4_____4__0_1__90[role=Client_ta]:
+     [
+     State__Client_ta( <'rab_____4', param, %v__>, return__var__8, 'rab__',
+                       'rab__', t__0__8
+     ),
+     Invoke( 'rab__rpc', n__2__8, n__1__8, n__0__8 ),
+     !ACP__( <'rab__Client_ta', param>, 'rab__rpc', 'rab__' ),
+     File__Client_ta( param, loc__0, n__0__14 ),
+     !ACP__( <'rab__Client_ta', param>, n__0__8, 'rab__fopen' ),
+     !ACP__( <'rab__Client_ta', param>, n__0__8, 'rab__fopen' ),
+     !Eq__( n__0__14, n__0__23 ), Fr( n__0__15 ),
+     !Eq__( n__2__8, 'rab__sign_image' ),
+     !ACP__( <'rab__Client_ta', param>, 'rab__rpc', 'rab__' ),
+     !Eq__( n__0__23, n__0__30 )
+     ]
+    --[ Transition__( <'rab__Client_ta', param>, 'rab_____4', %v__ ) ]->
+     [
+     State__Client_ta( <'rab_____4__0_1', param, %v__>, 'rab__',
+                       <n__0__8, n__1__8, n__2__8>, 'rab__', t__0__8
+     ),
+     File__Client_ta( param, loc__0, n__0__14 ),
+     Returned( 'rab__rpc', sign(n__1__8, z) )
+     ]
+    variants (modulo AC)
+    1. n__0__23
+             = n__0__23.29
+       t__0__8
+             = t__0__8.36
+       z     = dec(n__0__23.29, t__0__8.36)
+    
+    2. n__0__23
+             = enc(z.40, t__0__8.31)
+       t__0__8
+             = t__0__8.31
+       z     = z.40
+    // loop breakers: [1,3]
+  */
+
+rule (modulo E) Client_ta__merged_____0_____2__0_0__89[role=Client_ta]:
+   [
+   State__Client_ta( <'rab_____0', param, %v__>, return__var__0, 'rab__',
+                     'rab__', 'rab__'
+   ),
+   !Const__( 'rab__priv_k', priv_k__0 ), !Const__( 'rab__sym_k', sym_k__0 ),
+   !Const__( 'rab__sym_k', sym_k__1 )
+   ]
+  --[ Transition__( <'rab__Client_ta', param>, 'rab_____0', %v__ ) ]->
+   [
+   State__Client_ta( <'rab_____2__0_0', param, %v__>, 'rab__', 'rab__',
+                     'rab__rpc', sym_k__1
+   ),
+   File__Client_ta( param, 'rab____secret__priv', enc(priv_k__0, sym_k__0)
+   ),
+   !ACP__( <'rab__Client_ta', param>, 'rab____secret__priv', 'rab__fclose'
+   ),
+   !ACP__( <'rab__Client_ta', param>, 'rab____secret__priv', 'rab__fread' ),
+   !ACP__( <'rab__Client_ta', param>, 'rab____secret__priv', 'rab__fopen' )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client_ta__merged_____2__0_0_____2__0_0__0_1__87[role=Client_ta]:
+   [
+   State__Client_ta( <'rab_____2__0_0', param, %v__>, return__var__3,
+                     'rab__', l__0__3, t__0__3
+   ),
+   Req( l__0__3 ),
+   !ACP__( <'rab__Client_ta', param>, l__0__3, 'rab__accept_rpc' ),
+   !ACP__( <'rab__Client_ta', param>, l__0__3, 'rab__accept_rpc' )
+   ]
+  --[ Transition__( <'rab__Client_ta', param>, 'rab_____2__0_0', %v__ ) ]->
+   [
+   State__Client_ta( <'rab_____2__0_0__0_1', param, %v__>, 'rab__', 'rab__',
+                     l__0__3, t__0__3
+   ),
+   Ack( l__0__3 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client_ta__merged_____2__0_0__0_1_____4__86[role=Client_ta]:
+   [
+   State__Client_ta( <'rab_____2__0_0__0_1', param, %v__>, return__var__5,
+                     'rab__', l__0__5, t__0__5
+   )
+   ]
+  --[
+  Transition__( <'rab__Client_ta', param>, 'rab_____2__0_0__0_1', %v__ ),
+  Loop__Start( <'rab__Client_ta', param>, 'rab_____3' )
+  ]->
+   [
+   State__Client_ta( <'rab_____4', param, %v__>, 'rab__', 'rab__', 'rab__',
+                     t__0__5
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client_ta__merged_____4_____4__0_1__84[role=Client_ta]:
+   [
+   State__Client_ta( <'rab_____4', param, %v__>, return__var__8, 'rab__',
+                     'rab__', t__0__8
+   ),
+   Invoke( 'rab__rpc', n__2__8, n__1__8, n__0__8 ),
+   !ACP__( <'rab__Client_ta', param>, 'rab__rpc', 'rab__' ),
+   !NEq__( n__2__8, 'rab__sign_image' )
+   ]
+  --[
+  Transition__( <'rab__Client_ta', param>, 'rab_____4', %v__ ),
+  InValidName__Client_ta( param, n__2__8 )
+  ]->
+   [
+   State__Client_ta( <'rab_____4__0_1', param, %v__>, 'rab__',
+                     <n__0__8, n__1__8, n__2__8>, 'rab__', t__0__8
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client_ta__merged_____4_____5__82[role=Client_ta]:
+   [
+   State__Client_ta( <'rab_____4', param, %v__>, return__var__45, 'rab__',
+                     'rab__', t__0__45
+   ),
+   Exit( 'rab__rpc' ),
+   !ACP__( <'rab__Client_ta', param>, 'rab__rpc', 'rab__' )
+   ]
+  --[
+  Transition__( <'rab__Client_ta', param>, 'rab_____4', %v__ ),
+  Loop__Finish( <'rab__Client_ta', param>, 'rab_____3' )
+  ]->
+   [
+   State__Client_ta( <'rab_____5', param, %v__>, 'rab__', 'rab__', 'rab__',
+                     t__0__45
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client_ta__event_____5_____6__48[role=Client_ta]:
+   [
+   State__Client_ta( <'rab_____5', param, %v__>, return__var__48, 'rab__',
+                     'rab__', t__0__48
+   )
+   ]
+  --[
+  Transition__( <'rab__Client_ta', param>, 'rab_____5', %v__ ),
+  ClientTAClose( )
+  ]->
+   [
+   State__Client_ta( <'rab_____6', param, %v__>, 'rab__', 'rab__', 'rab__',
+                     t__0__48
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Client_ta__repeat_____4__0_1_____4__44[role=Client_ta]:
+   [
+   State__Client_ta( <'rab_____4__0_1', param, %v__>, return__var__44,
+                     <m__0__44, m__1__44, m__2__44>, 'rab__', t__0__44
+   )
+   ]
+  --[
+  Transition__( <'rab__Client_ta', param>, 'rab_____4__0_1', %v__ ),
+  Loop__Back( <'rab__Client_ta', param>, 'rab_____3' )
+  ]->
+   [
+   State__Client_ta( <'rab_____4', param, (%v__%+%1)>, return__var__44,
+                     'rab__', 'rab__', t__0__44
+   )
+   ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+restriction Init__:
+  "∀ x #i #j. ((Init__( x ) @ #i) ∧ (Init__( x ) @ #j)) ⇒ (#i = #j)"
+  // safety formula
+
+rule (modulo E) Equality_gen:
+   [ ] --> [ !Eq__( x, x ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) NEquality_gen:
+   [ ] --[ NEq___( x, y ) ]-> [ !NEq__( x, y ) ]
+
+  /* has exactly the trivial AC variant */
+
+restriction NEquality_rule:
+  "∀ x #i. (NEq___( x, x ) @ #i) ⇒ (⊥)"
+  // safety formula
+
+lemma AlwaysStarts__ [reuse, use_induction]:
+  all-traces
+  "∀ x p #i.
+    (Loop__Back( x, p ) @ #i) ⇒
+    (∃ #j. (Loop__Start( x, p ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x p #i.
+  (Loop__Back( x, p ) @ #i)
+ ∧
+  ∀ #j. (Loop__Start( x, p ) @ #j) ⇒ ¬(#j < #i)"
+*/
+by sorry
+
+lemma AlwaysStartsWhenEnds__ [reuse, use_induction]:
+  all-traces
+  "∀ x p #i.
+    (Loop__Finish( x, p ) @ #i) ⇒
+    (∃ #j. (Loop__Start( x, p ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x p #i.
+  (Loop__Finish( x, p ) @ #i)
+ ∧
+  ∀ #j. (Loop__Start( x, p ) @ #j) ⇒ ¬(#j < #i)"
+*/
+by sorry
+
+lemma TransitionOnce__ [reuse, use_induction]:
+  all-traces
+  "∀ x p %i #j #k.
+    ((Transition__( x, p, %i ) @ #j) ∧ (Transition__( x, p, %i ) @ #k)) ⇒
+    (#j = #k)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x p %i #j #k.
+  (Transition__( x, p, %i ) @ #j) ∧ (Transition__( x, p, %i ) @ #k)
+ ∧
+  ¬(#j = #k)"
+*/
+by sorry
+
+lemma Correspondence:
+  all-traces
+  "∀ new__0 #time__1.
+    (ImgRecvValid( new__0 ) @ #time__1) ⇒
+    (∃ #time__2. (ImgSend( new__0 ) @ #time__2) ∧ (#time__2 < #time__1))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ new__0 #time__1.
+  (ImgRecvValid( new__0 ) @ #time__1)
+ ∧
+  ∀ #time__2. (ImgSend( new__0 ) @ #time__2) ⇒ ¬(#time__2 < #time__1)"
+*/
+simplify
+solve( State__Server( <'rab_____7__0_2', param, %v__>, return__var__30,
+                      'rab__', <l__0__30, l__1__30, l__2__30>, t__0__30
+       ) ▶₀ #time__1 )
+  case Server__merged_____7__0_1__1_0_____7__0_2__59_case_1
+  solve( !Eq__( z, true ) ▶₁ #time__1 )
+    case Equality_gen
+    solve( splitEqs(1) )
+      case split_case_2
+      solve( File__Server( 'rab__rab', loc__0, pk(x) ) ▶₅ #vr.1 )
+        case Server__init_filesys_____0_____1__0
+        solve( !KU( sign(new__0, ~n) ) @ #vk.1 )
+          case Client__merged_____6__0_4__0_2_____6__0_5__0_1__71_case_2
+          solve( Loop__Start( <'rab__Client_ta', 'rab__rab'>, 'rab_____3' ) @ #j )
+            case Client_ta__merged_____2__0_0__0_1_____4__86
+            solve( State__Client_ta( <'rab_____2__0_0__0_1', 'rab__rab', %v__>,
+                                     return__var__5, 'rab__', l__0__5, t__0__5
+                   ) ▶₀ #j )
+              case Client_ta__merged_____2__0_0_____2__0_0__0_1__87
+              solve( State__Client( <'rab_____6__0_4__0_2', 'rab__rab', %v__>,
+                                    return__var__28, 'rab__rpc',
+                                    <l__0__28, l__1__28, l__2__28, l__3__28, l__4__28, l__1__37, l__2__37>,
+                                    <t__0__37, t__1__37, t__2__37>
+                     ) ▶₀ #vr.10 )
+                case Client__merged_____6_____6__0_4__0_2__85_case_1
+                solve( Invoke( 'rab__rpc', 'rab__sign_image', n__1__8,
+                               'rab____secret__priv'
+                       ) ▶₁ #vr.11 )
+                  case Client__merged_____6_____6__0_4__0_2__85_case_1
+                  solve( File__Client_ta( 'rab__rab', loc__0, enc(z, ~n) ) ▶₃ #vr.11 )
+                    case Client_ta__merged_____0_____2__0_0__89
+                    solve( State__Client( <'rab_____6__0_4__0_2', 'rab__rab', %v__>,
+                                          return__var__28, 'rab__rpc',
+                                          <l__0__28, l__1__28, l__2__28, l__3__28, l__4__28, l__5__28, 
+                                           l__6__28>,
+                                          <t__0__28, t__1__28, t__2__28>
+                           ) ▶₀ #vr.24 )
+                      case Client__merged_____6_____6__0_4__0_2__85_case_1
+                      solve( Loop__Start( <'rab__Client', 'rab__rab'>, 'rab_____5' ) @ #j.1 )
+                        case Client__merged_____4__0_1__0_2_____6__89
+                        solve( State__Client( <'rab_____4__0_1__0_2', 'rab__rab', %v__>,
+                                              return__var__9, m__0__9, <l__0__9, l__1__9>,
+                                              <t__0__9, t__1__9, t__2__9>
+                               ) ▶₀ #j.1 )
+                          case Client__merged_____4__0_1_____4__0_1__0_2__91
+                          solve( Invoke( 'rab__rpc', 'rab__sign_image', new__0,
+                                         'rab____secret__priv'
+                                 ) ▶₁ #vr.25 )
+                            case Client__merged_____6_____6__0_4__0_2__85_case_1
+                            solve( Loop__Start( <'rab__Client', 'rab__rab'>, 'rab_____5' ) @ #j.2 )
+                              case Client__merged_____4__0_1__0_2_____6__89
+                              solve( State__Client( <'rab_____4__0_1__0_2', 'rab__rab', %v__>,
+                                                    return__var__9, m__0__9, <l__0__9, l__1__9>,
+                                                    <t__0__9, t__1__9, t__2__9>
+                                     ) ▶₀ #j.2 )
+                                case Client__merged_____4__0_1_____4__0_1__0_2__91
+                                solve( File__Client_ta( 'rab__rab', loc__0, enc(~n.2, t__0__8)
+                                       ) ▶₃ #vr.25 )
+                                  case Client_ta__merged_____4_____4__0_1__90_case_1
+                                  solve( State__Client_ta( <'rab_____4__0_1', 'rab__rab', %v__>,
+                                                           return__var__8, <m__0__44, m__1__44, m__2__44>,
+                                                           'rab__', ~n
+                                         ) ▶₀ #vr.26 )
+                                    case Client_ta__merged_____4_____4__0_1__90_case_1
+                                    solve( Chid__Client( 'rab__rab', ~n.5, 'rab__rpc' ) ▶₁ #vr.30 )
+                                      case Client__merged_____4__0_1_____4__0_1__0_2__91
+                                      solve( Chid__Client( 'rab__rab', ~n.5, 'rab__rpc' ) ▶₁ #vr.32 )
+                                        case Client__merged_____6_____6__0_4__0_2__85_case_1
+                                        solve( !KU( ~n.1 ) @ #vk.2 )
+                                          case Client__merged_____6_____6__0_4__0_2__85
+                                          solve( Loop__Start( <'rab__Client', 'rab__rab'>, 'rab_____5'
+                                                 ) @ #j.2 )
+                                            case Client__merged_____4__0_1__0_2_____6__89
+                                            solve( State__Client( <'rab_____4__0_1__0_2', 'rab__rab', %v__>,
+                                                                  return__var__9, m__0__9, <l__0__9, l__1__9>,
+                                                                  <t__0__9, t__1__9, t__2__9>
+                                                   ) ▶₀ #j.2 )
+                                              case Client__merged_____4__0_1_____4__0_1__0_2__91
+                                              SOLVED // trace found
+                                            qed
+                                          qed
+                                        qed
+                                      qed
+                                    qed
+                                  qed
+                                qed
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma Reachable:
+  exists-trace
+  "∃ new__0 #time__2 #time__1 #time__0.
+    ((ImgRecvValid( new__0 ) @ #time__2) ∧ (ClientTAClose( ) @ #time__1)) ∧
+    (ClientClose( ) @ #time__0)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ new__0 #time__2 #time__1 #time__0.
+  (ImgRecvValid( new__0 ) @ #time__2) ∧
+  (ClientTAClose( ) @ #time__1) ∧
+  (ClientClose( ) @ #time__0)"
+*/
+by sorry
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Unbound variables
+=================
+
+  rule `Equality_gen' has unbound variables: 
+    x
+  
+  rule `NEquality_gen' has unbound variables: 
+    x, y
+
+Facts occur in the left-hand-side but not in any right-hand-side 
+=================================================================
+
+  1. in rule "Server__merged_____7_____10__65":  factName `False' arity: 0 multiplicity: Linear
+
+Derivation Checks
+=================
+
+  Derivation checks timed out.
+  Use --derivcheck-timeout=INT to configure timeout.
+  Set to 0 to deactivate for no timeout.
+*/
+
+/*
+Generated from:
+Tamarin version 1.10.0
+Maude version 3.5
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2025-09-19 04:30:07.180110391 UTC
+*/
+
+end
+
+==============================================================================
+summary of summaries:
+
+analyzed: results/camserver/tag-transition_post-process/compiled.spthy
+
+  processing time: 1241.03s
+  
+  WARNING: 4 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  AlwaysStarts__ (all-traces): analysis incomplete (1 steps)
+  AlwaysStartsWhenEnds__ (all-traces): analysis incomplete (1 steps)
+  TransitionOnce__ (all-traces): analysis incomplete (1 steps)
+  Correspondence (all-traces): falsified - found trace (25 steps)
+  Reachable (exists-trace): analysis incomplete (1 steps)
+
+==============================================================================

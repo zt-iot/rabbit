@@ -1,0 +1,10 @@
+{
+  "lemmas": [
+    "Reachable"
+  ],
+  "timestamp": "2025-09-22T16:36:52.650751",
+  "tamarin_args": [
+    "--prove=Reachable"
+  ],
+  "timeout": 3600
+}
