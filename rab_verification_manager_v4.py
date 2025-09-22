@@ -181,7 +181,7 @@ class RABManager:
         
         cmd = [tamarin_path] + tamarin_args + [str(spthy_file)]
         
-        output_file = run_dir / ("tamarin_output.txt" + str(config))
+        output_file = run_dir / ("tamarin_output" + str(config) + ".txt")
         
         try:
             with open(output_file, 'w') as outf:

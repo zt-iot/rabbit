@@ -1,0 +1,12 @@
+maude tool: 'maude'
+ checking version: 3.5. OK.
+ checking installation: OK.
+[Theory rabbit] Theory loaded
+[Theory rabbit] Theory translated
+[Theory rabbit] Derivation checks started
+[Theory rabbit] Derivation checks ended
+[Theory rabbit] Theory closed
+[Saturating Sources] Step 1 (Max 5)
+[Saturating Sources] Done
+
+*Killed by kernel*
