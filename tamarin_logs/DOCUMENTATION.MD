@@ -1,2 +1,0 @@
-- Any log inside of `tamarin_logs` must have the same file path as the `.spthy` file inside `tamarin_models`
-  - If the `tamarin-prover` command only verifies a single lemma, the filename must be `<model_name>_<lemma_name>.log`
