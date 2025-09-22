@@ -325,7 +325,6 @@ def main():
     parser.add_argument("--config", help="Compilation config name (default: no_flags)")
     parser.add_argument("--flags", nargs="*", help="Compilation flags")
     parser.add_argument("--lemmas", nargs="*", help="Lemmas to verify")
-    parser.add_argument("--lemma-subset", help="Name for lemma subset")
     parser.add_argument("--compiler", default=default_rab_compiler, help="Path to RAB compiler")
     parser.add_argument("--tamarin", default="tamarin-prover", help="Path to Tamarin prover")
     parser.add_argument("--timeout", type=int, default=3600, help="Timeout per lemma (seconds)")
@@ -361,7 +360,10 @@ def main():
         config = CompilationConfig(name=args.config, flags=configs[args.config]["flags"])
         
         lemmas = args.lemmas or []  # Empty list if no lemmas specified
-        subset_name = args.lemma_subset or "default"
+        if not lemmas:
+            subset_name = "default"
+        else:
+            subset_name = "__".join(args.lemmas)
         
         # If no lemmas provided, we'll run all lemmas (handled in run_lemma_verification)
         if not lemmas:
