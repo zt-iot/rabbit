@@ -15,6 +15,8 @@ homepage: "https://github.com/zt-iot/rabbit"
 depends: [
   "dune" {>= "3.15"}
   "odoc" {with-doc}
+  "sedlex"
+  "menhir"
 ]
 build: [
   ["dune" "subst"] {dev}
