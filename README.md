@@ -37,35 +37,36 @@ You have to install `tamarin-prover` and `maude` manually.  (There may be a pack
 To generate a Tamarin file from a Rabbit source:
 
 ```bash
-rabbit examples/camserver.rab -o camserver.rab.spthy --post-process --tag-transition
+rabbit examples/camserver.rab -o camserver.rab.spthy
 ```
 
-Optional flags:
-
-- `--post-process`: enables graph compression, reducing the size of the produced tamarin code significantly 
-- `--tag-transition`: introduces sub-lemmas, that will reduce the verification time of main assertions. (The sublemmas are correct up to the correctness of our implementaiton hence do not need to be proved.)
-
-To run Tamarin manually:
+This runs Rabbit to read `examples/camserver.rab` and output a Tamarin file `camserver.rab.spthy`, which can then be fed to Tamarin:
 
 ```bash
 tamarin-prover camserver.rab.spthy --prove=
 ```
-proves all assertions. To prove a specific lemma, replace the last argument to `--prove=LemmaName`.
-LemmaName is the name of the security assertion listed in the rabbit file. 
-A small caution is that the name may change during the tamarin translation. Hence, it is advised to carefully check the end of the generated `.spthy` file 
-to know the correct name. For example:
+By default, this tries to prove all assertions. To prove a specific lemma, replace the last argument with `--prove=LemmaName`, where `LemmaName` is the name of the security assertion listed in the Rabbit file.
 
-```tamarin
-// Sub-lemmas (with --tag-transition)
-lemma AlwaysStarts__[reuse,use_induction]: ...
-lemma AlwaysStartsWhenEnds__[reuse,use_induction]: ...
-lemma TransitionOnce__[reuse,use_induction]: ...
+**Note:** the lemma name may change during the Tamarin translation, so it is recommended to check the end of the generated `.spthy` file to confirm the correct name.
 
-// Main assertions
-lemma Secret_ : ...
+Rabbit also accepts optional arguments. To see them, run:
+```bash
+rabbit --help
 ```
-`_` may have been added to the user-written `Secret`.
+One particularly useful option is `--svg`, which renders transition graphs using Graphviz.
 
-## Documentation
+When the `--svg` option is given with the `-o xxx.spthy` option, the transition graph
+is rendered to an SVG file `xxx.spthy.svg`. (With the `--test-new` option, another
+graph `xxx.spthy.2.svg` is generated for the new compilation `xxx.spthy.2`.)
 
-**WIP** https://typst.app/project/rpEh0EsfMZuGaVAWyrgS2J
+
+## Resources
+
+* **WIP** https://typst.app/project/rpEh0EsfMZuGaVAWyrgS2J
+* The compiler pipeline is `pipeline.md` in this directory.
+
+### Related Papers
+
+* Inaba, T., Ishikawa, Y., Igarashi, A., & Sekiyama, T. (2024). _Rabbit: A Language to Model and Verify Data Flow in Networked Systems_. In 2024 International Symposium on Networks, Computers and Communications (ISNCC) (pp. 1-8). IEEE. https://doi.org/10.1109/ISNCC62547.2024.10758938
+* Park, S., & Igarashi, A. (2025). _Making Rabbit Run for Security Verification of Networked Systems with Unbounded Loops_. In A. Irfan & D. Kaufmann (Eds.), Proceedings of the 25th Conference on Formal Methods in Computer-Aided Design – FMCAD 2025 (pp. 178–187). TU Wien Academic Press. https://doi.org/10.34727/2025/isbn.978-3-85448-084-6_24
+

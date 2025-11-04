@@ -1,30 +1,22 @@
-# New compiler pipeline
+# Compiler pipeline
 
-The new compiler pipeline refactors the original compiler to provide a cleaner
+The current (new) compiler pipeline refactors the legacy compiler to provide a cleaner
 implementation.
 
 ## Use of the new compiler
 
 The `rabbit` command takes the following options for the new compiler:
 
-- `--new`: It replaces the compilation with the new compiler pipeline;
-  the new compiler generates the final output .spthy file specified 
+- `--old`: It replaces the compilation with the legacy compiler pipeline;
+  the legacy compiler generates the final output .spthy file specified 
   by the `-o xxx.spthy` option.
-- `--test-new`: Use the new compiler pipeline along with the original.
-  The original compiler generates the final output .spthy file specified 
+- `--test-new`: Use the new compiler pipeline along with the legacy.
+  The legacy compiler generates the final output .spthy file specified 
   by the `-o xxx.spthy` option. In addition, the `xxx.spthy.2` file is generated
   by the new compiler. It also compares the success and failure of
-  the `Loader` (the original source checker) and `Typer` (the new one).
+  the `Loader` (the legacy source checker) and `Typer` (the new one).
 
 Note: `--new` and `--test-new` are mutually exclusive.
-
-## Transition graph SVG
-
-The `--svg` option renders transition graphs using Graphviz.
-
-When the `--svg` option is given with the `-o xxx.spthy` option, the transition graph
-is rendered to an SVG file `xxx.spthy.svg`. With the `--test-new` option, another
-graph `xxx.spthy.2.svg` is generated for the new compilation `xxx.spthy.2`.
 
 ## New compiler pipeline stages
 
