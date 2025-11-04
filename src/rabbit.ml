@@ -14,7 +14,7 @@ let svg_file = ref false
 (** [Some `Main] to use the new compiler pipeline: [Typer], [Sem], [Spthy]
     [Some `Test] to run it along with the original one.
 *)
-let new_compiler = ref None
+let new_compiler = ref (Some `Main) (* default is using the new compiler by Jun *)
 
 (** Add a file to the list of files to be loaded, and record whether it should
     be processed in interactive mode. *)
@@ -42,29 +42,29 @@ let options = Arg.align [
      Arg.Set Config.dev,
      "use the development version of tamarin"); *)
 
-    ("--post-process",
+    ("--compress",
      Arg.Set Config.optimize,
-     " post-process to optimize the produced tamarin model");
+     "<bool> Enable of disable compressing produced Tamarin model");
 
-     ("--tag-transition",
-     Arg.Set Config.tag_transition,
-     " post-process to optimize the produced tamarin model");
+    ("--tag-transition",
+     Arg.Bool (fun b -> Config.tag_transition := b),
+     "<bool> Enable or disable tagging transitions in produced Tamarin model");
 
     ("-o",
      Arg.String (fun str -> add_ofile str),
-     "<file> Printing the translated program into <file>");
+     "<file> Printing the translated Tamarin program into <file>");
 
     ("--svg",
      Arg.Set svg_file,
      " Output graph SVGs (requires graphviz)");
 
-    ("--new",
+    ("--old",
      Arg.Unit (fun () -> new_compiler := Some `Main),
-     " Use new compiler");
+     " Use the legacy compiler");
 
     ("--test-new",
      Arg.Unit (fun () -> new_compiler := Some `Test),
-     " Test new compiler along with the original compiler");
+     " Test new compiler along with the legacy compiler for develop purpose");
     ]
 
 let load_file (env : Loader.env) fn =
