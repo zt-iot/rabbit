@@ -43,12 +43,12 @@ let options = Arg.align [
      "use the development version of tamarin"); *)
 
     ("--compress",
-     Arg.Set Config.optimize,
-     "<bool> Enable of disable compressing produced Tamarin model");
+     Arg.Bool (fun b -> Config.optimize := b),
+     "<bool> Enable of disable compressing produced Tamarin model (default: true)");
 
     ("--tag-transition",
      Arg.Bool (fun b -> Config.tag_transition := b),
-     "<bool> Enable or disable tagging transitions in produced Tamarin model");
+     "<bool> Enable or disable tagging transitions in produced Tamarin model (default: true)");
 
     ("-o",
      Arg.String (fun str -> add_ofile str),
@@ -58,7 +58,7 @@ let options = Arg.align [
      Arg.Set svg_file,
      " Output graph SVGs (requires graphviz)");
 
-    ("--old",
+    ("--legacy",
      Arg.Unit (fun () -> new_compiler := Some `Main),
      " Use the legacy compiler");
 
