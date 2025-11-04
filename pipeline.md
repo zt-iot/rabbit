@@ -7,7 +7,7 @@ implementation.
 
 The `rabbit` command takes the following options for the new compiler:
 
-- `--old`: It replaces the compilation with the legacy compiler pipeline;
+- `--legacy`: It replaces the compilation with the legacy compiler pipeline;
   the legacy compiler generates the final output .spthy file specified 
   by the `-o xxx.spthy` option.
 - `--test-new`: Use the new compiler pipeline along with the legacy.
@@ -16,7 +16,7 @@ The `rabbit` command takes the following options for the new compiler:
   by the new compiler. It also compares the success and failure of
   the `Loader` (the legacy source checker) and `Typer` (the new one).
 
-Note: `--old` and `--test-new` are mutually exclusive.
+Note: `--legacy` and `--test-new` are mutually exclusive.
 
 ## New compiler pipeline stages
 
