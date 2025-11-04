@@ -1,8 +1,6 @@
 (* The semantics *)
 open Typed
 
-let debug = ref true
-
 (** Conversion errors *)
 type error =
   | NoSystem
@@ -1637,12 +1635,12 @@ let compress (e1 : edge) (e2 : edge) =
 
 let compress e1 e2 =
   let e12, with_enforces = compress e1 e2 in
-  if !debug && with_enforces then (
+  if !Config.debug && with_enforces then (
     Format.eprintf "@[<v2>Compress@ %a@ %a@]@."
       print_edge_summary e1
       print_edge_summary e2
   );
-  if !debug && with_enforces then (
+  if !Config.debug && with_enforces then (
     Format.eprintf "  @[=> %a@]@.@."
       print_edge_summary e12
   );

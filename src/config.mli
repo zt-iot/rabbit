@@ -9,6 +9,9 @@ val columns : int ref
 (** Flag to enable developer mode features *)
 val dev : bool ref
 
+(** Flag to print debugging messages *)
+val debug : bool ref
+
 (** Flag to enable optimization passes *)
 val optimize : bool ref
 

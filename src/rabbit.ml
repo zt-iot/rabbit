@@ -42,6 +42,10 @@ let options = Arg.align [
      Arg.Set Config.dev,
      "use the development version of tamarin"); *)
 
+    ("--debug",
+     Arg.Set Config.debug,
+     "Print debugging messages");
+
     ("--compress",
      Arg.Bool (fun b -> Config.optimize := b),
      "<bool> Enable of disable compressing produced Tamarin model (default: true)");
@@ -59,7 +63,7 @@ let options = Arg.align [
      " Output graph SVGs (requires graphviz)");
 
     ("--legacy",
-     Arg.Unit (fun () -> new_compiler := Some `Main),
+     Arg.Unit (fun () -> new_compiler := None),
      " Use the legacy compiler");
 
     ("--test-new",

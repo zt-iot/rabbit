@@ -1,7 +1,5 @@
 open Tamarin
 
-let debug = ref false
-
 type error =
   | ConflictingCondition'
 
@@ -188,7 +186,7 @@ let reduce_conditions post pre' =
         begin match List.filter (fun f -> fact_eq_by_fid f fid) post with
         | [] -> f :: pre
         | [InjectiveFact (_, _, e, arg)] ->
-          if !debug then (
+          if !Config.debug then (
             print_endline "Testing";
             print_endline ("- " ^ Tamarin.print_expr e);
             print_endline ("- " ^ Tamarin.print_expr e');
@@ -196,10 +194,10 @@ let reduce_conditions post pre' =
 
           if e = e'
           then (
-            if !debug then print_endline ("- judged equal");
+            if !Config.debug then print_endline ("- judged equal");
             (EqFact (arg, arg'))::pre
           ) else (
-            if !debug then print_endline ("- judged inequal");
+            if !Config.debug then print_endline ("- judged inequal");
             error' ConflictingCondition'
           )
         | _ -> error' ConflictingCondition'
@@ -222,14 +220,14 @@ let reduce_conditions post pre' =
   | Error ConflictingCondition' -> None
   end
 
-let has_non_while_label (tr : transition) =
+(* let has_non_while_label (tr : transition) =
   List.fold_left (fun b l ->
   match l with
   | LoopFact(_, _, _) -> b
-  | _ -> true) false tr.transition_label
+  | _ -> true) false tr.transition_label *)
 
-let has_effect (tr : transition) =
-  has_non_while_label tr || List.exists (fun a -> is_nonlocal_fact a) tr.transition_post
+(* let has_effect (tr : transition) =
+  has_non_while_label tr || List.exists (fun a -> is_nonlocal_fact a) tr.transition_post *)
 
 (* p *)
 let rec optimize_at (m : model) (st : state) =
@@ -268,10 +266,7 @@ let rec optimize_at (m : model) (st : state) =
             end
         | _, _ -> None
       end in
-      let nonlocal = (has_effect tr1 && has_effect tr2)
-      || (List.exists (fun a -> is_nonlocal_fact a) tr2.transition_pre)
-
-      in
+      let nonlocal = List.exists (fun a -> is_nonlocal_fact a) tr2.transition_pre in
       let out_num = List.length (forward_transitions_from' m st_m) in
       let in_num = List.length (forward_transitions_to' m st_m) in
       let inout = out_num > 1 && in_num > 1 in
@@ -279,7 +274,7 @@ let rec optimize_at (m : model) (st : state) =
       match is_labelled, nonlocal, inout with
       | Some la, false, false ->
 
-        if !debug then (
+        if !Config.debug then (
           print_endline "Merging";
           print_endline ("- " ^ print_transition tr1 ~dev:true);
           print_endline ("- " ^ print_transition tr2 ~dev:true)
@@ -329,16 +324,16 @@ let rec optimize_at (m : model) (st : state) =
                 transition_label = la;
                 transition_is_loop_back = false
               } in
-              if !debug then (
+              if !Config.debug then (
                 print_endline "Merged into:";
                 print_endline ("- " ^ print_transition tr ~dev:true)
               );
               add_transition m tr
             | _ ->
-              if !debug then print_endline "Failed to merge"; m
+              if !Config.debug then print_endline "Failed to merge"; m
         end
       | _ ->
-        if !debug then (
+        if !Config.debug then (
           print_endline "Not Merging";
           print_endline ("- " ^ print_transition tr1 ~dev:true);
           print_endline ("- " ^ print_transition tr2 ~dev:true)
