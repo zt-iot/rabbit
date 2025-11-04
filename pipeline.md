@@ -16,7 +16,7 @@ The `rabbit` command takes the following options for the new compiler:
   by the new compiler. It also compares the success and failure of
   the `Loader` (the legacy source checker) and `Typer` (the new one).
 
-Note: `--new` and `--test-new` are mutually exclusive.
+Note: `--old` and `--test-new` are mutually exclusive.
 
 ## New compiler pipeline stages
 
