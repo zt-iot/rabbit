@@ -6,6 +6,6 @@ let columns = ref (Format.get_margin ())
 
 let dev = ref true
 
-let optimize = ref false
+let optimize = ref true
 
-let tag_transition = ref false
+let tag_transition = ref true
