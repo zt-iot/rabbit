@@ -724,8 +724,9 @@ let print_midamble ppf =
 restriction Init : " All x #i #j . Init(x) @ #i & Init(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq(x,y) @ #i ==> x = y"
 restriction NEquality_rule: "All x #i. NEq(x,x) @ #i ==> F"
-
-lemma AlwaysStarts[reuse,use_induction]:
+|};
+  if !Config.tag_transition then Format.pp_print_string ppf
+{|lemma AlwaysStarts[reuse,use_induction]:
       "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_In(x, p) @j & j < i"
 
 lemma AlwaysStartsWhenEnds[reuse,use_induction]:
@@ -758,7 +759,7 @@ let print ppf t =
       fprintf ppf "// Model of proc %s@.@." (Ident.to_string (proc_id :> Ident.t));
       List.iter (fprintf ppf "%a@.@." print_rule) rules) t.models;
 
-  if !Config.tag_transition then print_midamble ppf;
+  print_midamble ppf;
 
   fprintf ppf "@.//// Lemmas@.@.";
   List.iter (print_lemma ppf) t.lemmas;
