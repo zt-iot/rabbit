@@ -1,0 +1,25 @@
+syscall invoke_rpc (x) {
+  case [x::Returned(v)] → v end
+}
+
+type proc_t    : process
+
+allow proc_t [invoke_rpc]
+
+process p() : proc_t
+{
+  main
+  {
+    _ := invoke_rpc(0);
+    _ := invoke_rpc(0)
+  }
+
+}
+
+system
+  p()
+requires
+[
+  lemma ReachableClientClose :
+    reachable ::ClientClose()
+]
