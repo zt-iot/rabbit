@@ -137,7 +137,7 @@ let test_file ~no_auto rab =
   if Sys.file_exists out_spthy then Unix.unlink out_spthy;
   let res, output =
     (* [cd ..] is required *)
-    runf "cd ..; opam exec -- dune exec src/rabbit.exe -- --test-new examples/%s -o examples/%s --post-process --tag-transition --svg 2>&1" rab out_spthy
+    runf "cd ..; opam exec -- dune exec src/rabbit.exe -- --test-new examples/%s -o examples/%s --svg 2>&1" rab out_spthy
   in
   write_log output;
   (match res with

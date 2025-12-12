@@ -128,31 +128,25 @@ rule Client_ta__scall_intro_____0_____0__0_0__0[role="Client_ta"]
 // Model:  Client
 
 
-rule Client__let_intro_scall______0_____1__0_1__39[role="Client"]
+rule Client__let_intro_scall______0_____1__0_1__40[role="Client"]
   : [ State__Client(<'rab_____0', param, %v__>, return__var__0, 'rab__empty', 'rab__empty', 'rab__empty'),
       !ACP__(<'rab__Client', param>, <'rab__rpc', param>, 'rab__connect_rpc') ]
     --[ Transition__(<'rab__Client', param>, 'rab_____0', %v__) ]->
     [ State__Client(<'rab_____1__0_1', param, %v__>, 'rab__unit', 'rab__empty', <<'rab__rpc', param>, 'rab__'>, 'rab__empty'),
       Req(<'rab__rpc', param>) ]
 
-rule Client__guarded_new_intr_____1__0_1_____1__0_1__0_2__37[role="Client"]
+rule Client__guarded_new_intr_____1__0_1_____3__0_2__38[role="Client"]
   : [ State__Client(<'rab_____1__0_1', param, %v__>, return__var__3, 'rab__empty', <l__0__3, l__1__3>, 'rab__empty'),
       Fr(n__0__4),
+      !ACP__(<'rab__Client', param>, n__0__12, 'rab__invoke_rpc'),
       !ACP__(<'rab__Client', param>, l__0__3, 'rab__connect_rpc'),
       !ACP__(<'rab__Client', param>, l__0__3, 'rab__connect_rpc'),
       Ack(l__0__3) ]
-    --[ Transition__(<'rab__Client', param>, 'rab_____1__0_1', %v__) ]->
-    [ State__Client(<'rab_____1__0_1__0_2', param, %v__>, 'rab__unit', n__0__4, <l__0__3, l__1__3>, 'rab__empty'),
-      Chid__Client(param, n__0__4, l__0__3),
-      Conn(l__0__3) ]
-
-rule Client__return_new_out_c_____1__0_1__0_2_____3__0_2__35[role="Client"]
-  : [ State__Client(<'rab_____1__0_1__0_2', param, %v__>, return__var__6, m__0__6, <l__0__6, l__1__6>, 'rab__empty'),
-      !ACP__(<'rab__Client', param>, n__0__12, 'rab__invoke_rpc'),
-      Chid__Client(param, m__0__6, n__0__12) ]
-    --[ Transition__(<'rab__Client', param>, 'rab_____1__0_1__0_2', %v__) ]->
-    [ State__Client(<'rab_____3__0_2', param, %v__>, 'rab__unit', n__0__12, <'1', m__0__6, 'rab__', m__0__6>, 'rab__empty'),
-      Chid__Client(param, m__0__6, n__0__12),
+    --[ Transition__(<'rab__Client', param>, 'rab_____1__0_1', %v__),
+        Eq__(l__0__3, n__0__12) ]->
+    [ State__Client(<'rab_____3__0_2', param, %v__>, 'rab__unit', n__0__12, <'1', n__0__4, 'rab__', n__0__4>, 'rab__empty'),
+      Conn(l__0__3),
+      Chid__Client(param, n__0__4, n__0__12),
       Invoke(n__0__12, '1') ]
 
 rule Client__guarded_return_c_____3__0_2_____7__28[role="Client"]

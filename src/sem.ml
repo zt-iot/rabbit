@@ -341,8 +341,11 @@ module Update = struct
                | Some (New _) -> (* New + Drop = None *) None
                | None | Some (Update _) -> Some (x, Drop))
           | New e ->
-              assert (not @@ List.mem_assoc x u1.items);
-              Some (x, New (update_expr u1 e ))
+              let e = update_expr u1 e in
+              (match List.assoc_opt x u1.items with
+               | Some Drop -> (* Drop + New = Update *) Some (x, Update e) 
+               | None -> (* New = New *) Some (x, New (update_expr u1 e ))
+               | Some (Update _) | Some (New _) -> (* New + New = Error *) assert false)
           | Update e ->
               let e = update_expr u1 e in
               (match List.assoc_opt x u1.items with
