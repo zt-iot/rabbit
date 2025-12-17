@@ -381,8 +381,12 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
         ctx, lctx, Syntax.New (v, Option.map (fun (fid, el) -> fid, List.map (process_expr ctx lctx) el) fid_el_opt, c)
     | Input.Get (vl, id, fid, c) ->
         (* [let x1,...,xn := e.S in c] *)
+        let ctx =
+          Context.ctx_add_or_check_inj_fact ~loc ctx (fid, List.length vl)
+        in
         if not (Context.ctx_check_inj_fact ctx fid)
         then error ~loc (UnknownIdentifier ("structure fact", fid));
+        
         (let i = Context.ctx_get_inj_fact_arity ~loc ctx fid in
          let j = List.length vl in
          if not (i = j) then error ~loc (ArgNumMismatch (fid, i, j)) else ());
@@ -397,8 +401,8 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
         let ctx, _, c = process_cmd ctx lctx' c in
         ctx, lctx, Syntax.Get (vl, process_expr ctx lctx id, fid, c)
     | Input.Del (id, fid) ->
-        if not (Context.ctx_check_inj_fact ctx fid)
-        then error ~loc (UnknownIdentifier ("structure fact", fid));
+        (* if not (Context.ctx_check_inj_fact ctx fid)
+        then error ~loc (UnknownIdentifier ("structure fact", fid)); *)
         ctx, lctx, Syntax.Del (process_expr ctx lctx id, fid)
   in
   ctx, lctx, Location.locate ~loc c
