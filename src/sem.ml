@@ -299,7 +299,13 @@ module Update = struct
     | Ident { id; param= None; desc= Var } ->
         (match List.assoc_opt id u.items with
          | None -> evar id (* no binding *)
-         | Some Drop -> assert false (* dropped *)
+         | Some Drop ->
+             (* The variable is dropped then immediately reintroduced.
+                This happens when a system call is called twice immediately:
+                  _
+                See https://github.com/zt-iot/rabbit/issues/11
+             *)
+             evar id
          | Some (New e | Update e) -> e)
     | Ident { id; param= Some p; desc } ->
         (* [id] is channel ident therefore never changed *)
