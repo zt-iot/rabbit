@@ -1,0 +1,135 @@
+// Doesnt load...
+
+theory rabbit
+
+begin
+options: translation-state-optimisation, translation-compress-events
+
+builtins: natural-numbers
+
+
+// The signature of our model:
+functions: true/0, h/1, verify/3, snd/1, fst/1, dec/2, sign/2, enc/2, pk/1, false/0
+equations: verify(sign(loc__1, loc__0), loc__1, pk(loc__0))=true(), dec(enc(loc__1, loc__0), loc__0)=loc__1, snd(<loc__1, loc__0>)=loc__0, fst(<loc__1, loc__0>)=loc__1
+
+
+let Client(rpc:channel, udp) =
+    // internal channels for loops
+    new loop_start:channel;
+    new loop_end:channel;
+
+    // build rpc connection
+    out (rpc, 'req');
+    in (rpc, 'ack');
+    event Connected ();
+    !( // loop body
+
+        in(loop_start, '0'); // consume a fuel
+
+        new image; // take a photo
+        out(image); // eavesdrop image
+        out(rpc, <'invoke', <'sign_image', image> >); //invoke sign_image
+
+        in (rpc, <'return', sig>); // get return value
+
+        out(sig); // eavesdrop signature
+
+        event ImgSend(image); // tag event
+
+        out(<udp,  <'store', <sig, image> > >); // send the signed image to the public channel
+
+        ( // nondeterministically choose whether or not to end the loop:
+            new tmp:channel;
+            out(tmp, '0');
+            ((in(tmp, '0'); out(loop_start, '0')) | (in(tmp, '0'); out(loop_end, '0')))
+        )
+    )
+    |
+    ( // main control
+        out(loop_start, '0'); // initiate the above loop
+        in(loop_end, '0'); // if the loop ends, closese the rpc connection.
+        out(rpc, 'close');
+        event ClientClose ()
+    )
+
+let ClientTA(priv_k, rpc:channel) =
+    // internal channels for loops
+    new loop_start:channel;
+    new loop_exit:channel;
+
+    // build rpc connection
+    in(rpc, 'req');
+    out(rpc, 'ack');
+
+    !( // loop body
+
+        in(loop_start, '0'); // consume a fuel
+
+        // guarded choice
+        new lock:channel;
+        out(lock, true); // lock for choice
+
+        ((
+            in(rpc, <'invoke', args>); // GUARD 1: when invoke is called, do what is required then loop
+            in(lock, b);
+            if b=true then
+            out(lock, false);
+            (let <'sign_image', image> = args in
+                out(rpc, <'return', sign(image, priv_k)>);
+                out(loop_start, '0')
+            else
+                event InvokeInvalid();
+                out(loop_start, '0')
+            )
+            else out(rpc, <'invoke', args>); out(lock, false) // if locked, return the invoke message and the lock
+        )
+        |
+        (
+            in(rpc, 'close'); // GUARD 2: when exit is called, exit the loop
+            in(lock, b);
+            if b=true then
+            (out(loop_exit, '0'); out(lock, false))
+            else
+            (out(rpc, 'close'); out(lock, false))  // if locked, return the exit message and the lock
+        ))
+    )
+    |
+    ( // main control
+        out(loop_start, '0'); in(loop_exit, '0'); event ClientTAClose ()
+    )
+
+
+let Server(pub_k, udp) =
+    // internal channels for loops
+    new loop_start:channel;
+
+    !( // loop body
+        in(loop_start, '0'); // consume a fuel
+
+        in(<udp, <'store', p> >);
+        let res = verify(fst(p), snd(p), pub_k) in
+        if res = true
+        then event ImgRecvValid(snd(p)) ;
+            out(loop_start, '0')
+        else event ImgRecvInValid(snd(p));
+            out(loop_start, '0')
+    )
+    |
+    out(loop_start, '0')
+
+
+// main process
+process:
+    new rpc:channel;
+    new priv_k;
+
+    (Client (rpc, 'udp') | ClientTA(priv_k, rpc) | Server(pk(priv_k), 'udp'))
+
+
+
+lemma Correspondence : all-traces "All x #j  . ImgRecvValid(x) @ #j ==> Ex #i . ImgSend (x) @ i & i < j"
+lemma Reachable : exists-trace "Ex x #i #j #k  . ClientClose() @ #j & ClientTAClose() @ #k & ImgRecvValid(x) @ #i"
+// lemma Integrity : exists-trace "Ex x #i  . ImgRecvValid(x) @ #i"
+// lemma Reachable2 : exists-trace "Ex #i  . Connected() @ #i "
+
+end
