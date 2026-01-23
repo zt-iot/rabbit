@@ -9,6 +9,7 @@ type expr = expr' Location.located
 
 and expr' =
   | Var of Name.ident (** variable, [x] *)
+  | Wildcard (** anonymous value, [_] *)
   | Boolean of bool (** boolean. Currently no boolean constants available  *)
   | String of string (** string, ["hello"] *)
   (* | Integer of Mpzf.t *)
@@ -55,6 +56,7 @@ and cmd' =
   | Get of Name.ident list * expr * Name.ident * cmd
   (** fetch, [let x1,...,xn := e.S in c] *)
   | Del of expr * Name.ident (** deletion, [delete e.S] *)
+(* | Assume of fact list * cmd *)
 
 (** Channel argument *)
 type chan_arg =
