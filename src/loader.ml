@@ -13,6 +13,7 @@ type error =
   | WrongInputType
   | NoBindingVariable
   | WrongChannelType of string * string
+  | WildcardNotAllowed
 
 exception Error of error Location.located
 
@@ -37,6 +38,7 @@ let print_error err ppf =
   | WrongInputType -> Format.fprintf ppf "wrong input type"
   | NoBindingVariable -> Format.fprintf ppf "no binding variable"
   | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given" x y
+  | WildcardNotAllowed -> Format.fprintf ppf "wildcard '_' is not supported in legacy compiler"
 
 let find_index f lst =
   let rec aux i = function
@@ -70,6 +72,7 @@ let rec process_expr ?(param = "") ctx lctx { Location.data = c; Location.loc } 
                    (match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
                     | Some i -> Syntax.Variable (id, (Meta i))
                     | None -> error ~loc (UnknownIdentifier ("metavar", id)))))
+    | Input.Wildcard -> error ~loc WildcardNotAllowed
     | Input.Boolean b -> Syntax.Boolean b
     | Input.String s -> Syntax.String s
     | Input.Integer z -> Syntax.Integer z
@@ -119,6 +122,7 @@ let rec process_expr2 new_meta_vars ctx lctx { Location.data = c; Location.loc }
                         (match find_index (fun v -> v = id) new_meta_vars with
                          | Some i -> Syntax.Variable (id, (MetaNew i))
                          | None -> error ~loc (UnknownVariable (`MetaVar, id))))))
+    | Input.Wildcard -> error ~loc WildcardNotAllowed
     | Input.Boolean b -> Syntax.Boolean b
     | Input.String s -> Syntax.String s
     | Input.Integer z -> Syntax.Integer z
