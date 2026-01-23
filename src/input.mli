@@ -56,7 +56,7 @@ and cmd' =
   | Get of Name.ident list * expr * Name.ident * cmd
   (** fetch, [let x1,...,xn := e.S in c] *)
   | Del of expr * Name.ident (** deletion, [delete e.S] *)
-(* | Assume of fact list * cmd *)
+  | Assume of fact list * cmd
 
 (** Channel argument *)
 type chan_arg =

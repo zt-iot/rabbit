@@ -14,6 +14,7 @@ type error =
   | NoBindingVariable
   | WrongChannelType of string * string
   | WildcardNotAllowed
+  | AssumeNotAllowed
 
 exception Error of error Location.located
 
@@ -39,6 +40,7 @@ let print_error err ppf =
   | NoBindingVariable -> Format.fprintf ppf "no binding variable"
   | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given" x y
   | WildcardNotAllowed -> Format.fprintf ppf "wildcard '_' is not supported in legacy compiler"
+  | AssumeNotAllowed -> Format.fprintf ppf "assume command is not supported in legacy compiler"
 
 let find_index f lst =
   let rec aux i = function
@@ -408,6 +410,8 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
         (* if not (Context.ctx_check_inj_fact ctx fid)
         then error ~loc (UnknownIdentifier ("structure fact", fid)); *)
         ctx, lctx, Syntax.Del (process_expr ctx lctx id, fid)
+    | Input.Assume (_fl, _c) ->
+        error ~loc AssumeNotAllowed
   in
   ctx, lctx, Location.locate ~loc c
 ;;

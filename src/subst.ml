@@ -64,6 +64,7 @@ let rec cmd s (c : cmd) : cmd =
     | New (id, neso, c) -> New (id, Option.map (fun (n, es) -> n, List.map (expr s) es) neso, cmd s c)
     | Get (ids, e, n, c) -> Get (ids, expr s e, n, cmd s c)
     | Del (e, n) -> Del (expr s e, n)
+    | Assume (fs, c) -> Assume (List.map (fact s) fs, cmd s c)
   in
   { c with desc }
 
