@@ -378,10 +378,6 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
              error ~loc @@ InvalidFact { name = str; def = desc; use = Structure }
          | None -> error ~loc @@ UnboundFact str);
         Del (e, str)
-    | Assume (facts, cmd) ->
-        let facts = type_facts ~allow_wildcard:true env facts in
-        let cmd = type_cmd env cmd in
-        Assume (facts, cmd)
   in
   { loc; env; desc }
 
