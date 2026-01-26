@@ -1,0 +1,217 @@
+(* security primitives *)
+function pk:1
+function enc:2
+function sign:2
+function dec:2
+function fst:1
+function snd:1
+equation fst ((x, y)) = x
+equation snd ((x, y)) = y
+function true:0
+function verify:3
+equation dec(enc(x, y), y) = x
+equation verify (sign(d, k), d, pk(k)) = true
+
+(* load syscalls on channels *)
+load "udp_rpc.rab"
+
+(* picture *)
+syscall get_picture () {
+  new v in
+  v
+}
+
+(* filesys *)
+function h:1
+
+syscall fopen (p) {
+  case [p.x] ->
+    new y = Fd(x) in
+    put [p.x]; y
+  end
+}
+
+syscall fread (y){
+  let x = y.Fd in
+  x
+}
+
+syscall fclose (y) {
+  delete y.Fd
+}
+
+(***********)
+(** declare types with their classes *)
+type readonly_t   : filesys
+
+type server_t 	  : process
+type client_t 	  : process
+type client_ta_t  : process
+
+type udp_t 	  : channel
+type rpc_t 	  : channel
+
+(***********)
+(** access control *)
+allow client_t udp_t [send]
+allow server_t udp_t [.]
+allow server_t udp_t [recv]
+
+allow client_t rpc_t [connect_rpc, invoke_rpc, close_rpc]
+allow client_ta_t rpc_t [accept_rpc]
+allow client_ta_t rpc_t [.]
+allow client_t rpc_t [.]
+
+allow client_t [get_picture]
+
+allow client_ta_t readonly_t  [fopen, fread, fclose]
+allow server_t readonly_t     [fopen, fread, fclose]
+
+
+(***********)
+(** attacker model *)
+
+attack tampar_channel on recv (c) {
+  case [c::store(j), ::In(w)] ->
+    w
+  end
+}
+
+allow attack server_t [tampar_channel]
+
+passive attack eaves_mem (v) {
+  put [::Out(v)]
+}
+
+
+allow client_t [eaves_mem]
+
+
+(***********)
+(** global constants *)
+const fresh sym_k<>
+const fresh priv_k<>
+const pubkey<k> = pk(priv_k<k>)
+
+(***********)
+(** installed channels and filesystems *)
+channel rpc<> : rpc_t
+channel udp<> : udp_t
+
+(***********)
+(** process templates *)
+process client<k>(ch_net : udp_t, ch_rpc : rpc_t) : client_t
+{
+  var privkey_path = "/secret/priv"
+  var invoke_func = "sign_image"
+
+  main
+  {
+
+    var conn = connect_rpc(ch_rpc) in
+    repeat
+    | [] ->
+      var image = get_picture() in
+
+      _ := eaves_mem(image);
+
+      var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
+
+      _ := eaves_mem(sig);
+
+      event [::ImgSend(image)];
+
+      _ := send(ch_net, (sig, image))
+
+    until
+    | [] -> skip
+    end;
+
+    _ := close_rpc(conn) ;
+
+    event [::ClientClose ()]
+  }
+}
+
+process client_ta<k>(ch_rpc : rpc_t) : client_ta_t
+{
+  file "/secret/priv" : readonly_t = enc(priv_k<k>, sym_k<k>)
+
+  var fek = sym_k<k>
+
+  function sign_image(image, privkey_path)
+  {
+    var privkey_fd = fopen(privkey_path) in
+
+    var privkey = fread(privkey_fd) in
+
+    assume [privkey = enc(_, fek)] in
+
+    var privkey0 = dec(privkey, fek) in
+
+    var sig = sign(image, priv_k<k>) in
+
+    _ := fclose(privkey_fd);
+
+    sig
+  }
+
+  main
+  {
+    _ := accept_rpc(ch_rpc);
+
+    repeat
+    | [ch_rpc::invoke(fname, image, priv_path)] →
+      case
+      | [fname = "sign_image"] →
+        var signed = sign_image(image, priv_path) in
+        put[ch_rpc:: Returned(signed)]
+
+      | [fname != "sign_image"] →
+        event [InValidName(fname)]
+      end
+    until
+    | [ch_rpc::exit()] → skip
+    end;
+
+    event [::ClientTAClose ()]
+  }
+}
+
+process server(ch_net<> : udp_t) : server_t
+{
+
+  main
+  {
+    repeat
+    | [ch_net<addr> :: store(d) ] →
+      var p = d in
+      case [::In(k)] -> p := k | [] -> skip end;
+      assume [p = (_, _)] in
+      var res = verify(fst(p), snd(p), pubkey<addr>) in
+      case
+      | [res = true] →
+        event [::ImgRecvValid(snd(p))]
+
+      | [res != true] →
+        event [::ImgRecvInvalid(snd(p))]
+      end
+    until
+    | [::False()] →  skip
+    end
+  }
+}
+
+
+(***********)
+system
+  !n . (client<n>(udp<n>, rpc<n>) | client_ta<n>(rpc<n>))
+  |    server(udp<>)
+requires
+[
+  lemma Reachable :
+    reachable ::ClientClose(), ::ClientTAClose(), ::ImgRecvValid(x) ;
+
+  lemma Correspondence :
+    corresponds ::ImgRecvValid(x) ~> ::ImgSend (x)
+]
