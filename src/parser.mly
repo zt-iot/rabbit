@@ -23,7 +23,7 @@
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
 %token CHANNEL PROCESS PATH DATA FILESYS FILE
 %token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LTGT
-%token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL
+%token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL ASSUME
 
 %token REQUIRES EXTRACE ALLTRACE PERCENT FRESH LEADSTO REACHABLE CORRESPONDS
 
@@ -206,6 +206,7 @@ type_c:
 expr : mark_location(plain_expr) { $1 }
 plain_expr:
   | id=NAME                    { Var (id)  }
+  | UNDERSCORE                 { Wildcard }
   | b=BOOLEAN                  { Boolean b }
   | k=NUMERAL                  { Integer k }
   | r=FLOAT                    { Float r   }
@@ -244,6 +245,7 @@ plain_cmd:
   | c1=cmd SEMICOLON c2=cmd { Sequence(c1, c2) }
   | PUT LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { Put (postcond) }
   | VAR id=NAME EQ e=expr IN c=cmd { Let (id, e, c) }
+  | ASSUME LBRACKET a=separated_list(COMMA, fact) RBRACKET IN c=cmd { Case([a, c]) }
   | id=uname COLONEQ e=expr { Assign (id, e) }
   | CASE
     BAR? guarded_cmds=separated_nonempty_list(BAR, guarded_cmd) END { Case(guarded_cmds) }

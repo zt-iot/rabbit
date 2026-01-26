@@ -134,8 +134,7 @@ and lemma' =
   | Reachability of
       { fresh : ident list
       ; facts : fact list
-      }
-    (** [reachable f1,..,fn] *)
+      } (** [reachable f1,..,fn] *)
   | Correspondence of
       { fresh : ident list
       ; premise : fact

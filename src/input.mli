@@ -9,6 +9,7 @@ type expr = expr' Location.located
 
 and expr' =
   | Var of Name.ident (** variable, [x] *)
+  | Wildcard (** anonymous value, [_] *)
   | Boolean of bool (** boolean. Currently no boolean constants available  *)
   | String of string (** string, ["hello"] *)
   (* | Integer of Mpzf.t *)

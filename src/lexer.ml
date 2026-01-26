@@ -43,7 +43,8 @@ let reserved = [
   ("delete", DEL) ;
   ("get", GET) ;
   ("by", BY) ;
-  ("on", ON)
+  ("on", ON) ;
+  ("assume", ASSUME)
   ]
 
 let name =
