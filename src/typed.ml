@@ -104,7 +104,6 @@ and cmd' =
   | New of ident * (name * expr list) option * cmd
   | Get of ident list * expr * name * cmd
   | Del of expr * name
-  | Assume of fact list * cmd
 
 type chan_param = { channel : ident; param : unit option; typ : ident }
 

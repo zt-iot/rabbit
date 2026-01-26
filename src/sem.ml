@@ -1109,57 +1109,6 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
         )
       in
       es, i_2, env
-  | Assume (facts, c) ->
-      (* i =assume_in=> ij *)
-      let i_1 = Index.add i 1 in
-      let ij = Index.push i 1 in
-      let assume_facts = List.map fact_of_typed facts in
-      let fresh =
-        let bound_vars = vars @ List.map fst env.vars in
-        vars_of_facts assume_facts
-        |> List.filter (fun v -> not (List.mem v bound_vars))
-      in
-      let g1 =
-        [ { id = Ident.local "assume_in"
-          ; source = i
-          ; source_env = env
-          ; source_vars = vars
-          ; pre =
-              assume_facts
-              @ List.filter_map (channel_and_file_access ~proc ~syscaller) facts
-          ; update = { (Update.update_unit ())
-                       with items = List.map (fun x -> x, Update.New (evar x)) fresh }
-          ; tag = []
-          ; post = []
-          ; target = ij
-          ; target_env = c.env
-          ; target_vars = fresh @ vars
-          ; loop_back = false
-          ; attack = false
-          ; param
-          } ]
-      in
-      (* ij =c=> bj *)
-      let g2, bj, env_j = graph_cmd ~vars:(fresh @ vars) ~proc ~syscaller find_def decls ij c in
-      (* bj =assume_out=> i+1 *)
-      let g3 =
-        [ { id = Ident.local "assume_out"
-          ; source = bj
-          ; source_env = env_j
-          ; source_vars = fresh @ vars
-          ; pre = []
-          ; update = { (Update.update_id ()) with items = List.map (fun x -> x, Update.Drop) fresh }
-          ; tag = []
-          ; post = []
-          ; target = i_1
-          ; target_env = env
-          ; target_vars = vars
-          ; loop_back = false
-          ; attack = false
-          ; param
-          } ]
-      in
-      ( List.concat [ g1; g2; g3 ], i_1, env )
 
 and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app : expr) : graph * Index.t * Env.t =
   let param = snd proc.pid in
