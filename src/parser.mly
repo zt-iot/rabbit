@@ -245,7 +245,7 @@ plain_cmd:
   | c1=cmd SEMICOLON c2=cmd { Sequence(c1, c2) }
   | PUT LBRACKET postcond=separated_list(COMMA, fact) RBRACKET { Put (postcond) }
   | VAR id=NAME EQ e=expr IN c=cmd { Let (id, e, c) }
-  | ASSUME LBRACKET a=separated_list(COMMA, fact) RBRACKET IN c=cmd { Assume(a, c) }
+  | ASSUME LBRACKET a=separated_list(COMMA, fact) RBRACKET IN c=cmd { Case([a, c]) }
   | id=uname COLONEQ e=expr { Assign (id, e) }
   | CASE
     BAR? guarded_cmds=separated_nonempty_list(BAR, guarded_cmd) END { Case(guarded_cmds) }

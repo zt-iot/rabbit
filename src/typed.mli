@@ -100,7 +100,6 @@ and cmd' =
     (** allocation, new x := S(e1,..en) in c *)
   | Get of ident list * expr * name * cmd (** fetch, let x1,..,xn := e.S in c *)
   | Del of expr * name (** deletion , delete e.S *)
-  | Assume of fact list * cmd
 
 (** Parameter in process declarations [ch<p> : typ] *)
 type chan_param =
@@ -142,8 +141,7 @@ and lemma' =
   | Reachability of
       { fresh : ident list
       ; facts : fact list
-      }
-    (** [reachable f1,..,fn] *)
+      } (** [reachable f1,..,fn] *)
   | Correspondence of
       { fresh : ident list
       ; premise : fact

@@ -77,7 +77,6 @@ and cmd' =
   | New of Name.ident * (Name.ident * expr list) option * cmd
   | Get of Name.ident list * expr * Name.ident * cmd
   | Del of expr * Name.ident
-  | Assume of fact list * cmd
 
 type chan_arg =
   | ChanArgPlain of Name.ident
