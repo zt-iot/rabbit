@@ -195,8 +195,8 @@ process server(ch_net : udp_t) : server_t
     repeat
     | [] →
       var p = recv(ch_net) in
-      var res = verify(fst(p), snd(p), pubkey) in
       assume [p = (_, _)] in
+      var res = verify(fst(p), snd(p), pubkey) in
       case
       | [res = true] →
         event [::ImgRecvValid(snd(p))]
