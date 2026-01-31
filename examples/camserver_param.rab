@@ -17,7 +17,7 @@ load "udp_rpc.rab"
 
 (* picture *)
 syscall get_picture () {
-  new v in 
+  new v in
   v
 }
 
@@ -26,7 +26,7 @@ function h:1
 
 syscall fopen (p) {
   case [p.x] ->
-    new y = Fd(x) in 
+    new y = Fd(x) in
     put [p.x]; y
   end
 }
@@ -64,8 +64,8 @@ allow client_t rpc_t [.]
 
 allow client_t [get_picture]
 
-allow client_ta_t readonly_t  [fopen, fread, fclose] 
-allow server_t readonly_t     [fopen, fread, fclose]  
+allow client_ta_t readonly_t  [fopen, fread, fclose]
+allow server_t readonly_t     [fopen, fread, fclose]
 
 
 (***********)
@@ -81,26 +81,26 @@ channel udp<> : udp_t
 
 (***********)
 (** process templates *)
-process client<k>(ch_net : udp_t, ch_rpc : rpc_t) : client_t 
-{  
+process client<k>(ch_net : udp_t, ch_rpc : rpc_t) : client_t
+{
   var privkey_path = "/secret/priv"
   var invoke_func = "sign_image"
 
-  main 
+  main
   {
 
-    var conn = connect_rpc(ch_rpc) in 
-    repeat 
+    var conn = connect_rpc(ch_rpc) in
+    repeat
     | [] ->
-      var image = get_picture() in 
-      
+      var image = get_picture() in
+
       var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
 
       event [::ImgSend(image)];
-      
+
       _ := send(ch_net, (sig, image))
 
-    until 
+    until
     | [] -> skip
     end;
 
@@ -110,78 +110,78 @@ process client<k>(ch_net : udp_t, ch_rpc : rpc_t) : client_t
   }
 }
 
-process client_ta<k>(ch_rpc : rpc_t) : client_ta_t 
-{ 
+process client_ta<k>(ch_rpc : rpc_t) : client_ta_t
+{
   file "/secret/priv" : readonly_t = enc(priv_k<k>, sym_k<k>)
 
   var fek = sym_k<k>
 
-  function sign_image(image, privkey_path) 
+  function sign_image(image, privkey_path)
   {
     var privkey_fd = fopen(privkey_path) in
 
     var privkey = fread(privkey_fd) in
 
-    var privkey0 = dec(privkey, fek) in 
+    var privkey0 = dec(privkey, fek) in
 
     var sig = sign(image, privkey0) in
 
     _ := fclose(privkey_fd);
 
-    sig 
+    sig
   }
 
-  main 
+  main
   {
     _ := accept_rpc(ch_rpc);
-    
+
     repeat
     | [ch_rpc::invoke(fname, image, priv_path)] →
       case
       | [fname = "sign_image"] →
         var signed = sign_image(image, priv_path) in
-        put[ch_rpc:: Returned(signed)]		
+        put[ch_rpc:: Returned(signed)]
 
       | [fname != "sign_image"] →
         event [InValidName(fname)]
-      end 
+      end
     until
-    | [ch_rpc::exit()] → skip 
+    | [ch_rpc::exit()] → skip
     end;
 
     event [::ClientTAClose ()]
   }
 }
 
-process server(ch_net<> : udp_t) : server_t 
+process server(ch_net<> : udp_t) : server_t
 {
 
-  main 
+  main
   {
-    repeat 
+    repeat
     | [ch_net<addr> :: store(d) ] →
-      var p = d in 
+      var p = d in
       case [::In(k)] -> p := k | [] -> skip end;
-      var res = verify(fst(p), snd(p), pubkey<addr>) in 
-      case 
+      var res = verify(fst(p), snd(p), pubkey<addr>) in
+      case
       | [res = true] →
         event [::ImgRecvValid(snd(p))]
 
-      | [res != true] →  
+      | [res != true] →
         event [::ImgRecvInvalid(snd(p))]
       end
     until
-    | [::False()] →  skip 
-    end 	    
+    | [::False()] →  skip
+    end
   }
 }
 
 
 (***********)
-system 
-  !n . (client<n>(udp<n>, rpc<n>) | client_ta<n>(rpc<n>)) 
+system
+  !n . (client<n>(udp<n>, rpc<n>) | client_ta<n>(rpc<n>))
   |    server(udp<>)
-requires  
+requires
 [
   lemma Reachable :
     reachable ::ClientClose(), ::ClientTAClose(), ::ImgRecvValid(x) ;
