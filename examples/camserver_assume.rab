@@ -186,8 +186,6 @@ process server(ch_net : udp_t) : server_t
   file "/secret/pub" : readonly_t = pk(priv_k)
   var pubkey_path = "/secret/pub"
 
-
-
   main
   {
     var pubkey_fd = fopen(pubkey_path) in
