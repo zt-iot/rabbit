@@ -118,7 +118,7 @@ process client_ta<k>(ch_rpc : rpc_t) : client_ta_t
     var privkey = fread(privkey_fd) in
 
     (* check whether privkey can be decrypted properly *)
-    case [privkey = enc(xxx, fek)] → skip end;
+    assume [privkey = enc(xxx, fek)] in
 
     var privkey0 = dec(privkey, fek) in
 
@@ -176,7 +176,7 @@ process server(ch_net<> : udp_t) : server_t
       case [::In(k)] -> p := k | [] -> skip end;
       (* end attack *)
       (* check if p is a pair *)
-      case [p = (xxx, yyy)] → skip end;
+      assume [p = (xxx, yyy)] in
       var res = verify(fst(p), snd(p), pubkey<addr>) in
       case
       | [res = true] →
