@@ -159,7 +159,7 @@ type proc =
 (** Unnamed process group *)
 type proc_group_desc =
   | Unbounded of proc
-  | Bounded of Subst.param_id * proc list
+  | Bounded of Subst.param_id Location.located * proc list
 
 (** Named process group
 
@@ -176,7 +176,7 @@ type t =
       (Subst.proc_group_id
        * (Subst.proc_id
           * (Typed.chan_arg * Ident.t option (* system call or "anywhere" *)) list) list) list
-  ; constants : (Ident.t * Typed.init_desc) list
+  ; constants : ((Ident.t * Typed.init_desc) Location.located) list
   ; lemmas : (Ident.t * Typed.lemma) list
   }
 

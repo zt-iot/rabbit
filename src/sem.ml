@@ -534,7 +534,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
   (* For each edge, we have at most 1 transition variable.
      Therefore, no worry of name crash of transition variables *)
   let env = c.env in
-  let fact env desc : fact = { env; desc; loc = Location.nowhere } in
+  let fact env desc : fact = { env; desc; loc = c.loc } in
   let pid = proc.pid in
   let param = snd pid in
   let fact_of_typed = fact_of_typed (Some pid) in
@@ -1360,7 +1360,7 @@ let instantiate_proc_groups (decls : decl list) (sys : decl) =
 
 type proc_group_desc =
   | Unbounded of proc
-  | Bounded of Subst.param_id * proc list
+  | Bounded of Subst.param_id Location.located * proc list
 
 type proc_group = Subst.proc_group_id * proc_group_desc
 
@@ -1381,7 +1381,7 @@ let model_proc_groups (decls : decl list) (sys : decl) (proc_groups : Subst.proc
             Unbounded proc
         | Bounded (param, procs) ->
             let ms = List.map (model_process ~loc:sys.loc sys.env decls syscalls) procs in
-            Bounded (param, ms)
+            Bounded ({Location.data = param; loc = sys.loc}, ms)
       in
       (pg :: rev_ps)) [] proc_groups
 
@@ -1412,10 +1412,10 @@ let signature_of_decls (decls : decl list) =
   ; equations = equations_of_decls decls
   }
 
-let get_constants (decls : decl list) : (Typed.ident * Typed.init_desc) list =
+let get_constants (decls : decl list) : ((Typed.ident * Typed.init_desc) Location.located) list =
   List.filter_map (fun (d : decl) ->
       match d.desc with
-      | Init { id; desc } -> Some (id, desc)
+      | Init { id; desc } -> Some {Location.data=(id, desc); loc=d.loc}
       | _ -> None) decls
 
 let get_access_controls (decls : decl list) (proc_group_id, proc_group_desc : Subst.proc_group)
@@ -1447,7 +1447,7 @@ type t =
   { signature : signature
   ; proc_groups : proc_group list
   ; access_controls : (Subst.proc_group_id * (Subst.proc_id * (chan_arg * ident option) list) list) list
-  ; constants : (ident * init_desc) list
+  ; constants : ((ident * init_desc) Location.located) list
   ; lemmas : (Ident.t * lemma) list
   }
 

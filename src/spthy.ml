@@ -591,7 +591,7 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_
       ; post = facts' post
       ; comment
       }
-  | Bounded (param, procs) ->
+  | Bounded ({data=param; _}, procs) ->
       let pre = [ Fresh (param :> Ident.t) ] in
       let label = [ Initing_proc_group (proc_group_id, Some param) ] in
       let states =
@@ -669,7 +669,7 @@ let compile_access_controls
   let param =
     match proc_group_desc with
     | Unbounded _ -> None
-    | Bounded (param, _) -> Some param
+    | Bounded ({data=param; _}, _) -> Some param
   in
   let compile_proc_id_elems ((proc_id : Subst.proc_id), elems) =
     let pid = proc_id, param in
@@ -768,7 +768,7 @@ let print ppf t =
 
 let compile_sem ({ signature; proc_groups; constants; lemmas; access_controls } : Sem.t) =
   let signature = compile_signature signature in
-  let constants = List.map (fun (id, init_desc) -> rule_of_const id init_desc) constants in
+  let constants = List.map (fun {Location.data=(id, init_desc); _} -> rule_of_const id init_desc) constants in
   let models =
     List.map (fun ({ pid; edges } : Sem.proc) -> (fst pid, List.map (rule_of_edge pid) edges))
     @@ List.concat_map (function

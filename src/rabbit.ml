@@ -11,6 +11,9 @@ let ofile = ref None
 
 let svg_file = ref false
 
+(** Output auxiliary metadata for result graph translation. *)
+let aux_file = ref false
+
 (** [Some `Main] to use the new compiler pipeline: [Typer], [Sem], [Spthy]
     [Some `Test] to run it along with the original one.
 *)
@@ -69,6 +72,10 @@ let options = Arg.align [
     ("--test-new",
      Arg.Unit (fun () -> new_compiler := Some `Test),
      " Test new compiler along with the legacy compiler for develop purpose");
+
+    ("--aux-file",
+     Arg.Set aux_file,
+     " Output auxiliary metadata for result graph translation")
     ]
 
 let load_file (env : Loader.env) fn =
@@ -134,6 +141,10 @@ let new_translate_system ext decls =
        @@ List.concat_map (function
            | _id, Sem.Unbounded model -> [model]
            | _id, Bounded (_p, models) -> models) sem.proc_groups
+   | None, _ | _, false -> ());
+  (match !ofile, !aux_file with
+   | Some ofile, true ->
+       Printmeta.output_metadata (ofile ^ ext ^ ".sexp") sem
    | None, _ | _, false -> ());
   let spthy = Spthy.compile_sem sem in
   (match !ofile with

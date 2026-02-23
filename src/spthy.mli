@@ -106,8 +106,17 @@ type lemma =
       ; conclusion : fact compiled
       }
 
+type fact_config =
+  { persist : bool
+  (* ; priority : int; Currently this is not used in tamarin.ml *)
+  }
+
 (** Type for Tamarin raw facts *)
-type fact'
+type fact' =
+  { name : string
+  ; args : expr list
+  ; config : fact_config
+  }
 
 (** Tamarin rule *)
 type rule =
@@ -128,6 +137,10 @@ type t =
   ; models : (Subst.proc_id * rule list) list
   ; lemmas : (Ident.t * lemma) list
   }
+
+val fact' : fact -> fact'
+
+val compile_fact : Sem.fact -> fact compiled
 
 val print : Format.formatter -> t -> unit
 

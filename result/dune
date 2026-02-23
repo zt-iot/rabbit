@@ -1,0 +1,12 @@
+(executable
+ (name "main")
+ (public_name "result")
+ (flags -warn-error +a-4-40-42-70)
+ (libraries sedlex menhirLib str unix metadata)
+ (modes byte)
+ (preprocess
+  (pps sedlex.ppx)))
+
+(menhir
+ (modules parser)
+ (flags --explain --dump))
