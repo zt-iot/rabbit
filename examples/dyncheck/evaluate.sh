@@ -21,6 +21,8 @@ OUTPUT_DIR="output"
 LOG_DIR="log"
 ALL_RABS=("default.rab" "dyncheck.rab" "parameterized.rab" "parameterized.dyncheck.rab")
 ALL_RABS=("parameterized.rab" "parameterized.dyncheck.rab")
+ALL_RABS=("default.noattack.rab" "dyncheck.noattack.rab" "parameterized.noattack.rab" "parameterized.dyncheck.noattack.rab"
+          "default.notampering.rab" "dyncheck.notampering.rab" "parameterized.notampering.rab" "parameterized.dyncheck.notampering.rab")
 # ALL_RABS=()
 # for f in "${EXAMPLE_FILES[@]}"; do
 #     ALL_RABS+=("${EXAMPLE_DIR}/${f}")
@@ -196,7 +198,7 @@ function run_measure() {
       rabbit_cmd=("docker" "run" "--rm" "-v" "$(pwd):/mnt" "rabbit-artifact:amd64" "$RABBIT" "/mnt/${EXAMPLE_DIR}/${file}")      
       ;;
     none|*)
-      rabbit_cmd=("$RABBIT" "${EXAMPLE_DIR}/${file}")
+      rabbit_cmd=("$RABBIT" "--legacy" "${EXAMPLE_DIR}/${file}")
       ;;
     esac
 
