@@ -24,7 +24,8 @@ ALL_RABS=("parameterized.rab" "parameterized.dyncheck.rab")
 ALL_RABS=("default.noattack.rab" "dyncheck.noattack.rab" "parameterized.noattack.rab" "parameterized.dyncheck.noattack.rab"
           "default.notampering.rab" "dyncheck.notampering.rab" "parameterized.notampering.rab" "parameterized.dyncheck.notampering.rab"
           "default.nopassive.rab" "dyncheck.nopassive.rab" "parameterized.nopassive.rab" "parameterized.dyncheck.nopassive.rab"
-          "default.rab" "dyncheck.rab" "parameterized.rab" "parameterized.dyncheck.rab")
+          "default.rab" "dyncheck.rab" "parameterized.rab" "parameterized.dyncheck.rab"
+  )
 # ALL_RABS=()
 # for f in "${EXAMPLE_FILES[@]}"; do
 #     ALL_RABS+=("${EXAMPLE_DIR}/${f}")
