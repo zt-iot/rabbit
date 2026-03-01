@@ -22,7 +22,9 @@ LOG_DIR="log"
 ALL_RABS=("default.rab" "dyncheck.rab" "parameterized.rab" "parameterized.dyncheck.rab")
 ALL_RABS=("parameterized.rab" "parameterized.dyncheck.rab")
 ALL_RABS=("default.noattack.rab" "dyncheck.noattack.rab" "parameterized.noattack.rab" "parameterized.dyncheck.noattack.rab"
-          "default.notampering.rab" "dyncheck.notampering.rab" "parameterized.notampering.rab" "parameterized.dyncheck.notampering.rab")
+          "default.notampering.rab" "dyncheck.notampering.rab" "parameterized.notampering.rab" "parameterized.dyncheck.notampering.rab"
+          "default.nopassive.rab" "dyncheck.nopassive.rab" "parameterized.nopassive.rab" "parameterized.dyncheck.nopassive.rab"
+          "default.rab" "dyncheck.rab" "parameterized.rab" "parameterized.dyncheck.rab")
 # ALL_RABS=()
 # for f in "${EXAMPLE_FILES[@]}"; do
 #     ALL_RABS+=("${EXAMPLE_DIR}/${f}")
@@ -275,8 +277,8 @@ function run_measure() {
 
         info "Verifying Sub-Lemmas for (timeout: ${timeout_minutes}m)"
         
-        info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "+RTS" "-N${NUM_CORES}" "-RTS" "--prove=AlwaysStarts" "--prove=AlwaysStartsWhenEnds" "--prove=TransitionOnce" &> "$LOG_FILE3"" 
-        if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "+RTS" "-N${NUM_CORES}" "-RTS" "--prove=AlwaysStarts" "--prove=AlwaysStartsWhenEnds" "--prove=TransitionOnce" "--quiet" &> "$LOG_FILE3"; then
+        info "Running: $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "+RTS" "-N${NUM_CORES}" "-RTS" "--prove=AlwaysStarts__" "--prove=AlwaysStartsWhenEnds__" "--prove=TransitionOnce__" &> "$LOG_FILE3"" 
+        if $TIMEOUT_CMD "$timeout_seconds" tamarin-prover "${spthy_file}" "+RTS" "-N${NUM_CORES}" "-RTS" "--prove=AlwaysStarts__" "--prove=AlwaysStartsWhenEnds__" "--prove=TransitionOnce__" "--quiet" &> "$LOG_FILE3"; then
             success "Tamarin terminated within timeout."
         else
             fail "Tamarin did not finish within timeout. Process was killed."   
