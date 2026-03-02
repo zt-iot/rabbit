@@ -81,7 +81,7 @@ process client<k>(ch_net : udp_t, ch_rpc : rpc_t) : client_t
 
     _ := close_rpc(conn) ;
 
-    event [::ClientClose ()]
+    event [::ClientClose (k)]
   }
 }
 
@@ -123,7 +123,7 @@ process client_ta<k>(ch_rpc : rpc_t) : client_ta_t
     | [ch_rpc::exit()] → skip
     end;
 
-    event [::ClientTAClose ()]
+    event [::ClientTAClose (k)]
   }
 }
 
@@ -173,7 +173,7 @@ system
 requires
 [
   lemma Reachable : (* verified *)
-    reachable ::ClientClose(), ::ClientTAClose(), ::ImgRecvValid(x) ;
+    reachable ::ClientClose(k), ::ClientTAClose(k), ::ImgRecvValid(x) ;
 
   lemma Correspondence : (* falsified *)
     corresponds ::ImgRecvValid(x) ~> ::ImgSend (x)
