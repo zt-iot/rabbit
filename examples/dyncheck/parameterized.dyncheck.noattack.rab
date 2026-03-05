@@ -96,7 +96,7 @@ process client_ta<k>(ch_rpc : rpc_t) : client_ta_t
 
     var privkey = fread(privkey_fd) in
 
-    case [privkey = enc(x, fek)] ->
+    assume [privkey = enc(priv_k<k>, fek)] in
     var privkey0 = dec(privkey, fek) in
 
     var sig = sign(image, privkey0) in
@@ -104,7 +104,6 @@ process client_ta<k>(ch_rpc : rpc_t) : client_ta_t
     _ := fclose(privkey_fd);
 
     sig
-    end
   }
 
   main
@@ -151,7 +150,7 @@ process server(ch_net<> : udp_t) : server_t
     | [ch_net<addr> :: store(d) ] →
       var p = d in
       (* check if p is a pair *)
-      case [p = (xxx, yyy)] ->
+      assume [p = (xxx, yyy)] in
       var res = verify(fst(p), snd(p), pubkey<addr>) in
       case
       | [res = true] →
@@ -159,7 +158,6 @@ process server(ch_net<> : udp_t) : server_t
 
       | [res != true] →
         event [::ImgRecvInvalid(snd(p))]
-      end
       end
     until
     | [::False()] →  skip
