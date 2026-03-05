@@ -148,9 +148,6 @@ process server(ch_net<> : udp_t) : server_t
     repeat
     | [ch_net<addr> :: store(d) ] →
       var p = d in
-      (* begin attack *)
-      case [::In(k)] -> p := k | [] -> skip end;
-      (* end attack *)
       var res = verify(fst(p), snd(p), pubkey<addr>) in
       case
       | [res = true] →
