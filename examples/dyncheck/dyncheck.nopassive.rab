@@ -45,12 +45,6 @@ attack tamper_channel on recv (c) {
 
 allow attack server_t [tamper_channel]
 
-attack eavesdrop_channel on send (c, v) {
-  put[::Out(v), c::store(v)]
-}
-
-allow attack client_t [eavesdrop_channel]
-
 (** global constants **)
 const fresh priv_k
 const fresh sym_k

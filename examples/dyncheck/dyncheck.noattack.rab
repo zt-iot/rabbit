@@ -126,7 +126,7 @@ process server(ch_net : udp_t) : server_t {
     | [] →
       var p = recv(ch_net) in
       (* check if p is a pair *)
-      case [p = (xxx, yyy)] ->
+      assume [p = (xxx, yyy)] in
       var res = verify(fst(p), snd(p), pubkey) in
       case
       | [res = true] →
@@ -134,7 +134,6 @@ process server(ch_net : udp_t) : server_t {
 
       | [res != true] →
         event [::ImgRecvInvalid(snd(p))]
-      end
       end
     until
     | [::False()] →  skip
