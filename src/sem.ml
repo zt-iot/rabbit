@@ -1110,6 +1110,13 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
       in
       es, i_2, env
 
+and combine_pairs args es =
+  if List.length args <> List.length es then
+    invalid_arg
+      (Printf.sprintf "arity mismatch: expected %d arguments but got %d" (List.length args) (List.length es))
+  else
+    List.combine args es
+
 and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app : expr) : graph * Index.t * Env.t =
   let param = snd proc.pid in
   match app.desc with
@@ -1171,7 +1178,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                          ; source_vars = vars
                          ; pre = []
                          ; update = { (Update.update_unit ())
-                                      with items= List.combine args (List.map (fun e -> Update.New e) es) }
+                                      with items = combine_pairs args (List.map (fun e -> Update.New e) es) }
                          ; tag = []
                          ; post = []
                          ; target = ik
@@ -1222,7 +1229,7 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
                ; source_vars = vars
                ; pre = []
                ; update = { (Update.update_unit ())
-                            with items = List.combine args (List.map (fun e -> Update.New e) es) }
+                            with items = combine_pairs args (List.map (fun e -> Update.New e) es) }
                ; tag = []
                ; post = []
                ; target = i0

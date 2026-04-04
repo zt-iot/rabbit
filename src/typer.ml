@@ -562,14 +562,16 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       env', [{ env; loc; desc = Syscall { id; args; cmd; attack } }]
   | DeclExtAttack (name, syscall, args, c) ->
       (* [attack id on syscall (a1,..,an) { c }] *)
-      let syscall =
+      let syscall, arity =
         match Env.find ~loc env syscall with
-        | syscall, ExtSyscall _ -> syscall
+        | syscall, ExtSyscall arity -> syscall, arity
         | id, desc ->
             error ~loc
             @@ InvalidVariable
                  { ident = id; def = desc; use = ExtSyscall (List.length args) }
       in
+      if List.length args <> arity then
+        error ~loc @@ ArityMismatch { arity; use = List.length args };
       let args, cmd =
         let env', args = extend_with_args env args @@ fun _id -> Var in
         let c = type_cmd env' c in
