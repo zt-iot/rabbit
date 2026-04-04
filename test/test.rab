@@ -225,6 +225,15 @@ requires
     reachable ::Valid()
 ]
 
+(*** TyperFail "Object of arity 2 takes 1 arguments" *)
+(* issue #13: arity mismatch between syscall and attack should give a proper error *)
+syscall send(c, v) {
+  put [c::store(v)]
+}
+attack eavesdrop_channel on send (c) {
+  skip
+}
+
 (*** Fail "unknown meta variable chan", TyperFail "Global channel chan cannot be used in an expression" *)
 type person_t : process
 type chan_t : channel
