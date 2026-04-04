@@ -5,7 +5,8 @@ let run (com : string) : int * string list =
   let exit =
     match Unix.close_process_in ic with
     | WEXITED n -> n
-    | _ -> assert false
+    | WSIGNALED n -> failwith (Printf.sprintf "unexpected process termination by signal %d" n)
+    | WSTOPPED n -> failwith (Printf.sprintf "unexpected process stopped with signal %d" n)
   in
   exit, outputs
 
