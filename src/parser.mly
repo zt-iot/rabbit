@@ -1,5 +1,15 @@
 %{
   open Input
+
+  exception Unexpected
+
+  let make_persistent f =
+  match f with
+  | Fact (id, args) -> Fact ("!"^id, args)
+  | GlobalFact (id, args) -> GlobalFact ("!"^id, args)
+  | ChannelFact (ch, id, args) -> ChannelFact (ch, "!"^id, args)
+  | ProcessFact (pr, id, args) -> ProcessFact (pr, "!"^id, args)
+  | _ -> raise Unexpected
 %}
 
 (* Infix operations a la OCaml *)
@@ -20,7 +30,7 @@
 %token UNDERSCORE
 
 (* constant tokens for rabbit *)
-%token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
+%token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW PERSISTENT
 %token CHANNEL PROCESS PATH DATA FILESYS FILE
 %token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LTGT
 %token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL
@@ -117,7 +127,10 @@ syscall_tk:
   | SYSCALL {false}
   | PASSIVE ATTACK {true}
 
-fact : mark_location(plain_fact) { $1 }
+fact : mark_location(plain_fact_wrap) { $1 }
+plain_fact_wrap:
+  | f=plain_fact { f }
+  | PERSISTENT f=plain_fact { make_persistent f } 
 plain_fact:
   | scope=expr DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact(scope, id, es) }
   | scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
