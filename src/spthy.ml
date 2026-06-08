@@ -161,11 +161,19 @@ let fact' f : fact' =
     | _, Some (param : Subst.param_id) -> [Ident (param :> Ident.t)]
   in
   let fix_name = String.capitalize_ascii in
+  let check_persist name =
+    if String.starts_with ~prefix:"!" name then
+      (String.sub name 1 (String.length name - 1)), config_persist
+    else
+      name, config_linear
+  in
   match f with
   | Channel { channel; name; args } ->
-      { name= fix_name name; args= channel :: args; config= config_linear }
+      let name', config' = check_persist name in
+      { name= fix_name name'; args= channel :: args; config= config' }
   | Plain { pid; name; args } ->
-      { name= fix_name name; args= pid' pid @ args; config= config_linear }
+      let name', config' = check_persist name in
+      { name= fix_name name'; args= pid' pid @ args; config= config' }
   | Eq (e1, e2) ->
       (* linear because we will move this to tag and it wont be used as facts *)
       { name = "Eq"; args = [ e1; e2 ]; config = config_linear }
@@ -176,7 +184,8 @@ let fact' f : fact' =
       { name = "File" (* namespace? *); args= pid' pid @ [ path; contents ]; config = config_linear }
 
   | Global (name, args) ->
-      { name= fix_name name; args; config = config_linear }
+      let name', config' = check_persist name in
+      { name= fix_name name'; args; config = config' }
   | Fresh id ->
       { name= "Fr"; args= [Ident id]; config= config_linear }
   | Structure { pid; name; address; args } ->
