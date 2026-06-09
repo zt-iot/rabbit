@@ -110,11 +110,13 @@ and fact' =
       { channel : expr
       ; name : name
       ; args : expr list
+      ; persist : bool
       }
   | Plain of
       { pid : Subst.pid
       ; name : name
       ; args : expr list
+      ; persist : bool
       }
   | Eq of expr * expr
   | Neq of expr * expr
@@ -123,7 +125,11 @@ and fact' =
       ; path : expr
       ; contents : expr
       }
-  | Global of string * expr list
+  | Global of
+      { name : name
+      ; args : expr list
+      ; persist : bool
+      }
 
   (* New additions at Sem level *)
 
@@ -153,11 +159,11 @@ let is_nonlocal_fact f =
 
 let string_of_fact f =
   match f.desc with
-  | Channel { channel= ({ desc= Ident _; _ } as channel); name; args } ->
-      Printf.sprintf "%s::%s(%s)" (string_of_expr channel) name (String.concat ", " @@ List.map string_of_expr args)
-  | Channel { channel; name; args } ->
-      Printf.sprintf "(%s)::%s(%s)" (string_of_expr channel) name (String.concat ", " @@ List.map string_of_expr args)
-  | Plain { pid=_; name; args } -> Printf.sprintf "%s(%s)" name (String.concat ", " @@ List.map string_of_expr args)
+  | Channel { channel= ({ desc= Ident _; _ } as channel); name; args; persist } ->
+      Printf.sprintf "%s%s::%s(%s)" (if persist then "!" else "") (string_of_expr channel) name (String.concat ", " @@ List.map string_of_expr args)
+  | Channel { channel; name; args; persist } ->
+      Printf.sprintf "%s(%s)::%s(%s)" (if persist then "!" else "") (string_of_expr channel) name (String.concat ", " @@ List.map string_of_expr args)
+  | Plain { pid=_; name; args; persist } -> Printf.sprintf "%s%s(%s)" (if persist then "!" else "") name (String.concat ", " @@ List.map string_of_expr args)
   | Eq (e1, e2) -> Printf.sprintf "%s = %s" (string_of_expr e1) (string_of_expr e2)
   | Neq (e1, e2) -> Printf.sprintf "%s != %s" (string_of_expr e1) (string_of_expr e2)
   | File { pid=_; path; contents } ->
@@ -173,7 +179,7 @@ let string_of_fact f =
       in
       path ^ "." ^ contents
   | Fresh id -> "Fr " ^ Ident.to_string id
-  | Global (s, args) -> Printf.sprintf "::%s(%s)" s (String.concat ", " @@ List.map string_of_expr args)
+  | Global {name; args; persist} -> Printf.sprintf "%s::%s(%s)" (if persist then "!" else "") name (String.concat ", " @@ List.map string_of_expr args)
   | Structure { pid=_; name; address; args } ->
       Printf.sprintf "Structure(%s, %s, %s)"
         name
@@ -205,16 +211,16 @@ let vars_of_fact f =
   in
   List.sort_uniq compare @@
   match f.desc with
-  | Channel { channel; name=_; args } ->
+  | Channel { channel; name=_; args; persist=_ } ->
       List.concat_map vars_of_expr (channel :: args)
-  | Plain { pid; name=_; args } ->
+  | Plain { pid; name=_; args; persist=_ } ->
       vars_of_pid pid @ List.concat_map vars_of_expr args
   | Eq (e1, e2) | Neq (e1, e2) ->
       List.concat_map vars_of_expr [e1; e2]
   | File { pid; path; contents } ->
       vars_of_pid pid @ List.concat_map vars_of_expr [ path; contents ]
-  | Global (_, es) ->
-      List.concat_map vars_of_expr es
+  | Global {name=_; args; persist=_} ->
+      List.concat_map vars_of_expr args
   | Fresh id ->
       [id]
   | Structure { pid; name=_; address; args } ->
@@ -235,12 +241,12 @@ let fact_of_typed pido (f : Typed.fact) : fact =
   in
   let desc : fact' =
     match f.desc with
-    | Channel { channel; name; args} -> Channel { channel; name; args }
-    | Plain (name, es) -> Plain { pid= get_pid (); name; args= es }
+    | Channel { channel; name; args; persist } -> Channel { channel; name; args; persist }
+    | Plain {name; args; persist} -> Plain { pid= get_pid (); name; args; persist }
     | Eq (e1, e2) -> Eq (e1, e2)
     | Neq (e1, e2) -> Neq (e1, e2)
     | File { path; contents } -> File { pid= get_pid (); path; contents }
-    | Global (name, es) -> Global (name, es)
+    | Global {name; args; persist} -> Global {name; args; persist}
   in
   { f with desc }
 
@@ -318,13 +324,13 @@ module Update = struct
     let s = update_expr u in
     let desc =
       match f.desc with
-      | Channel { channel; name; args } ->
-          Channel { channel= s channel; name; args= List.map s args }
-      | Plain { pid; name; args } -> Plain { pid; name; args= List.map s args }
+      | Channel { channel; name; args; persist } ->
+          Channel { channel= s channel; name; args= List.map s args; persist }
+      | Plain { pid; name; args; persist } -> Plain { pid; name; args= List.map s args; persist }
       | Eq (e1, e2) -> Eq (s e1, s e2)
       | Neq (e1, e2) -> Neq (s e1, s e2)
       | File { pid; path; contents } -> File { pid; path= s path; contents= s contents }
-      | Global (n, es) -> Global (n, List.map s es)
+      | Global {name; args; persist} -> Global {name; args= List.map s args; persist}
       | Structure { pid; name; address; args } ->
           Structure { pid; name; address= s address; args= List.map s args }
       | Fresh _-> f.desc
@@ -896,7 +902,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
       let i_1 = Index.add i 1 in
       let arity =
         match Env.find_fact_opt env s with
-        | Some (Structure, Some arity) -> arity
+        | Some (Structure, Some arity, false) -> arity
         | _ -> assert false
       in
       let xs =

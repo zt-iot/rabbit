@@ -1,15 +1,5 @@
 %{
   open Input
-
-  exception Unexpected
-
-  let make_persistent f =
-  match f with
-  | Fact (id, args) -> Fact ("!"^id, args)
-  | GlobalFact (id, args) -> GlobalFact ("!"^id, args)
-  | ChannelFact (ch, id, args) -> ChannelFact (ch, "!"^id, args)
-  | ProcessFact (pr, id, args) -> ProcessFact (pr, "!"^id, args)
-  | _ -> raise Unexpected
 %}
 
 (* Infix operations a la OCaml *)
@@ -127,15 +117,16 @@ syscall_tk:
   | SYSCALL {false}
   | PASSIVE ATTACK {true}
 
-fact : mark_location(plain_fact_wrap) { $1 }
-plain_fact_wrap:
-  | f=plain_fact { f }
-  | PERSISTENT f=plain_fact { make_persistent f } 
+fact : mark_location(plain_fact) { $1 }
 plain_fact:
-  | scope=expr DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact(scope, id, es) }
-  | scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
-  | DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact(id, es) }
-  | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact(id, es) }
+  | scope=expr DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact{ch=scope; name=id; args=es; persist=false} }
+  | EXCL scope=expr DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact{ch=scope; name=id; args=es; persist=true} }
+  | scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact{proc=scope; name=id; args=es; persist=false} }
+  | EXCL scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact{proc=scope; name=id; args=es; persist=true} }
+  | DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact{name=id; args=es; persist=false} }
+  | EXCL DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact{name=id; args=es; persist=true} }
+  | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact{name=id; args=es; persist=false} }
+  | EXCL id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact{name=id; args=es; persist=true} }
   | e1=expr EQ e2=expr { EqFact(e1, e2) }
   | e1=expr NEQ e2=expr { NeqFact(e1, e2) }
   | scope=expr DOT e=expr { FileFact(scope, e) }

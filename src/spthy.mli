@@ -25,18 +25,25 @@ type fact =
       { channel : expr
       ; name : Name.t
       ; args : expr list
+      ; persist : bool
       } (** Channel fact [ch :: name(args)] *)
   | Plain of
       { pid : Subst.proc_id * Subst.param_id option
       ; name : Name.t
-      ; args : expr list } (** [n(e1,..,en)] *)
+      ; args : expr list
+      ; persist : bool
+      } (** [n(e1,..,en)] *)
   | Eq of expr * expr (** [e1 = e2] *)
   | Neq of expr * expr (** [e1 != e2] *)
   | File of
       { pid : Subst.proc_id * Subst.param_id option
       ; path : expr
       ; contents : expr } (** File fact [path.contents] *)
-  | Global of Name.t * expr list (** [:: n(e1,..,en)] *)
+  | Global of
+      { name : Name.t
+      ; args : expr list
+      ; persist : bool
+      } (** [:: n(e1,..,en)] *)
 
   (* New additions at Sem level *)
 

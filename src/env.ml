@@ -44,7 +44,7 @@ let print_desc desc ppf =
 
 type t = {
   vars : (Ident.t * desc) list;
-  facts : (Name.ident * (named_fact_desc * int option)) list ref
+  facts : (Name.ident * (named_fact_desc * int option * bool)) list ref
   (* The fact environment is global therefore implemented as mutable *)
 }
 

@@ -25,36 +25,44 @@ and expr' =
 
 let rec string_of_expr (e : expr) =
   match e.desc with
-  | Ident { id; param= None; _ } -> Ident.to_string id
-  | Ident { id; param= Some p; _ } -> Printf.sprintf "%s<%s>" (Ident.to_string id) (string_of_expr p)
-  | Apply (f, es) -> Printf.sprintf "%s(%s)" (Ident.to_string f) (String.concat ", " @@ List.map string_of_expr es)
+  | Ident { id; param = None; _ } -> Ident.to_string id
+  | Ident { id; param = Some p; _ } ->
+      Printf.sprintf "%s<%s>" (Ident.to_string id) (string_of_expr p)
+  | Apply (f, es) ->
+      Printf.sprintf
+        "%s(%s)"
+        (Ident.to_string f)
+        (String.concat ", " @@ List.map string_of_expr es)
   | Tuple es -> Printf.sprintf "(%s)" @@ String.concat ", " @@ List.map string_of_expr es
   | String s -> Printf.sprintf "%S" s
   | Integer i -> string_of_int i
   | Float f -> f
   | Boolean b -> string_of_bool b
   | Unit -> "()"
+;;
 
 let vars_of_expr e =
   let rec aux e =
     match e.desc with
-    | Ident { id; param= None; desc= Var } -> [id]
-    | Ident { id; param= Some p; desc= Var } -> id :: aux p
-    | Ident { id=_; param= Some p; desc= _ } -> aux p
+    | Ident { id; param = None; desc = Var } -> [ id ]
+    | Ident { id; param = Some p; desc = Var } -> id :: aux p
+    | Ident { id = _; param = Some p; desc = _ } -> aux p
     | Ident _ -> []
     | Apply (_, es) | Tuple es -> List.concat_map aux es
     | String _ | Integer _ | Float _ | Boolean _ | Unit -> []
   in
   List.sort_uniq compare @@ aux e
+;;
 
 let rec constants (e : expr) =
   match e.desc with
-  | Ident { id= _; desc= Const false; param= None } -> [e]
-  | Ident { id= _; desc= Const true; param= Some e' } -> e :: constants e'
-  | Ident { id= _; desc= Const _; param= _ } -> assert false
+  | Ident { id = _; desc = Const false; param = None } -> [ e ]
+  | Ident { id = _; desc = Const true; param = Some e' } -> e :: constants e'
+  | Ident { id = _; desc = Const _; param = _ } -> assert false
   | Ident _ -> []
   | Boolean _ | String _ | Integer _ | Float _ | Unit -> []
   | Apply (_, es) | Tuple es -> List.concat_map constants es
+;;
 
 type loop_mode =
   | In
@@ -65,6 +73,7 @@ let string_of_loop_mode = function
   | In -> "In"
   | Back -> "Back"
   | Out -> "Out"
+;;
 
 type fact = fact' loc_env
 
@@ -73,15 +82,24 @@ and fact' =
       { channel : expr
       ; name : name
       ; args : expr list
+      ; persist : bool
       }
-  | Plain of name * expr list
+  | Plain of
+      { name : name
+      ; args : expr list
+      ; persist : bool
+      }
   | Eq of expr * expr
   | Neq of expr * expr
   | File of
       { path : expr
       ; contents : expr
       }
-  | Global of string * expr list
+  | Global of
+      { name : name
+      ; args : expr list
+      ; persist : bool
+      }
 
 type cmd = cmd' loc_env
 
@@ -105,7 +123,11 @@ and cmd' =
   | Get of ident list * expr * name * cmd
   | Del of expr * name
 
-type chan_param = { channel : ident; param : unit option; typ : ident }
+type chan_param =
+  { channel : ident
+  ; param : unit option
+  ; typ : ident
+  }
 
 type chan_arg =
   { channel : ident
@@ -178,7 +200,9 @@ and decl' =
       { process_typs : ident list
       ; attacks : ident list
       }
-  | Init of (* naming... Const is better? *)
+  | Init of
+      (* naming... Const is better? *)
+      
       { id : ident
       ; desc : init_desc
       }

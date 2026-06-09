@@ -143,17 +143,17 @@ let rec process_expr2 new_meta_vars ctx lctx { Location.data = c; Location.loc }
 let process_fact_closed new_meta_vars ctx lctx f =
   let loc = f.Location.loc in
   match f.Location.data with
-  | Input.Fact (id, el) ->
+  | Input.Fact {name=id; args=el; _} ->
       ( Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el)
       , Location.locate
           ~loc:f.Location.loc
           (Syntax.Fact (id, List.map (process_expr2 new_meta_vars ctx lctx) el)) )
-  | Input.GlobalFact (id, el) ->
+  | Input.GlobalFact {name=id; args=el; _} ->
       ( Context.ctx_add_or_check_fact ~loc ctx (id, List.length el)
       , Location.locate
           ~loc:f.Location.loc
           (Syntax.GlobalFact (id, List.map (process_expr2 new_meta_vars ctx lctx) el)) )
-  | Input.ChannelFact (l, id, el) ->
+  | Input.ChannelFact {ch=l; name=id; args=el; _} ->
       (* check validty of local scope l *)
       ( Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el)
       , Location.locate

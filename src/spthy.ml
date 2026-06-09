@@ -67,11 +67,13 @@ type fact =
       { channel : expr
       ; name : Name.t
       ; args : expr list
+      ; persist : bool
       }
   | Plain of
       { pid : Subst.proc_id * Subst.param_id option
       ; name : Name.t
       ; args : expr list
+      ; persist : bool
       }
   | Eq of expr * expr
   | Neq of expr * expr
@@ -80,7 +82,11 @@ type fact =
       ; path : expr
       ; contents : expr
       } (** File fact [path.contents] *)
-  | Global of Name.t * expr list
+  | Global of 
+      { name : Name.t
+      ; args : expr list
+      ; persist : bool
+      }
 
   (* New additions at Sem level *)
 
@@ -161,19 +167,14 @@ let fact' f : fact' =
     | _, Some (param : Subst.param_id) -> [Ident (param :> Ident.t)]
   in
   let fix_name = String.capitalize_ascii in
-  let check_persist name =
-    if String.starts_with ~prefix:"!" name then
-      (String.sub name 1 (String.length name - 1)), config_persist
-    else
-      name, config_linear
+  let select_config persist =
+    if persist then config_persist else config_linear
   in
   match f with
-  | Channel { channel; name; args } ->
-      let name', config' = check_persist name in
-      { name= fix_name name'; args= channel :: args; config= config' }
-  | Plain { pid; name; args } ->
-      let name', config' = check_persist name in
-      { name= fix_name name'; args= pid' pid @ args; config= config' }
+  | Channel { channel; name; args; persist } ->
+      { name= fix_name name; args= channel :: args; config= select_config persist }
+  | Plain { pid; name; args; persist } ->
+      { name= fix_name name; args= pid' pid @ args; config= select_config persist }
   | Eq (e1, e2) ->
       (* linear because we will move this to tag and it wont be used as facts *)
       { name = "Eq"; args = [ e1; e2 ]; config = config_linear }
@@ -183,9 +184,8 @@ let fact' f : fact' =
   | File { pid; path; contents } ->
       { name = "File" (* namespace? *); args= pid' pid @ [ path; contents ]; config = config_linear }
 
-  | Global (name, args) ->
-      let name', config' = check_persist name in
-      { name= fix_name name'; args; config = config' }
+  | Global { name; args; persist } ->
+      { name= fix_name name; args; config = select_config persist }
   | Fresh id ->
       { name= "Fr"; args= [Ident id]; config= config_linear }
   | Structure { pid; name; address; args } ->
@@ -366,13 +366,13 @@ let compile_signature (sg : Sem.signature) =
 
 let compile_fact (f : Sem.fact) : fact compiled =
   match f.desc with
-  | Channel { channel; name; args } ->
+  | Channel { channel; name; args; persist } ->
       let* channel = compile_expr channel in
       let+ args = mapM compile_expr args in
-      Channel { channel; name; args }
-  | Plain { pid; name; args } ->
+      Channel { channel; name; args; persist }
+  | Plain { pid; name; args; persist } ->
       let+ args = mapM compile_expr args in
-      Plain { pid; name; args }
+      Plain { pid; name; args; persist }
   | Eq (e1, e2) ->
       let* e1 = compile_expr e1 in
       let+ e2 = compile_expr e2 in
@@ -385,9 +385,9 @@ let compile_fact (f : Sem.fact) : fact compiled =
       let* path = compile_expr path in
       let+ contents = compile_expr contents in
       File { pid; path; contents }
-  | Global (n, es) ->
-      let+ es = mapM compile_expr es in
-      Global (n, es)
+  | Global {name; args; persist} ->
+      let+ args = mapM compile_expr args in
+      Global {name; args; persist}
   | Fresh id -> return @@ Fresh id
   | Structure { pid; name; address; args } ->
       let* address = compile_expr address in
@@ -409,7 +409,7 @@ type lemma =
       }
 
 let vars_of_global_fact = function
-  | Global (_name, es) ->
+  | Global {name=_; args=es; _} ->
       List.fold_left Ident.Set.union Ident.Set.empty @@ List.map vars_of_expr es
   | Const { id; param; value } ->
       Ident.Set.add id
