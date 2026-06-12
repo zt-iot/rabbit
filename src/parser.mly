@@ -119,17 +119,17 @@ syscall_tk:
 
 fact : mark_location(plain_fact) { $1 }
 plain_fact:
-  | scope=expr DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact{ch=scope; name=id; args=es; persist=false} }
-  | EXCL scope=expr DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact{ch=scope; name=id; args=es; persist=true} }
-  | scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact{proc=scope; name=id; args=es; persist=false} }
-  | EXCL scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact{proc=scope; name=id; args=es; persist=true} }
-  | DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact{name=id; args=es; persist=false} }
-  | EXCL DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact{name=id; args=es; persist=true} }
-  | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact{name=id; args=es; persist=false} }
-  | EXCL id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact{name=id; args=es; persist=true} }
+  | p=is_persistent scope=expr DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact{ch=scope; name=id; args=es; persist=p} }
+  | p=is_persistent scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact{proc=scope; name=id; args=es; persist=p} }
+  | p=is_persistent DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact{name=id; args=es; persist=p} }
+  | p=is_persistent id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact{name=id; args=es; persist=p} }
   | e1=expr EQ e2=expr { EqFact(e1, e2) }
   | e1=expr NEQ e2=expr { NeqFact(e1, e2) }
   | scope=expr DOT e=expr { FileFact(scope, e) }
+
+%inline is_persistent:
+  | { false }
+  | EXCL { true }
 
 sys:
   | SYSTEM p=separated_nonempty_list(BAR, proc) REQUIRES
