@@ -20,7 +20,8 @@
 %token UNDERSCORE
 
 (* constant tokens for rabbit *)
-%token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW PERSISTENT
+%token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
+%token FACT GLOBAL LOCAL PERSISTENT
 %token CHANNEL PROCESS PATH DATA FILESYS FILE
 %token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LTGT
 %token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL
@@ -59,6 +60,8 @@ plain_decl:
   | FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
   | CONSTANT id=NAME  { DeclExtFun(id, 0) }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
+
+  | FACT ty=list(fact_type) LBRACKET a=separated_nonempty_list(COMMA, fact_decl) RBRACKET { DeclExtFacts(ty, a) }
 
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
 
@@ -102,7 +105,15 @@ plain_decl:
   | CONST FRESH t=NAME LT GT { DeclInit(t, Fresh_with_param) }
   | CONST FRESH t=NAME LTGT { DeclInit(t, Fresh_with_param) }
 
+fact_type:
+  | GLOBAL { Global }
+  | CHANNEL { Channel }
+  | LOCAL { Plain }
+  | PROCESS { Process }
+  | PERSISTENT { Persistent }
 
+fact_decl:
+  | id=NAME COLON ar=NUMERAL { (id, ar) }
 
 colon_name_pair :
   | a=NAME COLON b=NAME { ChanParam {id=a; param= None; typ=b} }

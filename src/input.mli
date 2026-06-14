@@ -19,6 +19,13 @@ and expr' =
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Param of Name.ident * expr (** parameter, [f<e>] *)
 
+type fact_desc =
+  | Channel
+  | Plain
+  | Global
+  | Process
+  | Persistent
+
 type fact = fact' Location.located
 
 and fact' =
@@ -120,6 +127,8 @@ type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int (** external function, [function id : arity] *)
   | DeclExtEq of expr * expr (** external equation, [equation e1 = e2] *)
+  | DeclExtFacts of fact_desc list * (Name.ident * int) list
+  (** external facts, [fact (ty ?pers) [id1: arity1, ..., idn: arityn]] *)
   | DeclExtSyscall of Name.ident * Name.ident list * cmd * bool
   (** system call, [syscall f(ty1 a1,..,tyn an) { c }]
                    [passive attack f(ty1 a1,..,tyn an) { c }]

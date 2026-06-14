@@ -30,6 +30,13 @@ let vars_of_expr e =
   aux NS.empty e
 ;;
 
+type fact_desc =
+  | Channel
+  | Plain
+  | Global
+  | Process
+  | Persistent
+
 type fact = fact' Location.located
 
 and fact' =
@@ -136,6 +143,7 @@ type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int
   | DeclExtEq of expr * expr
+  | DeclExtFacts of fact_desc list * (Name.ident * int) list
   | DeclExtSyscall of Name.ident * Name.ident list * cmd * bool
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
   | DeclType of Name.ident * type_class

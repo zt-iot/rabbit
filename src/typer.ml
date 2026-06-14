@@ -29,6 +29,7 @@ type error =
       ; persist : bool
       ; use : bool
       }
+  | FactDescConflict of Input.fact_desc list
 
 exception Error of error Location.located
 
@@ -52,6 +53,14 @@ let kind_of_desc = function
   | Function _ -> "function"
   | Process -> "process"
   | Rho -> "rho"
+;;
+
+let string_of_fact_desc = function
+  | Input.Global -> "global"
+  | Channel -> "channel"
+  | Plain -> "local"
+  | Process -> "process"
+  | Persistent -> "pers"
 ;;
 
 (** Print error description. *)
@@ -116,6 +125,11 @@ let print_error err ppf =
         name
         (if persist then "persistent" else "not persistent")
         (if use then "persistent" else "not persistent")
+  | FactDescConflict descs ->
+      Format.fprintf
+        ppf
+        "Declaration of fact kinds are conflicting: %s"
+        (String.concat ", " (List.map string_of_fact_desc descs))
 ;;
 
 module Env : sig
@@ -533,6 +547,14 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
   env, (id, lemma)
 ;;
 
+let type_fact_desc (d : Input.fact_desc) : Env.named_fact_desc =
+  match d with
+  | Process -> assert false (* Unused *)
+  | Channel -> Channel
+  | Plain -> Plain
+  | Global -> Global
+  | Persistent -> assert false
+
 let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   let loc = d.loc in
   match d.data with
@@ -563,6 +585,14 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
               Equation (e1, e2)
           }
         ] )
+  | DeclExtFacts (descs, facts) ->
+      let desc_persist, descs = List.partition (fun desc -> desc = Input.Persistent) descs in
+      let is_persist = List.length desc_persist > 0 in
+      if List.length descs > 1
+      then error ~loc @@ FactDescConflict descs
+      else let desc = type_fact_desc (List.hd descs) in
+      List.iter (fun (id, arity) -> Env.add_fact ~loc env id (desc, Some arity, is_persist)) facts;
+      (env, [])
   | DeclExtSyscall (name, args, c, attack) ->
       let args, cmd =
         let env', args = extend_with_args env args @@ fun _id -> Var in

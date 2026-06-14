@@ -44,6 +44,9 @@ let reserved = [
   ("get", GET) ;
   ("by", BY) ;
   ("on", ON) ;
+  ("fact", FACT) ;
+  ("global", GLOBAL) ;
+  ("local", LOCAL) ;
   ("pers", PERSISTENT)
   ]
 

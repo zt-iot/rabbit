@@ -13,6 +13,7 @@ type error =
   | WrongInputType
   | NoBindingVariable
   | WrongChannelType of string * string
+  | Unsupported
 
 exception Error of error Location.located
 
@@ -37,6 +38,7 @@ let print_error err ppf =
   | WrongInputType -> Format.fprintf ppf "wrong input type"
   | NoBindingVariable -> Format.fprintf ppf "no binding variable"
   | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given" x y
+  | Unsupported -> Format.fprintf ppf "currently unsupported in legacy version"
 
 let find_index f lst =
   let rec aux i = function
@@ -995,6 +997,8 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           }
           :: env.system
       }
+  | Input.DeclExtFacts _ -> error ~loc Unsupported
+    (* Fact declaration is currently unsupported in legacy compiler *)
 
 and load fn env =
   let decls, (used_idents, used_strings) = Lexer.read_file Parser.file fn in
