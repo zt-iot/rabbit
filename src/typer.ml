@@ -588,7 +588,9 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   | DeclExtFacts (descs, facts) ->
       let desc_persist, descs = List.partition (fun desc -> desc = Input.Persistent) descs in
       let is_persist = List.length desc_persist > 0 in
-      if List.length descs > 1
+      if List.length descs <= 0
+      then error ~loc @@ (Misc "Fact declaration must specify some kind")
+      else if List.length descs > 1
       then error ~loc @@ FactDescConflict descs
       else let desc = type_fact_desc (List.hd descs) in
       List.iter (fun (id, arity) -> Env.add_fact ~loc env id (desc, Some arity, is_persist)) facts;
