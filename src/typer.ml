@@ -185,7 +185,7 @@ end = struct
         else (
           match arity, arity' with
           | Some a, Some a' ->
-              if a = a' then () else error ~loc @@ ArityMismatch { arity = a; use = a' }
+              if a = a' then () else error ~loc @@ ArityMismatch { arity = a'; use = a }
           | None, Some _ -> update_fact env name (desc, arity, persist)
           | Some _, None -> ()
           | None, None -> ())

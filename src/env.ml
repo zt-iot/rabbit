@@ -6,7 +6,7 @@ type named_fact_desc =
 
 let string_of_named_fact_desc = function
   | Channel -> "channel"
-  | Structure -> "struture"
+  | Structure -> "structure"
   | Plain -> "plain"
   | Global -> "global"
 
