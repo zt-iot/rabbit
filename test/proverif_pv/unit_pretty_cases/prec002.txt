@@ -1,0 +1,6 @@
+=== INPUT ===
+process new skA:skey; let pkA = pk(skA) in out(c, pkA)
+=== PARSED ===
+process (new skA:skey; (let pkA = (pk((skA))) in (out((c), (pkA))))).
+=== EXPECTED ===
+process new skA:skey; let pkA = pk(skA) in out(c, pkA).

@@ -1,31 +1,35 @@
 let failwithf fmt = Printf.ksprintf failwith fmt
 
+module Parse = Rabbit_proverif_pv_parse
+
+let workspace_root =
+  match Sys.getenv_opt "DUNE_SOURCEROOT" with
+  | Some root -> root
+  | None -> Sys.getcwd ()
+
+let output_root =
+  Filename.concat workspace_root "_build/proverif_pv_pretty_examples"
+
 let example_candidates =
   [
     [
-      ( "src/proverif_pv/indentation_example.pv",
-        "src/proverif_pv/indentation_example.pretty.pv" );
-      ( "src/proverif_pv/indentation_example_process.pv",
-        "src/proverif_pv/indentation_example_process.pretty.pv" );
+      "src/proverif_pv/indentation_example.pv";
+      "src/proverif_pv/indentation_example_process.pv";
     ];
     [
-      ( "../src/proverif_pv/indentation_example.pv",
-        "../src/proverif_pv/indentation_example.pretty.pv" );
-      ( "../src/proverif_pv/indentation_example_process.pv",
-        "../src/proverif_pv/indentation_example_process.pretty.pv" );
+      "../../src/proverif_pv/indentation_example.pv";
+      "../../src/proverif_pv/indentation_example_process.pv";
     ];
     [
-      ( "../../src/proverif_pv/indentation_example.pv",
-        "../../src/proverif_pv/indentation_example.pretty.pv" );
-      ( "../../src/proverif_pv/indentation_example_process.pv",
-        "../../src/proverif_pv/indentation_example_process.pretty.pv" );
+      "../../../src/proverif_pv/indentation_example.pv";
+      "../../../src/proverif_pv/indentation_example_process.pv";
     ];
   ]
 
 let examples =
   match
     List.find_opt
-      (List.for_all (fun (src, _) -> Sys.file_exists src))
+      (List.for_all Sys.file_exists)
       example_candidates
   with
   | Some files -> files
@@ -33,11 +37,22 @@ let examples =
       failwithf "Indentation example files not found. Tried: %s"
         (String.concat " | "
            (List.map
-              (fun pairs ->
-                String.concat ", " (List.map fst pairs))
+              (fun files ->
+                String.concat ", " files)
               example_candidates))
 
+let rec ensure_dir path =
+  if path = "" || path = "." || path = "/" then
+    ()
+  else if Sys.file_exists path then
+    ()
+  else begin
+    ensure_dir (Filename.dirname path);
+    Unix.mkdir path 0o755
+  end
+
 let write_file path contents =
+  ensure_dir (Filename.dirname path);
   let oc = open_out_bin path in
   Fun.protect
     ~finally:(fun () -> close_out_noerr oc)
@@ -50,12 +65,12 @@ let parse_file path =
   Fun.protect
     ~finally:(fun () -> close_in_noerr ic)
     (fun () ->
-      Rabbit_proverif_pv.Param.reset ();
+      Parse.Param.reset ();
       let lexbuf = Lexing.from_channel ic in
       lexbuf.Lexing.lex_curr_p <-
         { lexbuf.Lexing.lex_curr_p with Lexing.pos_fname = path };
       try
-        Rabbit_proverif_pv.Pitparser.all Rabbit_proverif_pv.Pitlexer.token lexbuf
+        Parse.Pitparser.all Parse.Pitlexer.token lexbuf
       with
       | Parsing.Parse_error ->
           let p = lexbuf.Lexing.lex_curr_p in
@@ -63,13 +78,16 @@ let parse_file path =
             path
             p.Lexing.pos_lnum
             (p.Lexing.pos_cnum - p.Lexing.pos_bol)
-      | Rabbit_proverif_pv.Parsing_helper.InputError (message, extent) ->
+      | Parse.Parsing_helper.InputError (message, extent) ->
           failwith
-            (Rabbit_proverif_pv.Parsing_helper.get_mess_from true "Error: " message extent))
+            (Parse.Parsing_helper.get_mess_from true "Error: " message extent))
 
-let generate_one (src, dst) =
+let generate_one src =
   let ast = parse_file src in
   let pretty = Rabbit_proverif_pv.Pv_pp.to_string ast in
+  let dst =
+    Filename.concat output_root (Filename.basename src ^ ".pretty.pv")
+  in
   write_file dst pretty;
   Printf.printf "Wrote %s from %s\n" dst src
 

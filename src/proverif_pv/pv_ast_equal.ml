@@ -1,3 +1,4 @@
+open Rabbit_proverif_pv_parse
 open Pitptree
 
 type program = Pv_parser.program
