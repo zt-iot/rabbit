@@ -1,0 +1,21 @@
+free c: channel.
+free published: bitstring[private].
+fun wrap(bitstring): bitstring.
+fun pair(bitstring, bitstring): bitstring.
+event started(bitstring).
+event finished(bitstring, bitstring).
+let helper(seed:bitstring) =
+  new local:bitstring; (out(c, pair(seed, local))).
+process
+new root:bitstring;
+  (((! helper(root)) | (in(c, payload:bitstring);
+                          (let (=root, value:bitstring) = pair(root, payload)
+                           in
+                           (if (value = root)
+                            then
+                              (event started(value); (out(c, wrap(value))))
+                            else
+                              (event finished(root, value);
+                                 (out(c, published)))))))).
+
+
