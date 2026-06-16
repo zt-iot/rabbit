@@ -1,0 +1,18 @@
+=== INPUT ===
+process
+  let x:bitstring suchthat x = a in
+    get storage(=x, y:bitstring) in
+      out(c, y)
+    else
+      out(c, e)
+  else
+    out(c, e).
+=== PARSED ===
+process
+  (let x:bitstring suchthat ((x) = (a)) in
+   (get storage(=(x), y:bitstring) in (out((c), (y))) else (out((c), (e))))
+   else (out((c), (e)))).
+=== EXPECTED ===
+process
+  let x:bitstring suchthat x = a in
+  get storage(=x, y:bitstring) in out(c, y) else out(c, e) else out(c, e).

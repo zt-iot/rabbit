@@ -1,0 +1,12 @@
+=== INPUT ===
+query x:nat; p(x) ==> q(x)[induction].
+query y:nat; r(y) ==> s(y).
+process 0.
+=== PARSED ===
+query x:nat; ((p((x))) ==> (q((x))))[induction].
+query y:nat; ((r((y))) ==> (s((y)))).
+process (0).
+=== EXPECTED ===
+query x:nat; p(x) ==> q(x)[induction].
+query y:nat; r(y) ==> s(y).
+process 0.

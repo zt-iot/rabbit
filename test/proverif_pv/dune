@@ -1,0 +1,28 @@
+(executable
+  (name "proverif_pv_test_unit_pretty")
+  (flags -w +a-4-40-42-70 -warn-error +a-4-40-42-70)
+  (libraries rabbit_proverif_pv rabbit_proverif_pv_parse unix))
+
+(executable
+  (name "proverif_pv_test_examples")
+  (flags -w +a-4-40-42-70 -warn-error +a-4-40-42-70)
+  (libraries rabbit_proverif_pv rabbit_proverif_pv_parse unix))
+
+(executable
+  (name "proverif_pv_test_qcheck")
+  (flags -w +a-4-40-42-70 -warn-error +a-4-40-42-70)
+  (libraries rabbit_proverif_pv rabbit_proverif_pv_parse unix qcheck))
+
+(executable
+  (name "gen_pretty_examples")
+  (flags -w +a-4-40-42-70 -warn-error +a-4-40-42-70)
+  (libraries rabbit_proverif_pv rabbit_proverif_pv_parse unix))
+
+(rule
+ (alias runtest)
+ (action
+  (chdir %{workspace_root}
+   (progn
+    (run %{exe:proverif_pv_test_unit_pretty.exe})
+    (run %{exe:proverif_pv_test_examples.exe})
+    (run %{exe:proverif_pv_test_qcheck.exe})))))

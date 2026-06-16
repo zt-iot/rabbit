@@ -2,19 +2,3 @@
   (name "test")
   (flags -w +a-4-40-42-70 -warn-error +a-4-40-42-70)
   (libraries re unix ppxlib))
-
-(executable
-  (name "proverif_pv_test")
-  (flags -w +a-4-40-42-70 -warn-error +a-4-40-42-70)
-  (libraries rabbit_proverif_pv unix))
-
-(executable
-  (name "gen_pretty_examples")
-  (flags -w +a-4-40-42-70 -warn-error +a-4-40-42-70)
-  (libraries rabbit_proverif_pv unix))
-
-(rule
- (alias runtest)
- (action
-  (chdir %{workspace_root}
-   (run %{exe:proverif_pv_test.exe}))))

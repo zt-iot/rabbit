@@ -1,3 +1,5 @@
+open Rabbit_proverif_pv_parse
+
 type program = Pv_parser.program
 
 open Pitptree
@@ -81,387 +83,771 @@ let pp_env_mayfail fmt xs =
   | [] -> ()
   | _ -> fprintf fmt "%a; " pp_mayfail_typed_ident_list xs
 
-let is_zero_term ((t, _) : Pitptree.term_e) =
-  match t with
-  | Pitptree.PIdent (name, _) -> name = "0"
-  | _ -> false
+let always_with_parens = ref false
 
-let rec decompose_term_delta ((t, _) as te) =
-  match t with
-  | Pitptree.PFunApp ((name, _), [inner]) when name = "+" ->
-      let base, delta = decompose_term_delta inner in
-      (base, delta + 1)
-  | PFunApp ((name, _), [inner]) when starts_with ~prefix:"- " name ->
-      let n = int_of_string (strip_prefix ~prefix:"- " name) in
-      let base, delta = decompose_term_delta inner in
-      (base, delta - n)
-  | _ -> (Some te, 0)
+let with_always_with_parens value f =
+  let saved = !always_with_parens in
+  always_with_parens := value;
+  Fun.protect
+    ~finally:(fun () -> always_with_parens := saved)
+    f
 
-let rec pp_term_e fmt te =
-  let base, delta = decompose_term_delta te in
-  match base, delta with
-  | None, _ -> assert false
-  | Some base, 0 -> pp_term_base fmt base
-  | Some base, n when is_zero_term base && n >= 0 -> Format.pp_print_int fmt n
-  | Some base, n when n > 0 -> fprintf fmt "(%a) + %d" pp_term_base base n
-  | Some base, n -> fprintf fmt "(%a) - %d" pp_term_base base (-n)
-
-and pp_term_base fmt ((t, _) : Pitptree.term_e) =
-  match t with
-  | Pitptree.PIdent id -> pp_string fmt (ident id)
-  | PFail -> pp_string fmt "fail"
-  | PFunApp ((name, _), [a; b]) when List.mem name [ "="; "<>"; "||"; "&&" ] ->
-      fprintf fmt "(%a %s %a)" pp_term_e a name pp_term_e b
-  | PFunApp ((name, _), [a]) when name = "not" -> fprintf fmt "not(%a)" pp_term_e a
-  | PFunApp ((name, _), [a; b]) when name = "choice" ->
-      fprintf fmt "choice[%a, %a]" pp_term_e a pp_term_e b
-  | PFunApp (f, args) -> fprintf fmt "%s(%a)" (ident f) (pp_list ~sep:", " pp_term_e) args
-  | PProj (f, t1) -> fprintf fmt "%s(%a)" (ident f) pp_term_e t1
-  | PTuple ts -> fprintf fmt "(%a)" (pp_list ~sep:", " pp_term_e) ts
-
-let is_zero_gterm ((t, _) : Pitptree.gterm_e) =
-  match t with
-  | Pitptree.PGIdent (name, _) -> name = "0"
-  | _ -> false
-
-let pp_opt_at fmt = function
-  | None -> ()
-  | Some id -> fprintf fmt "@%s" (ident id)
-
-let rec decompose_gterm_delta ((t, _) as te) =
-  match t with
-  | Pitptree.PGFunApp ((name, _), [inner], None) when name = "+" ->
-      let base, delta = decompose_gterm_delta inner in
-      (base, delta + 1)
-  | _ -> (Some te, 0)
-
-let rec pp_gterm_e fmt ge =
-  let base, delta = decompose_gterm_delta ge in
-  match base, delta with
-  | None, _ -> assert false
-  | Some base, 0 -> pp_gterm_base fmt base
-  | Some base, n when is_zero_gterm base && n >= 0 -> Format.pp_print_int fmt n
-  | Some base, n when n > 0 -> fprintf fmt "(%a) + %d" pp_gterm_base base n
-  | Some base, n -> fprintf fmt "(%a) - %d" pp_gterm_base base (-n)
-
-and pp_gterm_base fmt ((t, _) : Pitptree.gterm_e) =
-  match t with
-  | PGIdent id -> pp_string fmt (ident id)
-  | PGFunApp ((name, _), [a; b], None) when List.mem name ["="; "<>"; "||"; "&&"; "<="; ">="; "<"; ">"; "==>"] ->
-      fprintf fmt "(%a %s %a)" pp_gterm_e a name pp_gterm_e b
-  | PGFunApp ((name, _), [a], None) when name = "not" -> fprintf fmt "not(%a)" pp_gterm_e a
-  | PGFunApp ((name, _), [a; b], None) when name = "choice" ->
-      fprintf fmt "choice[%a, %a]" pp_gterm_e a pp_gterm_e b
-  | PGFunApp ((name, _), args, at) when name = "event" || name = "inj-event" ->
-      fprintf fmt "%s(%a)%a" name (pp_list ~sep:", " pp_gterm_e) args pp_opt_at at
-  | PGFunApp ((name, _), [arg], at) when name = "table" ->
-      fprintf fmt "table(%a)%a" pp_gterm_e arg pp_opt_at at
-  | PGFunApp (f, args, at) ->
-      fprintf fmt "%s(%a)%a" (ident f) (pp_list ~sep:", " pp_gterm_e) args pp_opt_at at
-  | PGPhase (f, args, phase, at) ->
-      fprintf fmt "%s(%a) phase %d%a" (ident f) (pp_list ~sep:", " pp_gterm_e) args phase pp_opt_at at
-  | PGTuple ts -> fprintf fmt "(%a)" (pp_list ~sep:", " pp_gterm_e) ts
-  | PGName (id, bindings) ->
-      fprintf fmt "new %s%a"
-        (ident id)
-        (fun fmt xs ->
-          match xs with
-          | [] -> ()
-          | _ -> fprintf fmt "[%a]" (pp_list ~sep:";@ " pp_gbinding) xs)
-        bindings
-  | PGLet (id, t1, t2) ->
-      fprintf fmt "@[@[<2>let %s =@ %a@]@ in@ %a@]" (ident id) pp_gterm_e t1 pp_gterm_e t2
-
-and pp_gbinding fmt (id, t) = fprintf fmt "%s = %a" (ident id) pp_gterm_e t
-
-let is_zero_gformat ((t, _) : Pitptree.gformat_e) =
-  match t with
-  | Pitptree.PFGIdent (name, _) -> name = "0"
-  | _ -> false
-
-let rec decompose_gformat_delta ((t, _) as te) =
-  match t with
-  | Pitptree.PFGFunApp ((name, _), [inner]) when name = "+" ->
-      let base, delta = decompose_gformat_delta inner in
-      (base, delta + 1)
-  | _ -> (Some te, 0)
-
-let rec pp_gformat_e fmt ge =
-  let base, delta = decompose_gformat_delta ge in
-  match base, delta with
-  | None, _ -> assert false
-  | Some base, 0 -> pp_gformat_base fmt base
-  | Some base, n when is_zero_gformat base && n >= 0 -> Format.pp_print_int fmt n
-  | Some base, n -> fprintf fmt "(%a) + %d" pp_gformat_base base n
-
-and pp_gformat_base fmt ((t, _) : Pitptree.gformat_e) =
-  match t with
-  | PFGIdent id -> pp_string fmt (ident id)
-  | PFGFunApp ((name, _), [a; b]) when name = "choice" ->
-      fprintf fmt "choice[%a, %a]" pp_gformat_e a pp_gformat_e b
-  | PFGFunApp (f, args) -> fprintf fmt "%s(%a)" (ident f) (pp_list ~sep:", " pp_gformat_e) args
-  | PFGTuple ts -> fprintf fmt "(%a)" (pp_list ~sep:", " pp_gformat_e) ts
-  | PFGName (id, bindings) ->
-      fprintf fmt "new %s%a"
-        (ident id)
-        (fun fmt xs ->
-          match xs with
-          | [] -> ()
-          | _ -> fprintf fmt "[%a]" (pp_list ~sep:";@ " pp_gformat_binding) xs)
-        bindings
-  | PFGAny id -> fprintf fmt "*%s" (ident id)
-  | PFGLet (id, t1, t2) ->
-      fprintf fmt "@[@[<2>let %s =@ %a@]@ in@ %a@]" (ident id) pp_gformat_e t1 pp_gformat_e t2
-
-and pp_gformat_binding fmt (id, t) = fprintf fmt "%s = %a" (ident id) pp_gformat_e t
-
-let rec decompose_pterm_delta ((t, _) as te) =
-  match t with
-  | Pitptree.PPFunApp ((name, _), [inner]) when name = "+" ->
-      let base, delta, minus = decompose_pterm_delta inner in
-      if minus then (base, delta - 1, true) else (base, delta + 1, false)
-  | PPFunApp ((name, _), [inner]) when starts_with ~prefix:"- " name ->
-      let n = int_of_string (strip_prefix ~prefix:"- " name) in
-      (Some inner, n, true)
-  | _ -> (Some te, 0, false)
-
-let is_zero_pterm ((t, _) : Pitptree.pterm_e) =
-  match t with
-  | Pitptree.PPIdent (name, _) -> name = "0"
-  | _ -> false
-
-let pp_basic_pattern fmt = function
-  | PPatVar (id, None) -> pp_string fmt (ident id)
-  | PPatVar (id, Some ty) -> fprintf fmt "%s:%s" (ident id) (ident ty)
-  | PPatAny (_, None) -> pp_string fmt "_"
-  | PPatAny (_, Some ty) -> fprintf fmt "_:%s" (ident ty)
-  | _ -> assert false
-
-let rec pp_pterm_e fmt te =
-  let base, delta, minus = decompose_pterm_delta te in
-  match base, delta, minus with
-  | None, _, _ -> assert false
-  | Some base, 0, false -> pp_pterm_base fmt base
-  | Some base, n, false when is_zero_pterm base && n >= 0 -> Format.pp_print_int fmt n
-  | Some base, n, false ->
-      fprintf fmt "(%a) + %d" pp_pterm_base base n
-  | Some base, n, true ->
-      fprintf fmt "(%a) - %d" pp_pterm_base base n
-
-and pp_pterm_base fmt ((t, _) : Pitptree.pterm_e) =
-  match t with
-  | PPIdent id -> pp_string fmt (ident id)
-  | PPFunApp ((name, _), [a; b]) when List.mem name ["="; "<>"; "||"; "&&"; "<="; ">="; "<"; ">"] ->
-      fprintf fmt "(%a %s %a)" pp_pterm_e a name pp_pterm_e b
-  | PPFunApp ((name, _), [a]) when name = "not" ->
-      fprintf fmt "not(%a)" pp_pterm_e a
-  | PPFunApp ((name, _), [a; b]) when name = "choice" ->
-      fprintf fmt "choice[%a, %a]" pp_pterm_e a pp_pterm_e b
-  | PPFunApp (f, args) ->
-      fprintf fmt "%s(%a)" (ident f) (pp_list ~sep:", " pp_pterm_e) args
-  | PPTuple ts ->
-      fprintf fmt "(%a)" (pp_list ~sep:", " pp_pterm_e) ts
-  | PPRestr (id, newarg, ty, t1) ->
-      fprintf fmt "new %s%a:%s; %a"
-        (ident id)
-        pp_newarg newarg
-        (ident ty)
-        pp_pterm_e t1
-  | PPTest (c, t1, None) ->
-      fprintf fmt "@[@[<2>if@ %a@]@ @[<2>then@ %a@]@]" pp_pterm_e c pp_pterm_e t1
-  | PPTest (c, t1, Some t2) ->
-      fprintf fmt "@[@[<2>if %a@]@ @[<2>then@ %a@]@ @[<2>else@ %a@]@]" pp_pterm_e c pp_pterm_e t1 pp_pterm_e t2
-  | PPLet (pat, t1, t2, None) ->
-      fprintf fmt "@[@[<2>let %a =@ %a@]@ in@ %a@]" pp_tpattern pat pp_pterm_e t1 pp_pterm_e t2
-  | PPLet (pat, t1, t2, Some t3) ->
-      fprintf fmt "@[@[<2>let %a =@ %a@]@ in@ %a@ @[<2>else %a@]@]"
-        pp_tpattern pat pp_pterm_e t1 pp_pterm_e t2 pp_pterm_e t3
-  | PPLetFilter (env, t1, t2, None) ->
-      fprintf fmt "@[@[<2>let %a suchthat@ %a@]@ in@ %a@]"
-        pp_typed_ident_list env
-        pp_pterm_e t1
-        pp_pterm_e t2
-  | PPLetFilter (env, t1, t2, Some t3) ->
-      fprintf fmt "@[@[<2>let %a suchthat@ %a@]@ in@ %a@ @[<2>else@ %a@]@]"
-        pp_typed_ident_list env
-        pp_pterm_e t1
-        pp_pterm_e t2
-        pp_pterm_e t3
-  | PPEvent (id, args, newarg, t1) ->
-      fprintf fmt "event %s%a%a; %a"
-        (ident id)
-        pp_opt_args args
-        pp_newarg newarg
-        pp_pterm_e t1
-  | PPInsert (id, args, t1) ->
-      fprintf fmt "insert %s(%a); %a"
-        (ident id)
-        (pp_list ~sep:", " pp_pterm_e) args
-        pp_pterm_e t1
-  | PPGet (id, pats, cond, body, else_t, options) ->
-      fprintf fmt "@[@[<2>get %s(%a)%a%a@]@ in@ %a"
-        (ident id)
-        (pp_list ~sep:", " pp_tpattern) pats
-        pp_opt_suchthat cond
-        pp_options options
-        pp_pterm_e body;
-      begin match else_t with
-      | None -> ()
-      | Some t2 -> fprintf fmt "@ @[<2>else %a@]" pp_pterm_e t2
-      end;
-      fprintf fmt "@]"
-
-and pp_opt_args fmt = function
-  | [] -> ()
-  | args -> fprintf fmt "(%a)" (pp_list ~sep:", " pp_pterm_e) args
-
-and pp_opt_suchthat fmt = function
-  | None -> ()
-  | Some t -> fprintf fmt " suchthat@ %a" pp_pterm_e t
-
-and pp_tpattern fmt = function
-  | PPatVar _ as p -> pp_basic_pattern fmt p
-  | PPatAny _ as p -> pp_basic_pattern fmt p
-  | PPatTuple ps -> fprintf fmt "(%a)" (pp_list ~sep:", " pp_tpattern) ps
-  | PPatFunApp (id, ps) -> fprintf fmt "%s(%a)" (ident id) (pp_list ~sep:", " pp_tpattern) ps
-  | PPatChoice (id, [a; b], None) ->
-      fprintf fmt "%s[%a, %a]" (ident id) pp_tpattern a pp_tpattern b
-  | PPatChoice (id, [a; b], Some ty) ->
-      fprintf fmt "%s[%a, %a]:%s" (ident id) pp_tpattern a pp_tpattern b (ident ty)
-  | PPatChoice (id, ps, ty) ->
-      fprintf fmt "%s(%a)%s"
-        (ident id)
-        (pp_list ~sep:", " pp_tpattern) ps
-        (match ty with None -> "" | Some t -> ":" ^ ident t)
-  | PPatEqual t -> fprintf fmt "=%a" pp_pterm_e t
-
-let pp_syncopt fmt = function
-  | None -> ()
-  | Some (tag, _) when tag = "" -> pp_string fmt "[sync: no tag prefix]"
-  | Some tag -> fprintf fmt "[sync: tag prefix %s]" (ident tag)
-
-let is_atomic_process ((p, _) : Pitptree.tprocess_e) =
-  match p with
-  | PNil
-  | PLetDef _ -> true
-  | _ -> false
-
-let is_nil_process ((p, _) : Pitptree.tprocess_e) =
-  match p with
-  | PNil -> true
-  | _ -> false
-
-let rec pp_tprocess_group fmt p =
-  if is_atomic_process p then
-    pp_tprocess_e fmt p
+let pp_paren_if need pp fmt x =
+  if need || !always_with_parens then
+    fprintf fmt "(%a)" pp x
   else
-    fprintf fmt "(%a)" pp_tprocess_e p
+    pp fmt x
 
-and pp_tprocess_e fmt ((p, _) : Pitptree.tprocess_e) =
-  match p with
-  | PNil ->
-      pp_string fmt "0"
-  | PPar (p1, p2) ->
-      fprintf fmt "(%a | %a)"
-        pp_tprocess_group p1
-        pp_tprocess_group p2
-  | PRepl p1 ->
-      fprintf fmt "! %a"
-        pp_tprocess_group p1
-  | PRestr (id, newarg, ty, p1) ->
-      fprintf fmt "@[new %s%a:%s%a@]"
-        (ident id)
-        pp_newarg newarg
-        (ident ty)
-        pp_opttprocess p1
-  | PLetDef (id, args, syncopt) ->
-      fprintf fmt "%s%a%a"
-        (ident id)
-        pp_opt_args args
-        pp_syncopt syncopt
-  | PTest (cond, p1, p2) ->
-      fprintf fmt "@[@[<2>if@ %a@]@ @[<2>then@ %a@]"
-        pp_pterm_e cond
-        pp_tprocess_group p1;
-      if not (is_nil_process p2) then
-        fprintf fmt "@ @[<2>else@ %a@]" pp_tprocess_group p2;
-      fprintf fmt "@]"
-  | PInput (ch, pat, p1, options) ->
-      fprintf fmt "@[in(%a, %a)%a%a@]"
-        pp_pterm_e ch
-        pp_tpattern pat
-        pp_options options
-        pp_opttprocess p1
-  | POutput (ch, msg, p1) ->
-      fprintf fmt "@[out(%a, %a)%a@]"
-        pp_pterm_e ch
-        pp_pterm_e msg
-        pp_opttprocess p1
-  | PLet (pat, t1, p1, p2) ->
-      fprintf fmt "@[@[<2>let %a =@ %a@]@ in@ %a"
-        pp_tpattern pat
-        pp_pterm_e t1
-        pp_tprocess_group p1;
-      if not (is_nil_process p2) then
-        fprintf fmt "@ @[<2>else@ %a@]" pp_tprocess_group p2;
-      fprintf fmt "@]"
-  | PLetFilter (env, t1, p1, p2, options) ->
-      fprintf fmt "@[@[<2>let %a suchthat@ %a%a@ in@ %a@]"
-        pp_typed_ident_list env
-        pp_pterm_e t1
-        pp_options options
-        pp_tprocess_group p1;
-      if not (is_nil_process p2) then
-        fprintf fmt "@ @[<2>else@ %a@]" pp_tprocess_group p2;
-      fprintf fmt "@]"
-  | PEvent (id, args, newarg, p1) ->
-      fprintf fmt "@[event %s%a%a%a@]"
-        (ident id)
-        pp_opt_args args
-        pp_newarg newarg
-        pp_opttprocess p1
-  | PPhase (n, p1) ->
-      fprintf fmt "@[phase %d%a@]"
-        n
-        pp_opttprocess p1
-  | PBarrier (n, None, p1) ->
-      fprintf fmt "@[sync %d%a@]"
-        n
-        pp_opttprocess p1
-  | PBarrier (n, Some tag, p1) ->
-      fprintf fmt "@[sync %d[%s]%a@]"
-        n
-        (ident tag)
-        pp_opttprocess p1
-  | PInsert (id, args, p1) ->
-      fprintf fmt "@[insert %s(%a)%a@]"
-        (ident id)
-        (pp_list ~sep:", " pp_pterm_e) args
-        pp_opttprocess p1
-  | PGet (id, pats, cond, p1, p2, options) ->
-      fprintf fmt "@[@[<2>get %s(%a)%a%a@]"
-        (ident id)
-        (pp_list ~sep:", " pp_tpattern) pats
-        pp_opt_suchthat cond
-        pp_options options;
-      if not (is_nil_process p1) then
-        fprintf fmt "@ in@ %a" pp_tprocess_group p1;
-      if not (is_nil_process p2) then
-        fprintf fmt "@ @[<2>else@ %a@]" pp_tprocess_group p2;
-      fprintf fmt "@]"
+let prec_lowest = 0
 
-and pp_opttprocess fmt p =
-  if not (is_nil_process p) then
-    fprintf fmt ";@ %a" pp_tprocess_group p
+let prec_open_branch = 10
+
+let prec_closed_branch = 20
+
+let prec_bar = 30 (* | *)
+
+let prec_semi = 100
+
+let prec_implies = 150
+
+let prec_or = 200 (* || *)
+
+let prec_and = 300
+
+let prec_cmp = 400
+
+let prec_add = 500
+
+let prec_prefix = 600
+
+let prec_app = 700
+
+let prec_atomic = 800
+
+type assoc =
+  | Right_assoc
+  | Non_assoc
+
+let binary_prec = function
+  | "==>" -> Some (prec_implies, Non_assoc)
+  | "||" -> Some (prec_or, Right_assoc)
+  | "&&" -> Some (prec_and, Right_assoc)
+  | "=" | "<>" | "<=" | ">=" | "<" | ">" -> Some (prec_cmp, Non_assoc)
+  | _ -> None
+
+module Term = struct
+  let prec ((t, _) : Pitptree.term_e) =
+    match t with
+    | PFunApp ((name, _), [_; _]) -> begin
+        match binary_prec name with
+        | Some (prec, _) -> prec
+        | None -> prec_app
+      end
+    | PFunApp (("not", _), [_]) -> prec_prefix
+    | PFunApp _ | PProj _ -> prec_app
+    | PIdent _ | PFail | PTuple _ -> prec_atomic
+
+  let is_zero ((t, _) : Pitptree.term_e) =
+    match t with
+    | Pitptree.PIdent (name, _) -> name = "0"
+    | _ -> false
+
+  let rec decompose_delta ((t, _) as te) =
+    (* `t + 3` is parsed as `+(+(+ t))`
+       `t - 3` is parsed as `"- 3" t`
+    *)
+    match t with
+    | Pitptree.PFunApp (("+", _), [inner]) ->
+        let base, delta = decompose_delta inner in
+        (base, delta + 1)
+    | PFunApp ((name, _), [inner]) when starts_with ~prefix:"- " name ->
+        let n = int_of_string (strip_prefix ~prefix:"- " name) in
+        let base, delta = decompose_delta inner in
+        (base, delta - n)
+    | _ -> (te, 0)
+
+  let rec pp_prec ctx_prec fmt te =
+    let base, delta = decompose_delta te in
+    let my_prec =
+      match delta with
+      | 0 -> prec te
+      | _ -> prec_add
+    in
+    pp_paren_if (my_prec < ctx_prec) (fun fmt () ->
+        match delta with
+        | 0 ->
+            pp_base fmt base
+        | n when is_zero base && n >= 0 ->
+            (* 0 + n *)
+            Format.pp_print_int fmt n
+        | n when n > 0 ->
+            fprintf fmt "%a + %d" (pp_prec prec_add) base n
+        | n ->
+            fprintf fmt "%a - %d" (pp_prec prec_add) base (-n))
+      fmt ()
+
+  and pp_base fmt (((t, _) as te) : Pitptree.term_e) =
+    match t with
+    | Pitptree.PIdent id -> pp_string fmt (ident id)
+    | PFail -> pp_string fmt "fail"
+    | PFunApp ((("=" | "<>" | "||" | "&&" as name), _), [a; b]) ->
+        let my_prec = prec te in
+        let left_prec, right_prec =
+          match binary_prec name with
+          | Some (_, Right_assoc) -> (my_prec + 1, my_prec)
+          | Some (_, Non_assoc) -> (my_prec + 1, my_prec + 1)
+          | None -> (my_prec, my_prec + 1)
+        in
+        fprintf fmt "%a %s %a"
+          (pp_prec left_prec) a
+          name
+          (pp_prec right_prec) b
+    | PFunApp (("not", _), [a]) ->
+        fprintf fmt "not(%a)" pp a
+    | PFunApp (("choice", _), [a; b]) ->
+        fprintf fmt "choice[%a, %a]" pp a pp b
+    | PFunApp (f, args) ->
+        fprintf fmt "%s(%a)" (ident f) (pp_list ~sep:", " pp) args
+    | PProj (f, t1) -> fprintf fmt "%s(%a)" (ident f) pp t1
+    | PTuple ts -> fprintf fmt "(%a)" (pp_list ~sep:", " pp) ts
+
+  and pp fmt te = pp_prec prec_lowest fmt te
+end
+
+module Gterm = struct
+  let is_zero ((t, _) : Pitptree.gterm_e) =
+    match t with
+    | Pitptree.PGIdent (name, _) -> name = "0"
+    | _ -> false
+
+  let pp_opt_at fmt = function
+    | None -> ()
+    | Some id -> fprintf fmt "@%s" (ident id)
+
+  let rec decompose_delta ((t, _) as te) =
+    (* `t + 3` is parsed as `+(+(+ t))` *)
+    match t with
+    | Pitptree.PGFunApp (("+", _), [inner], None) ->
+        let base, delta = decompose_delta inner in
+        (base, delta + 1)
+    | _ -> (te, 0)
+
+  let prec ((t, _) : Pitptree.gterm_e) =
+    match t with
+    | PGIdent _ | PGTuple _ -> prec_atomic
+    | PGFunApp ((name, _), [_; _], None) -> begin
+        match binary_prec name with
+        | Some (prec, _) -> prec
+        | None -> prec_app
+      end
+    | PGFunApp (("not", _), [_], None) -> prec_prefix
+    | PGFunApp (_, _, None) -> prec_app
+    | PGFunApp (_, _, _) -> prec_app
+    | PGPhase _ -> prec_app
+    | PGName (_, _) -> prec_app
+    | PGLet (_, _, _) -> prec_closed_branch
+
+  let rec pp_prec ctx_prec fmt ge =
+    (* base + delta *)
+    let base, delta = decompose_delta ge in
+    let my_prec =
+      match delta with
+      | 0 -> prec ge
+      | _ -> prec_add
+    in
+    pp_paren_if (my_prec < ctx_prec) (fun fmt () ->
+        match delta with
+        | 0 -> pp_base fmt base
+        | n when is_zero base && n >= 0 -> Format.pp_print_int fmt n
+        | n when n > 0 -> fprintf fmt "%a + %d" (pp_prec prec_add) base n
+        | n -> fprintf fmt "%a - %d" (pp_prec prec_add) base (-n))
+      fmt ()
+
+  and pp_base fmt (((t, _) as ge): Pitptree.gterm_e) =
+    match t with
+    | PGIdent id -> pp_string fmt (ident id)
+    | PGFunApp ((("=" | "<>" | "||" | "&&" | "<=" | ">=" | "<" | ">" | "==>" as name), _), [a; b], None) ->
+        let my_prec = prec ge in
+        let left_prec, right_prec =
+          match binary_prec name with
+          | Some (_, Right_assoc) -> (my_prec + 1, my_prec)
+          | Some (_, Non_assoc) -> (my_prec + 1, my_prec + 1)
+          | None -> (my_prec, my_prec + 1)
+        in
+        fprintf fmt "%a %s %a"
+          (pp_prec left_prec) a
+          name
+          (pp_prec right_prec) b
+    | PGFunApp (("not", _), [a], None) ->
+        fprintf fmt "not(%a)" pp a
+    | PGFunApp (("choice", _), [a; b], None) ->
+        fprintf fmt "choice[%a, %a]" pp a pp b
+    | PGFunApp ((("event" | "inj-event" as name), _), args, at) ->
+        fprintf fmt "%s(%a)%a" name (pp_list ~sep:", " pp) args pp_opt_at at
+    | PGFunApp (("table", _), [arg], at) ->
+        fprintf fmt "table(%a)%a" pp arg pp_opt_at at
+    | PGFunApp (f, args, at) ->
+        fprintf fmt "%s(%a)%a" (ident f) (pp_list ~sep:", " pp) args pp_opt_at at
+    | PGPhase (f, args, phase, at) ->
+        fprintf fmt "%s(%a) phase %d%a"
+          (ident f)
+          (pp_list ~sep:", " pp) args
+          phase
+          pp_opt_at at
+    | PGTuple ts -> fprintf fmt "(%a)" (pp_list ~sep:", " pp) ts
+    | PGName (id, bindings) ->
+        fprintf fmt "new %s%a"
+          (ident id)
+          (fun fmt xs ->
+             match xs with
+             | [] -> ()
+             | _ -> fprintf fmt "[%a]" (pp_list ~sep:";@ " pp_gbinding) xs)
+          bindings
+    | PGLet (id, t1, t2) ->
+        fprintf fmt "@[@[<2>let %s =@ %a@]@ in@ %a@]" (ident id) pp t1 pp t2
+
+  and pp fmt ge = pp_prec prec_lowest fmt ge
+
+  and pp_gbinding fmt (id, t) = fprintf fmt "%s = %a" (ident id) pp t
+end
+
+module Gformat = struct
+  let is_zero ((t, _) : Pitptree.gformat_e) =
+    match t with
+    | Pitptree.PFGIdent (name, _) -> name = "0"
+    | _ -> false
+
+  let rec decompose_delta ((t, _) as te) =
+    match t with
+    | Pitptree.PFGFunApp (("+", _), [inner]) ->
+        let base, delta = decompose_delta inner in
+        (base, delta + 1)
+    | _ -> (Some te, 0)
+
+  let rec pp fmt ge =
+    (* base + delta *)
+    let base, delta = decompose_delta ge in
+    match base, delta with
+    | None, _ -> assert false
+    | Some base, 0 -> pp_base fmt base
+    | Some base, n when is_zero base && n >= 0 -> Format.pp_print_int fmt n
+    | Some base, n -> fprintf fmt "(%a) + %d" pp_base base n
+
+  and pp_base fmt ((t, _) : Pitptree.gformat_e) =
+    match t with
+    | PFGIdent id -> pp_string fmt (ident id)
+    | PFGFunApp (("choice", _), [a; b]) ->
+        fprintf fmt "choice[%a, %a]" pp a pp b
+    | PFGFunApp (f, args) -> fprintf fmt "%s(%a)" (ident f) (pp_list ~sep:", " pp) args
+    | PFGTuple ts -> fprintf fmt "(%a)" (pp_list ~sep:", " pp) ts
+    | PFGName (id, bindings) ->
+        fprintf fmt "new %s%a"
+          (ident id)
+          (fun fmt xs ->
+             match xs with
+             | [] -> ()
+             | _ -> fprintf fmt "[%a]" (pp_list ~sep:";@ " pp_binding) xs)
+          bindings
+    | PFGAny id -> fprintf fmt "*%s" (ident id)
+    | PFGLet (id, t1, t2) ->
+        fprintf fmt "@[@[<2>let %s =@ %a@]@ in@ %a@]" (ident id) pp t1 pp t2
+
+  and pp_binding fmt (id, t) = fprintf fmt "%s = %a" (ident id) pp t
+end
+
+module Pterm = struct
+  let is_zero ((t, _) : Pitptree.pterm_e) =
+    match t with
+    | Pitptree.PPIdent (name, _) -> name = "0"
+    | _ -> false
+
+  let pp_basic_pattern fmt = function
+    | PPatVar (id, None) -> pp_string fmt (ident id)
+    | PPatVar (id, Some ty) -> fprintf fmt "%s:%s" (ident id) (ident ty)
+    | PPatAny (_, None) -> pp_string fmt "_"
+    | PPatAny (_, Some ty) -> fprintf fmt "_:%s" (ident ty)
+    | _ -> assert false
+
+  let pterm_prec ((t, _) : Pitptree.pterm_e) =
+    match t with
+    | PPRestr _ | PPEvent _ | PPInsert _ -> prec_semi (* They contain `;` *)
+    | PPTest (_, _, None) -> prec_open_branch
+    | PPTest _ -> prec_closed_branch
+    | PPLet (_, _, _, None) -> prec_open_branch
+    | PPLet _ -> prec_closed_branch
+    | PPLetFilter (_, _, _, None) -> prec_open_branch
+    | PPLetFilter _ -> prec_closed_branch
+    | PPGet (_, _, _, _, None, _) -> prec_open_branch
+    | PPGet _ -> prec_closed_branch
+    | PPFunApp ((name, _), [_; _]) -> begin
+        match binary_prec name with
+        | Some (prec, _) -> prec
+        | None -> prec_app
+      end
+    | PPFunApp (("not", _), [_]) -> prec_prefix
+    | PPFunApp _ -> prec_app
+    | PPIdent _ | PPTuple _ -> prec_atomic
+
+  let rec decompose_delta ((t, _) as te) =
+    match t with
+    | Pitptree.PPFunApp (("+", _), [inner]) ->
+        let base, delta, minus = decompose_delta inner in
+        if minus then (base, delta - 1, true) else (base, delta + 1, false)
+    | PPFunApp ((name, _), [inner]) when starts_with ~prefix:"- " name ->
+        let n = int_of_string (strip_prefix ~prefix:"- " name) in
+        (inner, n, true)
+    | _ -> (te, 0, false)
+
+  let rec pp_prec ctx_prec fmt te =
+    let base, delta, minus = decompose_delta te in
+    let my_prec =
+      match delta, minus with
+      | 0, false -> pterm_prec te
+      | _, _ -> prec_add
+    in
+    pp_paren_if (my_prec < ctx_prec) (fun fmt () ->
+        match delta, minus with
+        | 0, false -> pp_base fmt base
+        | n, false when is_zero base && n >= 0 -> Format.pp_print_int fmt n
+        | n, false ->
+            fprintf fmt "%a + %d" (pp_prec prec_add) base n
+        | n, true ->
+            fprintf fmt "%a - %d" (pp_prec prec_add) base n)
+      fmt ()
+
+  and pp_base fmt (((t, _) as te) : Pitptree.pterm_e) =
+    match t with
+    | PPIdent id -> pp_string fmt (ident id)
+    | PPFunApp ((("=" | "<>" | "||" | "&&" | "<=" | ">=" | "<" | ">" as name), _), [a; b]) ->
+        let my_prec = pterm_prec te in
+        let left_prec, right_prec =
+          match binary_prec name with
+          | Some (_, Right_assoc) -> (my_prec + 1, my_prec)
+          | Some (_, Non_assoc) -> (my_prec + 1, my_prec + 1)
+          | None -> (my_prec, my_prec + 1)
+        in
+        fprintf fmt "%a %s %a"
+          (pp_prec left_prec) a
+          name
+          (pp_prec right_prec) b
+    | PPFunApp (("not", _), [a]) ->
+        fprintf fmt "not(%a)" pp a
+    | PPFunApp (("choice", _), [a; b]) ->
+        fprintf fmt "choice[%a, %a]" pp a pp b
+    | PPFunApp (f, args) ->
+        fprintf fmt "%s(%a)" (ident f) (pp_list ~sep:", " pp) args
+    | PPTuple ts ->
+        fprintf fmt "(%a)" (pp_list ~sep:", " pp) ts
+    | PPRestr (id, newarg, ty, t1) ->
+        fprintf fmt "@[new %s%a:%s;@ %a@]"
+          (ident id)
+          pp_newarg newarg
+          (ident ty)
+          (pp_prec prec_semi) t1
+    | PPTest (c, t1, None) ->
+        fprintf fmt "@[@[<2>if@ %a@]@ @[<2>then@ %a@]@]"
+          (pp_prec prec_closed_branch) c
+          (pp_prec prec_open_branch) t1
+    | PPTest (c, t1, Some t2) ->
+        fprintf fmt "@[@[<2>if %a@]@ @[<2>then@ %a@]@ @[<2>else@ %a@]@]"
+          (pp_prec prec_closed_branch) c
+          (pp_prec prec_closed_branch) t1
+          (pp_prec prec_closed_branch) t2
+    | PPLet (pat, t1, t2, None) ->
+        fprintf fmt "@[@[<2>let %a =@ %a@]@ in@ %a@]"
+          pp_tpattern pat pp t1 (pp_prec prec_open_branch) t2
+    | PPLet (pat, t1, t2, Some t3) ->
+        fprintf fmt "@[@[<2>let %a =@ %a@]@ in@ %a@ @[<2>else %a@]@]"
+          pp_tpattern pat pp t1 (pp_prec prec_closed_branch) t2 (pp_prec prec_closed_branch) t3
+    | PPLetFilter (env, t1, t2, None) ->
+        fprintf fmt "@[@[<2>let %a suchthat@ %a@]@ in@ %a@]"
+          pp_typed_ident_list env
+          (pp_prec prec_closed_branch) t1
+          (pp_prec prec_open_branch) t2
+    | PPLetFilter (env, t1, t2, Some t3) ->
+        fprintf fmt "@[@[<2>let %a suchthat@ %a@]@ in@ %a@ @[<2>else@ %a@]@]"
+          pp_typed_ident_list env
+          (pp_prec prec_closed_branch) t1
+          (pp_prec prec_closed_branch) t2
+          (pp_prec prec_closed_branch) t3
+    | PPEvent (id, args, newarg, t1) ->
+        fprintf fmt "@[event %s%a%a;@ %a@]"
+          (ident id)
+          pp_opt_args args
+          pp_newarg newarg
+          (pp_prec prec_semi) t1
+    | PPInsert (id, args, t1) ->
+        fprintf fmt "@[insert %s(%a);@ %a@]"
+          (ident id)
+          (pp_list ~sep:", " pp) args
+          (pp_prec prec_semi) t1
+    | PPGet (id, pats, cond, body, None, options) ->
+        fprintf fmt "@[@[<2>get %s(%a)%a%a@]@ in@ %a@]"
+          (ident id)
+          (pp_list ~sep:", " pp_tpattern) pats
+          (pp_opt_suchthat prec_closed_branch) cond
+          pp_options options
+          (pp_prec prec_open_branch) body
+    | PPGet (id, pats, cond, body, Some else_t, options) ->
+        fprintf fmt "@[@[<2>get %s(%a)%a%a@]@ in@ %a@ @[<2>else %a@]@]"
+          (ident id)
+          (pp_list ~sep:", " pp_tpattern) pats
+          (pp_opt_suchthat prec_closed_branch) cond
+          pp_options options
+          (pp_prec prec_closed_branch) body
+          (pp_prec prec_closed_branch) else_t
+
+  and pp fmt te = pp_prec prec_lowest fmt te
+
+  and pp_opt_args fmt = function
+    | [] -> ()
+    | args -> fprintf fmt "(%a)" (pp_list ~sep:", " pp) args
+
+  and pp_opt_suchthat ctxt_prec fmt = function
+    | None -> ()
+    | Some t -> fprintf fmt " suchthat@ %a" (pp_prec ctxt_prec) t
+
+  and pp_tpattern fmt = function
+    | PPatVar _ as p -> pp_basic_pattern fmt p
+    | PPatAny _ as p -> pp_basic_pattern fmt p
+    | PPatTuple ps -> fprintf fmt "(%a)" (pp_list ~sep:", " pp_tpattern) ps
+    | PPatFunApp (id, ps) -> fprintf fmt "%s(%a)" (ident id) (pp_list ~sep:", " pp_tpattern) ps
+    | PPatChoice (id, [a; b], None) ->
+        fprintf fmt "%s[%a, %a]" (ident id) pp_tpattern a pp_tpattern b
+    | PPatChoice (id, [a; b], Some ty) ->
+        fprintf fmt "%s[%a, %a]:%s" (ident id) pp_tpattern a pp_tpattern b (ident ty)
+    | PPatChoice (id, ps, ty) ->
+        fprintf fmt "%s(%a)%s"
+          (ident id)
+          (pp_list ~sep:", " pp_tpattern) ps
+          (match ty with None -> "" | Some t -> ":" ^ ident t)
+    | PPatEqual t -> fprintf fmt "=%a" pp t
+end
+
+module Tprocess = struct
+  type branch_scope =
+    | Open_scope
+    | Closed_scope
+
+  type position_ctx =
+    | Top_level
+    | Sequence_rhs
+    | Parallel_left_operand
+    | Parallel_right_operand
+    | Then_branch
+    | Else_branch
+
+  type ctx = {
+    prec : int;
+    position : position_ctx;
+    scope : branch_scope;
+  }
+
+  let pp_syncopt fmt = function
+    | None -> ()
+    | Some (tag, _) when tag = "" -> pp_string fmt "[sync: no tag prefix]"
+    | Some tag -> fprintf fmt "[sync: tag prefix %s]" (ident tag)
+
+  let is_nil_process ((p, _) : Pitptree.tprocess_e) =
+    match p with
+    | PNil -> true
+    | _ -> false
+
+  let prec ((p, _) : Pitptree.tprocess_e) =
+    match p with
+    | PNil -> prec_atomic
+    | PPar _ -> prec_bar
+    | PRepl _ -> prec_prefix
+    | PRestr (_, _, _, p1) ->
+        if is_nil_process p1 then prec_app else prec_semi
+    | PLetDef _ -> prec_app
+    | PTest (_, _, p2) when is_nil_process p2 -> prec_open_branch
+    | PTest _ -> prec_closed_branch
+    | PInput (_, _, p1, _) ->
+        if is_nil_process p1 then prec_app else prec_semi
+    | POutput (_, _, p1) ->
+        if is_nil_process p1 then prec_app else prec_semi
+    | PLet (_, _, _, p2) when is_nil_process p2 -> prec_open_branch
+    | PLet _ -> prec_closed_branch
+    | PLetFilter (_, _, _, p2, _) when is_nil_process p2 -> prec_open_branch
+    | PLetFilter _ -> prec_closed_branch
+    | PEvent (_, _, _, p1) ->
+        if is_nil_process p1 then prec_app else prec_semi
+    | PPhase (_, p1) ->
+        if is_nil_process p1 then prec_app else prec_semi
+    | PBarrier (_, _, p1) ->
+        if is_nil_process p1 then prec_app else prec_semi
+    | PInsert (_, _, p1) ->
+        if is_nil_process p1 then prec_app else prec_semi
+    | PGet (_, _, _, p1, p2, _) ->
+        match is_nil_process p1, is_nil_process p2 with
+        | true, true -> prec_open_branch
+        | false, true -> prec_open_branch
+        | true, false -> prec_open_branch
+        | false, false -> prec_closed_branch
+
+
+  let dummy_ext = Parsing_helper.dummy_ext
+  let tprocess_dummy : Pitptree.tprocess_e = PNil, dummy_ext
+
+  let ctx ?(position = Top_level) ?(scope = Open_scope) prec =
+    { prec; position; scope }
+
+  let sequence_rhs_ctx { scope; _ } =
+    match scope with
+    | Open_scope -> ctx ~position:Sequence_rhs ~scope prec_open_branch
+    | Closed_scope -> ctx ~position:Sequence_rhs ~scope prec_closed_branch
+
+  let then_open_ctx () =
+    ctx ~position:Then_branch ~scope:Open_scope prec_open_branch
+
+  let then_closed_ctx () =
+    ctx ~position:Then_branch ~scope:Closed_scope prec_closed_branch
+
+  let in_body_ctx () =
+    ctx ~position:Sequence_rhs ~scope:Open_scope prec_open_branch
+
+  let else_ctx () =
+    ctx ~position:Else_branch ~scope:Closed_scope prec_closed_branch
+
+  let parallel_left_ctx { scope; _ } =
+    ctx ~position:Parallel_left_operand ~scope prec_bar
+
+  let parallel_right_ctx { scope; _ } =
+    ctx ~position:Parallel_right_operand ~scope prec_bar
+
+  let decompose_semi (((p, _) as te) : Pitptree.tprocess_e) =
+    match p with
+    | PRestr (id, newarg, ty, p1) when not (is_nil_process p1) ->
+        (PRestr (id, newarg, ty, tprocess_dummy), dummy_ext), Some p1
+    | PInput (ch, pat, p1, options) when not (is_nil_process p1) ->
+        (PInput (ch, pat, tprocess_dummy, options), dummy_ext), Some p1
+    | POutput (ch, msg, p1) when not (is_nil_process p1) ->
+        (POutput (ch, msg, tprocess_dummy), dummy_ext), Some p1
+    | PEvent (id, args, newarg, p1) when not (is_nil_process p1) ->
+        (PEvent (id, args, newarg, tprocess_dummy), dummy_ext), Some p1
+    | PPhase (n, p1) when not (is_nil_process p1) ->
+        (PPhase (n, tprocess_dummy), dummy_ext), Some p1
+    | PBarrier (n, o, p1) when not (is_nil_process p1) ->
+        (PBarrier (n, o, tprocess_dummy), dummy_ext), Some p1
+    | PInsert (id, args, p1) when not (is_nil_process p1) ->
+        (PInsert (id, args, tprocess_dummy), dummy_ext), Some p1
+    | _ -> te, None
+
+  let rec pp_ctx ({ prec = ctx_prec; scope; position } as current_ctx) fmt (te : Pitptree.tprocess_e) =
+    let te, te'_opt = decompose_semi te in
+    let my_prec =
+      match te'_opt with
+      | Some _ -> prec_semi
+      | None -> prec te
+    in
+    let need_parens_for_parallel_operand =
+      match position, te'_opt, te with
+      | Parallel_left_operand, Some _, _ -> true
+      | Parallel_left_operand, None, (PPar _, _) -> true
+      | _ -> false
+    in
+    let is_closed_if =
+      match te with
+      | PTest (_, _, p2), _ when not (is_nil_process p2) -> true
+      | _ -> false
+    in
+    let is_open_let =
+      match te with
+      | PLet (_, _, _, p2), _ when is_nil_process p2 -> true
+      | _ -> false
+    in
+    let allow_naked_parallel_right =
+      position = Parallel_right_operand &&
+      (is_closed_if || (is_open_let && scope = Open_scope))
+    in
+    let need_parens_for_closed_scope =
+      match scope with
+      | Closed_scope ->
+          my_prec = prec_open_branch &&
+          not allow_naked_parallel_right
+      | Open_scope -> false
+    in
+    let need_parens_for_precedence =
+      my_prec < ctx_prec &&
+      not allow_naked_parallel_right
+    in
+    pp_paren_if
+      (need_parens_for_parallel_operand || need_parens_for_closed_scope || need_parens_for_precedence)
+      (fun fmt () ->
+        match te'_opt with
+        | Some te' ->
+            fprintf fmt "@[%a;@ %a@]"
+              (pp_base current_ctx) te
+              (pp_ctx (sequence_rhs_ctx current_ctx)) te'
+        | None ->
+            pp_base current_ctx fmt te)
+      fmt ()
+
+  and pp_prec prec fmt te =
+    pp_ctx (ctx prec) fmt te
+
+  and pp_base current_ctx fmt ((p, _) : Pitptree.tprocess_e) =
+    match p with
+    | PNil ->
+        pp_string fmt "0"
+    | PPar (p1, p2) ->
+        fprintf fmt "@[%a |@ %a@]"
+          (pp_ctx (parallel_left_ctx current_ctx)) p1
+          (pp_ctx (parallel_right_ctx current_ctx)) p2
+    | PRepl p1 ->
+        fprintf fmt "!%a" (pp_ctx (ctx prec_prefix)) p1
+
+    | PRestr (id, newarg, ty, p1) ->
+        if is_nil_process p1 then
+          fprintf fmt "@[new %s%a:%s@]"
+            (ident id)
+            pp_newarg newarg
+            (ident ty)
+        else
+          fprintf fmt "@[new %s%a:%s;@ %a@]"
+            (ident id)
+            pp_newarg newarg
+            (ident ty)
+            (pp_prec prec_semi) p1
+    | PInput (ch, pat, p1, options) ->
+        if is_nil_process p1 then
+          fprintf fmt "@[in(%a, %a)%a@]"
+            Pterm.pp ch
+            Pterm.pp_tpattern pat
+            pp_options options
+        else
+          fprintf fmt "@[in(%a, %a)%a;@ %a@]"
+            Pterm.pp ch
+            Pterm.pp_tpattern pat
+            pp_options options
+            (pp_prec prec_semi) p1
+    | POutput (ch, msg, p1) ->
+        if is_nil_process p1 then
+          fprintf fmt "@[out(%a, %a)@]"
+            Pterm.pp ch
+            Pterm.pp msg
+        else
+          fprintf fmt "@[out(%a, %a);@ %a@]"
+            Pterm.pp ch
+            Pterm.pp msg
+            (pp_prec prec_semi) p1
+    | PEvent (id, args, newarg, p1) ->
+        if is_nil_process p1 then
+          fprintf fmt "@[event %s%a%a@]"
+            (ident id)
+            Pterm.pp_opt_args args
+            pp_newarg newarg
+        else
+          fprintf fmt "@[event %s%a%a;@ %a@]"
+            (ident id)
+            Pterm.pp_opt_args args
+            pp_newarg newarg
+            (pp_prec prec_semi) p1
+    | PPhase (n, p1) ->
+        if is_nil_process p1 then
+          fprintf fmt "@[phase %d@]" n
+        else
+          fprintf fmt "@[phase %d;@ %a@]" n (pp_prec prec_semi) p1
+    | PBarrier (n, None, p1) ->
+        if is_nil_process p1 then
+          fprintf fmt "@[sync %d@]" n
+        else
+          fprintf fmt "@[sync %d;@ %a@]" n (pp_prec prec_semi) p1
+    | PBarrier (n, Some tag, p1) ->
+        if is_nil_process p1 then
+          fprintf fmt "@[sync %d[%s]@]" n (ident tag)
+        else
+          fprintf fmt "@[sync %d[%s];@ %a@]" n (ident tag) (pp_prec prec_semi) p1
+    | PInsert (id, args, p1) ->
+        if is_nil_process p1 then
+          fprintf fmt "@[insert %s(%a)@]"
+            (ident id)
+            (pp_list ~sep:", " Pterm.pp) args
+        else
+          fprintf fmt "@[insert %s(%a);@ %a@]"
+            (ident id)
+            (pp_list ~sep:", " Pterm.pp) args
+            (pp_prec prec_semi) p1
+
+    | PLetDef (id, args, syncopt) ->
+        fprintf fmt "%s%a%a"
+          (ident id)
+          Pterm.pp_opt_args args
+          pp_syncopt syncopt
+    | PTest (cond, p1, p2) when is_nil_process p2 ->
+        fprintf fmt "@[@[<2>if@ %a@]@ @[<2>then@ %a@]@]"
+          Pterm.pp cond
+          (pp_ctx (then_open_ctx ())) p1
+    | PTest (cond, p1, p2) ->
+        fprintf fmt "@[@[<2>if@ %a@]@ @[<2>then@ %a@]@ @[<2>else@ %a@]@]"
+          Pterm.pp cond
+          (pp_ctx (then_closed_ctx ())) p1
+          (pp_ctx (else_ctx ())) p2
+    | PLet (pat, t1, p1, p2) when is_nil_process p2 ->
+        fprintf fmt "@[@[<2>let %a =@ %a@]@ in@ %a@]"
+          Pterm.pp_tpattern pat
+          Pterm.pp t1
+          (pp_ctx (in_body_ctx ())) p1
+    | PLet (pat, t1, p1, p2) ->
+        fprintf fmt "@[@[<2>let %a =@ %a@]@ in@ %a@ @[<2>else@ %a@]@]"
+          Pterm.pp_tpattern pat
+          Pterm.pp t1
+          (pp_ctx (then_closed_ctx ())) p1
+          (pp_ctx (else_ctx ())) p2
+    | PLetFilter (env, t1, p1, p2, options) when is_nil_process p2 ->
+        fprintf fmt "@[@[<2>let %a suchthat@ %a%a@ in@ %a@]@]"
+          pp_typed_ident_list env
+          Pterm.pp t1
+          pp_options options
+          (pp_ctx (in_body_ctx ())) p1
+    | PLetFilter (env, t1, p1, p2, options) ->
+        fprintf fmt "@[@[<2>let %a suchthat@ %a%a@]@ in@ %a@ @[<2>else@ %a@]@]"
+          pp_typed_ident_list env
+          Pterm.pp t1
+          pp_options options
+          (pp_ctx (then_closed_ctx ())) p1
+          (pp_ctx (else_ctx ())) p2
+    | PGet (id, pats, cond, p1, p2, options) ->
+        match is_nil_process p1, is_nil_process p2 with
+        | true, true ->
+            fprintf fmt "@[@[<2>get %s(%a)%a%a@]@]"
+              (ident id)
+              (pp_list ~sep:", " Pterm.pp_tpattern) pats
+              (Pterm.pp_opt_suchthat prec_closed_branch) cond
+              pp_options options
+        | false, true ->
+            fprintf fmt "@[@[<2>get %s(%a)%a%a@]@ in@ %a@]"
+              (ident id)
+              (pp_list ~sep:", " Pterm.pp_tpattern) pats
+              (Pterm.pp_opt_suchthat prec_closed_branch) cond
+              pp_options options
+              (pp_ctx (in_body_ctx ())) p1
+        | true, false ->
+            fprintf fmt "@[@[<2>get %s(%a)%a%a@]@ @[<2>else@ %a@]@]"
+              (ident id)
+              (pp_list ~sep:", " Pterm.pp_tpattern) pats
+              (Pterm.pp_opt_suchthat prec_closed_branch) cond
+              pp_options options
+              (pp_ctx (else_ctx ())) p2
+        | false, false ->
+            fprintf fmt "@[@[<2>get %s(%a)%a%a@]@ in@ %a@ @[<2>else@ %a@]@]"
+              (ident id)
+              (pp_list ~sep:", " Pterm.pp_tpattern) pats
+              (Pterm.pp_opt_suchthat prec_closed_branch) cond
+              pp_options options
+              (pp_ctx (then_closed_ctx ())) p1
+              (pp_ctx (else_ctx ())) p2
+end
 
 let rec pp_extended_equation fmt = function
   | EELet (id, t, eq) ->
       fprintf fmt "@[@[<2>let %s =@ %a@]@ in@ %a@]"
         (ident id)
-        pp_term_e t
+        Term.pp t
         pp_extended_equation eq
   | EETerm t ->
-      pp_term_e fmt t
+      Term.pp fmt t
 
 let pp_eq_clause fmt (env, eq) =
   fprintf fmt "%a%a"
@@ -476,37 +862,37 @@ let pp_fundef_clause fmt (env, eq) =
 let pp_tclause fmt = function
   | PClause (a, b) ->
       fprintf fmt "%a -> %a"
-        pp_term_e a
-        pp_term_e b
+        Term.pp a
+        Term.pp b
   | PFact t ->
-      pp_term_e fmt t
+      Term.pp fmt t
   | PEquiv (a, b, true) ->
       fprintf fmt "%a <-> %a"
-        pp_term_e a
-        pp_term_e b
+        Term.pp a
+        Term.pp b
   | PEquiv (a, b, false) ->
       fprintf fmt "%a <=> %a"
-        pp_term_e a
-        pp_term_e b
+        Term.pp a
+        Term.pp b
 
 let rec pp_nounif_t fmt = function
   | BFLet (id, gf, rest) ->
       fprintf fmt "@[@[<2>let %s =@ %a@]@ in@ %a@]@]"
         (ident id)
-        pp_gformat_e gf
+        Gformat.pp gf
         pp_nounif_t rest
   | BFNoUnif (id, args, phase) ->
       let id_s = ident id in
       if id_s = "table" || id_s = "event" then
         fprintf fmt "%s(%a)"
           id_s
-          (pp_list ~sep:", " pp_gformat_e) args
+          (pp_list ~sep:", " Gformat.pp) args
       else if args = [] then
         pp_string fmt id_s
       else
         fprintf fmt "%s(%a)"
           id_s
-          (pp_list ~sep:", " pp_gformat_e) args;
+          (pp_list ~sep:", " Gformat.pp) args;
       if phase >= 0 then
         fprintf fmt " phase %d" phase
 
@@ -534,7 +920,7 @@ let pp_tquery_e fmt ((q, _) : Pitptree.tquery_e) =
   match q with
   | PRealQuery (g, pubvars) ->
       fprintf fmt "%a%a"
-        pp_gterm_e g
+        Gterm.pp g
         (fun fmt ids ->
           match ids with
           | [] -> ()
@@ -560,7 +946,7 @@ let lemma_kind_keyword = function
   | KRestriction -> "restriction"
 
 let pp_tlemma fmt (g, ror, pubvars) =
-  pp_gterm_e fmt g;
+  Gterm.pp fmt g;
   match ror with
   | None when pubvars = [] -> ()
   | None ->
@@ -582,7 +968,7 @@ let pp_noninterf_elt fmt (id, terms_opt) =
   | Some ts ->
       fprintf fmt "%s among (%a)"
         (ident id)
-        (pp_list ~sep:", " pp_term_e) ts
+        (pp_list ~sep:", " Term.pp) ts
 
 let pp_pval fmt = function
   | Ptree.S id -> pp_string fmt (ident id)
@@ -644,12 +1030,12 @@ let rec pp_decl fmt = function
       if args = [] then
         fprintf fmt "@[<2>let %s =@ %a.@]"
           (ident id)
-          pp_tprocess_e proc
+          (Tprocess.pp_prec prec_lowest) proc
       else
         fprintf fmt "@[<2>let %s(%a) =@ %a.@]"
           (ident id)
           pp_mayfail_typed_ident_list args
-          pp_tprocess_e proc
+          (Tprocess.pp_prec prec_lowest) proc
   | TQuery (env, queries, options) ->
       fprintf fmt "@[<2>query %a@,%a%a.@]"
         pp_env env
@@ -666,11 +1052,11 @@ let rec pp_decl fmt = function
   | TNot (env, g) ->
       fprintf fmt "@[<2>not %a@,%a.@]"
         pp_env env
-        pp_gterm_e g
+        Gterm.pp g
   | TElimtrue (env, t) ->
       fprintf fmt "@[<2>elimtrue %a@,%a.@]"
         pp_env_mayfail env
-        pp_term_e t
+        Term.pp t
   | TFree (id, ty, options) ->
       fprintf fmt "free %s: %s%a."
         (ident id)
@@ -698,12 +1084,12 @@ let rec pp_decl fmt = function
       if args = [] then
         fprintf fmt "@[<2>letfun %s =@ %a.@]"
           (ident id)
-          pp_pterm_e term
+          Pterm.pp term
       else
         fprintf fmt "@[<2>letfun %s(%a) =@ %a.@]"
           (ident id)
           pp_mayfail_typed_ident_list args
-          pp_pterm_e term
+          Pterm.pp term
   | TLemma (kind, env, lemmas, options) ->
       fprintf fmt "@[<2>%s %a@,%a%a.@]"
         (lemma_kind_keyword kind)
@@ -720,11 +1106,11 @@ let pp_program fmt (decls, proc, second_proc) =
   let pp_body () =
     match second_proc with
     | None ->
-        fprintf fmt "@[<2>process@ %a.@]@," pp_tprocess_e proc
+        fprintf fmt "@[<2>process@ %a.@]@," (Tprocess.pp_prec prec_lowest) proc
     | Some proc2 ->
-        fprintf fmt "@[<2>equivalence@ @[%a@]@ @[%a.@]@]@,"
-          pp_tprocess_e proc
-          pp_tprocess_e proc2
+        fprintf fmt "@[<2>equivalence@ @[(%a)@]@ @[(%a).@]@]@,"
+          (Tprocess.pp_prec prec_lowest) proc
+          (Tprocess.pp_prec prec_lowest) proc2
   in
   fprintf fmt "@[<v>";
   pp_decl_text ();
@@ -733,3 +1119,6 @@ let pp_program fmt (decls, proc, second_proc) =
 
 let to_string program =
   Format.asprintf "%a@." pp_program program
+
+let to_string_with_parens always program =
+  with_always_with_parens always (fun () -> to_string program)

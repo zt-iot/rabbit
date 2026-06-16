@@ -1,0 +1,137 @@
+=== INPUT ===
+process
+  (if x then if x then y else z)
+  | (if x then  (if x then y) else z)
+  | (if x then let v = w in p else z)
+  | (if x then (let v = w in p) else z)
+  | (if x then let v : T suchthat st in p else z)
+  | (if x then (let v : T suchthat st in p) else z)
+  | (if x then get g(a) in p else z)
+  | (if x then (get g(a) in p) else z)
+  | (if x then get g(a) else z)
+  | (if x then (get g(a)) else z)
+  | (let v = w in if x then y else z)
+  | (let v = w in (if x then y) else z)
+  | (let v = w in let v = w in p else z)
+  | (let v = w in (let v = w in p) else z)
+  | (let v = w in let v : T suchthat st in p else z)
+  | (let v = w in (let v : T suchthat st in p) else z)
+  | (let v = w in get g(a) in p else z)
+  | (let v = w in (get g(a) in p) else z)
+  | (let v = w in get g(a) else z)
+  | (let v = w in (get g(a)) else z)
+  | (let v : T suchthat st in if x then y else z)
+  | (let v : T suchthat st in (if x then y) else z)
+  | (let v : T suchthat st in let v = w in p else z)
+  | (let v : T suchthat st in (let v = w in p) else z)
+  | (let v : T suchthat st in let v : T suchthat st in p else z)
+  | (let v : T suchthat st in (let v : T suchthat st in p) else z)
+  | (let v : T suchthat st in get g(a) in p else z)
+  | (let v : T suchthat st in (get g(a) in p) else z)
+  | (let v : T suchthat st in get g(a) else z)
+  | (let v : T suchthat st in (get g(a)) else z)
+  | (get g(a) in if x then y else z)
+  | (get g(a) in (if x then y) else z)
+  | (get g(a) in let v = w in p else z)
+  | (get g(a) in (let v = w in p) else z)
+  | (get g(a) in let v : T suchthat st in p else z)
+  | (get g(a) in (let v : T suchthat st in p) else z)
+  | (get g(a) in get g(a) in p else z)
+  | (get g(a) in (get g(a) in p) else z)
+  | (get g(a) in get g(a) else z)
+  | (get g(a) in (get g(a)) else z)
+=== PARSED ===
+process
+  ((if (x) then (if (x) then (y) else (z))) |
+   ((if (x) then (if (x) then (y)) else (z)) |
+    ((if (x) then (let v = (w) in (p) else (z))) |
+     ((if (x) then (let v = (w) in (p)) else (z)) |
+      ((if (x) then (let v:T suchthat (st) in (p) else (z))) |
+       ((if (x) then (let v:T suchthat (st) in (p)) else (z)) |
+        ((if (x) then (get g(a) in (p) else (z))) |
+         ((if (x) then (get g(a) in (p)) else (z)) |
+          ((if (x) then (get g(a) else (z))) |
+           ((if (x) then (get g(a)) else (z)) |
+            ((let v = (w) in (if (x) then (y) else (z))) |
+             ((let v = (w) in (if (x) then (y)) else (z)) |
+              ((let v = (w) in (let v = (w) in (p) else (z))) |
+               ((let v = (w) in (let v = (w) in (p)) else (z)) |
+                ((let v = (w) in (let v:T suchthat (st) in (p) else (z))) |
+                 ((let v = (w) in (let v:T suchthat (st) in (p)) else (z)) |
+                  ((let v = (w) in (get g(a) in (p) else (z))) |
+                   ((let v = (w) in (get g(a) in (p)) else (z)) |
+                    ((let v = (w) in (get g(a) else (z))) |
+                     ((let v = (w) in (get g(a)) else (z)) |
+                      ((let v:T suchthat (st) in (if (x) then (y) else (z))) |
+                       ((let v:T suchthat (st) in (if (x) then (y)) else (z)) |
+                        ((let v:T suchthat (st) in
+                            (let v = (w) in (p) else (z))) |
+                         ((let v:T suchthat (st) in (let v = (w) in (p))
+                           else (z)) |
+                          ((let v:T suchthat (st) in
+                              (let v:T suchthat (st) in (p) else (z))) |
+                           ((let v:T suchthat (st) in
+                             (let v:T suchthat (st) in (p)) else (z)) |
+                            ((let v:T suchthat (st) in
+                                (get g(a) in (p) else (z))) |
+                             ((let v:T suchthat (st) in (get g(a) in (p))
+                               else (z)) |
+                              ((let v:T suchthat (st) in (get g(a) else (z))) |
+                               ((let v:T suchthat (st) in (get g(a)) else (z)) |
+                                ((get g(a) in (if (x) then (y) else (z))) |
+                                 ((get g(a) in (if (x) then (y)) else (z)) |
+                                  ((get g(a) in (let v = (w) in (p) else (z))) |
+                                   ((get g(a) in (let v = (w) in (p))
+                                     else (z)) |
+                                    ((get g(a) in
+                                      (let v:T suchthat (st) in (p) else (z))) |
+                                     ((get g(a) in
+                                       (let v:T suchthat (st) in (p))
+                                       else (z)) |
+                                      ((get g(a) in
+                                        (get g(a) in (p) else (z))) |
+                                       ((get g(a) in (get g(a) in (p))
+                                         else (z)) |
+                                        ((get g(a) in (get g(a) else (z))) |
+                                         (get g(a) in (get g(a)) else (z))))))))))))))))))))))))))))))))))))))))).
+=== EXPECTED ===
+process
+  (if x then if x then y else z) |
+  (if x then (if x then y) else z) |
+  (if x then let v = w in p else z) |
+  (if x then (let v = w in p) else z) |
+  (if x then let v:T suchthat st in p else z) |
+  (if x then (let v:T suchthat st in p) else z) |
+  (if x then get g(a) in p else z) |
+  (if x then (get g(a) in p) else z) |
+  (if x then get g(a) else z) |
+  (if x then (get g(a)) else z) |
+  (let v = w in if x then y else z) |
+  (let v = w in (if x then y) else z) |
+  (let v = w in let v = w in p else z) |
+  (let v = w in (let v = w in p) else z) |
+  (let v = w in let v:T suchthat st in p else z) |
+  (let v = w in (let v:T suchthat st in p) else z) |
+  (let v = w in get g(a) in p else z) |
+  (let v = w in (get g(a) in p) else z) |
+  (let v = w in get g(a) else z) |
+  (let v = w in (get g(a)) else z) |
+  (let v:T suchthat st in if x then y else z) |
+  (let v:T suchthat st in (if x then y) else z) |
+  (let v:T suchthat st in let v = w in p else z) |
+  (let v:T suchthat st in (let v = w in p) else z) |
+  (let v:T suchthat st in let v:T suchthat st in p else z) |
+  (let v:T suchthat st in (let v:T suchthat st in p) else z) |
+  (let v:T suchthat st in get g(a) in p else z) |
+  (let v:T suchthat st in (get g(a) in p) else z) |
+  (let v:T suchthat st in get g(a) else z) |
+  (let v:T suchthat st in (get g(a)) else z) |
+  (get g(a) in if x then y else z) |
+  (get g(a) in (if x then y) else z) |
+  (get g(a) in let v = w in p else z) |
+  (get g(a) in (let v = w in p) else z) |
+  (get g(a) in let v:T suchthat st in p else z) |
+  (get g(a) in (let v:T suchthat st in p) else z) |
+  (get g(a) in get g(a) in p else z) |
+  (get g(a) in (get g(a) in p) else z) |
+  (get g(a) in get g(a) else z) | (get g(a) in (get g(a)) else z).

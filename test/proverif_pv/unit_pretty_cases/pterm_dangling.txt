@@ -1,0 +1,156 @@
+=== INPUT ===
+letfun p01 = if x then if x then y else z.
+letfun p02 = if x then (if x then y) else z.
+letfun p03 = if x then let v = w in p else z.
+letfun p04 = if x then (let v = w in p) else z.
+letfun p05 = if x then let v:T suchthat st in p else z.
+letfun p06 = if x then (let v:T suchthat st in p) else z.
+letfun p07 = if x then get g(a) in p else z.
+letfun p08 = if x then (get g(a) in p) else z.
+letfun p09 = let v = w in if x then y else z.
+letfun p10 = let v = w in (if x then y) else z.
+letfun p11 = let v = w in let v = w in p else z.
+letfun p12 = let v = w in (let v = w in p) else z.
+letfun p13 = let v = w in let v:T suchthat st in p else z.
+letfun p14 = let v = w in (let v:T suchthat st in p) else z.
+letfun p15 = let v = w in get g(a) in p else z.
+letfun p16 = let v = w in (get g(a) in p) else z.
+letfun p17 = let v:T suchthat st in if x then y else z.
+letfun p18 = let v:T suchthat st in (if x then y) else z.
+letfun p19 = let v:T suchthat st in let v = w in p else z.
+letfun p20 = let v:T suchthat st in (let v = w in p) else z.
+letfun p21 = let v:T suchthat st in let v:T suchthat st in p else z.
+letfun p22 = let v:T suchthat st in (let v:T suchthat st in p) else z.
+letfun p23 = let v:T suchthat st in get g(a) in p else z.
+letfun p24 = let v:T suchthat st in (get g(a) in p) else z.
+letfun p25 = get g(a) in if x then y else z.
+letfun p26 = get g(a) in (if x then y) else z.
+letfun p27 = get g(a) in let v = w in p else z.
+letfun p28 = get g(a) in (let v = w in p) else z.
+letfun p29 = get g(a) in let v:T suchthat st in p else z.
+letfun p30 = get g(a) in (let v:T suchthat st in p) else z.
+letfun p31 = get g(a) in get g(a) in p else z.
+letfun p32 = get g(a) in (get g(a) in p) else z.
+letfun p33 = if x then get g(a) suchthat st in p else z.
+letfun p34 = if x then (get g(a) suchthat st in p) else z.
+letfun p35 = let v = w in get g(a) suchthat st in p else z.
+letfun p36 = let v = w in (get g(a) suchthat st in p) else z.
+letfun p37 = let v:T suchthat st in get g(a) suchthat st in p else z.
+letfun p38 = let v:T suchthat st in (get g(a) suchthat st in p) else z.
+letfun p39 = get g(a) suchthat st in if x then y else z.
+letfun p40 = get g(a) suchthat st in (if x then y) else z.
+letfun p41 = get g(a) suchthat st in let v = w in p else z.
+letfun p42 = get g(a) suchthat st in (let v = w in p) else z.
+letfun p43 = get g(a) suchthat st in let v:T suchthat st in p else z.
+letfun p44 = get g(a) suchthat st in (let v:T suchthat st in p) else z.
+letfun p45 = get g(a) suchthat st in get g(a) in p else z.
+letfun p46 = get g(a) suchthat st in (get g(a) in p) else z.
+letfun p47 = get g(a) in get g(a) suchthat st in p else z.
+letfun p48 = get g(a) in (get g(a) suchthat st in p) else z.
+process 0.
+=== PARSED ===
+letfun p01 = (if (x) then (if (x) then (y) else (z))).
+letfun p02 = (if (x) then (if (x) then (y)) else (z)).
+letfun p03 = (if (x) then (let v = (w) in (p) else (z))).
+letfun p04 = (if (x) then (let v = (w) in (p)) else (z)).
+letfun p05 = (if (x) then (let v:T suchthat (st) in (p) else (z))).
+letfun p06 = (if (x) then (let v:T suchthat (st) in (p)) else (z)).
+letfun p07 = (if (x) then (get g(a) in (p) else (z))).
+letfun p08 = (if (x) then (get g(a) in (p)) else (z)).
+letfun p09 = (let v = (w) in (if (x) then (y) else (z))).
+letfun p10 = (let v = (w) in (if (x) then (y)) else (z)).
+letfun p11 = (let v = (w) in (let v = (w) in (p) else (z))).
+letfun p12 = (let v = (w) in (let v = (w) in (p)) else (z)).
+letfun p13 = (let v = (w) in (let v:T suchthat (st) in (p) else (z))).
+letfun p14 = (let v = (w) in (let v:T suchthat (st) in (p)) else (z)).
+letfun p15 = (let v = (w) in (get g(a) in (p) else (z))).
+letfun p16 = (let v = (w) in (get g(a) in (p)) else (z)).
+letfun p17 = (let v:T suchthat (st) in (if (x) then (y) else (z))).
+letfun p18 = (let v:T suchthat (st) in (if (x) then (y)) else (z)).
+letfun p19 = (let v:T suchthat (st) in (let v = (w) in (p) else (z))).
+letfun p20 = (let v:T suchthat (st) in (let v = (w) in (p)) else (z)).
+letfun p21 =
+  (let v:T suchthat (st) in (let v:T suchthat (st) in (p) else (z))).
+letfun p22 =
+  (let v:T suchthat (st) in (let v:T suchthat (st) in (p)) else (z)).
+letfun p23 = (let v:T suchthat (st) in (get g(a) in (p) else (z))).
+letfun p24 = (let v:T suchthat (st) in (get g(a) in (p)) else (z)).
+letfun p25 = (get g(a) in (if (x) then (y) else (z))).
+letfun p26 = (get g(a) in (if (x) then (y)) else (z)).
+letfun p27 = (get g(a) in (let v = (w) in (p) else (z))).
+letfun p28 = (get g(a) in (let v = (w) in (p)) else (z)).
+letfun p29 = (get g(a) in (let v:T suchthat (st) in (p) else (z))).
+letfun p30 = (get g(a) in (let v:T suchthat (st) in (p)) else (z)).
+letfun p31 = (get g(a) in (get g(a) in (p) else (z))).
+letfun p32 = (get g(a) in (get g(a) in (p)) else (z)).
+letfun p33 = (if (x) then (get g(a) suchthat (st) in (p) else (z))).
+letfun p34 = (if (x) then (get g(a) suchthat (st) in (p)) else (z)).
+letfun p35 = (let v = (w) in (get g(a) suchthat (st) in (p) else (z))).
+letfun p36 = (let v = (w) in (get g(a) suchthat (st) in (p)) else (z)).
+letfun p37 =
+  (let v:T suchthat (st) in (get g(a) suchthat (st) in (p) else (z))).
+letfun p38 =
+  (let v:T suchthat (st) in (get g(a) suchthat (st) in (p)) else (z)).
+letfun p39 = (get g(a) suchthat (st) in (if (x) then (y) else (z))).
+letfun p40 = (get g(a) suchthat (st) in (if (x) then (y)) else (z)).
+letfun p41 = (get g(a) suchthat (st) in (let v = (w) in (p) else (z))).
+letfun p42 = (get g(a) suchthat (st) in (let v = (w) in (p)) else (z)).
+letfun p43 =
+  (get g(a) suchthat (st) in (let v:T suchthat (st) in (p) else (z))).
+letfun p44 =
+  (get g(a) suchthat (st) in (let v:T suchthat (st) in (p)) else (z)).
+letfun p45 = (get g(a) suchthat (st) in (get g(a) in (p) else (z))).
+letfun p46 = (get g(a) suchthat (st) in (get g(a) in (p)) else (z)).
+letfun p47 = (get g(a) in (get g(a) suchthat (st) in (p) else (z))).
+letfun p48 = (get g(a) in (get g(a) suchthat (st) in (p)) else (z)).
+process (0).
+=== EXPECTED ===
+letfun p01 = if x then if x then y else z.
+letfun p02 = if x then (if x then y) else z.
+letfun p03 = if x then let v = w in p else z.
+letfun p04 = if x then (let v = w in p) else z.
+letfun p05 = if x then let v:T suchthat st in p else z.
+letfun p06 = if x then (let v:T suchthat st in p) else z.
+letfun p07 = if x then get g(a) in p else z.
+letfun p08 = if x then (get g(a) in p) else z.
+letfun p09 = let v = w in if x then y else z.
+letfun p10 = let v = w in (if x then y) else z.
+letfun p11 = let v = w in let v = w in p else z.
+letfun p12 = let v = w in (let v = w in p) else z.
+letfun p13 = let v = w in let v:T suchthat st in p else z.
+letfun p14 = let v = w in (let v:T suchthat st in p) else z.
+letfun p15 = let v = w in get g(a) in p else z.
+letfun p16 = let v = w in (get g(a) in p) else z.
+letfun p17 = let v:T suchthat st in if x then y else z.
+letfun p18 = let v:T suchthat st in (if x then y) else z.
+letfun p19 = let v:T suchthat st in let v = w in p else z.
+letfun p20 = let v:T suchthat st in (let v = w in p) else z.
+letfun p21 = let v:T suchthat st in let v:T suchthat st in p else z.
+letfun p22 = let v:T suchthat st in (let v:T suchthat st in p) else z.
+letfun p23 = let v:T suchthat st in get g(a) in p else z.
+letfun p24 = let v:T suchthat st in (get g(a) in p) else z.
+letfun p25 = get g(a) in if x then y else z.
+letfun p26 = get g(a) in (if x then y) else z.
+letfun p27 = get g(a) in let v = w in p else z.
+letfun p28 = get g(a) in (let v = w in p) else z.
+letfun p29 = get g(a) in let v:T suchthat st in p else z.
+letfun p30 = get g(a) in (let v:T suchthat st in p) else z.
+letfun p31 = get g(a) in get g(a) in p else z.
+letfun p32 = get g(a) in (get g(a) in p) else z.
+letfun p33 = if x then get g(a) suchthat st in p else z.
+letfun p34 = if x then (get g(a) suchthat st in p) else z.
+letfun p35 = let v = w in get g(a) suchthat st in p else z.
+letfun p36 = let v = w in (get g(a) suchthat st in p) else z.
+letfun p37 = let v:T suchthat st in get g(a) suchthat st in p else z.
+letfun p38 = let v:T suchthat st in (get g(a) suchthat st in p) else z.
+letfun p39 = get g(a) suchthat st in if x then y else z.
+letfun p40 = get g(a) suchthat st in (if x then y) else z.
+letfun p41 = get g(a) suchthat st in let v = w in p else z.
+letfun p42 = get g(a) suchthat st in (let v = w in p) else z.
+letfun p43 = get g(a) suchthat st in let v:T suchthat st in p else z.
+letfun p44 = get g(a) suchthat st in (let v:T suchthat st in p) else z.
+letfun p45 = get g(a) suchthat st in get g(a) in p else z.
+letfun p46 = get g(a) suchthat st in (get g(a) in p) else z.
+letfun p47 = get g(a) in get g(a) suchthat st in p else z.
+letfun p48 = get g(a) in (get g(a) suchthat st in p) else z.
+process 0.
