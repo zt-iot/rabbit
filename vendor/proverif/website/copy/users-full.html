@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./css/styles.css?v=18">
+
+    <title>ProVerif</title>
+    <meta name="description" content="Automated Symbolic Protocol Verification">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "ProVerif",
+            "description": "ProVerif is an automatic symbolic protocol verifier which proves security properties of cryptographic protocols.",
+            "applicationCategory": "Security, Cryptography",
+            "programmingLanguage": "OCaml",
+            "downloadUrl": "https://bblanche.gitlabpages.inria.fr/proverif/",
+            "softwareHelp": {
+                "@type": "CreativeWork",
+                "url": "https://bblanche.gitlabpages.inria.fr/proverif/manual.pdf"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<nav class="navbar sticky-top navbar-expand-lg bg-dark border-bottom border-body"  data-bs-theme="dark">
+    <div class="container-fluid container-narrow">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="./">ProVerif</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./install.html">Install</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./usage.html">Usage</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="http://proverif24.paris.inria.fr/">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="manual.pdf">Manual</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="25years.html">25 years workshop</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link active" href="./users.html">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./publications.html">Publications</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<section>
+    <div class="container-narrow">
+        <H1 id="publis">Users of ProVerif</H1>
+        <P>
+            If you have written a research paper or a tool using ProVerif, or
+            teach a course on ProVerif, and want it to be added to this page, or
+            if you want the reference to your paper/tool/course to be removed or
+            corrected, please
+            contact <A HREF="https://bblanche.gitlabpages.inria.fr/">Bruno Blanchet</A>.
+        </P>
+
+        <H2 id="papers">Research papers </H2>
+        <p class="subtitle">
+            350+ publications have used ProVerif.
+        </p>
+
+	<P>We list rank A* or A conferences first for each year, then other publications. <A HREF="users.html">Click here to see only the rank A* or A conferences.</A></P>
+<!-- We list conferences in the following order for A*/A conferences
+A*
+
+CCS
+IEEE S&P
+NDSS
+Usenix
+
+A
+
+AsiaCCS
+CADE
+CSF
+ESOP
+ESORICS
+EuroS&P
+PETS
+  -->
+
+	2003
+	<UL>
+	  <LI>Others
+        <OL>
+            <LI>
+                Karthikeyan Bhargavan, Cédric Fournet, Andrew Gordon, and Riccardo Pucella.
+                TulaFale: A
+                Security Tool for Web Services. In Formal Methods for Components and
+                Objects (FMCO 2003), Springer LNCS, Revised Lecture Series, volume 3188,
+                pages 197-222, 2004. Available at
+                <A HREF="https://bhargavan.info/pubs/tulafale-a-security-tool-for-web-services.pdf">https://bhargavan.info/pubs/tulafale-a-security-tool-for-web-services.pdf</A>.
+	    </LI>
+        </OL>
+	</UL>
+        2004
+	<UL>
+	  <LI>Rank A* or A conferences
+            <OL>
+	      <LI VALUE=2>
+                Karthikeyan Bhargavan, Cédric Fournet, and Andrew Gordon.
+                Verifying Policy-Based
+                Security for Web Services.  In 2004 ACM Conference on Computer and
+                Communications Security (CCS 2004), pp 268-277, Washington DC, October
+                25-29, 2004. Available at
+                <A HREF="https://bhargavan.info/pubs/verifying-policy-based-security-ccs04.pdf">https://bhargavan.info/pubs/verifying-policy-based-security-ccs04.pdf</A>.
+            </LI>
+	    </OL>
+	  <LI>Others
+	    <OL>
+              <LI VALUE=3>
+                Karthikeyan Bhargavan, Ricardo Corin, Cédric Fournet, and Andrew Gordon.
+                Secure Sessions for
+                Web Services.  In 2004 ACM Workshop on Secure Web Services (SWS),
+                Washington DC, October 29, 2004. Available at <A
+                    HREF="https://bhargavan.info/pubs/secure-sessions-sws04.pdf">https://bhargavan.info/pubs/secure-sessions-sws04.pdf</A>.
+            </LI>
+
+            <LI>
+                Ran Canetti and Jonathan Herzog. Universally composable symbolic analysis of cryptographic protocols (the case of encryption-based mutual authentication and key exchange). Cryptology ePrint Archive, Report 2004/334, 2004.
+                Available at <A HREF="http://eprint.iacr.org/2004/334">http://eprint.iacr.org/2004/334</A>
+            </LI>
+
+            <LI>
+                Steve Kremer and Mark D. Ryan. Analysing the vulnerability of
+                protocols to produce known-pair and chosen-text attacks. Electronic
+                Notes in Theoretical Computer Science -- Special Issue for CONCUR'04
+                Workshop on Security Issues in Coordination Models, Languages and
+                Systems (SecCo'04), 2004. 18 pages. Available at
+                <A HREF="https://markryan.eu/research/papers/pdf/04-chosen.pdf">
+                    https://markryan.eu/research/papers/pdf/04-chosen.pdf</A>
+	    </LI>
+        </OL>
+	</UL>
+        2005
+	<UL>
+	  <LI>Rank A* or A conferences
+	    <OL>
+            <LI VALUE=6>
+                Steve Kremer and Mark D. Ryan. Analysis of an Electronic Voting Protocol
+                in the Applied Pi Calculus. In Proceedings of the European Symposium on
+                Programming (ESOP'05),  Lecture Notes in Computer Science series, volume 3444, pages 186-200, Springer
+                Verlag, 2005. Available at
+                <A HREF="https://markryan.eu/research/papers/pdf/04-eVoting.pdf">
+                    https://markryan.eu/research/papers/pdf/04-eVoting.pdf</A>
+            </LI>
+	    </OL>
+	  <LI>Others
+            <OL>
+            <LI VALUE=7>
+                Alexey Gotsman, Fabio Massacci, Marco Pistore. Towards an Independent
+                Semantics and Verification Technology for the HLPSL Specification
+                Language. In Proceedings of the Second Workshop on Automated Reasoning
+                for Security Protocol Analysis (ARSPA-2005), Electronic Notes in
+                Theoretical Computer Science, volume 135, issue 1, pages 59-77, 2005.
+                <A HREF="http://dx.doi.org/10.1016/j.entcs.2005.06.004">doi:10.1016/j.entcs.2005.06.004</A>.
+            </LI>
+
+            <LI>
+                Kevin D. Lux, Michael J. May, Nayan L. Bhattad, and Carl
+                A. Gunter. WSEmail: Secure Internet Messaging Based on Web
+                Services. In International Conference on Web Services
+                (ICWS'05). Available at <A
+                    HREF="https://doi.org/10.1109/ICWS.2005.138">https://doi.org/10.1109/ICWS.2005.138</A>.
+	    </LI>
+        </OL>
+	</UL>
+        2006
+	<UL>
+	  <LI>Rank A* or A conferences
+	    <OL>
+            <LI VALUE=9>
+                Himanshu Khurana and Hyung-Seok Hahm. Certified Mailing Lists. In
+                Proceedings of the ACM Symposium on Communication, Information,
+                Computer and Communication Security (ASIACCS'06), Taipei, Taiwan,
+                March 2006. Available at <A HREF="https://dl.acm.org/doi/10.1145/1128817.1128828">https://dl.acm.org/doi/10.1145/1128817.1128828</A>.
+            </LI>
+
+            <LI>
+                Karthikeyan Bhargavan, Cédric Fournet, Andrew Gordon, and Stephen Tse.
+                Verified interoperable implementations of security protocols.
+                In 19th IEEE Computer Security Foundations Workshop (CSFW 2006),
+                pages 139-152, Venice, Italy, July 2006. IEEE Computer Society.
+                Available at
+                <A HREF="https://bhargavan.info/pubs/verified-interoperable-implementations-csfw06.pdf">https://bhargavan.info/pubs/verified-interoperable-implementations-csfw06.pdf</A>.
+            </LI>
+	    </OL>
+	  <LI>Others
+            <OL>
+            <LI VALUE=11>
+                Karthikeyan Bhargavan, Cédric Fournet, and Andrew Gordon.
+                Verified reference implementations of WS-Security protocols.
+                In 3rd International Workshop on Web Services and Formal Methods (WS-FM 2006), Vienna, September 8-9, 2006.  Springer LNCS 4184:88-106.
+                Available at
+                <A HREF="https://bhargavan.info/pubs/verified-implementations-of-ws-star-wsfm06.pdf">https://bhargavan.info/pubs/verified-implementations-of-ws-star-wsfm06.pdf</A>.
+            </LI>
+            </OL>
+	</UL>
+
+        2007
+	<UL>
+	  <LI>Others
+        <OL>
+            <LI VALUE=12>
+                Richard Chang and Vitaly Shmatikov. Formal Analysis of Authentication in
+                Bluetooth Device Pairing. In Proc. of LICS/ICALP Workshop on Foundations of Computer Security and Automated Reasoning for Security Protocol Analysis (FCS-ARSPA), Wroclaw, Poland, July 2007. Available at <A HREF="https://www.cs.cornell.edu/~shmat/shmat_fcs07.pdf">https://www.cs.cornell.edu/~shmat/shmat_fcs07.pdf</A>
+            </LI>
+
+            <LI>
+                Zhengqin Luo, Xiaojuan Cai, Jun Pang, and Yuxin Deng.  Analyzing an
+                Electronic Cash Protocol Using Applied Pi Calculus.  In Applied
+                Cryptography and Network Security, 5th International Conference, ACNS
+                2007, Zhuhai, China. Lecture Notes in Computer Science, volume 4521,
+                pages 87-103. Springer.  Available
+                at <A HREF="https://doi.org/10.1007/978-3-540-72738-5_6">https://doi.org/10.1007/978-3-540-72738-5_6</A>.
+	    </LI>
+        </OL>
+	</UL>
+        2008
+	<UL>
+	  <LI>Rank A* or A conferences
+        <OL>
+            <LI VALUE=14>
+                Karthikeyan Bhargavan, Ricardo Corin, Cédric Fournet, and Eugen Zalinescu.
+                Cryptographically Verified Implementations for TLS.
+                In Proceedings of the 15th ACM Conference on Computer and Communications Security (CCS'08), pages 459-468, October 2008. Available at <A HREF="https://bhargavan.info/pubs/cryptographically-verified-implementations-for-tls-ccs08.pdf">https://bhargavan.info/pubs/cryptographically-verified-implementations-for-tls-ccs08.pdf</A>.
+            </LI>
+
+            <LI>
+                Ralf Küsters and Tomasz Truderung. Reducing Protocol Analysis with XOR
+                to the XOR-free case in the Horn Theory Based Approach. In Proceedings
+                of the 15th ACM Conference on Computer and Communications Security
+                (CCS'08), pages 129-138, October 2008. Available at <A HREF="https://sec.uni-stuttgart.de/_media/publications/KuestersTruderung-CCS-2008.pdf">https://sec.uni-stuttgart.de/_media/publications/KuestersTruderung-CCS-2008.pdf</A>.
+	    </LI>
+
+            <LI>
+                Michael Backes, Matteo Maffei, and Dominique Unruh. Zero-Knowledge
+                in the Applied Pi-calculus and Automated Verification of the Direct Anonymous
+                Attestation Protocol. In Proceedings of 29th IEEE Symposium on Security and Privacy, May 2008. Technical report available at
+                <A HREF="http://eprint.iacr.org/2007/289">http://eprint.iacr.org/2007/289</A>.
+            </LI>
+
+            <LI>
+                Karthikeyan Bhargavan, Cédric Fournet, Andrew Gordon, and Nikhil Swamy.
+                Verified implementations of the Information Card Federated Identity-Management
+                Protocol. In ACM Symposium on Information, Computer and Communications Security
+                (ASIACCS'08), pages 123-135, Tokyo, Japan, March 2008. Available at
+                <A HREF="https://bhargavan.info/pubs/verified-implementations-of-cardspace-asiaccs08.pdf">https://bhargavan.info/pubs/verified-implementations-of-cardspace-asiaccs08.pdf</A>.
+            </LI>
+
+            <LI>
+                Michael Backes, Catalin Hritcu, and Matteo Maffei.
+                Automated Verification of Remote Electronic Voting Protocols in the Applied Pi-calculus.
+                In Proceedings of 21st IEEE Computer Security Foundations Symposium (CSF), June 2008. Available at <A HREF="https://ieeexplore.ieee.org/document/4556687">https://ieeexplore.ieee.org/document/4556687</A>
+            </LI>
+
+
+        </OL>
+
+	<LI>Others
+	  <OL>
+            <LI VALUE=19>
+                Karthikeyan Bhargavan, Cédric Fournet, Andrew Gordon, and Stephen Tse.
+                Verified interoperable implementations of security protocols.
+                ACM Transactions on Programming Languages and Systems, 31(1):5, 2008.
+                Available at <A HREF="https://bhargavan.info/pubs/verified-interoperable-implementations-toplas08.pdf">https://bhargavan.info/pubs/verified-interoperable-implementations-toplas08.pdf</A>.
+            </LI>
+	  </OL>
+</UL>
+
+	
+        2009
+	<UL>
+	  <LI>Rank A* or A conferences
+	    <OL>
+            <LI VALUE=20>
+                Gilberto Filé and Roberto Vigo.
+                Expressive power of definite clauses for verifying authenticity.
+                In 22nd IEEE Computer Security Foundations Symposium (CSF'09), pages 251-265,
+                Port Jefferson, New-York, USA, July 2009.  IEEE Computer Society.
+                Available at <A HREF="http://doi.ieeecomputersociety.org/10.1109/CSF.2009.12">http://doi.ieeecomputersociety.org/10.1109/CSF.2009.12</A>.
+            </LI>
+
+            <LI>
+                Ralf Küsters and Tomasz Truderung.
+                Using ProVerif to Analyze Protocols with Diffie-Hellman Exponentiation.
+                In 22nd IEEE Computer Security Foundations Symposium (CSF'09), pages 157-171,
+                Port Jefferson, New-York, USA, July 2009.  IEEE Computer Society. Available
+                at <A HREF="https://sec.uni-stuttgart.de/_media/publications/KuestersTruderung-CSF-2009.pdf">https://sec.uni-stuttgart.de/_media/publications/KuestersTruderung-CSF-2009.pdf</A>.
+            </LI>
+	    </OL>
+	  <LI>Others
+            <OL>
+            <LI VALUE=22>
+                Liqun Chen and Mark D. Ryan.  Attack, solution and verification for shared authorisation data in TCG TPM.  In Proceedings of Sixth International Workshop on Formal Aspects in Security and Trust (FAST'09). LNCS, Springer, 2010.
+                Available at <A HREF="https://markryan.eu/research/papers/pdf/09-FAST.pdf">https://markryan.eu/research/papers/pdf/09-FAST.pdf</A>.
+            </LI>
+
+            <LI>
+                Stéphanie Delaune, Steve Kremer, and Mark Ryan.
+                Verifying privacy-type properties of electronic voting protocols.
+                Journal of Computer Security 17(4), pages 435-487, 2009.
+                Available at <A HREF="https://people.irisa.fr/Stephanie.Delaune/PUBLICATIONS-HTML/b2hd-DKR-jcs08.html">https://people.irisa.fr/Stephanie.Delaune/PUBLICATIONS-HTML/b2hd-DKR-jcs08.html</A>.
+            </LI>
+
+            <LI>Peeter Laud and Meelis Roos. Formal Analysis of the Estonian Mobile-ID Protocol. In Nordic Conference on Secure IT Systems (NordSec'09), pages 271-286. Available at <A HREF="https://doi.org/10.1007/978-3-642-04766-4_19">https://doi.org/10.1007/978-3-642-04766-4_19</A>.
+            </LI>
+
+            <LI>
+                Gyesik Lee, Hisashi Oguma, Akira Yoshioka, Rie Shigetomi, Akira Otsuka and Hideki Imai.
+                Formally Verifiable Features in Embedded Vehicular Security Systems.
+                In First IEEE Vehicular Networking Conference, VNC 2009, Tokyo.
+                Available at <A HREF="https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=5416378">https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=5416378</A>.
+            </LI>
+
+            <LI>
+                Frank S. Park, Chinmay Gangakhedkar, and Patrick Traynor.
+                Leveraging Cellular Infrastructure to Improve Fraud Prevention.
+                In 2009 Annual Computer Security Applications Conference (ACSAC-25).
+                Available at <A HREF="https://doi.org/10.1109/ACSAC.2009.40">https://doi.org/10.1109/ACSAC.2009.40</A>
+	    </LI>
+            </OL>
+	</UL>
+        2010
+	<UL>
+	  <LI>Rank A* or A conferences
+	    <OL>
+            <LI VALUE=27>
+                Sebastian Mödersheim. Abstraction by Set-Membership: Verifying Security Protocols and Web Services with Databases, CCS 2010.
+                Available at
+                <A HREF="http://www2.imm.dtu.dk/~samo/setabstraction.pdf">http://www2.imm.dtu.dk/~samo/setabstraction.pdf</A>.
+            </LI>
+
+            <LI>
+                Mayla Brusó, Konstantinos Chatzikokolakis and Jerry den Hartog.
+                Formal verification of privacy for RFID systems.
+                23rd IEEE Computer Security Foundations Symposium, 2010.
+                Available at <A HREF="https://doi.org/10.1109/CSF.2010.13">https://doi.org/10.1109/CSF.2010.13</A>.
+            </LI>
+	    </OL>
+	  <LI>Others
+        <OL>
+            <LI VALUE=29>
+                Riccardo Bresciani and Andrew Butterfield. ProVerif Analysis of the ZRTP Protocol.
+                International Journal for Infonomics (IJI), Volume 3, Issue 3, September 2010.
+                Available at <A HREF="https://www.researchgate.net/profile/Andrew_Butterfield/publication/229051596_ProVerif_Analysis_of_the_ZRTP_Protocol/links/02bfe5130ac0e06d36000000/ProVerif-Analysis-of-the-ZRTP-Protocol.pdf">https://www.researchgate.net/profile/Andrew_Butterfield/publication/229051596_ProVerif_Analysis_of_the_ZRTP_Protocol/links/02bfe5130ac0e06d36000000/ProVerif-Analysis-of-the-ZRTP-Protocol.pdf</A>.
+                <!--http://infonomics-society.org/IJI/ProVerif%20Analysis%20of%20the%20ZRTP%20Protocol.pdf-->
+            </LI>
+
+            <LI>
+                Stéphanie Delaune, Steve Kremer, Mark Ryan, and Graham Steel.
+                A Formal Analysis of Authentication in the TPM.  In Revised Selected Papers of the 7th International Workshop on Formal Aspects in Security and Trust (FAST'10), Pisa, Italy, September 2010, LNCS 6561, pages 111-125. Springer.
+                Available at <A HREF="https://people.irisa.fr/Stephanie.Delaune/PUBLICATIONS-HTML/b2hd-DKRS-fast10.html">https://people.irisa.fr/Stephanie.Delaune/PUBLICATIONS-HTML/b2hd-DKRS-fast10.html</A>.
+            </LI>
+
+            <LI>
+                Naipeng Dong, Hugo Jonker, and Jun Pang.
+                Analysis of a receipt-free auction protocol in the applied pi calculus.
+                In Proc. 7th Workshop on Formal Aspects in Security and Trust - FAST'10, Lecture
+                Notes in Computer Science 6561, pp. 223-238. Springer-Verlag, 2011.
+                Available at <A HREF="http://satoss.uni.lu/members/jun/papers/FAST10.pdf">http://satoss.uni.lu/members/jun/papers/FAST10.pdf</A>.
+            </LI>
+
+            <LI>
+                Bo Meng. Automatic Verification of Security Properties of Remote Internet Voting Protocol in Symbolic Model.
+                In Information Technology Journal 9(8):1521-1556, 2010.
+                Available at <A HREF="http://docsdrive.com/pdfs/ansinet/itj/2010/1521-1556.pdf">http://docsdrive.com/pdfs/ansinet/itj/2010/1521-1556.pdf</A>.
+            </LI>
+
+            <LI>
+              Ben Smyth, Mark D. Ryan, Steve Kremer, and Mounira Kourjieh. Towards automatic analysis of election verifiability properties. In Proceedings of the Joint Workshop on Automated Reasoning for Security Protocol Analysis and Issues in the Theory of Security (ARSPA-WITS'10), pp. 146-163, Lecture Notes in Computer Science 6186, Springer, Paphos, Cyprus, October 2010. Available at <A HREF="http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/SRKK-arspawits10.pdf">http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/SRKK-arspawits10.pdf</A>.
+	    </LI>
+        </OL>
+	</UL>
+        2011
+	<UL>
+	  <LI>Rank A* or A conferences
+	    <OL>
+            <LI VALUE=34>
+                Mihhail Aizatulin, Andrew Gordon, and Jan Jürjens.
+                Extracting and Verifying Cryptographic Models from C Protocol Code by Symbolic Execution. In CCS 2011. Available at
+                <A HREF="https://doi.org/10.1145/2046707.2046745">https://doi.org/10.1145/2046707.2046745</A>.
+            </LI>
+
+            <LI>
+                Myrto Arapinis, Eike Ritter, and Mark D. Ryan. StatVerif: Verification of
+                stateful processes. In 24th Computer Security Foundations Symposium (CSF'11), Cernay-la-Ville, France, June 2011.
+                Available at <A HREF="https://markryan.eu/research/papers/pdf/11-state-appi.pdf">https://markryan.eu/research/papers/pdf/11-state-appi.pdf</A>.
+            </LI>
+
+            <LI>
+                Stéphanie Delaune, Steve Kremer, Mark Ryan, and Graham Steel.
+                Formal analysis of protocols based on TPM state registers.
+                In 24th Computer Security Foundations Symposium (CSF'11), Cernay-la-Ville, France, June 2011.
+                Available at <A HREF="http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/DKRS-csf11.pdf">http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/DKRS-csf11.pdf</A>.
+            </LI>
+	    </OL>
+	  <LI>Others
+            <OL>
+            <LI VALUE=37>
+                Wei Huang and Bo Meng. Automated Proof of Resistance of Denial of Service Attacks in Remote Internet Voting Protocol with Extended Applied Pi Calculus. In  Information Technology Journal, 10(8):1468-1483, 2011.
+                Available at <A HREF="http://www.scialert.net/abstract/index.php?doi=itj.2011.1468.1483">http://www.scialert.net/abstract/index.php?doi=itj.2011.1468.1483</A>.
+            </LI>
+
+            <LI>
+                Bo Meng. Refinement of Mechanized Proof of Security Properties of Remote Internet Voting Protocol in Applied Pi Calculus with Proverif. In Information Technology Journal 10(2):293-334, 2011.
+                Available at <A HREF="http://docsdrive.com/pdfs/ansinet/itj/2011/293-334.pdf">http://docsdrive.com/pdfs/ansinet/itj/2011/293-334.pdf</A>.
+            </LI>
+
+            <LI>
+                Gabriel Pedroza, Ludovic Apvrille, and Daniel Knorreck. AVATAR: A SysML Environment for the Formal Verification of Safety and Security Properties, In 11th IEEE Conference on Distributed Systems and New Technologies (NOTERE'2011), Paris, France, May 2011. Available at <A HREF="http://ttool.telecom-paristech.fr/docs/notere11_telecomparistech.pdf">http://ttool.telecom-paristech.fr/docs/notere11_telecomparistech.pdf</A>.
+            </LI>
+
+            <LI>
+                Joeri de Ruiter and Erik Poll. Formal Analysis of the EMV Protocol Suite.
+                In Theory of Security and Applications (TOSCA'11), March-April 2011.
+                Available at <A HREF="http://www.cs.ru.nl/E.Poll/papers/emv.pdf">http://www.cs.ru.nl/E.Poll/papers/emv.pdf</A>.
+            </LI>
+
+            <LI>
+                Ben Smyth, Mark Ryan and Liqun Chen.  Formal analysis of anonymity in ECC-based Direct Anonymous Attestation schemes.  In Proceedings of the Eighth International Workshop on Formal Aspects of Security and Trust (FAST'11). Available at
+                <A HREF="https://markryan.eu/research/papers/pdf/11-ecc-daa.pdf">https://markryan.eu/research/papers/pdf/11-ecc-daa.pdf</A>
+            </LI>
+
+            <LI>
+                Sebastian Mödersheim and Paolo Modesti.
+                Verifying SeVeCom Using Set-based Abstraction.
+                In 7th IEEE International Wireless Communications and Mobile Computing
+                Conference (IWCMC 2011),
+                Vehicular Communications Symposium, Istanbul, Turkey, 2011.
+                Available at <A HREF="http://www2.imm.dtu.dk/~samo/sevecom.pdf">http://www2.imm.dtu.dk/~samo/sevecom.pdf</A>.
+	    </LI>
+            </OL>
+	</UL>
+        2012
+	<UL>
+	  <LI>Rank A* or A conference
+	    <OL>
+            <LI VALUE=43>
+                Myrto Arapinis, Vincent Cheval, and Stéphanie Delaune. Verifying Privacy-Type Properties in a Modular Way, CSF 2012.
+                Available at <A HREF="https://doi.org/10.1109/CSF.2012.16">https://doi.org/10.1109/CSF.2012.16</A>.
+            </LI>
+
+            <LI>
+                Chetan Bansal, Karthikeyan Bhargavan, and Sergio Maffeis. Discovering Concrete Attacks on Website Authorization by Formal Analysis, CSF 2012.
+                Available at <A HREF="https://bhargavan.info/pubs/discovering_concrete_attacks_csf12.pdf">https://bhargavan.info/pubs/discovering_concrete_attacks_csf12.pdf</A>.
+            </LI>
+
+            <LI>
+                Alisa Pankova and Peeter Laud. Symbolic Analysis of Cryptographic Protocols Containing Bilinear Pairings, CSF 2012.
+                Available at <A HREF="http://research.cyber.ee/~peeter/research/csf12.pdf">http://research.cyber.ee/~peeter/research/csf12.pdf</A>.
+	    </LI>
+	    
+            <LI>
+                Naipeng Dong, Hugo Jonker, and Jun Pang.
+                Formal analysis of privacy in an eHealth protocol.
+                In Proc. 17th European Symposium on Research in Computer Security - ESORICS'12,
+                Lecture Notes in Computer Science 7459, pp. 325-342. Springer-Verlag, 2012.
+                Available at <A HREF="http://satoss.uni.lu/members/jun/papers/ESORICS12.pdf">http://satoss.uni.lu/members/jun/papers/ESORICS12.pdf</A>.
+            </LI>
+	    </OL>
+	  <LI>Others
+	    <OL>
+            <LI VALUE=47>
+                Myrto Arapinis, Sergiu Bursuc and Mark Ryan. Privacy supporting cloud computing: ConfiChair, a case study. In Principles of Security and Trust (POST'12), LNCS 7215, Springer, 2012.
+                Available at <A HREF="https://markryan.eu/research/papers/pdf/12-confichair.pdf">https://markryan.eu/research/papers/pdf/12-confichair.pdf</A>
+            </LI>
+
+            <LI>
+                Myrto Arapinis, Sergiu Bursuc and Mark Ryan. Reduction of equational theories for verification of trace equivalence: re-encryption, associativity and commutativity. In Principles of Security and Trust (POST'12), LNCS 7215, Springer, 2012.
+                Available at <A HREF="https://markryan.eu/research/papers/pdf/12-renc.pdf">https://markryan.eu/research/papers/pdf/12-renc.pdf</A>
+            </LI>
+
+            <LI>
+                Sepideh Asadi and Hadi Shahriar Shahhoseini. Formal Security Analysis of Authentication in
+                SNMPv3 Protocol by An Automated Tool. In Sixth International Symposium on Telecommunications (IST), pages 1060-1064, 2012. Available at <A HREF="http://ieeexplore.ieee.org/xpls/abs_all.jsp?arnumber=6483143">http://ieeexplore.ieee.org/xpls/abs_all.jsp?arnumber=6483143</A>.
+            </LI>
+
+            <LI>
+                Michael Backes, Alex Busenius, Catalin Hritcu. On the Development and
+                Formalization of an Extensible Code Generator for Real Life Security
+                Protocols. 4th NASA Formal Methods Symposium (NFM 2012), pages
+                371-387, April 2012. Available at <A HREF="https://catalin-hritcu.github.io/publications/expi2java-nfm2012.pdf">https://catalin-hritcu.github.io/publications/expi2java-nfm2012.pdf</A>.
+            </LI>
+
+            <LI>
+                Xihui Chen, Gabriele Lenzini, Sjouke Mauw and Jun Pang.
+                A group signature based electronic toll pricing system.
+                In Proc. 7th Conference on Availability, Reliability and Security - ARES'12,
+                IEEE Computer Society, 2012.
+                Available at <A HREF="http://satoss.uni.lu/members/jun/papers/ARES12.pdf">http://satoss.uni.lu/members/jun/papers/ARES12.pdf</A>.
+            </LI>
+
+            <LI>
+                Maria Christofi and Aline Goujet. Formal Verification of the mERA-Based eServices with Trusted Third Party Protocol. In
+                Information Security and Privacy Research,
+                IFIP Advances in Information and Communication Technology, volume 376, 2012, pp 299-314. Available at <A HREF="http://link.springer.com/chapter/10.1007%2F978-3-642-30436-1_25">http://link.springer.com/chapter/10.1007%2F978-3-642-30436-1_25</A>.
+            </LI>
+
+            <LI>
+                Véronique Cortier, Jan Degrieck, and Stéphanie Delaune. Analysing Routing Protocols: Four Nodes Topologies Are Sufficient. In Principles of Security and Trust (POST'12), LNCS 7215, Springer, 2012.
+                Available at <A HREF="https://members.loria.fr/VCortier/files/Publications/b2hd-post12-routing.html">https://members.loria.fr/VCortier/files/Publications/b2hd-post12-routing.html</A>.
+            </LI>
+
+            <LI>
+                Véronique Cortier and Cyrille Wiedling. A formal analysis of the Norwegian e-voting protocol. In Principles of Security and Trust (POST'12), LNCS 7215, Springer 2012.
+                Available at <A HREF="https://members.loria.fr/VCortier/files/Publications/b2hd-post12-vote.html">https://members.loria.fr/VCortier/files/Publications/b2hd-post12-vote.html</A>.
+            </LI>
+
+            <LI>
+                H. M. N. Al Hamadi, C. Y. Yeun, M. J. Zemerly, M. A. Al-Qutayri, A. Gawanme.
+                Verifying Mutual Authentication for the DLK Protocol using ProVerif tool.
+                In International Journal for Information Security Research (IJISR), Volume 2, Issues 1/2, March/June 2012.
+                Available at <A HREF="http://infonomics-society.org/wp-content/uploads/ijisr/volume-3-2013/Verifying-Mutual-Authentication-for-the-DLK-Protocol-using-ProVerif-tool.pdf">http://infonomics-society.org/wp-content/uploads/ijisr/volume-3-2013/Verifying-Mutual-Authentication-for-the-DLK-Protocol-using-ProVerif-tool.pdf</A>.
+            </LI>
+
+            </OL>
+	</UL>
+        2013
+	<UL>
+	  <LI>Rank A* or A conferences
+            <OL>
+            <LI VALUE=56>
+                Guangdong Bai, Guozhu Meng, Jike Lei, Sai Sathyanarayan Venkatraman, Prateek Saxena, Jun Sun, Yang Liu and Jinsong Dong. AuthScan: Automatic Extraction of Web Authentication Protocols From Implementations. In 20th Annual Network & Distributed System Security Symposium (NDSS'13). Available at <A HREF="https://impillar.github.io/files/ndss2013authscan.pdf">https://impillar.github.io/files/ndss2013authscan.pdf</A>.
+            </LI>
+
+            <LI>
+                Florian B&ouml;hl and Dominique Unruh. Symbolic Universal Composability. In 26th Computer Security Foundations Symposium (CSF'13), pages 257-271, June 2013. Available at <A HREF="http://kodu.ut.ee/~unruh/publications/symbolic-uc.html">http://kodu.ut.ee/~unruh/publications/symbolic-uc.html</A>.
+            </LI>
+
+	    </OL>
+	  <LI>Others
+	    <OL>
+            <LI>
+                Myrto Arapinis, Véronique Cortier, Steve Kremer, and Mark D. Ryan. Practical Everlasting Privacy. In Proceedings of the 2nd Conferences on Principles of Security and Trust (POST'13), pp. 21-40, Lecture Notes in Computer Science 7796, Springer, Rome, Italy, March 2013. Available at <A HREF="https://members.loria.fr/SKremer/files/Publications/b2hd-ACKR-post13.html">https://members.loria.fr/SKremer/files/Publications/b2hd-ACKR-post13.html</A>.
+            </LI>
+
+            <LI>Chetan Bansal, Karthikeyan Bhargavan, Antoine Delignat-Lavaud, Sergio Maffeis.
+                Keys to the Cloud: Formal Analysis and Concrete Attacks on Encrypted Web Storage. In 2nd Conference on Principles of Security and Trust (POST 2013) (David Basin, John Mitchell, eds.), Springer Verlag, 2013.
+                Available at <A HREF="https://bhargavan.info/pubs/keys-to-the-cloud-post13.pdf">https://bhargavan.info/pubs/keys-to-the-cloud-post13.pdf</A>.
+            </LI>
+
+            <LI>
+                Jannik Dreier, Pascal Lafourcade, Yassine Lakhnech. Formal Verification of e-Auction Protocols.
+                In Proceedings of the 2nd Conferences on Principles of Security and Trust (POST'13), pp. 247-266, Lecture Notes in Computer Science 7796, Springer, Rome, Italy, March 2013.
+                Available at <A HREF="http://www-verimag.imag.fr/~lakhnech/papers/post2013.pdf">http://www-verimag.imag.fr/~lakhnech/papers/post2013.pdf</A>.
+            </LI>
+
+            <LI>
+                Morten Dahl and Ivan Damg&aring;rd. Universally Composable Symbolic Analysis for Two-Party Protocols based on Homomorphic Encryption. Cryptology ePrint Archive: Report 2013/296. Available at <A HREF="http://eprint.iacr.org/2013/296">http://eprint.iacr.org/2013/296</A>.
+            </LI>
+
+            <LI>
+                Aybek Mukhamedov, Andrew D. Gordon, Mark Ryan. Towards a Verified Reference Implementation of a Trusted Platform Module. In Security Protocols XVII, Lecture Notes in Computer Science, volume 7028, pp 69-81, 2013. Available at <A HREF="http://link.springer.com/chapter/10.1007/978-3-642-36213-2_11">http://link.springer.com/chapter/10.1007/978-3-642-36213-2_11</A>.
+            </LI>
+
+            <LI>
+                Hongyuan Wang, Liehuang Zhu, Zhenghe Yang, and Lejian Liao. A new hierarchical and scalable group key exchange protocol with XOR operation. In: International Journal of Wireless and Mobile Computing, volume 6, number 4, pp. 355-361, 2013. Available at <A HREF="http://dx.doi.org/10.1504/IJWMC.2013.056550">http://dx.doi.org/10.1504/IJWMC.2013.056550</A>.
+            </LI>
+
+            <LI>Pierre Kleberger and Guilhem Moulin. Short Paper: Formal Verification of an Authorization
+                Protocol for Remote Vehicle Diagnostics. In 2013 IEEE Vehicular Networking Conference, pp. 202-205, 2013. Available at <A HREF="https://doi.org/10.1109/VNC.2013.6737613">https://doi.org/10.1109/VNC.2013.6737613</A>.
+            </LI>
+
+            <LI>Kavitha Ammayappan. Seamless interoperation of LTE-UMTS-GSM requires flawless UMTS and GSM. In 2013 Second International Conference on Advanced Computing, Networking and Security, pp. 169-174, 2013. Available at <A HREF="http://ieeexplore.ieee.org/xpls/abs_all.jsp?arnumber=6714158">http://ieeexplore.ieee.org/xpls/abs_all.jsp?arnumber=6714158</A>.
+            </LI>
+
+            <LI>Donglai Fu, Xinguang Peng, and Yuli Yang. Authentication of the Command TPM_CertifyKey in the
+                Trusted Platform Module. In Telkomnika, Vol. 11, No. 2, February 2013, pp. 855~863. Available at <A HREF="https://www.researchgate.net/publication/275414959_Authentication_of_the_Command_TPM_CertifyKey_in_the_Trusted_Platform_Module">https://www.researchgate.net/publication/275414959_Authentication_of_the_Command_TPM_CertifyKey_in_the_Trusted_Platform_Module</A>.
+                <!--http://www.iaesjournal.com/online/index.php/TELKOMNIKA/article/view/2034-->
+            </LI>
+
+            <LI>Khaoula Marzouki, Amira Radhouani, and Narjes Ben Rajeb. Formal Verification of Secrecy, Coercion Resistance and Verifiability Properties for a Remote Electronic Voting Protocol. In International Journal of Information Security and Privacy, 7(2):57-85, 2013. Available at <A HREF="http://www.igi-global.com/article/formal-verification-of-secrecy-coercion-resistance-and-verifiability-properties-for-a-remote-electronic-voting-protocol/87425">http://www.igi-global.com/article/formal-verification-of-secrecy-coercion-resistance-and-verifiability-properties-for-a-remote-electronic-voting-protocol/87425</A>.
+            </LI>
+
+            <LI> 	Christoph Busold, Ahmed Taha, Christian Wachsmann, Alexandra Dmitrienko, Hervé Seudié, Majid Sobhani, and Ahmad-Reza Sadeghi. Smart keys for cyber-cars: secure smartphone-based NFC-enabled car immobilizer. In CODASPY '13 Proceedings of the third ACM conference on Data and application security and privacy, pages 233-242. Available at <A HREF="https://doi.org/10.1145/2435349.2435382">https://doi.org/10.1145/2435349.2435382</A>.
+	    </LI>
+            </OL>
+	</UL>
+        2014
+	<UL>
+	  <LI>Others
+        <OL>
+            <LI VALUE=69>
+                Michael Backes, Esfandiar Mohammadi and Tim Ruffing. Computational Soundness Results for ProVerif: Bridging the Gap from Trace Properties to Uniformity. In Principles of Security and Trust (POST'14), Lecture Notes in Computer Science, volume 8414, pp. 42-62, 2014. Available at <A HREF="https://doi.org/10.1007/978-3-642-54792-8_3">https://doi.org/10.1007/978-3-642-54792-8_3</A>.
+            </LI>
+
+            <LI>Piergiuseppe Bettassa Copet and Riccardo Sisto. Automated Formal Verification of Application-specific Security Properties. In Engineering Secure Software and Systems (ESSoS), Lecture Notes in Computer Science, volume 8364, pp 45-59, 2014. Available at <A HREF="http://link.springer.com/chapter/10.1007/978-3-319-04897-0_4">http://link.springer.com/chapter/10.1007/978-3-319-04897-0_4</A>.
+            </LI>
+
+            <LI> Qi Xie, Bin Hu, Xiao Tan, Mengjie Bao, and Xiuyuan Yu. Robust Anonymous Two-Factor Authentication Scheme for Roaming Service in Global Mobility Network. In Wireless Personal Communications, January 2014, Volume 74, Issue 2, pp 601-614. Available at <A HREF="http://link.springer.com/article/10.1007/s11277-013-1309-3">http://link.springer.com/article/10.1007/s11277-013-1309-3</A>.
+            </LI>
+
+            <LI> Jesus Diaz, David Arroyo, and Francisco B. Rodriguez. A formal methodology for integral security design and verification of network protocols. In Journal of Systems and Software, volume 89, March 2014, Pages 87-98. Available at <A HREF="http://www.sciencedirect.com/science/article/pii/S0164121213002355">http://www.sciencedirect.com/science/article/pii/S0164121213002355</A>.
+            </LI>
+
+            <LI>Jesus Diaz, David Arroyo, and Francisco B. Rodriguez. On securing online registration protocols: Formal verification of a new proposal. In Knowledge-Based Systems, volume 59, March 2014, Pages 149-158. Available at <A HREF="http://www.sciencedirect.com/science/article/pii/S0950705114000227">http://www.sciencedirect.com/science/article/pii/S0950705114000227</A>.
+            </LI>
+
+            <LI>S. W. Xu, H. G. Zhang, Z. Dai, X. F. Dai, J. D. Chen, "Modeling and Reasoning about States in Late Launch Based on Horn Clauses", Advanced Materials Research, Vols 915-916, pp. 1350-1356, Apr. 2014. <A HREF="http://www.scientific.net/AMR.915-916.1350">http://www.scientific.net/AMR.915-916.1350</A>.
+            </LI>
+
+            <LI>Li Li, Jun Pang, Yang Liu, Jun Sun, Jin Song Dong. Symbolic Analysis of an Electric Vehicle Charging Protocol. In Engineering of Complex Computer Systems (ICECCS), 2014 19th International Conference on, Aug. 2014. Available at <A HREF="http://dx.doi.org/10.1109/ICECCS.2014.11">http://dx.doi.org/10.1109/ICECCS.2014.11</A>.
+            </LI>
+
+            <LI>Gang Shen, Xiaohong Li, Ruitao Feng, Guangquan Xu, Jing Hu, Zhiyong Feng. An Extended UML Method for the Verification of Security Protocols. In Engineering of Complex Computer Systems (ICECCS), 2014 19th International Conference on, Aug. 2014. Available at <A HREF="http://dx.doi.org/10.1109/ICECCS.2014.12">http://dx.doi.org/10.1109/ICECCS.2014.12</A>.
+            </LI>
+
+            <LI>Adarsh Kumar, Krishna Gopal, Alok Aggarwal. Design and Analysis of Lightweight Trust Mechanism for Accessing Data in MANETs. In KSII Transactions on Internet and Information Systems (TIIS) Vol.8 No.3, 2014.3, 1119-1143 (25 pages). Available at <A HREF="https://doi.org/10.3837/tiis.2014.03.024">https://doi.org/10.3837/tiis.2014.03.024</A>.
+            </LI>
+
+            <LI>Qi Xie, Bin Hu, Na Dong, Duncan S. Wong. Anonymous Three-Party Password-Authenticated Key Exchange Scheme for Telecare Medical Information Systems. In PLOS one. Available at <A HREF="http://dx.doi.org/10.1371/journal.pone.0102747">http://dx.doi.org/10.1371/journal.pone.0102747</A>.
+            </LI>
+
+            <LI>Qi Xie, Na Dong, Duncan S. Wong, and Bin Hu. Cryptanalysis and security enhancement of a robust two-factor authentication and key agreement protocol. In International Journal of Communication Systems, Oct. 2014. Available at <A HREF="http://dx.doi.org/10.1002/dac.2858">http://dx.doi.org/10.1002/dac.2858</A>.
+            </LI>
+
+            <LI> Li Xi, Dengguo Feng. Formal Analysis of DAA-Related APIs in TPM 2.0. In
+                Network and System Security,
+                Lecture Notes in Computer Science Volume 8792, 2014, pp 421-434.
+                Available at <A HREF="http://link.springer.com/chapter/10.1007/978-3-319-11698-3_32">http://link.springer.com/chapter/10.1007/978-3-319-11698-3_32</A>.
+            </LI>
+
+            <LI> Changhee Hahn, Hyunsoo Kwon, Daeyoung Kim, Kyungtae Kang, Junbeom Hur.
+                A Privacy Threat in 4th Generation Mobile Telephony and Its Countermeasure.
+                In  Wireless Algorithms, Systems, and Applications
+                Lecture Notes in Computer Science Volume 8491, 2014, pp 624-635.
+                Available at <A HREF="http://link.springer.com/chapter/10.1007/978-3-319-07782-6_56">http://link.springer.com/chapter/10.1007/978-3-319-07782-6_56</A>.
+            </LI>
+
+            <LI>Qi Xie, Wen-hao Liu, Sheng-bao Wang, Bin Hu, Na Dong, and Xiu-yuan Yu. Robust password and smart card based authentication scheme with smart card revocation. In
+                Journal of Shanghai Jiaotong University (Science),
+                August 2014, Volume 19, Issue 4, pp 418-424. Available at <A HREF="http://link.springer.com/article/10.1007/s12204-014-1518-2">http://link.springer.com/article/10.1007/s12204-014-1518-2</A>.
+            </LI>
+
+            <LI> Noomene Ben Henda, Karl Norrman. Formal Analysis of Security Procedures in LTE - A Feasibility Study. In
+                Research in Attacks, Intrusions and Defenses,
+                Lecture Notes in Computer Science Volume 8688, 2014, pp 341-361. Available at <A HREF="http://link.springer.com/chapter/10.1007/978-3-319-11379-1_17">http://link.springer.com/chapter/10.1007/978-3-319-11379-1_17</A>.
+            </LI>
+
+            <LI>  Jannik Dreier, Hugo Jonker, Pascal Lafourcade. Secure Auctions without Cryptography. In
+                Fun with Algorithms,
+                Lecture Notes in Computer Science Volume 8496, 2014, pp 158-170. Available at <A HREF="http://link.springer.com/chapter/10.1007/978-3-319-07890-8_14">http://link.springer.com/chapter/10.1007/978-3-319-07890-8_14</A>.
+            </LI>
+
+            <LI>Ali Kassem, Pascal Lafourcade, and Yassine Lakhnech. Formal verification of e-reputation protocols. In Foundations and Practice of Security - 7th International Symposium, FPS 2014, Montréal, Canada, Lecture Notes in Computer Science. Springer, 2014. Available at <A HREF="https://sancy.iut.uca.fr/~lafourcade/PAPERS/PDF/reputation_main.pdf">https://sancy.iut.uca.fr/~lafourcade/PAPERS/PDF/reputation_main.pdf</A>.
+            </LI>
+
+            <LI> Alessandro Bruni, Michal Sojka, Flemming Nielson, Hanne Riis Nielson. Formal Security Analysis of the MaCAN Protocol. In Integrated Formal Methods,
+                Lecture Notes in Computer Science Volume 8739, 2014, pp 241-255. Available at <A HREF="http://link.springer.com/chapter/10.1007/978-3-319-10181-1_15">http://link.springer.com/chapter/10.1007/978-3-319-10181-1_15</A>.
+            </LI>
+
+            <LI>Chetan Bansal, Karthikeyan Bhargavan, Antoine Delignat-Lavaud, and Sergio Maffeis. Discovering concrete attacks on website authorization by formal analysis. Journal of Computer Security, 22(4):601-657, April 2014. Available at <A HREF="https://inria.hal.science/hal-01102202/">https://inria.hal.science/hal-01102202/</A>.
+	    </LI>
+        </OL>
+	</UL>
+        2015
+	<UL>
+	  <LI>Rank A* or A conferences
+	    <OL>
+	      <LI VALUE=88>Alessandro Bruni, Sebastian Mödersheim, Flemming Nielson, Hanne Riis Nielson.
+                Set-Pi: Set Membership Pi-Calculus. In Computer Security Foundations Symposium (CSF'15), pages 185-198. Available at <A HREF="https://doi.org/10.1109/CSF.2015.20">https://doi.org/10.1109/CSF.2015.20</A>.
+            </LI>
+
+            <LI>Michael Backes, Fabian Bendun, Matteo Maffei, Esfandiar Mohammadi, Kim Pecina. Symbolic Malleable Zero-Knowledge Proofs. In Computer Security Foundations Symposium (CSF'15), pages 412-480.
+                Available at <A HREF="https://doi.org/10.1109/CSF.2015.35">https://doi.org/10.1109/CSF.2015.35</A>.
+            </LI>
+	    </OL>
+	  <LI>Others
+
+        <OL>
+            <LI VALUE=90>Myrto Arapinis, Vincent Cheval and Stephanie Delaune. Composing security protocols: from confidentiality to privacy. 4th International Conference on Principles of Security and Trust (POST 2015), April 2015. Available at <A HREF="http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/ACD-post15.pdf">http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/ACD-post15.pdf</A>.
+            </LI>
+
+            <LI>Tom Chothia, Ben Smyth and Christopher Staite. Automatically checking commitment protocols in ProVerif without false attacks. 4th International Conference on Principles of Security and Trust (POST 2015), April 2015. Available at <A HREF="http://bensmyth.com/publications/2015-automated-verification-of-secrecy-using-phases/">http://bensmyth.com/publications/2015-automated-verification-of-secrecy-using-phases/</A>.
+            </LI>
+
+            <LI> Jannik Dreier, Rosario Giustolisi, Ali Kassem, Pascal Lafourcade,
+                Gabriele Lenzini. A Framework for Analyzing Verifiability in Traditional and Electronic Exams. In
+                Information Security Practice and Experience,
+                Lecture Notes in Computer Science Volume 9065, 2015, pp 514-529.
+                Available at <A HREF="http://link.springer.com/chapter/10.1007/978-3-319-17533-1_35">http://link.springer.com/chapter/10.1007/978-3-319-17533-1_35</A>.
+            </LI>
+
+            <LI>Giampaolo Bella, Rosario Giustolisi, Gabriele Lenzini, and Peter Y. A. Ryan. A Secure Exam Protocol Without Trusted Parties. In:  IFIP International Information Security and Privacy Conference (SEC 2015),  IFIP Advances in Information and Communication Technology book series (IFIPAICT), volume 455, pp. 495-509. Available at <A HREF="https://link.springer.com/chapter/10.1007/978-3-319-18467-8_33">https://link.springer.com/chapter/10.1007/978-3-319-18467-8_33</A>.
+            </LI>
+
+            <LI>  Marouane Fazouane, Henning Kopp, Rens W. van der Heijden, Daniel Le Métayer, Frank Kargl. Formal Verification of Privacy Properties in Electric Vehicle Charging. In
+                Engineering Secure Software and Systems
+                Lecture Notes in Computer Science Volume 8978, 2015, pp 17-33. Available at <A HREF="http://link.springer.com/chapter/10.1007/978-3-319-15618-7_2">http://link.springer.com/chapter/10.1007/978-3-319-15618-7_2</A>.
+            </LI>
+
+            <LI>Ben Smyth, Mark D. Ryan & Liqun Chen (2015) Formal analysis of privacy in Direct Anonymous Attestation schemes. Science of Computer Programming, 111(2). Available at <A HREF="http://www.bensmyth.com/publications/2012-Direct-Anonymous-Attestation-privacy-definition/">http://www.bensmyth.com/publications/2012-Direct-Anonymous-Attestation-privacy-definition/</A>.
+	    </LI>
+        </OL>
+	</UL>
+        2016
+	<UL>
+	  <LI>Rank A* or A conferences
+	    <OL>
+            <LI VALUE=96>Lucca Hirschi, David Baelde, and Stéphanie Delaune. A Method for Verifying Privacy-Type Properties: The Unbounded Case. In IEEE Symposium on Security and Privacy. Available at <A HREF="https://people.irisa.fr/Stephanie.Delaune/PUBLICATIONS-HTML/b2hd-HBD-sp16.html">https://people.irisa.fr/Stephanie.Delaune/PUBLICATIONS-HTML/b2hd-HBD-sp16.html</A>.
+            </LI>
+
+            <LI>Kim Thuat Nguyen, Nouha Oualha, and Maryline Laurent. Authenticated Key Agreement Mediated by a Proxy Re-encryptor for the Internet of Things. In ESORICS'16. Available at <A HREF="http://link.springer.com/chapter/10.1007/978-3-319-45741-3_18">http://link.springer.com/chapter/10.1007/978-3-319-45741-3_18</A>.
+            </LI>
+	    </OL>
+	  <LI>Others
+            <OL>
+            <LI VALUE=98>Paolo Modesti. AnBx: Automatic Generation and Verification of Security Protocols Implementations. In Foundations and Practice of Security, 8th International Symposium, FPS 2015, Clermont-Ferrand, France, October 26-28, 2015, Revised Selected Papers. Volume 9482 of the series Lecture Notes in Computer Science pp 156-173. Available at <A HREF="https://paolo.science/docs/fps2015.pdf">https://paolo.science/docs/fps2015.pdf</A>.
+            </LI>
+
+            <LI>Sergiu Bursuc. Secure Two-Party Computation in Applied Pi-Calculus: Models and Verification.
+                In: Trustworthy Global Computing. LNCS, volume 9533, pp. 1-15. Springer.
+                Available at <A HREF="http://link.springer.com/chapter/10.1007%2F978-3-319-28766-9_1">http://link.springer.com/chapter/10.1007%2F978-3-319-28766-9_1</A>.
+            </LI>
+
+            <LI>Sebastian A. Mödersheim and Alessandro Bruni. AIF-omega: Set-Based Protocol Abstraction with Countable Families. In Principles of Security and Trust (POST'16), LNCS volume 9635, pp 233-253. Available at <A HREF="http://www.imm.dtu.dk/~samo/aif-omega.pdf">http://www.imm.dtu.dk/~samo/aif-omega.pdf</A>.
+            </LI>
+
+            <LI>Michael Denzel, Alessandro Bruni, and Mark D. Ryan. Smart-Guard: Defending User Input from Malware. In: 2016 Intl IEEE Conferences on Ubiquitous Intelligence & Computing, Advanced and Trusted Computing, Scalable Computing and Communications, Cloud and Big Data Computing, Internet of People, and Smart World Congress (UIC/ATC/ScalCom/CBDCom/IoP/SmartWorld). Available at <A HREF="https://doi.org/10.1109/UIC-ATC-ScalCom-CBDCom-IoP-SmartWorld.2016.0089">https://doi.org/10.1109/UIC-ATC-ScalCom-CBDCom-IoP-SmartWorld.2016.0089</A>.
+            </LI>
+
+            <LI>Maxime Puys, Marie-Laure Potet, and Pascal Lafourcade. Formal Analysis of Security Properties on the OPC-UA SCADA Protocol. In: International Conference on Computer Safety, Reliability, and Security (SAFECOMP 2016). LNCS, volume 9922. Springer. Available at <A HREF="https://link.springer.com/chapter/10.1007/978-3-319-45477-1_6">https://link.springer.com/chapter/10.1007/978-3-319-45477-1_6</A>.
+            </LI>
+
+            <LI>Joeri de Ruiter, Richard J. Thomas, and Tom Chothia. A Formal Security Analysis of ERTMS Train to Trackside Protocols. In:  International Conference on Reliability, Safety, and Security of Railway Systems (RSSRail 2016). LNCS, volume 9707, pp. 53-68. Available at <A HREF="https://link.springer.com/chapter/10.1007/978-3-319-33951-1_4">https://link.springer.com/chapter/10.1007/978-3-319-33951-1_4</A>.
+            </LI>
+
+            <LI>Hideki Sakurada, Kazuki Yoneyama, Yoshikazu Hanatani, Maki Yoshida.
+                Analyzing and fixing the QACCE security of QUIC. In: Security Standardisation Research.
+                LNCS, volume 10074, pp. 1--31. Springer.
+                Available at <A HREF="http://link.springer.com/chapter/10.1007%2F978-3-319-49100-4_1">
+                    http://link.springer.com/chapter/10.1007%2F978-3-319-49100-4_1</A>.
+            </LI>
+
+            <LI>Park, S., Won, J.-J., Yoon, J., Hoon Kim, K., Han, T.
+                A tiny hypervisor-based trusted geolocation framework with minimized TPM operations.
+                Journal of Systems and Software, volume 122, dec. 2016, pp. 202-214.
+                Available at <A HREF="http://dx.doi.org/10.1016/j.jss.2016.09.026">http://dx.doi.org/10.1016/j.jss.2016.09.026</A>.
+            </LI>
+
+            <LI>Amol H. Shinde and A. J. Umbarkar. Analysis of Cryptographic Protocols AKI, ARPKI and OPT using ProVerif and AVISPA. In: I. J. Computer Network and Information Security, 2016, 3, 34-40. Published Online March 2016 in MECS (http://www.mecs-press.org/) <A HREF="https://pdfs.semanticscholar.org/d225/b8c53249f2a9dc17b64f3353f77a20d8b9e0.pdf">DOI: 10.5815/ijcnis.2016.03.05</A>.
+            </LI>
+
+            <LI>Jintian Lu, Jinli Zhang, Jing Li, Zhongyu Wan, and Bo Meng. Automatic Verification of Security of OpenID Connect Protocol with ProVerif. In:  International Conference on P2P, Parallel, Grid, Cloud and Internet Computing (3PGCIC 2016).  Lecture Notes on Data Engineering and Communications Technologies (LNDECT), volume 1, pp. 209-220. Available at <A HREF="https://link.springer.com/chapter/10.1007/978-3-319-49109-7_20">https://link.springer.com/chapter/10.1007/978-3-319-49109-7_20</A>.
+            </LI>
+
+            <LI>Caimei Wang, Yan Xiong, Wenchao Huang, Huihua Xia, and Jianmeng Huang. Formal Analysis of Selective Disclosure Attribute-Based Credential System in Applied Pi Calculus. In: 2016 IEEE Trustcom/BigDataSE/ISPA. Available at <A HREF="https://ieeexplore.ieee.org/abstract/document/7846927/">https://ieeexplore.ieee.org/abstract/document/7846927/</A>.
+	    </LI>
+            </OL>
+	</UL>
+        2017
+	<UL>
+	  <LI>Others
+        <OL>
+            <LI VALUE=109>Murat Moran and Dan S. Wallach. Verification of STAR-Vote and Evaluation of FDR and ProVerif. In IFM 2017: Integrated Formal Methods pp 422-436. Available at <A HREF="https://link.springer.com/chapter/10.1007/978-3-319-66845-1_28">https://link.springer.com/chapter/10.1007/978-3-319-66845-1_28</A>.
+            </LI>
+
+            <LI>Thibaud Antignac,	Mukelabai Mukelabai, and Gerardo Schneider. Specification, design, and verification of an accountability-aware surveillance protocol. In: SAC'17, Proceedings of the Symposium on Applied Computing, pages 1372-1378. Available at <A HREF="https://dl.acm.org/citation.cfm?id=3019826">https://dl.acm.org/citation.cfm?id=3019826</A>.
+            </LI>
+
+            <LI> Narjes Ben Rajeb, Mouhebeddine Berrima, Matthieu Giraud, and Pascal Lafourcade. Formal Analyze of a Private Access Control Protocol to a Cloud Storage. In: 14th International Conference on Security and Cryptography SECRYPT 2017. Available at <A HREF="https://hal.archives-ouvertes.fr/hal-01689790/">https://hal.archives-ouvertes.fr/hal-01689790/</A>.
+            </LI>
+
+            <LI>Letitia W. Li, Florian Lugou, and Ludovic Apvrille. "Security-aware Modeling and Analysis for HW/SW Partitioning." MODELSWARD. 2017. Available at <A HREF="https://pdfs.semanticscholar.org/ff99/b12c05da220b898a24d51f2f77db69d81f7a.pdf">https://pdfs.semanticscholar.org/ff99/b12c05da220b898a24d51f2f77db69d81f7a.pdf</A>.
+            </LI>
+
+            <LI>Caimei Wang, Yan Xiong, Wenchao Huang, Huihua Xia, Jianmeng Huang, and
+                Cheng Su. A Verified Secure Protocol Model of OAuth Dynamic Client Registration. In: 3rd International Conference on Big Data Computing and Communications (BIGCOM 2017). Available at <A HREF="https://ieeexplore.ieee.org/abstract/document/8113053/">https://ieeexplore.ieee.org/abstract/document/8113053/</A>.
+            </LI>
+
+            <LI>Jayana C. Kaneriya, Jalpa Khamar, and Avani Dadhania. Verification of Security Protocols Using ProVerif. In: International Journal of Engineering Development and Research, Volume 5, Issue 2. Available at <A HREF="https://rjwave.org/ijedr/viewpaperforall.php?paper=IJEDR1702065">https://rjwave.org/ijedr/viewpaperforall.php?paper=IJEDR1702065</A>.
+            </LI>
+
+            <LI>Abisha D. Perlustration on Authentication Protocols in 4G (LTE/LTE-A) Using ProVerif. In: Journal of Network Security Computer Networks, vol. 3, No 1,2,3 (2017). Available at <A HREF="https://matjournals.in/index.php/JONSCN/article/view/1892">https://matjournals.in/index.php/JONSCN/article/view/1892</A>.
+            </LI>
+
+            <LI>Jintian Lu, Lili Yao, Xudong He, and Bo Meng. Improvement of OpenID Connect protocol and its security analysis. In: Journal of Computer Applications. Available at <A HREF="http://www.joca.cn/EN/10.11772/j.issn.1001-9081.2017.05.1347">http://www.joca.cn/EN/10.11772/j.issn.1001-9081.2017.05.1347</A>.
+            </LI>
+
+            <LI>Weijin Wang, Jingbin Liu, Yu Qin, and Dengguo Feng. Formal Analysis of a TTP-Free Blacklistable Anonymous Credentials System. In: International Conference on Information and Communications Security (ICICS 2017), LNCS, volume 10631, pp. 3-16. Available at <A HREF="https://link.springer.com/chapter/10.1007/978-3-319-89500-0_1">https://link.springer.com/chapter/10.1007/978-3-319-89500-0_1</A>.
+            </LI>
+
+            <LI>Dai Watanabe, Hisao Sakazaki, and Kunihiko Miyazaki. Representative System and Security Message Transmission using Re-encryption Scheme Based on Symmetric-key Cryptography. In: Journal of Information Processing, vol 25, pp. 67-74, Jan. 2017. Available at <A HREF="https://www.jstage.jst.go.jp/article/ipsjjip/25/0/25_67/_article/-char/ja/">https://www.jstage.jst.go.jp/article/ipsjjip/25/0/25_67/_article/-char/ja/</A>.
+            </LI>
+
+            <LI>He X., Tian J. (2017) A Trusted VM Live Migration Protocol in IaaS. In: Xu M., Qin Z., Yan F., Fu S. (eds) Trusted Computing and Information Security. CTCIS 2017. Communications in Computer and Information Science, vol 704. Springer, Singapore. Available at <A HREF="https://doi.org/10.1007/978-981-10-7080-8_4">https://doi.org/10.1007/978-981-10-7080-8_4</A>.
+            </LI>
+
+            <LI>Piergiuseppe Bettassa Copet, Guido Marchetto, Riccardo Sisto, and Luciana Costa.
+                Formal verification of LTE-UMTS and LTE–LTE handover procedures.
+                Computer Standards & Interfaces, Volume 50, February 2017, Pages 92-106.
+                Available at
+                <A
+                        HREF="https://iris.polito.it/retrieve/handle/11583/2659528/150510/paper.pdf">https://iris.polito.it/retrieve/handle/11583/2659528/150510/paper.pdf</A>
+                and
+                <A
+                  HREF="https://www.sciencedirect.com/science/article/abs/pii/S092054891630071X">https://www.sciencedirect.com/science/article/abs/pii/S092054891630071X</A>.
+	    </LI>
+        </OL>
+	</UL>
+        2018
+	<UL>
+	  <LI>Rank A* or A conferences
+            <OL>
+            <LI VALUE=121>V. Cheval, V. Cortier and M. Turuani. A little more conversation, a little less action, a lot more satisfaction: Global states in ProVerif. In Proceedings of the 31th IEEE Computer Security Foundations Symposium (CSF'18). Available at <A HREF="https://chevalvi.gitlabpages.inria.fr/chevalvi/files/CCT-csf18.pdf">https://chevalvi.gitlabpages.inria.fr/chevalvi/files/CCT-csf18.pdf</A>            </LI>
+
+            <LI>Charlie Jacomme and Steve Kremer. An extensive formal analysis of multi-factor authentication protocols. In Proceedings of the 31st IEEE Computer Security Foundations Symposium (CSF'18). See <A HREF="https://members.loria.fr/SKremer/files/Publications/b2hd-JK-csf18.html">https://members.loria.fr/SKremer/files/Publications/b2hd-JK-csf18.html</A>            </LI>
+
+	    </OL>
+	  <LI>Others
+	    <OL>
+            <LI VALUE=123>Cheng Shi and Kazuki Yoneyama. Verification of LINE Encryption Version 1.0 Using ProVerif. In  International Workshop on Security,
+                IWSEC 2018: Advances in Information and Computer Security.
+                LNCS, volume 11049, pp. 158-173, available at <A HREF="https://link.springer.com/chapter/10.1007/978-3-319-97916-8_11">https://link.springer.com/chapter/10.1007/978-3-319-97916-8_11</A>.
+            </LI>
+
+            <LI>Anongporn Salaiwarakul. A Secure Fingerprint Authentication Protocol. In:
+                Journal of Telecommunication, Electronic, and Computer Engineering, Vol 10, No 1-5. Available at <A HREF="https://jtec.utem.edu.my/jtec/article/view/3627">https://jtec.utem.edu.my/jtec/article/view/3627</A>.
+            </LI>
+
+            <LI>Sandipa Roy, Santanub Chatterjee, and Gautamb Mahapatra. An efficient biometric based remote user authentication scheme for secure internet of things environment. In:  Journal of Intelligent & Fuzzy Systems, vol. 34, no. 3, pp. 1403-1410, 2018. Available at <A HREF="https://journals.sagepub.com/doi/10.3233/JIFS-169435">https://journals.sagepub.com/doi/10.3233/JIFS-169435</A>.
+            </LI>
+
+            <LI>Majid R Alshammari and Khaled M Elleithy. Efficient Key Distribution Protocol for Wireless Sensor Networks.  In: Computing and Communication Workshop and Conference (CCWC), 2018 IEEE 8th Annual (pp. 980-985). IEEE. Available at <A HREF="https://www.researchgate.net/profile/Khaled_Elleithy/publication/323563608_Efficient_key_distribution_protocol_for_wireless_sensor_networks/links/5ab2826e458515ecebeebfad/Efficient-key-distribution-protocol-for-wireless-sensor-networks.pdf">https://www.researchgate.net/profile/Khaled_Elleithy/publication/323563608_Efficient_key_distribution_protocol_for_wireless_sensor_networks/links/5ab2826e458515ecebeebfad/Efficient-key-distribution-protocol-for-wireless-sensor-networks.pdf</A>.
+            </LI>
+
+            <LI>Khalid Mahmood, Shehzad Ashraf Chaudhry, Husnain Naqvi, Saru Kumari, Xiong Li, Arun Kumar Sangaiah. An elliptic curve cryptography based lightweight authentication scheme for smart grid communication. In: Future Generation Computer Systems, Volume 81, April 2018, Pages 557-565. Available at <A HREF="https://www.sciencedirect.com/science/article/pii/S0167739X17309263">https://www.sciencedirect.com/science/article/pii/S0167739X17309263</A>.
+            </LI>
+
+            <LI>Olivier Pereira, Florentin Rochet, and Cyrille Wiedling. Formal Analysis of the FIDO 1.x Protocol. In:  International Symposium on Foundations and Practice of Security (FPS 2017), LNCS, volume 10723, pp. 68-82, Feb. 2018. Available at <A HREF="https://link.springer.com/chapter/10.1007/978-3-319-75650-9_5">https://link.springer.com/chapter/10.1007/978-3-319-75650-9_5</A>.
+            </LI>
+
+            <LI>Alessandro Bruni, Thorvald Sahl Jørgensen, Theis Grønbech Petersen and
+                Carsten Schürmann. Formal Verification of Ephemeral Diffie-Hellman Over COSE (EDHOC). In: Security Standardisation Research,
+                4th International Conference, SSR 2018. LNCS, volume 11322, pp. 21-36. Available at <A HREF="https://link.springer.com/chapter/10.1007/978-3-030-04762-7_2">https://link.springer.com/chapter/10.1007/978-3-030-04762-7_2</A>.
+            </LI>
+
+            <LI>Iness Ben Guirat and Harry Halpin. Formal verification of the W3C Web Authentication Protocol. In Proceedings of the 5th Annual Symposium and Bootcamp on Hot Topics in the Science of Security - HoTSoS '18, 2018. Available at <A HREF="https://doi.org/10.1145/3190619.3190640">https://doi.org/10.1145/3190619.3190640</A> and <A HREF="https://inria.hal.science/hal-01966563">https://inria.hal.science/hal-01966563</A>.
+            </LI>
+
+            <LI>Riccardo Sisto, Piergiuseppe Bettassa Copet, Matteo Avalle, and Alfredo Pironti.
+                Formally sound implementations of security protocols with JavaSPI. Formal
+                Aspects of Computing 30, pages 279–317 (2018).
+                Available at
+                <A
+                        HREF="https://iris.polito.it/retrieve/handle/11583/2695975/181376/AuthorsPostPrint.pdf">https://iris.polito.it/retrieve/handle/11583/2695975/181376/AuthorsPostPrint.pdf</A>
+                and
+                <A
+                        HREF="https://link.springer.com/article/10.1007/s00165-017-0449-8">https://link.springer.com/article/10.1007/s00165-017-0449-8</A>.
+            </LI>
+
+            <LI>Hiroyuki Okazaki, Yuichi Futa, and Kenichi Arai. Suitable Symbolic Models for Cryptographic Verification of Secure Protocols in ProVerif. In  2018 International Symposium on Information Theory and Its Applications (ISITA). IEEE. Available at <A HREF="https://doi.org/10.23919/ISITA.2018.8664273">https://doi.org/10.23919/ISITA.2018.8664273</A>.
+            </LI>
+
+            <LI>Ridhwan Dewoprabowo, Muhammad Arzaki, and Yanti Rusmawati. Formal Verification of Divide and Conquer Key Distribution Protocol Using ProVerif and TLA+. In 2018 International Conference on Advanced Computer Science and Information Systems (ICACSIS). Available at <A HREF="https://doi.org/10.1109/ICACSIS.2018.8618173">https://doi.org/10.1109/ICACSIS.2018.8618173</A>.
+            </LI>
+
+            <LI>S. Usha, S. Kuppuswami, and M. Karthik. A New Enhanced Authentication Mechanism Using Session Key Agreement Protocol. In Cybernetics and information technologies, Volume 18, No 4, Bulgarian academy of sciences, Sofia, 2018. Available at <A HREF="https://doi.org/10.2478/cait-2018-0048">https://doi.org/10.2478/cait-2018-0048</A>.
+            </LI>
+
+            <LI>Lili Yao, Jiabing Liu, Dejun Wang, Jing Li, and Bo Meng. Formal Analysis of SDN Authentication Protocol with Mechanized Protocol Verifier in the Symbolic Model. In International Journal of Network Security, Vol.20, No.6, PP.1125-1136, Nov. 2018. Available at <A HREF="https://doi.org/10.6633/IJNS.201811_20(6).13">https://doi.org/10.6633/IJNS.201811_20(6).13</A>.
+            </LI>
+
+            <LI>Marwa Chaieb, Souheib Yousfi, Pascal Lafourcade, and Riadh Robbana. Verify-Your-Vote: A Verifiable Blockchain-Based Online Voting Protocol. In European, Mediterranean, and Middle Eastern Conference on Information Systems (EMCIS 2018), pp. 16--30, Lecture Notes in Business Information Processing,volume 341, Springer. Available at <A HREF="https://doi.org/10.1007/978-3-030-11395-7_2">https://doi.org/10.1007/978-3-030-11395-7_2</A>.
+	    </LI>
+            </OL>
+	</UL>
+        2019
+	<UL>
+	  <LI>Rank A* or A conferences
+            <OL>
+            <LI VALUE=137>Di Long Li and Alwen Tiu. Combining ProVerif and Automated Theorem Provers for Security Protocol Verification. In CADE 2019: Automated Deduction - CADE 27, pp. 354-365. Long version available at <A HREF="https://github.com/darrenldl/ProVerif-ATP/blob/master/paper/CADE-27_paper-42_Di_Long_Li_and_Alwen_Tiu_full.pdf">https://github.com/darrenldl/ProVerif-ATP/blob/master/paper/CADE-27_paper-42_Di_Long_Li_and_Alwen_Tiu_full.pdf</A>.
+            </LI>
+
+            <LI>V. Cortier, A. Filipiak, and J. Lallemand. BeleniosVS: Secrecy and Verifiability Against a Corrupted Voting Device. In 32nd IEEE Computer Security Foundations Symposium (CSF'19). Available at <A HREF="https://members.loria.fr/VCortier/files/Publications/b2hd-beleniosVS-CSF19.html">https://members.loria.fr/VCortier/files/Publications/b2hd-beleniosVS-CSF19.html</A>            </LI>
+
+            <LI>Nadim Kobeissi, Georgio Nicolas, and Karthikeyan Bhargavan. Noise Explorer: Fully Automated Modeling and Verification for Arbitrary Noise Protocols. In 4th IEEE European Symposium on Security and Privacy (EuroS&amp;P'19). Available at <A HREF="https://eprint.iacr.org/2018/766">https://eprint.iacr.org/2018/766</A>.
+            </LI>
+
+            <LI>Lucca Hirschi and Cas Cremers. Improving Automated Symbolic Analysis of Ballot Secrecy for E-voting Protocols: A Method Based on Sufficient Conditions. In 4th IEEE European Symposium on Security and Privacy (EuroS&amp;P'19). Available at <A HREF="https://members.loria.fr/LHirschi/pdfs/EuroSP19_evoting.pdf">https://members.loria.fr/LHirschi/pdfs/EuroSP19_evoting.pdf</A>            </LI>
+	    </OL>
+	  <LI>Others
+	    <OL>
+            <LI VALUE=141>Pietro Tedeschi, Savio Sciancalepore, Areej Eliyan, and Roberto Di Pietro. "LiKe: Lightweight Certificateless Key Agreement for Secure IoT Communications." IEEE Internet of Things Journal 7, no. 1 (2019): 621-638. Available at <A HREF="https://www.researchgate.net/profile/Pietro_Tedeschi/publication/337274918_LiKe_Lightweight_Certificateless_Key_Agreement_for_Secure_IoT_Communications/links/5dce4c55a6fdcc7e1381be16/LiKe-Lightweight-Certificateless-Key-Agreement-for-Secure-IoT-Communications.pdf">https://www.researchgate.net/profile/Pietro_Tedeschi/publication/337274918_LiKe_Lightweight_Certificateless_Key_Agreement_for_Secure_IoT_Communications/links/5dce4c55a6fdcc7e1381be16/LiKe-Lightweight-Certificateless-Key-Agreement-for-Secure-IoT-Communications.pdf</A>            </LI>
+
+            <LI>Togo Yoshimura, Kenichi Arai, Hiroyuki Okazaki, and Yuichi Futa. Formalization of Security Requirements and Attack Models for Cryptographic Hash Functions in ProVerif. In Proceedings of the International Conference on Security and Management (SAM). Available at <A HREF="https://www.proquest.com/openview/f129bf4648500186ead69b86438290e4/1?cbl=1976342">https://www.proquest.com/openview/f129bf4648500186ead69b86438290e4/1?cbl=1976342</A>.
+            </LI>
+
+            <LI>Kaouthar Chetioui, Ghizlane Orhanou, Hicham Bensaid, Ilias Cherkaoui, and Youness Chibi. Formal Verification of Confidentiality in DNSSEC and E-DNSSEC Protocols using pi-calculus and ProVerif. In Procedia Computer Science, Volume 160, 2019, Pages 752-757. Special issue The 10th International Conference on Emerging Ubiquitous Systems and Pervasive Networks (EUSPN-2019) / The 9th International Conference on Current and Future Trends of Information and Communication Technologies in Healthcare (ICTH-2019) / Affiliated Workshops. Available at <A HREF="https://doi.org/10.1016/j.procs.2019.11.015">https://doi.org/10.1016/j.procs.2019.11.015</A>.
+            </LI>
+
+            <LI>Jintian Lu, Xudong He, Yitong Yang, Dejun Wang, and Bo Meng. Automatic Verification of Security of Identity Federation Security Protocol Based on SAML2.0 with ProVerif in the Symbolic Model. In International Journal of Network Security. Available at <A HREF="http://ijns.jalaxy.com.tw/contents/ijns-v22-n1/ijns-2020-v22-n1-p80-92.pdf">http://ijns.jalaxy.com.tw/contents/ijns-v22-n1/ijns-2020-v22-n1-p80-92.pdf</A>.
+            </LI>
+
+            <LI>A. Jabbari and J. B. Mohasefi. Improvement in new three-party-authenticated key agreement scheme based on chaotic maps without password table. In Nonlinear Dynamics, volume 95, pages 3177–3191 (2019). Available at <A HREF="https://doi.org/10.1007/s11071-018-04748-y">https://doi.org/10.1007/s11071-018-04748-y</A>.
+            </LI>
+
+            <LI>Jawad Iftikhar, Sajid Hussain, Khwaja Mansoor, Zeeshan Ali, and Shehzad Ashraf Chaudhry. Symmetric-Key Multi-Factor Biometric Authentication Scheme. In 2019 2nd International Conference on Communication, Computing and Digital systems (C-CODE). Available at <A HREF="https://doi.org/10.1109/C-CODE.2019.8680999">https://doi.org/10.1109/C-CODE.2019.8680999</A>.
+            </LI>
+
+            <LI>Chien-Ming Chen, King-Hang Wang, Kuo-Hui Yeh, Bin Xiang, and Tsu-Yang Wu. Attacks and solutions on a three-party password-based authenticated key exchange protocol for wireless communications. In Journal of Ambient Intelligence and Humanized Computing, volume 10, pages 3133–3142 (2019). Available at <A HREF="https://doi.org/10.1007/s12652-018-1029-3">https://doi.org/10.1007/s12652-018-1029-3</A>.
+            </LI>
+
+            <LI>R. Ameur-Boulifa, F. Lugou, and L. Apvrille. SysML Model Transformation for Safety and Security Analysis. In: Hamid, B., Gallina, B., Shabtai, A., Elovici, Y., Garcia-Alfaro, J. (eds) Security and Safety Interplay of Intelligent Software Systems. CSITS ISSA 2018 2018. Lecture Notes in Computer Science(), vol 11552. Springer, Cham. Available at <A HREF="https://doi.org/10.1007/978-3-030-16874-2_3">https://doi.org/10.1007/978-3-030-16874-2_3</A>.
+            </LI>
+
+            <LI>Wenzheng Liu, Xiaofeng Wang, and Wei Peng. Secure Remote Multi-Factor Authentication Scheme Based on Chaotic Map Zero-Knowledge Proof for Crowdsourcing Internet of Things. In IEEE Access, Volume: 8. Available at <A HREF="https://doi.org/10.1109/ACCESS.2019.2962912">https://doi.org/10.1109/ACCESS.2019.2962912</A>.
+            </LI>
+
+            <LI>Lu Zhou, Xiong Li, Kuo-Hui Yeh, Chunhua Su, Wayne Chiu. Lightweight IoT-based authentication scheme in cloud computing circumstance. In Future Generation Computer Systems, Volume 91, February 2019, Pages 244-251. Available at <A HREF="https://doi.org/10.1016/j.future.2018.08.038">https://doi.org/10.1016/j.future.2018.08.038</A>.
+            </LI>
+
+            <LI>Mamoon M. Saeed, Rashid A. Saeed, and Elsadig Saeid. Preserving Privacy of Paging Procedure in 5thG Using Identity-Division Multiplexing. In 2019 First International Conference of Intelligent Computing and Engineering (ICOICE). Available at <A HREF="https://doi.org/10.1109/ICOICE48418.2019.9035167">https://doi.org/10.1109/ICOICE48418.2019.9035167</A>.
+	    </LI>
+            </OL>
+	</UL>
+        2020
+	<UL>
+	  <LI>Others
+        <OL>
+            <LI VALUE=152>Ahmed Aziz, Pietro Tedeschi, Savio Sciancalepore, and Roberto Di Pietro. "SecureAIS-Securing Pairwise Vessels Communications." IEEE Conference on Communications and Network Security (CNS) IEEE, 2020. Available at <A HREF="https://www.researchgate.net/publication/341287012_SecureAIS_-_Securing_Pairwise_Vessels_Communications">https://www.researchgate.net/publication/341287012_SecureAIS_-_Securing_Pairwise_Vessels_Communications</A>            </LI>
+
+            <LI>Cheng Shi and Kazuki Yoneyama. Formal Verification of Fair Exchange based on Bitcoin Smart Contracts. Indocrypt 2020. Available at <A HREF="https://link.springer.com/chapter/10.1007/978-3-030-65277-7_5">https://link.springer.com/chapter/10.1007/978-3-030-65277-7_5</A>            </LI>
+
+            <LI>Ed Kamya Kiyemba Edris, Mahdi Aiash, and Jonathan Kok-Keong Loo. Network Service Federated Identity (NSFId) Protocol for Service Authorization in 5G Network. In 2020 Fifth International Conference on Fog and Mobile Edge Computing (FMEC), Paris, France, 2020, pp. 128-135. Available at <A HREF="http://dx.doi.org/10.1109/FMEC49853.2020.9144706">http://dx.doi.org/10.1109/FMEC49853.2020.9144706</A>            </LI>
+
+            <LI>Ed Kamya Kiyemba Edris, Mahdi Aiash, and Jonathan Kok-Keong Loo. Formal Verification and Analysis of Primary Authentication based on 5G-AKA Protocol. In 2020 Seventh International Conference on Software Defined Systems (SDS), Paris, France, 2020, pp. 256-261. Available at <A HREF="http://dx.doi.org/10.1109/SDS49854.2020.9143899">http://dx.doi.org/10.1109/SDS49854.2020.9143899</A>            </LI>
+
+            <LI>Muhammad Usama Sardar, Do Le Quoc, Christof Fetzer, Towards Formalization of Enhanced Privacy ID (EPID)-based Remote Attestation in Intel SGX, Euromicro Conference on Digital System Design (DSD), Portorož, Slovenia, 26-28 August 2020. Available at <A HREF="https://www.researchgate.net/publication/342833256_Towards_Formalization_of_Enhanced_Privacy_ID_EPID-based_Remote_Attestation_in_Intel_SGX">https://www.researchgate.net/publication/342833256_Towards_Formalization_of_Enhanced_Privacy_ID_EPID-based_Remote_Attestation_in_Intel_SGX</A>            </LI>
+
+            <LI>Jingjing Zhang, Lin Yang, Weipeng Cao, Qiang Wang. Formal Analysis of 5G EAP-TLS Authentication Protocol Using Proverif. In IEEE Access, volume 8. Available at <A HREF="https://doi.org/10.1109/ACCESS.2020.2969474">https://doi.org/10.1109/ACCESS.2020.2969474</A>            </LI>
+
+            <LI>Jingjing Zhang, Lin Yang, Xianming Gao, Qiang Wang. Formal analysis of QUIC handshake protocol using ProVerif. In 2020 7th IEEE International Conference on Cyber Security and Cloud Computing (CSCloud)/2020 6th IEEE International Conference on Edge Computing and Scalable Cloud (EdgeCom). Available at <A HREF="https://doi.org/10.1109/CSCloud-EdgeCom49738.2020.00030">https://doi.org/10.1109/CSCloud-EdgeCom49738.2020.00030</A>.
+            </LI>
+
+            <LI>Takehiko Mieno, Togo Yoshimura, Hiroyuki Okazaki, Yuichi Futa, and Kenichi Arai. Formal Verification of Merkle–Damgård Construction in ProVerif. In 2020 International Symposium on Information Theory and Its Applications (ISITA), IEEE. Available at <A HREF="https://ieeexplore.ieee.org/abstract/document/9366163">https://ieeexplore.ieee.org/abstract/document/9366163</A>.
+            </LI>
+
+            <LI>Ryoga Noguchi, Yoshikazu Hanatani, and Kazuki Yoneyama. Verification of Group Key Management of IEEE 802.21 using ProVerif. In APKC '20: Proceedings of the 7th ACM Workshop on ASIA Public-Key Cryptography, October 2020, ages 19–27. Available at <A HREF="https://doi.org/10.1145/3384940.3388960">https://doi.org/10.1145/3384940.3388960</A>.
+            </LI>
+
+            <LI>Rong Zhu, Xiaoxi He, Jiahong Xie, Zongjie Zhang, and Ping Wang. An Improved RFID-based Authentication Protocol for Rail Transit. In 2020 IEEE 14th International Conference on Big Data Science and Engineering (BigDataSE). Available at <A HREF="https://doi.org/10.1109/BigDataSE50710.2020.00017">https://doi.org/10.1109/BigDataSE50710.2020.00017</A>.
+            </LI>
+
+            <LI>Tsu-Yang Wu, Zhiyuan Lee, Mohammad S. Obaidat, Saru Kumari, Sachin Kumar, and Chien-Ming Chen. An Authenticated Key Exchange Protocol for Multi-Server Architecture in 5G Networks. In IEEE Access, volume: 8. Available at <A HREF="https://doi.org/10.1109/ACCESS.2020.2969986">https://doi.org/10.1109/ACCESS.2020.2969986</A>.
+            </LI>
+
+            <LI>Sarah Naveed, Aiman Sultan, and Khwaja Mansoor. An Enhanced SIP Authentication Protocol for Preserving User Privacy. In 2020 International Conference on Cyber Warfare and Security (ICCWS). Available at <A HREF="https://doi.org/10.1109/ICCWS48432.2020.9292398">https://doi.org/10.1109/ICCWS48432.2020.9292398</A>.
+            </LI>
+
+            <LI>Yilong Zheng, Shunfang Hu, Liangxiong Wei, Yanru Chen, Hao Wang, Yanbing Yang, Yang Li, Bingjie Xu, Wei Huang, and Liangyin Chen. Design and Analysis of a Security-Enhanced Three-Party Authenticated Key Agreement Protocol Based on Chaotic Maps. In IEEE Access, volume: 8. Available at <A HREF="https://doi.org/10.1109/ACCESS.2020.2979251">https://doi.org/10.1109/ACCESS.2020.2979251</A>.
+            </LI>
+
+            <LI>Eman Elemam, Ayman M. Bahaa-Eldin, Nabil H. Shaker, Mohamed Sobh. Formal verification for a PMQTT protocol. In Egyptian Informatics Journal, Volume 21, Issue 3, September 2020, Pages 169-182. Available at <A HREF="https://doi.org/10.1016/j.eij.2020.01.001">https://doi.org/10.1016/j.eij.2020.01.001</A>.
+            </LI>
+
+            <LI>Mehmood Hassan, Aiman Sultan, Ali Afzal Awan, Shahzaib Tahir, and Imran Ihsan. An Enhanced and Secure Multiserver-based User Authentication Protocol. In 2020 International Conference on Cyber Warfare and Security (ICCWS). Available at <A HREF="https://doi.org/10.1109/ICCWS48432.2020.9292383">https://doi.org/10.1109/ICCWS48432.2020.9292383</A>.
+            </LI>
+
+            <LI>Malik Muhammad Sohail, Mehmood Hassan, Khwaja Mansoor, Anwar Ghani, and Khwaja Jawad. An Improved Authentication Protocol for Global Mobility Network (GLOMONET). In 2020 17th International Bhurban Conference on Applied Sciences and Technology (IBCAST), IEEE. Available at <A HREF="https://doi.org/10.1109/IBCAST47879.2020.9044490">https://doi.org/10.1109/IBCAST47879.2020.9044490</A>.
+            </LI>
+
+            <LI>Xueping Zhu, Yanxing Li, and Yuan Lei. A Forwarding Secrecy Based Lightweight Authentication Scheme for Intelligent Logistics. In 2020 IEEE International Conference on Advances in Electrical Engineering and Computer Applications (AEECA). Available at <A HREF="https://doi.org/10.1109/AEECA49918.2020.9213520">https://doi.org/10.1109/AEECA49918.2020.9213520</A>.
+            </LI>
+
+            <LI>Devender Kumar, Harsh Kumar Singh, and Chhahat Ahlawat. A secure three-factor authentication scheme for wireless sensor networks using ECC. In Journal of Discrete Mathematical Sciences and Cryptography, Volume 23, 2020 - Issue 4. Available at <A HREF="https://doi.org/10.1080/09720529.2019.1627072">https://doi.org/10.1080/09720529.2019.1627072</A>.
+	    </LI>
+        </OL>
+	</UL>
+        2021
+	<UL>
+	  <LI>Rank A* or A conferences
+	    <OL>
+            <LI VALUE=170>Haonan Feng, Hui Li, Xuesong Pan, and Ziming Zhao. A Formal Analysis of the FIDO UAF Protocol. In Proceedings of the 28th Annual Network and Distributed System Security Symposium - NDSS 2021. Available at <A HREF="https://www.ndss-symposium.org/ndss-paper/a-formal-analysis-of-the-fido-uaf-protocol/">https://www.ndss-symposium.org/ndss-paper/a-formal-analysis-of-the-fido-uaf-protocol/</A>.
+	    </LI>
+	    
+            <LI>Alexander Dax and Robert Künnemann. On the Soundness of Infrastructure Adversaries. In: 2021 IEEE 34th Computer Security Foundations Symposium (CSF). Available at <A HREF="https://doi.ieeecomputersociety.org/10.1109/CSF51468.2021.00039">https://doi.ieeecomputersociety.org/10.1109/CSF51468.2021.00039</A>.
+            </LI>
+	    </OL>
+	  <LI>Others
+            <OL>
+            <LI VALUE=172>Muhammad Usama Sardar, Rasha Faqeh, and Christof Fetzer. Formal Foundations for Intel SGX Data Center Attestation Primitives. In: International Conference on Formal Engineering Methods (ICFEM), March 2021, Singapore. Available at <A HREF="https://www.researchgate.net/publication/343826554_Formal_Foundations_for_Intel_SGX_Data_Center_Attestation_Primitives">https://www.researchgate.net/publication/343826554_Formal_Foundations_for_Intel_SGX_Data_Center_Attestation_Primitives</A>.
+            </LI>
+
+            <LI>Muhammad Usama  Sardar, Saidgani Musaev, Christof Fetzer. Demystifying Attestation in Intel Trust Domain Extensions via Formal Verification, IEEE Access, 2021. Available at <A HREF="https://www.researchgate.net/publication/351699567_Demystifying_Attestation_in_Intel_Trust_Domain_Extensions_via_Formal_Verification">https://www.researchgate.net/publication/351699567_Demystifying_Attestation_in_Intel_Trust_Domain_Extensions_via_Formal_Verification</A>.
+            </LI>
+
+            <LI>Pietro Tedeschi, Savio Sciancalepore, and Roberto Di Pietro. ARID: Anonymous Remote IDentification of Unmanned Aerial Vehicles. In Annual Computer Security Applications Conference (ACSAC'21). Association for Computing Machinery, New York, NY, USA, 207–218. Available at <A HREF="https://doi.org/10.1145/3485832.3485834">https://doi.org/10.1145/3485832.3485834</A>.
+            </LI>
+
+            <LI>Ed Kamya Kiyemba Edris, Mahdi Aiash, and Jonathan Loo. Formal Verification of Authentication and Service Authorization Protocols in 5G-Enabled Device-to-Device Communications Using ProVerif. In Electronics 2021, 10(13), 1608. Available at <A HREF="https://doi.org/10.3390/electronics10131608">https://doi.org/10.3390/electronics10131608</A>.
+            </LI>
+
+            <LI>Ernest-YongYi Yap, Ji-Jian Chin, and Alwyn Goh. Verifying MQV-Based Protocols Using ProVerif. In IT Convergence and Security. LNEE, volume 782, pp 55–63. Springer. Available at <A HREF="https://doi.org/10.1007/978-981-16-4118-3_6">https://doi.org/10.1007/978-981-16-4118-3_6</A>.
+            </LI>
+
+            <LI>Dexian Chang, Ning Zhu, and Yingjie Yang. Security Analysis of SDN Access Control Protocol Based on ProVerif. In 2021 IEEE 3rd International Conference on Civil Aviation Safety and Information Technology (ICCASIT). Available at <A HREF="https://doi.org/10.1109/ICCASIT53235.2021.9633403">https://doi.org/10.1109/ICCASIT53235.2021.9633403</A>.
+            </LI>
+
+            <LI>Thomas Haines and Rajeev Goré. Improved Verifiability for BeleniosVS. In Sixth International Joint Conference on Electronic Voting E-Vote-ID 2021. 5-8 October 2021. Available at <A HREF="https://eprint.iacr.org/2021/1071">https://eprint.iacr.org/2021/1071</A>.
+            </LI>
+
+            <LI>Muktar Yahuza, Mohd Yamani Idna Idris, Ainuddin Wahid Abdul Wahab, Tarak Nandy, Ismail Bin Ahmedy, and Roziana Ramli. An Edge Assisted Secure Lightweight Authentication Technique for Safe Communication on the Internet of Drones Network. In IEEE Access, volume 9. Available at <A HREF="https://doi.org/10.1109/ACCESS.2021.3060420">https://doi.org/10.1109/ACCESS.2021.3060420</A>.
+            </LI>
+
+            <LI>Tsu-Yang Wu, Yu-Qi Lee, Chien-Ming Chen, Yuan Tian, and Najla Abdulrahman Al-Nabhan. An enhanced pairing-based authentication scheme for smart grid communications. In Journal of Ambient Intelligence and Humanized Computing, 2021. Available at <A HREF="https://doi.org/10.1007/s12652-020-02740-2">https://doi.org/10.1007/s12652-020-02740-2</A>.
+            </LI>
+
+            <LI>Hussam Al-Hamadi, Nida Nasir, Chan Yeob Yeun, and Ernesto Damiani. A Verified Protocol for Secure Autonomous and Cooperative Public Transportation in Smart Cities. In 2021 IEEE International Conference on Communications Workshops (ICC Workshops). Available at <A HREF="https://doi.org/10.1109/ICCWorkshops50388.2021.9473591">https://doi.org/10.1109/ICCWorkshops50388.2021.9473591</A>.
+            </LI>
+
+            <LI>Jingjing Zhang, Lin Yang, Xianming Gao, Gaigai Tang, Jiyong Zhang, and Qiang Wang. Formal Analysis of QUIC Handshake Protocol Using Symbolic Model Checking. In IEEE Access, volume 9. Available at <A HREF="https://doi.org/10.1109/ACCESS.2021.3052578">https://doi.org/10.1109/ACCESS.2021.3052578</A>.
+            </LI>
+
+            <LI>Megha Ajit, Sriram Sankaran, and Kurunandan Jain. Formal Verification of 5G EAP-AKA protocol. In 2021 31st International Telecommunication Networks and Applications Conference (ITNAC). Available at <A HREF="https://doi.org/10.1109/ITNAC53136.2021.9652163">https://doi.org/10.1109/ITNAC53136.2021.9652163</A>.
+            </LI>
+
+            <LI>Ajay Kumar, Kumar Abhishek, Kunjal Shah, Suyel Namasudra, and Seifedine Kadry. A novel elliptic curve cryptography-based system for smart grid communication. In International Journal of Web and Grid Services, Vol. 17, No. 4. Available at <A HREF="https://doi.org/10.1504/IJWGS.2021.118398">https://doi.org/10.1504/IJWGS.2021.118398</A>.
+            </LI>
+
+            <LI>Yue Zheng and Chip-Hong Chang. Secure Mutual Authentication and Key-Exchange Protocol between PUF-Embedded IoT Endpoints. In 2021 IEEE International Symposium on Circuits and Systems (ISCAS). Available at <A HREF="https://doi.org/10.1109/ISCAS51556.2021.9401135">https://doi.org/10.1109/ISCAS51556.2021.9401135</A>.
+            </LI>
+
+            <LI>Katharina Hofer-Schmitz. A Formal Analysis of EnOcean’s Teach-in and Authentication. In ARES 21: Proceedings of the 16th International Conference on Availability, Reliability and Security. Available at <A HREF="https://doi.org/10.1145/3465481.3470097">https://doi.org/10.1145/3465481.3470097</A>.
+            </LI>
+
+            <LI>Ed Kamya Kiyemba Edris, Mahdi Aiash, Jonathan Kok-Keong Loo, and Mohammad Shadi Alhakeem. Formal verification of secondary authentication protocol for 5G secondary authentication. In International Journal of Security and Networks, Vol. 16, No. 4. Available at <A HREF="https://doi.org/10.1504/IJSN.2021.119379">https://doi.org/10.1504/IJSN.2021.119379</A>.
+            </LI>
+
+            <LI>Jiabing Liu, Xudong He, Huoye Tang, Dejun Wang, and Bo Meng. A Novel Privacy-preserving User Authentication
+                Protocol for Big Data Environment. In International Journal of Network Security, Vol.23, No.3, PP.436-448, May 2021. Available at <A HREF="https://doi.org/10.6633/IJNS.202105_23(3).08">https://doi.org/10.6633/IJNS.202105_23(3).08</A>.
+            </LI>
+
+            <LI>Lijun Xiao, Songyou Xie, Dezhi Han, Wei Liang, Jun Guo, and Wen-Kuang Chou. A lightweight authentication scheme for telecare medical information system. In Connection Science, Volume 33, 2021 - Issue 3. Available at <A HREF="https://doi.org/10.1080/09540091.2021.1889976">https://doi.org/10.1080/09540091.2021.1889976</A>.
+            </LI>
+
+            <LI>Aiman Sultan, Mehmood Hassan, Khwaja Mansoor, and Syed Saddam Ahmed. Securing IoT Enabled RFID Based Object Tracking Systems: A Symmetric Cryptography Based Authentication Protocol for Efficient Smart Object Tracking. In 2021 International Conference on Communication Technologies (ComTech), IEEE. Available at <A HREF="https://doi.org/10.1109/ComTech52583.2021.9616967">https://doi.org/10.1109/ComTech52583.2021.9616967</A>.
+            </LI>
+
+            <LI>Zisang Xu, Cheng Xu, Jianbo Xu, and Xiangwei Meng. A computationally efficient authentication and key agreement scheme for multi-server switching in WBAN. In International Journal of Sensor Networks, Vol. 35, No. 3. Available at <A HREF="https://doi.org/10.1504/IJSNET.2021.113839">https://doi.org/10.1504/IJSNET.2021.113839</A>.
+            </LI>
+
+            <LI>Shehzad Ashraf Chaudhry. Correcting “PALK: Password-based anonymous lightweight key agreement framework for smart grid”. In International Journal of Electrical Power & Energy Systems, Volume 125, February 2021, 106529. Available at <A HREF="https://doi.org/10.1016/j.ijepes.2020.106529">https://doi.org/10.1016/j.ijepes.2020.106529</A>.
+            </LI>
+
+            <LI>Tsu-Yang Wu, Lei Yang, Zhiyuan Lee, Chien-Ming Chen, Jeng-Shyang Pan, and SK Hafizul Islam. Improved ECC-Based Three-Factor Multiserver Authentication Scheme. In Security and Communication Networks, Volume 2021, Article ID 6627956. Available at <A HREF="https://doi.org/10.1155/2021/6627956">https://doi.org/10.1155/2021/6627956</A>.
+            </LI>
+
+            <LI>Wei Liang, Songyou Xie, Jiahong Cai, Chong Wang, Yujie Hong, and Xiaoyan Kui. Novel private data access control scheme suitable for mobile edge computing. In China Communications, Volume: 18, Issue: 11, November 2021. Available at <A HREF="https://doi.org/10.23919/JCC.2021.11.007">https://doi.org/10.23919/JCC.2021.11.007</A>.
+            </LI>
+
+            <LI>Marino Miculan and Nicola Vitacolonna. Automated Symbolic Verification of Telegram’s MTProto 2.0. In Proceedings of the 18th International Conference on Security and Cryptography - SECRYPT, 185-197, 2021. Available at <A HREF="https://doi.org/10.5220/0010549601850197">https://doi.org/10.5220/0010549601850197</A>.
+            </LI>
+
+            </OL>
+	</UL>
+        2022
+	<UL>
+	  <LI>Rank A* or A conferences
+	    <OL>
+            <LI VALUE=196>Mikael Bougon, Hervé Chabanne, Véronique Cortier, Alexandre Debant, Emmanuelle Dottax, Jannik Dreier, Pierrick Gaudry, Mathieu Turuani. Themis: An On-Site Voting System with Systematic Cast-as-intended Verification and Partial Accountability. In: CCS '22: Proceedings of the 2022 ACM SIGSAC Conference on Computer and Communications Security, November 2022, Pages 397–410. Available at <A HREF="https://doi.org/10.1145/3548606.3560563">https://doi.org/10.1145/3548606.3560563</A>.
+            </LI>
+
+            <LI>Jianliang Wu, Ruoyu Wu, Dongyan Xu, Dave (Jing) Tian, and Antonio Bianchi. Formal Model-Driven Discovery of Bluetooth Protocol Design Vulnerabilities. In 2022 IEEE Symposium on Security and Privacy, pages 2285-2303. <A HREF="https://doi.org/10.1109/SP46214.2022.9833777">doi: 10.1109/SP46214.2022.9833777</A>.
+	    </LI>
+
+            <LI>Vincent Cheval, Charlie Jacomme, Steve Kremer, and Robert Künnemann. SAPIC+: protocol verifiers of the world, unite! In USENIX Security Symposium (USENIX Security), 2022. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity22/presentation/cheval">https://www.usenix.org/conference/usenixsecurity22/presentation/cheval</A>.
+            </LI>
+
+            <LI>Jose Moreira-Sanchez, Mark Ryan, and Flavio Garcia. Protocols for a two-tiered trusted computing base. In Computer Security – ESORICS 2022, 27th European Symposium on Research in Computer Security, Copenhagen, Denmark, September 26–30, 2022, Proceedings, Part III, pages 229-249. LNCS, volume 13556, Springer, Cham. Available at <A HREF="https://doi.org/10.1007/978-3-031-17143-7_12">https://doi.org/10.1007/978-3-031-17143-7_12</A>.
+            </LI>
+
+	    <LI>Stéphanie Delaune and Joseph Lallemand. One vote is enough for analysing privacy. In Proceedings of the 27th European Symposium on Research in Computer Security (ESORICS'22), pp. 173–194, Lecture Notes in Computer Science, Springer, Copenhague, Denmark, 2022. Available at <A HREF="https://doi.org/10.1007/978-3-031-17140-6_9">https://doi.org/10.1007/978-3-031-17140-6_9</A>.
+	    </LI>
+	    </OL>
+	  <LI>Others
+            <OL>
+            <LI VALUE=201>P. Tedeschi, S. Sciancalepore and R. Di Pietro, "PPCA - Privacy-Preserving Collision Avoidance for Autonomous Unmanned Aerial Vehicles," in IEEE Transactions on Dependable and Secure Computing, <A HREF="https://doi.org/10.1109/TDSC.2022.3159837">doi: 10.1109/TDSC.2022.3159837</A>.
+            </LI>
+
+
+            <LI>P. Tedeschi, S. Bakiras and R. D. Pietro, "SpreadMeNot: A Provably Secure and Privacy-Preserving Contact Tracing Protocol," in IEEE Transactions on Dependable and Secure Computing, 2022, <A HREF="https://doi.org/10.1109/TDSC.2022.3186153">doi: 10.1109/TDSC.2022.3186153</A>. Available at <A HREF="https://www.researchgate.net/publication/361523428_SpreadMeNot_A_Provably_Secure_and_Privacy-Preserving_Contact_Tracing_Protocol">https://www.researchgate.net/publication/361523428_SpreadMeNot_A_Provably_Secure_and_Privacy-Preserving_Contact_Tracing_Protocol</A>.
+            </LI>
+
+            <LI>Jiangyuan Yao, Chunxiang Xu, Deshun Li, Shengjun Lin, and Xingcan Cao. Formal Verification of Security Protocols: ProVerif and Extensions. In International Conference on Artificial Intelligence and Security (ICAIS 2022), pp 500–512. LNCS, volume 13339, Springer. Available at <A HREF="https://doi.org/10.1007/978-3-031-06788-4_42">https://doi.org/10.1007/978-3-031-06788-4_42</A>.
+            </LI>
+
+            <LI>Roberto Metere and Luca Arnaboldi. Automating cryptographic protocol language generation from structured specifications. In FormaliSE '22: Proceedings of the IEEE/ACM 10th International Conference on Formal Methods in Software Engineering, May 2022, pages 91–101. Available at <A HREF="https://doi.org/10.1145/3524482.3527654">https://doi.org/10.1145/3524482.3527654</A>.
+            </LI>
+
+            <LI>Baasansuren Bat-Erdene,  Yuping Yan, Mohammed B. M. Kamel, and Peter Ligeti. Security Verification of Key Exchange in Ciphertext-Policy Attribute Based Encryption. In 2022 7th International Conference on Signal and Image Processing (ICSIP). Available at <A HREF="https://doi.org/10.1109/ICSIP55141.2022.9887218">https://doi.org/10.1109/ICSIP55141.2022.9887218</A>.
+            </LI>
+
+            <LI>Shion Maeda, Misato Nakabayashi, and Tetsuya Okuda. Architecture Design and Security Evaluation of Secure Optical Transport Network Using Formal Verification. In 2022 IEEE 46th Annual Computers, Software, and Applications Conference (COMPSAC). Available at <A HREF="https://doi.org/10.1109/COMPSAC54236.2022.00288">https://doi.org/10.1109/COMPSAC54236.2022.00288</A>            </LI>
+
+            <LI>Mamoon M. Saeed, Mohammad Kamrul Hasan, Rosilah Hassan, Rania Mokhtar, Rashid A. Saeed, Elsadig Saeid, and Manoj Gupta. Preserving Privacy of User Identity Based on Pseudonym Variable in 5G. In Computers, Materials & Continua, 2022, 70(3), 5551-5568. Available at <A HREF="https://doi.org/10.32604/cmc.2022.017338">https://doi.org/10.32604/cmc.2022.017338</A>.
+            </LI>
+
+            <LI>Munayfah Alanazi and Shadi Nashwan. Secure and Anonymous Three-Factor Authentication Scheme for Remote Healthcare Systems. In Computer Systems Science and Engineering 2022, 42(2), 703-725. Available at <A HREF="https://doi.org/10.32604/csse.2022.022962">https://doi.org/10.32604/csse.2022.022962</A>.
+            </LI>
+
+            <LI>Munefah Alshammari and Shadi Nashwan. Fully Authentication Services Scheme for NFC Mobile Payment Systems. In Intelligent Automation & Soft Computing 2022, 32(1), 401-428. Available at <A HREF="https://doi.org/10.32604/iasc.2022.022065">https://doi.org/10.32604/iasc.2022.022065</A>.
+            </LI>
+
+            <LI>Marwah Yaseen, Mohammed B. M. Kamel, and Peter Ligeti. Security Analysis and Deployment Measurement of Transport Layer Security Protocol. In: Singh, P.K., Singh, Y., Chhabra, J.K., Illés, Z., Verma, C. (eds) Recent Innovations in Computing. Lecture Notes in Electrical Engineering, vol 855. Springer, Singapore. Available at <A HREF="https://doi.org/10.1007/978-981-16-8892-8_55">https://doi.org/10.1007/978-981-16-8892-8_55</A>.
+            </LI>
+
+            <LI>Mahin Mohammadi, Reza Rawassizadeh, Abbas Sheikhtaheri. A consumer-centered security framework for sharing health data in social networks. In Journal of Information Security and Applications, Volume 69, September 2022, 103303. Available at <A HREF="https://doi.org/10.1016/j.jisa.2022.103303">https://doi.org/10.1016/j.jisa.2022.103303</A>.
+            </LI>
+
+            <LI>Mahdieh Ebrahimi, Majid Bayat, Behnam Zahednejad. A Privacy Preserving Mutual Authentication Scheme Suitable for IoT-Based Medical Systems. In The ISC International Journal of Information Security, Volume 14, Issue 1, January 2022, , Pages 57-68. Available at <A HREF="https://www.isecure-journal.com/article_135754.html">https://www.isecure-journal.com/article_135754.html</A>.
+                <!--<A HREF=https://doi.org/10.22042/isecure.2021.183936.463">https://doi.org/10.22042/isecure.2021.183936.463</A>.-->
+                <!--https://inria.hal.science/hal-03674979/ -->            </LI>
+
+            <LI>E. M. Vinarskii and A. V. Demakov. Optimization of ProVerif Programs for AKE Protocols. In Programming and Computer Software volume 48, pages 781–787 (2022). Available at <A HREF="https://doi.org/10.1134/S0361768822080035">https://doi.org/10.1134/S0361768822080035</A>.
+            </LI>
+
+            <LI>Bin Hu, Wen Tang, and Qi Xie. A two-factor security authentication scheme for wireless sensor networks in IoT environments. In Neurocomputing, Volume 500, 21 August 2022, Pages 741-749. Available at <A HREF="https://doi.org/10.1016/j.neucom.2022.05.099">https://doi.org/10.1016/j.neucom.2022.05.099</A>.
+            </LI>
+
+            <LI>Prosanta Gope, Yuening Wang, Zengpeng Li, and Biplab Sikdar. QR-PUF: Design and Implementation of A RFID-based Secure Inpatient Management System Using XOR-Arbiter-PUF and QR-Code. In IEEE Transactions on Network Science and Engineering. Available at <A HREF="https://doi.org/10.1109/TNSE.2022.3186478">https://doi.org/10.1109/TNSE.2022.3186478</A>.
+            </LI>
+
+            <LI>Aijuan Wang, Junyang Li, and Hai Nan. Achieving Light-Weighted Secure Scheme for Communication in a Smart Grid. In IEEE Access (Volume 11), pages 14951-1960, available at <A HREF="https://doi.org/10.1109/ACCESS.2022.3228905">https://doi.org/10.1109/ACCESS.2022.3228905</A>.
+            </LI>
+
+            <LI>Baoyi Wang, Xining Duan, and Shaomin Zhang. Lightweight Privacy-preserving Authentication Scheme in V2G that Resists Desynchronization Attack. In Journal of Artificial Intelligence Practice (2022), Clausius Scientific Press, Canada. ISSN 2371-8412 Vol. 5 Num. 1. Available at <A HREF="https://www.clausiuspress.com/assets/default/article/2022/04/14/article_1649925902.pdf">https://www.clausiuspress.com/assets/default/article/2022/04/14/article_1649925902.pdf</A>.
+                <!--  <A HREF="https://doi.org/10.23977/jaip.2022.050105">https://doi.org/10.23977/jaip.2022.050105</A>.-->            </LI>
+
+            <LI>Tsu-Yang Wu, Qian Meng, Lei Yang, Xinglan Guo, and Saru Kumari. A provably secure lightweight authentication protocol in mobile edge computing environments. In the Journal of Supercomputing, volume 78, pages 13893–13914 (2022). Available at <A HREF="https://doi.org/10.1007/s11227-022-04411-9">https://doi.org/10.1007/s11227-022-04411-9</A>.
+            </LI>
+
+            <LI>Kyler R. Scott, Sunil P. Khatri, and Ali Ghrayeb. Formal Verification of a Dynamic Multi-factor Secure Communication Protocol. In 2022 3rd International Conference on Smart Grid and Renewable Energy (SGRE). Available at <A HREF="https://doi.org/10.1109/SGRE53517.2022.9774119">https://doi.org/10.1109/SGRE53517.2022.9774119</A>.
+            </LI>
+
+            <LI>Susmita Mandal, S. S. Sravan, and Lakshmi Ramesh. Chaotic-Maps Based Access Authentication Protocol for Remote Communication Using Space Information Networks. In: Barolli, L., Hussain, F., Enokido, T. (eds) Advanced Information Networking and Applications. AINA 2022. Lecture Notes in Networks and Systems, vol 449. Springer, Cham. Available at <A HREF="https://doi.org/10.1007/978-3-030-99584-3_20">https://doi.org/10.1007/978-3-030-99584-3_20</A>.
+            </LI>
+
+            <LI>Jihyeon Ryu, Hakjun Lee, Youngsook Lee, and Dongho Won. SMASG: Secure Mobile Authentication Scheme for Global Mobility Network. In: IEEE Access, Volume: 10, pages 26907-26919. Available at <A HREF="https://doi.org/10.1109/ACCESS.2022.3157871">https://doi.org/10.1109/ACCESS.2022.3157871</A>.
+            </LI>
+
+            <LI>Jihyeon Ryu, Dongwoo Kang, and Dongho Won. Improved Secure and Efficient Chebyshev Chaotic Map-Based User Authentication Scheme. In: IEEE Access, Volume: 10, pages 15891-15910. Available at <A HREF="https://doi.org/10.1109/ACCESS.2022.3149315">https://doi.org/10.1109/ACCESS.2022.3149315</A>.
+            </LI>
+
+            <LI>Mohamed Taoufiq Damir, Tommi Meskanen, Sara Ramezanian, and Valtteri Niemi. A Beyond-5G Authentication and Key Agreement Protocol. In: Yuan, X., Bai, G., Alcaraz, C., Majumdar, S. (eds) Network and System Security. NSS 2022. Lecture Notes in Computer Science, vol 13787. Springer, Cham. Available at <A HREF="https://doi.org/10.1007/978-3-031-23020-2_14">https://doi.org/10.1007/978-3-031-23020-2_14</A>.
+            </LI>
+
+            <LI>Savio Sciancalepore, Simone Raponi, Daniele Caldarola, and Roberto Di Pietro. FRACTAL: Single-Channel Multi-factor Transaction Authentication Through a Compromised Terminal. In: Alcaraz, C., Chen, L., Li, S., Samarati, P. (eds) Information and Communications Security. ICICS 2022. Lecture Notes in Computer Science, vol 13407, pp 201–217. Springer, Cham. Available at <A HREF="https://doi.org/10.1007/978-3-031-15777-6_12">https://doi.org/10.1007/978-3-031-15777-6_12</A>.
+            </LI>
+
+            <LI>Tsu-Yang Wu, Qian Meng, Saru Kumari, and Peng Zhang. Rotating behind Security: A Lightweight Authentication Protocol Based on IoT-Enabled Cloud Computing Environments. In: Sensors 2022, 22(10), 3858. Available at <A HREF="https://doi.org/10.3390/s22103858">https://doi.org/10.3390/s22103858</A>.
+            </LI>
+
+            <LI>Xiaohe Wu, Jianbo Xu, W. Liang, and W. Jian. Research on Authentication and Key Agreement Protocol of Smart Medical Systems Based on Blockchain Technology. In: Lai, Y., Wang, T., Jiang, M., Xu, G., Liang, W., Castiglione, A. (eds) Algorithms and Architectures for Parallel Processing. ICA3PP 2021. Lecture Notes in Computer Science(), vol 13156. Springer, Cham. Available at <A HREF="https://doi.org/10.1007/978-3-030-95388-1_29">https://doi.org/10.1007/978-3-030-95388-1_29</A>.
+            </LI>
+
+            <LI>Tsu-Yang Wu, Liyang Wang, Xinglan Guo, Yeh-Cheng Chen and Shu-Chuan Chu. SAKAP: SGX-Based Authentication Key Agreement Protocol in IoT-Enabled Cloud Computing. In: Sustainability 2022, 14(17), 11054. Available at <A HREF="https://doi.org/10.3390/su141711054">https://doi.org/10.3390/su141711054</A>.
+            </LI>
+
+            <LI>Yu Zhang, Guangmin Sun, and Peng Zhai. CCMbAS: A Provably Secure CCM-Based Authentication Scheme for Mobile Internet. In Mobile Information Systems, vol. 2022, Article ID 7318948, 11 pages, 2022. Available at <A HREF="https://doi.org/10.1155/2022/7318948">https://doi.org/10.1155/2022/7318948</A>.
+            </LI>
+
+            <LI>Norliza Katuk, Roberto Vergallo, Tito Sugiharto, and Rio Andriyat Krisdiawan. A client-based user authentication scheme for the cloud of things environment. In:  Journal of Computer Science and Technology, vol. 22, no. 2. Available at <A HREF="https://doi.org/10.24215/16666038.22.e08">https://doi.org/10.24215/16666038.22.e08</A>.
+            </LI>
+
+            <LI>Usha Jain, Saied Pirasteh, Muzzammil Hussain. Lightweight, secure, efficient, and dynamic scheme for mutual authentication of devices in Internet-of-Things-Fog environment. In: Concurrency and Computation, Practice and Experience. Available at <A HREF="https://doi.org/10.1002/cpe.7428">https://doi.org/10.1002/cpe.7428</A>.
+            </LI>
+
+            <LI>Mingcheng Xu, Gaojian Xu, Haoyu Xu, Jiadong Zhou, and Shaowen Li. A decentralized lightweight authentication protocol under blockchain. In:  Concurrency and Computation, Practice and Experience. Available at <A HREF="https://doi.org/10.1002/cpe.6920">https://doi.org/10.1002/cpe.6920</A>.
+            </LI>
+
+            <LI>Fatemeh Alidadi Shamsabadi and Shaghayegh Bakhtiari Chehelcheshmeh. A cloud-based mobile payment system using identity-based signature providing key revocation. In: The Journal of Supercomputing, volume 78, pages 2503–2527 (2022). Available at <A HREF="https://doi.org/10.1007/s11227-021-03830-4">https://doi.org/10.1007/s11227-021-03830-4</A>.
+            </LI>
+
+            <LI>Tsu-Yang Wu, Fangfang Kong, Liyang Wang, Yeh-Cheng Chen, Saru Kumari, and Jeng-Shyang Pan. Toward Smart Home Authentication Using PUF and Edge-Computing Paradigm. In Sensors 2022, 22(23), 9174. Available at <A HREF="https://doi.org/10.3390/s22239174">https://doi.org/10.3390/s22239174</A>.
+            </LI>
+
+            <LI>Jin Ren, Yuyang Cheng, and Shiyuan Xu. EDPPA: An efficient distance-based privacy preserving authentication protocol in VANET. Peer-to-Peer Netw. Appl. 15, 1385–1397 (2022). Available at <A HREF="https://doi.org/10.1007/s12083-022-01297-5">https://doi.org/10.1007/s12083-022-01297-5</A>.
+            </LI>
+
+            <LI>Ed Kamya Kiyemba Edris, Mahdi Aiash, and Jonathan Loo. Formalization and evaluation of EAP-AKA’ protocol for 5G network access security. In: Array
+                Volume 16, December 2022, 100254. Available at <A HREF="https://doi.org/10.1016/j.array.2022.100254">https://doi.org/10.1016/j.array.2022.100254</A>.
+            </LI>
+
+            <LI>Hans Hüttel and Vilim Staroveški. Key Agreement in the Lightning Network Protocol. In: Furnell, S., Mori, P., Weippl, E., Camp, O. (eds) Information Systems Security and Privacy. ICISSP 2020. Communications in Computer and Information Science, vol 1545, pp 139–155. Springer, Cham. Available at <A HREF="https://doi.org/10.1007/978-3-030-94900-6_7">https://doi.org/10.1007/978-3-030-94900-6_7</A>.
+            </LI>
+
+            <LI>Camille Sivelle, Lorys Debbah, Maxime Puys, Pascal Lafourcade, and Thibault Franco-Rondisson. Automatic Implementations Synthesis of Secure Protocols and Attacks from Abstract Models.  In: Reiser, H.P., Kyas, M. (eds) Secure IT Systems. NordSec 2022. Lecture Notes in Computer Science, vol 13700. Springer, Cham. Available at <A HREF="https://doi.org/10.1007/978-3-031-22295-5_13">https://doi.org/10.1007/978-3-031-22295-5_13</A>.
+	    </LI>
+
+            </OL>
+	</UL>
+        2023
+	<UL>
+	  <LI>Rank A* or A conferences
+	    <OL>
+            <LI VALUE=238>Sergiu Bursuc, Ross Horne, Sjouke Mauw, and Semen Yurkov. Provably Unlinkable Smart Card-based Payments. In CCS '23: Proceedings of the 2023 ACM SIGSAC Conference on Computer and Communications Security, November 2023, Pages 1392–1406. Available at <A HREF="https://doi.org/10.1145/3576915.3623109">https://doi.org/10.1145/3576915.3623109</A>.
+            </LI>
+
+            <LI>Faezeh Nasrabadi, Robert Künnemann, and Hamed Nemati. CryptoBap: A Binary Analysis Platform for Cryptographic Protocols. In CCS '23: Proceedings of the 2023 ACM SIGSAC Conference on Computer and Communications Security, November 2023, Pages 1362–1376. Available at <A HREF="https://doi.org/10.1145/3576915.3623090">https://doi.org/10.1145/3576915.3623090</A>.
+            </LI>
+
+            <LI>Charlie Jacomme, Elise Klein, Steve Kremer, and Maïwenn Racouchot. A comprehensive, formal and automated analysis of the EDHOC protocol. In USENIX Security '23 - 32nd USENIX Security Symposium, Aug 2023, Anaheim, CA, United States. Available at <A HREF="https://inria.hal.science/hal-03810102/">https://inria.hal.science/hal-03810102/</A>.
+            </LI>
+
+        <LI>David Baelde, Alexandre Debant, and Stéphanie Delaune. Proving Unlinkability using ProVerif through Desynchronized Bi-Processes. In IEEE Computer Security Foundations Symposium, Jul 2023, Dubrovnik, Croatia. Available at <A HREF="https://hal.science/hal-03674979v2">https://hal.science/hal-03674979v2</A>.
+            </LI>
+
+            <LI>Sevdenur Baloglu, Sergiu Bursuc, Sjouke Mauw, and Jun Pang. Election Verifiability in Receipt-free Voting Protocols. In IEEE Computer Security Foundations Symposium, Jul 2023, Dubrovnik, Croatia. Available at <A HREF="https://doi.ieeecomputersociety.org/10.1109/CSF57540.2023.00005">https://doi.ieeecomputersociety.org/10.1109/CSF57540.2023.00005</A>            </LI>
+
+	    </OL>
+	  <LI>Others
+        <OL>
+            <LI VALUE=243>Marino Miculan and Nicola Vitacolonna. Automated verification of Telegram’s MTProto 2.0 in the symbolic model. In Computers and Security
+                Volume 126, March 2023. Available at <A HREF="https://doi.org/10.1016/j.cose.2022.103072">https://doi.org/10.1016/j.cose.2022.103072</A>.
+            </LI>
+
+            <LI>Eva Wisse, Pietro Tedeschi, Savio Sciancalepore, and Roberto Di Pietro. A<sup>2</sup>RID -- Anonymous Direct Authentication and Remote Identification of Commercial Drones, in IEEE Internet of Things Journal, 2023. Available at <A HREF="https://doi.org/10.1109/JIOT.2023.3240477">https://doi.org/10.1109/JIOT.2023.3240477</A>.
+            </LI>
+
+            <LI>Cong Xu, Wenxue Wei, and Shuangshuang Zheng. Efficient Mobile RFID Authentication Protocol for Smart Logistics Targets Tracking. In IEEE Access (Volume 11), pages 4322-4336. Available at <A HREF="https://doi.org/10.1109/ACCESS.2023.3234959">https://doi.org/10.1109/ACCESS.2023.3234959</A>.
+            </LI>
+
+            <LI>Chukhu Chunka, Subhasish Banerjee, and Sachin Kumar Gupta. A secure communication using multifactor authentication and key agreement techniques in internet of medical things for COVID-19 patients. In Concurrency and Computation, Practice and Experience, Volume 35, Issue 7, 25 March 2023. Available at <A HREF="https://doi.org/10.1002/cpe.7602">https://doi.org/10.1002/cpe.7602</A>.
+            </LI>
+
+            <LI>Mohammadamin Rakeei, Rosario Giustolisi, and Gabriele Lenzini. Secure Internet Exams Despite Coercion. In International Workshop on Data Privacy Management, International Workshop on Cryptocurrencies and Blockchain Technology, DPM 2022, CBT 2022: Data Privacy Management, Cryptocurrencies and Blockchain Technology, LNCS, volume 13619, pp 85–100. Springer. Available at <A HREF="https://doi.org/10.1007/978-3-031-25734-6_6">https://doi.org/10.1007/978-3-031-25734-6_6</A>.
+            </LI>
+
+            <LI>Geeta Sharma and Gursimrat Singh. Robust User Authentication Scheme for IoT-Based Healthcare Applications. In: Recent Advancements in Smart Remote Patient Monitoring, Wearable Devices, and Diagnostics Systems. Available at <A HREF="https://doi.org/10.4018/978-1-6684-6434-2.ch008">https://doi.org/10.4018/978-1-6684-6434-2.ch008</A>.
+            </LI>
+
+            <LI>Himani Sikarwar and Debasis Das. A Novel MAC-Based Authentication Scheme (NoMAS) for Internet of Vehicles (IoV). In: IEEE Transactions on Intelligent Transportation Systems. Available at <A HREF="https://doi.org/10.1109/TITS.2023.3242291">https://doi.org/10.1109/TITS.2023.3242291</A>.
+            </LI>
+
+            <LI>Qi Xie, Dongnan Liu, Zixuan Ding, Xiao Tan, and Lidong Han. Provably Secure and Lightweight Patient Monitoring Protocol for Wireless Body Area Network in IoHT. In Journal of Healthcare Engineering. Volume 2023, Article ID 4845850. Available at <A HREF="https://doi.org/10.1155/2023/4845850">https://doi.org/10.1155/2023/4845850</A>.
+            </LI>
+
+            <LI>Susmita Mandal. Provably secure certificateless protocol for wireless body area network. In: Wireless Networks 29, 1421–1438 (2023). Available at <A HREF="https://doi.org/10.1007/s11276-022-03205-4">https://doi.org/10.1007/s11276-022-03205-4</A>.
+            </LI>
+
+            <LI>Umesh Bodkhe and Sudeep Tanwar. BiOIoV: Biometric-based Secure Data Dissemination for IoV Ecosystem. In: 2023 13th International Conference on Cloud Computing, Data Science & Engineering (Confluence). Available at <A HREF="https://doi.org/10.1109/Confluence56041.2023.10048828">https://doi.org/10.1109/Confluence56041.2023.10048828</A>.
+            </LI>
+
+            <LI>Shunfang Hu, Yanru Chen, Yilong Zheng, Bin Xing, Yang Li, Le Zhang, and Liangyin Chen. Provably Secure ECC-Based Authentication and Key Agreement Scheme for Advanced Metering Infrastructure in the Smart Grid. In:  IEEE Transactions on Industrial Informatics, vol. 19, no. 4, pp. 5985-5994, April 2023. Available at <A HREF="https://doi.org/10.1109/TII.2022.3191319">https://doi.org/10.1109/TII.2022.3191319</A>.
+            </LI>
+
+            <LI>Véronique Cortier, Alexandre Debant, Pierrick Gaudry, and Stéphane Glondu. Belenios with cast as intended. Voting 2023 - 8th Workshop on Advances in Secure Electronic Voting, May 2023, Bol, Brač, Croatia. Available at <A HREF="https://inria.hal.science/hal-04020110/">https://inria.hal.science/hal-04020110/</A>.
+            </LI>
+
+            <LI>Pietro Tedeschi, Savio Sciancalepore, and Roberto Di Pietro. Lightweight Privacy-Preserving Proximity Discovery for Remotely-Controlled Drones. In Proceedings of the 39th Annual Computer Security Applications Conference (ACSAC '23). Association for Computing Machinery, New York, NY, USA, pp. 178–189. Available at <A HREF="https://doi.org/10.1145/3627106.3627174">https://doi.org/10.1145/3627106.3627174</A>.
+            </LI>
+
+            <LI>Muhammad Usama Sardar, Thomas Fossati, Simon Frost, Shale Xiong, Formal Specification and Verification of Architecturally-defined Attestation Mechanisms in Arm CCA and Intel TDX, IEEE Access, 2023. Available at <A HREF="https://ieeexplore.ieee.org/document/10373038/">https://ieeexplore.ieee.org/document/10373038/</A>. Artifacts at <A HREF="https://github.com/CCC-Attestation/formal-spec-TEE">https://github.com/CCC-Attestation/formal-spec-TEE</A>.
+            </LI>
+
+            <LI>Simone Bussa, Riccardo Sisto, and Fulvio Valenza. Formal verification of a V2X privacy preserving scheme using Proverif. 2023 IEEE International Conference on Cyber Security and Resilience (CSR), Venice, Italy, 2023, pp. 341-346, Available at <A HREF="https://doi.org/10.1109/CSR57506.2023.10224908">https://doi.org/CSR57506.2023.10224908</A>.
+            </LI>
+
+            <LI>Simone Bussa, Riccardo Sisto, and Fulvio Valenza. Formal Verification of the FDO Protocol. In 2023 IEEE Conference on Standards for Communications and Networking (CSCN), Munich, Germany, 2023, pp. 290-295. Available at <A HREF="https://doi.org/10.1109/CSCN60443.2023.10453172">https://doi.org/10.1109/CSCN60443.2023.10453172</A>.
+            </LI>
+
+            <LI>Norbert Oláh, Botond Molnár, and Andrea Huszti. Secure Registration Protocol for the Internet of Drones Using Blockchain and Physical Unclonable Function Technology. In Symmetry 2023, 15(10), 1886. Available at <A HREF="https://doi.org/10.3390/sym15101886">https://doi.org/10.3390/sym15101886</A>.
+            </LI>
+
+            <LI>Srabana Pramanik, Sandip Roy, and Soumya Banerjee. SLASH: A Secure and Lightweight Authentication Scheme for Enhancing the Reliability of IoT-based Smart Healthcare Systems. In International Conference on Security, Surveillance and Artificial Intelligence (ICSSAI-2023). Available at <A HREF="https://doi.org/10.1201/9781003428459">https://doi.org/10.1201/9781003428459</A> (chapter 1).
+            </LI>
+
+            <LI>Chahrazed Benrebbouh, Houssem Mansouri, Sarra Cherbal, and Lemia Louail. Enhancing Security and Authentication in IoT-based Energy Internet using Post-Quantum Blockchain. In 2023 5th International Conference on Pattern Analysis and Intelligent Systems (PAIS), Sétif, Algeria, 2023, pp. 1-8. Available at <A HREF="https://doi.org/10.1109/PAIS60821.2023.10322026">https://doi.org/10.1109/PAIS60821.2023.10322026</A>.
+            </LI>
+
+            <LI>Andrea Altarui, Marino Miculan, and Matteo Paier. DBCChecker: A Bigraph-Based Tool for Checking Security Properties of Container Compositions. In ITASEC 2023: The Italian Conference on CyberSecurity, May 03–05, 2023, Bari, Italy. Available at <A HREF="https://air.uniud.it/handle/11390/1266244">https://air.uniud.it/handle/11390/1266244</A>.
+            </LI>
+
+            <LI>Xinzhong Su, Youyun Xu, Huawei Tong, and Tianyou Li. A Cluster-based User Authentication Protocol for Internet of Medical Things Deployment. In 2023 International Conference on Wireless Communications and Signal Processing (WCSP), Hangzhou, China, 2023, pp. 517-522.  Available at <A HREF="https://doi.org/10.1109/WCSP58612.2023.10404299">https://doi.org/10.1109/WCSP58612.2023.10404299</A>.
+            </LI>
+
+            <LI>Xuanang Li, Shuangshuang Liu, Saru Kumari, and Chien-Ming Chen. PSAP-WSN: A Provably Secure Authentication Protocol for 5G-Based Wireless Sensor Networks. In Computer Modeling in Engineering & Sciences 2023, 135(1), 711-732. Available at <A HREF="https://doi.org/10.32604/cmes.2022.022667">https://doi.org/10.32604/cmes.2022.022667</A>.
+            </LI>
+
+            <LI>Mohammed Shaful Alam Khan, Mohammad Nurus Salam, and B M Mainul Hossain. Modeling of a Security Enhanced Communication Protocol for IoT-based Applications. In PMIS Review, 2(1). Available at <A HREF="https://www.researchgate.net/publication/382007165_Modeling_of_a_Security_Enhanced_Communication_Protocol_for_IoT-based_Applications">https://www.researchgate.net/publication/382007165_Modeling_of_a_Security_Enhanced_Communication_Protocol_for_IoT-based_Applications</A>.
+            </LI>
+
+            <LI>Huanhuan Ma, Chenyu Wang, Guosheng Xu, Qiang Cao, Guoai Xu, and Li Duan. Anonymous Authentication Protocol Based on Physical Unclonable Function and Elliptic Curve Cryptography for Smart Grid. In: IEEE Systems Journal, vol. 17, no. 4, pp. 6425-6436, Dec. 2023. Available at <A HREF="https://doi.org/10.1109/JSYST.2023.3289492">https://doi.org/10.1109/JSYST.2023.3289492</A>.
+            </LI>
+
+            <LI>Gunawan Widjaja. Lightweight Anonymous Key Sharing Authentication Protocol for Resource-Constrained IoT Devices. In 2023 Second International Conference On Smart Technologies For Smart Nation (SmartTechCon), Singapore, Singapore, 2023, pp. 497-502. Available at <A HREF="https://doi.org/10.1109/SmartTechCon57526.2023.10391317">https://doi.org/10.1109/SmartTechCon57526.2023.10391317</A>.
+            </LI>
+
+            <LI>Sajid Hussain, Muhammad Farooq, Bander A. Alzahrani, Aiiad Albeshri, Khalid Alsubhi, and S. A. Chaudhry. An Efficient and Reliable User Access Protocol for Internet of Drones. In IEEE Access, vol. 11, pp. 59688-59700, 2023. Available at <A HREF="https://doi.org/10.1109/ACCESS.2023.3284832">https://doi.org/10.1109/ACCESS.2023.3284832</A>.
+            </LI>
+
+            <LI>Usha Jain, Aprna Tripathi, Sunil Kumar, and Gireesh Kumar. Simple, secure and lightweight authentication protocol with session-key generation for IIoT device in IIoT networks. In Microsyst Technol (2023). Available at <A HREF="https://doi.org/10.1007/s00542-023-05566-y">https://doi.org/10.1007/s00542-023-05566-y</A>.
+            </LI>
+
+            <LI>Iqra Asghar, Muhammad Ayaz Khan, Tahir Ahmad, Subhan Ullah, Khwaja Mansoor ul Hassan, and Attaullah Buriro. Fortifying Smart Home Security: A Robust and Efficient User-Authentication Scheme to Counter Node Capture Attacks. In Sensors 2023, 23(16), 7268. Available at <A HREF="https://doi.org/10.3390/s23167268">https://doi.org/10.3390/s23167268</A>.
+            </LI>
+
+            <LI>Ed Kamya Kiyemba Edris, Mahdi Aiash, Mohammad Ali Khoshkholghi, Ranesh Naha, Abdullahi Chowdhury, Jonathan Loo. Performance and cryptographic evaluation of security protocols in distributed networks using applied pi calculus and Markov Chain. In Internet of Things, Volume 24, December 2023, 100913. Available at <A HREF="https://doi.org/10.1016/j.iot.2023.100913">https://doi.org/10.1016/j.iot.2023.100913</A>.
+            </LI>
+
+            <LI>Ying Wang, Weijun Zheng, Jinjiang Tang, Feng Sun, Chen Xu, Bin Du, and Chunyan An. A PUF-based Identity Authentication Method for Wireless Sensor Network Devices in Power System. In 2023 IEEE International Conferences on Internet of Things (iThings) and IEEE Green Computing & Communications (GreenCom) and IEEE Cyber, Physical & Social Computing (CPSCom) and IEEE Smart Data (SmartData) and IEEE Congress on Cybermatics (Cybermatics), Danzhou, China, 2023, pp. 205-210. Available at <A HREF="https://doi.org/10.1109/iThings-GreenCom-CPSCom-SmartData-Cybermatics60724.2023.00055">https://doi.org/10.1109/iThings-GreenCom-CPSCom-SmartData-Cybermatics60724.2023.00055</A>.
+            </LI>
+
+            <LI>Mohinder Singh and Jaisankar Natarajan. A novel secure authentication protocol for eHealth records in cloud with a new key generation method and minimized key exchange. In Journal of King Saud University - Computer and Information Sciences, Volume 35, Issue 7, July 2023, 101629. Available at <A HREF="https://doi.org/10.1016/j.jksuci.2023.101629">https://doi.org/10.1016/j.jksuci.2023.101629</A>.
+            </LI>
+
+            <LI>Suleman Khan, Gurjot Singh Gaba, An Braeken, Pardeep Kumar, and Andrei Gurtov. AKAASH: A realizable authentication, key agreement, and secure handover approach for controller-pilot data link communications. International Journal of Critical Infrastructure Protection, Volume 42, September 2023, 100619. Available at <A HREF="https://doi.org/10.1016/j.ijcip.2023.100619">https://doi.org/10.1016/j.ijcip.2023.100619</A>.
+            </LI>
+
+            <LI>Yize Tang, Jin Qian, Xiong Bai, and Ang Li. Lightweight Authentication and Key Agreement for Massive Diverse Power Local Equipment. In 9th International Conference on Computer and Communications (ICCC), Chengdu, China, 2023, pp. 1179-1185. Available at <A HREF="https://doi.org/10.1109/ICCC59590.2023.10507672">https://doi.org/10.1109/ICCC59590.2023.10507672</A>.
+            </LI>
+
+            <LI>Tsu-Yang Wu, Qian Meng, Lei Yang, Saru Kumari, and Matin Pirouz. Amassing the Security: An Enhanced Authentication and Key Agreement Protocol for Remote Surgery in Healthcare Environment. In CMES-Computer Modeling in Engineering & Sciences, 2023, Vol 134, Issue 1, pp. 317-341. Available at <A HREF="https://doi.org/10.32604/cmes.2022.019595">https://doi.org/10.32604/cmes.2022.019595</A>.
+            </LI>
+
+            <LI>Naveed Khan, Zhang Jianbiao, Intikhab Ullah, Muhammad Salman Pathan, and Huhnkuk Lim. Lattice-Based Authentication Scheme to Prevent Quantum Attack in Public Cloud Environment. In Computers, Materials & Continua 2023, 75(1), 35-49. Available at <A HREF="https://doi.org/10.32604/cmc.2023.036189">https://doi.org/10.32604/cmc.2023.036189</A>.
+            </LI>
+
+            <LI>Michael Eckel, Dominik Roy George, Björn Grohmann, Christoph Krauß. Remote Attestation with Constrained Disclosure. In ACSAC'23: Proceedings of the 39th Annual Computer Security Applications Conference, Pages 718 - 731. Available at <A HREF="https://doi.org/10.1145/3627106.3627118">https://doi.org/10.1145/3627106.3627118</A>.
+            </LI>
+
+            <LI>Haqi Khalid, Shaiful Jahari Hashim, Fazirulhisyam Hashim, Sharifah Mumtazah Syed Ahamed, Muhammad Akmal Chaudhary, Hamza H. M. Altarturi, and Muntadher Saadoon. HOOPOE: High Performance and Efficient Anonymous Handover Authentication Protocol for Flying Out of Zone UAVs. In IEEE Transactions on Vehicular Technology, vol. 72, no. 8, pp. 10906-10920, Aug. 2023, Available at <A HREF="https://doi.org/10.1109/TVT.2023.3262173">https://doi.org/10.1109/TVT.2023.3262173</A>.
+            </LI>
+
+            <LI>Hulya Dogan. Protecting UAV-Networks: A Secure Lightweight Authentication and Key Agreement Scheme. In 7th International Conference on Cryptography, Security and Privacy (CSP), Tianjin, China, 2023, pp. 13-21. Available at <A HREF="https://doi.org/10.1109/CSP58884.2023.00010">https://doi.org/10.1109/CSP58884.2023.00010</A>.
+            </LI>
+
+            <LI>Behnam Zahednejad and Chong-zhi Gao. A secure and efficient AKE scheme for IoT devices using PUF and cancellable biometrics. In Internet of Things, Volume 24, December 2023, 100937. Available at <A HREF="https://doi.org/10.1016/j.iot.2023.100937">https://doi.org/10.1016/j.iot.2023.100937</A>.
+            </LI>
+
+            <LI>Kang-Moon Seo, Jane Kim, Soojin Lee, Jun-Woo Kwon, and Seung-Hyun Seo. Efficient Remote Identification for Drone Swarms. In Computers, Materials & Continua 2023, 76(3), 2937-2958. Available at <A HREF="https://doi.org/10.32604/cmc.2023.039459">https://doi.org/10.32604/cmc.2023.039459</A>.
+            </LI>
+
+            <LI>Zhaosen Shi, Zeyu Yang, Alzubair Hassan, Fagen Li, and Xuyang Ding. A privacy preserving federated learning scheme using homomorphic encryption and secret sharing. In Telecommun Syst 82, 419–433 (2023). Available at <A HREF="https://doi.org/10.1007/s11235-022-00982-3">https://doi.org/10.1007/s11235-022-00982-3</A>.
+            </LI>
+
+            <LI>Chenyu Wang, Ding Wang, Yihe Duan, and Xiaofeng Tao. Secure and Lightweight User Authentication Scheme for Cloud-Assisted Internet of Things. In  IEEE Transactions on Information Forensics and Security, vol. 18, pp. 2961-2976, 2023. Available at <A HREF="https://doi.org/10.1109/TIFS.2023.3272772">https://doi.org/10.1109/TIFS.2023.3272772</A>.
+            </LI>
+
+            <LI>Yi Li. A secure and efficient three-factor authentication protocol for IoT environments. In Journal of Parallel and Distributed Computing, Volume 179, September 2023, 104714. Available at <A HREF="https://doi.org/10.1016/j.jpdc.2023.104714">https://doi.org/10.1016/j.jpdc.2023.104714</A>.
+            </LI>
+
+            <LI>Kaijun Liu, Zhou Zhou, Qiang Cao, Guosheng Xu, Chenyu Wang, Yuan Gao, Weikai Zeng, and Guoai Xu. A Robust and Effective Two-Factor Authentication (2FA) Protocol Based on ECC for Mobile Computing. In Appl. Sci. 2023, 13(7), 4425. Available at <A HREF="https://doi.org/10.3390/app13074425">https://doi.org/10.3390/app13074425</A>.
+            </LI>
+
+            <LI>Naveed Khan, Zhang Jianbiao, Huhnkuk Lim, Jehad Ali, Intikhab Ullah, Muhammad Salman Pathan, and Shehzad Ashraf Chaudhry. An ECC-based mutual data access control protocol for next-generation public cloud. In J Cloud Comp 12, 101 (2023). Available at <A HREF="https://doi.org/10.1186/s13677-023-00464-0">https://doi.org/10.1186/s13677-023-00464-0</A>.
+	    </LI>
+        </OL>
+	</UL>
+        2024
+	<UL>
+	  <LI>Rank A* or A conferences
+            <OL>
+            <LI VALUE=288>Pascal Lafourcade, Dhekra Mahmoud, and Sylvain Ruhault. A Unified Symbolic Analysis of WireGuard. In Usenix Network and Distributed System Security Symposium (NDSS), Feb 2024, San Diego (CA), United States. Available at <A HREF="https://dx.doi.org/10.14722/ndss.2024.24364">https://dx.doi.org/10.14722/ndss.2024.24364</A> and <A HREF="https://uca.hal.science/hal-04615393/">https://uca.hal.science/hal-04615393/</A>.
+            </LI>
+
+            <LI>Karthikeyan Bhargavan, Charlie Jacomme, Franziskus Kiefer, and Rolfe Schmidt. Formal verification of the PQXDH Post-Quantum key agreement protocol for end-to-end secure messaging. USENIX Security Symposium, 2024. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity24/presentation/bhargavan">https://www.usenix.org/conference/usenixsecurity24/presentation/bhargavan</A>.
+            </LI>
+
+            <LI>Jannik Dreier, Pascal Lafourcade, and Dhekra Mahmoud. Shaken, not Stirred - Automated Discovery of Subtle Attacks on Protocols using Mix-Nets. USENIX Security Symposium, 2024. Available at <A HREF="https://www.usenix.org/system/files/usenixsecurity24-dreier.pdf">https://www.usenix.org/system/files/usenixsecurity24-dreier.pdf</A>.
+            </LI>
+
+            <LI>Véronique Cortier, Alexandre Debant, Anselme Goetschmann, and Lucca Hirschi. Election Eligibility with OpenID: Turning Authentication into Transferable Proof of Eligibility. In USENIX Security Symposium, 2024. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity24/presentation/cortier">https://www.usenix.org/conference/usenixsecurity24/presentation/cortier</A>.
+            </LI>
+
+            <LI>Jianliang Wu, Patrick Traynor, Dongyan Xu, Dave (Jing) Tian, and Antonio Bianchi. Finding Traceability Attacks in the Bluetooth Low Energy Specification and Its Implementations. In USENIX Security Symposium, 2024. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity24/presentation/wu-jianliang">https://www.usenix.org/conference/usenixsecurity24/presentation/wu-jianliang</A>.
+            </LI>
+
+            <LI>Sevdenur Baloglu, Sergiu Bursuc, Sjouke Mauw, and Jun Pang. Formal Verification and Solutions for Estonian E-Voting. In ASIA CCS'24: Proceedings of the 19th ACM Asia Conference on Computer and Communications Security, Pages 728-741. Available at <A HREF="https://doi.org/10.1145/3634737.3657009">https://doi.org/10.1145/3634737.3657009</A>.
+            </LI>
+
+            <LI>Binghan Wang, Hui Li, and Jingjing Guan. A Formal Analysis of Data Distribution Service Security. In: ASIA CCS '24: Proceedings of the 19th ACM Asia Conference on Computer and Communications Security, pages 716-727. Available at <A HREF="https://doi.org/10.1145/3634737.3656288">https://doi.org/10.1145/3634737.3656288</A>.
+            </LI>
+
+            <LI>Véronique Cortier, Alexandre Debant, and Florian Moser. Code voting: when simplicity meets security. In ESORICS 2024, 29th European Symposium on Research in Computer Security, Sep 2024, Bydgoszcz, Poland. Available at <A HREF="https://inria.hal.science/hal-04627733/">https://inria.hal.science/hal-04627733/</A>.
+            </LI>
+
+            <LI>Zichao Zhang, Limin Jia, and Corina Păsăreanu. ProInspector: Uncovering Logical Bugs in Protocol Implementations. In 9th IEEE European Symposium on Security and Privacy (EuroS&P 2024).  Available at <A HREF="https://doi.org/10.1109/EuroSP60621.2024.00040">https://doi.org/10.1109/EuroSP60621.2024.00040</A>.
+            </LI>
+
+	    </OL>
+	  <LI>Others
+	    <OL>
+            <LI VALUE=297>Mounira Msahli, Pascal Lafourcade, and Dhekra Mahmoud. Formal Analysis of C-ITS PKI protocols. In SECRYPT : International Conference on Information Security and Cryptography, Jul 2024, Dijon, France. Available at <A HREF="https://uca.hal.science/hal-04620494/">https://uca.hal.science/hal-04620494/</A>.
+            </LI>
+
+            <LI>Roberto Van Eeden, Matteo Paier, and Marino Miculan. A Formal Analysis of CIE Level 2 Multi-Factor Authentication via SMS OTP. In Proceedings of the 21st International Conference on Security and Cryptography (SECRYPT 2024), pages 483-491. Available at <A HREF="https://doi.org/10.5220/0012768300003767">https://doi.org/10.5220/0012768300003767</A>.
+            </LI>
+
+            <LI>Monica P. Arenas, Gabriele Lenzini, Mohammadamin Rakeei, Peter Y. A. Ryan, Marjan Skrobot, and Maria Zhekova. Verifying Artifact Authenticity with Unclonable Optical Tags. In Proceedings of the 21st International Conference on Security and Cryptography (SECRYPT 2024), pages 64-77. Available at <A HREF="https://doi.org/10.5220/0012746500003767">https://doi.org/10.5220/0012746500003767</A>.
+            </LI>
+
+            <LI>Yongqi Wang, Thalia Laing, José Moreira, and Mark D. Ryan. Remote Registration of Multiple Authenticators. In CODASPY '24: Proceedings of the Fourteenth ACM Conference on Data and Application Security and Privacy, pages 379-390. Available at <A HREF="https://doi.org/10.1145/3626232.3653273">https://doi.org/10.1145/3626232.3653273</A>.
+            </LI>
+
+            <LI>Behnam Shobiri, Sajjad Pourali, Daniel Migault, Ioana Boureanu, Stere Preda, Mohammad Mannan, and Amr Youssef. LURK-T: Limited Use of Remote Keys with Added Trust in TLS 1.3. In IEEE Transactions on Network Science and Engineering. Available at <A HREF="https://doi.org/10.1109/TNSE.2024.3432836">https://doi.org/10.1109/TNSE.2024.3432836</A>.
+            </LI>
+
+            <LI>Ruiqi Lu, Guoqi Xie, Renfa Li, Wei Xu, and Jianmei Lei. TrinitySec: Trinity-Enabled and Lightweight Security Framework for CAN-FD Communication. In IEEE Transactions on Dependable and Secure Computing, vol. 21, no. 4, pp. 2704-2719, July-Aug. 2024. Available at <A HREF="https://doi.org/10.1109/TDSC.2023.3314908">https://doi.org/10.1109/TDSC.2023.3314908</A>.
+            </LI>
+
+            <LI>Takehiko Mieno, Hiroyuki Okazaki, Kenichi Arai, and Yuichi Futa. How to Formalize Loop Iterations in Cryptographic Protocols Using ProVerif.  In IEEE Access, vol. 12, pp. 31605-31625, 2024. Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3368453">https://doi.org/10.1109/ACCESS.2024.3368453</A>.
+            </LI>
+
+            <LI>Shihong Zou, Qiang Cao, Ruichao Lu, Chenyu Wang, Guoai Xu, Huanhuan Ma, Yingyi Cheng, Jinwen Xi. A robust and effective 3-factor authentication protocol for smart factory in IIoT. In Computer Communications, Volume 220, 15 April 2024, Pages 81-93. Available at <A HREF="https://doi.org/10.1016/j.comcom.2024.04.011">https://doi.org/10.1016/j.comcom.2024.04.011</A>.
+            </LI>
+
+            <LI>Ghazaleh Sarbishaei, Amir Masoud Aminian Modarres, Farahnaz Jowshan, Fateme Zahra Khakzad, and Hasti Mokhtari. Smart Home Security: An Efficient Multi-Factor uthentication Protocol. In IEEE Access, vol. 12, pp. 106253-106272, 2024, Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3437294">https://doi.org/10.1109/ACCESS.2024.3437294</A>.
+            </LI>
+
+            <LI>Naiguang Zhu, Jie Xu, and Baojiang Cui. Formal Analysis of 5G EAP-TLS 1.3. In Advances in Internet, Data & Web Technologies (EIDWT 2024), pp. 140-151. Lecture Notes on Data Engineering and Communications Technologies, vol 193. Springer, Cham. Available at <A HREF="https://doi.org/10.1007/978-3-031-53555-0_14">https://doi.org/10.1007/978-3-031-53555-0_14</A>.
+            </LI>
+
+            <LI>Kazuhiro Fujita and Kazuki Yoneyama. Formal Verification of Wireless Charging Standard Qi. In APKC'24: Proceedings of the 11th ACM Asia Public-Key Cryptography Workshop, pages 23-31. Available at <A HREF="https://doi.org/10.1145/3659467.3659904">https://doi.org/10.1145/3659467.3659904</A>.
+            </LI>
+
+            <LI>Manabhanjan Pradhan and Sujata Mohanty. A Blockchain-Assisted Multifactor Authentication Protocol for Enhancing IoMT Security. IEEE Internet of Things Journal. Available at <A HREF="https://doi.org/10.1109/JIOT.2024.3422242">https://doi.org/10.1109/JIOT.2024.3422242</A>.
+            </LI>
+
+            <LI>Kamal Raj, Srinivasu Bodapati, and Anupam Chattopadhyay. PUF-based Lightweight Mutual Authentication Protocol for Internet of Things (IoT) Devices. In 2024 IEEE International Symposium on Circuits and Systems (ISCAS), Singapore, Singapore, 2024, pp. 1-5. Available at <A HREF="https://doi.org/10.1109/ISCAS58744.2024.10558672">https://doi.org/10.1109/ISCAS58744.2024.10558672</A>.
+            </LI>
+
+            <LI>Amira Henaien, Hadda Ben Elhadj, and Lamia Chaari Fourati. RFID IoT Architecture for Smart Inventory Management: Security Integration. In 2024 International Wireless Communications and Mobile Computing (IWCMC), Ayia Napa, Cyprus, 2024, pp. 1010-1015. Available at <A HREF="https://doi.org/10.1109/IWCMC61514.2024.10592487">https://doi.org/10.1109/IWCMC61514.2024.10592487</A>.
+            </LI>
+
+            <LI>Kakeru Watanabe and Kazuki Yoneyama. Formal Verification of Challenge Flow in EMV 3-D Secure. In: Zhu, T., Li, Y. (eds) Information Security and Privacy. ACISP 2024. Lecture Notes in Computer Science, vol 14896. Springer, Singapore. Available at <A HREF="https://doi.org/10.1007/978-981-97-5028-3_15">https://doi.org/10.1007/978-981-97-5028-3_15</A>.
+            </LI>
+
+            <LI>Shuang Hu, Pengjun Wang, Haonan He, Yuejun Zhang, and Xiangyu Li. Gas Sensor Physically Unclonable Function-Based Lightweight Bidirectional Authentication Protocol for Gas Sensor Networks. In: Electronics 2024, 13(17), 3385. Available at <A HREF="https://doi.org/10.3390/electronics13173385">https://doi.org/10.3390/electronics13173385</A>.
+            </LI>
+
+            <LI>Chit-Jie Chew, Wei-Bin Lee, Tzu-Li Sung, Ying-Chin Chen, Shiuh-Jeng Wang, and Jung-San Lee. Lawful Remote Forensics Mechanism With Admissibility of Evidence in Stochastic and Unpredictable Transnational Crime. In IEEE Transactions on Information Forensics and Security, vol. 19, pp. 5956-5970, 2024. Available at <A HREF="https://doi.org/10.1109/TIFS.2024.3368888">https://doi.org/10.1109/TIFS.2024.3368888</A>.
+            </LI>
+
+            <LI>Saeed Ullah Jan, Muhammad Bilal, Anwar Ghani, Salabat Khan, Rashid Ahmad, and Do–Hveun Kim. Robust and Lightweight Authentication for Securing Communication in the Internet-of-Drones (IoD) Environment. In IEEE INFOCOM 2024 - IEEE Conference on Computer Communications Workshops (INFOCOM WKSHPS), Vancouver, BC, Canada, 2024, pp. 01-06. Available at <A HREF="https://doi.org/10.1109/INFOCOMWKSHPS61880.2024.10620898">https://doi.org/10.1109/INFOCOMWKSHPS61880.2024.10620898</A>.
+            </LI>
+
+            <LI>Nasser Zarbi, Ali Zaeembashi, Nasour Bagheri, and Morteza Adeli. Toward designing a lightweight RFID authentication protocol for constrained environments. In IET Communications, Volume 18, Issue 14, Pages 846-859, August 2024. Available at <A HREF="https://doi.org/10.1049/cmu2.12794">https://doi.org/10.1049/cmu2.12794</A>.
+            </LI>
+
+            <LI>Raphael Schermann, Simone Bussa, Rainer Urian, Ronald Toegl, and Christian Steger. PAKA: Pseudonymous Authenticated Key Agreement without bilinear cryptography. In ARES '24: Proceedings of the 19th International Conference on Availability, Reliability and Security, Article No.: 130, Pages 1 - 10. Available at <A HREF="https://doi.org/10.1145/3664476.3669925">https://doi.org/10.1145/3664476.3669925</A>.
+            </LI>
+
+            <LI>Fahad Algarni and Saeed Ullah Jan. PSLAPS-IoD: A Provable Secure and Lightweight Authentication Protocol for Securing Internet-of-Drones (IoD) Environment. In IEEE Access, vol. 12, pp. 45948-45960, 2024. Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3382579">https://doi.org/10.1109/ACCESS.2024.3382579</A>.
+            </LI>
+
+            <LI>Khushil Kumar Saini, Damandeep Kaur, Devender Kumar, and Bijendra Kumar. An efficient three-factor authentication protocol for wireless healthcare sensor networks. In Multimed Tools Appl 83, 63699–63721 (2024). Available at <A HREF="https://doi.org/10.1007/s11042-024-18114-1">https://doi.org/10.1007/s11042-024-18114-1</A>.
+            </LI>
+
+            <LI>Chahrazed Benrebbouh, Houssem Mansouri, Sarra Cherbal, and Al-Sakib Khan Pathan. Enhanced secure and efficient mutual authentication protocol in IoT-based energy internet using blockchain. In Peer-to-Peer Netw. Appl. 17, 68–88 (2024). Available at <A HREF="https://doi.org/10.1007/s12083-023-01580-z">https://doi.org/10.1007/s12083-023-01580-z</A>.
+            </LI>
+
+            <LI>Akshay Kumar, Usha Jain, Muzzammil Hussain, Mohammad Khalid Imam Rahmani, and Abdulbasid S. Banga. Mechanism for Device Authentication and Session Key Generation in Industrial Internet of Things Networks. In IEEE Access, vol. 12, pp. 108770-108785, 2024. Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3435688">https://doi.org/10.1109/ACCESS.2024.3435688</A>.
+            </LI>
+
+            <LI>Qingyang Zhang, Xiaolong Zhou, Hong Zhong, Jie Cui, Jiaxin Li, and Debiao He. Device-Side Lightweight Mutual Authentication and Key Agreement Scheme based on Chameleon Hashing for Industrial Internet of Things. In IEEE Transactions on Information Forensics and Security. Available at <A HREF="https://doi.org/10.1109/TIFS.2024.3451357">https://doi.org/10.1109/TIFS.2024.3451357</A>.
+            </LI>
+
+            <LI>Haitao Xiao and An He. A group key agreement protocol for Vanet based on Chinese remainder theorem and blockchain. In Transactions on Emerging Telecommunication Technologies, Volume 35, Issue 5, e4987, May 2024. Available at <A HREF="https://doi.org/10.1002/ett.4987">https://doi.org/10.1002/ett.4987</A>.
+            </LI>
+
+            <LI>Li Li, XingJuan Fan, BoYuan Zhi, ShaoJun Li, and Seyyed Amirreza Dabollahi. Highly secure authentication and key agreement protocol for the internet of vehicles. In Telecommun Syst 87, 73–88 (2024).  Available at <A HREF="https://doi.org/10.1007/s11235-024-01172-z">https://doi.org/10.1007/s11235-024-01172-z</A>.
+            </LI>
+
+            <LI>Wenfeng Huang. ECC-based three-factor authentication and key agreement scheme for wireless sensor networks. In Scientific Reports, volume 14, Article number: 1787 (2024). Available at <A HREF="https://doi.org/10.1038/s41598-024-52134-z">https://doi.org/10.1038/s41598-024-52134-z</A>.
+            </LI>
+
+            <LI>Kang Wen, Shengbao Wang, Yixiao Wu, Jie Wang, Lidong Han, and Qi Xie. A Secure Authentication Protocol Supporting Efficient Handover for UAV. In Mathematics 2024, 12(5), 716. Available at <A HREF="https://doi.org/10.3390/math12050716">https://doi.org/10.3390/math12050716</A>.
+            </LI>
+
+            <LI>Devender Kumar, Satish Chand, and Bijendra Kumar. A secure three-factor authentication protocol for mobile networks. In International Journal of Information and Computer Security (IJICS), Vol. 23, No. 2, 2024. Available at <A HREF="https://doi.org/10.1504/IJICS.2024.137716">https://doi.org/10.1504/IJICS.2024.137716</A>.
+            </LI>
+
+            <LI>Jamile Khalili Shahrouz and Morteza Analoui. An anonymous authentication scheme with conditional privacy-preserving for Vehicular Ad hoc Networks based on zero-knowledge proof and Blockchain. In Ad Hoc Networks, Volume 154, 2024, 103349. Available at <A HREF="https://doi.org/10.1016/j.adhoc.2023.103349">https://doi.org/10.1016/j.adhoc.2023.103349</A>.
+            </LI>
+
+            <LI>Himani Sikarwar and Debasis Das. SecEdge: Secure Edge-Computing-Based Hybrid Approach for Data Collection and Searching in IoV. In IEEE Transactions on Network and Service Management, vol. 21, no. 1, pp. 1213-1225, Feb. 2024. Available at <A HREF="https://doi.org/10.1109/TNSM.2023.3299264">https://doi.org/10.1109/TNSM.2023.3299264</A>.
+            </LI>
+
+            <LI>Muhammad Asad Saleem, Xiong Li, Khalid Mahmood, Salman Shamshad, Muhammad Faizan Ayub, Ali Kashif Bashir, and Marwan Omar. Provably Secure Conditional-Privacy Access Control Protocol for Intelligent Customers-Centric Communication in VANET. In IEEE Transactions on Consumer Electronics, vol. 70, no. 1, pp. 1747-1756, Feb. 2024. Available at <A HREF="https://doi.org/10.1109/TCE.2023.3324273">https://doi.org/10.1109/TCE.2023.3324273</A>.
+            </LI>
+
+            <LI>Yongfei Huang, Guangxia Xu, Xiaoling Song, and Yuqing Xu. An Efficient RLWE-based Privacy-Preserving Authentication Scheme based on Edge Computing in Industrial Internet of Things. In IEEE Transactions on Services Computing. Available at <A HREF="https://doi.org/10.1109/TSC.2024.3433534">https://doi.org/10.1109/TSC.2024.3433534</A>.
+            </LI>
+
+            <LI>Chaoyue Lv, Di Lu, Yuanyuan Zhang, Xindi Ma, Yulong Shen, Liping Wang, and Jianfeng Ma. ZMAM: A ZKP-Based Mutual Authentication Scheme for the IoMT. In: Xie, X., Styles, I., Powathil, G., Ceccarelli, M. (eds) Artificial Intelligence in Healthcare. AIiH 2024. Lecture Notes in Computer Science, vol 14976. Springer, Cham. Available at <A HREF="https://doi.org/10.1007/978-3-031-67285-9_19">https://doi.org/10.1007/978-3-031-67285-9_19</A>.
+            </LI>
+
+            <LI>Rui Chen, Yongcong Mou, and Wei Li. A provably secure multi-server authentication scheme based on Chebyshev chaotic map. In Journal of Information Security and Applications, Volume 83, 2024, 103788. Available at <A HREF="https://doi.org/10.1016/j.jisa.2024.103788">https://doi.org/10.1016/j.jisa.2024.103788</A>.
+            </LI>
+
+            <LI>Ilsun You, Gunwoo Kim,Seonghan Shin, Hoseok Kwon, Jongkil Kim, and Joonsang Baek. 5G-AKA-FS: A 5G Authentication and Key Agreement Protocol for Forward Secrecy. In Sensors 2024, 24(1), 159. Available at <A HREF="https://doi.org/10.3390/s24010159">https://doi.org/10.3390/s24010159</A>.
+            </LI>
+
+            <LI>Pengbo Xu, Huici Wu, Xiaofeng Tao, Chenyu Wang, Dajiang Chen, and Guoshun Nan. Anti-Quantum Certificateless Group Authentication for Massive Accessing IoT Devices. In IEEE Internet of Things Journal, vol. 11, no. 9, pp. 16561-16577, May 1, 2024. Available at <A HREF="https://doi.org/10.1109/JIOT.2024.3353807">https://doi.org/10.1109/JIOT.2024.3353807</A>.
+            </LI>
+
+            <LI>Xianji Jin, Na Lin, Zhongwei Li, Wenqi Jiang, Yuge Jia, Qingyang Li. A Lightweight Authentication Scheme for Power IoT Based on PUF and Chebyshev Chaotic Map. In IEEE Access, vol. 12, pp. 83692-83706, 2024. Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3413853">https://doi.org/10.1109/ACCESS.2024.3413853</A>.
+            </LI>
+
+            <LI>Azeem Irshad and Mohammed Alreshoodi. SEMS-5G: A Secure and Efficient Multi-Server Authentication Scheme for 5G Networks. In IEEE Access, vol. 12, pp. 49062-49077, 2024. Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3381616">https://doi.org/10.1109/ACCESS.2024.3381616</A>.
+            </LI>
+
+            <LI>Raghad Almari, Abdullah Almosallam, Saleh Almousa, and Saad Alahmadi. Protecting Instant Messaging Notifications against Physical Attacks: A Novel Instant Messaging Notification Protocol Based on Signal Protocol. In Appl. Sci. 2024, 14(14), 6348. Available at <A HREF="https://doi.org/10.3390/app14146348">https://doi.org/10.3390/app14146348</A>.
+            </LI>
+
+            <LI>Taewoong Kang, Naryun Woo, and Jihyeon Ryu. Enhanced Lightweight Medical Sensor Networks Authentication Scheme Based on Blockchain. In IEEE Access, vol. 12, pp. 35612-35629, 2024. Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3373879">https://doi.org/10.1109/ACCESS.2024.3373879</A>.
+            </LI>
+
+            <LI>Maxime Méré, Frédéric Jouault, Loïc Pallardy, and Richard Perdriau. Evaluating formal model verification tools in an industrial context: the case of a smart device life cycle management system. In Softw Syst Model (2024). Available at <A HREF="https://doi.org/10.1007/s10270-024-01201-0">https://doi.org/10.1007/s10270-024-01201-0</A>.
+            </LI>
+
+            <LI>Azeem Irshad, Muhammad Farooq, Khalid Mahmood, Ghulam Ali Mallah, and Shehzad Ashraf Chaudhry. DAC-MD: A privacy preserving drone-access control scheme for last mile delivery. In Transactions on Emerging Telecommunication Technologies, Volume 35, Issue 3, March 2024, e4958. Available at <A HREF="https://doi.org/10.1002/ett.4958">https://doi.org/10.1002/ett.4958</A>.
+            </LI>
+
+            <LI>Zisang Xu, Hao Peng, Ke Gu, Xiong Li, and Peng Huang. An Energy Efficient Access and Handover Authentication Scheme for 6G Satellite-Terrestrial Integrated Network. In IEEE Transactions on Green Communications and Networking. Available at <A HREF="https://doi.org/10.1109/TGCN.2024.3450515">https://doi.org/10.1109/TGCN.2024.3450515</A>.
+            </LI>
+
+            <LI>Jingda Yang, Sudhanshu Arya, and Ying Wang. Formal-Guided Fuzz Testing: Targeting Security Assurance From Specification to Implementation for 5G and Beyond. In IEEE Access, vol. 12, pp. 29175-29193, 2024. Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3369613">https://doi.org/10.1109/ACCESS.2024.3369613</A>.
+            </LI>
+
+            <LI>Jingda Yang and Ying Wang. Dependency-Graph Enabled Formal Analysis for 5G AKA Protocols: Assumption Propagation and Verification. In ICC 2024 - IEEE International Conference on Communications, Denver, CO, USA, 2024, pp. 715-721. Available at <A HREF="https://doi.org/10.1109/ICC51166.2024.10622353">https://doi.org/10.1109/ICC51166.2024.10622353</A>.
+            </LI>
+
+            <LI>Mehdi Hosseinzadeh, Mohammad Reza Servati, Amir Masoud Rahmani, Masoumeh Safkhani, Jan Lansky, Renata Janoscova, Omed Hassan Ahmed, Jawad Tanveer, and Sang-Woong Lee. An Enhanced Authentication Protocol Suitable for Constrained RFID Systems. In IEEE Access, vol. 12, pp. 61610-61628, 2024, Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3364690">https://doi.org/10.1109/ACCESS.2024.3364690</A>.
+            </LI>
+
+            <LI>Ping Guo, Wenfeng Liang, and Shuilong Xu. A privacy preserving four-factor authentication protocol for internet of medical things. In Computers & Security, Volume 137, February 2024, 103632. Available at <A HREF="https://doi.org/10.1016/j.cose.2023.103632">https://doi.org/10.1016/j.cose.2023.103632</A>.
+            </LI>
+
+            <LI>Jie Wang, Shengbao Wang, Kang Wen, Bosen Weng, Xin Zhou, and Kefei Chen. An ECC-Based Authentication Protocol for Dynamic Charging System of Electric Vehicles. In Electronics 2024, 13(6), 1109. Available at <A HREF="https://doi.org/10.3390/electronics13061109">https://doi.org/10.3390/electronics13061109</A>.
+            </LI>
+
+            <LI>Abdulrahman Ahmed Alzahrani. VSKAP-IoD: A Verifiably Secure Key Agreement Protocol for Securing IoD Environment. In IEEE Access, vol. 12, pp. 58039-58056, 2024. Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3388500">https://doi.org/10.1109/ACCESS.2024.3388500</A>.
+            </LI>
+
+            <LI>Mirza Kamrul Bashar Shuhan, Syed Md. Hasnayeen, Tanmoy Krishna Das, Md. Nazmus Sakib, and Md Sadek Ferdous. Decentralised identity federations using blockchain. In Int. J. Inf. Secur. 23, 2759–2782 (2024). Available at <A HREF="https://doi.org/10.1007/s10207-024-00864-6">https://doi.org/10.1007/s10207-024-00864-6</A>.
+            </LI>
+
+            <LI>Zeyad Ghaleb Al-Mekhlafi, Hussam Dheaa Kamel Al-Janabi, Ayman Khalil, Mahmood A. Al-Shareeda, Badiea Abdulkarem Mohammed, Abeer Abdullah Alsadhan, Abdulaziz M. Alayba, Ahmed M. Shamsan Saleh, Hamad A. Al-Reshidi, and Khalil Almekhlafi. Lattice-Based Cryptography and Fog Computing Based Efficient Anonymous Authentication Scheme for 5G-Assisted Vehicular Communications. In IEEE Access, vol. 12, pp. 71232-71247, 2024. Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3402336">https://doi.org/10.1109/ACCESS.2024.3402336</A>.
+            </LI>
+
+            <LI>Naveen Chandra Gowda, Sunilkumar S. Manvi, A. Bharathi Malakreddy, and Rajkumar Buyya. TAKM-FC: Two-way Authentication with efficient Key Management in Fog Computing Environments. In J Supercomput 80, 6855–6890 (2024). Available at <A HREF="https://doi.org/10.1007/s11227-023-05712-3">https://doi.org/10.1007/s11227-023-05712-3</A>.
+            </LI>
+
+            <LI>Fatemeh Pirmoradian, Mohammad Dakhilalian, and Masoumeh Safkhani. ECKCI: An ECC-Based Authenticated Key Agreement Scheme Resistant to Key Compromise Impersonation Attack for TMIS. In The ISC International Journal of Information Security, Volume 16, Issue 2, July 2024, Pages 115-136. Available at <A HREF="https://doi.org/10.22042/isecure.2024.408640.989">https://doi.org/10.22042/isecure.2024.408640.989</A>.
+            </LI>
+
+            <LI>Yuting Yang, Weijie Tan, Zhen Li, Yuling Chen, and Chunguo Li. Mutual Authentication Protocols Based on PUF and Multi Trusted Authority for Internet of Vehicle. In IEEE Internet of Things Journal. Available at <A HREF="https://doi.org/10.1109/JIOT.2024.3449901">https://doi.org/10.1109/JIOT.2024.3449901</A>.
+            </LI>
+
+            <LI>Burhan Sher, Mustafeez Ahmad, Khwaja Mansoor, Yawar Abbas Bangash, Waseem Iqbal, and Shynar Mussiraliyeva. Lightweight secure authentication protocol for automatic dependent surveillance broadcast system. In Cluster Comput (2024). Available at <A HREF="https://doi.org/10.1007/s10586-024-04566-5">https://doi.org/10.1007/s10586-024-04566-5</A>.
+            </LI>
+
+            <LI>Sebastian Josef Schmid, Daniel Schraudner, and Andreas Harth. The Rights Delegation Proxy: An Approach for Delegations in the Solid Dataspace. In Proceedings of the Second International Workshop on Semantics in Dataspaces, Hersonissos 2024. Available at <A HREF="https://ceur-ws.org/Vol-3705/paper02.pdf">https://ceur-ws.org/Vol-3705/paper02.pdf</A>.
+            </LI>
+
+            <LI>Shunfang Hu, Shaoping Jiang, Qing Miao, Fan Yang, Weihong Zhou, and Peng Duan. Provably Secure ECC-Based Anonymous Authentication and Key Agreement for IoT. In Appl. Sci. 2024, 14(8), 3187. Available at <A HREF="https://doi.org/10.3390/app14083187">https://doi.org/10.3390/app14083187</A>.
+            </LI>
+
+            <LI>Rémi Garcia and Paolo Modesti. A Practical Approach to Formal Methods: An Eclipse Integrated Development Environment (IDE) for Security Protocols. Electronics, Volume 13, No. 23, 4660, 2024. Available at <A HREF="https://doi.org/10.3390/electronics13234660">https://doi.org/10.3390/electronics13234660</A>.
+	    </LI>
+
+	    <LI>Takehiko Mieno, Hiroyuki Okazaki, Kenichi Arai, Yuichi Futa, and Hiroaki Yamamoto. Formal Security Verification for Searchable Symmetric Encryption Using ProVerif. In 2024 International Symposium on Information Theory and Its Applications (ISITA), Taipei, Taiwan, 2024, pp. 419-424. Available at <A HREF="https://doi.org/10.23919/ISITA60732.2024.10858210">https://doi.org/10.23919/ISITA60732.2024.10858210</A>
+	    </LI>
+
+	    <LI>T. K. Silim, Y. Farida, N. Yulianti and S. Rosdiana, "Formal Analysis of MPKE Protocol in Wireless Mesh Network Using ProVerif," 2024 International Conference on Informatics, Multimedia, Cyber and Information System (ICIMCIS), Jakarta, Indonesia, 2024, pp. 315-321, Available at <A HREF="https://doi.org/10.1109/ICIMCIS63449.2024.10957235">https://doi.org/10.1109/ICIMCIS63449.2024.10957235</A>.
+	    </LI>
+
+	    <LI>M. U. Sardar, A. Niemi, H. Tschofenig and T. Fossati, "Towards Validation of TLS 1.3 Formal Model and Vulnerabilities in Intel’s RA-TLS Protocol," in IEEE Access, vol. 12, pp. 173670-173685, 2024. Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3497184">https://doi.org/10.1109/ACCESS.2024.3497184</A>
+	    </LI>
+
+	    <LI>Fahad Algarni. A lightweight and secure authentication protocol for visually impaired and handicapped people in the telehealth system. In: Alexandria Engineering Journal, Volume 106, 2024, Pages 793-808, ISSN 1110-0168.
+	      Available at <A HREF="https://doi.org/10.1016/j.aej.2024.08.078">https://doi.org/10.1016/j.aej.2024.08.078</A>.
+	    </LI>
+
+	    <LI>Matteo Paier, Roberto Van Eeden, and Marino Miculan. Formal Analysis of Multi-Factor Authentication Schemes in Digital Identity Cards. In: Madeira, A., Knapp, A. (eds) Software Engineering and Formal Methods. SEFM 2024. Lecture Notes in Computer Science, vol 15280. Springer, Cham. Available at <A HREF="https://doi.org/10.1007/978-3-031-77382-2_24">https://doi.org/10.1007/978-3-031-77382-2_24</A>.
+	    </LI>
+
+	    <LI>Weiping Shao, Yong Li, Jinyi Qium, and Meiying Wang. A Secondary Authentication Algorithm of 5G Communication with PUF Terminal for Power Service. In 2024 3rd International Conference on Energy and Electrical Power Systems (ICEEPS), Guangzhou, China, 2024, pp. 1287-1290. Available at <A HREF="https://doi.org/10.1109/ICEEPS62542.2024.10693090">https://doi.org/10.1109/ICEEPS62542.2024.10693090</A>.
+	    </LI>
+
+	    <LI>Tao Xia, Menglin Wang, Jun He, Hai Guo, Zhiqiang Qu, and Jianguo Yuan. Research on Drone Network Security Issues under Quantum Attack Threats. In: 2024 4th International Conference on Communication Technology and Information Technology (ICCTIT), Guangzhou, China, 2024, pp. 230-234. Available at <A HREF="https://doi.org/10.1109/ICCTIT64404.2024.10928461">https://doi.org/10.1109/ICCTIT64404.2024.10928461</A>.
+	    </LI>
+
+	    <LI>Akash Poudel, Sujata Mohanty, and Manabhanjan Pradhan. Design of Lightweight Authentication Scheme for Low Power Internet of Medical Things (IoMT). In: 2024 IEEE International Conference on Smart Power Control and Renewable Energy (ICSPCRE), Rourkela, India, 2024, pp. 1-6. Available at <A HREF="https://doi.org/10.1109/ICSPCRE62303.2024.10675052">https://doi.org/10.1109/ICSPCRE62303.2024.10675052</A>.
+	    </LI>
+	    
+	    <LI>Arman Ahmad and S. Jagatheswari. Lattice-Based Three Party Authenticated Key Agreement Scheme in Medical IoT for Post-Quantum Environment," in IEEE Access, vol. 12, pp. 157247-157259, 2024. Available at <A HREF="https://doi.org/10.1109/ACCESS.2024.3483971">https://doi.org/10.1109/ACCESS.2024.3483971</A>.
+	    </LI>
+
+            </OL>
+	</UL>
+        2025
+	<P>
+	  From 2025, due to the large number of papers, we only cite A* and A conferences, according to <A HREF="https://portal.core.edu.au/conf-ranks/">ICORE conference ranking 2026</A>.
+	
+        <OL>
+	    <LI VALUE=366>Karthikeyan Bhargavan, Lasse Letager Hansen, Franziskus Kiefer, Jonas Schneider-Bensch, and Bas Spitters. Formal Security and Functional Verification of Cryptographic Protocol Implementations in Rust. In Proceedings of the 2025 ACM SIGSAC Conference on Computer and Communications Security (CCS '25). Association for Computing Machinery, New York, NY, USA, 2729–2743. Available at <A HREF="https://doi.org/10.1145/3719027.3765213">https://doi.org/10.1145/3719027.3765213</A>.
+	    </LI>
+
+	    <LI>Vincent Diemunsch, Lucca Hirschi, and Steve Kremer. A Comprehensive Formal Security Analysis of OPC UA. In: 34th USENIX Security Symposium (USENIX Security 25), pp. 7077--7096. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity25/presentation/diemunsch">https://www.usenix.org/conference/usenixsecurity25/presentation/diemunsch</A>.
+	    </LI>
+
+	    <LI>Pascal Lafourcade, Dhekra Mahmoud, Sylvain Ruhault, and Abdul Rahman Taleb. A Tale of Two Worlds, a Formal Story of WireGuard Hybridization. In 34th USENIX Security Symposium (USENIX Security 25), pp. 4937--4956. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity25/presentation/lafourcade">https://www.usenix.org/conference/usenixsecurity25/presentation/lafourcade</A>.
+	    </LI>
+	    
+	    <LI>Xiaofeng Liu, Chaoshun Zuo, Qinsheng Hou, Pengcheng Ren, Jianliang Wu, Qingchuan Zhao, Shanqing Guo. A Thorough Security Analysis of BLE Proximity Tracking Protocols. In: 34th USENIX Security Symposium (USENIX Security 25), pp. 5347-5364. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity25/presentation/liu-xiaofeng">https://www.usenix.org/conference/usenixsecurity25/presentation/liu-xiaofeng</A>.
+	    </LI>
+
+	    <LI>Ayoub Ben Hassen, Pascal Lafourcade, Dhekra Mahmoud, and Maxime Puys. Formal Analysis of SDNsec: Attacks and Corrections for Payload, Route Integrity and Accountability. In Proceedings of the 20th ACM Asia Conference on Computer and Communications Security (ASIA CCS '25). Association for Computing Machinery, New York, NY, USA, 1476–1489. Available at <A HREF="https://doi.org/10.1145/3708821.3710828">https://doi.org/10.1145/3708821.3710828</A>.
+	    </LI>
+
+	    <LI>Ioana Boureanu, Cristina Onete, Stephan Wesemeyer, Léo Robert, Rhys Miller, Pascal Lafourcade, and Fortunat Rajaona. Post-Compromise Security with Application-Level Key-Controls – with a comprehensive study of the 5G AKMA protocol. In: Proceedings of the 20th ACM Asia Conference on Computer and Communications Security (ASIA CCS '25). Association for Computing Machinery, New York, NY, USA, 231–247. Available at <A HREF="https://doi.org/10.1145/3708821.3733910">https://doi.org/10.1145/3708821.3733910</A>.
+	    </LI>
+
+	    <LI>Faezeh Nasrabadi, Robert Künnemann, and Hamed Nemati. Symbolic Parallel Composition for Multi-language Protocol Verification. In: 2025 IEEE 38th Computer Security Foundations Symposium (CSF), Santa Cruz, CA, USA, 2025, pp. 378-393. Available at <A HREF="https://doi.org/10.1109/CSF64896.2025.00030">https://doi.org/10.1109/CSF64896.2025.00030</A>.
+	    </LI>
+
+	    <LI>Véronique Cortier, Alexandre Debant, Pierrick Gaudry, Léo Louistisserand. Vote&amp;Check: Secure Postal Voting with Reduced Trust Assumptions. In Privacy Enhancing Technologies Symposium, 2025, issue 3, pp. 333-348. Available at <A HREF="https://doi.org/10.56553/popets-2025-0101">https://doi.org/10.56553/popets-2025-0101</A>.
+	    </LI>
+
+        </OL>
+	2026
+	<OL>
+	  <LI VALUE=374>Tommaso Sacchetti and Daniele Antonioli. BLERP: BLE Re-Pairing Attacks and Defenses. NDSS 2026, 33rd Network and Distributed System Security Symposium, Feb 2026, San Diego, United States. Available at <A HREF="https://doi.org/10.14722/ndss.2026.240121">https://doi.org/10.14722/ndss.2026.240121</A>.
+	  </LI>
+
+	  <LI>Elsa Lopez Perez, Thomas Watteyne, Cristina Onete, Dhekra Mahmoud, Pascal Lafourcade, Vaishnavi Sundararajan, and Mališa Vučinić. Formal Verification of EDHOC-PSK: A Symbolic Approach with SAPIC. In: Asia CCS'26. Available at <A HREF="https://doi.org/10.1145/3779208.3805979">https://doi.org/10.1145/3779208.3805979</A>
+	  </LI>
+
+	</OL>
+	
+        <H2 id="tools">Tools</H2>
+
+        <UL>
+
+            <LI><A HREF="https://www.microsoft.com/en-us/download/details.aspx?id=52378">TulaFale</A>, analyzer for Web services, using ProVerif as a back-end (Microsoft Research).
+            </LI>
+
+            <LI><A HREF="https://www.microsoft.com/en-us/download/details.aspx?id=52339">FS2PV</A>, verifier for protocol implementations written in F#, using ProVerif as a back-end (Microsoft Research).
+	    </LI>
+                <!--The tool seems to use CryptoVerif, not ProVerif, although there is also a paper using ProVerif
+                    <LI><A HREF="https://github.com/tari3x/csec-modex">csec-modex</A>, verifier for protocol implementations in C.
+		      </LI>
+                -->            
+
+            <LI><A HREF="http://spi2java.polito.it/">Spi2Java</A> (<A HREF="https://manualzz.com/doc/7132839/spi2java-user-manual---version-3.1">manual available here</A>) also allows using ProVerif as protocol analyzer for their protocol specifications (using the Spi2Proverif auxiliary tool).
+            </LI>
+
+            <LI><!--A HREF="http://www.infsec.cs.uni-saarland.de/projects/expi2java"-->Expi2Java also allows using ProVerif as protocol analyzer for their protocol specifications (project apparently stopped).
+            </LI>
+
+            <LI>A <A HREF="http://sourceforge.net/projects/proverifeditor/">ProVerif editor</A> (in Python) by Joeri de Ruiter.
+            </LI>
+
+            <LI><A HREF="https://sec.uni-stuttgart.de/software">XOR-ProVerif and DH-ProVerif</A>: tools for verifying protocols with XOR and with Diffie-Hellman exponentiation (with a rich equational theory).
+            </LI>
+
+            <LI><A HREF="https://github.com/rittere/statverif">StatVerif</A>: extension of ProVerif to verify stateful processes.
+            </LI>
+
+            <LI><A HREF="http://ttool.telecom-paristech.fr/index.html">TTool</A> uses ProVerif for proving confidentiality and authenticity properties from an AVATAR model.
+                <!--<LI><A HREF="http://prosecco.inria.fr/webspi/">WebSpi</A> is a ProVerif library for modeling web security mechanisms.</LI>-->
+
+            <LI><A HREF="https://www.imm.dtu.dk/~samo/aifom.html">AIF-Omega</A>: Set-based abstraction method inspired by ProVerif and SPASS, for verifying systems with non-monotonic, stateful behaviour. Uses Spass or ProVerif as back-ends.
+            </LI>
+
+            <LI><A HREF="https://bitbucket.org/setpi/setpi">Set-pi</A> supports an extension of the applied pi calculus with sets; it generates clauses fed into ProVerif.
+            </LI>
+
+            <LI><A HREF="https://paolo.science/anbx/">AnBx</A>: compiler from Alice and Bob notation to Java, OFMC, and ProVerif.
+            </LI>
+
+            <LI><A HREF="http://projects.lsv.ens-cachan.fr/ukano/">Ukano</A>: automatic privacy verifier. This tool automatically checks unlinkability and anonymity for a large class of 2-party protocols for an unbounded number of sessions.
+            </LI>
+
+            <LI><A HREF="https://sites.google.com/site/globalstatesverif/">GSVerif</A>: front-end for dealing with global state and counters.
+            </LI>
+
+            <LI><A HREF="https://noiseexplorer.com/">Noise explorer</A> verifies Noise protocols, using ProVerif as back-end.
+            </LI>
+
+	    <LI><A HREF="https://sapic-plus.github.io/">SAPIC+</A> is a security protocol verification platform, enabling the use of ProVerif, Tamarin and DeepSec as possible backends.
+	    </LI>
+        </UL>
+
+
+        <H2 id="courses">Courses on ProVerif</H2>
+
+        ProVerif was taught at 
+        <A HREF="https://mpri-master.ens.fr/doku.php?id=start">MPRI</A>.
+        Here is a list of some courses on ProVerif by other researchers:
+        <UL>
+            <!--<LI>Christian Haack, University of Nijmegen, The Netherlands, course available
+            <A HREF="http://www.cs.ru.nl/~chaack/teaching/2IF02-Spring08/assignment08.pdf">here</A></LI>
+
+            <LI>Tom Chothia, University of Birmingham, United Kingdom, course available
+                <A HREF="http://www.cs.bham.ac.uk/~tpc/cwi/Teaching/index.html">here</A></LI>-->
+
+            <LI>Peeter Laud, Tartu University, Estonia, course available
+              <A HREF="https://home.cyber.ee/~peeter/teaching/krprot09s/">here</A>
+            </LI>
+
+            <LI>Deepak Garg, MPI-SWS/Universität des Saarlandes, Germany, course available
+              <A HREF="https://people.mpi-sws.org/~dg/teaching/lis2014/lis2014.html">here</A>
+            </LI>
+
+            <LI>Véronique Cortier, Université de Lorraine, Nancy, France, course available
+              <A HREF="https://members.loria.fr/VCortier/files/Teaching/">here</A>
+            </LI>
+
+            <LI>Pascal Lafourcade, ISIMA--Université Clermont-Auvergne, Clermont-Ferrand, France, course available
+                <A HREF="https://sancy.iut.uca.fr/~lafourcade/SecModels.html">here</A>
+	    </LI>
+        </UL>
+    </div>
+</section>
+
+
+<script src="./js/bootstrap.bundle.min.js"></script>
+<script src="./js/main.js"></script>
+
+</body>
+</html>

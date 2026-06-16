@@ -1,0 +1,21 @@
+#!/bin/bash
+
+echo Starting demo installation on proverif24.paris.inria.fr
+
+echo Creating directories
+sudo mkdir -p /var/www/html/bin
+sudo mkdir -p /var/www/html/tmpfiles
+sudo mkdir -p /var/www/html/css
+
+echo Unpacking the archive
+tar -xzf proverifdemo.tgz
+# Initially, I am in the home directory, cd to the proverif directory
+cd proverif
+echo Building ProVerif
+./build -nointeract
+echo Copying files
+sudo cp proverif /var/www/html/bin
+sudo cp -r cssproverif.css demo/examples demo/index.php ../website/copy/fonts /var/www/html
+sudo cp demo/styles.css /var/www/html/css
+cd /var/www/html
+sudo chown www-data:www-data * bin/* examples/* examples/*/*

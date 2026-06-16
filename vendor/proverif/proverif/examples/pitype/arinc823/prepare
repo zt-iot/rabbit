@@ -1,0 +1,52 @@
+#!/bin/sh
+
+
+## Analysis of the shared-key protocol, in ProVerif
+
+cd sharedkey
+
+for prop in AUTHENTICATION SECRECY KEY_SECRECY UKS   
+do
+    for enc in ENC_SUPPORTED ENC_NOTSUPPORTED
+    do
+	for speed in FAST #SLOW
+	do
+	    m4 -D$prop -D$enc -D$speed arinc823-secret-key.m4.pv > arinc823-secret-key.$prop.$enc.$speed.pv
+	done
+    done
+done
+
+
+## Analysis of the public-key protocol, in ProVerif
+
+cd ../publickey
+
+# The arguments of analyze are
+# $1 = property
+# $2 = compromise status
+# $3 = encryption or not
+# $4 = fast (without encode(encode_OFF, x) = x and compress(comp_OFF, x) = x) or slow (with it)
+
+analyze()
+{
+file=arinc823-public-key.$1.$2.$3.$4
+m4 -D$1 -D$2 -D$3 -D$4 arinc823-public-key.m4.pv > $file.pv
+}
+
+for prop in SECRECY AUTHENTICATION KEY_SECRECY
+do
+    for enc in ENC_SUPPORTED ENC_NOTSUPPORTED
+    do
+	for speed in FAST #SLOW
+	do
+	    analyze $prop NO_COMPROMISE $enc $speed
+	done
+    done
+done
+
+analyze SECRECY PFS ENC_SUPPORTED FAST
+analyze KEY_SECRECY PFS ENC_SUPPORTED FAST
+analyze AUTHENTICATION COMPROMISE_U ENC_SUPPORTED FAST
+analyze AUTHENTICATION COMPROMISE_V ENC_SUPPORTED FAST
+
+cd ..

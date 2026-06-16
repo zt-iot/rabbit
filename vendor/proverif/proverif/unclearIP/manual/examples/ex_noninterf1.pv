@@ -1,0 +1,16 @@
+free c: channel.
+
+(* Shared key encryption *)
+type key.
+fun senc(bitstring,key): bitstring.
+reduc forall x: bitstring, y: key; sdec(senc(x,y),y) = x.
+
+(* The shared key *)
+free k:key [private].
+
+(* Query *)
+free secret_msg: bitstring [private].
+noninterf secret_msg.
+
+process (!out(c, senc(secret_msg, k))) | 
+	(!in(c, x:bitstring); let s = sdec(x, k) in 0)

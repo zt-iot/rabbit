@@ -1,0 +1,28 @@
+(* JFKr *)
+
+type key.
+type nonce.
+type nonce_G.
+
+(* Keyed hash function *)
+
+fun H(key, bitstring): key.
+
+(* Free names *)
+
+free c: channel. (* Public channel *)
+
+(* Queries: properties to prove *)
+
+process
+	new KR: key;
+	!
+	in(c, V: nonce_G);
+	new N: nonce;
+	new t: key;
+	out(c, choice[t, H(KR, (N,V))])
+
+(* EXPECTPV
+RESULT Observational equivalence is true.
+0.016s (user 0.010s + system 0.005s), max rss 10052K
+END *)

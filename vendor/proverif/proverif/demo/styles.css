@@ -1,0 +1,207 @@
+/* page */
+@font-face {
+    font-family: "Latin Modern Roman";
+    src: url("../fonts/lmroman9-regular.otf");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Latin Modern Roman";
+    font-weight: bold;
+    src: url("../fonts/lmroman12-bold.otf");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Latin Modern Roman";
+    font-weight: 300;
+    src: url("../fonts/lmroman17-regular.otf");
+    font-display: swap;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+
+    font-size: 14px;
+    color: #111;
+    background-color: #ffffcc;
+    font-family: "Latin Modern Roman", serif;
+    text-align: justify;
+}
+
+small {
+    font-size: 10px;
+}
+
+h1 {
+    font-size: 2em;
+}
+
+h2 {
+    font-size: 1.8em;
+    margin-top: 1.5em;
+    margin-bottom: 1em;
+}
+
+h3 {
+    font-size: 1.5em;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+h4 {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+a {
+    text-decoration: underline;
+    text-decoration-thickness: from-font;
+}
+
+a:hover, a:focus {
+    text-decoration: underline dotted;
+}
+
+/* components */
+body {
+    position: relative;
+}
+
+section {
+    padding: 2em 1em;
+}
+
+.lead, .subtitle {
+    font-size: 1.5em;
+}
+
+.logo {
+    border: 1px solid grey;
+    border-radius: 0.25rem;
+    padding: 1em;
+    margin-top: 1.4em;
+    max-width: 10em;
+}
+
+li {
+    margin-bottom: 0.5em;
+}
+
+[data-bs-toggle="tooltip"] {
+    text-decoration: underline;
+}
+
+.tooltip-inner {
+    max-width: 20em;
+    width: auto;
+}
+
+.container-wide {
+    max-width: 1500px;
+    margin: 0 auto;
+}
+
+.container-narrow {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+    .md-mt-10em {
+        margin-top: 10em;
+    }
+
+    .title {
+        margin-left: 2em;
+    }
+
+    .logo {
+        max-width: inherit;
+    }
+
+    section {
+        padding: 5em 1em;
+    }
+
+    h1 {
+        font-size: 4em;
+    }
+
+    h2 {
+        font-size: 2em;
+        margin-top: 1.5em;
+        margin-bottom: 1em;
+    }
+
+    h3 {
+        font-size: 1.5em;
+        margin-top: 1em;
+        margin-bottom: 0.5em;
+    }
+
+    html, body {
+        font-size: 17px;
+    }
+}
+
+.code {
+    margin-bottom: 0;
+    padding: 0.5rem;
+    background-color: #efefef;
+
+    .comment {
+        color: #008000;
+    }
+
+    .keyword {
+        color: #AF00DB;
+    }
+
+    .tag, .option {
+        color: #800000;
+    }
+
+    .type {
+        color: #267F99;
+    }
+
+    .variable {
+        color: #001080;
+    }
+
+    .parameter {
+        color: #0070C1;
+    }
+
+    .const {
+        color: #0000FF;
+    }
+
+    .function {
+        color: #795E26;
+    }
+
+    .reference {
+        color: #008000;
+    }
+}
+
+/* for the publications page */
+
+.tagclass{
+    padding-left:0.5rem;
+    padding-right:0.5rem;
+    display:inline-block;
+    color:#0000ff;
+    font-size:15px;
+    line-height:20px;
+    border:1px solid #505050;
+    border-radius:100px;
+    font-weight:400
+}
+

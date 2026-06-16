@@ -1,0 +1,54 @@
+(* Denning-Sacco *)
+
+free c.
+
+(* Probabilistic public key cryptography *)
+
+fun pk/1.
+fun encrypt/3.
+reduc decrypt(encrypt(x,pk(y),r),y) = x.
+
+(* Signatures *)
+
+fun sign/2.
+reduc getmess(sign(m,k)) = m.
+reduc checksign(sign(m,k), pk(k)) = m.
+
+(* Shared-key cryptography *)
+
+fun sencrypt/2.
+reduc sdecrypt(sencrypt(x,y),y) = x.
+
+(* Secrecy assumptions *)
+
+not skA.
+not skB.
+
+private free secretB.
+noninterf secretB.
+
+let processA =
+	in(c, pk2);
+	new k; new r;
+	out(c, (encrypt(sign((pkA, pk2, k), skA), pk2, r)));
+	in(c, m);
+        let s = sdecrypt(m,k) in 0.
+
+let processB =
+	in(c, km);
+	let ks = decrypt(km,skB) in
+	let (=pkA, =pkB, k) = checksign(ks, pkA) in
+	out(c, sencrypt(secretB, k)).
+
+process new skA; 
+	let pkA = pk(skA) in
+        out(c, pkA);
+        new skB; 
+	let pkB = pk(skB) in
+        out(c, pkB);
+	((!processA) | (!processB))
+
+(* EXPECTPV
+RESULT Non-interference secretB is true.
+0.008s (user 0.008s + system 0.000s), max rss 8652K
+END *)

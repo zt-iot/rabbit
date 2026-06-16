@@ -1,0 +1,36 @@
+(* Handshake protocol.
+   Taken from Delaune, Jacquemard, LSV-04-1 *)
+
+(* shared-key encryption as equation *)
+
+fun encrypt/2.
+fun decrypt/2.
+equation decrypt(encrypt(x,y),y) = x.
+equation encrypt(decrypt(x,y),y) = x.
+
+(* addition of one *)
+
+fun f/1.
+
+free c.
+private free pw.
+
+let processA =
+	new N;
+	out(c, encrypt(N, pw)).
+
+let processB =
+	in(c, x);
+	let y = decrypt(x, pw) in
+	out(c, encrypt(f(y), pw)).
+
+process
+	((!processA) | (!processB) |
+	(phase 1;
+	new w;
+	out(c, choice[w,pw])))
+
+(* EXPECTPV
+RESULT Observational equivalence cannot be proved.
+0.008s (user 0.008s + system 0.000s), max rss 8800K
+END *)

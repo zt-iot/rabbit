@@ -1,0 +1,21 @@
+type key.
+
+fun senc(bitstring, key): bitstring.
+reduc forall m: bitstring, k: key; sdec(senc(m,k),k) = m.
+type skey.
+type pkey.
+
+fun pk(skey): pkey.
+fun aenc(bitstring, pkey):bitstring.
+
+reduc forall m: bitstring, k: skey; adec(aenc(m, pk(k)),k) = m.
+type sskey.
+type spkey.
+
+fun spk(sskey): spkey.
+fun sign(bitstring, sskey): bitstring.
+
+reduc forall m: bitstring, k: sskey; getmess(sign(m,k)) = m.
+reduc forall m: bitstring, k: sskey; checksign(sign(m,k),spk(k)) = m.
+
+process 0

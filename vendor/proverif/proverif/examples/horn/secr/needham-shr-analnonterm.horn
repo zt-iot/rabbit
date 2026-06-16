@@ -1,0 +1,30 @@
+(* Inspired from the Needham Shroeder shared key protocol
+The analyzer loops ! *)
+
+pred cs0/1 elimVar, decompData.
+
+fun encrypt/2.
+fun decr/1.
+
+param verboseRules = yes.
+
+query cs0:secretA[].
+
+reduc
+
+(*
+cs0:encrypt(n,  k[Kas[], Ks2]) -> cs0:encrypt(decr(n), k[Kas[], Ks2]).
+*)
+
+(* A *)
+
+cs0:encrypt(n, key) & cs0:encrypt((Na[Ks2], key), Kas[]) -> cs0:encrypt(decr(n), key);
+
+(* S *)
+
+cs0:encrypt((Na[Ks2], k[Ks1, Ks2]), Ks1).
+
+(* EXPECTPV
+RESULT goal unreachable: cs0:secretA[]
+0.004s (user 0.004s + system 0.000s), max rss 6440K
+END *)

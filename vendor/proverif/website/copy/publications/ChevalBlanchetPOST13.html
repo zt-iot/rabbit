@@ -1,0 +1,142 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css?v=18">
+
+    <title>ChevalBlanchetPOST13</title>
+    <meta name="description" content="Automated Symbolic Protocol Verification">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "ProVerif",
+            "description": "ProVerif is an automatic symbolic protocol verifier which proves security properties of cryptographic protocols.",
+            "applicationCategory": "Security, Cryptography",
+            "programmingLanguage": "OCaml",
+            "downloadUrl": "https://bblanche.gitlabpages.inria.fr/proverif/",
+            "softwareHelp": {
+                "@type": "CreativeWork",
+                "url": "https://bblanche.gitlabpages.inria.fr/proverif/manual.pdf"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<nav class="navbar sticky-top navbar-expand-lg bg-dark border-bottom border-body"  data-bs-theme="dark">
+    <div class="container-fluid container-narrow">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="../">ProVerif</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../install.html">Install</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../usage.html">Usage</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="http://proverif24.paris.inria.fr/">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../manual.pdf">Manual</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../25years.html">25 years workshop</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="../users.html">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="../publications.html">Publications</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<section>
+    <div class="container-narrow">
+        <H2>ChevalBlanchetPOST13</H2>
+
+
+Vincent Cheval and Bruno Blanchet.
+  Proving More Observational Equivalences with ProVerif.
+  In David Basin and John Mitchell, editors, <i>2nd Conference on
+  Principles of Security and Trust (POST 2013)</i>, volume 7796 of <i>Lecture
+  Notes in Computer Science</i>, pages 226-246, Rome, Italy, March 2013.
+  Springer. <span class="tagclass">Tool feature</span>
+
+<h4>Copyright</h4>
+
+© Springer-Verlag.
+
+<p><h4>Get the paper</h4>
+
+ <a href="./ChevalBlanchetPOST13.pdf">.pdf, 394 Kb</a>
+
+<h4>Links</h4>
+
+<A HREF="http://www.springer.de/comp/lncs/index.html">LNCS series home page</A>. <P>
+This paper at Springer: <A HREF="http://dx.doi.org/10.1007/978-3-642-36830-1_12">http://dx.doi.org/10.1007/978-3-642-36830-1_12</A>. 
+
+<h4>Abstract</h4>
+
+This paper presents an extension of the automatic protocol verifier
+ProVerif in order to prove more observational equivalences. ProVerif
+can prove observational equivalence between processes that have the
+same structure but differ by the messages they contain.  In order to
+extend the class of equivalences that ProVerif handles, we extend the
+language of terms by defining more functions (destructors) by rewrite
+rules. In particular, we allow rewrite rules with inequalities as
+side-conditions, so that we can express tests ``if then else'' inside
+terms.  Finally, we provide an automatic procedure that translates a
+process into an equivalent process that performs as many actions as
+possible inside terms, to allow ProVerif to prove the desired
+equivalence. These extensions have been implemented in ProVerif and
+allow us to automatically prove anonymity in the private
+authentication protocol by Abadi and Fournet.
+
+<h4>Bibtex</h4>
+
+<pre><a name="ChevalBlanchetPOST13"></a>
+@INPROCEEDINGS{ChevalBlanchetPOST13,
+  AUTHOR = {Vincent Cheval and Bruno Blanchet},
+  TITLE = {Proving More Observational Equivalences with {P}ro{V}erif},
+  BOOKTITLE = {2nd Conference on Principles of Security and Trust (POST 2013)},
+  PAGES = {226--246},
+  YEAR = 2013,
+  EDITOR = {David Basin and John Mitchell},
+  VOLUME = 7796,
+  SERIES = {Lecture Notes in Computer Science},
+  ADDRESS = {Rome, Italy},
+  MONTH = MAR,
+  PUBLISHER = {Springer}
+}
+
+</pre>    </div>
+</section>
+
+
+<script src="../js/bootstrap.bundle.min.js"></script>
+<script src="../js/main.js"></script>
+
+</body>
+</html>
+
+

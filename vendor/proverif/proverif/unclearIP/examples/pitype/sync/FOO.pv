@@ -1,0 +1,87 @@
+(* Proving voter anonymity in the FOO voting protocol
+   Original FOO paper: 
+Atsushi Fujioka, Tatsuaki Okamoto, and Kazui Ohta. A practical secret voting scheme
+for large scale elections. In J. Seberry and Y. Zheng, editors, Advances in Cryptology
+— AUSCRYPT ’92, volume 718 of Lecture Notes in Computer Science, pages 244–251. 
+Springer, 1992. 
+   This model is inspired from
+Steve Kremer and Mark D. Ryan. Analysis of an Electronic Voting Protocol in the Applied Pi-Calculus. In Programming Languages and Systems --- Proceedings of the 14th European Symposium on Programming (ESOP'05), pp. 186–200, Lecture Notes in Computer Science 3444, Springer, Edinburgh, Scotland, UK, April 2005.
+*) 
+
+(* Public channel *)
+
+free c: channel.
+
+(* Two possible votes *)
+
+const v, v': bitstring.
+
+(* Commitments *)
+
+type t_comk.
+fun commit(t_comk, bitstring): bitstring.
+
+reduc forall x: t_comk, y: bitstring; 
+      open(x,commit(x,y)) = y.
+
+(* Blind signatures *)
+
+type t_blk.
+type t_sk.
+type t_pk.
+fun pk(t_sk): t_pk.
+fun sign(t_sk, bitstring): bitstring.
+fun blind(t_blk, bitstring): bitstring.
+
+reduc forall x: t_sk, y: bitstring; 
+      checksign(pk(x),sign(x,y)) = y.
+reduc forall x: t_sk, y: bitstring; 
+      getmsg(sign(x,y)) = y.
+reduc forall x: t_blk, y: t_sk, z: bitstring; 
+      unblind(x,sign(y,blind(x,z))) = sign(y,z);
+      forall x: t_blk, y: bitstring; 
+      unblind(x,blind(x,y)) = y.
+
+(* Signature keys
+   skR is the signature key of the administrator
+   skA and skB are signature keys of two voters.
+   The signature keys are here made public. 
+   Hence the adversary can play the role of the administrator,
+   we do not need to specify it explicitly.
+ *)
+
+free skR,skA,skB: t_sk.
+
+(* The voter process: the voter with signature key Xsk votes Xvote *)
+
+let foo(Xsk: t_sk, Xvote: bitstring) = 
+    (* Obtaining a signed commitment on the vote, from the administrator *)
+    new k: t_comk;
+    new k': t_blk;
+    let commited_vote = commit(k,Xvote) in
+    let blinded_commited_vote = blind(k',commited_vote) in
+    out(c,(pk(Xsk),sign(Xsk,blinded_commited_vote)));
+    in(c,y: bitstring);
+    if checksign(pk(skR),y) = blinded_commited_vote then
+    let signed_commited_vote = unblind(k',y) in
+    sync 1; (* Voting phase *)
+    out(c,signed_commited_vote);
+    sync 2; (* Commitment opening phase *)
+    in(c,(z: bitstring,=signed_commited_vote));
+    out(c,(z,signed_commited_vote,k)).
+
+(* In the first component, the voter A votes s and the voter B votes s'.
+   In the second component, the voter A votes s' and the voter B votes s.
+   We show that the adversary cannot distinguish these two situations.
+   This property shows voter anonymity. *)
+
+process
+      foo(skA,choice[v,v'])
+    | foo(skB,choice[v',v])
+
+(* EXPECTPV
+RESULT Observational equivalence cannot be proved.
+RESULT Observational equivalence cannot be proved.
+RESULT Observational equivalence is true.
+0.128s (user 0.124s + system 0.004s), max rss 12204K
+END *)

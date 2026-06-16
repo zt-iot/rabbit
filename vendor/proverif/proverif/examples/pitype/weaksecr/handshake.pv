@@ -1,0 +1,40 @@
+(* Handshake protocol.
+   From Delaune, Jacquemard, CSFW'04
+*)
+
+type passwd.
+type nonce.
+
+(* shared-key encryption as equation *)
+
+fun encrypt(nonce, passwd): nonce.
+fun decrypt(nonce, passwd): nonce.
+equation forall x: nonce, y: passwd; decrypt(encrypt(x,y),y) = x.
+equation forall x: nonce, y: passwd; encrypt(decrypt(x,y),y) = x.
+
+(* addition of one *)
+
+fun incr(nonce): nonce.
+
+free c: channel.
+free pw: passwd [private].
+weaksecret pw.
+
+let processA = 
+	new N: nonce;
+	out(c, encrypt(N, pw)).
+
+let processB = 
+	in(c, x: nonce);
+	let n = decrypt(x, pw) in
+	out(c, encrypt(incr(n), pw)).
+    
+process
+	(!processA)
+	|
+	(!processB)
+
+(* EXPECTPV
+RESULT Weak secret pw is false.
+0.016s (user 0.012s + system 0.004s), max rss 10296K
+END *)

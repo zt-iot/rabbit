@@ -1,0 +1,22 @@
+pred c/1 decompData, elimVar.
+
+fun f/1.
+fun g/1.
+
+(* This "nounif" instruction leads to termination of the process *)
+nounif c:f(x).
+
+param verboseRules = yes.
+
+query c:s[].
+
+reduc
+
+c:f(s[]);
+
+c:f(x) -> c:f(g(x)).
+
+(* EXPECTPV
+RESULT goal unreachable: c:s[]
+0.000s (user 0.000s + system 0.000s), max rss 6340K
+END *)

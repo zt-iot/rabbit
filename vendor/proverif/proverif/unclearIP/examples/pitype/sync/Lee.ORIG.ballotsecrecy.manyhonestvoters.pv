@@ -1,0 +1,148 @@
+(* Lee et al. election scheme (ISISC'03). 
+   Proof of ballot secrecy with many honest voters.
+*)
+
+free a,b,c: bitstring.
+
+free ch,chVa,chVb,ch1,ch2,c1: channel.
+
+type pkey.
+type skey.
+type seed.
+type dvp_t.
+type check_t.
+
+fun penc(bitstring, pkey, seed): bitstring. (* probabilistic encryption *)
+fun rencrypt(bitstring, seed): bitstring. (* re-encryption *)
+fun f(seed, seed): seed. (* function combining random coins*)
+fun sign(bitstring, skey): bitstring. (* digital signature *)
+fun dvp(bitstring, bitstring, seed, pkey): dvp_t. (* designated verifier proof *)
+fun fake_dvp(bitstring, bitstring, seed, skey): dvp_t.
+
+const ok: check_t. (* check dvp ok *)
+fun pk(skey):pkey. (* get public key from private key *)
+
+reduc forall m: bitstring, sk: skey, r: seed; 
+      decrypt(penc(m, pk(sk), r), sk) = m.
+reduc forall m: bitstring, sk: skey; 
+      checksign(sign(m, sk), pk(sk)) = m.
+equation forall m: bitstring, sk: skey, r1: seed, r2: seed; 
+	 rencrypt(penc(m, pk(sk), r1), r2) = penc(m, pk(sk), f (r1, r2)).
+
+reduc forall x: bitstring, r: seed, sk: skey;
+      checkdvp(dvp(x, rencrypt(x, r), r, pk(sk)), x, rencrypt(x, r), pk(sk)) = ok;
+      forall x: bitstring, y: bitstring, z: seed, skv: skey;
+      checkdvp(fake_dvp(x, y, z, skv), x, y, pk(skv)) = ok.
+
+(* Voter with secret key skv, vote v, talking to his trusted device, of public key pubkd, on channel chD *) 
+
+let processV(chV: channel, chD: channel, pubkt: pkey, pubkd: pkey, skv: skey, v: bitstring) =
+	(*sync 1;*)
+	new r: seed;
+	let e = penc (v, pubkt, r) in
+	out(chD, e);
+	in(chD , (re: bitstring, sd: bitstring, dvpV: dvp_t));
+	if checkdvp(dvpV, e, re, pk(skv)) = ok then
+	if checksign(sd, pubkd) = re then
+	out(chV,sign(sd,skv)).
+
+(* Process that outputs possible votes on chVotes *)
+
+let processPossVotes(chVotes: channel) =
+    !out(chVotes, a) | !out(chVotes, b) | !new v:bitstring; !out(chVotes, v).
+
+(* Trusted device with secret key skd, talking to the voter with public key pubkv on channel chD *)   
+
+let processD(chD: channel, skd: skey, pubkv: pkey) =
+	(* sync 1;*)
+	in(chD, enc: bitstring);
+	new r1: seed;
+	let reenc = rencrypt (enc, r1) in
+	let signD = sign(reenc, skd) in
+	let dvpD = dvp(enc, reenc, r1, pubkv) in
+	out(chD,(reenc, signD, dvpD)).
+
+(* Mixer & Tallier *)
+
+let processM(skt: skey, pubkv: pkey, pubkd: pkey) =
+        (* Mixer *)
+	(*sync 1;*)
+	in(ch1,sig: bitstring);
+	let enc = checksign(checksign(sig,pubkv),pubkd) in
+	sync 2;
+	new r2: seed;
+	let mixedvote = rencrypt(enc, r2) in
+	out(ch2,mixedvote);
+	(* Tallier *)
+	out(ch,decrypt(mixedvote,skt)).
+
+   (* The variant "nosync" is needed when the process is under replication *)
+
+let processMnosync(skt: skey, pubkv: pkey, pubkd: pkey) =
+        (* Mixer *)
+	in(ch1,sig: bitstring);
+	let enc = checksign(checksign(sig,pubkv),pubkd) in
+	new r2: seed;
+	let mixedvote = rencrypt(enc, r2) in
+	out(ch2,mixedvote);
+	(* Tallier *)
+	out(ch,decrypt(mixedvote,skt)).
+
+process 
+	(* private keys *)
+	new skt: skey;
+	new skva: skey; new skvb: skey; 
+	new skda: skey; new skdb: skey; 
+
+	(* public keys *)
+	let pkt = pk(skt) in
+	let pkva = pk(skva) in
+	let pkvb = pk(skvb) in
+	let pkda = pk(skda) in
+	let pkdb = pk(skdb) in
+	
+	(* public key disclosure *)
+	out(ch,pkt);
+	out(ch,pkva); out(ch,pkvb); 
+	out(ch,pkda); out(ch,pkdb); 
+	
+	(* private channels *)
+	new chDa: channel; new chDb: channel; 
+	new chVotes: channel;
+	( 
+		(* mixers and talliers *)
+		processM(skt, pkva, pkda) | 
+		processM(skt, pkvb, pkdb) | 
+
+		(* voters *)
+		processV(chVa, chDa, pkt, pkda, skva, choice[a,b]) |
+		processV(chVb, chDb, pkt, pkdb, skvb, choice[b,a]) |
+
+		(* trusted devices *)
+		processD(chDa, skda, pkva) |
+		processD(chDb, skdb, pkvb) |
+
+		(* Other honest voters *)
+		processPossVotes(chVotes) |
+		!
+		in(chVotes, v: bitstring);
+		new chV: channel;
+		new chD: channel; 
+		new skv: skey;
+		let pkv = pk(skv) in
+		new skd: skey;
+		let pkd = pk(skd) in
+		out(ch, (chV, pkv, pkd));
+		((* Voter *)
+		 processV(chV, chD, pkt, pkd, skv, v) |
+		 (* Trusted device *)
+		 processD(chD, skd, pkv) |
+		 (* Mixer and tallier *)
+		 processMnosync(skt, pkv, pkd)) 
+
+	)
+
+(* EXPECTPV
+RESULT Observational equivalence is true.
+0.316s (user 0.312s + system 0.004s), max rss 19456K
+END *)

@@ -1,0 +1,29 @@
+fun h(bitstring): bitstring.
+type key.
+
+fun senc(bitstring, key): bitstring.
+fun sdec(bitstring, key): bitstring.
+equation forall m: bitstring, k: key; sdec(senc(m,k),k) = m.
+equation forall m: bitstring, k: key; senc(sdec(m,k),k) = m.
+type skey.
+type pkey.
+
+fun pk(skey):pkey.
+
+fun aenc(bitstring, pkey):bitstring.
+fun adec(bitstring, skey):bitstring.
+
+equation forall m: bitstring, k: skey; adec(aenc(m,pk(k)),k) = m.
+type seed'.
+type pkey'.
+type skey'.
+
+fun pk'(seed'):pkey'.
+fun sk'(seed'):skey'.
+
+fun aenc'(bitstring, pkey'):bitstring.
+fun adec'(bitstring, skey'):bitstring.
+
+equation forall m: bitstring, k: seed'; adec'(aenc'(m,pk'(k)),sk'(k)) = m.
+
+process 0

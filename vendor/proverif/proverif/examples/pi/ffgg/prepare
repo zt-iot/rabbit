@@ -1,0 +1,14 @@
+#!/bin/sh
+
+ocamlc -o ffgg ffgg.ml
+
+rm -f *.pv
+
+for i in 10 50 100 150 200
+do
+    ./ffgg $i > ffgg$i.pi
+#    (echo "param traceDisplay = long."; cat ffgg$i) > ffgg$i-long.pi
+    (echo "param reconstructTrace = no."; cat ffgg$i.pi; echo "(* EXPECTPV"; echo "RESULT not attacker:M[] cannot be proved."; echo "END *)") > ffgg$i-notrace.pi
+    (echo "(* EXPECTPV"; echo "RESULT not attacker:M[] is false."; echo "END *)") >> ffgg$i.pi
+done
+

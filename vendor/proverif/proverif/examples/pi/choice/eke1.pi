@@ -1,0 +1,58 @@
+(* Bellovin, Merritt, Oakland 92, section 2.1 *)
+
+free c.
+
+(* Symmetric cryptography
+   One does not know whether decryption succeeds or not *)
+
+fun enc/2.
+fun dec/2.
+equation dec(enc(x,y),y) = x.
+equation enc(dec(x,y),y) = x.
+
+(* Public key cryptography *)
+
+fun penc/2.
+fun pk/1.
+reduc pdec(penc(x,pk(y)),y) = x.
+
+free hostA.
+private free P.
+
+let processA =
+	new sEA;
+	let EA = pk(sEA) in
+	out(c, (hostA, enc(EA, P)));
+	in(c,m2);
+	let R = pdec(dec(m2,P),sEA) in
+	new challengeA;
+	out(c, enc((challengeA), R));
+	in(c, m4);
+	let (=challengeA, challengeB) = dec(m4, R) in
+	out(c, enc((challengeB), R)).
+
+
+let processB =
+	in(c, (=hostA, m));
+	let EA = dec(m, P) in
+	new R;
+	out(c, enc(penc(R, EA), P));
+	in(c,m3);
+	let (challengeA) = dec(m3, R) in
+	new challengeB;
+	out(c, enc((challengeA, challengeB), R));
+	in(c, m5);
+	if dec(m5, R) = (challengeB) then
+	0.
+
+process 
+
+	(!processA) | (!processB)|
+	(phase 1;
+	new w;
+	out(c, choice[w,P]))
+
+(* EXPECTPV
+RESULT Observational equivalence is true.
+0.028s (user 0.028s + system 0.000s), max rss 9292K
+END *)

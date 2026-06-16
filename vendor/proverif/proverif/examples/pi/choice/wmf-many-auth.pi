@@ -1,0 +1,99 @@
+(* Wide Mouth Frog protocol.
+   Example taken from Abadi, Gordon, A Calculus for Cryptographic
+   Protocols. The Spi Calculus. SRC research report 149.
+   Pages 16--
+
+   Flawed version (no handshake)
+
+   Probably too complex to be proved using choice on terms 
+*)
+
+data star/0.
+
+(* Shared-key encryption *)
+
+fun encrypt/2.
+reduc decrypt(encrypt(x,y),y) = x.
+
+(* Keys *)
+
+private fun Ksi/1.
+private fun Kis/1.
+reduc gethost(Ksi(x)) = x;
+      gethost(Kis(x)) = x.
+
+fun host/1.
+
+free c,e.
+
+let processA = 
+	new p;
+	(
+	  (
+	    new K;
+	    out(c, (i, encrypt((j,K), Kis(i))));
+	    out(c, (i, encrypt(choice[M,p], K)))
+	  )
+	|
+	  (
+	    in(p, x);
+	    out(e, (i, j, M))
+	  )
+        ).
+
+let processS =
+	in(c, (xA, xCipher));
+	let (xB, xKey) = decrypt(xCipher, Kis(xA)) in
+	out(c, encrypt((xA, xKey), Ksi(xB))).
+
+let processB =
+	in(c, yCipher);
+	let (xA, xKey) = decrypt(yCipher, Ksi(j)) in
+	in(c, (=xA, zCipher));
+	let zPlain = decrypt(zCipher, xKey) in
+	out(choice[e, zPlain], (xA, j, zPlain)).
+(* Or better:
+	new q;
+	(out(choice[q, zPlain], star) | in(q, x); out(e, (xA, j, zPlain))).
+*)
+
+process
+	 (!in(c, x); out(princ, host(x)))
+	|(!in(princ, i); in(princ, j); in(c, M); processA)
+	| !processS 
+	|(!in(princ, j); processB)
+
+
+(* This is the process 
+
+let processA = 
+	new K;
+	out(c, (i, encrypt((j,K), Kis(i))));
+	out(c, (i, encrypt(M, K))).
+
+let processS =
+	in(c, (xA, xCipher));
+	let (xB, xKey) = decrypt(xCipher, Kis(xA)) in
+	out(c, encrypt((xA, xKey), Ksi(xB))).
+
+let processB =
+	in(c, yCipher);
+	let (xA, xKey) = decrypt(yCipher, Ksi(j)) in
+	in(c, (=xA, zCipher));
+	let zPlain = decrypt(zCipher, xKey) in
+	out(e, (xA, j, zPlain)).
+
+
+process
+	 (!in(c, x); out(princ, host(x)))
+	|(!in(princ, i); in(princ, j); in(c, M); processA)
+	| !processS 
+	|(!in(princ, j); processB)
+
+
+*)
+
+(* EXPECTPV
+RESULT Observational equivalence cannot be proved.
+0.020s (user 0.020s + system 0.000s), max rss 8900K
+END *)

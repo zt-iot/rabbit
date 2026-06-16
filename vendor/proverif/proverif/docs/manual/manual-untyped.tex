@@ -1,0 +1,1566 @@
+\documentclass{article}
+
+\usepackage[latin1]{inputenc}
+\usepackage{amsmath}
+\usepackage[a4paper,hmargin=1in,vmargin=1.25in]{geometry}  
+\usepackage{url}
+
+\newcommand{\nonterm}[1]{\langle\textrm{#1}\rangle}
+\newcommand{\seq}[1]{\textrm{seq}\nonterm{#1}}
+
+% --------------------------------------------------------------------- %
+% Typesetting definitions:              Sample output:                  %
+%                                                                       %
+% \begin{defn}                                                          %
+% \categ{M,N}{terms}\\          M, N ::=        terms           %
+% \entry{x}{variable}\\                   x               variable      %
+% \entry{M\ N}{application}\\             M N             application   %
+% \entry{\lambda x.\ M}{abstraction}      \x.M            abstraction   %
+% \end{defn}                                                            %
+%                                                                       %
+% This is a tabbing environment; the last entry should have no \\.      %
+% --------------------------------------------------------------------- %
+
+\newenvironment{defn}{\begin{tabbing}
+  \hspace{1.5em} \= \hspace{.27\linewidth - 1.5em} \= \hspace{1.5em} \= \kill
+%  \hbra\\[-.8ex]
+  }{
+%\\[-.8ex]\hket
+  \end{tabbing}}
+\newcommand{\entry}[2]{\>$#1$\>\>#2}
+\newcommand{\clause}[2]{$#1$\>\>#2}
+\newcommand{\categ}[2]{\clause{#1::=}{#2}}
+\newcommand{\subclause}[1]{\>\>\>#1}
+
+\begin{document}
+
+\title{ProVerif\\
+Automatic Cryptographic Protocol Verifier\\
+User Manual for Untyped Inputs}
+
+\author{Bruno Blanchet\thanks{This work was partly done 
+while the author was at {\'E}cole Normale Supérieure, Paris and at 
+Max-Planck-Institut für Informatik, Saarbr{\"u}cken.}\\
+INRIA Paris-Rocquencourt, France}
+
+\maketitle
+
+\textbf{Warning!} This manual documents the untyped inputs of ProVerif
+(untyped Horn clauses, untyped pi calculus). These input formats are no
+longer actively developed. We recommend coding your protocols in the
+typed pi calculus format, described in the file {\tt manual.pdf}.
+
+\section{Introduction}
+
+This manual describes the untyped input syntax and output of ProVerif. 
+It does not describe the internal algorithms used
+in the system. These algorithms have been described in various
+research
+papers~\cite{Blanchet2001,Abadi04c,Blanchet2002,Abadi03b,Abadi04f,Abadi04,Blanchet04,Blanchet04e,Allamigeon05,Blanchet05},
+that can be downloaded on
+
+\centerline{{\tt
+http://www.di.ens.fr/\string~blanchet/publications/index.html}.}
+
+The tool can take two formats as input. The first one is in the form
+of Horn clauses (logic programming rules), and corresponds to the
+system described in~\cite{Blanchet2001}. The second one is in the form
+of a process in an extension of the pi calculus, described
+in~\cite{Abadi04c}. In both cases, the output of the system is
+essentially the same.
+
+\section{Common remarks on the syntax}
+
+Comments can be included in input files. Comments are surrounded by
+{\tt (*} and {\tt *)}. Nested comments are not supported.
+
+Identifiers begin with a letter (uppercase or lowercase) and contain
+any number of letters, digits, the underscore character (\_),
+the quote character ('), as well as accented letters of the ISO Latin 1
+character set. Case is significant. Each input
+system has a number of keywords that cannot be used as ordinary
+identifiers.
+
+In case of syntax error, the system indicates the character position
+of the error (line and column numbers). Please use your text editor to find the
+position of the error. (The error messages can be interpreted
+by \texttt{emacs}.)
+
+\section{Command-line options}
+
+The syntax of the command-line is 
+\begin{quote}
+$\texttt{./proverif }\nonterm{options}\ \nonterm{filename}$
+\end{quote}
+where the $\nonterm{options}$ can be
+\begin{itemize}
+
+\item $\texttt{-in }\nonterm{format}$
+
+  Choose the input format (\texttt{horn}, \texttt{horntype},
+  \texttt{pi}, \texttt{pitype}). When the \texttt{-in} option is absent, 
+  the input format is chosen according to the file extension, 
+  as detailed below. The recommended input format is 
+  the typed pi calculus, which corresponds to the option
+  \texttt{-in pitype}, and is the default when the file extension is
+  \texttt{.pv}. It is described in {\tt manual.pdf}.
+  The other formats are no longer actively developed.
+  Input may also be provided using the untyped pi calculus (option
+  \texttt{-in pi}, the default when the file extension is
+  \texttt{.pi}), typed Horn clauses (option \texttt{-in horntype}, the
+  default when the file extension is \texttt{.horntype}), and untyped
+  Horn clauses (option \texttt{-in horn}, the default for all other
+  file extensions). This manual documents the untyped Horn clauses 
+  and the untyped pi calculus input formats.
+
+\item $\texttt{-out }\nonterm{format}$
+
+Choose the output format, either \texttt{solve} (analyze the protocol)
+or \texttt{spass} (stop the analysis before resolution, and output the
+clauses in the format required for use in the Spass first-order
+theorem prover, see \url{http://www.spass-prover.org/}). 
+The default is \texttt{solve}. When you select
+\texttt{-out spass}, you must add the option $\texttt{-o }\nonterm{filename}$
+to specify the file in which the clauses will be output.
+
+\item $\texttt{-TulaFale }\nonterm{version}$
+
+For compatibility with the web service analysis tool TulaFale
+(see the tool download at \url{http://research.microsoft.com/projects/samoa/}).
+The version number is the version of TulaFale with which you would
+like compatibility. Currently, only version 1 is supported.
+
+\item $\texttt{-color}$
+
+Display a colored output on terminals that support ANSI color codes.
+(Will result in a garbage output on terminals that do not support these codes.)
+Unix terminals typically support ANSI color codes. For \texttt{emacs} users,
+you can run ProVerif in a shell buffer with ANSI color codes as follows:
+\begin{itemize}
+\item start a shell with \texttt{M-x shell}
+\item load the \texttt{ansi-color} library with \texttt{M-x load-library RET ansi-color RET}
+\item activate ANSI colors with \texttt{M-x ansi-color-for-comint-mode-on}
+\item now run ProVerif in the shell buffer.
+\end{itemize}
+You can also activate ANSI colors in shell buffers by default by
+adding the following to your \texttt{.emacs}:
+\begin{verbatim}
+(autoload 'ansi-color-for-comint-mode-on "ansi-color" nil t)
+(add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
+\end{verbatim}
+
+\item $\texttt{-help}$ or $\texttt{--help}$
+
+Display a short summary of command-line options.
+
+\end{itemize}
+
+
+
+\section{Input as Horn clauses}\label{sect:horninput}
+
+By default, the executable program \texttt{proverif} takes Horn
+clauses as input. You can run it as follows:
+\begin{quote}
+$\texttt{./proverif }\nonterm{filename}$
+\end{quote}
+where $\nonterm{filename}$ references a file containing the Horn
+clauses, in the format explained below. The system then basically
+determines whether a fact can be derived from the clauses. If true, a
+proof is given. As shown in~\cite{Blanchet2001}, this can be used to
+determine secrecy properties of protocols: if a certain fact cannot be
+derived from the clauses, then the secrecy of a certain value is
+preserved. A difference with first-order theorem provers that perform
+a similar task, is that correctness and completeness are
+reversed. Here, correctness means that if a value is not secret, the
+system says so, that is, if a fact is derivable, the system says
+so. Completeness means that if a fact is not derivable, then the
+system says so. We sometimes drop completeness (that is, we lose
+precision; see options below), but never correctness.
+
+The keywords of this input system are 
+{\tt data}, {\tt elimtrue}, {\tt equation}, {\tt fun}, {\tt not}, {\tt nounif}, {\tt
+param}, {\tt pred}, {\tt query}, and {\tt reduc}.
+
+
+\begin{figure}[t]
+\begin{align*}
+&\nonterm{clause} ::= [( \nonterm{fact}
+\texttt{ \& })^*  \nonterm{fact}\texttt{ ->}]\ \nonterm{fact}\\
+&\phantom{\nonterm{clause}}\mid\phantom{:=} ( \nonterm{fact}
+\texttt{ \& })^*  \nonterm{fact}\texttt{ <-> } \nonterm{fact}\\
+&\phantom{\nonterm{clause}}\mid\phantom{:=} ( \nonterm{fact}
+\texttt{ \& })^*  \nonterm{fact}\texttt{ <=> } \nonterm{fact}\\
+&\nonterm{fact} ::=  \nonterm{ident} \texttt{:} \seq{term}\\
+&\phantom{\nonterm{fact}}\mid\phantom{:=}\nonterm{term}\texttt{ <> }\nonterm{term}\\
+&\nonterm{term} ::= \nonterm{ident}\texttt{(}\seq{term}\texttt{)}\\
+&\phantom{\nonterm{term}}\mid\phantom{:=}\nonterm{ident}\texttt{[}\seq{term}\texttt{]}\\
+&\phantom{\nonterm{term}}\mid\phantom{:=}\texttt{(}\seq{term}\texttt{)}\\
+&\phantom{\nonterm{term}}\mid\phantom{:=}\nonterm{ident}\\
+&\nonterm{factformat} ::=  \nonterm{ident} \texttt{:} \seq{termformat}\\
+&\nonterm{termformat} ::= \nonterm{ident}\texttt{(}\seq{termformat}\texttt{)}\\
+&\phantom{\nonterm{termformat}}\mid\phantom{:=}\nonterm{ident}\texttt{[}\seq{termformat}\texttt{]}\\
+&\phantom{\nonterm{termformat}}\mid\phantom{:=}\texttt{(}\seq{termformat}\texttt{)}\\
+&\phantom{\nonterm{termformat}}\mid\phantom{:=}\nonterm{ident}\\
+&\phantom{\nonterm{termformat}}\mid\phantom{:=}\texttt{*}\nonterm{ident}
+\end{align*}
+where $\seq{X}$ is a sequence of $X$: $\seq{X} = [(\nonterm{X}\texttt{,})^*\nonterm{X}] = \nonterm{X}\texttt{,}\ldots\texttt{,}\nonterm{X}$. (The sequence can be empty, it can be one element $\nonterm{X}$, or it can be several elements $\nonterm{X}$ separated by commas.)
+\caption{Grammar of facts and clauses}\label{fig:rsyntax}
+\end{figure}
+
+The input file consists of a list of declarations, followed by the
+keyword {\tt reduc} and a list of clauses:
+\[\nonterm{declaration}^*\ {\tt reduc}\ (\nonterm{clause}\texttt{;})
+^*\ \nonterm{clause}\texttt{.}\]
+The syntax of facts and clauses is given in Figure~\ref{fig:rsyntax}. In
+this grammar $X^*$ means any number of repetitions of $X$, $[X]$ means
+$X$ or nothing. Text in typewriter style should appear as it is in
+the input file. Text between $\langle$ and $\rangle$ represents
+non-terminals.
+
+Declarations can be any of the following:
+\begin{itemize}
+
+\item $\texttt{param }\nonterm{name}\texttt{ = }\nonterm{value}\texttt{.}$
+
+This declaration sets the value of configuration parameters.
+The following cases are supported:
+
+\begin{itemize}
+
+\item \texttt{param verboseRules = false.}\\
+\texttt{param verboseRules = true.}
+
+Display the number of clauses every 200 clause created during the solving
+process (\texttt{false}) or display each clause created during the solving
+process (\texttt{true}).
+
+\item \texttt{param verboseRedundant = false.}\\
+\texttt{param verboseRedundant = true.}
+
+Display eliminated redundant clauses when \texttt{true}.
+
+\item \texttt{param verboseCompleted = false.}\\
+\texttt{param verboseCompleted = true.}
+
+Display completed set of clauses after saturation when \texttt{true}.
+
+\item \texttt{param verboseEq = true.}\\
+\texttt{param verboseEq = false.}
+
+Display information on handling of equational theories when \texttt{true}.
+
+\item \texttt{param verboseTerm = true.}\\
+\texttt{param verboseTerm = false.}
+
+Display information on termination when \texttt{true}
+(changes in the selection function to improve termination;
+termination warnings).
+
+\item \texttt{param maxDepth = none.}\\
+$\texttt{param maxDepth = }n\texttt{.}$
+
+Do not limit the depth of terms (\texttt{none}) or limit the depth of
+terms to $n$, where $n$ is an integer. A negative value means no
+limit. When the depth is limited to $n$, all terms of depth greater
+than $n$ are replaced with new variables. Limiting the depth can be
+used to enforce termination of the solving process at the cost of
+precision.
+
+\item \texttt{param maxHyp = none.}\\
+$\texttt{param maxHyp = }n\texttt{.}$
+
+Do not limit the number of hypotheses of clauses (\texttt{none}) or
+limit it to $n$, where $n$ is an integer. A negative value means no
+limit. When the number of hypotheses is limited to $n$, arbitrary
+hypotheses are removed from clauses, so that only $n$ hypotheses
+remain. Limiting the number of hypotheses can be used to enforce
+termination of the solving process at the cost of precision
+(although in general limiting the depth by the above declaration is
+enough to obtain termination).
+
+\item \texttt{param selFun = TermMaxsize.}\\
+\texttt{param selFun = Term.}\\
+\texttt{param selFun = NounifsetMaxsize.}\\
+\texttt{param selFun = Nounifset.}
+
+Chooses the selection function that governs the resolution process.
+All selection functions avoid unifying on facts indicated by a
+\texttt{nounif} declaration. \texttt{Nounifset} does exactly
+that. \texttt{Term} automatically avoids some other unifications, to
+help termination, as determined by some heuristics.
+\texttt{NounifsetMaxsize} and \texttt{TermMaxsize} choose the fact of
+maximum size when there are several possibilities. This choice
+sometimes gives impressive speedups.
+
+\item \texttt{param stopTerm = true.}\\
+\texttt{param stopTerm = false.}
+
+Display a warning and wait for user answer when the system thinks the
+solving process will not terminate (\texttt{true}), or go on as if
+nothing had happened (\texttt{false}). This setting applies only to
+the selection functions \texttt{NounifsetMaxsize} and \texttt{Nounifset}.
+(See parameter \texttt{selFun}.)
+
+\item \texttt{param redundancyElim = simple.}\\
+\texttt{param redundancyElim = no.}\\
+\texttt{param redundancyElim = best.}
+
+An elimination of redundant clauses has been implemented: when a clause
+without selected hypotheses is derivable from other clauses without
+selected hypothesis, it is removed. With \texttt{redundancyElim =
+simple}, this is applied for newly generated clauses. With
+\texttt{redundancyElim = no}, this is never applied. With
+\texttt{redundancyElim = best}, this is also applied when an old clause
+can be derived from other old clauses plus the new clause.
+
+\item \texttt{param redundantHypElim = beginOnly.}\\
+\texttt{param redundantHypElim = false.}\\
+\texttt{param redundantHypElim = true.}
+
+When a clause is of the form $H \wedge H' \rightarrow C$, and
+there exists $\sigma$ such that $\sigma H \subseteq H'$ and $\sigma$
+does not change the variables of $H'$ and $C$, then the clause
+can be replaced with $H' \rightarrow C$ (since there are
+implications in both directions between these clauses).
+
+This replacement is done when \texttt{redundantHypElim =
+true.}, or when \texttt{redundantHypElim = beginOnly.} and
+$H$ contains a \texttt{begin} event.
+Indeed, testing this property takes time, and slows down
+small examples. On the other hand, on big examples, in particular
+when they contain several \texttt{begin} events (or blocking facts),
+this technique can yield huge speedups.
+
+\item \texttt{param reconstructDerivation = true.}\\
+\texttt{param reconstructDerivation = false.}
+
+When a fact is derivable, should we reconstruct the corresponding
+derivation? (This setting has been introduced because in some extreme
+cases reconstructing a derivation can consume a lot of memory.)
+
+\item \texttt{param simplifyDerivation = true.}\\
+\texttt{param simplifyDerivation = false.}
+
+Should the derivation be simplified by removing duplicate proofs
+of the same \texttt{attacker} facts? 
+
+\item \texttt{param abbreviateDerivation = true.}\\
+\texttt{param abbreviateDerivation = false.}
+
+When \texttt{abbreviateDerivation = true}, ProVerif defines symbols to
+abbreviate terms that represent names $a[\ldots]$ before displaying
+the derivation, and uses these abbreviations in the derivation. These
+abbreviations generally make reading the derivation easier by reducing
+the size of terms.
+
+\item \texttt{param displayDerivation = true.}\\
+\texttt{param displayDerivation = false.}
+
+Should the derivation be displayed? 
+Disabling derivation display is useful for very big derivations.
+
+\item \texttt{param symbOrder = "$f_1 > \dots > f_n$".}
+
+ProVerif uses a lexicographic path ordering in order to prove
+termination of convergent equational theories. By default,
+it uses a heuristic to build the ordering of function symbols
+underlying this lexicographic path ordering. This setting
+allows the user to set this ordering of function symbols.
+
+\end{itemize}
+In the above list, the default value is the first mentioned.
+The system also accepts \texttt{no} instead of \texttt{false}
+and \texttt{yes} instead of \texttt{true}.
+
+\item $\texttt{fun }\nonterm{ident}\texttt{/}n\texttt{.}$
+
+Declares a function symbol  $\nonterm{ident}$ of arity $n$.
+
+\item $\texttt{data }\nonterm{ident}\texttt{/}n\texttt{.}$
+
+$\texttt{data }f\texttt{/}n\texttt{.}$ declares a data function symbol $f$ of arity $n$.
+Data function symbols are similar to tuples: the adversary can construct
+and decompose them. The system implicitly adds the equivalence
+$p:f(x_1, \ldots, x_n) \Leftrightarrow p:x_1 \wedge \ldots \wedge p:x_n$
+for each predicate $p$ declared $\texttt{decompData}$.
+
+\item $\texttt{equation }\nonterm{term}\texttt{ = }\nonterm{term}\texttt{.}$
+
+$\texttt{equation }M_1\texttt{ = }M_2$ says that the terms $M_1$ and
+$M_2$ are in fact equal. The function symbols in the equation should be
+only already declared constructors. The treatment of equations is
+still rather limited. The equation $f(x,g(y)) =
+f(y,g(x))$, used for Diffie-Hellman key agreements, is known to
+work. The system may not terminate when more complex equations are
+entered. In the presence of both equations and inequality constraints,
+the system is not complete (but still correct): the inequality
+constraints are deemed true when the terms are syntactically
+different, without taking into account the equations.
+
+\item $\texttt{query }\nonterm{fact}\texttt{.}$
+
+Indicates that the system should determine whether $\nonterm{fact}$ is
+true or not. If $\nonterm{fact}$ contains variables, determine which
+instances of $\nonterm{fact}$ are true.
+
+\item $\texttt{nounif }\nonterm{factformat}[/n]\texttt{.}$
+
+Modifies the selection of facts to be resolved upon, to avoid
+resolving facts that match $\nonterm{factformat}$. For a fact
+$\nonterm{fact}$ to match $\nonterm{factformat}$, $\nonterm{fact}$
+must contain a variable when $\nonterm{factformat}$ contains one, and
+any term when $\nonterm{factformat}$ contains \texttt{*} followed by a
+variable name. The optional integer $n$ indicates how much we should
+avoid resolution on facts that match $\nonterm{factformat}$: the greater
+$n$, the more such resolutions will be avoided.
+
+\item $\texttt{pred }\nonterm{ident}\texttt{/}n\ \seq{ident}\texttt{.}$
+
+$\texttt{pred }p\texttt{/}n\ i_1, \ldots, i_n\texttt{.}$ declares a new
+predicate $p$, of arity $n$, with special properties described by
+$i_1, \ldots, i_n$. 
+
+The following properties are allowed for $i_1, \ldots, i_n$:
+\begin{itemize}
+
+\item \texttt{block}:
+Declares the predicate $p$ as a blocking predicate. 
+Blocking predicates may appear in hypotheses or conclusions of
+clauses, but not both for the same predicate. 
+
+When they appear in hypotheses, 
+instead of trying to prove facts containing
+these predicates (which is impossible since no clause implies such
+facts), the system collects hypotheses containing the blocking
+predicates necessary to prove the queries. This is useful in
+particular to prove authenticity~\cite{Blanchet2002}.
+
+When they appear in conclusions, the system makes sure to really
+know whether the fact $C$ in question is derivable, and does not return
+clauses $H \texttt{ -> } C$ for which it is not clear whether $H$
+is derivable or not.
+
+\item \texttt{elimVarStrict}:
+Tells the system to that $p\texttt{:}new\_name[i],\ldots, new\_name[i]$
+holds. Then ProVerif removes the hypothesis $p\texttt{:}x_1, \ldots, x_n$
+where $x_1, \ldots, x_n$ are variables that do not appear elsewhere in a clause.
+
+\item \texttt{elimVar}:
+Tells the system to that $p\texttt{:}new\_name[i],\ldots, new\_name[i]$
+holds. Then ProVerif removes the hypothesis $p\texttt{:}x_1, \ldots, x_n$
+where $x_1, \ldots, x_n$ are variables that do not appear elsewhere in a clause,
+except possibly in inequality facts. Removing such hypotheses
+$\texttt{attacker}\texttt{:}x$ is complete for proving secrecy or
+authenticity, because there always exists a value of $x$ that makes
+true both the inequality facts, and $\texttt{attacker}\texttt{:}x$. 
+In general, however, removing $p\texttt{:}x_1, \ldots, x_n$ where
+$x_1, \ldots, x_n$ may appear in inequalities leads to a sound
+approximation.
+(When it is important that no underivable facts are considered derivable,
+the transformation is applied only when $x_1, \ldots, x_n$ do not appear 
+elsewhere in the clause, as for \texttt{elimVarStrict}.)
+
+\item \texttt{decompData}:
+Adds the following clauses, where $p$ is a predicate of arity $m$ and $f$ is
+any function symbol of arity $n$ declared $\texttt{data}$ or a tuple function.
+\begin{align*}
+&p\texttt{:}f\texttt{(}x_{11}\texttt{,}\ldots\texttt{,}x_{1n}\texttt{),} \ldots\texttt{,}f\texttt{(}x_{m1}\texttt{,}\ldots\texttt{,}x_{mn}\texttt{) -> } p\texttt{:}x_{1i}\texttt{,}\ldots\texttt{,}x_{mi}\\
+\begin{split}
+&p\texttt{:}x_{11}\texttt{,}\ldots\texttt{,}x_{m1}\texttt{ \& }\ldots\texttt{ \& }
+p\texttt{:}x_{1n}\texttt{,}\ldots\texttt{,}x_{mn}\texttt{ -> }\\
+&\qquad p\texttt{:}f\texttt{(}x_{11}\texttt{,}\ldots\texttt{,}x_{1n}\texttt{),} \ldots\texttt{,}f\texttt{(}x_{m1}\texttt{,}\ldots\texttt{,}x_{mn}\texttt{)}
+\end{split}
+\end{align*}
+For example, when $p$ is a unary predicate and $f$ is a tuple function,
+we add:
+\begin{align*}
+&p\texttt{:(}x_1\texttt{,}\ldots\texttt{,}x_n\texttt{) -> } p\texttt{:}x_i\\
+&p\texttt{:}x_1\texttt{ \& }\ldots\texttt{ \& }
+p\texttt{:}x_n\texttt{ -> }
+p\texttt{:(}x_1\texttt{,}\ldots\texttt{,}x_n\texttt{)}
+\end{align*}
+for all $n$ and $i \in \{ 1, \ldots, n\}$. 
+These clauses are treated in a specially optimized way, since they
+are used in most protocols.
+
+\item \texttt{decompDataSelect}: same as \texttt{decompData}, 
+but allows the selection of facts
+$p\texttt{:}x_1, \ldots, x_n$ while \texttt{decompData} does not.
+(It is in general better not to select such facts, because it
+leads to non-termination in the presence of data decomposition
+clauses; there are however exceptions for some rare cases.)
+
+\item \texttt{memberOptim}:
+This must be used only when $p$ is defined by
+\begin{align*}
+&p:x,f(x,y);\\
+&p:x,y \texttt{ -> } p:x,f(x',y).
+\end{align*}
+where $f$ is a data constructor. It turns on the following
+optimization: $p':x \wedge p:M_1,x \wedge \ldots \wedge p:M_n,x$
+where $p'$ is declared \texttt{decompData} and $p$ is
+declared \texttt{memberOptim} is replaced with $p':x \wedge p':M_1
+\wedge \ldots \wedge p':M_n$ when $x$ does not occur elsewhere (just
+take $x = f(M_1, \ldots f(M_n, x'))$ and notice that $p':x$ if and
+only if $p':M_1$, \ldots, $p':M_n$, and $p':x'$), or when the
+clause has no selected hypothesis. In the last case, this introduces
+an approximation.
+
+The replacement is also possible when $x$ occurs in several predicates
+declared \texttt{decompData}. However, when $x$ occurs in several
+\texttt{memberOptim} predicates, the transformation may introduce
+an approximation. (For example, consider $p_1$  and $p_2$ defined
+as above respectively using $f_1$ and $f_2$ as data constructors.
+Then $p_1:M,x \wedge p_2:M',x$ is never true: for it to be true,
+$x$ should be at the same time $f_1(\_,\_)$ and $f_2(\_,\_)$.)
+
+\end{itemize}
+
+\item $\texttt{elimtrue }\nonterm{fact}\texttt{.}$
+
+The declaration $\texttt{elimtrue }F$ means that $\sigma F$ is true
+for all $\sigma$; the fact $F$ is added to the set of clauses.
+
+Then in a clause $R = F' \texttt{ \& }H\texttt{ -> }C$, if $F'$
+unifies with $F$ with most general unifier $\sigma_u$ and all
+variables of $F'$ modified by $\sigma_u$ do not occur in the rest of
+$R$ then the hypothesis $F'$ can be removed: $R$ is transformed into
+$H\texttt{ -> }C$, by resolving with $F$.
+
+\item $\texttt{not }\nonterm{fact}\texttt{.}$
+
+Adds a secrecy assumption, saying that $\nonterm{fact}$ cannot be
+proved from the clauses. Then the system can remove all clauses that
+contain fact in their hypotheses. (These clauses can never be applied.)
+This speeds up the system. At the end of the solving process, the
+system checks that $\nonterm{fact}$ can indeed not be derived from the
+clauses. If it can be derived, the proof fails with an error message.
+
+\end{itemize}
+Two kinds of functions may appear in terms: constructors and names.
+Constructors are followed by their parameters between parentheses:
+$f\texttt{(}M_1\texttt{,} \ldots\texttt{,} M_n\texttt{)}$. A
+constructor without parameter can be written $f\texttt{()}$ or simply
+$f$. Constructors must be declared with $\texttt{fun
+}f\texttt{/}n\texttt{.}$, as mentioned in the declarations. Names are
+followed by their parameters between brackets:
+$a\texttt{[}M_1\texttt{,} \ldots\texttt{,} M_n\texttt{]}$. A name
+without parameter must be written $a\texttt{[]}$. Names are not declared before
+being used. At first, constructors were designed to represent
+cryptographic primitives, and names to represent fresh names created
+by the protocol. However, there is no difference between names and
+constructors from the point of view of the solver. We advise you to
+use constructors rather than names, since the declaration of
+constructors is a guarantee against typesetting errors.
+
+So terms $M$ can be either constructor applications
+$f\texttt{(}M_1\texttt{,} \ldots\texttt{,} M_n\texttt{)}$, name
+applications $a\texttt{[}M_1\texttt{,} \ldots\texttt{,}\allowbreak
+M_n\texttt{]}$, tuples $\texttt{(}M_1\texttt{,} \ldots\texttt{,}
+M_n\texttt{)}$, or identifiers $x$ that can be used for variables or
+constructors without parameters. Note that the term $(M)$ is different
+from $M$: $(M)$ is a tuple with a single component containing $M$.
+
+Facts can be the application of a predicate to terms
+$p\texttt{:}M_1\texttt{,}\ldots\texttt{,}M_n$. (This is written this
+way and not $p\texttt{(}M_1\texttt{,}\ldots\texttt{,}M_n\texttt{)}$
+only for historical reasons.) They can also be $M \texttt{<>} M'$,
+meaning $M$ is different from $M'$. Inequalities 
+are allowed only in hypotheses of clauses, not in
+conclusions, queries $\texttt{query }\nonterm{fact}\texttt{.}$, and
+secrecy assumptions $\texttt{not }\nonterm{fact}\texttt{.}$.
+
+Clauses can be $F_1 \texttt{ \& }\ldots\texttt{ \& }F_n\texttt{ -> }F$,
+meaning $F_1$ and \ldots and $F_n$ implies $F$. They can also be
+simply $F$, meaning that $F$ is true, without any hypothesis.
+
+They can also be $F_1 \texttt{ \& }\ldots\texttt{ \& }F_n\texttt{ <-> }F$,
+meaning $F_1$ and \ldots and $F_n$ is equivalent to $F$. This is allowed
+only when $F_i$ do not contain inequality constraints, $\sigma F_i$ is
+smaller than $\sigma F$ for all $\sigma$, and no two facts $F$ of
+different equivalence declarations unify. It then generates the clauses
+$F_1 \texttt{ \& }\ldots\texttt{ \& }F_n\texttt{ -> }F$, $F \texttt{ -> } F_i$,
+and furthermore enables the replacement of $\sigma F$ with 
+$\sigma F_1 \texttt{ \& }\ldots\texttt{ \& }\sigma F_n$ in all clauses.
+
+The declaration $F_1 \texttt{ \& }\ldots\texttt{ \& }F_n\texttt{ <=> }F$
+is a synonym for $F_1 \texttt{ \& }\ldots\texttt{ \& }F_n\texttt{ <-> }F$.
+It is kept only for backward compatibility.
+
+
+The goal of the system is to determine whether the facts declared in
+queries can be derived from the given clauses.
+
+\section{Input as process in extension of the pi calculus}
+
+To give a pi calculus process as input to ProVerif, you have to
+add the command line option \texttt{-in pi}, or to use
+a filename that ends with \texttt{.pi}. You can then run ProVerif by:
+\begin{quote}
+$\texttt{./proverif -in pi }\nonterm{filename}$
+\end{quote}
+where $\nonterm{filename}$ references a file containing the process,
+in the format explained below.
+
+The keywords of this input system are {\tt among}, {\tt and}, {\tt can}, {\tt choice},
+{\tt clauses}, {\tt data}, {\tt diff}, {\tt elimtrue},
+{\tt else}, {\tt equation}, {\tt event}, {\tt fail}, {\tt
+free}, {\tt fun}, {\tt if}, {\tt in}, {\tt let}, {\tt new}, {\tt
+noninterf}, {\tt not}, {\tt nounif}, {\tt otherwise}, {\tt out}, {\tt param}, {\tt
+phase}, {\tt putbegin}, {\tt pred}, {\tt private}, {\tt process}, {\tt
+query}, {\tt reduc}, {\tt suchthat}, {\tt sync}, {\tt then}, {\tt weaksecret}, and {\tt where}.
+
+\begin{figure}[tp]
+\begin{align*}
+&\nonterm{term} ::= \nonterm{ident}\texttt{(}\seq{term}\texttt{)}\\
+&\phantom{\nonterm{term}}\mid\phantom{:=}\texttt{(}\seq{term}\texttt{)}\\
+&\phantom{\nonterm{term}}\mid\phantom{:=}\nonterm{ident}\\
+&\phantom{\nonterm{term}}\mid\phantom{:=}\texttt{choice[}\nonterm{term}\texttt{,}\nonterm{term}\texttt{]}\\
+&\nonterm{pattern} ::= \nonterm{ident}\\
+&\phantom{\nonterm{pattern}}\mid\phantom{:=}\texttt{(}\seq{pattern}\texttt{)}\\
+&\phantom{\nonterm{pattern}}\mid\phantom{:=}\nonterm{ident}\texttt{(}\seq{pattern}\texttt{)}\\
+&\phantom{\nonterm{pattern}}\mid\phantom{:=}\texttt{=}\nonterm{term}\\
+&\nonterm{clause} ::= [( \nonterm{fact}
+\texttt{ \& })^*  \nonterm{fact}\texttt{ ->}]\ \nonterm{fact}\ [\texttt{where }\seq{ident}\texttt{ can fail}]\\
+&\phantom{\nonterm{clause}}\mid\phantom{:=} ( \nonterm{fact}
+\texttt{ \& })^*  \nonterm{fact}\texttt{ <-> } \nonterm{fact}\ [\texttt{where }\seq{ident}\texttt{ can fail}]\\
+&\phantom{\nonterm{clause}}\mid\phantom{:=} ( \nonterm{fact}
+\texttt{ \& })^*  \nonterm{fact}\texttt{ <=> } \nonterm{fact}\ [\texttt{where }\seq{ident}\texttt{ can fail}]\\
+&\nonterm{fact} ::=  \nonterm{ident} \texttt{:} \seq{term}\\
+&\phantom{\nonterm{fact}}\mid\phantom{:=}\nonterm{term}\texttt{ <> }\nonterm{term}\\
+&\phantom{\nonterm{fact}}\mid\phantom{:=}\nonterm{term}\texttt{ = }\nonterm{term}\\
+&\nonterm{process} ::= \texttt{( }\nonterm{process}\texttt{ )}\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\nonterm{ident}\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\texttt{!~}\nonterm{process}\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\texttt{0}\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\texttt{new }\nonterm{ident}\texttt{; }\nonterm{process}\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\texttt{if }\nonterm{fact}\texttt{ then }\nonterm{process}\ [\texttt{else }\nonterm{process}]\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\texttt{in(}\nonterm{term}\texttt{, }\nonterm{pattern}\texttt{)}[\texttt{; }\nonterm{process}]\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\texttt{out(}\nonterm{term}\texttt{, }\nonterm{term}\texttt{)}[\texttt{; }\nonterm{process}]\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\texttt{let }\nonterm{pattern}\texttt{ = }\nonterm{term}\texttt{ in }\nonterm{process}\ [\texttt{else }\nonterm{process}]\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\texttt{let }\seq{ident}\texttt{ suchthat }\nonterm{fact}\texttt{ in }\nonterm{process}\ [\texttt{else }\nonterm{process}]\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\nonterm{process}\texttt{ | }\nonterm{process}\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\texttt{event } \nonterm{term}\ [\texttt{; }\nonterm{process}]\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\texttt{phase } n\ [\texttt{; }\nonterm{process}]\\
+&\phantom{\nonterm{process}}\mid\phantom{:=}\texttt{sync } n\ [\texttt{; }\nonterm{process}]
+\end{align*}
+\caption{Grammar of processes}\label{fig:psyntax}
+\end{figure}
+
+\begin{figure}
+\begin{align*}
+&\nonterm{gterm} ::= \nonterm{ident}\texttt{(}\seq{gterm}\texttt{)}\\
+&\phantom{\nonterm{gterm}}\mid\phantom{:=}\nonterm{ident}\texttt{[}\seq{gbinding}\texttt{]}\\
+&\phantom{\nonterm{gterm}}\mid\phantom{:=}\texttt{(}\seq{gterm}\texttt{)}\\
+&\phantom{\nonterm{gterm}}\mid\phantom{:=}\nonterm{ident}\\
+&\nonterm{gbinding} ::= \texttt{!} n \texttt{ = } \nonterm{gterm}\\
+&\phantom{\nonterm{gbinding}}\mid \phantom{:=}\nonterm{ident} \texttt{ = } \nonterm{gterm}\\
+&\nonterm{gfact} ::=  \nonterm{ident} \texttt{:} \seq{gterm}\ [\texttt{phase }n]\\
+&\phantom{\nonterm{gfact}}\mid\phantom{:=}\nonterm{gterm}\texttt{ <> }\nonterm{gterm}\\
+&\phantom{\nonterm{gfact}}\mid\phantom{:=}\nonterm{gterm}\texttt{ = }\nonterm{gterm}\\
+&\nonterm{realquery} ::= \nonterm{gfact} \texttt{ ==> } \nonterm{hyp}\\
+&\nonterm{hyp} ::= \nonterm{hyp} \texttt{ | } \nonterm{hyp}\\
+&\phantom{\nonterm{hyp}}\mid\phantom{:=}\nonterm{hyp} \texttt{ \&\ } \nonterm{hyp}\\
+&\phantom{\nonterm{hyp}}\mid\phantom{:=}\nonterm{gfact}\\
+&\phantom{\nonterm{hyp}}\mid\phantom{:=}\texttt{(} \nonterm{hyp}\texttt{)}\\
+&\phantom{\nonterm{hyp}}\mid\phantom{:=}\texttt{(} \nonterm{realquery}\texttt{)}\\
+&\nonterm{query} ::= \texttt{putbegin ev:}\seq{ident}[\texttt{; }\nonterm{query}]\\
+&\phantom{\nonterm{query}}\mid\phantom{:=}\texttt{putbegin evinj:}\seq{ident}[\texttt{; }\nonterm{query}]\\
+&\phantom{\nonterm{query}}\mid\phantom{:=}\texttt{let }\nonterm{ident}\ \texttt{=}\ \nonterm{gterm}[\texttt{; }\nonterm{query}]\\
+&\phantom{\nonterm{query}}\mid\phantom{:=}\nonterm{gfact}[\texttt{; }\nonterm{query}]\\
+&\phantom{\nonterm{query}}\mid\phantom{:=}\nonterm{realquery}[\texttt{; }\nonterm{query}]\\[2mm]
+&\nonterm{gtermformat} ::= \textit{ same as }\nonterm{gterm} \textit{ with additional } \texttt{*}\nonterm{ident}\\
+&\nonterm{gfactformat} ::= \nonterm{ident} \texttt{:} \seq{gtermformat}\ [\texttt{phase }n]
+\end{align*}
+\caption{Grammar of queries and \texttt{nounif}}\label{fig:psyntaxq}
+\end{figure}
+
+The input file consists of a list of declarations, followed by the
+keyword {\tt process} and a process:
+\[\nonterm{declaration}^*\ {\tt process}\ \nonterm{process}\]
+The syntax of terms and processes is given in Figures~\ref{fig:psyntax}
+and~\ref{fig:psyntaxq},
+using the same conventions as in Section~\ref{sect:horninput}.
+
+Declarations can be any of the following:
+\begin{itemize}
+
+\item $\texttt{param }\nonterm{name}\texttt{ = }\nonterm{value}\texttt{.}$
+
+This declaration sets the value of configuration parameters.  The
+cases mentioned in Section~\ref{sect:horninput} are supported, as well
+as the following ones:
+
+\begin{itemize}
+
+\item $\texttt{param attacker = active.}$\\
+$\texttt{param attacker = passive.}$
+
+Indicates whether the attacker is active (\texttt{param attacker =
+active.}) or passive (\texttt{param attacker = passive.}). An active
+attacker can read messages, compute, and send messages. A passive
+attacker can read messages and compute but not send messages.
+
+\item $\texttt{param keyCompromise = none.}$\\
+$\texttt{param keyCompromise = approx.}$\\
+$\texttt{param keyCompromise = strict.}$
+
+By default (\texttt{param keyCompromise = none.}), it is assumed that
+session keys are not a priori compromised. Otherwise, it is assumed
+that some session keys are compromised (known by the adversary). Then
+the system determines whether the secrets of other sessions can be
+obtained by the adversary. In this case, the names that occur in
+queries always refer to names of non-compromised sessions (the
+attacker has all names of compromised sessions), and the events that
+occur before an arrow \texttt{==>} in a query are executed only in
+non-compromised sessions. 
+% The modeling with \texttt{param
+%   keyCompromise = approx.} is more approximate than with \texttt{param
+%   keyCompromise = strict.}, that is, the chances of finding a false
+% attack are greater with \texttt{param keyCompromise = approx.}.
+With \texttt{param keyCompromise = approx.}, the compromised sessions
+are considered as executing possibly in parallel with non-compromised ones.
+With \texttt{param keyCompromise = strict.}, the compromised sessions
+are finished before the non-compromised ones begin. The chances of finding an
+attack are greater with \texttt{param keyCompromise = approx.}. (It may
+be a false attack due to the approximations made in the verifier.)
+
+\item $\texttt{param movenew = false.}$\\
+$\texttt{param movenew = true.}$
+
+Sets whether the system should try to move restrictions under inputs,
+to have a more precise analysis (\texttt{param movenew = true.}), or
+leave them where the user has put them (\texttt{param movenew =
+false.}).
+
+\item $\texttt{param predicatesImplementable = check.}$\\
+$\texttt{param predicatesImplementable = nocheck.}$
+
+Sets whether the system should check that predicate calls are
+implementable. See the \texttt{clauses} declaration below for more
+details on this check. It is advised to leave the check turned on,
+as it is by default. Otherwise, the semantics of the processes
+may not be well-defined.
+
+\item $\texttt{param verboseClauses = none.}$\\
+$\texttt{param verboseClauses = explained.}$\\
+$\texttt{param verboseClauses = short.}$
+
+When \texttt{verboseClauses = none}, ProVerif does not display
+the clauses it generates. 
+When \texttt{verboseClauses = short}, it displays them.
+When \texttt{verboseClauses = explained}, it adds an
+English sentence after each clause it generates to explain where this
+clause comes from.
+
+\item $\texttt{param explainDerivation = true.}$\\
+$\texttt{param explainDerivation = false.}$
+
+When \texttt{explainDerivation = true}, ProVerif explains in English
+each step of the derivation (returned in case of failure of a proof).
+This explanation refers to program points in the given process.
+When \texttt{explainDerivation = false}, it displays the derivation
+by referring to the clauses generated initially.
+
+\item $\texttt{param removeUselessClausesBeforeDisplay = true.}$\\
+$\texttt{param removeUselessClausesBeforeDisplay = false.}$
+
+When \texttt{removeUselessClausesBeforeDisplay = true}, ProVerif removes
+subsumed clauses and tautologies from the initial clauses before
+displaying them, to avoid showing many useless clauses.
+When \texttt{removeUselessClausesBeforeDisplay = false}, all generated
+clauses are displayed.
+
+\item $\texttt{param reconstructTrace = true.}$\\
+$\texttt{param reconstructTrace = false.}$
+
+With $\texttt{param reconstructTrace = true.}$, when a query cannot be
+proved, the tool tries to build a pi calculus execution trace that is
+a counter-example to the query~\cite{Allamigeon05}. 
+
+This feature is currently incompatible with key compromise
+($\texttt{param keyCompromise = approx.}$ or $\texttt{param
+  keyCompromise = strict.}$).
+
+Moreover, for \texttt{noninterf} and \texttt{choice}, it reconstructs
+a trace, but this trace may not always prove that the property is
+wrong: for \texttt{noninterf}, it reconstructs a trace until a program
+point at which the process behaves differently depending on the value
+of the secret (takes a different branch of a test, for instance), but
+this different behavior is not always observable by the adversary;
+similarly, for \texttt{choice}, it reconstructs a trace until a
+program point at which the process using the first argument of
+\texttt{choice} behaves differently from the process using the second
+argument of \texttt{choice}.
+
+For injective queries, the trace reconstruction proceeds in two steps.
+In the first step, it reconstructs a trace that corresponds to the
+derivation found by resolution. This trace generally executes events
+once, so does not contradict injectivity. In a second step, it tries
+to reconstruct a trace that executes certain events twice while it executes
+other events once, in such a way that injectivity is really contradicted.
+This second step may fail even when the first one succeeds.
+For non-injective queries (including secrecy), when a trace is found,
+it is a counter-example to the query, which is then false.
+
+\item $\texttt{param traceBacktracking = true.}$\\
+$\texttt{param traceBacktracking = false.}$
+
+Allow or disable backtracking when reconstructing traces.
+In most cases, when traces can be found, they are found without
+backtracking. Disabling backtracking makes it possible to display the
+trace during its computation, and to forget previous states of the trace.
+This reduces memory consumption, which can be necessary for
+reconstructing very big traces.
+
+\item \texttt{param unifyDerivation = true.}\\
+\texttt{param unifyDerivation = false.}
+
+When set to \texttt{true}, activates a heuristic that increases the 
+chances of finding a trace that corresponds to a derivation. 
+This heuristic unifies messages received by the same input
+(same ocurrence and same session identifiers) in the derivation.
+Indeed, these messages must be equal if the derivation corresponds to
+a trace.
+
+\item $\texttt{param traceDisplay = short.}$\\
+$\texttt{param traceDisplay = long.}$\\
+$\texttt{param traceDisplay = none.}$
+
+Choose the format in which the trace is displayed after trace reconstruction.
+By default ($\texttt{param traceDisplay = short.}$), outputs the labels of
+a labeled reduction.
+With \texttt{param traceDisplay = long.}, outputs the current state
+before each input and before and after each I/O reduction, as well as 
+the list of all executed reductions.
+With \texttt{param traceDisplay = none.}, the trace is not displayed.
+
+
+\end{itemize}
+
+\item $[\texttt{private}]\ \texttt{fun }\nonterm{ident}\texttt{/}n\texttt{.}$
+
+$\texttt{fun }f\texttt{/}n\texttt{.}$ declares a function symbol $f$
+of arity $n$. This function symbol is a constructor. When
+$\texttt{private}$ is not present, the function can be applied by the
+attacker. When $\texttt{private}$ is present, the function cannot be
+applied by the attacker. This last case is useful to model tables of
+keys stored in a server, for instance. Only the server can use the
+table to get associations between host names and keys.
+
+\item $\texttt{data }\nonterm{ident}\texttt{/}n\texttt{.}$
+
+$\texttt{data }f\texttt{/}n\texttt{.}$ declares a data function symbol
+$f$ of arity $n$.  Data function symbols are similar to tuples: the
+adversary can construct and decompose them.
+
+
+\item $[\texttt{private}]\ \texttt{reduc }(\nonterm{ident}\texttt{(}\seq{term}\texttt{) = }\nonterm{term}\texttt{;})^*$\\
+$\phantom{[\texttt{private}]\ \texttt{reduc }}\nonterm{ident}\texttt{(}\seq{term}\texttt{) = }\nonterm{term}\texttt{.}$
+
+This declares destructors:
+\begin{align*}
+\texttt{reduc }&f\texttt{(}M_1\texttt{,} \ldots\texttt{,} M_n\texttt{) = }M_0\texttt{;}\\
+&f\texttt{(}M'_1\texttt{,} \ldots\texttt{,} M'_n\texttt{) = }M'_0\texttt{;}\\
+&\ldots\\
+&f\texttt{(}M''_1\texttt{,} \ldots\texttt{,} M''_n\texttt{) = }M''_0\texttt{.}
+\end{align*}
+declares the destructor $f$, of arity $n$, with the given rewrite
+rules.  When a term $f(M_1, \ldots, M_n)$ is met, it is replaced by
+$M_0$, and similarly for the other rules. When no rule can be
+applied, the destructor is not defined; the process blocks. 
+The destructor must be deterministic, that is, when several rules can be
+applied, they must all yield the same result.
+Otherwise, an error message is displayed.
+The terms
+$M_0, \ldots, M_n, M'_0, \ldots, M'_n,\ldots$ must contain only
+variables and constructors.
+
+\item $[\texttt{private}]\ \texttt{reduc }(\nonterm{ident}\texttt{(}\seq{mfterm}\texttt{) = }\nonterm{mfterm}\ [\texttt{where }\seq{ident}\texttt{ can fail}]\texttt{ otherwise })^*$\\
+$\phantom{[\texttt{private}]\ \texttt{reduc }(}\nonterm{ident}\texttt{(}\seq{mfterm}\texttt{) = }\nonterm{mfterm}\ [\texttt{where }\seq{ident}\texttt{ can fail}]\texttt{.}$
+
+This is an extended declaration for destructors.
+The terms $\nonterm{nfterm}$ can be either the special constant 
+\texttt{fail}, which represents the failure of a term, or terms $\nonterm{term}$
+containing only variables and constructors.
+
+\begin{align*}
+\texttt{reduc }&f\texttt{(}M_1\texttt{,} \ldots\texttt{,} M_n\texttt{) = }M_0\texttt{ where }x_1, \ldots, x_k\texttt{ can fail}\\
+&\texttt{otherwise }f\texttt{(}M'_1\texttt{,} \ldots\texttt{,} M'_n\texttt{) = }M'_0\texttt{ where }x'_1, \ldots, x'_{k'}\texttt{ can fail}\\
+&\texttt{otherwise }\ldots\\
+&\texttt{otherwise }f\texttt{(}M''_1\texttt{,} \ldots\texttt{,} M''_n\texttt{) = }M''_0\texttt{ where }x''_1, \ldots, x''_{k''}\texttt{ can fail.}
+\end{align*}
+declares the destructor $f$ with the given rewrite rules.
+When a term $f(N_1, \ldots, N_n)$ is met, if it is an instance of
+$f(M_1, \ldots, M_n)$, then it is replaced with the corresponding instance of $M_0$.
+Otherwise, if it is an instance of $f(M'_1, \ldots, M'_n)$, then it is replaced with the corresponding instance of $M'_0$, and so on.
+Each rewrite rule is applied only if the previous rewrite rules cannot be applied. Hence, the destructor is deterministic by construction.
+
+The variables $x_1, \ldots, x_k$ mentioned in ``\texttt{where }$x_1, \ldots, x_k$\texttt{ can fail}'' can be replaced
+with any term, and also with the constant \texttt{fail}. Such variables are allowed only at the root of terms $M_1, \ldots, M_n, M_0$.
+When there is no such variable, the indication ``\texttt{where }$x_1, \ldots, x_k$\texttt{ can fail}'' is omitted.
+Other variables can be replaced with any term but not with the constant \texttt{fail}; they can occur anywhere.
+The constant \texttt{fail} used in $N_i (i>0)$ represents that the $i$-th argument of $f$ failed; when it is used in the result $M_0$, it means that the evaluation of $f$ itself fails in this case. Using this constant \texttt{fail}, we can, for instance, define destructors that do not fail even if some of their arguments fail.
+
+Examples include:
+\begin{verbatim}
+fun true/0.
+fun false/0.
+reduc equal(x,x) = true
+      otherwise equal(x,y) = false.
+\end{verbatim}
+defines an equality destructor, which returns true when its two arguments
+are equal and false otherwise. This destructor fails when one of its arguments
+fails.
+
+\begin{verbatim}
+reduc test(true, x, y) = x where x, y can fail
+      otherwise test(false, x, y) = y where x,y can fail.
+\end{verbatim}
+defines a test destructor that returns its second argument when
+its first argument is true, its third argument when its first argument
+is false, and fails otherwise. Notice that \texttt{x} and \texttt{y}
+are allowed to be \texttt{fail}, so that, when the first argument
+is true, the second argument is returned even if the third argument fails,
+and symmetrically in the other case.
+
+\item $\texttt{equation }\nonterm{term}\texttt{ = }\nonterm{term}\texttt{.}$
+
+$\texttt{equation }M_1\texttt{ = }M_2$ says that the terms $M_1$ and
+$M_2$ are in fact equal. The function symbols in the equation should
+be only already declared constructors. The treatment of equations is
+still rather limited. The equation $f(x,g(y)) =
+f(y,g(x))$, used for Diffie-Hellman key agreements, is known to
+work. The system may not terminate when more complex equations are
+entered. 
+
+\item $\texttt{pred }\nonterm{ident}\texttt{/}n\ \seq{ident}\texttt{.}$
+
+$\texttt{pred }p\texttt{/}n\ i_1, \ldots, i_n\texttt{.}$ declares a new
+predicate $p$, of arity $n$, with special properties described by
+$i_1, \ldots, i_n$. Currently, the allowed elements for $i_1,
+\ldots, i_n$ are \texttt{block} and 
+\texttt{memberOptim}. See the section on the Horn clause input for
+more details on the effect of these properties. 
+
+All predicates must be declared by such a declaration before being
+used. The predicates $\texttt{attacker}$, $\texttt{mess}$, $\texttt{ev}$,
+and $\texttt{evinj}$ are reserved and cannot be declared.
+
+\item $\texttt{query }\nonterm{query}\texttt{.}$
+
+This declaration tells the system which properties we want to prove.
+Its syntax is given in Figure~\ref{fig:psyntaxq}.
+\begin{itemize}
+
+\item A term $M$ is a query can contain as usual constructor applications and
+variables, but also constructs $a[\ldots]$ or simply $a$ that designate names
+created by the restriction $\texttt{new }a$. $a[]$ designates any name
+created by the restriction $\texttt{new }a$. $a[v_1 = M_1, \ldots, v_n
+= M_n]$ designates any name created by the restriction $\texttt{new
+}a$ when the variables $v_1, \ldots, v_n$ have value $M_1, \ldots,
+M_n$ respectively. These variables must be in scope at the considered
+restriction. A special variable $\texttt{!}n$ corresponds to the 
+session identifier of the $n$-th replication, starting from the
+top of the process with $n=1$ for the first replication. Session
+identifiers should only be bound to variables. By using the same
+variable several times, one can express that two names should be 
+created in the same copy of the process.
+
+Note that, to avoid ambiguities, several
+restrictions in the processes should not create the same name. (When
+several restrictions create the same name and one tries to refer
+to this name in a query, an error message is displayed.)
+
+Also note that one should be careful of not mixing names and variables:
+An identifier that is defined by a restriction represents any name
+defined at that restriction (possibly different names for different
+occurrences), a free name of the process represents that name, 
+while other identifiers are variables that represent any
+term (the same term for all occurrences of the same variable).
+
+A term $M$ in a query must not contain destructors. 
+
+\item Facts in queries can be $p:M_1, \ldots, M_n\ [\texttt{phase }n]$,
+with the following meanings:
+
+\begin{itemize}
+
+\item $\texttt{attacker:}M$ means that the attacker may have $M$
+in some phase ($M$ is not secret).
+
+\item $\texttt{attacker:}M\texttt{ phase }n$ means that the attacker
+may have $M$ in phase $n$.
+
+\item $\texttt{mess:}M,N$ means that the message $N$ may be sent
+on channel $M$ in the last phase.
+
+\item $\texttt{mess:}M,N\texttt{ phase }n$ means that the message $N$
+may be sent on channel $M$ in phase $n$.
+
+\item $\texttt{ev:}f(M_1, \ldots, M_n)$ means that the event
+$\texttt{event }f(M_1, \ldots, M_n)$ may be executed. There must exist
+some $\texttt{event }f(M'_1, \ldots, M'_n)$ instruction with the same
+function symbol $f$ in the process.
+
+\item $\texttt{evinj:}f(M_1, \ldots, M_n)$ means that the event
+$\texttt{event }f(M_1, \ldots, M_n)$ may be executed,
+and that furthermore we want to prove injective correspondences
+for this event (see examples below).
+
+\item $p:M_1, \ldots, M_n$, where $p$ is a user-defined predicate (see
+the \texttt{pred} and \texttt{clauses} declarations), means that the
+corresponding fact is true.
+
+\end{itemize}
+Note that the \texttt{phase} indication is not allowed for
+\texttt{ev}, \texttt{evinj}, and user-defined predicates. One can
+also use the facts $M\texttt{ = }N$ and $M\texttt{ <> }N$.
+
+\item The elementary query $\nonterm{realquery}$ can be 
+$F \texttt{ ==> }\phi$ where $\phi$ is formed from conjunctions
+and disjunctions of facts.
+The query is true if and only if, when $F$ is true, then $\phi$ is true.
+The query can also be a fact $F$ (see $\nonterm{query}$):
+the answer can be that $\texttt{not }F$ is true, i.e. the fact $F$ is false,
+or that $\texttt{not }F$ cannot be proved, when the system
+finds a (possibly false) attack that would make $F$ true. (This query is a
+shorthand for $F \texttt{ ==> false}$.) Here are some examples:
+\begin{itemize}
+
+\item $\texttt{query attacker:}M$ determines whether the attacker
+may have $M$. $\texttt{not attacker:}M$ is true when $M$ is secret.
+
+\item $\texttt{query ev:}f(M_1, \ldots, M_n)$ determines whether the event
+$\texttt{event }f(M_1, \ldots, M_n)$ may be executed.
+$\texttt{not ev:}f(M_1, \ldots, M_n)$ is true when the event
+$\texttt{event }f(M_1, \ldots, M_n)$ can never be executed.
+
+\item $\texttt{query ev:}f(x_1, \ldots, x_n)\texttt{ ==> ev:}f'(x_1,
+\ldots, x_n)$ is non-injective agreement: it is true when, if the
+event $f(x_1, \ldots, x_n)$ has been executed, then the event $f'(x_1,
+\ldots, x_n)$ must have been executed (before the event $f(x_1,
+\ldots, x_n)$).
+
+\item $\texttt{query evinj:}f(x_1, \ldots, x_n)\texttt{ ==>
+evinj:}f'(x_1, \ldots, x_n)$ is injective agreement: it is true when,
+for each executed event $f(x_1, \ldots, x_n)$, there exists a distinct
+executed event $f'(x_1, \allowbreak \ldots, \allowbreak 
+x_n)$ (and $f'(x_1, \ldots, x_n)$ is
+executed before $f(x_1, \ldots, x_n)$).
+
+\item $\texttt{query evinj:}f(M_1)\texttt{ ==> evinj:}f'(M_2)\texttt{
+\& ev:}f''(M_3)$ is true if and only if for each executed event
+$f(M_1)$ there exists a distinct executed event $f'(M_2)$ and an
+executed event $f''(M_3)$. (The event $f''(M_3)$ can be the
+same for several different events $f(M_1)$, since it is marked with
+\texttt{ev} and not \texttt{evinj}.)
+
+\item $\texttt{query evinj:}f(M_1)\texttt{ ==> evinj:}f'(M_2)\texttt{
+| ev:}f''(M_3)$ is true if and only if for each executed event
+$f(M_1)$ either there exists a distinct executed event $f'(M_2)$ or an
+event $f''(M_3)$ has been executed. 
+
+\end{itemize}
+Note that using \texttt{evinj} or \texttt{ev} before the arrow
+\texttt{ ==> } does not change the meaning of the query. It is
+important only after the arrow.
+%except when using putbegin!!!
+
+We can also use \emph{nested queries}: queries in which some of
+the events after the arrow \texttt{==>} are replaced with queries.
+For instance, $F \texttt{ ==> (}F' \texttt{ ==> }F''\texttt{)}$.
+For this query to be interesting, $F'$ and $F''$ must be events.
+This query is true if and only if, when $F$ is true, the event $F'$ is 
+executed, and $F''$ is executed \emph{before} $F'$. (In contrast,
+the query $F \texttt{ ==> }F' \texttt{ \& }F''$ would not order $F'$
+and $F''$.) If $F$ is also an event, $F'$ is executed before $F$.
+
+We can use more complex queries in this style, such as 
+\[F_0 \texttt{ ==> (}F_1 \texttt{ ==> (}F_2 \texttt{ ==> (}
+F_3 \texttt{ ==> }F_4\texttt{)))}\]
+which is true if and only if, when $F_0$ is true,
+$F_4, F_3, F_2, F_1$ have been executed in that order, or
+\[F_0 \texttt{ ==> (}F_1 \texttt{ ==> }F_2 \texttt{) \& (}
+F_3 \texttt{ ==> }F_4\texttt{)}\]
+which is true if and only if, when $F_0$ is true,
+$F_2$ has been executed before $F_1$ and $F_4$ before $F_3$.
+
+\item The full query $\nonterm{query}$ consists of a list containing
+as elements queries of the form $\nonterm{realquery}$ or $\nonterm{gfact}$
+as described above, as well as the following two elements:
+\begin{itemize}
+
+\item $\texttt{putbegin ev:}f_1, \ldots, f_n$ or $\texttt{putbegin
+evinj:}f_1, \ldots, f_n$ instructs the system to consider active
+``begin'' events the events $f_1(\ldots)$, \ldots, $f_n(\ldots)$.
+This means that when such an event needs to be executed to trigger
+another action, a begin fact is going to appear in the hypothesis
+of the corresponding clause. This is useful when the exact events
+that should appear in a query are unknown. For instance,
+with the query $\texttt{query putbegin ev:}f\texttt{; ev:}f'(x)$,
+the system generates clauses that conclude $\textsf{end:}f'(M)$,
+and by manual inspection of the facts $\textsf{begin:}f(M')$
+that occur in their hypothesis, one can infer the full query:
+\[\texttt{query ev:}f'(\ldots) \texttt{ ==> ev:}f(\ldots).\]
+
+When using \texttt{evinj:}, the activated begin events contain
+an environment that can be used to prove injective correspondences.  
+
+(This way of writing queries simulates what happened in older
+versions of ProVerif, up to version 1.09.)
+
+\item $\texttt{let }x = M$ binds the variable $x$ to the term $M$.
+This is especially useful to designate several times the same name.
+For example, $\texttt{query let x = a[]; attacker:f(x,x)}$ determines
+whether the attacker may have $f(x,x)$ where $x$ is any name created
+by a restriction $\texttt{new a}$. In contrast, $\texttt{query
+attacker:f(a[],a[])}$ determines whether the attacker may have
+$f(x,y)$ where $x$ and $y$ are (possibly different) names created by a
+restriction $\texttt{new a}$. A variable bound by $\texttt{let }x = M$ must
+be bound before being used in the following of the query.
+
+\end{itemize}
+All queries of the list included in a single \texttt{query} declaration
+are evaluated by building one set of clauses and performing resolution
+on it, while different \texttt{query} declarations are evaluated by
+rebuilding a new set of clauses from scratch. So the way queries are
+grouped influences the sharing of work between different queries, so
+the speed of the system. The main idea is that one should group
+queries that involve the same events, but separate queries that
+involve different events, because the more events appear in the query,
+the more complex the generated clauses are, which can slow down the
+system considerably, especially on complex examples. If one does not
+want to optimize, one can simply put a single query in each
+\texttt{query} declaration.
+
+\end{itemize}
+
+\item $\texttt{noninterf }\seq{interfspec}\texttt{.}$\\
+where $\nonterm{interfspec} ::= \nonterm{ident}\ [\texttt{among (}\seq{term}\texttt{)})]$
+
+$\texttt{noninterf }n_1\ \texttt{among}\ (S_1), \ldots, n_k\ \texttt{among}\ (S_k)\texttt{.}$ tells the system to
+prove strong secrecy for the secrets $n_1, \ldots, n_k$. That is, the
+system shows that several versions of the given process that
+differ by their values of $n_1, \ldots, n_k$ are bisimilar
+(therefore they are testing equivalent, observationally equivalent, \ldots -- 
+see~\cite{Blanchet04} for more details).
+When the $\texttt{among}\ (S_i)$ indication is present, it means that
+$n_i$ can take its values only inside $S_i$. When it is absent,
+$n_i$ can take any value not containing bound names (or private free names).
+
+Note that the $\texttt{let }\ldots \texttt{ suchthat}$ construct
+is incompatible with the test of strong secrecy. What the solver does
+in this case cannot be done when the input is given under
+the form of Horn clauses (because the simplifications done by the system
+are sound only for particular clauses that correspond to those 
+generated from a process; they do not make sense for general clauses).
+
+\item $\texttt{weaksecret }\nonterm{ident}\texttt{.}$
+
+$\texttt{weaksecret }n$ tells the system to check whether an attacker
+guessing the value of $n$ can verify its guess offline. This is useful
+when $n$ is a weak secret, such as a password, that an attacker could
+guess by exhaustive enumeration.
+
+\item $\texttt{nounif }\nonterm{gfactformat}[/n]\ [b]\texttt{.}$ where $b = \texttt{;}\nonterm{ident} \texttt{ = }\nonterm{gtermformat} \texttt{;}\ldots\texttt{;}\nonterm{ident} \texttt{ = }\nonterm{gtermformat}$
+
+  $\texttt{nounif }F[/n]$ modifies the selection of facts to be
+  resolved upon, to avoid resolving facts that match $F$. A fact
+  $F'$ matches $F$ if and only if $F' = \sigma F$ for some substitution 
+  $\sigma$ that maps variables always marked with a star \texttt{*} to
+  any term and variables that occur at least once without star to a variable.
+  The optional integer $n$ indicates how much we should
+  avoid resolution on facts that match $F$: the greater $n$, the more
+  such resolutions will be avoided.
+
+  The only supported facts $F$ are $\texttt{attacker:}M\
+  [\texttt{phase }n]$, $\texttt{mess:}M,N\ [\texttt{phase }n]$, and
+  $p:M_1, \ldots, M_n$ when $p$ is a user-defined predicate.
+
+The fact $F$ can contain as usual constructor applications and
+variables, but also constructs $a[\ldots]$, as in queries.
+(See the declaration \texttt{query} above.)
+
+$\texttt{nounif }F\ [/n]\texttt{;}x_1 = M_1\texttt{;} \ldots
+\texttt{;}x_n = M_n$ corresponds to $\texttt{nounif }F\{M_n / x_n\}
+\ldots \{ M_1/x_1 \}$.  ($x_j$ may occur in $M_i$ only when $i>j$).
+This construct is
+especially useful to designate several times the same name: for
+example $\texttt{nounif attacker:f(x,x);x = a[]}$ prevents resolution
+on $\mathtt{attacker:f(a[M_1, \ldots, M_m],a[M_1, \ldots, M_m])}$
+while $\texttt{nounif attacker:f(a[],a[])}$ prevents resolution
+on $\mathtt{attacker:f(a[M_1, \ldots, M_m],a[M'_1, \ldots, M'_m])}$.
+
+In $\nonterm{gfactformat}$ and $\nonterm{gtermformat}$, an identifier
+without arguments $a$ stands for $a()$ when the function $a$ has been
+defined (it must then have arity 0), for $a[]$ when a restriction
+$\texttt{new }a$ occurs in the process, and for a variable otherwise.
+
+\item $\texttt{elimtrue }\nonterm{fact}\ [\texttt{where }\seq{ident}\texttt{ can fail}]\texttt{.}$:
+same as for the Horn clause front-end (to be used with user-declared
+predicates).
+
+In addition, the fact is allowed to contain destructors, and 
+the indication ``\texttt{where }$x_1, \ldots, x_n$\texttt{ can fail}''
+specifies that the variables $x_1, \ldots, x_n$ can take the special
+value \texttt{fail}, which represents the failure of the evaluation
+of a destructor. When it is omitted, no variable can take the value 
+\texttt{fail}. (See the definition of destructors by \texttt{reduc} 
+\ldots \texttt{otherwise} for more details.)
+
+\item $\texttt{not }\nonterm{gfact}\ [b]\texttt{.}$ where $b = \texttt{;}\nonterm{ident} \texttt{ = }\nonterm{gterm} \texttt{;}\ldots\texttt{;}\nonterm{ident} \texttt{ = }\nonterm{gterm}$
+
+$\texttt{not }F$ adds the assumption that $F$ is not derivable (or all
+instances of $F$ when $F$ contains variables). This speeds up the
+solving process. At the end of the solving process, the system checks
+that $F$ is indeed not derivable. If it is not, the proof fails with
+an error message. The only supported facts $F$ are
+$\texttt{attacker:}M\ [\texttt{phase }n]$, $\texttt{mess:}M,N\
+[\texttt{phase }n]$, and $p:M_1, \ldots, M_n$ when $p$ is a
+user-defined predicate. 
+
+For $\texttt{not attacker:}M\ [\texttt{phase }n]$, when $\texttt{phase
+}n$ is present, it means that $M$ is secret in phases up to phase
+$n$. When $\texttt{phase }n$ is absent, it means that $M$ is secret in
+all phases.  For backward compatibility, the syntax $\texttt{not
+}M\ [\texttt{phase }n]\ [b]\texttt{.}$ is also supported
+as an abbreviation of $\texttt{not attacker:}M\
+[\texttt{phase }n]\ [b]\texttt{.}$.
+
+The fact $F$ can contain as usual constructor applications and
+variables, but also constructs $a[\ldots]$, as in queries.
+(See the declaration \texttt{query} above.)
+
+$\texttt{not }F\texttt{;}x_1 = M_1\texttt{;} \ldots \texttt{;}x_n =
+M_n$ corresponds to $\texttt{not }F\{M_n / x_n\} \ldots \{ M_1/x_1
+\}$.  ($x_j$ may occur in $M_i$ only when $i>j$). This construct is
+especially useful to designate several times the same name: for
+example $\texttt{not attacker:f(x,x);x = a[]}$ means that $\texttt{f(x,x)}$ is
+secret when $\texttt{x}$ is any name created by $\texttt{new a}$,
+while $\texttt{not attacker:f(a[],a[])}$ means that $\texttt{f(x,y)}$ is secret
+when $\texttt{x}$ and $\texttt{y}$ are any (possible different) names
+created by $\texttt{new a}$.
+
+In $\nonterm{gfact}$, an identifier without arguments $a$
+stands for $a()$ when the function $a$ has been defined (it must then
+have arity 0), for $a[]$ when a restriction $\texttt{new }a$ occurs
+in the process, and for a variable otherwise.
+
+\item $[\texttt{private}]\ \texttt{free }\seq{ident}\texttt{.}$
+
+$\texttt{free }i_1, \ldots, i_n\texttt{.}$ declares the free names
+$i_1, \ldots, i_n$. When the keyword \texttt{private} is present, the
+name is not known by the adversary, whereas by default, it is known by the 
+adversary. When a name occurs free in the process, and is not
+declared by such a declaration, a warning is displayed.  We strongly
+encourage you to declare all free names of your processes.  Indeed, an
+unexpected free name corresponds in general to a typesetting error,
+and the warning might become an error in a future release.
+
+\item $\texttt{clauses}\ (\nonterm{clause}\texttt{;})^*\ 
+\nonterm{clause}\texttt{.}$
+
+This introduces clauses that define predicates. These predicates can
+be used in $\texttt{let}\ \ldots\ \texttt{ suchthat}$
+processes and in tests $\texttt{if}\ \ldots\ \texttt{then}$.  
+Note that there is an implementability
+condition. Essentially, for each predicate invocation, we bind
+variables in the conclusion of the clauses that define this predicate
+and whose position corresponds to bound arguments of the predicate
+invocation. Then, when evaluating hypotheses of clauses from left to
+right, all variables of predicates must get bound by the corresponding
+predicate call. Recursive definitions of predicates are allowed.
+
+The meaning of clauses is the same as for the Horn clauses input system.
+In addition, the clauses are allowed to contain destructors, and 
+the indication ``\texttt{where }$x_1, \ldots, x_n$\texttt{ can fail}''
+appended to clauses
+specifies that the variables $x_1, \ldots, x_n$ can take the special
+value \texttt{fail}, which represents the failure of the evaluation
+of a destructor. When it is omitted, no variable can take the value 
+\texttt{fail}. (See the definition of destructors by \texttt{reduc} 
+\ldots \texttt{otherwise} for more details.)
+The clauses apply only when the arguments of all facts in them do not fail: 
+for facts $p(M_1, \ldots, M_k)$, $M_1, \ldots, M_k$ do not fail, 
+for equalities $M_1 = M_2$ and inequalities $M_1 <> M_2$,
+$M_1$ and $M_2$ do not fail.
+
+\item $\texttt{let }\nonterm{ident}\texttt{ = }\nonterm{process}\texttt{.}$
+
+Defines $\nonterm{ident}$ as the process
+$\nonterm{process}$. $\nonterm{ident}$ can be used inside the
+definition of processes. If the process contains free names or
+variables, they can be bound when $\nonterm{ident}$ is used. (So, this
+is a kind of macro-expansion rather than a real definition.)
+
+\end{itemize}
+
+In the syntax of processes,
+\begin{itemize}
+
+\item The pattern $\nonterm{ident}$ matches any term, and binds the
+given variable identifier to the matched term. The pattern
+$(\seq{pattern})$ matches tuples (and each component of the tuple is
+recursively matched by the given patterns). The pattern
+$f(\seq{pattern})$ matches terms of the form $f(M_1, \ldots, M_n)$
+and the subterms $M_i$ are recursively matched by the given patterns,
+where $f$ is a data function symbol (see the $\texttt{data}$ declaration).
+When $f$ is not a data function symbol, such a construction is not
+allowed. The pattern
+$\texttt{=}\nonterm{term}$ matches a term that is equal to the given
+$\nonterm{term}$. (This is equivalent to an equality test.)
+
+\item Parentheses are just used to clarify associativity of parallel
+compositions, and which processes are replicated.
+
+\item An identifier $x$ must be defined by a previous declaration
+$\texttt{let }x\texttt{ = }P$. It is then equivalent to having a copy
+of $P$ instead of $x$.
+
+\item The replication $\texttt{!~}P$ executes an unbounded number of
+copies of $P$ in parallel: $P \mid P \mid P \mid \ldots$.
+
+\item The nil process $\texttt{0}$ does nothing.
+
+\item The restriction $\texttt{new }a\texttt{;}P$ creates a new name
+$a$, then executes $P$.
+
+\item The test $\texttt{if }f\texttt{ then }P\texttt{ else }Q$
+executes $P$ when the fact is true. Otherwise, it executes $Q$. The
+process $\texttt{if }f\texttt{ then }P$ is equivalent to $\texttt{if
+}f\texttt{ then }P\texttt{ else 0}$. Note that the predicate calls are
+subject to an implementability condition (see the \texttt{clauses}
+declaration above). Equality and inequality tests are always
+implementable.
+
+\item The input $\texttt{in(}c\texttt{,}p\texttt{);}P$ inputs a
+message on channel $c$, and executes $P$ after matching the input
+message with $p$, and binding the variables contained in $p$. When a
+message does not match $p$, it cannot be input by this construct. The
+channel $c$ can be any term. The process
+$\texttt{in(}c\texttt{,}x\texttt{)}$ is equivalent to
+$\texttt{in(}c\texttt{,}x\texttt{);0}$.
+
+\item The output $\texttt{out(}c\texttt{,}M\texttt{);}P$ outputs the
+message $M$ on the channel $c$, then executes $P$. ($c$ can be any
+term.) The process $\texttt{out(}c\texttt{,}M\texttt{)}$
+is equivalent to $\texttt{out(}c\texttt{,}M\texttt{);0}$.
+
+\item The let binding $\texttt{let }p\texttt{ = }M\texttt{ in }P\ [\texttt{else }Q]$
+executes $P$ after matching the term $M$ with the pattern $p$, and 
+binding the variables contained in $p$. If the term $M$ does not match
+the pattern $p$, the process blocks, or executes $Q$ when the 
+\texttt{else} clause is present.
+
+\item The binding $\texttt{let }x_1, \ldots, x_n\texttt{ such that
+}f\texttt{ in }P\ [\texttt{else }Q]$ binds new variables $x_1, \ldots,
+x_n$, such that $f$ is true, then executes $P$. If such a binding is
+impossible, it executes $Q$. Note that the predicate calls are subject
+to an implementability condition (see the \texttt{clauses} declaration
+above). Facts $M\texttt{ <> }N$ are not allowed in $f$, because of
+this implementability condition (they make sense only when all
+variables are already bound; in this case, using the \texttt{else}
+clause of a \texttt{if} is more appropriate).
+
+\item The parallel composition $P_1 \texttt{|} P_2$ executes $P_1$ and
+$P_2$ in parallel.
+
+\item The event $\texttt{event } M\texttt{;}P$ emits the event
+$\texttt{event}(M)$, then executes $P$. The term $M$ must be a
+function application $f(M_1, \ldots, M_n)$. The function $f$ need not
+be declared before. When the process $P$ is absent, nothing is
+executed after the event. Events are not really
+part of the cryptographic protocol, but are used for authenticity
+specifications~\cite{Blanchet2002} and other properties of protocols. 
+Events can be used to keep track of which steps of the protocol are executed.
+
+\item The phase separation command $\texttt{phase }n\texttt{;}P$
+indicates the beginning of phase $n$. Intuitively, we consider
+protocols split in several phases, and the instructions under
+$\texttt{phase }n$ are active only during the $n$-th phase of the
+protocol.
+%
+So the process first executes phase 0, that is, it executes all
+instructions not under $\texttt{phase }i$ for $i \geq 1$.
+%
+Then, when changing from phase 0 to phase 1, it discards all processes
+that have not reached a $\texttt{phase }i$ instruction for $i \geq 1$
+and executes the instructions under $\texttt{phase }1$ but not under
+$\texttt{phase }i$ for $i \geq 2$.
+%
+More generally, when changing from phase $n$ to phase $n+1$, all
+processes that have not reached a $\texttt{phase }i$ instruction for
+$i \geq n+1$ are discarded and the instructions under $\texttt{phase
+}n+1$ but not under $\texttt{phase }i$ for $i \geq n+2$ are executed.
+%
+The adversary obviously keeps its knowledge when changing phases.
+
+Phases can be used to model scenarios in which temporality is
+important, such as when a long-term key is published after some
+sessions are executed and we want to determine whether the adversary
+can then have the session secrets. (The long-term keys are then
+published in phase 1, while the rest of the protocol is in phase 0.)
+Similarly, phases can be used to model protocols that reveal a secret
+at the end of the session.
+
+The phase number must be at least 1. Phases cannot be used with
+key compromise, \texttt{param keyCompromise = approx.}  or
+\texttt{param keyCompromise = strict.}, because key compromise
+introduces itself a 2-phase process.
+
+\item The synchronization command $\texttt{sync }n\texttt{;}P$
+introduces a global synchronization, which has some similarity
+with phases. The global synchronizations must be executed in
+increasing order. The process waits until all $\texttt{sync }n$
+commands are reached before executing the synchronization $n$.
+More precisely, assuming $n$ is the smallest synchronization
+number that occurs in the initial process and has not been executed yet,
+if the initial process contains $k$ commands
+$\texttt{sync }n$, then the process waits until it reaches
+exactly $k$ commands $\texttt{sync }n$, then it executes
+the synchronization $n$ and continues after the $\texttt{sync }n$ 
+commands.
+So, in contrast to phases, processes are never discarded
+by synchronization, but the process may block in case
+some synchronizations cannot be reached or are discarded for
+instance by a test that fails above them.
+
+The synchronization number must be at least 1. Synchronizations
+$\texttt{sync }n$ cannot occur under replications.  Synchronizations
+cannot be used with phases or with key compromise. Synchronizations
+can help proving equivalences with \texttt{choice}, because they allow
+swapping data between processes at the synchronization points.
+
+\end{itemize}
+
+Two cases have to be distinguished:
+\begin{itemize}
+
+\item The terms in the process never contain \texttt{choice}. The
+process defines one pi calculus process, and we can ask the various
+queries (\texttt{query}, \texttt{noninterf}, \texttt{weaksecret}).
+
+\item The terms in the process contain \texttt{choice}. 
+The process in fact defines two pi calculus processes:
+one process in which the first argument of \texttt{choice} is used,
+and one in which the second one is used. The verifier then tries
+to show the observational equivalence of these two processes~\cite{Blanchet05}.
+The queries \texttt{query}, \texttt{noninterf}, \texttt{weaksecret},
+and key compromise cannot be used.
+(The keyword \texttt{diff} is also accepted as a synonym for \texttt{choice}.)
+
+\end{itemize}
+
+\section{Output of the system}
+
+The system gives an output of the following form:
+\begin{verbatim}
+Starting rules:
+Rule 10: attacker:c[]
+Rule 9: attacker:k -> attacker:host(k)
+...
+Completing...
+Completed rules:
+attacker:encrypt(secretB[],k[Kas[],Kbs[],Na[],Nb[host(Kas[]),Na[]]])
+attacker:v147 & attacker:v148 -> attacker:encrypt(v148,k[Kas[],v147,Na[],v148])
+...
+ok, secrecy assumption verified: fact unreachable attacker:Kbs[]
+...
+goal unreachable: attacker:secretB[]
+...
+\end{verbatim}
+First, it displays the Horn clauses representing the protocol. If you
+use the Horn clauses input, these are the clauses you entered. If you
+use the pi calculus input, these clauses are the result of a
+translation of the process, described in~\cite{Abadi04c}. This
+translation uses mainly two predicates $\texttt{attacker:}M$ meaning that the
+adversary may have $M$, and $\texttt{mess:}C\texttt{,}M$ meaning that the
+message $M$ may be sent on channel $C$. It uses moreover a predicate
+$\texttt{end}$ and a blocking predicate $\texttt{begin}$ for
+proofs involving events. Some other predicates are used for modeling the
+compromise of session keys. The clauses are numbered. These numbers are
+used in the following of the output to reference the clauses.
+
+Second, the system completes the clauses, using a resolution-based
+algorithm. Depending on the \texttt{verbose} parameter, it prints all
+clauses it creates, or only numbers of clauses every 200th clause created.
+
+Third, it outputs the list of clauses obtained after completion (after
+the words \texttt{Completed rules}).
+
+Fourth, if you have given secrecy assumptions, using the declaration
+\texttt{not}, the system checks them. In case the secrecy assumption
+is not satisfied, it stops immediately.
+
+Fifth, the system checks each goal you have given using
+\texttt{query}. If the fact mentioned on the left of \texttt{==>}
+in the query is derivable, for each found clause that derives it, 
+the system outputs \texttt{goal
+reachable}, and a derivation of the clause from the initial clauses.  
+The derivation is
+built according to the following format:
+\begin{itemize}
+\item When a part of the derivation is done using one of the rules:
+\begin{align*}
+&\texttt{rule }n\ \nonterm{fact proved by rule $n$}\\
+&\quad\nonterm{derivation of first hypothesis of rule $n$}\\
+&\quad\ldots\\
+&\quad\nonterm{derivation of last hypothesis of rule $n$}
+\end{align*}
+
+\item When reusing an already proved fact:
+\[\texttt{duplicate }\nonterm{fact}\]
+You should look for the derivation of $\nonterm{fact}$ somewhere under the
+\texttt{duplicate} line.
+
+\item When taking the $n$-th element of a tuple (In the Horn clauses
+input system, this happens when you have declared the predicate $p$ 
+\texttt{decompData}. In the pi calculus input system, this happens with $p =
+\texttt{attacker}$.):
+\begin{align*}
+&n\texttt{-th }p:M_n\\
+&\quad\nonterm{derivation of $p:(M_1, \ldots, M_k)$}
+\end{align*}
+A similar situation happens when you have declared $\texttt{data\ }f$:
+\begin{align*}
+&n\texttt{-th }p:M_n\\
+&\quad\nonterm{derivation of $p:f(M_1, \ldots, M_k)$}
+\end{align*}
+
+\item When building a tuple (In the Horn clauses input system, this
+happens when you have declared the predicate $p$ \texttt{decompData}. In the pi
+calculus input system, this happens with $p = \texttt{attacker}$.):
+\begin{align*}
+&k\texttt{-tuple }p:(M_1, \ldots, M_k)\\
+&\quad\nonterm{derivation of $p:M_1$}\\
+&\quad\ldots\\
+&\quad\nonterm{derivation of $p:M_k$}
+\end{align*}
+A similar situation happens when you have declared $\texttt{data\ }f$:
+\begin{align*}
+&f\texttt{-tuple }p:f(M_1, \ldots, M_k)\\
+&\quad\nonterm{derivation of $p:M_1$}\\
+&\quad\ldots\\
+&\quad\nonterm{derivation of $p:M_k$}
+\end{align*}
+
+\item When proving $p:x$ (in the Horn clauses input system, when you
+have declared the predicate $p$ \texttt{elimVar}; in the pi calculus input system,
+when $p = \texttt{attacker}$.)
+\[\texttt{any }p:x\]
+
+\end{itemize}
+Note that the derivations of inequalities of terms
+are omitted.
+
+At the end, it concludes with
+\texttt{RESULT Query \ldots is true.} or 
+\texttt{RESULT Query \ldots cannot be proved.}.
+
+
+\bibliography{biblio}
+\bibliographystyle{abbrv} %alpha
+
+\end{document}

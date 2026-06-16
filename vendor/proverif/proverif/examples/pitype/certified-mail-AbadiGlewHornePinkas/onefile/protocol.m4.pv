@@ -1,0 +1,655 @@
+(* 
+
+Certified email protocol by Abadi, Glew, Horne, and Pinkas
+WWW2002
+
+*)
+
+(* set eqInNames = true. *)
+set redundantHypElim = beginOnly.
+set movenew = false.
+set ignoreTypes = true.
+
+type pkey.
+type skey.
+type spkey.
+type sskey.
+type key.
+type tag.
+type authtag.
+type passwd.
+type host.
+type tquery.
+type reply.
+type messageid.
+type tcertif.
+type idttpr.
+
+fun channel_for_host(host): channel [data, typeConverter].
+fun channel_with_host(host, channel): channel [data].
+fun id_for_host_ch(host, channel): idttpr [data].
+fun id_for_key(key): idttpr [data].
+fun id_for_host_key_key(host, key, key): idttpr [data].
+
+(* Public key encryption *)
+
+fun pk(skey):pkey.
+fun A(pkey, bitstring): bitstring.
+reduc forall y: skey, x: bitstring; decA(y, A(pk(y),x)) = x.
+
+(* Signatures *)
+
+fun S(sskey, bitstring): tcertif.
+fun Spk(sskey): spkey.
+reduc forall y: sskey, x: bitstring; checkS(Spk(y), S(y, x)) = x.
+reduc forall y: sskey, x: bitstring; getS(S(y, x)) = x.
+
+(* Shared key encryption *)
+
+fun E(key, bitstring): bitstring.
+reduc forall y: key, x: bitstring; decE(y, E(y,x)) = x.
+
+(* Hash function *)
+
+fun H(bitstring): key.
+
+(* Constants to identify messages *)
+
+const Give,      (* Message 1 *)
+      Wants,     (* Message 2 *)
+      Try,       (* Message 3 *)
+      Released,  (* Message 4 *)
+      Received: tag [data].  (* For the judge *)
+
+(* Constant authentication modes 
+   We encode the authentication modes as pairs:
+     BothAuth in the paper is coded (Auth,Auth) 
+     SAuth in the paper is coded (Auth,NoAuth)
+     TTPAuth in the paper is coded (NoAuth,Auth)
+     NoAuth in the paper is coded (NoAuth,NoAuth)
+   This makes testing whether S / TTP must authenticate R easier *)
+
+const Auth, NoAuth: authtag [data].
+
+(* Function from R's password to R's name *)
+
+fun PasswdTable(passwd): host.
+
+ifdef(`PROP4',`
+
+(* It is assumed that an attacker cannot relate q and r = Reply(h,q) 
+   except for the hosts h it creates itself *)
+
+fun Reply(host, tquery): reply [private]. 
+reduc forall x: passwd, q: tquery; ReplyOwnHost(x, q) = Reply(PasswdTable(x), q).
+
+',`
+ifdef(`SECRECY',`
+
+(* It is assumed that an attacker cannot relate q and r = Reply(h,q) 
+   except for the hosts h it creates itself *)
+
+fun Reply(host, tquery): reply [private]. 
+reduc forall x: passwd, q: tquery; ReplyOwnHost(x, q) = Reply(PasswdTable(x), q).
+
+',
+
+(* R or S are included in the adversary, so the adversary can compute Reply *)
+
+fun Reply(host, tquery): reply.
+
+)')
+
+const NullQ: tquery [data].
+
+reduc forall q: tquery; getAuthQ(q,NoAuth) = NullQ;
+      forall q: tquery; getAuthQ(q,Auth) = q.
+
+const NullR: reply [data].
+
+reduc forall r: reply; getAuthR(r,NoAuth) = NullR;
+      forall r: reply; getAuthR(r,Auth) = r.
+
+const NullP: passwd [data].
+
+reduc forall p: passwd; getAuthP(p,NoAuth) = NullP;
+      forall p: passwd; getAuthP(p,Auth) = p.
+
+(* Build a message *)
+
+fun Message(host, messageid, bitstring): bitstring [private].
+
+(* TTPname, Sname are public constants, representing the names
+   of the hosts. We allow Sname to send to anybody, not just Rname.
+   We also allow the TTP to talk to recipients other than Rname
+   (represented by the adversary) on an insecure channel.
+   cleartext is a public constant, header of the message from S to R *)	
+
+free c: channel.
+free cleartext: bitstring.
+free Sname,Judgename,TTPname: host.
+free TTPSigKey: sskey [private].
+free TTPDecKey: skey [private].
+free Rpwd: passwd [private].
+
+(* Secrecy assumptions *)
+
+not attacker(TTPDecKey).
+not attacker(TTPSigKey).
+
+(* Queries *)
+
+event Rreceived(bitstring).
+event JudgeSays(tag, host, bitstring).
+event SThinksRhas(bitstring).
+event Shas(host, key, bitstring, tquery, reply, bitstring).
+event Rhas(idttpr, bitstring, key).
+event TTPSendS(host, tcertif).
+event TTPSendS2(host, tcertif).
+event TTPSendR(idttpr, bitstring).
+event TTPSendR2(idttpr, bitstring).
+
+ifdef(`PROP1',`
+  (* For proposition 1, we want to know under which
+     conditions the adversary can have the message sent by S,
+     when TTP authenticates R *)
+  query x: host, y: messageid, z: authtag; 
+        putbegin event:Shas, TTPSendS;
+	event(Rreceived(Message(x,y,(z,Auth)))).
+')
+ifdef(`PROP2',`
+  query x: bitstring;
+  	putbegin event:Rhas, TTPSendR;
+	event(JudgeSays(Received,PasswdTable(Rpwd),x)).
+')
+ifdef(`PROP3',`
+  (* For proposition 3, we want to know under which
+     conditions the adversary can have the message sent by S *)
+  query x: host, y: messageid, z: bitstring;
+  	putbegin event:Shas, TTPSendS, TTPSendS2;
+	event(Rreceived(Message(x,y,z))).
+')
+ifdef(`PROP4',`
+  query y: messageid, z: authtag;
+  	putbegin event:Rhas, TTPSendR, TTPSendR2;
+	event(SThinksRhas(Message(PasswdTable(Rpwd),y,(Auth,z)))).
+')
+ifdef(`SECRECY',`
+  (* For secrecy, we also want to know under which
+     conditions the adversary can have the message sent by S
+     to R, that is Message(PasswdTable(Rpwd),x,z).
+   *)
+  query x: messageid, z: bitstring; 
+  	attacker(Message(PasswdTable(Rpwd),x,z)).
+')
+
+let processJudge(TTPEncKey: pkey, TTPVerKey: spkey) =
+ifdef(`PROP4',
+  0.
+,ifdef(`PROP3',
+  0.
+,ifdef(`SECRECY',
+  0.
+,
+  (* S must send TTP's certificate plus other information *)
+  in(channel_for_host(Judgename), (certif: tcertif, Sname5: host, k5: key, cleartext5: bitstring, q5: tquery, r5: reply, em5: bitstring));
+  let (=Released, S2TTP5: bitstring, Rname5: host) = checkS(TTPVerKey, certif) in
+  let m5 = decE(k5,em5) in
+  let hs5 = H((cleartext5, q5, r5, em5)) in
+  if S2TTP5 = A(TTPEncKey, (Sname5, (Auth, Auth), (Give, k5, Rname5, hs5))) then
+     (* The judge says that Rname5 has received m5 *)
+     event JudgeSays(Received, Rname5, m5)
+  else if S2TTP5 = A(TTPEncKey, (Sname5, (NoAuth, Auth), (Give, k5, Rname5, hs5))) then
+     (* The judge says that Rname5 has received m5 *)
+     event JudgeSays(Received, Rname5, m5).
+)))
+
+let processS(TTPEncKey: pkey, TTPVerKey: spkey) = 
+ifdef(`PROP2',
+  (* S is included in the adversary *)
+  0.
+,
+  (* The attacker chooses possible recipients of the message *)
+  in(c, recipient: host);
+  (* The attacker chooses the authentication mode *)
+  in(c, (sauth: authtag,ttpauth: authtag));
+  (* Build the message to send *)
+  new msgid: messageid;
+  let m = Message(recipient,msgid,(sauth,ttpauth)) in
+  (* Step 1 *)
+  new k: key;
+  new qtmp: tquery;
+  let q = getAuthQ(qtmp,sauth) in
+  let r = getAuthR(Reply(recipient,qtmp),sauth) in
+  let em = E(k,m) in
+  let hs = H((cleartext, q, r, em)) in
+  let S2TTP = A(TTPEncKey, (Sname, (sauth,ttpauth), (Give, k, recipient, hs))) in
+  event Shas(Sname, k, cleartext, q, r, m);
+  out(channel_for_host(recipient), (TTPname, em, (sauth,ttpauth), cleartext, q, S2TTP));
+
+  (* Step 4 *)
+  !
+  in(channel_for_host(Sname), inmess4: tcertif);
+  if ttpauth = Auth then
+  (
+     let (=Released, =S2TTP, =recipient) = checkS(TTPVerKey, inmess4) in
+     (* S knows that R has read the message *)
+
+     event SThinksRhas(m);
+     ifdef(`SECRECY',0,
+       (* S sends to the judge the necessary information so that the
+          judge says that R has read the message *)
+       out(channel_for_host(Judgename), (inmess4, Sname, k, cleartext, q, r, em))
+     )
+     else out(channel_for_host(Sname), inmess4)
+  ) else (
+     let (=Released, =S2TTP) = checkS(TTPVerKey, inmess4) in 
+     (* S knows that R has read the message, but cannot go to the judge,
+        because in case S is dishonest, he could have queried TTP himself *)
+     event SThinksRhas(m)
+     else out(channel_for_host(Sname), inmess4)
+  ).
+)
+
+let processR(Rname: host, RsecchannelToTTP: channel, RsecchannelFromTTP: channel, idTTPtoR: idttpr) = 
+ifdef(`PROP3',
+  (* R is included in the adversary *)
+  out(c, RsecchannelToTTP);
+  out(c, RsecchannelFromTTP);
+  out(c, Rpwd)
+  |
+  in(c,m: bitstring);
+  event Rreceived(m).
+,
+ifdef(`PROP1',
+  (* R is included in the adversary *)
+  out(c, RsecchannelToTTP);
+  out(c, RsecchannelFromTTP);
+  out(c, Rpwd)
+  |
+  in(c,m: bitstring);
+  event Rreceived(m).
+,
+  (* Step 2 *)
+  in(channel_for_host(Rname), (=TTPname, em2: bitstring, (sauth: authtag,ttpauth: authtag), cleartext2: bitstring, q2: tquery, S2TTP2: bitstring));
+  let r2 = getAuthR(Reply(Rname,q2),sauth) in
+  let hr = H((cleartext2, q2, r2, em2)) in
+  event Rhas(idTTPtoR,em2,hr);
+
+  out(RsecchannelToTTP, (S2TTP2, (Wants, getAuthP(Rpwd,ttpauth), hr)));
+
+  (* Step 3 *)
+  !
+  in(RsecchannelFromTTP, (=Try, k3: key, =hr));
+  let m3 = decE(k3, em2) in
+  (* R has obtained the message m3 = m *)
+  event Rreceived(m3).
+))
+
+let processTTP(receivername: host, TTPsecchannelFromR: channel, TTPsecchannelToR: channel, idTTPtoR: idttpr) = 
+  (* Step 3 *)
+  in(TTPsecchannelFromR, (S2TTP3: bitstring, (=Wants, RPwd3: passwd, hr3: key)));
+  let (Sname3: host, (sauth3: authtag,ttpauth3: authtag), (=Give, k3: key, R3: host, =hr3)) = 
+     decA(TTPDecKey, S2TTP3) in
+  if R3 = receivername then
+  (
+     if (ttpauth3, R3) = (Auth, PasswdTable(RPwd3)) then
+
+        (* Records the event *)
+        event TTPSendS(Sname3,S(TTPSigKey, (Released, S2TTP3, R3)));
+        event TTPSendR(idTTPtoR, (Try, k3, hr3));
+
+        (* Step 3 *)
+        out(TTPsecchannelToR, (Try, k3, hr3));
+
+        (* Step 4 *)
+        out(channel_for_host(Sname3), S(TTPSigKey, (Released, S2TTP3, R3)))
+
+     else if ttpauth3 = NoAuth then
+
+        (* Records the event *)
+        event TTPSendS2(Sname3,S(TTPSigKey, (Released, S2TTP3)));
+        event TTPSendR2(idTTPtoR, (Try, k3, hr3));
+
+        (* Step 3 *)
+        out(TTPsecchannelToR, (Try, k3, hr3));
+
+        (* Step 4 *)
+        out(channel_for_host(Sname3), S(TTPSigKey, (Released, S2TTP3)))
+  ).
+
+
+(* When establishing a connection, R always first sends its IP
+   address. *)
+
+(****** SECURE CHANNEL R-TTP BUILT WITH AN ASYMMETRIC CHANNEL ******)
+
+ifdef(`CHTOTTP',
+
+let processRandTTP(Rname: host, TTPEncKey: pkey, TTPVerKey: spkey) =
+  new ChannelToTTP: channel; 
+  ((  !
+      in(c,m: bitstring);   (* Either ignore types, or I must allow messages of type host and channel to be sent here *)
+      out(ChannelToTTP,m)
+   ) 
+   | 
+   (  !
+      (* R *)
+      new secchannel: channel;
+      out(ChannelToTTP, Rname);
+      out(ChannelToTTP, secchannel);
+      let idTTPtoR = id_for_host_ch(Rname,secchannel) in
+      let RsecchannelToTTP = channel_with_host(TTPname,secchannel) in
+      let RsecchannelFromTTP = channel_with_host(Rname,secchannel) in
+      processR(Rname, RsecchannelToTTP, RsecchannelFromTTP, idTTPtoR)
+   )
+   |
+   (  !
+      (* TTP *)
+      in(ChannelToTTP, receivername: host);
+      in(ChannelToTTP, secchannel: channel);
+      let idTTPtoR = id_for_host_ch(receivername,secchannel) in
+      let TTPsecchannelToR = channel_with_host(receivername,secchannel) in
+      let TTPsecchannelFromR = channel_with_host(TTPname,secchannel) in
+      processTTP(receivername, TTPsecchannelFromR, TTPsecchannelToR, idTTPtoR)
+   )).
+
+)
+
+(****** SECURE CHANNEL R-TTP BUILT WITH A SIMPLE PUBLIC KEY PROTOCOL ******)
+
+ifdef(`PKCHANNEL', 
+
+const ChKey: tag [data].
+
+let processRandTTP(Rname: host, TTPEncKey: pkey, TTPVerKey: spkey) = 
+  (  !  
+     (* R *)
+     new shkey: key;
+     out(channel_for_host(TTPname), Rname);
+     out(channel_for_host(TTPname), A(TTPEncKey, (ChKey,shkey)));
+
+     let idTTPtoR = id_for_key(shkey) in
+     new RsecchannelToTTP: channel;
+     new RsecchannelFromTTP: channel;
+
+     (  !
+        in(RsecchannelToTTP, m: bitstring);
+	out(channel_for_host(TTPname),  E(shkey, m))
+     )
+     |
+     (  !
+        in(channel_for_host(Rname), mR: bitstring);
+        out(RsecchannelFromTTP, decE(shkey, mR))
+     )
+     |
+     processR(Rname, RsecchannelToTTP, RsecchannelFromTTP, idTTPtoR)
+  )
+  |
+  (  !
+     (* TTP *)
+     in(channel_for_host(TTPname), receivername: host);
+     in(channel_for_host(TTPname), m1: bitstring);
+     let (=ChKey, shkey: key) = decA(TTPDecKey, m1) in
+     let idTTPtoR = id_for_key(shkey) in
+     new TTPsecchannelToR: channel;
+     new TTPsecchannelFromR: channel;
+     (  !
+        in(TTPsecchannelToR, m: bitstring);
+        out(channel_for_host(receivername),  E(shkey, m))
+     )
+     |
+     (  !
+        in(channel_for_host(TTPname), mTTP: bitstring); 
+        out(TTPsecchannelFromR,decE(shkey, mTTP))
+     )
+     |
+     processTTP(receivername, TTPsecchannelFromR, TTPsecchannelToR, idTTPtoR)
+  ).
+
+)
+
+(****** SECURE CHANNEL R-TTP BUILT BY SSH ******)
+
+(* In fact, we consider a simplified version of SSH, without negociation.
+   We assume that the chosen parameters are 
+   - the standard Diffie-Hellman key exchange
+   - a symmetric encryption algorithm (different from none)
+   - a mac algorithm (different from none)
+   - no compression
+   We do not consider key re-exchange.
+
+   Only the transport layer protocol of SSH is considered. The 
+   authentication is performed by the certified mail protocol,
+   so we do not consider the SSH authentication protocol.
+
+   In the computation of the mac, we ignore the sequence of the
+   messages (difficult to model in our framework). Also note
+   that the mac is really useful only when the encryption is malleable,
+   and we model a perfect encryption that is not malleable.
+ *)
+
+ifdef(`SSH', `
+
+type G.
+type exponent.
+type ktag.
+
+(* Non-message revealing signatures *)
+
+fun nmrS(sskey, key): bitstring.
+reduc forall x: key, y: sskey; checknmrS(Spk(y), nmrS(y,x), x) = true.
+
+(* Diffie-Hellman *)
+
+const g: G.
+fun exp(G, exponent): G.
+equation forall x: exponent, y: exponent; exp(exp(g, x), y) = exp(exp(g, y), x).
+
+(* Mac *)
+
+fun mac(key, bitstring): bitstring.
+
+(* Constants *)
+
+const KEXDHINIT, KEXDHREPLY: tag [data].
+
+const keyEncRtoTTP, keyEncTTPtoR, keyMacRtoTTP, keyMacTTPtoR: ktag [data].
+
+(* Secrecy assumptions *)
+
+not attacker(new dhsecretR).
+not attacker(new dhsecretTTP).
+
+let processRandTTP(Rname: host, TTPEncKey: pkey, TTPVerKey: spkey) = 
+  ( !
+    (* R: Create a channel with TTP *)
+    new dhsecretR: exponent;
+    let dhpublicR = exp(g, dhsecretR) in
+    out(channel_for_host(TTPname), Rname);
+    out(channel_for_host(TTPname), (KEXDHINIT, dhpublicR));
+    in(channel_for_host(Rname), (=KEXDHREPLY, =TTPVerKey, dhpublicTTP: G, sign: bitstring));
+    let K = exp(dhpublicTTP, dhsecretR) in
+    let h = H((TTPVerKey, dhpublicR, dhpublicTTP, K)) in
+    if checknmrS(TTPVerKey, sign, h) = true then
+    let enckeyRtoTTP = H((K, h, keyEncRtoTTP)) in
+    let enckeyTTPtoR = H((K, h, keyEncTTPtoR)) in
+    let mackeyRtoTTP = H((K, h, keyMacRtoTTP)) in
+    let mackeyTTPtoR = H((K, h, keyMacTTPtoR)) in
+
+    let idTTPtoR = id_for_host_key_key(Rname,enckeyTTPtoR, mackeyTTPtoR) in
+    new RsecchannelToTTP: channel;
+    new RsecchannelFromTTP: channel;
+
+    (! in(RsecchannelToTTP, m2payload: bitstring);
+       out(channel_for_host(TTPname), (E(enckeyRtoTTP, m2payload), mac(mackeyRtoTTP, m2payload)))
+    ) 
+    |
+    (! in(channel_for_host(Rname), (m4enc: bitstring, m4mac: bitstring));
+       let m4payload = decE(enckeyTTPtoR, m4enc) in
+       if m4mac = mac(mackeyTTPtoR, m4payload) then
+       out(RsecchannelFromTTP, m4payload))
+    |
+    processR(Rname, RsecchannelToTTP, RsecchannelFromTTP, idTTPtoR)
+  )
+  |
+  ( !
+    (* TTP: Create a channel with R *)
+    in(channel_for_host(TTPname), receivername: host);
+    in(channel_for_host(TTPname), (=KEXDHINIT, dhpublicR: G));
+    new dhsecretTTP: exponent;
+    let dhpublicTTP = exp(g, dhsecretTTP) in
+    let K = exp(dhpublicR, dhsecretTTP) in
+    let h = H((TTPVerKey, dhpublicR, dhpublicTTP, K)) in
+    out(channel_for_host(receivername), (KEXDHREPLY, TTPVerKey, dhpublicTTP, nmrS(TTPSigKey, h)));
+    let enckeyRtoTTP = H((K, h, keyEncRtoTTP)) in
+    let enckeyTTPtoR = H((K, h, keyEncTTPtoR)) in
+    let mackeyRtoTTP = H((K, h, keyMacRtoTTP)) in
+    let mackeyTTPtoR = H((K, h, keyMacTTPtoR)) in
+
+    let idTTPtoR = id_for_host_key_key(receivername,enckeyTTPtoR, mackeyTTPtoR) in
+    new TTPsecchannelToR: channel;
+    new TTPsecchannelFromR: channel;
+
+    (! in(TTPsecchannelToR, m3payload: bitstring);
+       out(channel_for_host(receivername), (E(enckeyTTPtoR, m3payload), mac(mackeyTTPtoR, m3payload)))
+    )
+    |
+    (! in(channel_for_host(TTPname), (m2enc: bitstring, m2mac: bitstring));
+       let m2payload = decE(enckeyRtoTTP, m2enc) in
+       if m2mac = mac(mackeyRtoTTP, m2payload) then
+       out(TTPsecchannelFromR, m2payload)
+    )
+    |
+    processTTP(receivername, TTPsecchannelFromR, TTPsecchannelToR, idTTPtoR)
+  ).
+
+')
+
+(****** COMMON PART FOR ANY WAY OF BUILDING THE SECURE CHANNEL ******)
+
+process 
+        let TTPEncKey = pk(TTPDecKey) in
+        out(c, TTPEncKey);
+        let TTPVerKey = Spk(TTPSigKey) in
+	out(c, TTPVerKey);
+	let Rname = PasswdTable(Rpwd) in
+	out(c, Rname);
+        ((!processS(TTPEncKey, TTPVerKey)) | (!processJudge(TTPEncKey, TTPVerKey)) | processRandTTP(Rname, TTPEncKey, TTPVerKey))
+
+  (* processRandTTP defines the two processes for R and TTP
+     using processR and processTTP.
+
+     It must define two channels RsecchannelToTTP and
+     RsecchannelFromTTP above processR. processR uses these
+     channels to communicate with TTP.
+
+     Similarly, it must define two channels TTPsecchannelToR
+     and TTPsecchannelFromR above processTTP, that processTTP
+     uses to communicate with R. It must also define receivername,
+     above processTTP. This identifier is used as address of the 
+     receiver of the message TTP->R, and TTP will check that it is
+     correctly set.
+     
+     At last, it must define idTTPtoR above both processTTP and
+     processR. This identifier is used in events, to check that
+     the channel TTP->R is the same from the point of views of 
+     R and TTP.
+  *)
+
+ifdef(`CHTOTTP',`
+ifdef(`SECRECY',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 1
+RESULT not attacker(Message(PasswdTable(Rpwd[]),x,z)) is false.
+0.051s (user 0.047s + system 0.004s), max rss 12744K
+END *)
+')
+ifdef(`PROP1',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 2
+RESULT not event(Rreceived(Message(x,y,(z,Auth)))) cannot be proved.
+0.052s (user 0.044s + system 0.008s), max rss 12924K
+END *)
+')
+ifdef(`PROP2',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 3
+RESULT not event(JudgeSays(Received,PasswdTable(Rpwd[]),x)) cannot be proved.
+0.028s (user 0.020s + system 0.008s), max rss 11736K
+END *)
+')
+ifdef(`PROP3',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 4
+RESULT not event(Rreceived(Message(x,y,z))) cannot be proved.
+0.067s (user 0.059s + system 0.008s), max rss 13596K
+END *)
+')
+ifdef(`PROP4',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 5
+RESULT not event(SThinksRhas(Message(PasswdTable(Rpwd[]),y,(Auth,z)))) cannot be proved.
+0.122s (user 0.114s + system 0.008s), max rss 16340K
+END *)
+')
+')
+ifdef(`PKCHANNEL',`
+ifdef(`SECRECY',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 6
+RESULT not attacker(Message(PasswdTable(Rpwd[]),x,z)) is false.
+0.059s (user 0.051s + system 0.008s), max rss 13000K
+END *)
+')
+ifdef(`PROP1',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 7
+RESULT not event(Rreceived(Message(x,y,(z,Auth)))) cannot be proved.
+0.056s (user 0.049s + system 0.008s), max rss 12960K
+END *)
+')
+ifdef(`PROP2',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 8
+RESULT not event(JudgeSays(Received,PasswdTable(Rpwd[]),x)) cannot be proved.
+0.038s (user 0.034s + system 0.004s), max rss 12764K
+END *)
+')
+ifdef(`PROP3',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 9
+RESULT not event(Rreceived(Message(x,y,z))) is false.
+0.064s (user 0.056s + system 0.008s), max rss 13020K
+END *)
+')
+ifdef(`PROP4',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 10
+RESULT not event(SThinksRhas(Message(PasswdTable(Rpwd[]),y,(Auth,z)))) cannot be proved.
+0.118s (user 0.110s + system 0.008s), max rss 17536K
+END *)
+')
+')
+ifdef(`SSH',`
+ifdef(`SECRECY',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 11
+RESULT not attacker(Message(PasswdTable(Rpwd[]),x,z)) is false.
+0.281s (user 0.261s + system 0.020s), max rss 22896K
+END *)
+')
+ifdef(`PROP1',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 12
+RESULT not event(Rreceived(Message(x,y,(z,Auth)))) cannot be proved.
+0.534s (user 0.530s + system 0.004s), max rss 28336K
+END *)
+')
+ifdef(`PROP2',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 13
+RESULT not event(JudgeSays(Received,PasswdTable(Rpwd[]),x)) cannot be proved.
+0.729s (user 0.693s + system 0.036s), max rss 74896K
+END *)
+')
+ifdef(`PROP3',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 14
+RESULT not event(Rreceived(Message(x,y,z))) is false.
+1.191s (user 1.179s + system 0.012s), max rss 35864K
+END *)
+')
+ifdef(`PROP4',`
+(* EXPECTPV FILENAME: examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv TAG: 15
+RESULT not event(SThinksRhas(Message(PasswdTable(Rpwd[]),y,(Auth,z)))) cannot be proved.
+4.966s (user 4.870s + system 0.096s), max rss 168540K
+END *)
+')
+')

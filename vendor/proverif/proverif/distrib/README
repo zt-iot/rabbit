@@ -1,0 +1,174 @@
+Protocol verifier, copyright INRIA-CNRS, by Bruno Blanchet, 
+Vincent Cheval, and Marc Sylvestre 2000-YEAR.
+
+This software can be used to prove secrecy and authenticity properties
+of cryptographic protocols.
+
+INSTALL
+
+There are three possibilities for installing ProVerif: 
+either the source distribution or the binary distribution for Windows,
+or install it through OPAM. 
+
+******* Source distribution (and documentation)
+
+To run this software, you need Objective Caml version 4.03 or
+higher. Objective Caml can be downloaded from
+	http://caml.inria.fr
+
+The installation of graphviz is required if you want to have a drawing 
+of graphs representing attacks that ProVerif found. It can be downloaded from
+        http://graphviz.org
+      
+The installation GTK+2.24 and LablGTK2 is required if you want to
+run the interactive simulator proverif_interact. Use the package manager
+of your distribution to install GTK+2 and download lablgtk-2.18.6.tar.gz
+from
+	http://lablgtk.forge.ocamlcore.org/
+and follow the installation instructions in their README file.
+
+Furthermore, on Mac OS X, you need to install XCode if you do not
+already have it. It can be downloaded from
+	https://developer.apple.com/xcode/
+
+* under Unix
+
+Uncompress the source and documentation archives using tar:
+
+	gunzip proverifVERSION.tar.gz
+	tar -xf proverifVERSION.tar
+	gunzip proverifdocVERSION.tar.gz
+	tar -xf proverifdocVERSION.tar
+
+or if you have GNU tar:
+
+	tar -xzf proverifVERSION.tar.gz
+	tar -xzf proverifdocVERSION.tar.gz
+
+This will create a directory named proverifVERSION in the current directory.
+Go into this directory, and build the programs:
+
+	cd proverifVERSION
+	./build
+
+* under Windows 
+
+Uncompress the archives proverifVERSION.tar.gz and proverifdocVERSION.tar.gz
+using Winzip, in the directory of your choice. This will create a
+subdirectory named proverifVERSION. Open a DOS window, cd into the
+proverifVERSION directory and run the build .BAT file:
+
+	build
+
+The system can run under Windows, but it is not very Windows-friendly:
+you have to use the command line to run the programs. Improving the interface
+is on the to-do list...
+
+******* Binary distribution for Windows (and documentation)
+
+The installation of graphviz is required if you want to have a drawing 
+of graphs representing attacks that ProVerif found. It can be downloaded from
+        http://graphviz.org
+
+The installation GTK+2.24 is required if you want to run the interactive
+simulator proverif_interact. At
+	ftp://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/
+download gtk+-bundle_2.24.10-20120208_win32.zip
+unzip it in the directory C:\GTK, and add C:\GTK\bin to your PATH.
+
+* under Cygwin
+
+Uncompress the binary and documentation archives using GNU tar:
+
+	tar -xzf proverifbinVERSION.tar.gz
+	tar -xzf proverifdocVERSION.tar.gz
+
+This will create a directory named proverifVERSION in the current directory.
+
+* under Windows 
+
+Uncompress the archives proverifbinVERSION.tar.gz and 
+proverifdocVERSION.tar.gz using Winzip, in the directory
+of your choice. This will create a subdirectory named proverifVERSION. 
+
+******* Installation through OPAM
+
+OPAM can be downloaded from:
+	https://opam.ocaml.org
+After installing OPAM, do:
+      opam install proverif
+      opam depext proverif
+(The second line should install graphviz if you do not already have it.
+You may also choose to install graphviz manually if needed.)
+
+
+USAGE
+
+This software contains three executable programs, proverif, proveriftotex,
+and proverif_interact. 
+
+The program proverif takes as input a description of a cryptographic
+protocol, and checks whether it satisfies secrecy, authenticity, or
+equivalence properties. The description of the protocol can have
+several different formats.  The recommended format is the typed pi
+calculus format, which is a dialect of the applied pi calculus (Abadi
+and Fournet, POPL'01).  The description of the protocol is first
+translated into Horn clauses, then the core of the verifier is called.
+This input format is documented in the file docs/manual.pdf
+(found in proverifdocVERSION.tar.gz). Examples of protocol descriptions 
+can be found in the examples/pitype subdirectory. 
+To run these examples, use 
+        ./proverif <filename>.pv
+or if your filename does not end in .pv,
+        ./proverif -in pitype <filename>
+For example:
+	./proverif examples/pitype/secr-auth/NeedhamSchroederPK.pv
+
+Other input formats are documented in the file docs/manual-untyped.pv
+Research papers can be downloaded at
+	https://bblanche.gitlabpages.inria.fr/publications/index.html
+They are not included in the distribution because of copyright differences.
+(You cannot redistribute these papers.)
+
+The program proveriftotex takes as input a protocol description
+and converts it into a LaTeX file. This is useful for including
+protocols in research papers.
+
+The program proverif_interact is an interactive simulator for ProVerif
+scripts.
+
+The script "test" runs several tests (Unix or cygwin only):
+You can run them by
+         ./test 
+The output of these scripts is written in the directory tests. The
+filename of the output is "typed" follwed by the
+date/time of the run.
+
+COPYRIGHT
+
+Proverif is distributed under the GNU general public license.
+
+BUG REPORTS
+
+Bugs and comments should be reported by e-mail to
+	proverif-dev-AT-inria.fr
+(replace -AT- with @)
+
+MAILING LIST
+
+A mailing list is available for discussions on ProVerif. New releases
+are announced on this mailing list.
+
+* If you wish to subscribe, send an email to sympa-AT-inria.fr with subject
+"subscribe proverif <your name>" (without quotes) and an empty body.
+
+* To post a message on the list, send it to proverif-AT-inria.fr. 
+To avoid spam, only people that have subscribed to the list can post.
+
+ACKNOWLEDGMENTS
+
+I would like to thank all users of ProVerif who contributed to the
+development of the software by their helpful remarks.
+From July 2008 to October 2010, the development of ProVerif was partly 
+supported by DGA.
+

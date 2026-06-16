@@ -1,0 +1,43 @@
+(* Generated script of the protocol f^ng^n for n = 10 
+   See Jonathan Millen, A Necessarily Parallel Attack, 
+   Workshop on Formal Methods and Security Protocols (FMSP'99)
+   July 99. *)
+
+type skey.
+type pkey.
+type host.
+type nonce.
+
+(* Public key encryption *)
+
+fun pk(skey): pkey.
+fun encrypt(bitstring, pkey): bitstring.
+reduc forall x: bitstring, y: skey; decrypt(encrypt(x,pk(y)),y) = x.
+
+(* Host names *)
+
+const A, B: host.
+
+
+free c: channel.
+free M: nonce [private].
+
+query attacker(M).
+
+let processA(pkB: pkey) = 
+	out(c, A);
+	in(c,(=B, n1: nonce, n2: nonce, n3: nonce, n4: nonce, n5: nonce, n6: nonce, n7: nonce, n8: nonce, n9: nonce, n10: nonce));
+	out(c, (A, encrypt((n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, M ), pkB))).
+
+let processB(skB: skey, pkB: pkey) = 
+	in(c, =A);
+new n1: nonce; new n2: nonce; new n3: nonce; new n4: nonce; new n5: nonce; new n6: nonce; new n7: nonce; new n8: nonce; new n9: nonce; new n10: nonce; 
+	out(c, (B, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10));
+	in(c, (=A, mes: bitstring));
+	let (=n1, x1: nonce, x2: nonce, x3: nonce, x4: nonce, x5: nonce, x6: nonce, x7: nonce, x8: nonce, x9: nonce, x10: nonce) = decrypt(mes, skB) in
+	out(c, (n1, x1, encrypt((x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, n1), pkB))).
+
+process 
+        new skB: skey; let pkB = pk(skB) in
+        out(c, pkB);
+	((!processA(pkB)) | (!processB(skB, pkB)))

@@ -1,0 +1,16 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+                      <html>
+                    <head>
+                    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+                    <title>ProVerif: process 0</title>
+                    <link rel="stylesheet" href="cssproverif.css">
+                                                                           </head>
+                                                                         <body>
+                                                                         <H1>Process 0 (the initial process)</H1>
+<a name=occ1 class="occ">{1}</a> <span class="keyword">out</span>(<span class="name">public_channel</span>, <span class="name">server_skey</span>);<br>
+<a name=occ2 class="occ">{2}</a> <span class="keyword">new</span> <span class="name">r</span>: <span class="type">bitstring</span>;<br>
+<a name=occ3 class="occ">{3}</a> <span class="keyword">let</span> <span class="var">e</span>: <span class="type">bitstring</span> = <span class="fun">enc</span>(<span class="name">secret_message</span>,<span class="fun">pk</span>(<span class="name">server_skey</span>),<span class="name">r</span>) <span class="keyword">in</span><br>
+<a name=occ4 class="occ">{4}</a> <span class="keyword">out</span>(<span class="name">public_channel</span>, <span class="var">e</span>)<br>
+<br>
+</body>
+</html>

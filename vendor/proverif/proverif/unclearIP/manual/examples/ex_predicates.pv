@@ -1,0 +1,25 @@
+event e.
+event e'.
+query event(e).
+query event(e').
+
+type bset.
+fun consset(bitstring, bset): bset [data].
+const emptyset: bset [data].
+pred mem(bitstring, bset).
+clauses
+  forall x:bitstring, y:bset; mem(x,consset(x,y));
+  forall x:bitstring, y:bset, z:bitstring; mem(x,y) -> mem(x,consset(z,y)).
+
+process
+   new a: bitstring;new b: bitstring; new c: bitstring;
+   let x = consset(a,emptyset) in
+   let y = consset(b,x) in
+   let z = consset(c,y) in (
+      if mem(a,z) then
+      if mem(b,z) then
+      if mem(c,z) then
+      event e  
+   )|(
+      let w:bitstring suchthat mem(w,x) in event e'
+   )		

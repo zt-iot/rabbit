@@ -1,0 +1,20 @@
+type G.
+type exponent.
+
+(* Diffie-Hellman *)
+
+const g: G [data].
+fun exp(G, exponent): G.
+
+equation forall x: exponent, y: exponent; exp(exp(g,x),y) = exp(exp(g,y),x).
+
+free c: channel.
+
+process
+	new a1: exponent; new a2: exponent; new a3: exponent;
+	out(c, (exp(g,a1), exp(g,a2), choice[exp(exp(g,a1),a2), exp(g,a3)]))
+
+(* EXPECTPV
+RESULT Observational equivalence is true.
+0.026s (user 0.022s + system 0.004s), max rss 10268K
+END *)

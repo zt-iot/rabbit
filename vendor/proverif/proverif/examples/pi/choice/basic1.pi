@@ -1,0 +1,12 @@
+fun hash/1.
+
+free c.
+
+process
+	new n;
+	out(c, choice[n, hash(n)])
+
+(* EXPECTPV
+RESULT Observational equivalence is true.
+0.004s (user 0.004s + system 0.000s), max rss 6980K
+END *)

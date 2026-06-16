@@ -1,0 +1,17 @@
+pages:
+  stage: deploy
+  tags:
+    - ci.inria.fr
+    - small  
+  script:
+    - mkdir public
+    - cp -r website/copy/* public
+    - cd website
+    - sed -f variables.sed install.prehtml > ../public/install.html
+    - cat publisheader.html publis.html publisfooter.html > ../public/publications.html
+    - cd ..
+  artifacts:
+    paths:
+      - public
+  only:
+    - webpages

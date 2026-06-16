@@ -1,0 +1,53 @@
+pred c/1 elimVar,decompData.
+nounif c:x.
+
+fun pk/1.
+fun encrypt/2.
+
+fun sign/2.
+
+fun host/1.
+
+fun sencrypt/2.
+
+query c:secret[].
+
+not c:sA[].
+not c:sS[].
+
+reduc
+(* Initialization *)
+
+c:c[];
+c:pk(sA[]);
+c:pk(sS[]);
+
+(* The attacker *)
+
+c:x & c:encrypt(m,pk(x)) -> c:m;
+c:x -> c:pk(x);
+c:x & c:y -> c:encrypt(x,y);
+c:sign(x,y) -> c:x;
+c:x & c:y -> c:sign(x,y);
+c:host(x);
+c:x & c:y -> c:sencrypt(x,y);
+c:x & c:sencrypt(m,x) -> c:m;
+
+(* The protocol *)
+(* A *)
+
+c:(sign((host(sA[]), pk(sA[])), sS[]), sign((host(x), pkx), sS[])) -> 
+c:(sign((host(sA[]), pk(sA[])), sS[]), sign((host(x), pkx), sS[]), encrypt(sign(k[pkx], sA[]), pkx));
+
+(* B *)
+
+c:(sign((host(sA[]), pk(s1)), sS[]), sign((host(sA[]), pk(sA[])), sS[]), encrypt(sign(k, s1), pk(sA[]))) -> c:sencrypt(secret[], k);
+
+(* server *)
+
+c:(host(s1), host(s2)) -> c:(sign((host(s1), pk(s1)), sS[]), sign((host(s2), pk(s2)), sS[])).
+
+(* EXPECTPV
+RESULT goal reachable: c:secret[]
+0.004s (user 0.004s + system 0.000s), max rss 7476K
+END *)

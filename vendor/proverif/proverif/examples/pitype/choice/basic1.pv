@@ -1,0 +1,14 @@
+type nonce.
+
+fun hash(nonce): nonce.
+
+free c: channel.
+
+process
+	new n: nonce;
+	out(c, choice[n, hash(n)])
+
+(* EXPECTPV
+RESULT Observational equivalence is true.
+0.014s (user 0.014s + system 0.000s), max rss 9952K
+END *)

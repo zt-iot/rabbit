@@ -1,0 +1,32 @@
+Protocol verifier, copyright INRIA-CNRS, by Bruno Blanchet
+and Vincent Cheval, 2000-YEAR.
+
+This software can be used to prove secrecy and authenticity properties
+of cryptographic protocols.
+
+--------------------------------------------------------------------------------
+# Developer Document For Manual
+
+0- COMPILE THE PROVERIF PROGRAM
+1- COMPILE THE USER MANUAL
+2- CLEAN
+--------------------------------------------------------------------------------
+
+0- COMPILE THE PROVERIF PROGRAM
+
+cf. proverif/docs/dev/README
+
+--------------------------------------------------------------------------------
+
+1- COMPILE THE USER MANUAL
+
+Check some examples (./make) and compile the manual:
+	./makedoc
+
+--------------------------------------------------------------------------------
+
+2- CLEAN
+
+	./makeclean
+
+--------------------------------------------------------------------------------

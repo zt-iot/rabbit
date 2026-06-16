@@ -1,0 +1,32 @@
+(* Needham Shroeder shared key protocol *)
+
+param verboseRules = yes.
+
+pred c/1 elimVar, decompData.
+
+fun encrypt/2.
+fun decr/1.
+
+query c:secretA[].
+
+(* The analyzer finds automatically:
+nounif c:x.
+nounif c:encrypt(x,k[]).
+
+These nounif are necessary:
+c:encrypt(n,k[]) -> c:encrypt(decr(n),k[])
+c:encrypt(v3,k[]) -> c:decr(v3)
+=> loop
+*)
+
+reduc
+
+c:k & c:encrypt(m,k) -> c:m;
+c:encrypt(n, k[]) -> c:encrypt(decr(n), k[]);
+c:encrypt(k[], Ks2).
+
+
+(* EXPECTPV
+RESULT goal unreachable: c:secretA[]
+0.004s (user 0.000s + system 0.004s), max rss 6440K
+END *)

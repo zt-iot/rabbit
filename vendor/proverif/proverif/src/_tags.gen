@@ -1,0 +1,9 @@
+"main.native": package(str), package(unix), linkdep(columns.o)
+"main.byte": package(str), package(unix), linkdep(columns.o), custom
+"proveriftotex.byte" or "proveriftotex.native": package(unix)
+"main.ml": package(unix)
+"param.ml": package(unix)
+"reduction_helper.ml" or "reduction_helper.mli": package(str)
+"display_interact.ml" or "display_interact.mli" or "reduction_interact.ml" or "reduction_interact.mli" or "main_interact.byte" or "main_interact.native" or "main_interact.ml" or "main_interact.mli" or "menu_helper.ml" or "menu_helper.mli" or "menu_interact.ml" or "menu_interact.mli": thread, package(unix), package(GTK), package(str)
+"main_interact.native": linkdep(columns.o)
+"main_interact.byte": linkdep(columns.o), custom

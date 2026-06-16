@@ -1,0 +1,47 @@
+(* Otway Rees protocol.
+   Version of Otway Rees, Operating Systems Review Vol 21 no 1, p 8-10, 1987 *)
+
+pred c/1 decompData, elimVar.
+
+fun host/1.
+
+fun encrypt/2.
+
+not c:shrA[].
+
+query c:secretA[].
+query c:secretB[].
+
+reduc
+
+(* attacker *)
+c:encrypt(m,k) & c:k -> c:m;
+c:x & c:y -> c:encrypt(x,y);
+c:host(x);
+
+(* A *)
+
+c:X -> c:(C[X],host(shrA[]),X, encrypt((Na[X], C[X], host(shrA[]), X), shrA[]));
+
+c:(C[host(shrA[])], encrypt((Na[host(shrA[])],key), shrA[])) -> c:encrypt(secretA[], key);
+
+(* B *)
+
+c:(x,y,host(shrA[]),z) -> c:(x,y,host(shrA[]),z,encrypt((Nb[y],x,y,host(shrA[])), shrA[]));
+
+c:(x,y,host(shrA[]),z) & c:(x,y2,encrypt((Nb[y], key), shrA[])) -> c:(x,y2);
+
+c:(x,host(shrA[]),host(shrA[]),z) & c:(x,y2,encrypt((Nb[host(shrA[])],key), shrA[])) -> c:encrypt(secretB[], key);
+
+(* Server *)
+
+c:(c,host(shra), host(shrb), encrypt((na, c, host(shra), host(shrb)), shra),
+   encrypt((nb, c, host(shra),host(shrb)), shrb)) ->
+c:(c,encrypt((na, k[c,shra,shrb]), shra),encrypt((nb,k[c,shra,shrb]), shrb)).
+
+
+(* EXPECTPV
+RESULT goal unreachable: c:secretB[]
+RESULT goal unreachable: c:secretA[]
+0.008s (user 0.004s + system 0.004s), max rss 8500K
+END *)

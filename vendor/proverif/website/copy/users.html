@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./css/styles.css?v=18">
+
+    <title>ProVerif</title>
+    <meta name="description" content="Automated Symbolic Protocol Verification">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "ProVerif",
+            "description": "ProVerif is an automatic symbolic protocol verifier which proves security properties of cryptographic protocols.",
+            "applicationCategory": "Security, Cryptography",
+            "programmingLanguage": "OCaml",
+            "downloadUrl": "https://bblanche.gitlabpages.inria.fr/proverif/",
+            "softwareHelp": {
+                "@type": "CreativeWork",
+                "url": "https://bblanche.gitlabpages.inria.fr/proverif/manual.pdf"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<nav class="navbar sticky-top navbar-expand-lg bg-dark border-bottom border-body"  data-bs-theme="dark">
+    <div class="container-fluid container-narrow">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="./">ProVerif</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./install.html">Install</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./usage.html">Usage</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="http://proverif24.paris.inria.fr/">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="manual.pdf">Manual</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="25years.html">25 years workshop</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link active" href="./users.html">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./publications.html">Publications</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<section>
+    <div class="container-narrow">
+        <H1 id="publis">Users of ProVerif</H1>
+	
+        <P>
+            If you have written a research paper or a tool using ProVerif, or
+            teach a course on ProVerif, and want it to be added to this page, or
+            if you want the reference to your paper/tool/course to be removed or
+            corrected, please
+            contact <A HREF="https://bblanche.gitlabpages.inria.fr/">Bruno Blanchet</A>.
+        </P>
+
+        <H2 id="papers">Research papers </H2>
+
+        <p class="subtitle">
+            350+ publications have used ProVerif, including 60+ in rank A* or A conferences, according to <A HREF="https://portal.core.edu.au/conf-ranks/">ICORE conference ranking 2026</A>.
+        </p>
+
+	<P>We list publications in rank A* or A conferences below. <A HREF="users-full.html">Click here for the full list.</A></P>
+        2004
+            <OL>
+	      <LI VALUE=1>
+                Karthikeyan Bhargavan, Cédric Fournet, and Andrew Gordon.
+                Verifying Policy-Based
+                Security for Web Services.  In 2004 ACM Conference on Computer and
+                Communications Security (CCS 2004), pp 268-277, Washington DC, October
+                25-29, 2004. Available at
+                <A HREF="https://bhargavan.info/pubs/verifying-policy-based-security-ccs04.pdf">https://bhargavan.info/pubs/verifying-policy-based-security-ccs04.pdf</A>.
+            </LI>
+	    </OL>
+
+        2005
+	    <OL>
+            <LI VALUE=2>
+                Steve Kremer and Mark D. Ryan. Analysis of an Electronic Voting Protocol
+                in the Applied Pi Calculus. In Proceedings of the European Symposium on
+                Programming (ESOP'05),  Lecture Notes in Computer Science series, volume 3444, pages 186-200, Springer
+                Verlag, 2005. Available at
+                <A HREF="https://markryan.eu/research/papers/pdf/04-eVoting.pdf">
+                    https://markryan.eu/research/papers/pdf/04-eVoting.pdf</A>
+            </LI>
+	    </OL>
+
+        2006
+	    <OL>
+            <LI VALUE=3>
+                Himanshu Khurana and Hyung-Seok Hahm. Certified Mailing Lists. In
+                Proceedings of the ACM Symposium on Communication, Information,
+                Computer and Communication Security (ASIACCS'06), Taipei, Taiwan,
+                March 2006. Available at <A HREF="https://dl.acm.org/doi/10.1145/1128817.1128828">https://dl.acm.org/doi/10.1145/1128817.1128828</A>.
+            </LI>
+
+            <LI>
+                Karthikeyan Bhargavan, Cédric Fournet, Andrew Gordon, and Stephen Tse.
+                Verified interoperable implementations of security protocols.
+                In 19th IEEE Computer Security Foundations Workshop (CSFW 2006),
+                pages 139-152, Venice, Italy, July 2006. IEEE Computer Society.
+                Available at
+                <A HREF="https://bhargavan.info/pubs/verified-interoperable-implementations-csfw06.pdf">https://bhargavan.info/pubs/verified-interoperable-implementations-csfw06.pdf</A>.
+            </LI>
+	    </OL>
+
+        2008
+        <OL>
+            <LI VALUE=5>
+                Karthikeyan Bhargavan, Ricardo Corin, Cédric Fournet, and Eugen Zalinescu.
+                Cryptographically Verified Implementations for TLS.
+                In Proceedings of the 15th ACM Conference on Computer and Communications Security (CCS'08), pages 459-468, October 2008. Available at <A HREF="https://bhargavan.info/pubs/cryptographically-verified-implementations-for-tls-ccs08.pdf">https://bhargavan.info/pubs/cryptographically-verified-implementations-for-tls-ccs08.pdf</A>.
+            </LI>
+
+            <LI>
+                Ralf Küsters and Tomasz Truderung. Reducing Protocol Analysis with XOR
+                to the XOR-free case in the Horn Theory Based Approach. In Proceedings
+                of the 15th ACM Conference on Computer and Communications Security
+                (CCS'08), pages 129-138, October 2008. Available at <A HREF="https://sec.uni-stuttgart.de/_media/publications/KuestersTruderung-CCS-2008.pdf">https://sec.uni-stuttgart.de/_media/publications/KuestersTruderung-CCS-2008.pdf</A>.
+	    </LI>
+
+            <LI>
+                Michael Backes, Matteo Maffei, and Dominique Unruh. Zero-Knowledge
+                in the Applied Pi-calculus and Automated Verification of the Direct Anonymous
+                Attestation Protocol. In Proceedings of 29th IEEE Symposium on Security and Privacy, May 2008. Technical report available at
+                <A HREF="http://eprint.iacr.org/2007/289">http://eprint.iacr.org/2007/289</A>.
+            </LI>
+
+            <LI>
+                Karthikeyan Bhargavan, Cédric Fournet, Andrew Gordon, and Nikhil Swamy.
+                Verified implementations of the Information Card Federated Identity-Management
+                Protocol. In ACM Symposium on Information, Computer and Communications Security
+                (ASIACCS'08), pages 123-135, Tokyo, Japan, March 2008. Available at
+                <A HREF="https://bhargavan.info/pubs/verified-implementations-of-cardspace-asiaccs08.pdf">https://bhargavan.info/pubs/verified-implementations-of-cardspace-asiaccs08.pdf</A>.
+            </LI>
+
+            <LI>
+                Michael Backes, Catalin Hritcu, and Matteo Maffei.
+                Automated Verification of Remote Electronic Voting Protocols in the Applied Pi-calculus.
+                In Proceedings of 21st IEEE Computer Security Foundations Symposium (CSF), June 2008. Available at <A HREF="https://ieeexplore.ieee.org/document/4556687">https://ieeexplore.ieee.org/document/4556687</A>
+            </LI>
+
+
+        </OL>
+        2009
+	    <OL>
+            <LI VALUE=10>
+                Gilberto Filé and Roberto Vigo.
+                Expressive power of definite clauses for verifying authenticity.
+                In 22nd IEEE Computer Security Foundations Symposium (CSF'09), pages 251-265,
+                Port Jefferson, New-York, USA, July 2009.  IEEE Computer Society.
+                Available at <A HREF="http://doi.ieeecomputersociety.org/10.1109/CSF.2009.12">http://doi.ieeecomputersociety.org/10.1109/CSF.2009.12</A>.
+            </LI>
+
+            <LI>
+                Ralf Küsters and Tomasz Truderung.
+                Using ProVerif to Analyze Protocols with Diffie-Hellman Exponentiation.
+                In 22nd IEEE Computer Security Foundations Symposium (CSF'09), pages 157-171,
+                Port Jefferson, New-York, USA, July 2009.  IEEE Computer Society. Available
+                at <A HREF="https://sec.uni-stuttgart.de/_media/publications/KuestersTruderung-CSF-2009.pdf">https://sec.uni-stuttgart.de/_media/publications/KuestersTruderung-CSF-2009.pdf</A>.
+            </LI>
+	    </OL>
+        2010
+	    <OL>
+            <LI VALUE=12>
+                Sebastian Mödersheim. Abstraction by Set-Membership: Verifying Security Protocols and Web Services with Databases, CCS 2010.
+                Available at
+                <A HREF="http://www2.imm.dtu.dk/~samo/setabstraction.pdf">http://www2.imm.dtu.dk/~samo/setabstraction.pdf</A>.
+            </LI>
+
+            <LI>
+                Mayla Brusó, Konstantinos Chatzikokolakis and Jerry den Hartog.
+                Formal verification of privacy for RFID systems.
+                23rd IEEE Computer Security Foundations Symposium, 2010.
+                Available at <A HREF="https://doi.org/10.1109/CSF.2010.13">https://doi.org/10.1109/CSF.2010.13</A>.
+            </LI>
+	    </OL>
+        2011
+	    <OL>
+            <LI VALUE=14>
+                Mihhail Aizatulin, Andrew Gordon, and Jan Jürjens.
+                Extracting and Verifying Cryptographic Models from C Protocol Code by Symbolic Execution. In CCS 2011. Available at
+                <A HREF="https://doi.org/10.1145/2046707.2046745">https://doi.org/10.1145/2046707.2046745</A>.
+            </LI>
+
+            <LI>
+                Myrto Arapinis, Eike Ritter, and Mark D. Ryan. StatVerif: Verification of
+                stateful processes. In 24th Computer Security Foundations Symposium (CSF'11), Cernay-la-Ville, France, June 2011.
+                Available at <A HREF="https://markryan.eu/research/papers/pdf/11-state-appi.pdf">https://markryan.eu/research/papers/pdf/11-state-appi.pdf</A>.
+            </LI>
+
+            <LI>
+                Stéphanie Delaune, Steve Kremer, Mark Ryan, and Graham Steel.
+                Formal analysis of protocols based on TPM state registers.
+                In 24th Computer Security Foundations Symposium (CSF'11), Cernay-la-Ville, France, June 2011.
+                Available at <A HREF="http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/DKRS-csf11.pdf">http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/DKRS-csf11.pdf</A>.
+            </LI>
+	    </OL>
+        2012
+	    <OL>
+            <LI VALUE=17>
+                Myrto Arapinis, Vincent Cheval, and Stéphanie Delaune. Verifying Privacy-Type Properties in a Modular Way, CSF 2012.
+                Available at <A HREF="https://doi.org/10.1109/CSF.2012.16">https://doi.org/10.1109/CSF.2012.16</A>.
+            </LI>
+
+            <LI>
+                Chetan Bansal, Karthikeyan Bhargavan, and Sergio Maffeis. Discovering Concrete Attacks on Website Authorization by Formal Analysis, CSF 2012.
+                Available at <A HREF="https://bhargavan.info/pubs/discovering_concrete_attacks_csf12.pdf">https://bhargavan.info/pubs/discovering_concrete_attacks_csf12.pdf</A>.
+            </LI>
+
+            <LI>
+                Alisa Pankova and Peeter Laud. Symbolic Analysis of Cryptographic Protocols Containing Bilinear Pairings, CSF 2012.
+                Available at <A HREF="http://research.cyber.ee/~peeter/research/csf12.pdf">http://research.cyber.ee/~peeter/research/csf12.pdf</A>.
+	    </LI>
+	    
+            <LI>
+                Naipeng Dong, Hugo Jonker, and Jun Pang.
+                Formal analysis of privacy in an eHealth protocol.
+                In Proc. 17th European Symposium on Research in Computer Security - ESORICS'12,
+                Lecture Notes in Computer Science 7459, pp. 325-342. Springer-Verlag, 2012.
+                Available at <A HREF="http://satoss.uni.lu/members/jun/papers/ESORICS12.pdf">http://satoss.uni.lu/members/jun/papers/ESORICS12.pdf</A>.
+            </LI>
+	    </OL>
+        2013
+            <OL>
+            <LI VALUE=21>
+                Guangdong Bai, Guozhu Meng, Jike Lei, Sai Sathyanarayan Venkatraman, Prateek Saxena, Jun Sun, Yang Liu and Jinsong Dong. AuthScan: Automatic Extraction of Web Authentication Protocols From Implementations. In 20th Annual Network & Distributed System Security Symposium (NDSS'13). Available at <A HREF="https://impillar.github.io/files/ndss2013authscan.pdf">https://impillar.github.io/files/ndss2013authscan.pdf</A>.
+            </LI>
+
+            <LI>
+                Florian B&ouml;hl and Dominique Unruh. Symbolic Universal Composability. In 26th Computer Security Foundations Symposium (CSF'13), pages 257-271, June 2013. Available at <A HREF="http://kodu.ut.ee/~unruh/publications/symbolic-uc.html">http://kodu.ut.ee/~unruh/publications/symbolic-uc.html</A>.
+            </LI>
+
+	    </OL>
+
+
+        2015
+	    <OL>
+	      <LI VALUE=23>Alessandro Bruni, Sebastian Mödersheim, Flemming Nielson, Hanne Riis Nielson.
+                Set-Pi: Set Membership Pi-Calculus. In Computer Security Foundations Symposium (CSF'15), pages 185-198. Available at <A HREF="https://doi.org/10.1109/CSF.2015.20">https://doi.org/10.1109/CSF.2015.20</A>.
+            </LI>
+
+            <LI>Michael Backes, Fabian Bendun, Matteo Maffei, Esfandiar Mohammadi, Kim Pecina. Symbolic Malleable Zero-Knowledge Proofs. In Computer Security Foundations Symposium (CSF'15), pages 412-480.
+                Available at <A HREF="https://doi.org/10.1109/CSF.2015.35">https://doi.org/10.1109/CSF.2015.35</A>.
+            </LI>
+	    </OL>
+
+        2016
+	    <OL>
+            <LI VALUE=25>Lucca Hirschi, David Baelde, and Stéphanie Delaune. A Method for Verifying Privacy-Type Properties: The Unbounded Case. In IEEE Symposium on Security and Privacy. Available at <A HREF="https://people.irisa.fr/Stephanie.Delaune/PUBLICATIONS-HTML/b2hd-HBD-sp16.html">https://people.irisa.fr/Stephanie.Delaune/PUBLICATIONS-HTML/b2hd-HBD-sp16.html</A>.
+            </LI>
+
+            <LI>Kim Thuat Nguyen, Nouha Oualha, and Maryline Laurent. Authenticated Key Agreement Mediated by a Proxy Re-encryptor for the Internet of Things. In ESORICS'16. Available at <A HREF="http://link.springer.com/chapter/10.1007/978-3-319-45741-3_18">http://link.springer.com/chapter/10.1007/978-3-319-45741-3_18</A>.
+            </LI>
+	    </OL>
+
+        2018
+            <OL>
+            <LI VALUE=27>V. Cheval, V. Cortier and M. Turuani. A little more conversation, a little less action, a lot more satisfaction: Global states in ProVerif. In Proceedings of the 31th IEEE Computer Security Foundations Symposium (CSF'18). Available at <A HREF="https://chevalvi.gitlabpages.inria.fr/chevalvi/files/CCT-csf18.pdf">https://chevalvi.gitlabpages.inria.fr/chevalvi/files/CCT-csf18.pdf</A>            </LI>
+
+            <LI>Charlie Jacomme and Steve Kremer. An extensive formal analysis of multi-factor authentication protocols. In Proceedings of the 31st IEEE Computer Security Foundations Symposium (CSF'18). See <A HREF="https://members.loria.fr/SKremer/files/Publications/b2hd-JK-csf18.html">https://members.loria.fr/SKremer/files/Publications/b2hd-JK-csf18.html</A>            </LI>
+
+	    </OL>
+
+        2019
+            <OL>
+            <LI VALUE=29>Di Long Li and Alwen Tiu. Combining ProVerif and Automated Theorem Provers for Security Protocol Verification. In CADE 2019: Automated Deduction - CADE 27, pp. 354-365. Long version available at <A HREF="https://github.com/darrenldl/ProVerif-ATP/blob/master/paper/CADE-27_paper-42_Di_Long_Li_and_Alwen_Tiu_full.pdf">https://github.com/darrenldl/ProVerif-ATP/blob/master/paper/CADE-27_paper-42_Di_Long_Li_and_Alwen_Tiu_full.pdf</A>.
+            </LI>
+
+            <LI>V. Cortier, A. Filipiak, and J. Lallemand. BeleniosVS: Secrecy and Verifiability Against a Corrupted Voting Device. In 32nd IEEE Computer Security Foundations Symposium (CSF'19). Available at <A HREF="https://members.loria.fr/VCortier/files/Publications/b2hd-beleniosVS-CSF19.html">https://members.loria.fr/VCortier/files/Publications/b2hd-beleniosVS-CSF19.html</A>            </LI>
+
+            <LI>Nadim Kobeissi, Georgio Nicolas, and Karthikeyan Bhargavan. Noise Explorer: Fully Automated Modeling and Verification for Arbitrary Noise Protocols. In 4th IEEE European Symposium on Security and Privacy (EuroS&amp;P'19). Available at <A HREF="https://eprint.iacr.org/2018/766">https://eprint.iacr.org/2018/766</A>.
+            </LI>
+
+            <LI>Lucca Hirschi and Cas Cremers. Improving Automated Symbolic Analysis of Ballot Secrecy for E-voting Protocols: A Method Based on Sufficient Conditions. In 4th IEEE European Symposium on Security and Privacy (EuroS&amp;P'19). Available at <A HREF="https://members.loria.fr/LHirschi/pdfs/EuroSP19_evoting.pdf">https://members.loria.fr/LHirschi/pdfs/EuroSP19_evoting.pdf</A>            </LI>
+	    </OL>
+
+        2021
+	    <OL>
+            <LI VALUE=33>Haonan Feng, Hui Li, Xuesong Pan, and Ziming Zhao. A Formal Analysis of the FIDO UAF Protocol. In Proceedings of the 28th Annual Network and Distributed System Security Symposium - NDSS 2021. Available at <A HREF="https://www.ndss-symposium.org/ndss-paper/a-formal-analysis-of-the-fido-uaf-protocol/">https://www.ndss-symposium.org/ndss-paper/a-formal-analysis-of-the-fido-uaf-protocol/</A>.
+	    </LI>
+	    
+            <LI>Alexander Dax and Robert Künnemann. On the Soundness of Infrastructure Adversaries. In: 2021 IEEE 34th Computer Security Foundations Symposium (CSF). Available at <A HREF="https://doi.ieeecomputersociety.org/10.1109/CSF51468.2021.00039">https://doi.ieeecomputersociety.org/10.1109/CSF51468.2021.00039</A>.
+            </LI>
+	    </OL>
+
+        2022
+	    <OL>
+            <LI VALUE=35>Mikael Bougon, Hervé Chabanne, Véronique Cortier, Alexandre Debant, Emmanuelle Dottax, Jannik Dreier, Pierrick Gaudry, Mathieu Turuani. Themis: An On-Site Voting System with Systematic Cast-as-intended Verification and Partial Accountability. In: CCS '22: Proceedings of the 2022 ACM SIGSAC Conference on Computer and Communications Security, November 2022, Pages 397–410. Available at <A HREF="https://doi.org/10.1145/3548606.3560563">https://doi.org/10.1145/3548606.3560563</A>.
+            </LI>
+
+            <LI>Jianliang Wu, Ruoyu Wu, Dongyan Xu, Dave (Jing) Tian, and Antonio Bianchi. Formal Model-Driven Discovery of Bluetooth Protocol Design Vulnerabilities. In 2022 IEEE Symposium on Security and Privacy, pages 2285-2303. <A HREF="https://doi.org/10.1109/SP46214.2022.9833777">doi: 10.1109/SP46214.2022.9833777</A>.
+	    </LI>
+
+            <LI>Vincent Cheval, Charlie Jacomme, Steve Kremer, and Robert Künnemann. SAPIC+: protocol verifiers of the world, unite! In USENIX Security Symposium (USENIX Security), 2022. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity22/presentation/cheval">https://www.usenix.org/conference/usenixsecurity22/presentation/cheval</A>.
+            </LI>
+
+            <LI>Jose Moreira-Sanchez, Mark Ryan, and Flavio Garcia. Protocols for a two-tiered trusted computing base. In Computer Security – ESORICS 2022, 27th European Symposium on Research in Computer Security, Copenhagen, Denmark, September 26–30, 2022, Proceedings, Part III, pages 229-249. LNCS, volume 13556, Springer, Cham. Available at <A HREF="https://doi.org/10.1007/978-3-031-17143-7_12">https://doi.org/10.1007/978-3-031-17143-7_12</A>.
+            </LI>
+
+	    <LI>Stéphanie Delaune and Joseph Lallemand. One vote is enough for analysing privacy. In Proceedings of the 27th European Symposium on Research in Computer Security (ESORICS'22), pp. 173–194, Lecture Notes in Computer Science, Springer, Copenhague, Denmark, 2022. Available at <A HREF="https://doi.org/10.1007/978-3-031-17140-6_9">https://doi.org/10.1007/978-3-031-17140-6_9</A>.
+	    </LI>
+	    </OL>
+
+        2023
+	    <OL>
+            <LI VALUE=40>Sergiu Bursuc, Ross Horne, Sjouke Mauw, and Semen Yurkov. Provably Unlinkable Smart Card-based Payments. In CCS '23: Proceedings of the 2023 ACM SIGSAC Conference on Computer and Communications Security, November 2023, Pages 1392–1406. Available at <A HREF="https://doi.org/10.1145/3576915.3623109">https://doi.org/10.1145/3576915.3623109</A>.
+            </LI>
+
+            <LI>Faezeh Nasrabadi, Robert Künnemann, and Hamed Nemati. CryptoBap: A Binary Analysis Platform for Cryptographic Protocols. In CCS '23: Proceedings of the 2023 ACM SIGSAC Conference on Computer and Communications Security, November 2023, Pages 1362–1376. Available at <A HREF="https://doi.org/10.1145/3576915.3623090">https://doi.org/10.1145/3576915.3623090</A>.
+            </LI>
+
+            <LI>Charlie Jacomme, Elise Klein, Steve Kremer, and Maïwenn Racouchot. A comprehensive, formal and automated analysis of the EDHOC protocol. In USENIX Security '23 - 32nd USENIX Security Symposium, Aug 2023, Anaheim, CA, United States. Available at <A HREF="https://inria.hal.science/hal-03810102/">https://inria.hal.science/hal-03810102/</A>.
+            </LI>
+
+        <LI>David Baelde, Alexandre Debant, and Stéphanie Delaune. Proving Unlinkability using ProVerif through Desynchronized Bi-Processes. In IEEE Computer Security Foundations Symposium, Jul 2023, Dubrovnik, Croatia. Available at <A HREF="https://hal.science/hal-03674979v2">https://hal.science/hal-03674979v2</A>.
+            </LI>
+
+            <LI>Sevdenur Baloglu, Sergiu Bursuc, Sjouke Mauw, and Jun Pang. Election Verifiability in Receipt-free Voting Protocols. In IEEE Computer Security Foundations Symposium, Jul 2023, Dubrovnik, Croatia. Available at <A HREF="https://doi.ieeecomputersociety.org/10.1109/CSF57540.2023.00005">https://doi.ieeecomputersociety.org/10.1109/CSF57540.2023.00005</A>            </LI>
+
+	    </OL>
+
+        2024
+            <OL>
+            <LI VALUE=45>Pascal Lafourcade, Dhekra Mahmoud, and Sylvain Ruhault. A Unified Symbolic Analysis of WireGuard. In Usenix Network and Distributed System Security Symposium (NDSS), Feb 2024, San Diego (CA), United States. Available at <A HREF="https://dx.doi.org/10.14722/ndss.2024.24364">https://dx.doi.org/10.14722/ndss.2024.24364</A> and <A HREF="https://uca.hal.science/hal-04615393/">https://uca.hal.science/hal-04615393/</A>.
+            </LI>
+
+            <LI>Karthikeyan Bhargavan, Charlie Jacomme, Franziskus Kiefer, and Rolfe Schmidt. Formal verification of the PQXDH Post-Quantum key agreement protocol for end-to-end secure messaging. USENIX Security Symposium, 2024. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity24/presentation/bhargavan">https://www.usenix.org/conference/usenixsecurity24/presentation/bhargavan</A>.
+            </LI>
+
+            <LI>Jannik Dreier, Pascal Lafourcade, and Dhekra Mahmoud. Shaken, not Stirred - Automated Discovery of Subtle Attacks on Protocols using Mix-Nets. USENIX Security Symposium, 2024. Available at <A HREF="https://www.usenix.org/system/files/usenixsecurity24-dreier.pdf">https://www.usenix.org/system/files/usenixsecurity24-dreier.pdf</A>.
+            </LI>
+
+            <LI>Véronique Cortier, Alexandre Debant, Anselme Goetschmann, and Lucca Hirschi. Election Eligibility with OpenID: Turning Authentication into Transferable Proof of Eligibility. In USENIX Security Symposium, 2024. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity24/presentation/cortier">https://www.usenix.org/conference/usenixsecurity24/presentation/cortier</A>.
+            </LI>
+
+            <LI>Jianliang Wu, Patrick Traynor, Dongyan Xu, Dave (Jing) Tian, and Antonio Bianchi. Finding Traceability Attacks in the Bluetooth Low Energy Specification and Its Implementations. In USENIX Security Symposium, 2024. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity24/presentation/wu-jianliang">https://www.usenix.org/conference/usenixsecurity24/presentation/wu-jianliang</A>.
+            </LI>
+
+            <LI>Sevdenur Baloglu, Sergiu Bursuc, Sjouke Mauw, and Jun Pang. Formal Verification and Solutions for Estonian E-Voting. In ASIA CCS'24: Proceedings of the 19th ACM Asia Conference on Computer and Communications Security, Pages 728-741. Available at <A HREF="https://doi.org/10.1145/3634737.3657009">https://doi.org/10.1145/3634737.3657009</A>.
+            </LI>
+
+            <LI>Binghan Wang, Hui Li, and Jingjing Guan. A Formal Analysis of Data Distribution Service Security. In: ASIA CCS '24: Proceedings of the 19th ACM Asia Conference on Computer and Communications Security, pages 716-727. Available at <A HREF="https://doi.org/10.1145/3634737.3656288">https://doi.org/10.1145/3634737.3656288</A>.
+            </LI>
+
+            <LI>Véronique Cortier, Alexandre Debant, and Florian Moser. Code voting: when simplicity meets security. In ESORICS 2024, 29th European Symposium on Research in Computer Security, Sep 2024, Bydgoszcz, Poland. Available at <A HREF="https://inria.hal.science/hal-04627733/">https://inria.hal.science/hal-04627733/</A>.
+            </LI>
+
+            <LI>Zichao Zhang, Limin Jia, and Corina Păsăreanu. ProInspector: Uncovering Logical Bugs in Protocol Implementations. In 9th IEEE European Symposium on Security and Privacy (EuroS&P 2024).  Available at <A HREF="https://doi.org/10.1109/EuroSP60621.2024.00040">https://doi.org/10.1109/EuroSP60621.2024.00040</A>.
+            </LI>
+
+	    </OL>
+
+        2025
+        <OL>
+	    <LI VALUE=54>Karthikeyan Bhargavan, Lasse Letager Hansen, Franziskus Kiefer, Jonas Schneider-Bensch, and Bas Spitters. Formal Security and Functional Verification of Cryptographic Protocol Implementations in Rust. In Proceedings of the 2025 ACM SIGSAC Conference on Computer and Communications Security (CCS '25). Association for Computing Machinery, New York, NY, USA, 2729–2743. Available at <A HREF="https://doi.org/10.1145/3719027.3765213">https://doi.org/10.1145/3719027.3765213</A>.
+	    </LI>
+
+	    <LI>Vincent Diemunsch, Lucca Hirschi, and Steve Kremer. A Comprehensive Formal Security Analysis of OPC UA. In: 34th USENIX Security Symposium (USENIX Security 25), pp. 7077--7096. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity25/presentation/diemunsch">https://www.usenix.org/conference/usenixsecurity25/presentation/diemunsch</A>.
+	    </LI>
+
+	    <LI>Pascal Lafourcade, Dhekra Mahmoud, Sylvain Ruhault, and Abdul Rahman Taleb. A Tale of Two Worlds, a Formal Story of WireGuard Hybridization. In 34th USENIX Security Symposium (USENIX Security 25), pp. 4937--4956. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity25/presentation/lafourcade">https://www.usenix.org/conference/usenixsecurity25/presentation/lafourcade</A>.
+	    </LI>
+	    
+	    <LI>Xiaofeng Liu, Chaoshun Zuo, Qinsheng Hou, Pengcheng Ren, Jianliang Wu, Qingchuan Zhao, Shanqing Guo. A Thorough Security Analysis of BLE Proximity Tracking Protocols. In: 34th USENIX Security Symposium (USENIX Security 25), pp. 5347-5364. Available at <A HREF="https://www.usenix.org/conference/usenixsecurity25/presentation/liu-xiaofeng">https://www.usenix.org/conference/usenixsecurity25/presentation/liu-xiaofeng</A>.
+	    </LI>
+
+	    <LI>Ayoub Ben Hassen, Pascal Lafourcade, Dhekra Mahmoud, and Maxime Puys. Formal Analysis of SDNsec: Attacks and Corrections for Payload, Route Integrity and Accountability. In Proceedings of the 20th ACM Asia Conference on Computer and Communications Security (ASIA CCS '25). Association for Computing Machinery, New York, NY, USA, 1476–1489. Available at <A HREF="https://doi.org/10.1145/3708821.3710828">https://doi.org/10.1145/3708821.3710828</A>.
+	    </LI>
+
+	    <LI>Ioana Boureanu, Cristina Onete, Stephan Wesemeyer, Léo Robert, Rhys Miller, Pascal Lafourcade, and Fortunat Rajaona. Post-Compromise Security with Application-Level Key-Controls – with a comprehensive study of the 5G AKMA protocol. In: Proceedings of the 20th ACM Asia Conference on Computer and Communications Security (ASIA CCS '25). Association for Computing Machinery, New York, NY, USA, 231–247. Available at <A HREF="https://doi.org/10.1145/3708821.3733910">https://doi.org/10.1145/3708821.3733910</A>.
+	    </LI>
+
+	    <LI>Faezeh Nasrabadi, Robert Künnemann, and Hamed Nemati. Symbolic Parallel Composition for Multi-language Protocol Verification. In: 2025 IEEE 38th Computer Security Foundations Symposium (CSF), Santa Cruz, CA, USA, 2025, pp. 378-393. Available at <A HREF="https://doi.org/10.1109/CSF64896.2025.00030">https://doi.org/10.1109/CSF64896.2025.00030</A>.
+	    </LI>
+
+	    <LI>Véronique Cortier, Alexandre Debant, Pierrick Gaudry, Léo Louistisserand. Vote&amp;Check: Secure Postal Voting with Reduced Trust Assumptions. In Privacy Enhancing Technologies Symposium, 2025, issue 3, pp. 333-348. Available at <A HREF="https://doi.org/10.56553/popets-2025-0101">https://doi.org/10.56553/popets-2025-0101</A>.
+	    </LI>
+
+        </OL>
+	2026
+	<OL>
+	  <LI VALUE=62>Tommaso Sacchetti and Daniele Antonioli. BLERP: BLE Re-Pairing Attacks and Defenses. NDSS 2026, 33rd Network and Distributed System Security Symposium, Feb 2026, San Diego, United States. Available at <A HREF="https://doi.org/10.14722/ndss.2026.240121">https://doi.org/10.14722/ndss.2026.240121</A>.
+	  </LI>
+
+	  <LI>Elsa Lopez Perez, Thomas Watteyne, Cristina Onete, Dhekra Mahmoud, Pascal Lafourcade, Vaishnavi Sundararajan, and Mališa Vučinić. Formal Verification of EDHOC-PSK: A Symbolic Approach with SAPIC. In: Asia CCS'26. Available at <A HREF="https://doi.org/10.1145/3779208.3805979">https://doi.org/10.1145/3779208.3805979</A>
+	  </LI>
+
+	</OL>
+	
+        <H2 id="tools">Tools</H2>
+
+        <UL>
+
+            <LI><A HREF="https://www.microsoft.com/en-us/download/details.aspx?id=52378">TulaFale</A>, analyzer for Web services, using ProVerif as a back-end (Microsoft Research).
+            </LI>
+
+            <LI><A HREF="https://www.microsoft.com/en-us/download/details.aspx?id=52339">FS2PV</A>, verifier for protocol implementations written in F#, using ProVerif as a back-end (Microsoft Research).
+	    </LI>
+                <!--The tool seems to use CryptoVerif, not ProVerif, although there is also a paper using ProVerif
+                    <LI><A HREF="https://github.com/tari3x/csec-modex">csec-modex</A>, verifier for protocol implementations in C.
+		      </LI>
+                -->            
+
+            <LI><A HREF="http://spi2java.polito.it/">Spi2Java</A> (<A HREF="https://manualzz.com/doc/7132839/spi2java-user-manual---version-3.1">manual available here</A>) also allows using ProVerif as protocol analyzer for their protocol specifications (using the Spi2Proverif auxiliary tool).
+            </LI>
+
+            <LI><!--A HREF="http://www.infsec.cs.uni-saarland.de/projects/expi2java"-->Expi2Java also allows using ProVerif as protocol analyzer for their protocol specifications (project apparently stopped).
+            </LI>
+
+            <LI>A <A HREF="http://sourceforge.net/projects/proverifeditor/">ProVerif editor</A> (in Python) by Joeri de Ruiter.
+            </LI>
+
+            <LI><A HREF="https://sec.uni-stuttgart.de/software">XOR-ProVerif and DH-ProVerif</A>: tools for verifying protocols with XOR and with Diffie-Hellman exponentiation (with a rich equational theory).
+            </LI>
+
+            <LI><A HREF="https://github.com/rittere/statverif">StatVerif</A>: extension of ProVerif to verify stateful processes.
+            </LI>
+
+            <LI><A HREF="http://ttool.telecom-paristech.fr/index.html">TTool</A> uses ProVerif for proving confidentiality and authenticity properties from an AVATAR model.
+                <!--<LI><A HREF="http://prosecco.inria.fr/webspi/">WebSpi</A> is a ProVerif library for modeling web security mechanisms.</LI>-->
+
+            <LI><A HREF="https://www.imm.dtu.dk/~samo/aifom.html">AIF-Omega</A>: Set-based abstraction method inspired by ProVerif and SPASS, for verifying systems with non-monotonic, stateful behaviour. Uses Spass or ProVerif as back-ends.
+            </LI>
+
+            <LI><A HREF="https://bitbucket.org/setpi/setpi">Set-pi</A> supports an extension of the applied pi calculus with sets; it generates clauses fed into ProVerif.
+            </LI>
+
+            <LI><A HREF="https://paolo.science/anbx/">AnBx</A>: compiler from Alice and Bob notation to Java, OFMC, and ProVerif.
+            </LI>
+
+            <LI><A HREF="http://projects.lsv.ens-cachan.fr/ukano/">Ukano</A>: automatic privacy verifier. This tool automatically checks unlinkability and anonymity for a large class of 2-party protocols for an unbounded number of sessions.
+            </LI>
+
+            <LI><A HREF="https://sites.google.com/site/globalstatesverif/">GSVerif</A>: front-end for dealing with global state and counters.
+            </LI>
+
+            <LI><A HREF="https://noiseexplorer.com/">Noise explorer</A> verifies Noise protocols, using ProVerif as back-end.
+            </LI>
+
+	    <LI><A HREF="https://sapic-plus.github.io/">SAPIC+</A> is a security protocol verification platform, enabling the use of ProVerif, Tamarin and DeepSec as possible backends.
+	    </LI>
+        </UL>
+
+
+        <H2 id="courses">Courses on ProVerif</H2>
+
+        ProVerif was taught at 
+        <A HREF="https://mpri-master.ens.fr/doku.php?id=start">MPRI</A>.
+        Here is a list of some courses on ProVerif by other researchers:
+        <UL>
+            <!--<LI>Christian Haack, University of Nijmegen, The Netherlands, course available
+            <A HREF="http://www.cs.ru.nl/~chaack/teaching/2IF02-Spring08/assignment08.pdf">here</A></LI>
+
+            <LI>Tom Chothia, University of Birmingham, United Kingdom, course available
+                <A HREF="http://www.cs.bham.ac.uk/~tpc/cwi/Teaching/index.html">here</A></LI>-->
+
+            <LI>Peeter Laud, Tartu University, Estonia, course available
+              <A HREF="https://home.cyber.ee/~peeter/teaching/krprot09s/">here</A>
+            </LI>
+
+            <LI>Deepak Garg, MPI-SWS/Universität des Saarlandes, Germany, course available
+              <A HREF="https://people.mpi-sws.org/~dg/teaching/lis2014/lis2014.html">here</A>
+            </LI>
+
+            <LI>Véronique Cortier, Université de Lorraine, Nancy, France, course available
+              <A HREF="https://members.loria.fr/VCortier/files/Teaching/">here</A>
+            </LI>
+
+            <LI>Pascal Lafourcade, ISIMA--Université Clermont-Auvergne, Clermont-Ferrand, France, course available
+                <A HREF="https://sancy.iut.uca.fr/~lafourcade/SecModels.html">here</A>
+	    </LI>
+        </UL>
+    </div>
+</section>
+
+
+<script src="./js/bootstrap.bundle.min.js"></script>
+<script src="./js/main.js"></script>
+
+</body>
+</html>

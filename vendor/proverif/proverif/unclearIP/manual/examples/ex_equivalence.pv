@@ -1,0 +1,10 @@
+type key.
+type macs.
+
+fun mac(bitstring, key): macs.
+
+free c: channel.
+
+equivalence
+   ! new k:key; ! new a: bitstring; out(c, mac(a, k))
+   ! new k:key; new a: bitstring; out(c, mac(a, k))

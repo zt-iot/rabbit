@@ -1,0 +1,33 @@
+fun eq(bitstring,bitstring):bool
+    reduc forall x: bitstring; eq(x,x) = true 
+    otherwise forall x:bitstring, y:bitstring; eq(x,y) = false.
+    
+
+
+
+fun test(bool,bitstring,bitstring):bitstring
+reduc 
+  forall x: bitstring, y:bitstring; test(true,x,y) = x
+  otherwise forall c: bool, x: bitstring, y:bitstring; test(c,x,y) = y
+  otherwise forall x: bitstring, y:bitstring; test(fail,x,y) = y.
+  
+fun test(bool,bitstring,bitstring):bitstring
+reduc 
+  forall x: bitstring, y:bitstring; test(true,x,y) = x
+  otherwise forall c: bool or fail, x: bitstring, y:bitstring; 
+    test(c,x,y) = y.
+
+fun test'(bool,bitstring,bitstring):bitstring
+reduc 
+  forall x: bitstring or fail, y:bitstring or fail ; test'(true,x,y) = x
+  otherwise forall c: bool, x: bitstring or fail, y:bitstring or fail; 
+    test'(c,x,y) = y.
+
+
+const c0: bitstring.
+fun catchfail(bitstring): bitstring
+reduc
+  forall x:bitstring; catchfail(x) = x
+  otherwise catchfail(fail) = c0.
+
+process 0

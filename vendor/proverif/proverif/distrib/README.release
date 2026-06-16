@@ -1,0 +1,43 @@
+How to make a new release of ProVerif
+
+Replace $VERSION with the current version number
+
+0. Check that the file CHANGES is up-to-date, including the version number.
+
+1. Build the archives and put them on adleman
+
+   Choose the OCaml compiler. On my notebook:
+      chooseocaml mingw64
+   (It should now be the default.)
+
+   In branch master, in directory distrib/ on Windows, run
+      ./makedistrib $VERSION
+      cd ../../website/
+      echo s/VERSION/$VERSION/g > variables.sed
+      cd copy
+      git add proverif$VERSION.tar.gz proverifbin$VERSION.tar.gz proverifdoc$VERSION.tar.gz LICENSE README manual.pdf ../variables.sed
+      git commit -m "added release $VERSION"
+      git push
+
+2. Make the release visible on the web
+
+   git checkout webpages
+   git merge master
+   git push
+   git checkout master
+
+3. Update the online demo (see demo/README for more details)
+
+   In directory proverif/demo on adleman, run
+      ./install 
+   and enter my LDAP password 3 times.
+
+4. Make the opam release (see distrib/README.opam)
+
+5. When the opam package is accepted, email the proverif mailing list
+   proverif@inria.fr to announce the new release.
+
+6. Mention the new release in the news on the prosecco web page.
+   
+7. Announce it on https://discuss.ocaml.org ("Community" category,
+   "announce" tag).

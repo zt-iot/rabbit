@@ -1,0 +1,68 @@
+Protocol verifier, copyright INRIA-CNRS, by Bruno Blanchet
+and Vincent Cheval, 2000-YEAR.
+
+This software can be used to prove secrecy and authenticity properties
+of cryptographic protocols.
+
+--------------------------------------------------------------------------------
+# Developer Document
+
+1- GET THE SOURCE CODE
+2- COMPILE THE PROVERIF PROGRAM
+3- CLEAN THE SOURCE FILES
+4- COMPILE THE USER MANUAL
+5- DISTRIBUTE THE PROVERIF PROGRAM
+--------------------------------------------------------------------------------
+
+1- GET THE SOURCE CODE
+
+To develop this software, you need Objective Caml version 3.00 or
+higher and git. Objective Caml can be downloaded from
+	http://caml.inria.fr
+Git can be downloaded from
+	http://git-scm.com/downloads
+Furthermore, on Mac OS X, you need to install XCode if you do not
+already have it. It can be downloaded from
+	https://developer.apple.com/xcode/
+
+Clone the source repository using git:
+
+	git clone git+ssh://LOGIN@scm.gforge.inria.fr//gitroot/proverif/proverif.git src_proverif.git
+
+This will create a directory named src_proverif.git in the current directory.
+
+--------------------------------------------------------------------------------
+
+2- COMPILE THE PROVERIF PROGRAM
+
+* under Unix
+
+Go into the directory named src_proverif.git/proverif, and build the
+executable program, proverif:
+
+	cd src_proverif.git/proverif
+	./build
+
+--------------------------------------------------------------------------------
+
+3- CLEAN THE SOURCE FILES
+
+	cd src_proverif.git/proverif
+	./makeclean
+
+--------------------------------------------------------------------------------
+
+4- COMPILE THE USER MANUAL
+   cf. src_proverif.git/proverif/docs/manual/README
+
+	cd src_proverif.git/proverif/docs/manual
+	./makedoc
+
+--------------------------------------------------------------------------------
+
+5- DISTRIBUTE THE PROVERIF PROGRAM
+
+	cd src_proverif.git/proverif/distrib
+	./makedistrib
+
+--------------------------------------------------------------------------------

@@ -1,0 +1,232 @@
+(* 
+
+Certified email protocol by Abadi, Glew, Horne, and Pinkas
+WWW2002
+
+*)
+
+(* Public key cryptography *)
+
+fun pk/1.
+fun A/2.
+reduc decA(y, A(pk(y),x)) = x.
+
+(* Signatures *)
+
+fun S/2.
+fun Spk/1.
+reduc checkS(Spk(y), S(y, x)) = x.
+reduc getS(S(y,x)) = x.
+
+(* Shared key cryptography *)
+
+fun E/2.
+reduc decE(y, E(y,x)) = x.
+
+(* Hash function *)
+
+fun H/1.
+
+(* Constants to identify messages *)
+
+data Give/0.      (* Message 1 *)
+data Wants/0.     (* Message 2 *)
+data Try/0.       (* Message 3 *)
+data Released/0.  (* Message 4 *)
+data Received/0.  (* For the judge *)
+
+(* Constant authentication modes. We consider only BothAuth here *)
+
+data BothAuth/0.
+
+(* Function from R's password to R's name *)
+
+fun PasswdTable/1.
+
+ifdef(`SECRECY',
+
+(* It is assumed that an attacker cannot relate q and r = Reply(h,q) 
+   except for the hosts h it creates itself *)
+
+private fun Reply/2. 
+reduc ReplyOwnHost(x, q) = Reply(PasswdTable(x), q).
+
+,
+
+(* R or S are included in the adversary, so the adversary can compute Reply *)
+
+fun Reply/2.
+
+)
+
+(* Build a message *)
+
+private fun Message/2.
+
+(* Secrecy assumptions *)
+
+not TTPDecKey.
+not TTPSigKey.
+
+(* Queries *)
+
+ifdef(`PROP1',`
+  (* For proposition 1, we want to know under which
+     conditions the adversary can have the message sent by S *)
+  query putbegin ev:Shas, TTPSendS;
+	ev:Rreceived(Message(x,y)).
+')
+ifdef(`PROP2',`
+  query putbegin ev:Rhas, TTPSendR;
+	ev:JudgeSays(Received,PasswdTable(Rpwd),x).
+')
+ifdef(`SECRECY',
+  (* For secrecy, we also want to know under which
+     conditions the adversary can have the message sent by S
+     to R, that is Message(PasswdTable(Rpwd),x).
+   *)
+  query attacker:Message(PasswdTable(Rpwd),x).
+)
+
+(* TTPname, Sname are public constants, representing the names
+   of the hosts. We allow Sname to send to anybody, not just Rname.
+   We also allow the TTP to talk to recipients other than Rname
+   (represented by the adversary) on an insecure channel.
+   cleartext is a public constant, header of the message from S to R *)	
+
+free c,cleartext,Sname,Judgename,TTPname.
+private free TTPSigKey, TTPDecKey, Rpwd.
+
+let processJudge =
+ifdef(`SECRECY',
+  0.
+,
+  (* S must send TTP's certificate plus other information *)
+  in(Judgename, (certif, Sname5, k5, cleartext5, q5, r5, em5));
+  let (=Released, S2TTP5, Rname5) = checkS(TTPVerKey, certif) in
+  let m5 = decE(k5,em5) in
+  let hs5 = H((cleartext5, q5, r5, em5)) in
+  if S2TTP5 = A(TTPEncKey, (Sname5, BothAuth, (Give, k5, Rname5, hs5))) then
+  (* The judge says that Rname5 has received m5 *)
+  event JudgeSays(Received, Rname5, m5).
+)
+
+let processS = 
+ifdef(`PROP2',
+  (* S is included in the adversary *)
+  0.
+,
+  (* The attacker chooses possible recipients of the message *)
+  in(c, recipient);
+  (* Build the message to send *)
+  new msgid;
+  let m = Message(recipient,msgid) in
+  (* Step 1 *)
+  new k;
+  new q;
+  let r = Reply(recipient,q) in
+  let em = E(k,m) in
+  let hs = H((cleartext, q, r, em)) in
+  let S2TTP = A(TTPEncKey, (Sname, BothAuth, (Give, k, recipient, hs))) in
+  event Shas(Sname, k, cleartext, q, r, m);
+  out(recipient, (TTPname, em, BothAuth, cleartext, q, S2TTP));
+
+  (* Step 4 *)
+  !
+  in(Sname, inmess4);
+  let (=Released, =S2TTP, =recipient) = checkS(TTPVerKey, inmess4) in
+  (* S knows that R has read the message *)
+
+  ifdef(`SECRECY',0,
+    (* S sends to the judge the necessary information so that the
+       judge says that R has read the message *)
+    out(Judgename, (inmess4, Sname, k, cleartext, q, r, em))
+  )
+  else out(Sname, inmess4).
+)
+
+let processR = 
+ifdef(`PROP1',
+  (* R is included in the adversary *)
+  out(c, ChannelToTTP);
+  out(c, Rpwd)
+  |
+  in(c,m);
+  event Rreceived(m).
+,
+  (* Step 2 *)
+  in(Rname, (=TTPname, em2, =BothAuth, cleartext2, q2, S2TTP2));
+  let r2 = Reply(Rname,q2) in
+  let hr = H((cleartext2, q2, r2, em2)) in
+
+  (* Establish the secure channel R-TTP *)
+  new secchannel;
+  out(ChannelToTTP, Rname);
+  out(ChannelToTTP, secchannel);
+  let outchannel = (TTPname, secchannel) in
+  let inchannel = (Rname, secchannel) in
+
+  event Rhas(secchannel,em2,hr);
+  out(outchannel, (S2TTP2, (Wants, Rpwd, hr)));
+
+  (* Step 3 *)
+  !
+  in(inchannel, (=Try, k3, =hr));
+  let m3 = decE(k3, em2) in
+  (* R has obtained the message m3 = m *)
+  event Rreceived(m3).
+)
+
+let processTTP = 
+  (* Establish the secure channel R-TTP *)
+  in(ChannelToTTP, receivername);
+  in(ChannelToTTP, secchannel);
+  let inchannel = (TTPname, secchannel) in
+  let outchannel = (receivername, secchannel) in
+
+  (* Step 3 *)
+  in(inchannel, (S2TTP3, (=Wants, RPwd3, hr3)));
+  let (Sname3, authoption3, (=Give, k3, R3, =hr3)) = 
+     decA(TTPDecKey, S2TTP3) in
+  if R3 = PasswdTable(RPwd3) then
+  if R3 = receivername then
+
+  (* Records the event *)
+  event TTPSendS(Sname3,S(TTPSigKey, (Released, S2TTP3, R3)));
+  event TTPSendR(outchannel, (Try, k3, hr3));
+
+  (* Step 3 *)
+  out(outchannel, (Try, k3, hr3));
+
+  (* Step 4 *)
+  out(Sname3, S(TTPSigKey, (Released, S2TTP3, R3))).
+
+
+process let TTPEncKey = pk(TTPDecKey) in
+        out(c, TTPEncKey);
+        let TTPVerKey = Spk(TTPSigKey) in
+	out(c, TTPVerKey);
+	let Rname = PasswdTable(Rpwd) in
+	out(c, Rname);
+        new ChannelToTTP; 
+        ((!processS) | (!processJudge) | (!processR) | (!processTTP) |
+         (!in(c,m); out(ChannelToTTP,m)))
+
+ifdef(`SECRECY',`
+(* EXPECTPV FILENAME: examples/pi/mailprotAbadi/chtottp/protocol.m4.pi TAG: 1
+RESULT not attacker:Message(PasswdTable(Rpwd[]),x) is true.
+0.036s (user 0.020s + system 0.016s), max rss 9716K
+END *)
+')
+ifdef(`PROP1',`
+(* EXPECTPV FILENAME: examples/pi/mailprotAbadi/chtottp/protocol.m4.pi TAG: 2
+RESULT not ev:Rreceived(Message(x,y)) is false.
+0.048s (user 0.040s + system 0.008s), max rss 9656K
+END *)
+')
+ifdef(`PROP2',`
+(* EXPECTPV FILENAME: examples/pi/mailprotAbadi/chtottp/protocol.m4.pi TAG: 3
+RESULT not ev:JudgeSays(Received(),PasswdTable(Rpwd[]),x) cannot be proved.
+0.040s (user 0.032s + system 0.008s), max rss 9532K
+END *)
+')

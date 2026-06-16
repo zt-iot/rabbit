@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+                      <html>
+                    <head>
+                    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+                    <title>ProVerif: trace for query 1</title>
+                    <link rel="stylesheet" href="cssproverif.css">
+                                                                           </head>
+                                                                         <body>
+                                                                         <H1>Trace</H1>
+<span class="keyword">out</span>(<span class="name">public_channel</span>, <span class="var">~M</span>) with <span class="var">~M</span> = <span class="name">server_skey</span> at <a href="process_0.html#occ1" target="process" class="occ">{1}</a><br>
+<br>
+<span class="keyword">new</span> <span class="name">r</span>: <span class="type">bitstring</span> creating <span class="name">r_1</span> at <a href="process_0.html#occ2" target="process" class="occ">{2}</a><br>
+<br>
+<span class="keyword">out</span>(<span class="name">public_channel</span>, <span class="var">~M_1</span>) with <span class="var">~M_1</span> = <span class="fun">enc</span>(<span class="name">secret_message</span>,<span class="fun">pk</span>(<span class="name">server_skey</span>),<span class="name">r_1</span>) at <a href="process_0.html#occ4" target="process" class="occ">{4}</a><br>
+<br>
+The attacker has the message <span class="fun">dec</span>(<span class="var">~M_1</span>,<span class="var">~M</span>) = <span class="name">secret_message</span>.<br>
+A trace has been found.<br>
+</body>
+</html>

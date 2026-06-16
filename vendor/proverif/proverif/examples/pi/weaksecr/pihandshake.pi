@@ -1,0 +1,35 @@
+(* Handshake protocol.
+   Taken from Delaune, Jacquemard, LSV-04-1 *)
+
+(* shared-key encryption as equation *)
+
+fun encrypt/2.
+fun decrypt/2.
+equation decrypt(encrypt(x,y),y) = x.
+equation encrypt(decrypt(x,y),y) = x.
+
+(* addition of one *)
+
+fun f/1.
+
+free c.
+private free pw.
+
+weaksecret pw.
+
+let processA =
+	new N;
+	out(c, encrypt(N, pw)).
+
+let processB =
+	in(c, x);
+	let y = decrypt(x, pw) in
+	out(c, encrypt(f(y), pw)).
+
+process
+	((!processA) | (!processB))
+
+(* EXPECTPV
+RESULT Weak secret pw is false.
+0.008s (user 0.004s + system 0.004s), max rss 8560K
+END *)

@@ -1,0 +1,125 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css?v=18">
+
+    <title>ChevalRakotonirinaCSF23</title>
+    <meta name="description" content="Automated Symbolic Protocol Verification">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "ProVerif",
+            "description": "ProVerif is an automatic symbolic protocol verifier which proves security properties of cryptographic protocols.",
+            "applicationCategory": "Security, Cryptography",
+            "programmingLanguage": "OCaml",
+            "downloadUrl": "https://bblanche.gitlabpages.inria.fr/proverif/",
+            "softwareHelp": {
+                "@type": "CreativeWork",
+                "url": "https://bblanche.gitlabpages.inria.fr/proverif/manual.pdf"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<nav class="navbar sticky-top navbar-expand-lg bg-dark border-bottom border-body"  data-bs-theme="dark">
+    <div class="container-fluid container-narrow">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="../">ProVerif</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../install.html">Install</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../usage.html">Usage</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="http://proverif24.paris.inria.fr/">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../manual.pdf">Manual</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../25years.html">25 years workshop</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="../users.html">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="../publications.html">Publications</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<section>
+    <div class="container-narrow">
+        <H2>ChevalRakotonirinaCSF23</H2>
+
+
+Vincent Cheval and Itsaka Rakotonirina.
+  Indistinguishability Beyond Diff-Equivalence in
+  ProVerif.
+  In <i>Proceedings of the 36th IEEE Computer Security
+  Foundations Symposium (CSF'23)</i>, pages 184-199, Dubrovnik, Croatia,
+  July 2023. IEEE.
+  <b>Distinguished paper award</b>. <span class="tagclass">Tool feature</span> <span class="tagclass">Case study</span>
+
+<p><h4>Get the paper</h4>
+
+ <a href="./ChevalRakotonirinaCSF23.pdf">.pdf, 459 Kb</a>
+
+<h4>Links</h4>
+
+<A HREF="https://chevalvi.gitlabpages.inria.fr/chevalvi/files/CR-csf23-long.pdf">Long version</A>
+
+<h4>Abstract</h4>
+
+When formalising cryptographic protocols, privacy-type properties such as strong flavours of secrecy, anonymity or unlinkability, are often modelled by indistinguishability statements. Proving them is notoriously more challenging than trace properties which benefit from a well-established tool support today. State-of-the-art techniques often exhibit significant limitations, e.g., consider only a bounded number of protocol sessions, or prove diff-equivalence-a fine-grained, structure-guided notion of indistinguishability that commonly yields unnecessarily pessimistic analyses.
+   
+     In this paper, we design, implement and evaluate the first general framework for proving indistinguishability properties, for an unbounded number of protocol sessions, going beyond the scope of diff-equivalence. For that we relax the structural requirements of ProVerif, a state-of-the-art tool, through a notion of session decomposition, intuitively allowing a dynamic restructuration of the proofs. We can then verify in a modular way various, more realistic models of indistinguishability such as may-testing equivalence, by exhibiting for each relation a sufficient condition on ProVerif's output ensuring that it holds. We implement our approach into a prototype and showcase the gain in scope through several case studies.
+
+<h4>Bibtex</h4>
+
+<pre><a name="ChevalRakotonirinaCSF23"></a>
+@INPROCEEDINGS{ChevalRakotonirinaCSF23,
+  AUTHOR = {Cheval, Vincent and Rakotonirina, Itsaka},
+  TITLE = {Indistinguishability Beyond Diff-Equivalence in {P}ro{V}erif},
+  BOOKTITLE = {{P}roceedings of the 36th {IEEE} {C}omputer {S}ecurity {F}oundations {S}ymposium ({CSF}'23)},
+  YEAR = {2023},
+  PUBLISHER = {{IEEE}},
+  ADDRESS = {Dubrovnik, Croatia},
+  PAGES = {184--199},
+  MONTH = JUL,
+  NOTE = {{\bfseries Distinguished paper award}}
+}
+
+</pre>    </div>
+</section>
+
+
+<script src="../js/bootstrap.bundle.min.js"></script>
+<script src="../js/main.js"></script>
+
+</body>
+</html>
+
+

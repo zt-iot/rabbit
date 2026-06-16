@@ -1,0 +1,39 @@
+digraph {
+graph [ordering = out]
+edge [arrowhead = none, penwidth = 1.6, fontsize = 30]
+node [shape = point, width = 0, height = 0, fontsize = 30]
+Trace [label = <A trace has been found.<br/>
+>, shape = plaintext]
+P0__0 [label = "Honest Process", shape = plaintext]
+P__0 [label = "Attacker", shape = plaintext]
+Trace -> P0__0 [label = "", style = invisible, weight = 100]{rank = same; P0__0 P__0}
+P0__0 -> P0__1 [label = <>, weight = 100]
+P0__1 -> P0__2 [label = <>, weight = 100]
+P__0 -> P__1 [label = <>, weight = 100]
+{rank = same; P__1 P0__2}
+P0__2 -> P0__3 [label = <>, weight = 100]
+P__1 -> P__2 [label = <>, weight = 100]
+{rank = same; P__2 P0__3}
+P0__3 -> P__2 [label = <~M = server_skey>, arrowhead = normal]
+P0__3 -> P0__4 [label = <>, weight = 100]
+P__2 -> P__3 [label = <>, weight = 100]
+{rank = same; P__3 P0__4}
+P0__4 -> P0__5 [label = <>, weight = 100]
+P0__5 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD>Beginning of process <FONT COLOR="darkgreen">Client</FONT></TD></TR><TR><TD><FONT COLOR="darkgreen">{2}</FONT><FONT COLOR="blue">new </FONT>r_1</TD></TR></TABLE>>]
+P0__5 -> P0__6 [label = <>, weight = 100]
+P0__6 -> P0__7 [label = <>, weight = 100]
+P__3 -> P__4 [label = <>, weight = 100]
+{rank = same; P__4 P0__7}
+P0__7 -> P0__8 [label = <>, weight = 100]
+P__4 -> P__5 [label = <>, weight = 100]
+{rank = same; P__5 P0__8}
+P0__8 -> P__5 [label = <~M_1 = enc(secret_message,pk(server_skey),r_1)>, arrowhead = normal]
+P0__8 -> P0__9 [label = <>, weight = 100]
+P__5 -> P__6 [label = <>, weight = 100]
+{rank = same; P__6 P0__9}
+P0__10 [label = "", width = 0.3, height = 0.3]
+P0__9 -> P0__10 [label = <>, weight = 100]
+P__6 -> P__7 [label = <>, weight = 100]
+P__7 [color = red, shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD>The attacker has the message dec(~M_1,~M) = secret_message</TD></TR></TABLE>>]
+P__7 -> P__8 [label = <>, weight = 100]
+}

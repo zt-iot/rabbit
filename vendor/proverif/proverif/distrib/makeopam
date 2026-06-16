@@ -1,0 +1,28 @@
+#!/bin/sh
+
+VERSION=$1
+OPAMREPDIR=$HOME/repos
+PROVERIFDISTRIBDIR=$PWD/../../website/copy
+PROVERIFOPAMDIR=$PWD
+
+cd $OPAMREPDIR
+# git clone git@github.com:bruno-blanchet/opam-repository.git
+cd opam-repository/packages/
+
+# ProVerif package
+mkdir -p proverif/proverif.$VERSION
+CHECKSUM=$(md5sum $PROVERIFDISTRIBDIR/proverif$VERSION.tar.gz | awk '{print $1;}')
+sed s/CHECKSUM/$CHECKSUM/g\;s/VERSION/$VERSION/g $PROVERIFOPAMDIR/proverif.opam.orig > proverif/proverif.$VERSION/opam
+git add proverif/proverif.$VERSION
+
+# ProVerif doc package
+mkdir -p proverifdoc/proverifdoc.$VERSION
+CHECKSUMDOC=$(md5sum $PROVERIFDISTRIBDIR/proverifdoc$VERSION.tar.gz | awk '{print $1;}')
+sed s/CHECKSUM/$CHECKSUMDOC/g\;s/VERSION/$VERSION/g $PROVERIFOPAMDIR/proverifdoc.opam.orig > proverifdoc/proverifdoc.$VERSION/opam
+git add proverifdoc/proverifdoc.$VERSION
+
+git commit -m "added ProVerif version $VERSION"
+git push origin HEAD:add-pkg-proverif.$VERSION
+cd $PROVERIFOPAMDIR
+
+

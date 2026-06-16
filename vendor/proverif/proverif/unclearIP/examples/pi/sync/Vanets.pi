@@ -1,0 +1,63 @@
+free c,ack,request.
+free enterLeft,enterRight,zone,exitLeft,exitRight.
+
+private free sk.
+private free prsu,krsu,kc.
+private free pva1,kva1,pva2,kva2,pvb1,kvb1,pvb2,kvb2.
+
+fun pk/1.
+fun sign/2.
+fun enc/2.
+fun senc/3.
+
+reduc getmess(sign(x,y)) = x.
+reduc checksign(sign(x,y),pk(y)) = x.
+reduc dec(enc(x,pk(y)),y) = x.
+reduc sdec(senc(x,y,r),y) = x.
+
+let rsu =
+  in(c,X);
+  let(SignaturePart,CertificatePart) = X in
+  let(Pv,PkKv) = checksign(CertificatePart,pk(kc)) in
+  let(=request,Ts,=Pv) = checksign(SignaturePart,PkKv) in
+  out(c,(enc(sign((Pv,sk,Ts),krsu),PkKv),sign((prsu,pk(krsu)),kc))).
+
+let car =
+  out(enter,pv1);
+  new ts;
+  out(enter,(sign((request,ts,pv1),kv1),sign((pv1,pk(kv1)),kc)));
+  in(enter,X);
+  let(encedPart,CertificatePart) = X in
+  let(Prsu,PkKrsu) = checksign(CertificatePart,pk(kc)) in
+  let SignaturePart = dec(encedPart,kv1) in
+  let(=pv1,sk,=ts) = checksign(SignaturePart,PkKrsu) in
+  new r; 
+  out(zone,senc(pv1,sk,r));
+  sync 1;
+  new r;
+  new r';
+  out(exit,senc(pv1,sk,r));
+  out(exit,senc(pv2,sk,r'));
+  out(exit,pv2).
+
+process 
+  out(c,pk(kc));
+  out(c,pk(krsu));
+  (
+    !rsu
+  )|(
+    let (kv1,kv2,pv1,pv2) = (kva1,kva2,pva1,pva2) in
+    let enter = enterLeft in
+    let exit = choice[exitLeft,exitRight] in
+    car
+  )|(
+    let (kv1,kv2,pv1,pv2) = (kvb1,kvb2,pvb1,pvb2) in
+    let enter = enterRight in
+    let exit = choice[exitRight,exitLeft] in
+    car
+  )
+
+(* EXPECTPV
+RESULT Observational equivalence is true.
+0.080s (user 0.076s + system 0.004s), max rss 12268K
+END *)

@@ -1,0 +1,906 @@
+Perhaps for the next release:
+-----------------------------
+
+Specific to the branch 'improved_scope_lemma':
+- Allow attacker and message predicate to be in the premise of a nested query
+    -> It can be done by proving that attacker facts strictly occur before the main
+    premise (similarly how they are proved in lemmas)
+
+- Do we want to have different induction option for lemma and query ?
+  One that discard the attacker and table in the conclusion of the premise or their
+  strong version may not be easy to prove.
+  One that tries the complete version.
+
+- Update redundant_hyp with an option for blocking predicates.
+- Update subsumption
+
+- Add a test that check whether a lemma can lead to an infinite loop.
+
+- Add an option that allow to display the application of a lemma.
+
+For the future:
+---------------
+
+- Simplification is super slow for examplesnd/ntbugs/Lee.DKR.ballotsecrecy.nosync.pv
+(was before unclearIP/examples/pitype/sync/...). That's not a recent problem,
+but it was much faster in version 1.88pl1. The difference comes partly from the
+version of simplification implemented in version 1.90. It took 13 min when we wrote
+the paper (version 1.94?), it seems even longer now.
+
+- Adds the definition of all internal destructors in the manual
+- Adds the semantics of queries in the manual
+
+The verification of axioms/restrictions in the trace reconstruction cannot verify axioms/restrictions containing new k. Currently, it emits a warning but maybe we could improve that ?
+Same thing when the axiom / restriction contains a predicate subterm. When there is no equational theory we could do the check. With an equational theory, it seems more complicated.
+Similarly, we cannot verify axioms/restrictions that contain attacker in their premise
+(because that would require proving the axiom/restriction for *all* terms that
+the attacker can compute).
+
+Optional: improve even more the expansion of terms
+- construct
+    let pat1 = M1
+    and pat2 = M2
+    and ...
+    and patn = Mn in
+       ...
+    else
+       ...
+  to group several assignments together and improve the precision of equivalence
+  verification, while keeping a more efficient translation?
+  Or construct "try ... with fail -> ..." suggested by Mathieu Turuani?
+  Or let allowed inside terms even after the pitsyntax pass? (seems more difficult
+  to implement, but perfect to handle "letfun" declarations efficiently; if we choose
+  this option, it would not be for this release)
+- when there is no equivalence/noninterf to prove? (but that would mean that the
+process is translated differently for a correspondence query when there is a noninterf
+query as well; may be really strange for the user! To discuss before doing it.)
+
+Lemmas and axioms cannot be defined with temporal variables for now. We should be able to incorporate them.
+  -> One simple improvement would be to allow Lemmas and axioms (and inductive lemmas) where the
+  temporal constraints only affect the conclusion vs an hypothesis/conclusion (once the lemma is transformed).
+  Typically, if the encoded lemma contains only ordered facts and no nested queries then we can
+  propagate the orders when applying the lemma during the verification (during the saturation, the orders
+  would be ignored). This change would only require local changes.
+
+Add the possibility to declare a nounif specifically for a query. In fact, we should probably think of having the possibility to specify for each lemma a different list of
+settings, nounif, and similars.
+
+Improve the functions close_term_destr_eq and similar.
+
+For query with predicate table in the conclusion, we could add a special event at each insert in the table (we keep the non blocking one but we add another one). With the suppression of useless events lemmas, it could work without leading to too much non terminaison. If we do that, we will need to improve the verification that a query is false so that it checks whether the table element in the conclusion has been inserted, and to execute the insert only if it is justified by the derivation (like for events). see proverif/examplesnd/pitype/bug_attack_table*.pv
+
+Put the arguments of begin_pred_inj and end_pred_inj in the same order.
+
+Compatibility with CryptoVerif: accept session identifiers in
+events (and also tables, ...)
+
+Integrate more things from GSverif in ProVerif, e.g. cells?
+  --> Following last conversation, we integrate the modification in the process like
+  an encoded process / query similar to other encoding.
+What about a basic memory cell that can be read and written without locking?
+  --> I think in term of axioms, it's similar to memory cell with lock in which
+  you lock and unlock directly without any other process actions in the middle.
+Comparison with StatVerif?
+
+Equational theories with associativity?
+
+improve the passive attacker case, see emails by V. Cheval, Première version du draft!, 23/4/2019
+    La reconstruction de trace dans le cas passif n’est pas super. C’est du au fait (il me semble) que tu autorises la clause mess(x,y) && att(x) \rightarrow att(y). Dans quand il passe pas un output, il n’est pas forcément de trouver un input correspondant. Au début je me suis dit que c’était spécifique à la reconstruction de trace mais en fait pas vraiment. Par exemple:
+
+    free c:channel.
+    free s:bitstring.
+    event A.
+    set attacker = passive.
+    query event(A).
+    process out(c,s) ; event A
+
+    Normalement la query devrait être vraie mais ProVerif n’est pas capable de prouver ça.
+    Au niveau du cas passif, on devrait changer la clause de la manière suivante:
+
+    mess(x,y) && att(x) && input(x,y) -> att(y)
+
+    Dans le cas sans precise, le 2eme argument de l'input est sans doute inutile, et on retrouve le prédicat input utilisé les preuves d'équivalence. Avec précise, le 2e argument de l'input me semble utile (cf dernière clause ci-dessous).
+
+    Au niveau de la traduction d’un input, on aurait:
+    [Input^o(M,x); P]n\rhoH = [P]n\rho(H \wedge mess(\rho(M),x)) \cup \{ H \rightarrow input(\rho(M),x)\}
+
+    Avec l’option precise cela aurait même plus de sens d’ailleurs. On aurait
+    [Input^o(M,x); P]n\rhoH = [P]n\rho(H \wedge mess(\rho(M),x) \wedge event(precise(o[I],x))) \cup \{ H \wedge event(precise(o[I],x)) \rightarrow input(\rho(M),x) \}
+    La clause pour l'output devrait avoir input(\rho(M),x) comme hypothèse supplémentaire. (L'output ne peut être exécuté que s'il y a un input en face.)
+
+    On pourrait faire le même changement dans le cas d'un attaquant actif, mais dans ce cas, on a att(x) -> input(x,y). Le cas des canaux qui sont des noms initialement publics peut être optimisé. C'est plus précis, mais je crains que cela augmente le temps de calcul de façon non-négligeable quand on a des canaux privés.
+
+    Cela éviterait qu’un même input soit utilisé plusieurs fois pour des outputs de valeurs différentes.
+    Cela permettrait d’enlever des fausses attaques (comme mon petit exemple je pense) et il me semble que cela aiderait à la reconstruction d’attaque vu qu’il sera obligé de « trouver » les inputs.
+
+    Je sais pas exactement comme tu gères  le cas passif dans la reconstruction d’attaque mais il me semble que si un input est dispo à la racine, tu le prends et sinon tu laisse tomber.
+    Par exemple Proverif n’est pas capable de trouver l’attaque sur le protocole suivant mais il y arrive si tu enlève le bang.
+
+    free c:channel.
+    free s:bitstring [private].
+    event A.
+    set attacker = passive.
+    query attacker(s).
+    process out(c,s) | !in(c,x:bitstring)
+
+
+To ease the removal of the untyped front-end, allow lighter
+declaration in the typed front-end when all types are bitstrings.
+e.g.: fun f/n for f with n arguments of type bitstring and return value
+of type bitstring, event e/n similarly,
+let (x,y) = ... when x and y are of type bitstring
+What do we do for query, equation for all ...? Allow omitting
+the declaration of variables when they are all of type bitstring??
+
+- Improving the display of injective attacks (display maximal matching of premises ?)
+
+- rules.ml:
+subsumption test: can constraints contain variables that do not occur in the
+rest of the clause?
+If this can happen, we may need to improve the subsumption test.
+It seems that this is rare, so let's say it's ok.
+(It is sound but probably leads to an infinite loop.)
+    --> Vincent: I'll try to think of a way to improve the subsumption test.
+        Bruno: That's not essential
+
+- piauth.ml: Improve match_unblock_predicates
+    Tu parlais d'avoir des symboles spéciaux pour dire "tout entier" (satisfaisant
+    certaines contraintes), au lieu d'utiliser des noms ou des constantes,
+    et d'éliminer les contraintes qui utilisent ces symboles spéciaux,
+    pour les retrouver ensuite en reconstruisant la dérivation.
+    (Cela généralise ce qui est fait actuellement en utilisant des noms,
+    qui sont ok pour représenter "tout terme" mais pas "tout entier",
+    car cela conduit à considérer comme fausses des inégalités/is_nat qui
+    peuvent être garanties par les contraintes de la clause.)
+
+    Ma proposition serait plutôt d'avoir des symboles spéciaux pour dire
+    "tout terme" (satisfaisant certaines contraintes, ces contraintes
+    pouvant inclure que le terme en question est un entier).
+    Au niveau de la résolution, dans Rules.sound_bad_derivable,
+    les contraintes qui existent sur de tels symboles spéciaux
+    seraient conservées (et non supprimées). On ne simplifierait
+    bien sûr pas des contraintes telles que x <> y, is_nat(x), is_not_nat(x),
+    x >= y+n où x et y sont de tels symboles spéciaux.
+    Ainsi, on n'a plus besoin de reconstruire la dérivation puis de
+    collecter les contraintes dessus: les contraintes sont obtenues
+    directement sur la clause finale.
+    Techniquement, il me semble que l'implémentation actuelle utilise
+    des symboles de fonction SpecVar pour remplacer les variables
+    de la clause. Il suffirait donc de dire que ces "SpecVar" sont les symboles spéciaux
+    qui représentent "tout terme" (satisfaisant certaines contraintes),
+    et de modifier la simplification des contraintes pour conserver
+    les contraintes qui contiennent "SpecVar" au lieu de les simplifier
+    comme on le fait actuellement (pour l'instant, la simplification
+    des contraintes traite les "SpecVar" comme des constantes distinctes).
+
+    D'un point de vue logique, cela me paraît plus satisfaisant,
+    même plus satisfaisant que ce qui est implémenté actuellement,
+    et pas tellement plus lourd à coder que ta proposition qui nécessite
+    également des symboles spéciaux supplémentaires.
+
+    Je note que c'est plus coûteux et plus précis que la solution actuelle
+    (et que celle que tu proposes) : on traîne les contraintes pendant la
+    résolution au lieu de les supprimer, donc on conserve potentiellement
+    plus de clauses (elles ne sont plus éliminées par le test de subsumption).
+    Cela permet d'explorer plusieurs façons de dériver le fait voulu,
+    dont certaines peuvent avoir des contraintes garanties par celles
+    de la clause et d'autres non. Au contraire, la solution actuelle
+    et la tienne n'explorent qu'une façon de dériver le fait voulu.
+
+    Eventuellement, une amélioration pourrait être de garder sous la main
+    les contraintes que les "SpecVar" satisfont et de vérifier pendant
+    la résolution qu'il existe une instance de la clause courante telle
+    que les contraintes de cette instance sont impliquées par les
+    contraintes que les "SpecVar" satisfont.
+
+Draft:
+
+BB: changement multiset -> tuple pour P_\Phi, IH_\Phi, <_{ind} fait dans le corps du papier.
+S'il te convient et que tu veux que le fasse dans les annexes, dis-moi.
+Vincent: Je rajouterai peut être dans les appendix une surcharge de l’opérateur <_m pour que
+cela s’applique aussi aux tuples. Cela facilitera probablement la lecture.
+
+Petite suggestion : on pourrait introduire une notation
+When \tuplesteps = (\tau_1, \dots, \tau_n),
+\tau \delta \tuplesteps if and only if
+for all i \in \Dom{\delta}, \tau \delta(i) \tau_i
+
+Update notations in appendix.
+
+===================================================================================
+========================== DONE part ==============================================
+
+- h_pred_prove (S_P) and matching of facts for lemmas:
+  As the code is written, when we have a predicate attacker_n, we always add the
+  S_P all attacker_n', n'<=n, and similarly for tables.
+  So at line 1845 of rules.ml, we can match with match_facts_phase_geq
+  for lemmas/axioms/restrictions that are not inductive queries
+  (this is like having the lemma for all phases <= n).
+  However, for inductive queries, we must have exactly the same phase.
+
+- optimize_mess:
+  calls Reduction_helper.prove_att_phase. In this function,
+  we need to look at premises of lem.lemmas and return true when we see attacker_n
+  *only* for restrictions, not for all lemmas (If we apply restrictions
+  with premise attacker_n' for all phases less than n', then Reduction_helper.prove_att_phase should
+  return true when a restriction contains as premise attacker_n' for all phases n <= n')
+  For axioms and lemmas, we can transform a trace into an IO-compliant trace
+  and apply the lemma.
+
+[Was implemented thanks to the predicate Subterms] Adding a predicate that is able to talk about the parameters of all names in a term:
+  Use case: Blocking cell. Consider a process with a private channel that act as a cell. Consider also that
+  the cell contains an integer that is increased every time a message is written on the cell, i.e. the process
+  are of the form:
+    in(d,(i,..)); P[i] ; out(d,(i+1,...))
+  where P is a sequence of actions (i'm discarding if-then-else for this example) and d is the private channel.
+  What usually happens during the saturation is that a some message are crossed between two
+  rounds of a cell, i.e. an output of P[i=i_1] is used as input in P[i=i_2] and an output of P[i=i_2] is used
+  as input of P[i=i_1]. However such a behavior is not possible since P[i=i_1] and P[i=i_2] should be executed in sequence.
+  Without changing the resolution procedure, i have the impression that we can still prevent some of
+  these bad behavior if we look at the names in the message input in P[i=i_1] and P[i=i_2].
+    In particular, all names created in P[i=i_1] will have an argument i = i_1 thus for all terms M input in
+  P[i=i_1], we know for names n \in M, if n has i=i_2 as argument then i_2 <= i_1.
+
+  Here is a small example illustrating what we could write:
+
+    axiom InputValue(new d[!1=sid1],k,x) && (new n[i=k',!1=sid1] in x) ==> k' <= k.
+
+    process
+      !
+      new d:channel; (out(d,(0,a)) |
+      !
+      in(d,(i:nat,x:bitstring));
+      new n:bitstring;
+      out(c,n);
+      in(c,y:bitstring);
+      event InputValue(d,i,y);
+      out(d,(i+1,x)))
+
+  We could also have something more general that talks of any name with the corresponding parameter like
+    axiom InputValue(new d[!1=sid1],k,x) && (xn[i=k',!1=sid1] in x) ==> k' <= k.
+  and xn would match any name that have as parameter i and !1
+
+  Note that this predicate would be mostly usefull in the premise of axioms and conclusions of queries.
+  Proving a query with this predicate in the premise would be quite difficult if the term matched by the query is not ground.
+  For instance, if we obtain a clause of the form H -> InputValue(d[!1=sid1],h(y)) then we would need to assume that new n[i=k',!1=sid1]
+  exists in the instantiation of y hence we would need to consider k' "fresh". However, with the predicate in the conclusion of the query it's easier.
+  Maybe in that case, we would want such predicate to only exist internally for the time we will include more "GSverif" stuff in ProVerif".
+
+
+- Rajouter le "restriction" pour les queries de correspondence.
+(similaire aux axiomes)
+Pour l'équivalence, faut encore que j'étudie la question pour savoir ce que cela veut dire
+  -> For equivalence, restriction is only for bitrace. A more difficult notion of restriction
+  specific to one side of the process is abandoned.
+
+- Expansion of output: evaluate channel first, message second.
+Output, let and perhaps others: do not test "is_failure" too early.
+We continue to evaluate some terms/patterns even if a term failed.
+For event, insert, let...suchthat, is it ok to reduce the next
+arguments even if an argument fails, and in the end we do not execute
+the event, insert, ...
+
+Formal semantics in appendix of the manual
+
+Fix sync: fixed by using explicit tags for each synchronization.
+Same tag if and only if it is to be considered as the same synchronization.
+
+That's nice in proswapper.ml, but that's problematic for using process macros:
+- Currently, when no tag is given, a fresh tag is generated at each barrier
+in the input file. However, if we use process macros, the same tag is reused
+in all expansions of the macro. Hence, we cannot write P(..) | P(..) when P contains
+sync n, because we need different tags in this case.
+
+- An idea might be to pass the tag as argument of the macro,
+and/or use "new" when we want to generate a fresh tag.
+
+==> I think passing as argument is enough. We never need a fresh tag at each execution
+(sync cannot occur under replication anyway). Using different tags or the same tag
+depends on how the process is used (several calls in parallel or in different
+branches of a test), so deciding the tag at the call site seems appropriate.
+
+We might want to allow concatenations as tags, e.g.
+
+let P(tagX) = (sync 1 [tagX_A] ... | sync 1 [tagX_B] ...)
+
+used as P(tagX1) | P(tagX2)
+then the 4 synchronizations are tagged with tagX1_A, tagX1_B, tagX2_A, tagX2_B.
+For standard usages, a single tag prefix passed as argument of the process is enough.
+All inside tags are then obtained by concatenating a suffix to that tag prefix.
+
+We could even imagine
+
+let P(...) = (sync 1 [A] ... | sync 1 [B] ...)
+
+used as P(...)[sync: add tag prefix X] | P(...)[sync: add tag prefix Y]
+then the 4 synchronizations are tagged with X_A, X_B, Y_A, Y_B.
+Right now, I think this is the best solution, perhaps with
+a nicer syntax instead of [sync: add tag prefix X].
+[sync: X_...] ? [sync: ...] to add no suffix? unclear
+
+We could imagine to add a fresh prefix to all tags when we expand
+P(...) without annotation [sync: add tag prefix X].
+Or we could just add no prefix at all.
+Adding a fresh prefix and putting a fresh tag for each "sync"
+is compatible with the previous behavior when there are no
+explicit tags. (However, when there are explicit "sync" tags,
+it is not, since the tags are modified by adding prefixes.
+In this case, the compatible behavior is to add no prefix.
+However, since the tags were required to be all distinct,
+ProVerif can work with distinct tags when I add a fresh prefix,
+while it would have failed before. The only real incompatibility
+is that the tags differ for set swapping="...")
+If I add a fresh prefix by default, I should have an annotation
+to add no prefix, for instance [sync: add no tag prefix] or [sync: tags unchanged]
+
+Separation between the added prefix(es) and the initial tag:
+it could be, for instance
+* nothing
+* _, which can also be included in a tag
+* -, which cannot be included in a tag.
+I think I would go for _. Nothing is less clear, and I think
+it is good that the user can give a tag that can also be constructed
+as a concatenation of prefix(es) and a tag.
+
+Could we guess the tags automatically? That seems risky.
+For P(...) | P(...) it is clear that we want different prefixes.
+But for if ... then P(...) | Q(...) else P(...) | Q(...)
+do we want the tags in P in the then branch to be the same as the tags in P in the else branch (and same for Q),
+or the tags in P in the then branch to be the same as the tags in Q in the else branch?
+And there can be more complicated structures.
+
+diff patterns (e.g. for frame opacity)
+
+In file examplesnd/lemmas/PACE/v3_sequence_maybe_bug.pv, the
+reconstruction of trace finds a trace but assuming the hypothesis
+mess(dP_1[],0). However, in the trace it founds there is a
+communication on dP_1 with the message 0 so i'm not sure why the
+hypothesis is not removed.
+=> modify treatment of hyp_not_matched
+   Attacker -> add in public and hyp_not_matched (already done)
+   Table -> add in state.tables and hyp_not_matched
+   user-defined predicates -> add in hyp_not_matched (already done)
+   Mess and others -> ignore
+
+WARNING! License problem for tree.ml. -> Unless I get an authorization from Inria,
+I should release Windows binaries under GPL, not under BSD.
+
+use the CryptoVerif test infrastructure?
+
+- always introduce a let for arguments that are not variables in PLetDef?
+  Vincent: yes, and move lets as late as possible, to avoid repeating the
+  translation of parts of the process in case a let evaluates in several ways.
+
+A simpler way to lighten the typed front-end: when we
+declare several variables of the same type, allow
+x,y,z:T instead of x:T, y:T, z:T.
+
+Prevent creating names of type bool, declaring constructors
+with a result of type bool?
+
+improve even more the expansion of terms
+- two bugs:
+  examplesnd/pitype/test_expand_if_to_terms.pv
+  examplesnd/pitype/test_expand_let.pv
+- what is the semantics with respect to evaluation of subterms for
+  functions like &&, ||? Do we execute an event or insert in the second
+  argument when the first argument determines the result?
+  I would say yes.
+- what is the semantics with respect to failure?
+  e.g. let pat = (insert t(M); M') in M1 else M2
+  when M fails, it should execute M2
+  see examplesnd/pitype/test_expand_let_insert.pv
+- in let vl suchthat pred(tl), we should test that destructors in tl can
+  be evaluated *before* binding the variable in vl (even when
+  set predicatesImplementable = nocheck).
+  see examplesnd/pitype/letfilter_missing_test.pv
+  When a destructor in tl fails, does the "let .. suchthat" execute
+  the else branch or execute nothing? (I would tend to execute nothing.)
+- make sure that a term is evaluated only when it is useful,
+  in the expansion of terms in pitsyntax.ml
+
+  also in simplify.ml.
+  E.g. line 1565, handling Test (term,proc1,proc2,_)
+          seq_lets = check_disjoint_pair_append next_norm_p.seq_lets next_norm_p'.seq_lets;
+  the lets in next_norm_p.seq_lets are useful only when term = true,
+  the ones in next_norm_p'.seq_lets only when term = false.
+
+  Also in the case of parallel composiion l 1474, 1487
+      seq_lets = check_disjoint_pair_append proc1.seq_lets proc2.seq_lets;
+  let (def1) in P1 | let (def2) in P2 becomes let (def1,def2) in P1 | P2
+  Useless evaluations are more difficult to avoid: both lets are always useful,
+  it's just that the case distinctions in (def1) are useful only for P1,
+  the case distinctions in (def2) are useful only for P2.
+  Perhaps it happens less often in practice.
+  Similar situation l 1952, 2007, 2040
+
+Keyword "restriction" similar to axiom, but not an error
+if a trace is found that does not satisfy the restriction.
+
+Minor display bug: the unify indications in unifyDerivation
+are displayed with variable names independent of the derivation
+(because of auto_cleanup_display); they should use the same
+variable names as the derivation.
+
+pitsyntax.ml, case PPLet: I think the only case in which the test coming
+  from proc_layer_pattern (from check_pattern_into_one_var)
+  fails is when a term t in PatEqual(t) fails, so I could replace
+  equal_fun by an equality function =nf that returns false instead of fail
+  when an argument fails, and then replace test' with test.
+
+  simplify.ml: likely bug: the result of one_var_pattern_from_pattern
+  is not always protected correctly in case it fails. Using =nf
+  would solve the bug. (Then I can remove one success?(is-true(.)) .)
+
+Some ideas on how to generate clauses on the fly:
+   - Modify the type of t_horn_state.h_clauses to be
+       | Given of reduction list
+       | Generate of (reduction -> unit) -> unit
+   - Add a field to Pi_transl.transl_state:
+       record_fun_opt : (reduction -> unit) option
+     When None, transl_process does a dummy translation,
+     just determines the arguments of names.
+       transl_term next_f cur_state t = next_f cur_state (Var (variable of the type of t))
+       no_fail next_f cur_state t = next_f cur_state t
+       no_fail_list next_f cur_state tl = next_f cur_state tl
+       must_fail next_f cur_state t = next_f cur_state
+       unify_list f_next cur_state tl1 tl2 = f_next cur_state
+       ...
+       check_feasible f_next check cur_state = f_next cur_state
+       end_destructor_group_no_test_unif next_f cur_state = next_f cur_state
+       end_destructor_group next_f cur_state = next_f cur_state
+       begin_destructor_group next_f cur_state = next_f cur_state
+       output_rule cur_state out_fact = ()
+       Make sure each process is visited at most once
+     When Some record_fun, the clauses are really generated,
+     calling record_fun for each clause.
+
+Essayer d'avoir en complément une query du type A@i && B@j ==> i > j (syntax à revoir) qui se transformerait en event(o,A) && event(o',B) => event(o,A)^[2-> <] ?
+
+The declared nounif are displayed as they are. Should we display their homogeneous version ? Done
+Put a warning for the user when a *x is replaced by a x ? Not done.
+
+Individual setting for activating/stopping the elimination of events useless in each lemma
+
+Avoid applying resolutions with "ignoreOnce" repeatedly for nested queries.
+  Bruno: Je me demande si l'idéal ne serait pas plutôt de conserver le booléen qui dit si on a déjà appliqué un nounif ignoreOnce pour chaque hypothèse de la clause à l'intérieur de piauth.ml. Comme ça, on empêche naturellement les applications répétées pour les nested queries.
+  Vincent: Je pense que la façon complètement idéale serait de :
+  1 - Ne pas appliquer les ignoreOnce pour démarrer
+  2 - Vérifier les clauses comme on fait.
+  3 - Quand on tombe sur une clause C qui nous fait foirer, on solve cette clause là (nous donner un ensemble de clause S) et on reprend la vérification sur S comme si on avait jamais testé C. Si même S nous fait foirer, on s'arrête et on essaie de trouver une attaque
+In the end, Bruno's version was adopted as Vincent's version did not bring satisfying result and was complexifying the code.
+
+Check if the use of catch-fail, success, etc can be simplified when simplifying biprocess (in the same vein as for pitsyntax).
+ -> it was already done.
+
+- Modify the manual concerning the parameter BestRed
+
+- When proving equivalence, we should renforce the criteria for removeEventsForLemma on clauses on the form H -> bad. In particular, if we have H && att(x) -> bad where H contains only
+events for lemmas. In such a case, it may be preferable to allow the events to be removed completely.
+
+- ne pas rajouter automatiquement de nounif s'il y en a déjà un
+avec le même format et l'option hypothesis.
+  Actuellement, on va rajouter un nounif même si il existe déjà un nounif de poids plus faible qui le subsume.
+  Par exemple, j’avais déclaré manuellement dans mon fichier:
+  nounif mess(cAll(beHonest(*s_1),j[]),(ic_9,old_stg_k_9,*leaf,(*old_node_27,*old_node_28,pub_from_leaf(*old_node_key))))/-6000
+  Pourtant, lors de la saturation, l’outil commence à rajouter des nounifs du type:
+  nounif mess(cAll(beHonest(seed1[!1 = *@sid]),j[]),(ic_9,old_stg_k_9,old_leaf_9,(old_node_27,pub_from_leaf(*y),pub_from_leaf(*z))))/-5000
+  Je ne vois pas trop l’intérêt de rajouter automatiquement ce nounif. En plus de ça, je pense que c’est problématique si les poids sont différents vu que la fonction find_same_format dans selfun.ml retourne le poids du premier « format » qu’il trouve dans la liste. Donc au lieu de retourner -6000, il pourrait retourner -5000 à cause que nounif automatiquement rajouté.
+
+
+- remarque de Mathieu Turuani (emails du 29,30 janvier 2020):
+simplifier "let w = fail-any in [..] else P" en "P".
+
+- In pitsyntax.ml, improve the translation of letfun to avoid adding catch-fail when trivially not necessary.
+It will improve the readability.
+
+- ORDER (waiting for proof)
+Rules
++let detect_listening_clause = function
++let detect_listening_clause_bin = function
++let detect_sending_clause = function
++let detect_sending_clause_bin = function
+Should detect all clauses that subsume the listening/sending clauses
+and that have non-strict order.
+We have the invariant that variables in the conclusion also
+occur in the hypothesis (except session identifiers), so no other
+clause can subsume the sending clause, which will then certainly
+remain in the final set rule_base_ns. Check that for safety?
+Not quite true: the sending clause can be subsumed by "-> bad"
+and it's not a problem.
+
+The listening clause cannot occur in initialise_ordered_rule_base_ns
+because we deal only with clauses with empty selection.
+
+Revise "(* Inductive rules during the saturation *)"
+in verify_induction_condition?
+
+NEW VERSION FOR ORDER:
+- listening clause att(x)[< if att \in S_p (i.e. in pred_prove), <= if att \notin S_p] && mess(x,y) [<=] => att(y)
+  because the rule (Res Out) sends the message at the
+  same step as it is received by the attacker.
+- sending clause with strict order (if att \in S_p, i.e. in pred_prove)
+- clauses for data constructors with <= because
+  of the optimisation of decomposition of data constructors?
+  (not even sure that this is necessary; we really need a proof)
+- all other clauses with strict order (for predicates in S_p, i.e. in pred_prove).
+- no attempt to transform <= into < when the facts do not unify?
+  (not very helpful since the order is strict in most cases;
+  not correct for att(.) when clauses with data constructors
+  are ordered with <=: att(M) when happen at the same step as att(N)
+  in case the attacher learns the pair (M,N).)
+- deactivate elimination of redundant clauses on
+  the clauses with <= order?
+  verify that no clause that subsumes them appears?
+  or readd them in the end in case they disappeared?
+- union_ord cannot always be applied when we eliminate
+  redundant hypotheses. That's ok when the hypotheses
+  are equal. But we when one is an instance of the other,
+  we should remove the hypothesis only when the order
+  of the kept hypothesis is stricter than the one of the
+  removed hypothesis. In this case, the union (union_ord) of the
+  orders is the same as the order for the kept hypothesis.
+  That requires a change in elimination of redundant hypotheses.
+  (see corrections to (Red_o) in the report, email of Jan 26/27, 2020)
+- In transformation Ind_o, we can use \lceil\phi_j\sigma\rceil^{sure}_\delta
+  instead of \lceil\phi_j\sigma\rceil^{sure}, as we do in
+  Lem_o (thus setting the ordering for the events added by the lemma).
+  That should be done in the implementation as well.
+
+- no lemmas on phase change ( att_i(x) => att_{i+1}(x) ),
+  on integer clauses ( att_n(x) => att_n(succ(x)) )
+  on listening clause
+  on data constructor/destructor
+
+  Show that these clauses cannot be removed
+  - by subsumption.
+  - by elimination of redundant clauses (general redundancy):
+    forbid it explicitly in the implementation when we cannot
+    prove it.
+
+- in elimination of redundant clauses, if the partial
+derivation contains a clause att_i(x) && H -> att_j(x),
+then the predicates att_{i+1}, ..., att_{j-1} must also
+be considered as intermediate predicates in pred(F_s(D)),
+so they must not be in S_p (i.e. in pred_prove).
+
+In fact, that's important only if we make proofs by induction
+on these predicates. ==> We could have another set S_p^ind
+smaller than S_p for the predicates on which we make proofs
+by induction, and require that att_{i+1}, ..., att_{j-1}
+are not in S_p^ind.
+
+=============================================================================
+The rest should be ok.
+
+- 2 annoying shift/reduce conflicts on LBRACKET
+FIXED one a posteriori in pitsyntax. The other is not a problem.
+
+- change inductionVerif -> ignoreOnce
+         inductionSat -> inductionOn
+DONE
+
+- examplesnd/lemmas/test_mess4.pv PV should say false
+OK. Known limitation, may improve that later.
+
+- add an option to queries to prove them all (to be able to use mutual induction).
+proveAll
+When there is a single query in a group, couldn't I apply the induction
+hypothesis also during saturation? Yes done.
+
+Check error message when query not proved
+=> Seems ok. Does not really do an error, just says "cannot be proved" for all queries of the group (instead of "is true")
+DONE, to test.
+
+- elimination of redundant clauses:
+if there are two clauses with empty selection
+H => C and F && H' => C' such that their resolution \sigma H && \sigma H' => \sigma C'
+implies a clause R, then that clause R is removed.
+For soundness, this optimisation must not be applied when there is a query
+with the predicate of F after ==> [in case F is att(.) phase n,
+this optimisation must not be applied when there is a query with the
+predicate att(.) phase n' for n' >= n; same for table(.) phase n]
+or a lemma/axiom with the predicate of F before ==>
+or a query with the predicate of F before ==> proved by induction.
+(Note that lemmas/axioms can have only events, blocking predicates,
+and constraints after ==>, so nothing with the predicate of F)
+Indeed, if we apply the optimisation, ProVerif may think
+that the only way to derive \sigma C' is via \sigma F, while
+in reality, it can also be derived by R without having \sigma F.
+DONE, to test
+
+what about secrecy assumptions with elim of redundant clauses and
+mess(c,.) -> att(.) ?
+SEEMS OK: if a clause were removed due to the secrecy assumption
+and the secrecy assumption is indeed true, then the eliminated
+redundant clause obtained by resolving upon the fact mentioned
+in the secrecy assumption could also not be applied.
+This point makes me think that perhaps it is not necessary to
+exclude elimination of of redundant clauses when there is a
+lemma with the predicate of F before ==>.
+But that would complicate the proof.
+
+- optimisation that replaces mess(c, M) phase n with att(M) phase n when c is a public free name
+in the generation of clauses.
+For soundness, this optimisation must be deactivated when there is a query
+with att(.) phase n' for n' >= n after ==> or a lemma/axiom with att(.) phase n before ==>
+or a query with att(.) phase n before ==> proved by induction.
+Indeed, if we apply the optimisation, ProVerif may think that
+att(.) phase n is proved, when in fact we can have only mess(c,.) phase n
+via an internal communication on the public channel c.
+
+[[To be able to prove queries, it should also be deactivated when there is a query
+with mess(C,.) phase n after ==> or a lemma/axiom with mess(C,.) phase n before ==>
+or a query with mess(C,.) phase n before ==> proved by induction,
+when C may be equal to c, that is:
+- C is a variable, or
+- C is closed and equal to modulo the equational theory c, or
+- C is not closed and starts with a function symbol rewritable by the equation theory.
+Otherwise, ProVerif would have att(.) phase n instead of mess(C,.) phase n.
+However, the proof of queries ... ==> mess(C,.) is still unlikely
+to work unless a "nounif mess(C,.)" is added. (In the end, ProVerif
+keeps only clauses with empty selection. Using an event works much
+better!)
+=> This point not done for now]]
+
+We could have a setting that keeps the current implementation of
+this optimisation, with the semantics that there are no internal
+communications on channels that are public free names.
+(The communication always occurs via the adversary for these channels.)
+=> set privateCommOnPublicFreeNames = false
+DONE, to test.
+
+
+- we should add the PhaseChange and TblPhaseChange clauses to the clauses used to
+prove inside queries in piauth.ml (fct get_clauses_for_preds)
+DONE
+
+- the proof of the lemmas that deal with only one side of a biprocess
+is optimized: done on the monoprocess corresponding to that side.
+  -> Need to discuss about it for some weird cases and when we prove them.
+OK, let's leave as it is for now, we can do that in a future branch if we want.
+
+- I have the impression that the cases end_pred and end_pred_inj in display_explained_fact
+  is not useful since the events are dealt in EventGoal. Is it correct ?
+CORRECT, removed.
+
+- Error message when a lemma is never used, preferably in pitsyntax.ml
+to locate it.
+DONE, to test
+
+- Display
+display_explained_fact (fact_of_bifact f) recipe_lst: do we want choice[m,m'] (as it is now) or
+m (resp. m')? => Using choice is good, because choice is used elsewhere in traces, so leave
+as it is.
+Same problem to fix in graphical display of attacks? Yes, fixed
+Check on an example that triggers the problem. examplesnd/lemmas/simplify_lemma_choice2.pv
+DONE
+
+===========
+
+Modification done on vcheval8 in view of merging with master:
+
+- selfun.ml[i]:
+comment on the functions:
+val induction_required : unit -> bool
+val selection_induction : fact list -> bool list -> int * bool list
+val find_inductive_variable_to_remove : (binder list -> 'a) -> reduction -> 'a
+OK
+
+- for each lemma or axiom, the user can specify
+  * "for { public_vars x1...xn }", then the lemma/axiom applies to all non-real_or_random queries with public_vars x1...xn
+    This indication can be omitted, then the lemma/axiom applies to all non-real_or_random queries with no public_vars.
+  * "for { secret x public_vars x1...xn [real_or_random] }", then the lemma/axiom applies to the query
+     "query secret x public_vars x1...xn [real_or_random]". public_vars x1...xn can be omitted when it is empty.
+  The applicable lemmas/axioms can be filtered in Lemma.encode_lemmas
+OK
+
+- when we have a lemma/axiom with choice that would apply to a monoprocess
+(i.e. the process given by the user is a monoprocess and the
+lemma is not annotated with "for { secret x public_vars x1...xn [real_or_random] }"),
+we give an error message.
+OK
+
+- Fixed a bug when a lemma was declared with public vars and when the main query is an equivalence query.
+
+- We ignore nounif with choice when we consider a monoprocess.
+Do we want to do the same for not? (cf pitransl.get_not)
+=> ignore not with choice for a monoprocess.
+OK
+
+- Fixed a bug in display.ml when a bilemma has a table, attacker or mess in its premise (was raising an internal error with Unexpected goal.)
+
+- when we apply simplification or compilation of barriers with
+swapping, the axioms that do not deal only one side of a biprocess are
+removed, except when a special option is set to say to use them
+anyway.
+OK
+
+- in analyse_history_rule_order, add_strict / update_order could
+perhaps be strengthened to include all cases in which the executed step
+is not the same (also with event/table)
+OK
+
+- rules.ml: I think we can consider that Attacker strictly before Mess
+and Mess strictly before Attacker.
+It may be safer to order the clauses for listening/sending on channels
+as follows:
+att(x) [order:<] && att(y) [order:<=] => mess(x,y)
+att(x) [order:<] && mess(x,y) [order:<=] => att(y)
+due to the optimization that replaces mess with attacker in protocol
+clauses.
+mess is selected in these clauses.
+When resolving these two clauses together, we obtain a tautology,
+which is removed.
+For all other clauses, I believe that the order is strict.
+We should rediscuss.
+PS: I now realize that in case you apply a lemma to the clauses
+for listening/sending on channels, you might get a non-strict order...
+But would it be useful to do that?
+PSVincent: Indeed theoretically, this case could happen... but i don't see the use of it.
+You would need a lemma that has only attacker(x) as premise or only mess(x,y)... which means
+the lemma would probably not be very useful. Though, to avoid any issue, i would suggest that
+lemmas are not applied on these two clauses.
+OK
+
+- Rules.detect_listening_clause: we could also use the tags Rl/Rs to detect these clauses
+BUT in case the same clause is generated by process, that would break: subsumption
+might remove the clause Rl/Rs and thus yield a stronger order for the clause generated
+by the process. So leave as it is.
+OK
+
+- elim_redundant_hyp currently incompatible with order constraints
+(same problem as subsumption test)
+-> need to reprogram another version of elim_redundant_hyp that takes
+into account order constraints
+OK
+===========
+
+Implemented features since vcheval7:
+- Improve the display of RESULT and summary such that query that shown true under
+some inductive hypothesis but that could not be verified later one are not displayed as true.
+It is too confusing otherwise.
+- Authorize query to apply induction during saturation but only when the query is not
+a group of query.
+- Allow options Precise on input, get, let suchthat. Moreover, allow the general option 'set preciseActions = true / false.'
+- Lemmas for bitraces.
+- weaksecr.ml: implement the version with terms and compare the speed with the current version (see PDF)
+- verboseBase: display the added clauses rather than the full queue.
+- encoded queries: lemmas are correctly selected and displayed in the summary
+- Fix the bug with the Any and maxHyp.
+- Improve the call to algo_BellmanFord.
+- Rules are correctly copied after simplification of the constraints.
+    -> implies_constraints_keepvars3 has been reverted to as it was before.
+- cleanup RLetFilter and letfilter tags
+- In piauth.ml, the inequalities and is_nat predicates are only closed modulo the
+equational theory only once just after matching the hypotheses of the clause
+with the hypotheses of the query (see [clause_match_realquery]).
+- fix soundness problem due to bad interaction between analyse_history_rule
+and the subsumption test (discuté par email + skype)
+- Added options hypothesis, conclusion, inductionVerif and inductionSat to
+  nounif declarations.
+- modified the nounif and not declarations so that they don't generate fresh variables.
+- Updated the manual
+
+Implemented features before vcheval7:
+- Ensure that names and function have different display string than variables (hash: e300d54aa5510b566c6f29bfae0ea9d9e01140d9)
+
+===========
+
+ABANDONED:
+
+- pitransl.ml: (* Bruno : Need some help for the non-interference and natural number predicates. *)
+=> Complicated, I would suggest not doing it.
+
+- pitsyntax.ml:
+      (* FunApp: = and predicates allowed
+         NOTE: in fact, t = true allows to encode any boolean term,
+         should I rather allow any boolean term? *)
+Do we want to do that to allow <=, etc as predicates in let ... suchthat?
+=> Abandoned because it complicates attack reconstruction
+
+- in termsEq.ml, elim_var_notelsewhere, I think you could have a single argument
+accu_keep_vars instead of keep_vars accu_nat_vars
+(add directly the variables to accu_keep_vars)
+=> In fact using 2 separate arguments improves a bit (delays the addition
+to keep_vars, so avoids keeping some variables when we can prove that
+the disjunct is true.
+
+Ideas to improve the treatment of else branches of get,
+but they do not work; could they be improved?
+see emails by V. Cheval, Première version du draft!, 19/4/2019
+
+- Can we prove that the transformation for simplified biprocess preserves correspondence queries ?
+    That would be interesting if it was the case and could improve the lemmas we can prove and use
+    in equivalence proof.
+    That's will not work: un même lemme peut être vrai ou faux suivant le
+biprocessus simplifié que l'on considère, ou suivant la facon dont on
+compile les barrières (sync; ce que j'ai fait avec Ben Smyth) pour les
+biprocessus.
+
+Pour les barrières, la compilation peut échanger les données aux
+niveau des barrières, donc par exemple:
+
+event e1(choice[a,a]); sync 1; event e2(choice[a,b])
+|
+event e1(choice[b,b]); sync 1; event e2(choice[b,a])
+
+peut se trouver compilé en qqch d'équivalent à:
+
+event e1(choice[a,a]); sync 1; event e2(choice[a,a])
+|
+event e1(choice[b,b]); sync 1; event e2(choice[b,b])
+
+lemma event(e2(choice[x,y])) ==> event(e1(choice[x,y])) est vrai pour cette
+compilation mais pas pour celle qui laisse les données comme
+sur le processus d'origine.
+
+Pour la simplification, on a phénomène similaire, mais seulement
+au niveau de la composition parallèle: la simplification peut permuter
+des compositions parallèles.
+
+Par exemple, la simplification peut fusionner
+event e(a) | event e(b)
+et
+event e(b) | event e(a)
+en
+event e(choice[a,b]) | event e(choice[b,a])
+ou en
+event e(choice[a,a]) | event e(choice[b,b])
+
+Lemma event(e(x)) ==> false est vrai pour le 1er processus et
+pas pour le 2e. Je joins un exemple plus complet qui
+montre cela. (Je le mets aussi dans le repository.)
+
+Abandoned:
+- Or filter at each evaluation of an argument the rewrite rules that may still apply?
+Does not help
+          let others' =
+	    (* Filter out inapplicable rewrite rules *)
+	    List.filter (function (_, (left_list, right, side_c)) ->
+                (* We retrieve the [pos] first arguments of the rewrite rule. *)
+		let left_list_to_check =
+		  if args = []
+		  then left_list (* Since args = [], all terms have been translated. *)
+		  else Reduction_helper.get_until_pos pos left_list
+		in
+		let is_applicable = ref false in
+		unify_list (fun cur_state1 ->
+                  let cur_state2 = wedge_constraints cur_state1 side_c in
+                  check_feasible_rewrite_rules (fun _ -> is_applicable := true) check left_list_to_check cur_state2
+		    ) cur_state transl_args left_list_to_check;
+		!is_applicable
+	      ) others
+	  in
+          let others1 = ref others' in
+- simple_simplify_constraints: is it useful to add something to geq?
+    => It is useful because simplify_constraints_keepvars makes an auto_cleanup above,
+    so the links are deleted when we exit simple_simplify_constraints
+    Another option would be to return the new links and add them to unifications.
+- checking the constraints is useful only when the constraint c is not true or
+the rewrite rule instantiates the arguments
+let rec get_vars_links vlist = function
+    Var v ->
+      begin
+	match v.link with
+	| NoLink -> if not (List.memq v (!vlist)) then vlist := v :: (!vlist)
+	| TLink t -> get_vars_links vlist t
+	| _ -> assert false
+      end
+  | FunApp(_,l) ->
+      List.iter (get_vars_links vlist) l
+
+
+	  let vars_ref = ref [] in
+	  List.iter (get_vars_links vars_ref) transl_args;
+	  let vars = !vars_ref in
+	  [...]
+	  let check = (not (Terms.is_true_constraints side_c)) || (List.exists (fun v -> v.link != NoLink) vars) in
+
+recent fix in piauth.ml: what about when a variables of the clause
+occurs in a constraint but not in facts? (so not in keep_vars in the
+test implies_constra; considering constraints separately may not work
+in this case?) => not a problem because the instantiated variables
+by the matching already done are necessarily those of facts,
+so when a constraint is in g_constra_to_negate, all its variables
+are variables of facts.

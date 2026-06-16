@@ -1,0 +1,95 @@
+How to install at INRIA:
+
+A virtual machine has been set up at proverif24.paris.inria.fr.
+To update the proverif installation on that virtual machine,
+just run ./install in directory proverif/demo on adleman and
+enter my LDAP password 3 times.
+
+* on my machine (adleman), in directory proverif/demo, run
+    ./maketar ~/proverifdemo.tgz
+* copy the demo files to my home directory on proverif24.paris.inria.fr:
+    scp local-install ~/proverifdemo.tgz proverif24.paris.inria.fr:
+
+* Log into the virtual machine:
+   ssh proverif24.paris.inria.fr
+Login with my LDAP password.
+* The first time:
+  ** Install apache and php:
+       sudo apt-get install apache2 php8.3 php8.3-mysql
+       sudo mv /var/www/html/index.html /var/www/html/old-index.html
+       sudo apache2ctl restart
+     (The second command is to move index.html out of the way, because
+     we are going to use index.php. The third command is to restart the
+     apache server, so that php is activated.)
+  ** Install ocaml:
+       sudo apt-get install ocaml
+     (The ProVerif executable built on adleman does not run on 
+     proverif24.paris.inria.fr, because of a libc version mismatch,
+     so I need OCaml to recompile ProVerif from source.)
+  ** Install Graphviz
+       sudo apt-get install graphviz
+
+* unpack and install:
+    ./local-install
+
+
+
+
+-------------------------------------------------------------------
+(Old) Virtual machine configuration on needham.inria.fr:
+
+* login to the proverif virtual machine:
+    ssh -p622 sysadmin@needham.inria.fr
+(uses my SSH key on adleman)
+
+C'est fait. Le nom local de la machine est proverif.sec. Pour y accéder
+via ssh, tu dois être sur le réseau INRIA (qui inclut le VPN).
+
+ssh -p622 sysadmin@needham.inria.fr
+
+L'utilisateur root n'a pas de mot de passe. L'utilisateur sysadmin n'a
+pas de mot de passe et est sudoer.
+
+Apache2 est installé avec un ServerName à needham.inria.fr:9588. Il
+tourne sur le port 80 en local sur la machine virtuelle. La redirection
+9558 -> proverif.sec:80 est en place. Tu dois donc pouvoir accéder à
+
+http://needham.inria.fr:9588/
+
+depuis le réseau INRIA. Dès que le SI aura ouvert le port, il sera
+accessible de partout.
+
+le mode php5 pour apache est également installé. Il est configuré avec
+la config de prod. par défaut de Debian.
+
+Si vous avez besoin de plus d'espace disque / RAM, dites le moi que je
+reconfigure la machine virtuelle. Par défaut, je mets 1G de RAM et 32G
+de disque.
+
+Dis moi si tu as un problème. Sinon, je pense que c'est une affaire
+réglée de mon côté.
+
+Pierre-Yves.
+
+--------------------------------------------------------------
+
+How to install:
+
+* on my machine, in directory proverifdemo, run
+    ./maketar ~/proverifdemo.tgz
+* scp ~/proverifdemo.tgz proverif.di.ens.fr:
+* on proverif.di.ens.fr:
+    tar -xzf proverifdemo.tgz
+    cd proverifdemo
+    sudo ./install
+
+
+
+The demo should be put in /var/www/ on proverif.di.ens.fr
+* copy the proverif executable in /var/www/bin/proverif
+* copy cssproverif.css in /var/www/
+
+The apache logs are in 
+/var/log/apache2/access.log
+/var/log/apache2/access.log.1 ...
+

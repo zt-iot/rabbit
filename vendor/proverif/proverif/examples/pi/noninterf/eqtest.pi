@@ -1,0 +1,26 @@
+(* Shared-key cryptography *)
+
+fun encrypt/2.
+fun decrypt/2.
+equation decrypt(encrypt(m,k),k) = m.
+
+(* Host name / key *)
+
+fun pair/2.
+fun ispair/1.
+fun true/1.
+fun k/0.
+equation ispair(pair(x,y)) = true(k).
+
+free c.
+
+private free secret.
+noninterf secret.
+
+process new x1; new x2;
+	out(c, encrypt(pair(x1,x2), secret))
+
+(* EXPECTPV
+RESULT Non-interference secret cannot be proved.
+0.004s (user 0.000s + system 0.004s), max rss 7584K
+END *)

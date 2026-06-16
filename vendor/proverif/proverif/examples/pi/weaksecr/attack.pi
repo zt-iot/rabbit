@@ -1,0 +1,28 @@
+
+
+
+free c.
+
+(* Public key cryptography *)
+
+fun penc/2.
+fun pk/1.
+reduc pdec(penc(x,pk(y)),y) = x.
+
+fun hash/1.
+
+private free w.
+weaksecret w.
+
+process
+	new s;
+	let pk = pk(s) in
+	out(c, pk);
+	out(c, penc(hash(w), pk))
+
+
+
+(* EXPECTPV
+RESULT Weak secret w is false.
+0.012s (user 0.004s + system 0.008s), max rss 8600K
+END *)

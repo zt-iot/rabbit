@@ -1,0 +1,11 @@
+#!/bin/sh
+
+rm manual.dvi
+rm manual.log
+rm manual.lof
+rm manual.toc
+rm manual.aux
+rm manual.pdf
+rm manual.ps
+rm manual.blg
+rm manual.bbl

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./css/styles.css?v=18">
+
+    <title>ProVerif</title>
+    <meta name="description" content="Automated Symbolic Protocol Verification">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "ProVerif",
+            "description": "ProVerif is an automatic symbolic protocol verifier which proves security properties of cryptographic protocols.",
+            "applicationCategory": "Security, Cryptography",
+            "programmingLanguage": "OCaml",
+            "downloadUrl": "https://bblanche.gitlabpages.inria.fr/proverif/",
+            "softwareHelp": {
+                "@type": "CreativeWork",
+                "url": "https://bblanche.gitlabpages.inria.fr/proverif/manual.pdf"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<nav class="navbar sticky-top navbar-expand-lg bg-dark border-bottom border-body" data-bs-theme="dark">
+    <div class="container-fluid container-narrow">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="./">ProVerif</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./install.html">Install</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="./usage.html">Usage</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="http://proverif24.paris.inria.fr/">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="manual.pdf">Manual</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="25years.html">25 years workshop</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="./users.html">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./publications.html">Publications</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<section>
+    <div class="container-narrow">
+        <h1>Use ProVerif</h1>
+        <p class="subtitle">
+            ProVerif supports modeling and verifying a wide-range of protocols and properties.
+        </p>
+
+        <div class="row g-3 mt-5">
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h4 class="mt-0">1. Protocol</h4>
+                        <p>
+                            Describe cryptographic primitives and protocol roles.
+                        </p>
+                        <a href="#modeling" class="stretched-link">Modeling the protocol</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h4 class="mt-0">2. Security properties</h4>
+                        <p>
+                            State correspondence, secrecy, and equivalence properties.
+                        </p>
+                        <a href="#properties" class="stretched-link">Defining the security property</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h4 class="mt-0">3. Result</h4>
+                        <p>
+                            Interpret proof derivations, and reconstructed attack traces.
+                        </p>
+                        <a href="#output" class="stretched-link">Analyzing the output</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<hr/>
+
+<section id="modeling">
+    <div class="container-narrow">
+        <h3 class="display-2 mt-0">1.</h3>
+
+        <h2 class="mt-0">Modeling the protocol</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <p>
+                    ProVerif supports a wide class of protocols, typically modeled using the applied-pi calculus.
+                </p>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <p>
+                    Cryptographic primitives are defined using rewrite rules or equations. Support includes shared-
+                    and public-key cryptography (encryption and signatures), hash functions, and Diffie-Hellman key
+                    agreements.
+                </p>
+            </div>
+            <div class="col-md-6">
+                <pre class="code">
+<span class="comment">(* randomized asymmetric encryption *)</span>
+<span class="keyword">type</span> <span class="type">skey</span>.
+<span class="keyword">type</span> <span class="type">pkey</span>.
+<span class="keyword">fun</span> <span class="function">pk</span>(<span class="type">skey</span>): <span class="type">pkey</span>.
+<span class="keyword">fun</span> <span class="function">enc</span>(<span class="type">bitstring</span>, <span
+                        class="type">pkey</span>, <span class="type">bitstring</span>): <span
+                        class="type">bitstring</span>.
+
+<span class="comment">(* rewrite rule to model the decryption *)</span>
+<span class="keyword">reduc</span>
+    <span class="keyword">forall</span> <span class="variable">m</span>: <span class="type">bitstring</span>, <span
+                        class="variable">k</span>: <span class="type">skey</span>, <span
+                        class="variable">r</span>: <span class="type">bitstring</span>;
+        <span class="function">dec</span>(<span class="function">enc</span>(<span class="variable">m</span>, <span
+                        class="function">pk</span>(<span class="variable">k</span>), <span
+                        class="variable">r</span>), <span class="variable">k</span>) = <span class="variable">m</span>.</pre>
+                <p class="text-muted">
+                    <small>
+                        Modeling of randomized asymmetric encryption. Decryption is specified using a rewrite rule, and
+                        returns the message m.
+                    </small>
+                </p>
+            </div>
+        </div>
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <p>Roles of the protocols are modeled as processes, which perform computations or exchange
+                    messages.
+                </p>
+                <p>
+                    Shared functionality can be encapsulated in functions, macros, and libraries, which avoids code
+                    duplication.
+                </p>
+            </div>
+            <div class="col-md-6"><pre class="code">
+<span class="comment">(* declare global variables *)</span>
+<span class="keyword">free</span> <span class="parameter">public_channel</span>: <span class="type">channel</span>.
+<span class="keyword">free</span> <span class="parameter">secret_message</span>: <span class="type">bitstring</span> [<span class="option">private</span>].
+<span class="keyword">free</span> <span class="parameter">server_skey</span>: <span class="type">skey</span> [<span class="option">private</span>].
+
+<span class="comment">(* define the roles of the process *)</span>
+<span class="keyword">let</span> <span class="function">Client</span>() =
+    <span class="keyword">new</span> <span class="variable">r</span>: <span class="type">bitstring</span>;
+    <span class="keyword">let</span> <span class="variable">e</span> = <span class="function">enc</span>(<span class="parameter">secret_message</span>, <span class="function">pk</span>(<span class="parameter">server_skey</span>), <span class="variable">r</span>) <span class="keyword">in</span>
+    <span class="keyword">out</span>(<span class="parameter">public_channel</span>, <span class="variable">e</span>).
+
+<span class="keyword">let</span> <span class="function">Server</span>() =
+    <span class="keyword">in</span>(<span class="parameter">public_channel</span>, <span class="variable">e</span>: <span class="type">bitstring</span>);
+    <span class="keyword">let</span> <span class="variable">m</span> = <span class="function">dec</span>(<span class="variable">e</span>, <span class="parameter">server_skey</span>).
+
+<span class="comment">(* launch the protocol *)</span>
+<span class="keyword">process</span>
+    <span class="function">Server</span>() | <span class="function">Client</span>()</pre>
+                <p class="text-muted">
+                    <small>
+                        The client encrypts a secret message under the server's public key.
+                    </small>
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<hr>
+
+<section id="properties">
+    <div class="container-narrow">
+
+        <h3 class="display-2 mt-0">2.</h3>
+
+        <h2 class="mt-0">Defining the security properties</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <p>
+                    ProVerif can prove both trace and privacy properties.
+                </p>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <p>
+                    Secrecy proves the adversary cannot obtain the secret. Strong secrecy proves the adversary cannot
+                    observe a difference when the
+                    secret changes.
+                </p>
+            </div>
+            <div class="col-md-6"><pre class="code">
+<span class="comment">(* query is true *)</span>
+<span class="keyword">query</span> <span class="function">attacker</span>(<span class="parameter">secret_message</span>) ==&gt; <span class="option">false</span>.
+
+<span class="comment">(* launch the protocol *)</span>
+<span class="keyword">process</span>
+    <span class="function">Server</span>() | <span class="function">Client</span>()</pre>
+                <p class="text-muted">
+                    <small>
+                        The query is true as the adversary cannot recover the secret message out of the ciphertext.
+                    </small>
+                </p>
+            </div>
+        </div>
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <p>
+                    Correspondence queries prove a relation between events or facts. Both injective and temporal variants are
+                    supported.
+                </p>
+            </div>
+            <div class="col-md-6"><pre class="code">
+<span class="keyword">event</span> <span class="function">Decrypted</span>(<span class="type">bitstring</span>).
+
+<span class="comment">(* publish the decrypted message *)</span>
+<span class="keyword">let</span> <span class="function">Server2</span>() =
+    <span class="keyword">in</span>(<span class="parameter">public_channel</span>, <span class="variable">e</span>: <span class="type">bitstring</span>);
+    <span class="keyword">let</span> <span class="variable">m</span> = <span class="function">dec</span>(<span class="variable">e</span>, <span class="parameter">server_skey</span>) <span class="keyword">in</span>
+    
+    <span class="keyword">event</span> <span class="function">Decrypted</span>(<span class="variable">m</span>);
+    <span class="keyword">out</span>(<span class="parameter">public_channel</span>, <span class="variable">m</span>).
+
+<span class="comment">(* query is true *)</span>
+<span class="keyword">query</span> <span class="function">attacker</span>(<span class="parameter">secret_message</span>) ==&gt; 
+    <span class="keyword">event</span>(<span class="function">Decrypted</span>(<span class="parameter">secret_message</span>)).
+
+<span class="comment">(* launch the protocol *)</span>
+<span class="keyword">process</span>
+    <span class="function">Server2</span>() | <span class="function">Client</span>()</pre>
+                <p class="text-muted">
+                    <small>
+                        The query is true as whenever the adversary knows the secret message, the server has decrypted it before.
+                    </small>
+                </p>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <p>
+                    Equivalence shows that processes indistinguishable by the adversary. ProVerif focuses mainly on processes that differ only by terms (diff-equivalence).
+                </p>
+            </div>
+            <div class="col-md-6">
+<pre class="code">
+<span class="keyword">free</span> <span class="parameter">message_1</span>: <span class="type">bitstring</span>.
+<span class="keyword">free</span> <span class="parameter">message_2</span>: <span class="type">bitstring</span>.
+
+<span class="keyword">let</span> <span class="function">Client2</span>() =
+    <span class="keyword">new</span> <span class="variable">r_1</span>: <span class="type">bitstring</span>;
+    <span class="keyword">let</span> <span class="variable">e_1</span> = <span class="function">enc</span>(<span class="parameter">message_1</span>, <span class="function">pk</span>(<span class="parameter">server_skey</span>), <span class="variable">r_1</span>) <span class="keyword">in</span>
+    
+    <span class="keyword">new</span> <span class="variable">r_2</span>: <span class="type">bitstring</span>;
+    <span class="keyword">let</span> <span class="variable">e_2</span> = <span class="function">enc</span>(<span class="parameter">message_2</span>, <span class="function">pk</span>(<span class="parameter">server_skey</span>), <span class="variable">r_2</span>) <span class="keyword">in</span>
+    
+    <span class="keyword">out</span>(<span class="parameter">public_channel</span>, <span class="keyword">diff</span>[<span class="variable">e_1</span>, <span class="variable">e_2</span>]).
+
+<span class="comment">(* launch the protocol *)</span>
+<span class="keyword">process</span>
+    <span class="function">Client2</span>()
+</pre>
+
+                <p class="text-muted">
+                    <small>
+                        Observational equivalence is true, as the adversary cannot decrypt, and hence cannot observe
+                        that the plaintext is different.
+                    </small>
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<hr>
+
+<section id="output">
+    <div class="container-narrow">
+
+        <h3 class="display-2 mt-0">3.</h3>
+
+        <h2 class="mt-0">Analyzing the output</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <p>
+                    ProVerif gives you one of the following three outputs:
+                </p>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <p>
+                    <code>true</code>:
+                    The property is fulfilled. <b>ProVerif is proven to be sound.</b>
+                </p>
+            </div>
+            <div class="col-md-6">
+                <pre class="code">Query <span class="keyword">not</span> <span class="function">attacker</span>(<span class="parameter">secret_message</span>[]) is <span class="const">true</span>.</pre>
+                <p class="text-muted">
+                    <small>
+                        Output when secrecy or correspondence query can be proved.
+                    </small>
+                </p>
+
+                <pre class="code">Observational equivalence is <span class="const">true</span>.</pre>
+                <p class="text-muted">
+                    <small>
+                        Output when (diff-)equivalence can be proved.
+                    </small>
+                </p>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <p>
+                    <code>cannot be proved</code>:
+                    ProVerif cannot determine whether the property is true or false. It displays a derivation of the contradicting clause but it is unable to find an attack from this derivation.
+                </p>
+
+                <p>
+                    To demonstrate this, we add a key compromise to our protocol.
+                </p>
+                <pre class="code">
+<span class="comment">(* launch the protocol with key compromise *)</span>
+<span class="keyword">process</span>
+    <span class="keyword">out</span>(<span class="parameter">public_channel</span>, <span class="parameter">server_skey</span>); <span class="function"><span class="function">Client</span>()</pre>
+                <p class="text-muted">
+                    <small>
+                        Due to the key compromise, the attacker can recover the secret message.
+                    </small>
+                </p>
+            </div>
+            <div class="col-md-6">
+                <pre class="code">Process 0 (that is, the initial process):
+<span class="reference">{1}</span><span class="keyword">out</span>(<span class="parameter">public_channel</span>, <span class="parameter">server_skey</span>);
+<span class="reference">{2}</span><span class="keyword">new</span> <span class="variable">r</span>: <span class="type">bitstring</span>;
+<span class="reference">{3}</span><span class="keyword">let</span> <span class="variable">e</span>: <span class="type">bitstring</span> = <span class="function">enc</span>(<span class="parameter">secret_message</span>,<span class="function">pk</span>(<span class="parameter">server_skey</span>),<span class="variable">r</span>) <span class="keyword">in</span>
+<span class="reference">{4}</span><span class="keyword">out</span>(<span class="parameter">public_channel</span>, <span class="variable">e</span>)
+</pre>
+                <p class="text-muted">
+                    <small>
+                        The complete process that is considered by ProVerif.
+                    </small>
+                </p>
+<pre class="code">
+<span class="reference">1</span>. The message <span class="parameter">server_skey</span>[] may be sent to the attacker at output <span class="reference">{1}</span>.
+<span class="keyword">attacker</span>(<span class="parameter">server_skey</span>[]).
+
+<span class="reference">2</span>. The message <span class="function">enc</span>(<span class="parameter">secret_message</span>[],<span class="function">pk</span>(<span class="parameter">server_skey</span>[]),<span class="variable">r</span>[]) may be sent to the attacker at output <span class="reference">{4}</span>.
+<span class="keyword">attacker</span>(<span class="function">enc</span>(<span class="parameter">secret_message</span>[],<span class="function">pk</span>(<span class="parameter">server_skey</span>[]),<span class="variable">r</span>[])).
+
+<span class="reference">3</span>. By <span class="reference">2</span>, the attacker may know <span class="function">enc</span>(<span class="parameter">secret_message</span>[],<span class="function">pk</span>(<span class="parameter">server_skey</span>[]),<span class="variable">r</span>[]).
+By <span class="reference">1</span>, the attacker may know <span class="parameter">server_skey</span>[].
+Using the function <span class="function">dec</span> the attacker may obtain <span class="parameter">secret_message</span>[].
+<span class="keyword">attacker</span>(<span class="parameter">secret_message</span>[]).
+
+<span class="reference">4</span>. By <span class="reference">3</span>, <span class="keyword">attacker</span>(<span class="parameter">secret_message</span>[]).
+The goal is reached, represented in the following fact:
+<span class="keyword">attacker</span>(<span class="parameter">secret_message</span>[]).
+</pre>
+                <p class="text-muted">
+                    <small>
+                        The derivation of an attack found by ProVerif.
+                    </small>
+                </p>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <p>
+                    <code>false</code>:
+                    ProVerif found an attack, and could reconstruct the trace on the procotol model.
+                    Both the derivation and the attack trace are displayed.
+                </p>
+            </div>
+            <div class="col-md-6">
+                <pre class="code"><span class="keyword">out</span>(<span class="parameter">public_channel</span>, ~<span class="variable">M</span>) with ~<span class="variable">M</span> = <span class="parameter">server_skey</span> at <span class="reference">{1}</span>
+<span class="keyword">new</span> <span class="variable">r</span>: <span class="type">bitstring</span> creating <span class="variable">r_1</span> at <span class="reference">{2}</span>
+<span class="keyword">out</span>(<span class="parameter">public_channel</span>, ~<span class="variable">M_1</span>) with ~<span class="variable">M_1</span> = <span class="function">enc</span>(<span class="parameter">secret_message</span>,<span class="function">pk</span>(<span class="parameter">server_skey</span>),<span class="variable">r_1</span>) at <span class="reference">{4}</span>
+
+The attacker has the message <span class="function">dec</span>(~<span class="variable">M_1</span>,~<span class="variable">M</span>) = <span class="parameter">secret_message</span>.
+A trace has been found.
+</pre>
+                <p class="text-muted">
+                    <small>
+                        A reconstructed trace of an attack found by ProVerif.
+                    </small>
+                </p>
+
+                <img src="images/usage_trace.png" class="img-fluid shadow" alt="Visualization of an attack trace">
+                <p class="text-muted">
+                    <small>
+                        ProVerif may also visualize the attack via the <code>-html</code> output.
+                    </small>
+                </p>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<script src="./js/bootstrap.bundle.min.js"></script>
+<script src="./js/main.js"></script>
+
+</body>
+</html>

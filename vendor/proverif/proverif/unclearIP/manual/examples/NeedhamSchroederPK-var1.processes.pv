@@ -1,0 +1,20 @@
+let processA(pkB: pkey, skA: skey) =
+	in(c, pkX: pkey);
+	new Na: bitstring; 
+	out(c, aenc((Na, pk(skA)), pkX));
+	in(c, m: bitstring); 
+	let (=Na, NX: bitstring) = adec(m, skA) in
+	out(c, aenc(NX, pkX)).
+
+let processB(pkA: pkey, skB: skey) =
+	in(c, m: bitstring);
+	let (NY: bitstring, pkY: pkey) = adec(m, skB) in
+	new Nb: bitstring;
+	out(c, aenc((NY, Nb), pkY));
+	in(c, m3: bitstring);
+	if Nb = adec(m3, skB) then 0.
+
+process 
+	new skA: skey; let pkA = pk(skA) in out(c, pkA);
+	new skB: skey; let pkB = pk(skB) in out(c, pkB);
+	( (!processA(pkB, skA)) | (!processB(pkA, skB)) )

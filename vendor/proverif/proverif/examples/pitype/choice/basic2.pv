@@ -1,0 +1,14 @@
+type nonce.
+
+fun hash(nonce): nonce.
+
+free c: channel.
+
+process
+	new n: nonce; new m: nonce;
+	out(c, (m, choice[n, hash(m)]))
+
+(* EXPECTPV
+RESULT Observational equivalence cannot be proved.
+0.015s (user 0.011s + system 0.004s), max rss 10132K
+END *)

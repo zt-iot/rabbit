@@ -1,0 +1,28 @@
+(* randomized asymmetric encryption *)
+type skey.
+type pkey.
+fun pk(skey): pkey.
+fun enc(bitstring, pkey, bitstring): bitstring.
+
+(* rewrite rule to model the decryption *)
+reduc
+    forall m: bitstring, k: skey, r: bitstring;
+        dec(enc(m, pk(k), r), k) = m.
+
+(* declare global variables *)
+free public_channel: channel.
+free secret_message: bitstring [private].
+free server_skey: skey [private].
+
+(* define the roles of the process *)
+let Client() =
+    new r: bitstring;
+    let e = enc(secret_message, pk(server_skey), r) in
+    out(public_channel, e).
+
+(* query is false *)
+query attacker(secret_message) ==> false.
+
+(* launch the protocol *)
+process
+    out(public_channel, server_skey); Client()

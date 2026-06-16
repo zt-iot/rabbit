@@ -1,0 +1,56 @@
+How to make an opam package for ProVerif
+
+Since I now have 2 packages (proverif & proverifdoc), the version
+"By Hand" is preferred. It is unclear how to publish 2 packages
+in a single merge request with opam-publish.
+----------------------------------------------------------------------
+1. By Hand
+
+a. Go to https://github.com/ocaml/opam-repository and hit the Fork button on the top right corner (you may be asked to login or register)
+
+b. 
+
+cd $HOME/repos
+git clone git@github.com:bruno-blanchet/opam-repository.git
+
+cd $HOME/proverif/proverif/distrib
+./makeopam $VERSION
+
+[Note: I am not sure if I need to fork and clone for every new
+version, or if I can reuse an old fork.]
+
+c. Back to the web interface, refresh, hit the Pull request button, check your changes and confirm;
+d. Wait for feedback!
+
+-----------------------------------------------------------------------
+2. With opam-publish
+
+a. install opam:
+
+sudo apt-get install opam
+opam init
+
+Modify the script files as instructed by opam init.
+
+b. install opam-publish:
+
+opam install opam-publish
+
+Put a SSH key in github. See
+https://help.github.com/articles/connecting-to-github-with-ssh/
+
+c. publish the package:
+
+cd distrib
+
+update the version number in proverif.opam and proverifdoc.opam
+
+opam publish "http://proverif.inria.fr/proverifdoc$VERSION.tar.gz" proverifdoc.opam
+opam publish "http://proverif.inria.fr/proverif$VERSION.tar.gz" proverif.opam
+
+
+Follow pull-request on Github; modify the opam file and repeat
+opam-publish if needed.
+
+
+

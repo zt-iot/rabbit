@@ -1,0 +1,7 @@
+free d:channel.
+
+free s:bitstring [private].
+query attacker(s).
+
+process 
+  new c:channel; (out(c,s) | in(c,x:bitstring); out(d,c))

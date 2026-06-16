@@ -1,0 +1,243 @@
+#!/bin/sh
+
+# 1- Building proverif.exe
+# 2- Preparing the manual, building $DEST/proverifdoc$VERSION.tar.gz
+# 3- Building the Windows binary distribution
+################################################################################
+
+VERSION=$1
+YEAR=`date +%Y`
+DEST=$PWD/../../website/copy
+DESTD=$DEST/proverif$VERSION
+
+echo Creating release of ProVerif version $VERSION
+
+if [ -d "$DEST" ]
+then
+	echo
+else
+	echo Directory "$DEST" does not exist. Please create it.
+	exit 2
+fi
+
+if [ -d "$DESTD" ]
+then
+	echo Directory "$DESTD" already exists. Please remove it.
+	exit 2
+fi
+
+# 1- Building proverif.exe;
+# useful for recompiling examples of the manual, and for the binary distribution
+cd ..
+
+mv src/version.ml src/version.ml-tmp
+echo "let version = \"$VERSION\"" > src/version.ml
+
+./build
+
+# 2- Preparing the doc package, building $DEST/proverifdoc$VERSION.tar.gz
+cd unclearIP/manual
+
+# 2.1- Check that hello.pv.out, hello_ext.pv.out,
+# ex_handshake_annotated.pv.out, NeedhamSchroederPK-var1.pv.out are
+# unchanged, to make sure that the manual is up to date.
+
+# Save old files
+cd examples
+for i in hello.pv.out hello_ext.pv.out ex_handshake_annotated.pv.out NeedhamSchroederPK-var1.pv.out ex_equivalence.pv.out ex_sync.pv.out
+do
+    if [ -f $i ]
+    then
+	cp $i $i.old
+    fi
+done
+cd ..
+
+# Execute proverif
+./make
+
+# Compare old and new files
+cd examples
+for i in hello.pv.out hello_ext.pv.out ex_handshake_annotated.pv.out NeedhamSchroederPK-var1.pv.out ex_equivalence.pv.out ex_sync.pv.out
+do
+    if [ -f $i.old ]
+    then
+	if diff -q $i.old $i
+	then
+	    echo File $i unchanged
+	else
+	    echo File $i changed! Manual may not be up to date!
+	    # Returning to main ProVerif directory
+	    cd ../../..
+	    # Restoring src/version.ml
+	    mv src/version.ml-tmp src/version.ml
+	    exit 2
+	fi
+    fi
+done
+cd ..
+
+# 2.2- Updating the version number
+tail -n +3 manual.tex > manualtail.tex
+(echo '\def\V{'"$VERSION"'}'; echo '\def\docexdir{docs/}'; cat manualtail.tex)> manual.tex
+
+# 2.3- Compiling the manual
+
+pdflatex manual.tex
+bibtex manual
+pdflatex manual.tex
+bibtex manual
+pdflatex manual.tex
+pdflatex manual.tex
+
+mkdir "$DESTD"
+mkdir "$DESTD"/docs
+cp manual.pdf "$DESTD"/docs
+cp examples/*.pv "$DESTD"/docs
+rm "$DESTD"/docs/NeedhamSchroederPK-var1.processes.pv "$DESTD"/docs/bestmodel.pv "$DESTD"/docs/eq.pv "$DESTD"/docs/reduc.pv
+
+# 2.4- Adding "sync" examples
+cd ..
+mkdir "$DESTD"/examples "$DESTD"/examples/pitype "$DESTD"/examples/pitype/sync "$DESTD"/examples/pi "$DESTD"/examples/pi/sync
+cp examples/pitype/sync/*.pv "$DESTD"/examples/pitype/sync
+cp examples/pi/sync/*.pi "$DESTD"/examples/pi/sync
+cp ../distrib/installdoc "$DESTD"
+
+# 2.5- Building the archive
+(cd "$DEST"; tar -czf "$DEST"/proverifdoc"$VERSION".tar.gz proverif"$VERSION")
+mv "$DESTD"/docs/manual.pdf "$DEST"/manual.pdf
+rm -r "$DESTD"
+
+# 3- Compiling the manual-untyped
+cd ../docs/manual
+pdflatex manual-untyped.tex
+bibtex manual-untyped
+pdflatex manual-untyped.tex
+pdflatex manual-untyped.tex
+
+# 4- Building the source release $DEST/proverif$VERSION.tar.gz for
+# Linux and Mac
+cd ../..
+mkdir "$DESTD"
+
+sed s/VERSION/"$VERSION"/g\;s/YEAR/"$YEAR"/g README > "$DESTD"/README
+
+cp LICENSE CHANGES build build.bat cssproverif.css cryptoverif.pvl spasstest test "$DESTD"
+
+mkdir "$DESTD"/src "$DESTD"/docs "$DESTD"/examples "$DESTD"/examples/horn "$DESTD"/examples/pi "$DESTD"/examples/horntype "$DESTD"/examples/pitype "$DESTD"/examples/horn/secr "$DESTD"/examples/horn/auth "$DESTD"/examples/pi/secr-auth "$DESTD"/examples/pi/jfk "$DESTD"/examples/pi/noninterf "$DESTD"/examples/pi/weaksecr "$DESTD"/examples/pi/choice "$DESTD"/tests "$DESTD"/examples/pi/ffgg "$DESTD"/examples/pi/features "$DESTD"/examples/pi/mailprotAbadi "$DESTD"/examples/pi/mailprotAbadi/journalsas2 "$DESTD"/examples/pi/mailprotAbadi/onefile2 "$DESTD"/examples/horntype/secr "$DESTD"/examples/pitype/secr-auth "$DESTD"/examples/pitype/noninterf "$DESTD"/examples/pitype/weaksecr "$DESTD"/examples/pitype/choice "$DESTD"/examples/pitype/jfk "$DESTD"/examples/pitype/ffgg "$DESTD"/examples/pitype/arinc823 "$DESTD"/examples/pitype/arinc823/sharedkey "$DESTD"/examples/pitype/arinc823/publickey "$DESTD"/examples/pitype/lemma "$DESTD"/examples/pitype/certified-mail-AbadiGlewHornePinkas "$DESTD"/examples/pitype/certified-mail-AbadiGlewHornePinkas/journalsas "$DESTD"/examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile "$DESTD"/examples/cryptoverif "$DESTD"/emacs $DESTD/ci_system $DESTD/ci_system/src
+
+
+cp src/_tags "$DESTD"/src/_tags
+cp docs/upgrade "$DESTD"/docs
+cp docs/manual/manual-untyped.pdf "$DESTD"/docs
+cp examples/pi/jfk/prepare "$DESTD"/examples/pi/jfk/
+cp examples/pi/ffgg/prepare "$DESTD"/examples/pi/ffgg/
+cp examples/pi/mailprotAbadi/journalsas2/prepare "$DESTD"/examples/pi/mailprotAbadi/journalsas2/
+cp examples/pi/mailprotAbadi/onefile2/prepare "$DESTD"/examples/pi/mailprotAbadi/onefile2/
+cp examples/pitype/jfk/prepare "$DESTD"/examples/pitype/jfk/
+cp examples/pitype/ffgg/prepare "$DESTD"/examples/pitype/ffgg/
+cp examples/pitype/arinc823/prepare  "$DESTD"/examples/pitype/arinc823/
+cp examples/pitype/arinc823/README  "$DESTD"/examples/pitype/arinc823/
+cp examples/pitype/certified-mail-AbadiGlewHornePinkas/journalsas/prepare "$DESTD"/examples/pitype/certified-mail-AbadiGlewHornePinkas/journalsas/
+cp examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/prepare "$DESTD"/examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/
+cp src/structure "$DESTD"/src/structure
+cp src/columns.c "$DESTD"/src/
+cp ci_system/build "$DESTD"/ci_system
+cp ci_system/src/rusage.c "$DESTD"/ci_system/src/
+cp emacs/* "$DESTD"/emacs
+
+#Create tmp file for head 
+sed s/YEAR/"$YEAR"/g distrib/head.ml > distrib/head_tmp.ml
+# Source files and examples (with headers)
+for i in src/*.ml src/*.mli src/*.mll examples/horn/secr/* examples/horn/auth/* examples/pi/secr-auth/* examples/pi/noninterf/* examples/pi/weaksecr/* examples/pi/choice/* examples/pi/jfk/*.m4.pi examples/pi/jfk/tokenlemma.pi examples/pi/jfk/JFKr-coresec.pi examples/pi/ffgg/ffgg.ml examples/pi/features/* examples/pi/mailprotAbadi/journalsas2/*.m4.pi examples/pi/mailprotAbadi/onefile2/*.m4.pi examples/horntype/secr/* examples/pitype/secr-auth/* examples/pitype/noninterf/* examples/pitype/weaksecr/* examples/pitype/choice/* examples/pitype/jfk/*.m4.pv examples/pitype/jfk/tokenlemma.pv examples/pitype/jfk/JFKr-coresec.pv examples/pitype/ffgg/ffgg.ml examples/pitype/arinc823/sharedkey/*.m4.pv examples/pitype/arinc823/publickey/*.m4.pv examples/pitype/lemma/*.pv examples/pitype/certified-mail-AbadiGlewHornePinkas/journalsas/*.m4.pv examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/*.m4.pv examples/cryptoverif/* ci_system/src/*.ml*
+do
+	if [ -f $i ]
+	then
+		cat distrib/head_tmp.ml $i > "$DESTD"/$i
+	fi
+done
+for i in src/*.mly
+do
+	if [ -f $i ]
+	then
+		(echo "%{"; cat distrib/head_tmp.ml; echo "%}"; cat $i) > "$DESTD"/$i
+	fi
+done
+
+rm "$DESTD"/src/*lexer.ml "$DESTD"/src/*lexertotex.ml "$DESTD"/src/*parser.ml "$DESTD"/src/*parser.mli "$DESTD"/src/profile.ml*
+
+
+(cd "$DEST"; tar -czf "$DESTD".tar.gz proverif"$VERSION")
+sed s/VERSION/"$VERSION"/g\;s/YEAR/"$YEAR"/g distrib/README > "$DEST"/README
+mv "$DESTD"/LICENSE "$DEST"/LICENSE
+rm -r "$DESTD"
+
+# 5- Building the Windows binary distribution
+# This can be done only if running under cygwin or mingw
+if uname -a | egrep -q \(Cygwin\)\|\(MINGW\)
+then
+    if [ -f $HOME/bin/chooseocaml.def ]
+    then
+	
+mkdir "$DESTD"
+
+sed s/VERSION/"$VERSION"/g\;s/YEAR/"$YEAR"/g distrib/READMEBIN > "$DESTD"/README
+
+cp LICENSE CHANGES cssproverif.css cryptoverif.pvl test "$DESTD"
+
+mkdir "$DESTD"/docs "$DESTD"/examples "$DESTD"/examples/horn "$DESTD"/examples/pi "$DESTD"/examples/horntype "$DESTD"/examples/pitype "$DESTD"/examples/horn/secr "$DESTD"/examples/horn/auth "$DESTD"/examples/pi/secr-auth "$DESTD"/examples/pi/jfk "$DESTD"/examples/pi/noninterf "$DESTD"/examples/pi/weaksecr "$DESTD"/examples/pi/choice "$DESTD"/examples/pi/ffgg "$DESTD"/examples/pi/features "$DESTD"/examples/pi/mailprotAbadi "$DESTD"/examples/pi/mailprotAbadi/journalsas2 "$DESTD"/examples/pi/mailprotAbadi/onefile2 "$DESTD"/examples/horntype/secr "$DESTD"/examples/pitype/secr-auth "$DESTD"/examples/pitype/noninterf "$DESTD"/examples/pitype/weaksecr "$DESTD"/examples/pitype/choice "$DESTD"/examples/pitype/jfk "$DESTD"/examples/pitype/ffgg "$DESTD"/examples/pitype/arinc823 "$DESTD"/examples/pitype/arinc823/sharedkey "$DESTD"/examples/pitype/arinc823/publickey "$DESTD"/examples/pitype/lemma "$DESTD"/examples/pitype/certified-mail-AbadiGlewHornePinkas "$DESTD"/examples/pitype/certified-mail-AbadiGlewHornePinkas/journalsas "$DESTD"/examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile "$DESTD"/examples/cryptoverif "$DESTD"/emacs
+
+cp docs/upgrade "$DESTD"/docs
+cp docs/manual/manual-untyped.pdf "$DESTD"/docs
+cp examples/pi/jfk/prepare "$DESTD"/examples/pi/jfk/
+cp examples/pi/ffgg/prepare "$DESTD"/examples/pi/ffgg/
+cp examples/pi/mailprotAbadi/journalsas2/prepare "$DESTD"/examples/pi/mailprotAbadi/journalsas2/
+cp examples/pi/mailprotAbadi/onefile2/prepare "$DESTD"/examples/pi/mailprotAbadi/onefile2/
+cp examples/pitype/jfk/prepare "$DESTD"/examples/pitype/jfk/
+cp examples/pitype/ffgg/prepare "$DESTD"/examples/pitype/ffgg/
+cp examples/pitype/arinc823/prepare  "$DESTD"/examples/pitype/arinc823/
+cp examples/pitype/arinc823/README  "$DESTD"/examples/pitype/arinc823/
+cp examples/pitype/certified-mail-AbadiGlewHornePinkas/journalsas/prepare "$DESTD"/examples/pitype/certified-mail-AbadiGlewHornePinkas/journalsas/
+cp examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/prepare "$DESTD"/examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/
+cp emacs/* "$DESTD"/emacs
+
+for i in examples/horn/secr/* examples/horn/auth/* examples/pi/secr-auth/* examples/pi/noninterf/* examples/pi/weaksecr/* examples/pi/choice/* examples/pi/jfk/*.m4.pi examples/pi/jfk/tokenlemma.pi examples/pi/jfk/JFKr-coresec.pi examples/pi/ffgg/ffgg.ml examples/pi/features/* examples/pi/mailprotAbadi/journalsas2/*.m4.pi examples/pi/mailprotAbadi/onefile2/*.m4.pi examples/horntype/secr/* examples/pitype/secr-auth/* examples/pitype/noninterf/* examples/pitype/weaksecr/* examples/pitype/choice/* examples/pitype/jfk/*.m4.pv examples/pitype/jfk/tokenlemma.pv examples/pitype/jfk/JFKr-coresec.pv examples/pitype/ffgg/ffgg.ml examples/pitype/arinc823/sharedkey/*.m4.pv examples/pitype/arinc823/publickey/*.m4.pv examples/pitype/lemma/*.pv examples/pitype/certified-mail-AbadiGlewHornePinkas/journalsas/*.m4.pv examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/*.m4.pv examples/cryptoverif/*
+do
+	if [ -f "$i" ]
+	then
+		cat distrib/head_tmp.ml "$i" > ""$DESTD"/$i"
+	fi
+done
+
+# Define the Bash function chooseocaml
+source "$HOME/bin/chooseocaml.def"
+
+# Build 32 bit executables. 32 bits is the default for proverif_interact.exe because it works with 32 bit GTK2 binaries.
+chooseocaml mingw32
+./build
+cp proverif.exe "$DESTD"/proverif_32bits.exe
+cp proveriftotex.exe "$DESTD"/proveriftotex_32bits.exe
+cp proverif_interact.exe analyze.exe addexpectedtags.exe "$DESTD"
+
+# Build 64 bit executables.
+chooseocaml mingw64
+./build
+cp proverif.exe proveriftotex.exe "$DESTD"
+cp proverif_interact.exe "$DESTD"/proverif_interact_64bits.exe
+
+(cd "$DEST"; tar -czf "$DEST"/proverifbin"$VERSION".tar.gz proverif"$VERSION")
+rm -r "$DESTD"
+
+    else
+	echo Could not build Windows binary distribution.
+	echo We need a definition of the function chooseocaml in file
+	echo "$HOME/bin/chooseocaml.def" to be able to set 32 bit or 64 bit OCaml
+    fi
+else
+    echo Could not build Windows binary distribution.
+    echo You need to be under cygwin or mingw for that.
+fi
+
+# 6- Remove tmp files
+rm distrib/head_tmp.ml 
+mv src/version.ml-tmp src/version.ml

@@ -1,0 +1,29 @@
+(* Naive vote protocol
+   Taken from Delaune, Jacquemard, LSV-04-1 *)
+
+(* public key encryption *)
+
+fun pk/1.
+fun encrypt/2.
+reduc decrypt(encrypt(x,pk(y)), y) = x.
+
+free c.
+private free v.
+
+let processA = 
+	out(c, encrypt(v, pkS)). 
+
+process 
+	(new skS;
+	let pkS = pk(skS) in
+	out(c, pkS);
+	!processA) 
+	|
+	(phase 1;
+	new w;
+	out(c, choice[w,v]))
+
+(* EXPECTPV
+RESULT Observational equivalence cannot be proved.
+0.004s (user 0.000s + system 0.004s), max rss 8672K
+END *)

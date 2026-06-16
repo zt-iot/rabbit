@@ -1,0 +1,13 @@
+free d: channel.
+
+type G.
+type exponent.
+
+const g: G [data].
+fun exp(G, exponent): G.
+
+equation forall x: exponent, y: exponent; exp(exp(g,x),y) = exp(exp(g,y),x).
+
+process
+	new a: exponent; new b: exponent; new c: exponent;
+	out(d, (exp(g,a), exp(g,b), choice[exp(exp(g,a),b), exp(g,c)]))

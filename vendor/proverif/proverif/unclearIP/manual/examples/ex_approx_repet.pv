@@ -1,0 +1,16 @@
+(* Symmetric key encryption *)
+
+type key.
+fun senc(bitstring, key): bitstring.
+reduc forall m: bitstring, k: key; sdec(senc(m,k),k) = m.
+
+free c:channel.
+
+free s:bitstring [private].
+query attacker(s).
+
+process 
+	new k:key;
+	out(c, senc(senc(s,k),k));
+	in(c, x:bitstring);
+	out(c, sdec(x,k)) 

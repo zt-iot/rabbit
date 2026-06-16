@@ -1,0 +1,26 @@
+(* Fails because cannot handle the equational theory
+   precisely enough. Use choice to prove this example successfully
+   (see examples/choice/dh-fs)
+*)
+
+type G.
+type exponent.
+
+const g: G [data].
+fun exp(G, exponent): G.
+
+equation forall x: exponent, y: exponent; exp(exp(g,x),y) = exp(exp(g,y),x).
+
+free c: channel.
+free x: G [private].
+free n,m,s: exponent [private].
+
+noninterf x among (exp(exp(g,m),n), exp(g,s)).
+
+process
+	out(c, (exp(g,m), exp(g,n), x))
+
+(* EXPECTPV
+RESULT Non-interference x among (exp(exp(g,m[]),n[]), exp(g,s[])) cannot be proved.
+0.014s (user 0.010s + system 0.003s), max rss 10092K
+END *)

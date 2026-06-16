@@ -1,0 +1,20 @@
+free c:channel.
+free s:bitstring [private].
+
+set preciseActions = true.
+
+type key.
+fun senc(bitstring,key):bitstring.
+reduc forall x:bitstring,y:key; sdec(senc(x,y),y) = x.
+
+query attacker(s).
+
+process
+  new k:key; out(c, senc(senc(s,k),k));
+  in(c, x:bitstring);
+  out(c, sdec(x,k))
+
+(* EXPECTPV
+RESULT not attacker(s[]) is true.
+0.008s (user 0.000s + system 0.008s), max rss 8716K
+END *)

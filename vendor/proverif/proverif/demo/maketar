@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ .$1 = . ]
+then
+	echo Error: you must give the name of the tar archive to build as first argument
+	exit 2
+fi
+
+# Initially, I am in the proverif/demo directory
+cd ../..
+tar -czf $1 proverif/demo proverif/build proverif/src/*.ml* proverif/src/columns.c proverif/cssproverif.css website/copy/fonts
+cd proverif/demo

@@ -1,0 +1,36 @@
+(* Wide Mouth Frog protocol.
+   Example taken from Abadi, Gordon, A Calculus for Cryptographic
+   Protocols. The Spi Calculus. SRC research report 149.
+   Pages 14--
+*)
+
+(* Shared-key encryption *)
+
+fun encrypt/2.
+reduc decrypt(encrypt(x,y),y) = x.
+
+free c,e.
+
+let processA = 
+	new Kab;
+	out(c, encrypt(Kab, Kas));
+	out(c, encrypt(M, Kab)).
+
+let processS =
+	in(c, x);
+	let y = decrypt(x, Kas) in
+	out(c, encrypt(y, Ksb)).
+
+let processB =
+	in(c, x);
+	let y = decrypt(x, Ksb) in
+	in(c, z);
+	let w = decrypt(z,y) in
+	out(e, choice[w,M]).
+
+
+process
+	in(c, M);
+	new Kas;
+	new Ksb;
+	(processA | processS | processB)

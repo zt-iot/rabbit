@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis of the protocol JFK</title>
+</head>
+<body>
+<H1>Analysis of the protocol JFK</H1>
+
+In collaboration with Martín Abadi and Cédric Fournet, we
+have analyzed the protocol JFK (Just Fast Keying), a proposed
+replacement of IKE for IPsec.
+<P>
+A <A HREF="https://bblanche.gitlabpages.inria.fr/publications/AbadiBlanchetFournetTISSEC07.html">long version</A> and a <A HREF="https://bblanche.gitlabpages.inria.fr/publications/AbadiBlanchetFournetESOP2004.html">short version</A>
+of the paper are available.
+<P>
+Here are the ProVerif scripts for analyzing both variants JFKr and JFKi
+of JFK.
+<UL>
+<LI><A HREF="JFKr">JFKr</A>
+<LI><A HREF="JFKi">JFKi</A>
+<LI><A HREF="JFKtokenlemma">Script for the proof of Lemma 3</A>
+<LI><A HREF="JFKr-coresec">Script for the proof of Lemma 9</A>
+</UL>
+
+<H3>Software</H3>
+
+The automatic verifier ProVerif is available 
+<A HREF="http://proverif.inria.fr/">here</A>.
+The distribution includes the scripts above in subdirectory proverif[version]/examples/pi/jfk and versions adapted for the typed front-end in proverif[version]/examples/pitype/jfk. To run ProVerif on these scripts, just run "./prepare" in the desired subdirectory and run ProVerif on the generated files (the files *.pi or *.pv, excluding the files *.m4.*).
+
+<HR>
+<A HREF="https://bblanche.gitlabpages.inria.fr/">Bruno Blanchet</A>
+
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./css/styles.css?v=18">
+
+    <title>ProVerif</title>
+    <meta name="description" content="Automated Symbolic Protocol Verification">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "ProVerif",
+            "description": "ProVerif is an automatic symbolic protocol verifier which proves security properties of cryptographic protocols.",
+            "applicationCategory": "Security, Cryptography",
+            "programmingLanguage": "OCaml",
+            "downloadUrl": "https://bblanche.gitlabpages.inria.fr/proverif/",
+            "softwareHelp": {
+                "@type": "CreativeWork",
+                "url": "https://bblanche.gitlabpages.inria.fr/proverif/manual.pdf"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<nav class="navbar sticky-top navbar-expand-lg bg-dark border-bottom border-body"  data-bs-theme="dark">
+    <div class="container-fluid container-narrow">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="./">ProVerif</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./install.html">Install</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./usage.html">Usage</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="http://proverif24.paris.inria.fr/">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="manual.pdf">Manual</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="25years.html">25 years workshop</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="./users.html">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./publications.html">Publications</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<section>
+    <div class="container-narrow">
+<H1>Workshop: 25 years of ProVerif</H1>
+
+<IMG SRC="FRANCE2030logotype-rouge-bleu.jpg" HEIGHT="100">
+<IMG SRC="logoSVP.jpg" HEIGHT="100">
+
+<P>
+  June 3, 2026<br>
+<A HREF="https://www.inria.fr/fr/comment-venir-au-centre-inria-de-paris">Inria Paris</A>, amphitheater Jacques-Louis Lions
+
+<UL>
+  <LI> <b>9:30-9:55 Welcome coffee</b>
+  <LI> <b>9:55-10:00 Introduction</b>
+  <LI> <b>10:00-12:00 First session</b> Chair: Vincent Cheval
+    <UL>
+      <LI> 10:00-10:30 Karthikeyan Bhargavan. Verifying Protocol Implementations with ProVerif.
+      <LI> 10:30-11:00 Bruno Blanchet. ProVerif with lemmas, induction, fast subsumption, and much more. <A HREF="https://bblanche.gitlabpages.inria.fr/talks/25yearsProVerif.pdf">slides</A>. <A HREF="publications/BlanchetEtAlSP22.html">associated paper</A>.
+      <LI> 11:00-11:30 Alexandre Debant. 50 shades of ProVerif subtleties. <A HREF="25years/Alexandre.pdf">slides</A>.
+      <LI> 11:30-12:00 Jessica Richards. Automated formal analysis of Signal’s Double Ratchet: attacks, fixes and security proofs. <A HREF="25years/Jessica.pdf">slides</A>. <A HREF="publications/ChevalJacommeRichardsSP26.html">associated paper</A>.
+    </UL>
+    
+  <LI> <b>12:00-13:30 Lunch</b>
+  <LI> <b>13:30-15:30 Second session</b> Chair: Vincent Cheval
+    <UL>
+      <LI> 13:30-14:00 Charlie Jacomme. ProVerif: after 25 years of research, how can it still be so dumb?
+      <LI> 14:00-14:30 Ioana Boureanu. Verifying Post-Compromise Security with Application Controls in ProVerif. <A HREF="25years/Ioana.pdf">slides</A>. <A HREF="https://doi.org/10.1145/3708821.3733910">associated paper</A>.
+      <LI> 14:30-15:00 Jiachen Qian. Toward Efficient Verification of the Finite Variant Property. <A HREF="25years/Jiachen.pptx">slides</A>.
+      <LI> 15:00-15:30 Véronique Cortier. Simultaneously Proving Privacy and Verifiability: A ProVerif Framework for Internet Voting. <A HREF="25years/Veronique.pdf">slides</A> <A HREF="https://members.loria.fr/VCortier/files/Publications/b2hd-privacy-framework-CSF26.html">associated paper</A>.
+    </UL>
+  <LI> <b>15:30-16:00 Coffee break</b>
+  <LI> <b>16:00-18:00 Third session</b> Chair: Bruno Blanchet
+    <UL>
+      <LI> 16:00-16:30 Vincent Cheval. ProVerif with Xor. <A HREF="publications/ChevalDelauneCCS26.html">associated paper</A>.
+      <LI> 16:30-17:00 Mark Ryan. How Claude Code writes ProVerif. <A HREF="25years/Mark.pdf">slides</A>.
+      <LI> 17:00-17:30 Joseph Lallemand. A Formal Analysis of Google PlayIntegrity with ProVerif. <A HREF="25years/Joseph.pdf">slides</A>.
+      <LI> 17:30-18:00 Steve Kremer. A Comprehensive Formal Security Analysis of OPC UA with ProVerif. <A HREF="25years/Steve.pdf">slides</A>. <A HREF="https://www.usenix.org/conference/usenixsecurity25/presentation/diemunsch">associated paper</A>.
+    </UL>
+  <LI> <b>18:00 End</b>
+</UL>
+
+Registration is free but mandatory for logistical reasons.
+Registration is now closed, sorry.
+
+    </div>
+</section>
+
+
+<script src="./js/bootstrap.bundle.min.js"></script>
+<script src="./js/main.js"></script>
+
+</body>
+</html>

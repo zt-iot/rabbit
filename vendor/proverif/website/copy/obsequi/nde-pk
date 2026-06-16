@@ -1,0 +1,19 @@
+(* Non-deterministic public-key encryption *)
+
+fun pk/1.
+fun enc/3.
+fun dec/2.
+equation dec(enc(x, pk(y), z), y) = x.
+
+free c,c2.
+
+process
+	new s;
+	(
+	  out(c, pk(s))
+	|
+	  !
+	  in(c2, x);
+	  new a;
+	  out(c, choice[enc(x, pk(s), a), a])
+	)
