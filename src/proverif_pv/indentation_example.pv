@@ -1,0 +1,105 @@
+type bitlabel.
+free c: channel.
+free admin: bitstring [private].
+free published: bitstring.
+fun wrap(bitstring): bitstring [data].
+fun pair(bitstring, bitstring): bitstring [data].
+event started(bitstring).
+event finished(bitstring, bitstring).
+event ping.
+const Alpha,    (* branch A *)
+      Beta,     (* branch B *)
+      Gamma,    (* branch C *)
+      Delta: bitlabel [data].
+const zero: bitstring [data].
+const exported_secret: bitstring [private].
+reduc forall x:bitstring; unwrap(wrap(x)) = x.
+reduc 
+  forall x:bitstring, y:bitstring; fst(pair(x,y)) = x;
+  forall x:bitstring, y:bitstring; snd(pair(x,y)) = y.
+fun recover(bitstring): bitstring
+  reduc forall x:bitstring or fail; recover(wrap(x)) = x.
+equation forall x:bitstring; tag_left(x) = tag_right(x).
+equation forall x:bitstring, y:bitstring; fst((x, y)) = x.
+equation forall x:bitstring; unary(x) = fail.
+pred ready(bitstring) [memberOptim].
+pred flag [elimVar].
+table storage(bitstring, bitstring).
+set sampleDepth = 2.
+letfun derived(a:bitstring, b:bitstring or fail) =
+  let (left:bitstring, _:bitstring) = pair(a,b) in
+  if left = a then
+    event audit(left); left
+  else
+    get storage(=left, found:bitstring) suchthat found = left [precise] in found else b.
+letfun pattern_showcase(a:bitstring, b:bitstring or fail) =
+  let wrap(inner:bitstring) = wrap(a) in
+  let choice[left:bitstring, right:bitstring] = choice[a, b] in
+  let (=inner, pair_left:bitstring) = (inner, left) in
+  if pair_left = right then
+    left
+  else
+    b.
+let helper(seed:bitstring, fallback:bitstring or fail) =
+  new local:bitstring;
+  let (=seed, other:bitstring) = pair(seed, fallback) in
+  if other = local then
+    event started(other);
+    insert storage(other, local);
+    get storage(=other, remembered:bitstring) suchthat remembered = local [precise] in
+      out(c, remembered)
+    else
+      out(c, fallback)
+  else
+    0.
+let guarded(worker_id:bitstring) =
+  in(c, incoming:bitstring) [precise];
+  let (x:bitstring, y:bitstring) = pair(incoming, worker_id) in
+  let lhs:bitstring, rhs:bitstring suchthat lhs = rhs [precise] in
+    out(c, lhs)
+  else
+    if x = y then
+      event finished(x, y);
+      helper(x, y)
+    else
+      0.
+query x:bitstring; attacker(x); secret exported_secret public_vars x [precise]; putbegin event: started; putbegin inj-event: finished.
+query x:bitstring; attacker(new disclosed[label = x]); attacker((x, x)).
+noninterf x:bitstring; exported_secret among (x, wrap(x)).
+weaksecret exported_secret.
+nounif x:bitstring; event(x).
+select x:bitstring; table(x) phase 1 /2 [memberOptim].
+nounif x:bitstring; let anyf = *wild in let named = new witness[tag = x; side = anyf] in event(named).
+select x:bitstring; let tuplef = (x, *rest) in let nested = let alias = tuplef in alias in table(nested) phase 2 /3.
+not x:bitstring; event(x) ==> event(x).
+not x:bitstring; let seen = x in (seen, x) = (x, seen).
+not x:bitstring; event(login(x, x))@t && inj-event(login(x, x))@t' ==> t = t'.
+not x:bitstring; state(x) phase 1 @t ==> event(login(x, x))@t.
+elimtrue x:bitstring or fail; x = x.
+elimtrue x:bitstring or fail; unary(x) = fail.
+free service_key: bitstring [private].
+clauses
+  forall x:bitstring or fail; ready(x) -> flag;
+  forall x:bitstring or fail; ready(x);
+  forall x:bitstring or fail; ready(x) <-> ready(x);
+  forall x:bitstring or fail; ready(x) <=> ready(x).
+axiom x:bitstring; event(x).
+lemma x:bitstring; event(x) ==> inj-event(x) [memberOptim].
+lemma x:bitstring; event(login(x, x))@t ==> t = t [memberOptim].
+lemma x:bitstring; event(x) for { secret exported_secret [memberOptim] }.
+restriction x:bitstring; x = x.
+equivalence
+  new left_seed:bitstring;
+  out(c, wrap(left_seed));
+  (
+    !helper(left_seed, published)
+  |
+    !guarded(left_seed)
+  )
+  new right_seed:bitstring;
+  out(c, wrap(right_seed));
+  (
+    !helper(right_seed, admin)
+  |
+    !guarded(right_seed)
+  )

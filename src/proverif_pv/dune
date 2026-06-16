@@ -1,0 +1,31 @@
+(library
+ (name rabbit_proverif_pv)
+ (modules
+  param
+  parsing_helper
+ pitparser
+  pitptree
+  ptree
+  pitlexer
+  pv_ast_equal
+  pv_pp
+  pv_parser
+  types)
+ (modules_without_implementation
+  pitptree
+  ptree
+  types)
+ (flags (:standard -w -27-38-39)))
+
+(ocamllex
+ (modules pitlexer))
+
+(ocamlyacc
+ (modules pitparser))
+
+(copy_files# ../../vendor/proverif/proverif/src/parsing_helper.ml)
+(copy_files# ../../vendor/proverif/proverif/src/parsing_helper.mli)
+(copy_files# ../../vendor/proverif/proverif/src/pitparser.mly)
+(copy_files# ../../vendor/proverif/proverif/src/pitlexer.mll)
+(copy_files# ../../vendor/proverif/proverif/src/pitptree.mli)
+(copy_files# ../../vendor/proverif/proverif/src/ptree.mli)
