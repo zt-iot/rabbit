@@ -1,0 +1,124 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css?v=18">
+
+    <title>ChevalMoreiraRyanEuroSnP23</title>
+    <meta name="description" content="Automated Symbolic Protocol Verification">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "ProVerif",
+            "description": "ProVerif is an automatic symbolic protocol verifier which proves security properties of cryptographic protocols.",
+            "applicationCategory": "Security, Cryptography",
+            "programmingLanguage": "OCaml",
+            "downloadUrl": "https://bblanche.gitlabpages.inria.fr/proverif/",
+            "softwareHelp": {
+                "@type": "CreativeWork",
+                "url": "https://bblanche.gitlabpages.inria.fr/proverif/manual.pdf"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<nav class="navbar sticky-top navbar-expand-lg bg-dark border-bottom border-body"  data-bs-theme="dark">
+    <div class="container-fluid container-narrow">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="../">ProVerif</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../install.html">Install</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../usage.html">Usage</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="http://proverif24.paris.inria.fr/">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../manual.pdf">Manual</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../25years.html">25 years workshop</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="../users.html">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="../publications.html">Publications</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<section>
+    <div class="container-narrow">
+        <H2>ChevalMoreiraRyanEuroSnP23</H2>
+
+
+Vincent Cheval, José Moreira, and Mark Ryan.
+  Automatic verification of transparency protocols.
+  In <i>8th IEEE European Symposium on Security and Privacy,
+  EuroS&amp;P 2023, Delft, Netherlands, July 3-7, 2023</i>. IEEE, 2023. <span class="tagclass">Tool feature</span> <span class="tagclass">Case study</span>
+
+<p><h4>Get the paper</h4>
+
+ <a href="./ChevalMoreiraRyanEuroSnP23.pdf">.pdf, 468 Kb</a>
+
+<h4>Links</h4>
+
+<A HREF="https://arxiv.org/abs/2303.04500">Long version</A>
+
+<h4>Abstract</h4>
+
+We introduce new features in ProVerif, an automatic tool for verifying security protocols, and a methodology for using them. This methodology and these features are aimed at protocols which involve sophisticated data types that have strong properties, such as Merkle trees, which allow compact proofs of data presence and tree extension. Such data types are widely used in protocols in systems that use distributed ledgers and/or blockchains.
+  
+     With our methodology, it is possible to describe the data type quite abstractly, using ProVerif axioms, and prove the correctness of the protocol using those axioms as assumptions. Then, in separate steps, one can define one or more concrete implementations of the data type, and again use ProVerif to show that the implementations satisfy the assumptions that were coded as axioms. This helps make compositional proofs, splitting the proof burden into several manageable pieces.
+     
+     To enable this methodology, we introduce new capabilities in ProVerif, by extending the class of lemmas and axioms that it can reason with. Specifically, we allow user-defined predicates, attacker predicates and message predicates to appear in lemmas and axioms, and define their semantics. We show the soundness of the implementation of this idea with respect to the semantics.<P>
+We illustrate the methodology and features by providing the first formal verification of two transparency protocols which precisely models the Merkle tree data structure. The two protocols are transparent decryption (sometimes called accountable decryption), and certificate transparency. Transparent decryption is a way of ensuring that decryption operations are visible by people who are affected by them. This can be used, for example, to support privacy: it can mean that a subject is alerted to the fact that information about them has been decrypted. Certificate transparency is an Internet security standard for monitoring and auditing the issuance of digital certificates.
+
+<h4>Bibtex</h4>
+
+<pre><a name="ChevalMoreiraRyanEuroSnP23"></a>
+@INPROCEEDINGS{ChevalMoreiraRyanEuroSnP23,
+  AUTHOR = {Vincent Cheval and
+               Jos{\'e} Moreira and
+               Mark Ryan},
+  TITLE = {Automatic verification of transparency protocols},
+  BOOKTITLE = {8th {IEEE} European Symposium on Security and Privacy, EuroS{\&}P
+               2023, Delft, Netherlands, July 3-7, 2023},
+  PUBLISHER = {{IEEE}},
+  YEAR = {2023}
+}
+
+</pre>    </div>
+</section>
+
+
+<script src="../js/bootstrap.bundle.min.js"></script>
+<script src="../js/main.js"></script>
+
+</body>
+</html>
+
+

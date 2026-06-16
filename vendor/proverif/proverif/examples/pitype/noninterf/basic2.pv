@@ -1,0 +1,14 @@
+fun hash(bitstring): bitstring.
+
+free c: channel.
+free x,n,m: bitstring [private].
+
+noninterf x among (n, hash(m)).
+
+process
+	out(c, (m, x))
+
+(* EXPECTPV
+RESULT Non-interference x among (n[], hash(m[])) cannot be proved.
+0.014s (user 0.007s + system 0.007s), max rss 9884K
+END *)

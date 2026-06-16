@@ -1,0 +1,122 @@
+(* Key Registration protocol.
+  Found in "Set-Pi: Set Membership p-Calculus", Computer Security Foundations Symposium (CSF), 2015 IEEE 28th.
+
+  Adapted from the output of GSVerif. On this protocol, we assume that the existence of a 'lock' represented by the
+  private channel 'd'. This lock is used to ensure that the attacker cannot mix the tests on the tables between
+  two sessions of the server.
+*)
+
+free c:channel.
+type agent.
+
+
+fun sign(bitstring,bitstring):bitstring.
+fun pk(bitstring):bitstring.
+
+fun checksign(bitstring,bitstring):bitstring
+reduc forall x:bitstring, y:bitstring; checksign(sign(x,y),pk(y)) = x.
+
+table db_server_valid(bitstring,agent,bitstring).
+table db_server_revoked(bitstring,agent,bitstring).
+
+const renew:bitstring.
+const confirm:bitstring.
+const error:bitstring.
+
+event Revoked(bitstring). (* Event pour la query *)
+event Honest(bitstring).  (* Event pour la query *)
+
+event InRevoked(nat,bitstring,agent,bitstring).
+event InValid(nat,bitstring,agent,bitstring).
+event TestValid(nat,bitstring).
+event TestRevoked(nat,bitstring,bitstring).
+event Received(bitstring).
+
+free id1:bitstring.
+free id2:bitstring.
+
+nounif i:nat; mess(new d,i) [inductionOn=i].
+
+(* Server *)
+
+let Server(d:channel,skS:bitstring) =
+  in(c,(A:agent,pkA:bitstring));
+  in(c,sig:bitstring);
+  in(d,i:nat);
+  get db_server_valid(=skS,=A,=pkA) in (* The server checks that the key is valid. *)
+  let (=renew,=A,new_pkA:bitstring) = checksign(sig,pkA) in
+  get db_server_valid(x,y,=new_pkA) in
+    out(c,error)
+  else
+    get db_server_revoked(x',y',=new_pkA) in
+      out(c,error)
+    else
+      get db_server_revoked(x',y',=pkA) in
+        out(c,error)
+      else
+        event TestValid(i,new_pkA);
+        event TestRevoked(i,id1,pkA);
+        event TestRevoked(i,id2,new_pkA);
+        event InRevoked(i+1,skS,A,pkA);
+        insert db_server_revoked(skS,A,pkA);
+
+        event InValid(i+1,skS,A,new_pkA);
+        insert db_server_valid(skS,A,new_pkA);
+
+
+        event Honest(new_pkA);
+        event Revoked(pkA);
+
+        out(c,sign((confirm,sig),skS));
+        out(d,i+1).
+
+(* Out of band registration *)
+
+let Register(d:channel,A:agent,cellA:channel,skS:bitstring) =
+  new k:bitstring;
+  out(cellA,k); (* Initialisation of the agent's cell *)
+  in(d,i:nat);
+  event Honest(pk(k));
+  event InValid(i+1,skS,A,pk(k));
+  insert db_server_valid(skS,A,pk(k));
+  out(d,i+1);
+  out(c,pk(k)).
+
+(* Revocation from client *)
+
+let Client(A:agent,cellA:channel,pkS:bitstring) =
+  new k':bitstring;
+  in(cellA,k:bitstring);
+  out(c,(A,pk(k)));
+  let sig:bitstring = sign((renew,A,pk(k')),k) in
+  out(c,sig);
+  in(c,sig':bitstring);
+  let (=confirm,=sig) = checksign(sig',pkS) in
+  out(c,k);
+  out(cellA,k').
+
+
+axiom sks:bitstring,sks':bitstring, id:bitstring, id':bitstring, i:nat, i':nat, j:nat, j':nat,A:agent, k:bitstring,A':agent, k':bitstring;
+  event(TestValid(i',k)) && event(InValid(i,sks,A,k)) ==> i > i';
+  event(TestRevoked(i',id,k)) && event(InRevoked(i,sks,A,k)) ==> i > i';
+  event(InValid(i,sks,A,k)) && event(InValid(i,sks',A',k')) ==> (sks,A,k) = (sks',A',k');
+  event(InRevoked(i,sks,A,k)) && event(InRevoked(i,sks',A',k')) ==> (sks,A,k) = (sks',A',k') [fullSat].
+
+query ky:bitstring;
+  attacker(ky) && event(Honest(pk(ky))) ==> event(Revoked(pk(ky)));
+  event(Honest(pk(ky))) ==> ky = new k || ky = new k'.
+
+process
+  new d:channel; out(d,0) | ! new skS:bitstring;  out(c,pk(skS));
+  (
+    (! Server(d,skS))
+  | ! new A:agent;
+    new cellA:channel;
+    (out(c,A) | Register(d,A,cellA,skS) | ! Client(A,cellA,pk(skS)))
+  )
+
+(* EXPECTPV
+RESULT event(Honest(pk(ky))) && attacker(ky) ==> event(Revoked(pk(ky))) is true.
+RESULT event(Honest(pk(ky))) ==> ky = k[!2 = v,!1 = v_1] || ky = k'[!3 = v_2,!2 = v_3,!1 = v_4] is true.
+0.032s (user 0.032s + system 0.000s), max rss 10912K
+END *)

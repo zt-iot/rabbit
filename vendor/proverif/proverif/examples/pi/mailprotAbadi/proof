@@ -1,0 +1,189 @@
+Bonjour Martin,
+
+> > Tout d'abord, dans le protocole, je modelise uniquement
+> > le cas "BothAuth". Est-ce que cela te parait suffisant ?
+
+> Je crois que ca suffit, et que le code serait en effet
+> trop complique, mais peut-etre vaudrait-il la peine d'essayer
+> d'ecrire un petit bout de ce code pour voir? (si tu ne l'as
+> pas deja fait).
+
+Je garde ca en memoire et le ferai quand le cas BothAuth sera
+clarifie.
+
+J'ai encore fait quelques modifications dans le codage du protocole
+
+1) ajoute un idTTPtoR aux evenements TTPSend et Rhas pour identifier
+le canal que TTP et R utilisent pour le message contenant la cle, et
+montrer que c'est bien le meme. (idTTPtoR peut etre soit le nom du
+canal dans le cas CHTOTTP, soit une cle dans le cas PKCHANNEL,
+soit deux cles pour SSH.)
+
+2) modifie la fin de processS pour qu'il repete l'input jusqu'a
+obtenir l'accuse de reception envoye par TTP
+
+3) ajoute un evenement end* Rreceives(m) pour dire que R a recu m.
+
+> Est-ce que tu sais ennoncer facilement ce qui est verifie a la main,
+> pour etre sur que cette nouvelle version est satisfaisante?
+
+Pour la proposition 1:
+----------------------
+Ce qu'on veut montrer: 
+si l'attaquant a m[x,i] (i.e. le message m destine a x), alors 
+le juge execute end* JudgeSays(Received, x, m[x,i])
+
+Ce qu'on montre automatiquement:
+si l'attaquant a m[x,i] alors les evenements
+TTPSend:Sname,certif(x,i)
+et
+Shas:(Sname,k[x,i],cleartext,q[x,i],Reply(x,q[x,i]),m[x,i])
+ont ete executes avec x = PasswdTable(v749) et
+certif(x,i) = S(TTPSigKey,(Released,A(TTPEncKey,(Sname, BothAuth,
+(Give, k[x,i], x, H((cleartext,q[x,i],Reply(x,q[x,i]),
+E(k[x,i],m[x,i])))))),x))
+
+Ce qu'on montre manuellement:
+si les evenements 
+TTPSend:Sname,certif(x,i)
+et
+Shas:(Sname,k[x,i],cleartext,q[x,i],Reply(x,q[x,i]),m[x,i])
+ont ete executes alors le juge execute JudgeSays(Received, x, m[x,i]).
+
+Esquisse de la preuve:
+
+Puisque TTP execute TTPSend:Sname,certif(x,i), il va ensuite executer
+out(Sname,certif(x,i)).  On suppose que ce message va etre recu par
+S sur le canal Sname (bien que l'attaquant ait aussi Sname).
+ 
+1) Si la session de S qui a execute 
+Shas:(Sname,k[x,i],cleartext,q[x,i],Reply(x,q[x,i]),m[x,i])
+recoit certif(x,i), alors elle verifie avec succes ce certificat.
+Ensuite, cette session de S execute out(Judgename, (certif(x,i),
+Sname,k[x,i],cleartext,q[x,i],Reply(x,q[x,i]),m[x,i])).  On suppose
+que ce message va etre recu par le juge.  (Notons que le juge attend
+en permanence un tel certificat, donc meme s'il recoit aussi des
+certificats faux, cela ne l'empeche pas de repondre correctement aux
+bons certificats qu'il recoit.)  Quand le juge le recoit, il le
+verifie avec succes et execute ensuite JudgeSays(Received, x, m[x,i]).
+
+2) Si cette session de S recoit d'autres messages, elle les 
+renvoie et continue a attendre le bon certificat grace a la replication.
+
+3) Si une autre session de S recoit ce certificat, elle a execute
+Shas:(Sname,k[x',i'],cleartext,q[x',i'],Reply(x',q[x',i']),m[x',i'])
+pour certaines valeurs de x' et i', differentes de x,i. La
+verification du certificat certif(x,i) echoue et le certificat est
+renvoye. Le certificat va donc finir par arriver a la bonne session de
+S.
+
+On pourrait sans doute se passer de l'evenement Shas, mais je pense
+que c'est un peu plus clair avec.
+On pourrait etre plus formel, mais je trouve que cette preuve est deja
+assez satisfaisante. Je trouve que le nouveau codage de S est utile,
+parce qu'avant il suffisait que l'attaquant envoie un message
+quelconque a S pour l'empecher ensuite d'aller devant le juge.
+
+Pour la proposition 2:
+----------------------
+Ce qu'on veut montrer: 
+si le juge execute end* JudgeSays(Received, Rname, xm),
+alors R execute end* Received(xm).
+
+Ce qu'on montre automatiquement:
+si le juge execute end* JudgeSays(Received, Rname, xm),
+alors les evenements
+TTPSend:(idTTPtoR, (Try, k, hr))
+et
+Rhas:(idTTPtoR, E(k,xm), hr)
+ont ete executes pour une certaine valeur de idTTPtoR, k, hr.
+
+Ce qu'on montre manuellement:
+Si les evenements
+TTPSend:(idTTPtoR, (Try, k, hr))
+et
+Rhas:(idTTPtoR, E(k,xm), hr)
+ont ete executes alors R execute Received(xm).
+
+Esquisse de la preuve:
+
+Je donne d'abord rapidement le schema de preuve commun aux 3
+implementations du canal TTP-R.
+
+Puisque TTP a execute TTPSend:(idTTPtoR, (Try, k, hr)), il va emettre
+sur le canal identifie par idTTPtoR le message (Try, k, hr). D'autre
+part, la session de R qui a execute Rhas:(idTTPtoR, E(k,xm), hr)
+attend un message sur ce meme canal.  En supposant que ce message va
+etre recu par cette session de R [point delicat ici !]  alors R va
+verifier le message, et decrypter E(k,xm) avec k, donc R va executer
+Rreceived(xm).
+
+Comme l'input qui attend Try... est replique, meme si l'attaquant
+envoie du garbage dessus, R va bien recevoir le message attendu.
+
+Pour le secret 
+--------------
+C'est presque immediat. Details plus tard.
+
+---------------------------------------------------------------------
+
+Vieux commentaires sur prop 2.
+
+On pourrait esperer montrer que le seul message que R peut recevoir
+quand il attend Try... est bien Try... avec la bonne cle. Dans ce
+cas, la replication serait inutile pour cet input dans processR.
+Suivant le codage exact du canal TTP-R, cela peut etre vrai ou non.
+
+1) Cas CHTOTTP
+
+idTTPtoR est simplement le nom du canal. L'attaquant ne peut avoir ce
+nom de canal (le verificateur peut montrer cela), donc il ne peut pas
+envoyer de message dessus. Dans ce cas, le seul message que R peut
+recevoir est bien la cle. Par contre, le verificateur ne peut pas
+montrer cela directement, car il croit que R peut aussi recevoir le
+1er message R -> TTP Wants...  qui est envoye sur le meme canal. Si on
+envoyait le message Wants...  sur le canal asymetrique R -> TTP,
+le verificateur pourrait montrer que le seul message que R peut recevoir
+quand il attend Try... est bien Try... avec la bonne cle.
+(Par contre je trouve que ce codage est un tout petit peu different
+de ce qui est dit dans l'article.) On pourrait aussi imaginer
+d'avoir deux canaux differents: un dans le sens R->TTP et un dans le
+sens TTP->R.
+
+2) Cas PKCHANNEL
+
+idTTPtoR est la cle partagee entre TTP et R. On pourrait esperer que
+le seul message chiffre sous cette cle que R peut recevoir quand il
+attend Try... est bien le bon. C'est malheureusement faux avec le
+codage actuel: quand R attend Try..., l'attaquant peut lui renvoyer le
+message Wants... qui a ete chiffre sous la meme cle. Ce serait vrai si
+le message Wants etait chiffre sous la cle publique de TTP, comme tu
+le suggerais precedemment.  (Mais la aussi, je trouve que ce codage
+est un tout petit peu different de ce qui est dit dans l'article.)  On
+pourrait aussi imaginer d'avoir deux cles partagees differentes: une
+pour utiliser dans le sens R->TTP et une dans le sens TTP->R.
+
+3) Cas SSH
+
+idTTPtoR contient les cles de chiffrement et de mac du canal TTP->R.
+On peut montrer que le seul message chiffre+mac sous ces cles que R
+peut recevoir quand il attend Try... est bien Try... avec la bonne
+cle. Ceci peut se faire soit en montrant avec le verificateur que
+l'attaquant n'a pas ces cles, puis en finissant a la main, soit en
+utilisant directement le verificateur pour determiner quels messages
+peuvent etre recus par R a l'input qui attend Try... (mais
+l'interpretation des resultats du verificateur est compliquee dans ce
+cas).
+
+Je fais peut-etre toute une histoire pour un detail, et le mieux
+est peut-etre de repliquer aussi l'input dans processR.
+Qu'est-ce que tu en penses ?
+
+Un autre point est que je ne comprends peut-etre pas vraiment ce que
+signifie l'hypothese que les messages arrivent a destination, en
+particulier quand ils sont envoyes sur le canal public c (comme le
+message TTP->S). Peut-etre serait-ce deja plus clair s'ils etaient
+envoyes sur un autre canal (par exemple Sname, si on se permet de
+l'utiliser comme nom de canal), meme si l'attaquant a ce canal (donc
+peut lire et ecrire dessus). A ton avis ?
+

@@ -1,0 +1,29 @@
+free c:channel.
+free k:bitstring [private].
+free d_P:channel [private].
+free d_Q:channel [private].
+
+fun senc(nat,bitstring):bitstring.
+reduc forall K:bitstring,M:nat; sdec(senc(M,K),K) = M.
+
+event CheckNat(nat).
+
+query i:nat; event(CheckNat(i)) ==> is_nat(i).
+
+let P =
+  in(c,x:bitstring);
+  in(d_P,(i:nat,j:nat));
+  let j':nat = sdec(x,k) in
+  event CheckNat(i);
+  event CheckNat(j);
+  if j' > j
+  then out(d_P,(i+1,j'))
+  else out(d_P,(i,j)).
+
+let Q =
+  in(d_Q,i:nat);
+  out(c,senc(i,k));
+  out(d_Q,i+1).
+
+process
+  out(d_P,(0,0)) | out(d_Q,0) | ! P | ! Q

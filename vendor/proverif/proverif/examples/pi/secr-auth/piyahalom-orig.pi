@@ -1,0 +1,84 @@
+(*
+Yahalom protocol. Version of Burrows, Abadi, Needham, SRC039
+
+Message 1 A -> B: A; Na 
+Message 2 B -> S: B; { A; Na; Nb }Kbs 
+Message 3 S -> A: { B; Kab; Na; Nb }Kas ; { A; Kab }Kbs 
+Message 4 A -> B: { A; Kab }Kbs ; { Nb }Kab
+
+*)
+
+free c.
+
+fun host/1.
+private reduc getkey(host(x)) = x.
+
+(* Shared key cryptography *)
+
+fun encrypt/2.
+reduc decrypt(encrypt(x,y),y) = x.
+
+(* Secrecy assumptions *)
+
+not kas.
+not kbs.
+
+private free secretA, secretB.
+query attacker:secretA;
+      attacker:secretB.
+query evinj:endAparam(x,y) ==> evinj:beginAparam(x,y).
+query evinj:endAkey(x,y,z) ==> evinj:beginAkey(x,y,z).
+query evinj:endBparam(x,y) ==> evinj:beginBparam(x,y).
+query evinj:endBkey(x,y,z) ==> evinj:beginBkey(x,y,z).
+
+let processA =
+	new Na;
+	out(c, (host(kas), Na));
+	in(c, (cert1, cert2));
+	let (b, k, =Na, nb) = decrypt(cert1, kas) in
+	event beginBparam(host(kas), b);
+	event beginBkey(host(kas), b, k);
+	out(c, (cert2, encrypt(nb, k)));
+	(* OK *)
+	if b = host(kbs) then
+	event endAparam(host(kas), b);
+	event endAkey(host(kas), b, k);
+	out(c, encrypt(secretA, k)).
+
+let processB =
+	in(c, (a,na));
+	event beginAparam(a,host(kbs));
+	new Nb;
+	out(c, (host(kbs), encrypt((a, na, Nb), kbs)));
+	in(c, (cert2, m));
+	let (=a, k) = decrypt(cert2, kbs) in
+	event beginAkey(a, host(kbs), k);
+	if Nb = decrypt(m, k) then
+	(* OK *)
+	if a = host(kas) then
+	event endBparam(a, host(kbs));
+	event endBkey(a, host(kbs), k);
+	out(c, encrypt(secretB, k)).
+
+let processS =
+	in(c, (h2, m));
+	let k2 = getkey(h2) in
+	let (h1, n1, n2) = decrypt(m, k2) in
+	let k1 = getkey(h1) in
+	new k;
+	out(c, (encrypt((h2, k, n1, n2), k1), encrypt((h1, k), k2))).
+
+
+process new kas; new kbs; 
+	((!processA) | (!processB) | (!processS))
+
+(* EXPECTPV
+RESULT not attacker:secretA[] is true.
+RESULT not attacker:secretB[] is true.
+RESULT evinj:endAparam(x,y) ==> evinj:beginAparam(x,y) is true.
+RESULT evinj:endAkey(x,y,z) ==> evinj:beginAkey(x,y,z) is false.
+RESULT (even ev:endAkey(x,y,z) ==> ev:beginAkey(x,y,z) is false.)
+RESULT evinj:endBparam(x,y) ==> evinj:beginBparam(x,y) is true.
+RESULT evinj:endBkey(x,y,z) ==> evinj:beginBkey(x,y,z) is true.
+0.048s (user 0.048s + system 0.000s), max rss 10448K
+END *)

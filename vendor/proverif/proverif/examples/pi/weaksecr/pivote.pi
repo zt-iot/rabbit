@@ -1,0 +1,27 @@
+(* Naive vote protocol
+   Taken from Delaune, Jacquemard, LSV-04-1 *)
+
+(* public key encryption *)
+
+fun pk/1.
+fun encrypt/2.
+reduc decrypt(encrypt(x,pk(y)), y) = x.
+
+free c.
+private free v.
+
+weaksecret v.
+
+let processA = 
+	out(c, encrypt(v, pkS)). 
+
+process 
+	new skS;
+	let pkS = pk(skS) in
+	out(c, pkS);
+	!processA
+
+(* EXPECTPV
+RESULT Weak secret v is false.
+0.008s (user 0.000s + system 0.008s), max rss 8504K
+END *)

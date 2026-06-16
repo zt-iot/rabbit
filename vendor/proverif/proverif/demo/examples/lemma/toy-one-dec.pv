@@ -1,0 +1,17 @@
+free c:channel.
+free s:bitstring [private].
+
+fun enc(bitstring,bitstring):bitstring.
+reduc forall x:bitstring,y:bitstring; dec(enc(x,y),y) = x.
+
+query attacker(s).
+
+process
+  new k:bitstring;
+  new k1:bitstring;
+  new k2:bitstring;
+  out(c,enc(k1,k));
+  out(c,enc(k2,k));
+  out(c,enc(s,(k1,k2)));
+  in(c,y:bitstring) [precise];
+  out(c,dec(y,k))

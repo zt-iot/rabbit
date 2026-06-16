@@ -1,0 +1,51 @@
+(*
+Yahalom protocol. Version of Burrows, Abadi, Needham, SRC039
+
+Message 1 A -> B: A; Na 
+Message 2 B -> S: B; { A; Na; Nb }Kbs 
+Message 3 S -> A: { B; Kab; Na; Nb }Kas ; { A; Kab }Kbs 
+Message 4 A -> B: { A; Kab }Kbs ; { Nb }Kab
+
+*)
+
+pred c/1 decompData, elimVar.
+
+fun encrypt/2.
+fun host/1.
+
+query c:Nb[host(Kas[]), Na[]].
+query c:secretA[].
+query c:secretB[].
+
+not c:Kas[].
+
+reduc
+
+(* attacker *)
+
+c:c[];
+c:k -> c:host(k);
+c:k & c:m -> c:encrypt(m,k);
+c:k & c:encrypt(m,k) -> c:m;
+
+(* A *)
+
+c:(host(Kas[]), Na[]);
+c:(encrypt((b, k, Na[], nb), Kas[]), mb) -> c:(mb, encrypt(nb, k));
+c:(encrypt((host(Kas[]), k, Na[], nb), Kas[]), mb) -> c:encrypt(secretA[], k);
+
+(* B *)
+
+c:(a, na) -> c:(host(Kas[]), encrypt((a, na, Nb[a,na]), Kas[]));
+c:(encrypt((host(Kas[]), k), Kas[]), encrypt(Nb[host(Kas[]),na], k)) -> c:encrypt(secretB[], k);
+
+(* S *)
+
+c:(host(kbs), encrypt((host(kas), na, nb), kbs)) -> c:(encrypt((host(kbs), k[kas, kbs, na, nb], na, nb), kas), encrypt((host(kas),  k[kas, kbs, na, nb]), kbs)).
+
+(* EXPECTPV
+RESULT goal unreachable: c:secretB[]
+RESULT goal unreachable: c:secretA[]
+RESULT goal unreachable: c:Nb[host(Kas[]),Na[]]
+0.004s (user 0.004s + system 0.000s), max rss 8532K
+END *)

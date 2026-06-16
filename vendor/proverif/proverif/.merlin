@@ -1,0 +1,4 @@
+S src/
+S /home/ROCQ/prosecco/bblanche/.opam/4.07.0/lib/lablgtk2/
+B src/_build/
+B /home/ROCQ/prosecco/bblanche/.opam/4.07.0/lib/lablgtk2/

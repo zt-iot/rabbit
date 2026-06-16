@@ -1,0 +1,35 @@
+(* randomized asymmetric encryption *)
+type skey.
+type pkey.
+fun pk(skey): pkey.
+fun enc(bitstring, pkey, bitstring): bitstring.
+
+(* rewrite rule to model the decryption *)
+reduc
+    forall m: bitstring, k: skey, r: bitstring;
+        dec(enc(m, pk(k), r), k) = m.
+
+(* declare global variables *)
+free public_channel: channel.
+free server_skey: skey [private].
+
+let Server2() =
+    in(public_channel, e: bitstring);
+    let m = dec(e, server_skey) in
+    out(public_channel, m).
+
+(* define the roles of the process *)
+free message_1: bitstring.
+free message_2: bitstring.
+let Client2() =
+    new r_1: bitstring;
+    let e_1 = enc(message_1, pk(server_skey), r_1) in
+    new r_2: bitstring;
+    let e_2 = enc(message_2, pk(server_skey), r_2) in
+    out(public_channel, diff[e_1, e_2]).
+
+(* launch the protocol *)
+process
+    Client2()
+
+(* sanity check done for example: if !Server2() started in parallel, diff-equivalence broken *)

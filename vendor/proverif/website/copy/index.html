@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./css/styles.css?v=18">
+
+    <title>ProVerif</title>
+    <meta name="description" content="Automated Symbolic Protocol Verification">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "ProVerif",
+            "description": "ProVerif is an automatic symbolic protocol verifier which proves security properties of cryptographic protocols.",
+            "applicationCategory": "Security, Cryptography",
+            "programmingLanguage": "OCaml",
+            "downloadUrl": "https://bblanche.gitlabpages.inria.fr/proverif/",
+            "softwareHelp": {
+                "@type": "CreativeWork",
+                "url": "https://bblanche.gitlabpages.inria.fr/proverif/manual.pdf"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<nav class="navbar sticky-top navbar-expand-lg bg-dark border-bottom border-body" data-bs-theme="dark">
+    <div class="container-fluid container-narrow">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="./">ProVerif</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./install.html">Install</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./usage.html">Usage</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="http://proverif24.paris.inria.fr/">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="manual.pdf">Manual</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="25years.html">25 years workshop</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="./users.html">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./publications.html">Publications</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+
+<section class="abstract">
+    <div class="container-narrow">
+        <div class="row align-items-start">
+            <div class="col-md-2">
+                <img src="images/proverif.svg" class="img-fluid logo mb-4" alt="ProVerif Logo">
+            </div>
+            <div class="col-md-10">
+                <div class="title">
+                    <h1>ProVerif</h1>
+                    <p class="subtitle">
+                        Automated
+                        Symbolic
+                        Protocol
+                        Verification
+                    </p>
+                    <p class="lead mt-4">
+                        ProVerif has been used to verify and improve <a
+                            href="https://github.com/Inria-Prosecco/proscript-messaging">Signal</a>, <a
+                            href="https://github.com/inria-prosecco/reftls">TLS</a>, <a
+                            href="https://bblanche.gitlabpages.inria.fr/arinc823/">avionic protocols</a>, <a
+                            href="https://bblanche.gitlabpages.inria.fr/proverif/publications/ChevalCortierDebantCSF23.pdf">internet
+                        voting</a>, and <a href="users.html">much
+                        more</a>, in the Dolev-Yao model. A wide range of protocols is supported for
+                        both reachability and
+                        equivalence properties, with a fast resolution algorithm based on Horn-clauses. ProVerif is
+                        proven sound, stable, and extensively documented.
+                    </p>
+                    <p class="mt-4">
+                        <b>Project participants:</b>
+                        <a href="https://bblanche.gitlabpages.inria.fr/">Bruno Blanchet</a>,
+                        <a href="https://www.cs.ox.ac.uk/people/vincent.cheval/">Vincent Cheval</a><br/>
+                        <b>Former participants:</b>
+                        <a href="http://www.cmap.polytechnique.fr/~allamigeon/">Xavier Allamigeon</a>,
+                        <a href="http://www.bensmyth.com/">Ben Smyth</a>, Marc Sylvestre
+                    </p>
+                    <p>
+                        <b>Mailing list</b> for general discussions and announcements: send "subscribe proverif your_name" (no quotes) to sympa-AT-inria.fr
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<hr>
+
+<section id="example-simple">
+    <div class="container-wide">
+        <div class="row">
+            <div class="col-md-4 offset-md-2">
+                <h2 class="mt-0">Example</h2>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 offset-md-2">
+                <p>
+                    We publish <code>Foo</code> on the public channel <code>c</code>.
+                    ProVerif can then automatically reason that <code>Foo</code> is known by the attacker; while <code>Bar</code> remains private.
+                    <a href="#" class="toggler" data-source="example-simple" data-target="example-complex">
+                        Switch to a real-world example?
+                    </a>
+                </p>
+
+                <p>
+                    The
+                    <a href="manual.pdf">manual</a>
+                    explains this and more examples in detail.
+                    You can directly try more examples in the browser in the <a href="http://proverif24.paris.inria.fr/">online
+                    demo</a>.
+                </p>
+            </div>
+            <div class="col-md-4">
+                <pre class="code">
+<span class="keyword">free</span> <span class="variable">c</span>:<span class="type">channel</span>.
+
+<span class="keyword">free</span> <span class="variable">Foo</span>:<span class="type">bitstring</span> [<span
+                class="tag">private</span>].
+<span class="keyword">free</span> <span class="variable">Bar</span>:<span class="type">bitstring</span> [<span
+                class="tag">private</span>].
+
+<span class="keyword">query</span> <span class="keyword">attacker</span>(<span class="variable">Foo</span>).
+<span class="keyword">query</span> <span class="keyword">attacker</span>(<span class="variable">Bar</span>).
+
+<span class="keyword">process</span>
+  <span class="keyword">out</span>(<span class="variable">c</span>,<span class="variable">Foo</span>)</pre>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="example-complex" class="d-none">
+    <div class="container-wide">
+        <div class="row">
+            <div class="col-md-4 offset-md-2">
+                <h2 class="mt-0">Example</h2>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 offset-md-2">
+                <p>
+                    In this example, we execute a handshake between <code>clientA</code> and <code>serverB</code>.
+                    However, the handshake has a person-in-the-middle attack, which ProVerif automatically detects.
+                    <a href="#" class="toggler" data-source="example-complex" data-target="example-simple">
+                        Switch back to the simple example?
+                    </a>
+                </p>
+
+                <p class="md-mt-10em">
+                    First, we define the cryptographic primitives we need to model the protocol.
+                    Here, we define function symbols to perform symmetric and asymmetric (de)encryption,
+                    as well as creation and validation of signatures.
+                    We use the <code>reduc</code> keyword to define the equational theory between the function symbols.
+                </p>
+
+                <p class="md-mt-10em">
+                    We define the secret <code>s</code> as a private symbol (excluding it from the initial attacker knowledge),
+                    and the attacker target to learn this secret s.
+                    ProVerif will now try to find a way to derive this secret for the attacker,
+                    by executing the processes we model further below,
+                    and transforming terms it learns thereby (e.g. by applying the equational theory).
+                </p>
+
+                <p class="md-mt-10em">
+                    Given the primitives, we now model the handshake protocol.
+                    We create a processus for both the client and the server using <code>let</code>,
+                    and then specify what messages they receive, how these are transformed, and what is finally sent back out.
+                </p>
+
+                <p class="md-mt-10em">
+                    Lastly, we define the main process, which initializes the keys and boots up the client and the server processus.
+                    ProVerif will then be able to fulfil the adversary query, i.e. find an attack.
+                </p>
+            </div>
+            <div class="col-md-6">
+                <pre class="code">
+<span class="comment">(*** Define cryptographic primitives ***)</span>
+
+<span class="comment">(* Symmetric key encryption *)</span>
+<span class="keyword">type</span> <span class="type">key</span>.
+<span class="keyword">fun</span> <span class="function">senc</span>(<span class="type">bitstring</span>, <span class="type">key</span>): <span class="type">bitstring</span>.
+<span class="keyword">reduc</span> <span class="keyword">forall</span> <span class="variable">m</span>: <span class="type">bitstring</span>, <span class="variable">k</span>: <span class="type">key</span>; <span class="function">sdec</span>(<span class="function">senc</span>(<span class="variable">m</span>,<span class="variable">k</span>),<span class="variable">k</span>) = <span class="variable">m</span>.
+
+<span class="comment">(* Asymmetric key encryption *)</span>
+<span class="keyword">type</span> <span class="type">skey</span>.
+<span class="keyword">type</span> <span class="type">pkey</span>.
+<span class="keyword">fun</span> <span class="function">pk</span>(<span class="type">skey</span>): <span class="type">pkey</span>.
+<span class="keyword">fun</span> <span class="function">aenc</span>(<span class="type">bitstring</span>, <span class="type">pkey</span>): <span class="type">bitstring</span>.
+<span class="keyword">reduc</span> <span class="keyword">forall</span> <span class="variable">m</span>: <span class="type">bitstring</span>, <span class="variable">sk</span>: <span class="type">skey</span>; <span class="function">adec</span>(<span class="function">aenc</span>(<span class="variable">m</span>,<span class="function">pk</span>(<span class="variable">sk</span>)),<span class="variable">sk</span>) = <span class="variable">m</span>.
+
+<span class="comment">(* Digital signatures *)</span>
+<span class="keyword">type</span> <span class="type">sskey</span>.
+<span class="keyword">type</span> <span class="type">spkey</span>.
+<span class="keyword">fun</span> <span class="function">spk</span>(<span class="type">sskey</span>): <span class="type">spkey</span>.
+<span class="keyword">fun</span> <span class="function">sign</span>(<span class="type">bitstring</span>, <span class="type">sskey</span>): <span class="type">bitstring</span>.
+<span class="keyword">reduc</span> <span class="keyword">forall</span> <span class="variable">m</span>: <span class="type">bitstring</span>, <span class="variable">ssk</span>: <span class="type">sskey</span>; <span class="function">getmess</span>(<span class="function">sign</span>(<span class="variable">m</span>,<span class="variable">ssk</span>)) = <span class="variable">m</span>.
+<span class="keyword">reduc</span> <span class="keyword">forall</span> <span class="variable">m</span>: <span class="type">bitstring</span>, <span class="variable">ssk</span>: <span class="type">sskey</span>; <span class="function">checksign</span>(<span class="function">sign</span>(<span class="variable">m</span>,<span class="variable">ssk</span>),<span class="function">spk</span>(<span class="variable">ssk</span>)) = <span class="variable">m</span>.
+
+<span class="comment">(* Some secret s *)</span>
+<span class="keyword">free</span> <span class="variable">s</span>:<span class="type">bitstring</span> [<span class="tag">private</span>].
+
+
+<span class="comment">(*** Define the attacker target: To know s ***)</span>
+<span class="keyword">query</span> <span class="keyword">attacker</span>(<span class="variable">s</span>).
+
+
+<span class="comment">(*** Define the protocol ***)</span>
+
+<span class="keyword">free</span> <span class="variable">c</span>:<span class="type">channel</span>.
+
+<span class="keyword">let</span> <span class="function">clientA</span>(<span class="variable">pkA</span>:<span class="type">pkey</span>,<span class="variable">skA</span>:<span class="type">skey</span>,<span class="variable">pkB</span>:<span class="type">spkey</span>) =
+    <span class="keyword">out</span>(<span class="variable">c</span>,<span class="variable">pkA</span>);
+    <span class="keyword">in</span>(<span class="variable">c</span>,<span class="variable">x</span>:<span class="type">bitstring</span>);
+    <span class="keyword">let</span> <span class="variable">y</span> = <span class="function">adec</span>(<span class="variable">x</span>,<span class="variable">skA</span>) <span class="keyword">in</span>
+    <span class="keyword">let</span> (=<span class="variable">pkB</span>,<span class="variable">k</span>:<span class="type">key</span>) = <span class="function">checksign</span>(<span class="variable">y</span>,<span class="variable">pkB</span>) <span class="keyword">in</span>
+    <span class="keyword">out</span>(<span class="variable">c</span>,<span class="function">senc</span>(<span class="variable">s</span>,<span class="variable">k</span>)).
+
+<span class="keyword">let</span> <span class="function">serverB</span>(<span class="variable">pkB</span>:<span class="type">spkey</span>,<span class="variable">skB</span>:<span class="type">sskey</span>) =
+    <span class="keyword">in</span>(<span class="variable">c</span>,<span class="variable">pkX</span>:<span class="type">pkey</span>);
+    <span class="keyword">new</span> <span class="variable">k</span>:<span class="type">key</span>;
+    <span class="keyword">out</span>(<span class="variable">c</span>,<span class="function">aenc</span>(<span class="function">sign</span>((<span class="variable">pkB</span>,<span class="variable">k</span>),<span class="variable">skB</span>),<span class="variable">pkX</span>));
+    <span class="keyword">in</span>(<span class="variable">c</span>,<span class="variable">x</span>:<span class="type">bitstring</span>);
+    <span class="keyword">let</span> <span class="variable">z</span> = <span class="function">sdec</span>(<span class="variable">x</span>,<span class="variable">k</span>) <span class="keyword">in</span>
+    0.
+
+
+<span class="comment">(*** Define the main process which starts the protocol *)</span>
+
+<span class="keyword">process</span>
+    <span class="keyword">new</span> <span class="variable">skA</span>:<span class="type">skey</span>;
+    <span class="keyword">new</span> <span class="variable">skB</span>:<span class="type">sskey</span>;
+    <span class="keyword">let</span> <span class="variable">pkA</span> = <span class="function">pk</span>(<span class="variable">skA</span>) <span class="keyword">in</span> <span class="keyword">out</span>(<span class="variable">c</span>,<span class="variable">pkA</span>);
+    <span class="keyword">let</span> <span class="variable">pkB</span> = <span class="function">spk</span>(<span class="variable">skB</span>) <span class="keyword">in</span> <span class="keyword">out</span>(<span class="variable">c</span>,<span class="variable">pkB</span>);
+    ( (!<span class="function">clientA</span>(<span class="variable">pkA</span>,<span class="variable">skA</span>,<span class="variable">pkB</span>)) | (!<span class="function">serverB</span>(<span class="variable">pkB</span>,<span class="variable">skB</span>)) )</pre>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<script src="./js/bootstrap.bundle.min.js"></script>
+<script src="./js/main.js"></script>
+
+</body>
+</html>

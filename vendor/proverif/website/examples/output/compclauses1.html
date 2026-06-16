@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+                      <html>
+                    <head>
+                    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+                    <title>ProVerif: completed clauses for query 1</title>
+                    <link rel="stylesheet" href="cssproverif.css">
+                                                                           </head>
+                                                                         <body>
+                                                                         <H1>Completed clauses</H1>
+
+<ul>
+
+<li><span class="pred">attacker</span>(<span class="name">secret_message</span>[])
+<li><span class="pred">attacker</span>(<span class="fun">enc</span>(<span class="name">secret_message</span>[],<span class="fun">pk</span>(<span class="name">server_skey</span>[]),<span class="name">r</span>[]))
+<li><span class="pred">attacker</span>(<span class="name">server_skey</span>[])
+<li><span class="pred">attacker</span>(<span class="name">new-name</span>[!att = <span class="var">v</span>])
+<li><span class="pred">equal</span>(<span class="var">v</span>,<span class="var">v</span>)
+<li><span class="pred">attacker</span>(<span class="name">public_channel</span>[])
+<li><span class="pred">attacker</span>(<span class="fun">fail-any_type</span>)
+<li><span class="pred">attacker</span>(<span class="var">v</span>) <span class="conn">&amp;&amp;</span> <span class="pred">attacker</span>(<span class="var">v_1</span>) <span class="conn">-&gt;</span> <span class="pred">mess</span>(<span class="var">v</span>,<span class="var">v_1</span>)
+<li><span class="pred">attacker</span>(<span class="var">v</span>) <span class="conn">&amp;&amp;</span> <span class="pred">attacker</span>(<span class="var">v_1</span>) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="fun"></span>(<span class="var">v</span>,<span class="var">v_1</span>))
+<li><span class="pred">attacker</span>(<span class="var">v</span>) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="var">v</span> <span class="fun">+</span> 1)
+<li><span class="pred">attacker</span>(0)
+<li><span class="pred">attacker</span>(<span class="var">v</span>) <span class="conn">&amp;&amp;</span> <span class="pred">attacker</span>(<span class="var">v_1</span>) <span class="conn">&amp;&amp;</span> <span class="pred">attacker</span>(<span class="var">v_2</span>) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="fun">enc</span>(<span class="var">v</span>,<span class="var">v_1</span>,<span class="var">v_2</span>))
+<li><span class="pred">attacker</span>(<span class="fun">false</span>)
+<li><span class="pred">attacker</span>(<span class="var">v</span>) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="fun">pk</span>(<span class="var">v</span>))
+<li><span class="pred">attacker</span>(<span class="fun">true</span>)
+</ul>
+</body>
+</html>

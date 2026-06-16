@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+                      <html>
+                    <head>
+                    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+                    <title>ProVerif: derivation for query 1</title>
+                    <link rel="stylesheet" href="cssproverif.css">
+                                                                           </head>
+                                                                         <body>
+                                                                         <H1>Explained derivation</H1>
+
+<ol>
+
+<li><a name=step1>The message <span class="name">server_skey</span>[] may be sent to the attacker at output <a href="process_0.html#occ1" target="process" class="occ">{1}</a>.<br>
+<span class="pred">attacker</span>(<span class="name">server_skey</span>[]).<br>
+
+<li><a name=step2>The message <span class="fun">enc</span>(<span class="name">secret_message</span>[],<span class="fun">pk</span>(<span class="name">server_skey</span>[]),<span class="name">r</span>[]) may be sent to the attacker at output <a href="process_0.html#occ4" target="process" class="occ">{4}</a>.<br>
+<span class="pred">attacker</span>(<span class="fun">enc</span>(<span class="name">secret_message</span>[],<span class="fun">pk</span>(<span class="name">server_skey</span>[]),<span class="name">r</span>[])).<br>
+
+<li><a name=step3>By <a href="#step2">2</a>, the attacker may know <span class="fun">enc</span>(<span class="name">secret_message</span>[],<span class="fun">pk</span>(<span class="name">server_skey</span>[]),<span class="name">r</span>[]).<br>
+By <a href="#step1">1</a>, the attacker may know <span class="name">server_skey</span>[].<br>
+Using the function <span class="fun">dec</span> the attacker may obtain <span class="name">secret_message</span>[].<br>
+<span class="pred">attacker</span>(<span class="name">secret_message</span>[]).<br>
+
+<li><a name=step4>By <a href="#step3">3</a>, <span class="pred">attacker</span>(<span class="name">secret_message</span>[]).<br>
+The goal is reached, represented in the following fact:<br>
+<span class="pred">attacker</span>(<span class="name">secret_message</span>[]).<br>
+
+</ol>
+</body>
+</html>

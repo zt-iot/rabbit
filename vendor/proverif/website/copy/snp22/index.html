@@ -1,0 +1,45 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProVerif with Lemmas, Induction, Fast Subsumption, and Much More</title>
+</head>
+<body>
+<H1>ProVerif with Lemmas, Induction, Fast Subsumption, and Much More</H1>
+
+Bruno Blanchet, Vincent Cheval and V&eacute;ronique Cortier.
+
+<p>
+This paper presents a major overhaul of one the most widely used
+symbolic security protocol verifiers, ProVerif. We provide two main
+contributions. First, we extend ProVerif with lemmas, axioms, proofs
+by induction, natural numbers, and temporal queries. These features
+not only extend the scope of ProVerif, but can also be used to
+improve its precision (that is, avoid false attacks) and make it
+terminate more often. Second, we rework and optimize many of the algorithms
+used in ProVerif (generation of clauses, resolution, subsumption, ...),
+resulting in impressive speed-ups on large examples.
+</p>
+
+
+<P>
+A <A HREF="technical_report.pdf">long version</A> and a <A HREF="snp22.pdf">short version</A>
+of the paper are available.
+<P>
+Here are the benchmarks and ProVerif versions that were used in the paper (see Section 4 in Short paper for details).
+<UL>
+<LI><A HREF="benchmark.zip">Benchmark</A>
+<LI><A HREF="versions/proverifA_Subsumption.zip">ProVerif (A): Subsumption</A>
+<LI><A HREF="versions/proverifB_Translation.zip">ProVerif (B): Clause generation</A>
+<LI><A HREF="versions/proverifC_Resolution.zip">ProVerif (C): Set-to-clause resolution</A>
+<LI><A HREF="versions/proverifD_Redundancy.zip">ProVerif (D): Global redundancy</A>
+<LI><A HREF="versions/proverifE_Final.zip">ProVerif (E): Pre-treatment of processes</A>
+</UL>
+
+<HR>
+<A HREF="https://bblanche.gitlabpages.inria.fr/">Bruno Blanchet</A>
+<A HREF="https://chevalvi.gitlabpages.inria.fr/chevalvi/">Vincent Cheval</A>
+
+</body>
+</html>

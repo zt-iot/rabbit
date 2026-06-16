@@ -1,0 +1,4 @@
+[submodule "proverif/ci_system"]
+	path = proverif/ci_system
+	url = git@gitlab.inria.fr:bblanche/ci_system.git
+	branch = main

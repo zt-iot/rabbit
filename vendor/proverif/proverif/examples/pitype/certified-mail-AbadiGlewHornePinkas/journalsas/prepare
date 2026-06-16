@@ -1,0 +1,6 @@
+#!/bin/sh
+
+for i in SECRECY PROP1 PROP2 PROP3 PROP4
+do
+    m4 -D$i protocol.m4.pv > prot-$i.pv
+done

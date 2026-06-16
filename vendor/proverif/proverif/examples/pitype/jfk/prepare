@@ -1,0 +1,13 @@
+#!/bin/sh
+
+for i in SECRECY EVCACHE EVNOCACHE IDISECR
+do
+    m4 -D$i JFKi.m4.pv > prot-JFKi-$i.pv
+done
+
+for i in SECRECY EVCACHE EVNOCACHE IDRSECRACT IDSECR
+do
+    m4 -D$i JFKr.m4.pv > prot-JFKr-$i.pv
+done
+
+

@@ -1,0 +1,37 @@
+(* Comparing an abstract MAC primitive to its implementation using
+   hashes of blocks, as explained in "mobile values", section 6. 
+   This example amounts to a change of signature, with
+   the implementation signature having additional equations for the
+   benefit of the attacker. *)
+
+type key.
+type block.
+
+fun mac(key, bitstring): bitstring. (* MAC specification, with no equation. *)
+fun impl(key, bitstring): bitstring [private]. (* choice of a MAC implementation *)
+
+fun f(key, bitstring): bitstring. (* variable-length keyed hash *)
+fun h(bitstring, block): bitstring. (* keyed-hash for a single block *)
+
+(* 
+The first, broken implementation uses 
+equation impl(k,x) = f(k,x).
+
+The second, correct implementation uses 
+equation impl(k,x) = f(k,f(k,x)).
+*)
+
+equation forall k: key, x: bitstring; impl(k,x) = f(k,f(k,x)).
+
+equation forall x: key, y: bitstring, z: block; h(f(x,y),z) = f(x,(y,z)).  
+
+free c, c1, c2: channel.
+
+process
+	new k: key;
+	(
+	  ( !in(c1, x: bitstring); out(c,(x,choice[mac(k,x),impl(k,x)])))
+	|       
+	  ( in(c,(x: bitstring, m: bitstring)); 
+	    if choice[mac(k,x),impl(k,x)] = m then out(c2,x))
+	)

@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css?v=18">
+
+    <title>ChevaletalUsenix23</title>
+    <meta name="description" content="Automated Symbolic Protocol Verification">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "ProVerif",
+            "description": "ProVerif is an automatic symbolic protocol verifier which proves security properties of cryptographic protocols.",
+            "applicationCategory": "Security, Cryptography",
+            "programmingLanguage": "OCaml",
+            "downloadUrl": "https://bblanche.gitlabpages.inria.fr/proverif/",
+            "softwareHelp": {
+                "@type": "CreativeWork",
+                "url": "https://bblanche.gitlabpages.inria.fr/proverif/manual.pdf"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<nav class="navbar sticky-top navbar-expand-lg bg-dark border-bottom border-body"  data-bs-theme="dark">
+    <div class="container-fluid container-narrow">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="../">ProVerif</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../install.html">Install</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../usage.html">Usage</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="http://proverif24.paris.inria.fr/">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../manual.pdf">Manual</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../25years.html">25 years workshop</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="../users.html">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="../publications.html">Publications</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<section>
+    <div class="container-narrow">
+        <H2>ChevaletalUsenix23</H2>
+
+
+Vincent Cheval, Cas Cremers, Alexander Dax, Lucca Hirschi, Charlie Jacomme, and
+  Steve Kremer.
+  Hash Gone Bad: Automated discovery of protocol attacks that
+  exploit hash function weaknesses.
+  In <i>32nd USENIX Security Symposium (USENIX Security'23)</i>,
+  Anaheim, CA, USA, August 2023. USENIX Association. <span class="tagclass">Tool feature</span> <span class="tagclass">Case study</span>
+
+<p><h4>Links</h4>
+
+<A HREF="https://www.usenix.org/conference/usenixsecurity23/presentation/cheval">Paper</A>
+
+<h4>Abstract</h4>
+
+Most cryptographic protocols use cryptographic hash functions as a building block. The security analyses of these protocols typically assume that the hash functions are perfect (such as in the random oracle model). However, in practice, most widely deployed hash functions are far from perfect - and as a result, the analysis may miss attacks that exploit the gap between the model and the actual hash function used.<P>
+We develop the first methodology to systematically discover attacks on security protocols that exploit weaknesses in widely deployed hash functions. We achieve this by revisiting the gap between theoretical properties of hash functions and the weaknesses of real-world hash functions, from which we develop a lattice of threat models. For all of these threat models, we develop fine-grained symbolic models.<P>
+Our methodology's fine-grained models cannot be directly encoded in existing state-of-the-art analysis tools by just using their equational reasoning. We therefore develop extensions for the two leading tools, Tamarin and ProVerif.
+In extensive case studies using our methodology, the extended tools rediscover all attacks that were previously reported for these protocols and discover several new variants. 
+
+
+<h4>Bibtex</h4>
+
+<pre><a name="ChevaletalUsenix23"></a>
+@INPROCEEDINGS{ChevaletalUsenix23,
+  ADDRESS = {Anaheim, CA, USA},
+  AUTHOR = {Cheval, Vincent and Cremers, Cas and Dax, Alexander and Hirschi, Lucca and Jacomme, Charlie and Kremer, Steve},
+  BOOKTITLE = {32nd USENIX Security Symposium ({USENIX}
+                  Security'23)},
+  MONTH = AUG,
+  PUBLISHER = {{USENIX} Association},
+  TITLE = {Hash Gone Bad: Automated discovery of protocol attacks that exploit hash function weaknesses},
+  YEAR = 2023,
+  ACRONYM = {{USENIX} Security'23},
+  NMONTH = 8
+}
+
+</pre>    </div>
+</section>
+
+
+<script src="../js/bootstrap.bundle.min.js"></script>
+<script src="../js/main.js"></script>
+
+</body>
+</html>
+
+

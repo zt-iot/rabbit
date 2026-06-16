@@ -1,0 +1,80 @@
+%% Applied Pi Calculus Package
+%% 
+%% Handles displaying applied pi calculus symbols and the ProVerif variant
+%%
+%% Usage:
+%%      \new{x}             -->  \nu x
+%%      \Ifthen{M}{N}       -->  if M = N then
+%%      \Ifthenelse{M}{N}{P}{Q} --> if M = N then P else Q
+%%      \In[c]{x}           -->  \defaultchannel(x)         or c(x)          
+%%      \Out[c]{M}          -->  \overline{\defaultchannel}<M>   or \overline{c}<x>
+%%      \activesubst{M}{x}  -->  {M/x}
+%%      \context[A]         -->  C[_]                       or C[A]
+%%      \contextdef{A}      -->  C[_] = _ | A
+%%      \reduc[alpha]       -->  ->                         or -alpha->
+%%
+%%      \Letin{x}{D}        -->  let x = D in
+%%      \Letinelse{x}{D}{P}{Q} --> let x = D in P else Q
+%%      \diff{a}{b}         -->  diff[a,b]
+%%      \fst{P}             -->  fst(P)
+%%      \snd{P}             -->  snd(P)
+%%      \stage{1}           -->  1:
+%%      \sstage{1}          -->  1::
+
+
+\def\appliedpidate{2009/02/12}
+\def\appliedpiversion{2.0}
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{appliedpi}[\appliedpidate \space v\appliedpiversion]
+\typeout{Document Class: appliedpi \appliedpidate \space v\appliedpiversion}
+
+%%\RequirePackage{undertilde}
+
+\def\defaultchannel{c}
+\newcommand{\setdefaultchannel}[1]{\def\defaultchannel{#1}}
+
+
+\newcommand{\nill}{0}
+%\newcommand{\activesubst}[2]{\{{}^{#1}/{}_{#2}\}}
+\newcommand{\activesubst}[2]{\{\subst{#1}{#2}\}}   
+\newcommand{\subst}[2]{\textrm{\raisebox{2pt}{\footnotesize $#1$}}/\textrm{\raisebox{-1.5pt}{\footnotesize $#2$}}}
+\newcommand{\hhhh}[2]{\textrm{#1}(#2)}
+\newcommand{\fst}[1]{\hhhh{fst}{#1}}              
+\newcommand{\snd}[1]{\hhhh{snd}{#1}}  
+\newcommand{\fn}[1]{\hhhh{fn}{#1}}            
+\newcommand{\fv}[1]{\hhhh{fv}{#1}}
+\newcommand{\bn}[1]{\hhhh{bn}{#1}}            
+\newcommand{\bv}[1]{\hhhh{bv}{#1}}
+\newcommand{\dom}[1]{\hhhh{dom}{#1}}
+\newcommand{\diff}[2]{\textrm{diff}[#1,#2]}         
+\newcommand{\vardiff}[2]{[#1,#2]}
+\newcommand{\Out}[2][\defaultchannel]{\textrm{out}(#1,#2)} 
+\newcommand{\In}[2][\defaultchannel]{\textrm{in}(#1,#2)}    
+\newcommand{\new}[1]{\textrm{new }#1}   
+\newcommand{\Else}{\textrm{ else }}
+\newcommand{\Ifthen}[2]{\textrm{if } #1=#2 \textrm{ then }} 
+\newcommand{\Ifthenp}[1]{\textrm{if } #1 \textrm{ then }} 
+\newcommand{\Ifthenelse}[4]{\Ifthen{#1}{#2} #3 \Else #4}
+\newcommand{\Ifthenelsep}[3]{\Ifthenp{#1} #2 \Else #3}
+\newcommand{\Letin}[2]{\textrm{let } #1=#2 \textrm{ in }} 
+\newcommand{\Let}[2]{\textrm{let } #1=#2\textrm{ }} 
+\newcommand{\Letinelse}[4]{\Letin{#1}{#2} #3 \Else #4}
+\newcommand{\reduc}[1][]{\xrightarrow{#1}}
+\newcommand{\stage}[1]{#1\textrm{:}\,} 
+\newcommand{\sstage}[1]{#1\textrm{::}\,} 
+\newcommand{\swap}[3]{\sstage{#1_{#2,#3}}} 
+
+\newcommand{\event}[1]{\textrm{event }#1}
+\newcommand{\phase}[1]{\textrm{event }#1}
+
+%\newcommand{\sstage}[1]{{#1::}} 
+%\newcommand{\sstage}[1]{{#1\negmedspace::}} 
+\newcommand{\context}[1][\_]{C[#1]}
+\newcommand{\contextdef}[1][\ ]{\context = \_ | #1}
+
+%%\newcommand{\perm}[1]{\textrm{perm }#1}
+%%\newcommand{\varperm}[1]{\utilde{#1}}
+
+
+% EOF EOF EOF EOF EOF EOF EOF EOF EOF EOF EOF EOF EOF EOF EOF EOF EOF

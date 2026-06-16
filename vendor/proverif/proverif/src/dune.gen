@@ -1,0 +1,17 @@
+(executables
+ (names main main_interact proveriftotex)
+ (libraries GTK unix str)
+ (modules_without_implementation piptree pitptree pitypes ptree types)
+ (foreign_stubs (language c) (names columns))
+ (promote (until-clean) (into ../)))
+
+(ocamllex
+ (modules lexer lexertotex pitlexertotex pilexer pitlexer))
+
+(ocamlyacc
+ (modules parser piparser pitparser))
+
+(env
+  (dev
+    (flags 
+     (:standard -warn-error -A+31 -w +a-4-6-7-9-27-29-32..42-44-45-48-50-60-70))))

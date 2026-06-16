@@ -1,0 +1,70 @@
+(* Otway Rees protocol.
+   Version of Otway Rees, Operating Systems Review Vol 21 no 1, p 8-10, 1987 
+
+A -> B: (C, A, B, { Na, C, A, B }_kA)
+B -> S: (C, A, B, { Na, C, A, B }_kA, { Nb, C, A, B }_kB)
+S -> B: (C, { Na, k }_kA, { Nb, k }_kB)
+B -> A: (C, { Na, k }_kA)
+
+Correct
+*)
+
+(* Shared-key cryptography *)
+
+fun encrypt/2.
+reduc decrypt(encrypt(m,k),k) = m.
+
+(* Host name / key *)
+
+fun host/1.
+private reduc getkey(host(x)) = x.
+
+free c.
+
+private free secretA, secretB.
+noninterf secretA.
+noninterf secretB.
+noninterf secretA, secretB.
+
+let processA = in(c, hostB0);
+	       new C; new Na;
+               out(c, (C, hostA, hostB0, encrypt((Na, C, hostA, hostB0), kA)));
+	       in(c, (=C, m2));
+	let (=Na, k) = decrypt(m2, kA) in
+	(* OK *)
+	if hostB0 = hostB then 
+        out(c, encrypt(secretA, k)).
+
+
+let processB = 
+	in(c, (C1, hostA1, =hostB, m2));
+	new Nb;
+	out(c, (C1, hostA1, hostB, m2, encrypt((Nb, C1, hostA1, hostB), kB)));
+	in(c, (=C1, m3, m4));
+	let (=Nb, k) = decrypt(m4, kB) in
+	out(c, (C1, m3));
+	(* OK *)
+	if hostA1 = hostA then
+	out(c, encrypt(secretB, k)).
+
+
+let processS = in(c, (C1, hostA1, hostB1, m2, m3));
+	       let (Na1, =C1, =hostA1, =hostB1) = decrypt(m2, getkey(hostA1)) in
+	       let (Nb1, =C1, =hostA1, =hostB1) = decrypt(m3, getkey(hostB1)) in
+	       new k;
+               out(c, (C1, encrypt((Na1, k), getkey(hostA1)), 
+                           encrypt((Nb1, k), getkey(hostB1)))).
+
+
+process new kA; new kB;
+	let hostA = host(kA) in 
+	let hostB = host(kB) in
+	out(c, hostA); out(c, hostB);
+	((!processA) | (!processB) | (!processS))
+
+(* EXPECTPV
+RESULT Non-interference secretA is true.
+RESULT Non-interference secretB is true.
+RESULT Non-interference secretA, secretB cannot be proved.
+0.132s (user 0.124s + system 0.008s), max rss 11020K
+END *)

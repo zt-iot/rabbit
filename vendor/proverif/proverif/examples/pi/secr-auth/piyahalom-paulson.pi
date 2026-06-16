@@ -1,0 +1,84 @@
+(* 
+
+A -> B : A, N_A
+B -> S : B, N_B, { c1, A, N_A }_Kbs
+S -> A : { B, K_ab, N_A, N_B }_Kas, { c2, A, K_ab }_Kbs
+A -> B : { c2, A, K_ab }_Kbs, { N_B }_Kab
+
+*)
+
+free c.
+
+param keyCompromise = strict.
+(* param injectiveAg = true. *)
+
+fun host/1.
+private reduc getkey(host(x)) = x.
+
+(* Shared key cryptography *)
+
+fun encrypt/2.
+reduc decrypt(encrypt(x,y),y) = x.
+
+(* tags *)
+
+data c1/0.
+data c2/0.
+
+(* Secrecy assumptions *)
+
+not kas.
+not kbs.
+
+query attacker:secretA;
+      attacker:secretB.
+query evinj:endAparam(x) ==> evinj:beginAparam(x).
+query evinj:endBkey(x,y,z,t) ==> evinj:beginBkey(x,y,z,t).
+
+let processA = 
+	new secretA;
+	new Na; 
+	out(c, (host(kas), Na)); 
+	in(c, (nb, m1, m2));
+        let (b, kab, =Na, =nb) = decrypt(m1, kas) in
+ 	event beginBkey(b, host(kas), nb, kab); 
+        out(c, (m2, encrypt(nb, kab)));
+	(* OK *) 
+        if b = host(kbs) then
+	event endAparam(host(kas));
+	out(c, encrypt(secretA, kab)).
+                         
+let processB = 
+	new secretB;
+	in(c, (a, na)); 
+	event beginAparam(a);
+	new Nb; 
+	out(c, (host(kbs), Nb, encrypt((c1,a,na), kbs)));
+	in(c, (m3, m4));
+        let (=c2, =a, kab) = decrypt(m3, kbs) in
+        if Nb = decrypt(m4, kab) then
+	(* OK *)
+        if a = host(kas) then
+	event endBkey(host(kbs), a, Nb, kab);
+	out(c, encrypt(secretB, kab)).
+
+let processS = 
+	in(c, (b, nb, m5));
+	let kbs2 = getkey(b) in
+        let (=c1, a, na) = decrypt(m5,kbs2) in
+        let kas2 = getkey(a) in
+        new kab;
+	out(c, (encrypt((b, kab, na, nb), kas2), encrypt((c2, a, kab), kbs2))).
+
+
+process new kas; new kbs; 
+	((!processA) | (!processB) | (!processS))
+
+(* EXPECTPV
+RESULT not attacker_p1:secretA[!comp = @session1(),!1 = v_4] is true.
+RESULT not attacker_p1:secretB[!comp = @session1(),!1 = v_4] cannot be proved.
+RESULT evinj:endAparam(@session1(),x) ==> evinj:beginAparam(v_4,x) is true.
+RESULT evinj:endBkey(@session1(),x,y,z,t) ==> evinj:beginBkey(v_4,x,y,z,t) cannot be proved.
+RESULT (even ev:endBkey(@session1(),x,y,z,t) ==> ev:beginBkey(v_4,x,y,z,t) cannot be proved.)
+0.152s (user 0.152s + system 0.000s), max rss 12156K
+END *)

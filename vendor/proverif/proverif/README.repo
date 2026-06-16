@@ -1,0 +1,7 @@
+This repository uses the submodule ci_system for tests.
+
+Do at least once:
+  git config --add submodule.recurse true
+
+At the clone and at every pull that updates the submodule, do:
+  git submodule update --init --remote

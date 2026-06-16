@@ -1,0 +1,22 @@
+(* Fails because cannot handle the equational theory
+   precisely enough. Use choice to prove this example successfully
+   (see examples/choice/dh-fs)
+*)
+
+data g/0.
+fun exp/2.
+
+equation exp(exp(g,x),y) = exp(exp(g,y),x).
+
+free c.
+private free x,n,m,s.
+
+noninterf x among (exp(exp(g,m),n), exp(g,s)).
+
+process
+	out(c, (exp(g,m), exp(g,n), x))
+
+(* EXPECTPV
+RESULT Non-interference x among (exp(exp(g(),m[]),n[]), exp(g(),s[])) cannot be proved.
+0.008s (user 0.008s + system 0.000s), max rss 7960K
+END *)

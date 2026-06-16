@@ -1,0 +1,33 @@
+(* Check that the analysis is less precise when names do not have the
+previous inputs in their parameters (only the session identifiers)
+
+This is the corrected Needham-Schroeder protocol, and the system
+fails to prove its correctness, whereas it succeeds with the previous
+inputs in the parameters of nonces *)
+
+pred begin/1 block.
+pred c/1 elimVar, decompData.
+nounif c:x.
+
+fun pk/1.
+fun encrypt/2.
+
+query end:x,y.
+
+reduc
+
+c:encrypt(Nb[v10],pk(skB[])) & c:encrypt((v9,pk(skA[])),pk(skB[])) -> end:(v10),(v9,pk(skA[]),pk(skB[]),Nb[v10]);
+c:encrypt((v6,v7),pk(skB[])) -> c:encrypt((v6,Nb[v8],pk(skB[])),v7);
+begin:(Na[v4],pk(skA[]),v3,v5) & c:encrypt((Na[v4],v5,v3),pk(skA[])) & c:v3 -> c:encrypt(v5,v3);
+c:v1 -> c:encrypt((Na[v2],pk(skA[])),v1);
+c:pk(skB[]);
+c:pk(skA[]);
+c:c[];
+c:encrypt(x,pk(y)) & c:y -> c:x;
+c:any3 -> c:pk(any3);
+c:any2 & c:any1 -> c:encrypt(any2,any1).
+
+(* EXPECTPV
+RESULT goal reachable: end:x,y
+0.006s (user 0.000s + system 0.006s), max rss 9392K
+END *)

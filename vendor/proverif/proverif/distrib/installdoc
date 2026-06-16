@@ -1,0 +1,5 @@
+#!/bin/sh
+
+mkdir -p "$1/doc/proverif" 
+cp -r examples "$1/doc/proverif" 
+cp docs/* "$1/doc/proverif"

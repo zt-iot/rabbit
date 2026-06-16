@@ -1,0 +1,116 @@
+#!/bin/sh
+
+set -e
+pvdir=$PWD
+
+if [ ! -x ./analyze ]
+then
+    echo ERROR analyze not found
+    exit 2
+fi
+
+if [ -d /local/"$USER"/tmp ]
+then
+    TMPPARENT=/local/"$USER"/tmp
+else
+    TMPPARENT=.
+fi
+
+TMPDIR="$(mktemp -d "$TMPPARENT/tmp.XXXXXXXXXX")"
+TMP=$TMPDIR/tmp
+options=""
+
+# usage message, in case of bad arguments
+
+usage()
+{
+    cat <<'EOF'
+Usage: test <options> <mode> <test_set>
+where
+<options> are passed to analyze (they are all arguments until
+a valid <mode> is met or the command-line is exhausted)
+<mode> can be:
+- test: test the mentioned scripts
+- test_add: test the mentioned scripts and add the
+  expected result in the script when it is missing
+- add: add the expected result in the script when it is missing,
+  do not test scripts that already have an expected result
+- update: test the mentioned scripts and update the expected
+  result in the script
+- reset: remove expected results and history from scripts
+and <test_set> can be: typed, untyped, or
+dir <prefix> <list_of_directories>
+- typed runs ProVerif on examples for the typed front-ends
+- untyped runs ProVerif on examples for the untyped front-ends
+- dir <prefix> <list_of_directories> analyzes the mentioned directories
+  using ProVerif, using <prefix> as prefix for the output files.
+When omitted, <mode> is test and <test_set> is typed.
+EOF
+    exit 2
+}
+
+# analyzedirlist <prefix> <list of directories>
+# analyzes the ProVerif scripts in the given list of directories,
+# and outputs the results in tests/<prefix>`date`
+# with summary in tests/sum-<prefix>`date`
+# and comparison with expected results on the standard output and in tests/res-<prefix>`date`
+
+analyzedirlist()
+{
+    prefix=$1
+    shift
+    echo "Preparing the files"
+    for i in "$@"
+    do
+	if [ -d $i ]
+	then
+	    all_prepare="$(find "$i" -type f -name "prepare")"
+	    for one_prepare in $all_prepare
+	    do
+		dir_prepare="$(dirname "$one_prepare")"
+		cd "$dir_prepare"
+		./prepare
+		cd "$pvdir"
+	    done
+	fi
+    done
+    echo "Starting analysis"
+    ./analyze $options PV "$mode" "$TMPDIR" "$prefix" dirs "$@"
+}
+
+mkdir -p tests
+
+while :
+do
+    case X$1 in
+	X-'?')
+	    usage;;
+	X)
+	    mode=test
+	    break;;
+	Xtest|Xtest_add|Xadd|Xupdate|Xreset)
+	    mode=$1
+	    shift
+	    break;;
+	*)
+	    options="$options $1"
+	    shift
+    esac
+done
+
+case X$1 in
+    X|Xtyped)
+	analyzedirlist typed examples/pitype examples/cryptoverif examples/horntype unclearIP/examples/pitype ;;
+    Xuntyped)
+	analyzedirlist untyped examples/horn examples/pi unclearIP/examples/pi ;;
+    Xdir)
+	# test dir <prefix> <list of directories>
+	# analyzes the CryptoVerif scripts in the given list of directories,
+	# and outputs the results in tests/<prefix>`date`
+	shift
+	analyzedirlist "$@";;
+    *)  echo "Unknown analysis set $1"
+	usage
+esac
+
+rm -r "$TMPDIR"

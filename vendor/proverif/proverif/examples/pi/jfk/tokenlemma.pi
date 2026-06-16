@@ -1,0 +1,23 @@
+(* JFKr *)
+
+(* Keyed hash function *)
+
+fun H/2.
+
+(* Free names *)
+
+free c. (* Public channel *)
+
+(* Queries: properties to prove *)
+
+process
+	new KR;
+	!
+	in(c, V);
+	new N;
+	out(c, choice[N, H(KR, (N,V))])
+
+(* EXPECTPV
+RESULT Observational equivalence is true.
+0.004s (user 0.004s + system 0.000s), max rss 7436K
+END *)

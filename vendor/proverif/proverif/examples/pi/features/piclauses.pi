@@ -1,0 +1,103 @@
+(* Denning-Sacco *)
+
+free c.
+
+(* Public key cryptography *)
+
+fun pk/1.
+fun encrypt/2.
+reduc decrypt(encrypt(x,pk(y)),y) = x.
+
+(* Signatures *)
+
+fun sign/2.
+reduc getmess(sign(m,k)) = m.
+reduc checksign(sign(m,k), pk(k)) = m.
+
+(* Host name / key 
+   The server has a table (host name, public key), which we
+   represent by the function getkey. *)
+
+fun host/1.
+private reduc getkey(host(x)) = x.
+
+(* Shared-key cryptography *)
+
+fun sencrypt/2.
+reduc sdecrypt(sencrypt(x,y),y) = x.
+
+(* Secrecy assumptions *)
+
+not skA.
+not skB.
+not skS.
+
+query ev:endBparam(x,y) ==> evinj:beginBparam(x,y).
+query ev:endBkey(x,y,z) ==> evinj:beginBkey(x,y,z).
+
+private free secretA, secretB.
+query attacker:secretA.
+query attacker:secretB.
+
+
+(* Clauses *)
+
+pred member/2.
+data cons/2.
+
+clauses
+
+member:x,cons(x,l);
+member:x,l -> member:x,cons(y,l).
+
+let processA =
+	in(c, (cert1, cert2));
+	let (=hostA, =pkA) = checksign(cert1, pkS) in
+	let (h2, pk2) = checksign(cert2, pkS) in
+	let x suchthat member:x,h2 in
+	event beginBparam(hostA, h2);
+	new k;
+	event beginBkey(hostA, h2, k);
+	out(c, (cert1, cert2, encrypt(sign(k, skA), pk2)));
+	if h2 = hostB then
+	out(c, sencrypt(secretA, k)).
+
+let processB =
+	in(c, (cert1, cert2, km));
+	let (h1, pk1) = checksign(cert1, pkS) in
+	let (=hostB, =pkB) = checksign(cert2, pkS) in
+	let ks = decrypt(km,skB) in
+	let k = checksign(ks, pk1) in
+	if h1 = hostA then
+	event endBparam(h1, hostB);
+	event endBkey(h1, hostB, k);
+	out(c, sencrypt(secretB, k)).
+
+let processS =
+	in(c, (h1,h2));
+	let s1 = getkey(h1) in
+	let s2 = getkey(h2) in
+	out(c, (sign((h1, s1), skS), sign((h2, s2), skS))).
+
+process new skA; 
+	let pkA = pk(skA) in
+        out(c, pkA);
+        new skB; 
+	let pkB = pk(skB) in
+        out(c, pkB);
+	new skS; 
+	let pkS = pk(skS) in
+	out(c, pkS);
+	let hostA = host(pkA) in
+	out(c, hostA);
+	let hostB = host(pkB) in
+	out(c, hostB);
+	((!processA) | (!processB) | (!processS))
+
+(* EXPECTPV
+RESULT evinj:endBparam(x_1,y) ==> evinj:beginBparam(x_1,y) is true.
+RESULT evinj:endBkey(x_1,y,z) ==> evinj:beginBkey(x_1,y,z) is true.
+RESULT not attacker:secretA[] is true.
+RESULT not attacker:secretB[] is true.
+0.009s (user 0.003s + system 0.006s), max rss 10192K
+END *)

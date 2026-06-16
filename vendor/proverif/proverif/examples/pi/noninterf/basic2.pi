@@ -1,0 +1,14 @@
+fun hash/1.
+
+free c.
+private free x,n,m.
+
+noninterf x among (n, hash(m)).
+
+process
+	out(c, (m, x))
+
+(* EXPECTPV
+RESULT Non-interference x among (n[], hash(m[])) cannot be proved.
+0.004s (user 0.000s + system 0.004s), max rss 7248K
+END *)

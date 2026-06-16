@@ -1,0 +1,19 @@
+(* Simple example that illustrates both the use of induction and the setting
+   nounigIgnoreAFewTimes. The query cannot be proved with one of them removed.
+*)
+
+
+free d:channel[private].
+
+set nounifIgnoreAFewTimes = auto.
+
+query x:nat,y:nat;
+  mess(d,x) ==> is_nat(x) [induction].
+
+process
+  out(d,0) | ! in(d,x:nat); out(d,x+1)
+
+(* EXPECTPV
+RESULT mess(d[],x_1) ==> is_nat(x_1) is true.
+0.010s (user 0.005s + system 0.005s), max rss 8620K
+END *)

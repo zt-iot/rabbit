@@ -1,0 +1,151 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css?v=18">
+
+    <title>KobeissiBhargavanBlanchetEuroSP17</title>
+    <meta name="description" content="Automated Symbolic Protocol Verification">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "ProVerif",
+            "description": "ProVerif is an automatic symbolic protocol verifier which proves security properties of cryptographic protocols.",
+            "applicationCategory": "Security, Cryptography",
+            "programmingLanguage": "OCaml",
+            "downloadUrl": "https://bblanche.gitlabpages.inria.fr/proverif/",
+            "softwareHelp": {
+                "@type": "CreativeWork",
+                "url": "https://bblanche.gitlabpages.inria.fr/proverif/manual.pdf"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<nav class="navbar sticky-top navbar-expand-lg bg-dark border-bottom border-body"  data-bs-theme="dark">
+    <div class="container-fluid container-narrow">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="../">ProVerif</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../install.html">Install</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../usage.html">Usage</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="http://proverif24.paris.inria.fr/">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../manual.pdf">Manual</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../25years.html">25 years workshop</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="../users.html">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="../publications.html">Publications</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<section>
+    <div class="container-narrow">
+        <H2>KobeissiBhargavanBlanchetEuroSP17</H2>
+
+
+Nadim Kobeissi, Karthikeyan Bhargavan, and Bruno Blanchet.
+  Automated Verification for Secure Messaging Protocols and
+  their Implementations: A Symbolic and Computational Approach.
+  In <i>2nd IEEE European Symposium on Security and Privacy
+  (EuroS&amp;P'17)</i>, pages 435-450, Paris, France, April 2017. IEEE. <span class="tagclass">Case study</span>
+
+<p><h4>Get the paper</h4>
+
+ <a href="./KobeissiBhargavanBlanchetEuroSP17.pdf">.pdf, 851 Kb</a>
+
+<h4>Links</h4>
+
+<A HREF="https://github.com/Inria-Prosecco/proscript-messaging">Supporting material</A>
+
+<h4>Abstract</h4>
+
+Many popular web applications incorporate end-to-end secure
+  messaging protocols, which seek to ensure that messages sent between
+  users are kept confidential and authenticated, even if the web
+  application's servers are broken into or otherwise compelled into
+  releasing all their data.  Protocols that promise such strong
+  security guarantees should be held up to rigorous analysis, since
+  protocol flaws and implementations bugs can easily lead to
+  real-world attacks.  <P>
+  We propose a novel methodology that allows protocol designers,
+  implementers, and security analysts to collaboratively verify a
+  protocol using automated tools. The protocol is implemented in
+  ProScript, a new domain-specific language that is designed for
+  writing cryptographic protocol code that can both be executed within
+  JavaScript programs and automatically translated to a readable model
+  in the applied pi calculus. This model can then be analyzed
+  symbolically using ProVerif to find attacks in a variety of threat
+  models.  The model can also be used as the basis of a computational
+  proof using CryptoVerif, which reduces the security of the protocol
+  to standard cryptographic assumptions. If ProVerif finds an attack,
+  or if the CryptoVerif proof reveals a weakness, the protocol
+  designer modifies the ProScript protocol code and regenerates the
+  model to enable a new analysis.
+  
+  We demonstrate our methodology by implementing and analyzing a
+  variant of the popular Signal Protocol with only minor differences.
+  We use ProVerif and CryptoVerif to find new and previously-known weaknesses in the
+  protocol and suggest practical countermeasures. Our ProScript
+  protocol code is incorporated within the current release of
+  Cryptocat, a desktop secure messenger application written in
+  JavaScript. Our results indicate that, with disciplined programming
+  and some verification expertise, the systematic analysis of
+  complex cryptographic web applications is now becoming practical.
+
+<h4>Bibtex</h4>
+
+<pre><a name="KobeissiBhargavanBlanchetEuroSP17"></a>
+@INPROCEEDINGS{KobeissiBhargavanBlanchetEuroSP17,
+  AUTHOR = {Nadim Kobeissi and Karthikeyan Bhargavan and Bruno Blanchet},
+  TITLE = {Automated Verification for Secure Messaging Protocols and their Implementations: A Symbolic and Computational Approach},
+  BOOKTITLE = {2nd IEEE European Symposium on Security and Privacy (EuroS\&P'17)},
+  YEAR = {2017},
+  PAGES = {435--450},
+  MONTH = APR,
+  ADDRESS = {Paris, France},
+  PUBLISHER = {IEEE}
+}
+
+</pre>    </div>
+</section>
+
+
+<script src="../js/bootstrap.bundle.min.js"></script>
+<script src="../js/main.js"></script>
+
+</body>
+</html>
+
+

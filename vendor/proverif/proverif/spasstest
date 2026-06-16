@@ -1,0 +1,22 @@
+#!/bin/sh
+
+echo Converting to SPASS...
+
+for i in examples/horn/secr/*.horn
+do
+    echo $i
+    ./proverif -out spass -o examples/horn/spass/`basename $i .horn`.spass $i
+done
+
+SPASS=$HOME/spass/SPASS-2.0/SPASS
+output=tests/spass`date '+%d.%m.%y-%H:%M:%S'`
+
+echo "Testing $SPASS... (Result in $output)"
+(
+for i in examples/horn/spass/*.spass
+do
+    echo $i
+    /usr/bin/time -f "%es (%Us user + %Ss system)" $SPASS $i 2>&1 
+done
+) > $output
+	 

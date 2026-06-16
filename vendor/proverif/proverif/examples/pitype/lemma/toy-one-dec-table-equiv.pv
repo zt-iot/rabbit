@@ -1,0 +1,24 @@
+free c:channel.
+free s:bitstring [private].
+
+table tbl(bitstring).
+
+fun enc(bitstring,bitstring):bitstring.
+reduc forall x:bitstring,y:bitstring; dec(enc(x,y),y) = x.
+
+set preciseActions = true.
+(* ProVerif would not be able to prove equivalence without preciseActions.*)
+
+process
+  new k1:bitstring;
+  new k2:bitstring;
+  insert tbl(k1);
+  insert tbl(k2);
+  get tbl(x:bitstring) in
+  out(c,x);
+  out(c,choice[enc(s,(k1,k2)),s])
+
+(* EXPECTPV
+RESULT Observational equivalence is true.
+0.015s (user 0.007s + system 0.007s), max rss 10064K
+END *)

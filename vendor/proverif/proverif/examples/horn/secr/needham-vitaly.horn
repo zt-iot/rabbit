@@ -1,0 +1,60 @@
+(* Needham Shroeder public key protocol.
+   Original version, with Lowe's correction and changes
+   to find an attack mentioned by Vitaly Shmatikov: 
+	- the fields of the first message are swapped, 
+	- the tuples are built from pairs such as (x, (y, (z, t))), and 
+	- A and B both play the two roles of B and A
+*)
+
+pred c/1 decompData, elimVar.
+
+fun host/1.
+fun pk/1.
+fun encrypt/2.
+
+query c:secretA[].
+query c:secretB[].
+
+not c:sA[].
+not c:sB[].
+
+reduc
+
+(* The attacker *)
+
+c:x & c:encrypt(m,pk(x)) -> c:m;
+c:pk(x);
+c:host(x);
+c:x & c:y -> c:encrypt(x,y);
+
+(* The protocol *)
+
+(* A *)
+
+c:encrypt((host(sA[]), Na[pk(x)]), pk(x));
+c:encrypt((Na[pk(x)], (y, host(x))), pk(sA[]))
+   -> c:encrypt((y,kA[x]), pk(x));
+
+(* B *)
+
+c:encrypt((host(a),x), pk(sB[])) -> c:encrypt((x, (Nb[x,a], host(sB[]))), pk(a));
+c:encrypt((x,host(sA[])), pk(sB[])) & c:encrypt((Nb[x, sA[]], z), pk(sB[]))
+   -> c:encrypt(secretB[], pk(z));
+
+(* B as A *)
+
+c:encrypt((host(sB[]), Nb2[pk(x)]), pk(x));
+c:encrypt((Nb2[pk(x)], (y, host(x))), pk(sB[]))
+   -> c:encrypt((y,kB[x]), pk(x));
+
+(* A as B *)
+
+c:encrypt((host(a),x), pk(sA[])) -> c:encrypt((x, Na2[x,a], host(sA[])), pk(a));
+c:encrypt((x,host(sB[])), pk(sA[])) & c:encrypt((Na2[x, sB[]], z), pk(sA[]))
+   -> c:encrypt(secretA[], pk(z)).
+
+(* EXPECTPV
+RESULT goal reachable: c:secretB[]
+RESULT goal unreachable: c:secretA[]
+0.008s (user 0.004s + system 0.004s), max rss 8536K
+END *)

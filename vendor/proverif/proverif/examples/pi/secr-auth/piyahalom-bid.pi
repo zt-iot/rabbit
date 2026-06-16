@@ -1,0 +1,106 @@
+free c.
+(* 
+
+A -> B : A, N_A
+B -> S : B, N_B, { A, N_A }_Kbs
+S -> A : N_B, { B, K_ab, N_A }_Kas, { A, K_ab, N_B }_Kbs
+A -> B : { A, K_ab, N_B }_Kbs, { N_B }_Kab
+
+Full agreement is wrong (the adversary can arrange so that A does not see
+{ A, K_ab, N_B }_Kbs).
+
+No agreement on N_A, but agreement on N_B and on the session key K_ab.
+
+Attack of Syverson for evinj:endAparam(x) ==> evinj:beginAparam(x).
+*)
+
+(* Table of host names/keys shared with the server 
+   The constructor host maps keys to host names.
+   The private destructor getkey maps host names to keys. *)
+
+fun host/1.
+private reduc getkey(host(x)) = x.
+
+(* Shared key cryptography *)
+
+fun encrypt/2.
+reduc decrypt(encrypt(x,y),y) = x.
+
+(* Secrecy assumptions *)
+
+not kas.
+not kbs.
+
+private free secretA, secretB.
+query attacker:secretA;
+      attacker:secretB.
+query evinj:endAparam(x) ==> evinj:beginAparam(x).
+query evinj:endBparam(x) ==> evinj:beginBparam(x).
+query evinj:endBkey(x,y,z,t) ==> evinj:beginBkey(x,y,z,t).
+
+let processA = 
+	new Na; 
+	out(c, (host(kas), Na)); 
+	in(c, (nb, m1, m2));
+        let (b, kab, na2) = decrypt(m1, kas) in
+	event beginBparam(b);
+	event beginBkey(b, host(kas), nb, kab);
+        if na2 = Na then 
+        out(c, (m2, encrypt(nb, kab)));
+	(* OK *)
+	if b = host(kbs) then 
+	event endAparam(host(kas));
+	out(c, encrypt(secretA, kab)).
+                         
+let processB = 
+	in(c, (a, na)); 
+	event beginAparam(a);
+        new Nb; 
+	out(c, (host(kbs), Nb, encrypt((a, na), kbs)));
+	in(c, (m3, m4));
+        let (=a, kab, =Nb) = decrypt(m3, kbs) in
+        if Nb = decrypt(m4, kab) then
+	(* OK *)
+        if a = host(kas) then 
+	event endBparam(host(kbs));
+	event endBkey(host(kbs), a, Nb, kab);
+	out(c, encrypt(secretB, kab)). 
+
+let processBasA = 
+	new Na; 
+	out(c, (host(kbs), Na)); 
+	in(c, (nb, m1, m2));
+        let (b, kab, =Na) = decrypt(m1, kbs) in
+        out(c, (m2, encrypt(nb, kab))).
+                         
+let processAasB = 
+	in(c, (a, na)); 
+        new Nb; 
+	out(c, (host(kas), Nb, encrypt((a,na), kas)));
+	in(c, m2);
+        let (m3, m4) = m2 in
+        let (=a, kab, =Nb) = decrypt(m3, kas) in
+        if Nb = decrypt(m4, kab) then
+        0. (* OK *)
+
+let processS = 
+	in(c, (b, nb, m5));
+	let kbs2 = getkey(b) in
+        let (a, na) = decrypt(m5,kbs2) in
+        let kas2 = getkey(a) in
+        new kab;
+	out(c, (nb, encrypt((b, kab, na), kas2), encrypt((a, kab, nb), kbs2))).
+
+
+process new kas; new kbs; 
+	((!processA) | (!processB) | (!processBasA) | (!processAasB) | (!processS))
+
+(* EXPECTPV
+RESULT not attacker:secretA[] is true.
+RESULT not attacker:secretB[] is true.
+RESULT evinj:endAparam(x) ==> evinj:beginAparam(x) is false.
+RESULT (even ev:endAparam(x) ==> ev:beginAparam(x) is false.)
+RESULT evinj:endBparam(x) ==> evinj:beginBparam(x) is true.
+RESULT evinj:endBkey(x,y,z,t) ==> evinj:beginBkey(x,y,z,t) is true.
+0.068s (user 0.068s + system 0.000s), max rss 10780K
+END *)

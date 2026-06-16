@@ -1,0 +1,51 @@
+#!/bin/bash
+
+cd examples
+
+PROVERIF=../../../proverif
+#PROVERIF=$HOME/svnreps/ChevalBlanchet/proverif/proverif
+
+$PROVERIF hello.pv > hello.pv.out
+$PROVERIF hello_ext.pv > hello_ext.pv.out
+$PROVERIF hello_ext_var.pv > hello_ext_var.pv.out
+$PROVERIF hello_var.pv > hello_var.pv.out
+$PROVERIF ex_sync.pv > ex_sync.pv.out
+
+$PROVERIF dh-fs.pv | egrep "File|Err|War"
+
+$PROVERIF eq.pv | egrep "File|Err|War"
+$PROVERIF reduc.pv | egrep "File|Err|War"
+$PROVERIF reducext.pv | egrep "File|Err|War"
+$PROVERIF bestmodel.pv | egrep "File|Err|War"
+
+$PROVERIF ex_elimtrue.pv | egrep "File|Err|War"
+$PROVERIF ex_handshake.pv | egrep "File|Err|War"
+$PROVERIF ex_handshake_RoR.pv | egrep "File|Err|War"
+$PROVERIF ex_handshake_annotated.pv > ex_handshake_annotated.pv.out 
+egrep "File|Err|War" ex_handshake_annotated.pv.out 
+$PROVERIF ex_handshake_annotated_fixed.pv | egrep "File|Err|War"
+$PROVERIF ex_noninterf1.pv | egrep "File|Err|War"
+$PROVERIF ex_noninterf2.pv | egrep "File|Err|War"
+$PROVERIF ex_equivalence.pv > ex_equivalence.pv.out
+egrep "File|Err|War" ex_equivalence.pv.out
+$PROVERIF ex_param_name.pv | egrep "File|Err|War"
+$PROVERIF ex_putbegin.pv | egrep "File|Err|War"
+$PROVERIF ex_predicates.pv | egrep "File|Err|War"
+$PROVERIF ex_query_attacker.pv | egrep "Err"
+$PROVERIF ex_internal_term_conditionals.pv | egrep "File|Err|War"
+$PROVERIF ex_weaksecret.pv | egrep "File|Err|War"
+$PROVERIF ex_weaksecret_obs.pv | egrep "File|Err|War"
+
+$PROVERIF NeedhamSchroederPK-var1.pv > NeedhamSchroederPK-var1.pv.out
+grep RES NeedhamSchroederPK-var1.pv.out > NeedhamSchroederPK-var1.pv.RES
+egrep "File|Err|War" NeedhamSchroederPK-var1.pv.out
+#$PROVERIF NeedhamSchroederPK-var1.processes.pv | egrep "File|Err|War"
+$PROVERIF NeedhamSchroederPK-var1.pv | egrep "File|Err|War"
+$PROVERIF NeedhamSchroederPK-var2.pv | egrep "File|Err|War"
+$PROVERIF NeedhamSchroederPK-var3.pv | egrep "File|Err|War"
+$PROVERIF NeedhamSchroederPK-corr-mutual-auth.pv | egrep "File|Err|War"
+$PROVERIF NeedhamSchroederPK-corr-ake.pv | egrep "File|Err|War"
+$PROVERIF NeedhamSchroederPK-corr-ake-hNaNb.pv | egrep "File|Err|War"
+$PROVERIF NeedhamSchroederPK-corr-ake-RoR.pv | egrep "File|Err|War"
+$PROVERIF NeedhamSchroederPK-corr-ake-RoR-hNa.pv | egrep "File|Err|War"
+$PROVERIF NeedhamSchroederPK-corr-all-messages.pv | egrep "File|Err|War"

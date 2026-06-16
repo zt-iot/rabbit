@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css?v=18">
+
+    <title>appliedpi</title>
+    <meta name="description" content="Automated Symbolic Protocol Verification">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "ProVerif",
+            "description": "ProVerif is an automatic symbolic protocol verifier which proves security properties of cryptographic protocols.",
+            "applicationCategory": "Security, Cryptography",
+            "programmingLanguage": "OCaml",
+            "downloadUrl": "https://bblanche.gitlabpages.inria.fr/proverif/",
+            "softwareHelp": {
+                "@type": "CreativeWork",
+                "url": "https://bblanche.gitlabpages.inria.fr/proverif/manual.pdf"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<nav class="navbar sticky-top navbar-expand-lg bg-dark border-bottom border-body"  data-bs-theme="dark">
+    <div class="container-fluid container-narrow">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="../">ProVerif</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../install.html">Install</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../usage.html">Usage</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="http://proverif24.paris.inria.fr/">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../manual.pdf">Manual</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="../25years.html">25 years workshop</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="../users.html">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="../publications.html">Publications</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<section>
+    <div class="container-narrow">
+        <H2>appliedpi</H2>
+
+
+Martín Abadi, Bruno Blanchet, and Cédric Fournet.
+  The applied pi calculus: Mobile values, new names, and secure
+  communication.
+  Report arXiv:1609.03003, September 2016.
+  Revised July 2017. Available at
+  <A HREF="http://arxiv.org/abs/1609.03003">http://arxiv.org/abs/1609.03003</A>. <span class="tagclass">Theoretical result</span>
+
+<p><h4>Abstract</h4>
+
+We study the interaction of the programming construct ``new'', which generates statically scoped names, with communication via messages on channels. This interaction is crucial in security protocols, which are the main motivating examples for our work, it also appears in other programming-language contexts.
+    We define the applied pi calculus, a simple, general extension of the pi calculus in which values can be formed from names via the application of built-in functions, subject to equations, and be sent as messages. (In contrast, the pure pi calculus lacks built-in functions, its only messages are atomic names.) We develop semantics and proof techniques for this extended language and apply them in reasoning about security protocols.
+    This paper essentially subsumes the conference paper that introduced the applied pi calculus in 2001. It fills gaps, incorporates improvements, and further explains and studies the applied pi calculus. Since 2001, the applied pi calculus has been the basis for much further work, described in many research publications and sometimes embodied in useful software, such as the tool ProVerif, which relies on the applied pi calculus to support the specification and automatic analysis of security protocols. Although this paper does not aim to be a complete review of the subject, it benefits from that further work and provides better foundations for some of it. In particular, the applied pi calculus has evolved through its implementation in ProVerif, and the present definition reflects that evolution.
+
+<h4>Bibtex</h4>
+
+<pre><a name="appliedpi"></a>
+@MISC{appliedpi,
+  AUTHOR = {Mart{\'\i}n Abadi and Bruno Blanchet and C{\'e}dric Fournet},
+  TITLE = {The Applied Pi Calculus: Mobile Values, New Names, and Secure Communication},
+  HOWPUBLISHED = {Report arXiv:1609.03003},
+  MONTH = SEP,
+  YEAR = 2016,
+  NOTE = {Revised July 2017. Available at http://arxiv.org/abs/1609.03003}
+}
+
+</pre>    </div>
+</section>
+
+
+<script src="../js/bootstrap.bundle.min.js"></script>
+<script src="../js/main.js"></script>
+
+</body>
+</html>
+
+

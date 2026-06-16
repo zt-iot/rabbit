@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# 1- Check some examples
+# 2- Compiling the manual
+################################################################################
+
+# 1- Check that hello.pv.out, hello_ext.pv.out,
+# ex_handshake_annotated.pv.out, NeedhamSchroederPK-var1.pv.out are
+# unchanged, to make sure that the manual is up to date.
+
+# Save old files
+cd examples
+for i in hello.pv.out hello_ext.pv.out ex_handshake_annotated.pv.out NeedhamSchroederPK-var1.pv.out ex_equivalence.pv.out ex_sync.pv.out
+do
+    if [ -f $i ]
+    then
+	cp $i $i.old
+    fi
+done
+cd ..
+
+# Execute proverif
+./make
+
+# Compare old and new files
+for i in hello.pv.out hello_ext.pv.out ex_handshake_annotated.pv.out NeedhamSchroederPK-var1.pv.out ex_equivalence.pv.out ex_sync.pv.out
+do
+    if [ -f $i.old ]
+    then
+	if diff -q $i.old $i
+	then
+	    echo File $i unchanged
+	else
+	    echo File $i changed! Manual may not be up to date!
+	    exit 2
+	fi
+    fi
+done
+
+# 2- Compiling the manual
+pdflatex manual.tex
+bibtex manual
+pdflatex manual.tex
+bibtex manual
+pdflatex manual.tex

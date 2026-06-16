@@ -1,0 +1,335 @@
+Bonjour Martin,
+
+Voici plusieurs fichiers concernant le protocole d'email certifie.
+
+1) Le fichier 'protocol' resume en un seul fichier 9 versions
+du protocole, activees par des directives ifdef:
+  - pour la preuve du secret (SECRECY), de la proposition 1 (PROP1), 
+    de la proposition 2 (PROP2)
+  - avec un canal TTP-R represente par canal asymmetrique code (CHTOTTP),
+    protocole simple a cle publique (PKCHANNEL), ou une version simplifiee 
+    de ssh (SSH).
+Le codage du canal TTP-R utilise des canaux-relais comme discute dans
+un precedent mail.
+
+J'aime bien cette presentation car la maintenance d'un seul fichier
+est plus facile. Mais la lecture est sans doute plus difficile.
+
+2) une archive .tar.gz qui regroupe 3 repertoires:
+
+a) dans le repertoire 'onefile', tu retrouves le fichier 'protocol'
+precedent, mais aussi les fichiers generes pour les 9 versions du
+protocole, et les resultats d'analyse de chacune de ces versions.
+Le fichier 'results' donne un resume succint des resultats.
+
+b) dans le repertoire 'relaychannelmacros', tu as le meme codage
+du protocole, mais avec une technique differente pour generer les fichiers.
+Chaque fichier de protocole est la contenation de 3 elements
+- le fichier commondecls
+- un fichier parmi ChToTTP.mac, PKChannel.mac, SSH.mac pour le type
+de canal TTP-R
+- un fichier parmi Secrecy, Prop1, Prop2 pour la propriete a prouver.
+Peut-etre un peu plus lisible que le a).
+
+c) dans le repertoire 'macros', tu as ce meme protocole, mais
+le canal TTP-R est code par des macros, sans utiliser de canal relais.
+Un fichier protocole comprend
+- un fichier de definition de macros ChToTTP.mac, PKChannel.mac ou SSH.mac
+- un fichier qui decrit le protocole lui-meme Secrecy, Prop1 ou Prop2
+
+As-tu une preference dans tous ces codages ? (personnellement, je
+prefere la version 'onefile' pour des raisons techniques, mais les
+autres sont aussi interessantes).
+
+
+Quelques commentaires sur les codages et resultats
+
+1) dans la version PKChannel (canal R-TTP code par un protocole
+simple a cle publique), j'utilise un tag sur le message
+	R -> TTP : { shared-key }TTPEncKey
+pour que l'analyseur termine. Le message devient donc
+	R -> TTP : { ChKey, shared-key }TTPEncKey
+
+2) dans les versions concernant la preuve de la proposition 2, avec le
+canal R-TTP code par SSH (et pour le repertoire 'macros', aussi par
+PKChannel), il y a des regles parasites quand le message que S envoie a R
+est de la forme (Try(), x, y). Ces regles sont en fait des consequences
+des regles obtenues normalement (mais l'analyseur les obtient par
+une execution legerement anormale du protocole). Elles ne correspondent
+pas a une attaque dans la mesure ou R a effectivement le message chiffre
+et la cle pour le dechiffrer, ou bien le juge dit que quelqu'un
+d'autre que R a recu le message.
+
+Amities.
+
+			Bruno
+
+
+3) on a un scenario anormal pour la proposition 2 dans le cas ou
+le canal R-TTP est code par SSH
+
+TTPSend:(H((f(dhsecretTTP[(KEXDHINIT(),g(v2655)),v2656],g(v2655)),H((Spk(TTPSigKey[]),g(v2655),g(dhsecretTTP[(KEXDHINIT(),g(v2655)),v2656]),f(dhsecretTTP[(KEXDHINIT(),g(v2655)),v2656],g(v2655)))),keyEncTTPtoR()))) & c:v2657 & TTPSend:(v2658) & c:v2658 & c:v2659 & c:v2655 -> JudgeSays:(Received(),PasswdTable(v2657),(Try(),v2658,v2659))
+
+Ici, R n'a aucun message, et pourtant le juge conclut qu'il a
+(Try(),v2658,v2659). Cela vient apparemment d'une confusion entre
+le message chiffre E(k,(Try(),v2658,v2659)) envoye par TTP a R,
+et le message chiffre E(k',m) envoye par S a R. 
+
+dhsecretTTP1 = dhsecretTTP[(KEXDHINIT(),g(v2666)),v2667]
+dhpublicTTP1 = g(dhsecretTTP[(KEXDHINIT(),g(v2666)),v2667])
+dhK1 = f(dhsecretTTP1,g(v2666))
+dhH1 = H((Spk(TTPSigKey[]),g(v2666),dhpublicTTP1,dhK1))
+keyEncTTPtoR1 = H((dhK1,dhH1,keyEncTTPtoR()))
+keyMacRtoTTP1 = H((dhK1,dhH1,keyMacRtoTTP()))
+keyEncRtoTTP1 = H((dhK1,dhH1,keyEncRtoTTP()))
+sshMess1(payload) = 
+
+
+dhsecretTTP2 = dhsecretTTP[(KEXDHINIT(),g(v2669)),v2670]
+dhpublicTTP2 = g(dhsecretTTP[(KEXDHINIT(),g(v2669)),v2670])
+dhK2 = f(dhsecretTTP2,g(v2669))
+dhH2 = H((Spk(TTPSigKey[]),g(v2669),dhpublicTTP2,dhK2))
+keyEncRtoTTP2 = H((dhK2,dhH2,keyEncRtoTTP()))
+keyMacRtoTTP2 = H((dhK2,dhH2,keyMacRtoTTP()))
+sshMess2(payload) = (E(keyEncRtoTTP2,payload),mac(keyMacRtoTTP2,payload))
+
+rule 43 JudgeSays:(Received(),PasswdTable(v2660),(Try(),v2661,v2662))
+  3-tuple c:(Try(),v2661,v2662)
+  duplicate c:v2663
+  duplicate c:v2664
+  duplicate c:v2665
+  duplicate c:keyEncTTPtoR1
+  duplicate c:v2668
+  rule 55 c:S(TTPSigKey[],(Released(),A(pk(TTPDecKey[]),(v2668,BothAuth(),(Give(),keyEncTTPtoR1,PasswdTable(v2660),H((v2665,v2664,v2663,E(keyEncTTPtoR1,(Try(),v2661,v2662))))))),PasswdTable(v2660)))
+    hypothesis TTPSend:(keyEncTTPtoR1)
+    rule 53 private:TTPsecchannelFromR[dhK2,(KEXDHINIT(),g(v2669)),v2670],(A(pk(TTPDecKey[]),(v2668,BothAuth(),(Give(),keyEncTTPtoR1,PasswdTable(v2660),H((v2665,v2664,v2663,E(keyEncTTPtoR1,(Try(),v2661,v2662))))))),(Wants(),v2660,H((v2665,v2664,v2663,E(keyEncTTPtoR1,(Try(),v2661,v2662))))))
+      2-tuple c:sshMess2((A(pk(TTPDecKey[]),(v2668,BothAuth(),(Give(),keyEncTTPtoR1,PasswdTable(v2660),H((v2665,v2664,v2663,E(keyEncTTPtoR1,(Try(),v2661,v2662))))))),(Wants(),v2660,H((v2665,v2664,v2663,E(keyEncTTPtoR1,(Try(),v2661,v2662)))))))
+          2-tuple c:(A(pk(TTPDecKey[]),(v2668,BothAuth(),(Give(),keyEncTTPtoR1,PasswdTable(v2660),H((v2665,v2664,v2663,E(keyEncTTPtoR1,(Try(),v2661,v2662))))))),(Wants(),v2660,H((v2665,v2664,v2663,E(keyEncTTPtoR1,(Try(),v2661,v2662))))))
+                  rule 14 c:keyEncTTPtoR1
+      2-tuple c:(KEXDHINIT(),g(v2669))
+    2-tuple c:(KEXDHINIT(),g(v2669))
+
+-------------------------------------------------------------------------
+
+Si tu n'as pas le temps de regarder ca cette semaine, ca peut
+attendre sans probleme.
+
+J'ai donc commence cette etude de protocole. J'ai du implementer une
+toute petite extension de mon verificateur: il prouvait seulement
+l'authenticite: 
+	si end(M) a ete execute alors begin(M) a ete execute.
+Pour cette etude, on a besoin de proprietes du genre:
+	si end(M) a ete execute alors begin(N) a ete execute
+avec M <> N, ou meme
+	si end(M) a ete execute alors begin(N) et begin(N') ont ete executes
+(Il n'y a aucune nouveaute theorique la dedans. Cette extension n'est
+pas encore dans la version du verificateur disponible sur le web, donc
+dis-moi si tu veux tester toi-meme les fichiers que je t'envoie, je
+t'enverrai la toute derniere version.)
+
+Je joins les fichiers que j'ai utilises. J'espere que la syntaxe est a
+peu pres comprehensible (je n'en suis pas sur !), et bien sur je peux
+expliquer. Les evenements sont specifies par
+	begin* p(M);
+ou
+	end* p(M);
+
+Le verificateur essaie de voir si end* p(M) est executable,
+et si oui, il repond "goal reachable: H -> p(M)",
+ou l'hypothese H contient les evenements qui doivent
+avoir ete executes pour que end* p(M) puisse etre execute.
+En particulier, H contiendra des evenements begin*.
+
+Un point important est que, si le verificateur dit seulement
+"goal reachable: q(N) -> p(M)", alors begin* q(N) doit avoir ete
+execute pour que end* p(M) puisse etre execute.
+
+Par exemple, la reponse suivante (quand le verificateur ne donne pas
+d'autres regles H -> c:m[]):
+
+goal reachable: TTPSend:(A(pk(TTPDecKey[]),(Sname[],BothAuth(),(Give(),k[v187],Rname,H((cleartext[],q[v187],Reply(q[v187]),E(k[v187],m[])))))),Rname) -> c:m[]
+
+signifie que l'attaquant ne peut avoir m[] que si l'evenement begin*
+TTPSend:(A(pk(TTPDecKey[]),(Sname[],BothAuth(),(Give(),k[v187],Rname,H((cleartext[],q[v187],Reply(q[v187]),E(k[v187],m[])))))),Rname) 
+a ete execute. (v187 est une variable qui peut prendre n'importe 
+quelle valeur.)
+
+En bref, on obtient les proprietes voulues. Les fichiers utilises
+sont les suivants:
+- mailprot: modelisation du protocole (pas utilise pour les preuves)
+- mailprotProp1: fichier utilise pour la preuve de la proposition 1
+- mailprotProp2: fichier utilise pour la preuve de la proposition 2
+- mailprotProp1Any: comme mailprotProp1, mais avec une meilleure
+modelisation (S peut envoyer des messages a destination de plusieurs
+personnes, TTP gere plusieurs recepteurs, dont certains peuvent etre
+des attaquants, ...)
+- mailprotProp2Any: comme mailprotProp2, mais avec la meilleure
+modelisation
+
+En fait, c'est presque trop facile de faire ces preuves ! :-)
+(Il y a surement encore du travail, bien sur.)
+Est-ce que tu as l'intention d'en faire un article ?
+Je me demande si ce n'est pas un peu leger pour faire un article
+seulement avec la preuve de ce protocole. A part deux ou trois astuces,
+c'est vraiment juste entrer le protocole en spi calcul, et lancer
+l'outil.
+
+Amities.
+
+			Bruno
+
+----------------------------------------------------------------------
+
+Je joins une version en style article. Il est clair que la mise en
+page est bien meilleure dans cette version. (Je la trouve bien, a part
+peut-etre la coupe page 6/7, et meme cette coupe est encore acceptable
+a mon avis.) Je pense que c'est cette version qu'on peut mettre sur le
+web.
+
+Note: j'ai fait quelques changements destines a faciliter la traduction
+en 'elsart' au cas ou les gens de TCS la feraient (par exemple, eviter
+d'utiliser des macros dont le nom est incompatible avec 'elsart'). Ces
+changements ne modifient absolument pas le .dvi ni le .ps.
+
+Pour la version a envoyer au journal, je suis un peu moins sur.  En
+fait, je me demande quelle version donnera le meilleur resultat final
+dans le journal. S'ils font vraiment un effort pour faire une mise en
+page qui ressemble a notre article, c'est sans doute mieux d'envoyer
+la version en style 'article'. Mais s'ils se contentent de faire le
+minimum pour traduire en 'elsart' et impriment cela, ce sera encore
+plus horrible que la version que je t'ai envoyee hier... (J'ai
+du mal a croire que la version imprimee dans le journal corresponde
+a un style aussi mauvais que elsart !)
+
+Amities.
+
+			Bruno
+
+Bonjour Martin,
+
+J'ai donc fait le changement de style pour utiliser elsart.
+Voici la liste des autres changements:
+
+- modifie ta footnote comme tu l'as indique
+- supprime les macros inutiles et les bouts d'article en commentaire
+- remplace 'tabular' par 'align' ou 'alignat', car tabular faisait
+  des espaces beaucoup trop grands entre les lignes avec le style elsart.
+  J'espere que cette nouvelle mise en page te convient.
+- autorise certaines coupures de page dans les grosses definitions
+  de processus et dans l'attaque contre needham-schroeder (section 6.2), 
+  pour eviter des underfull vbox terribles.
+- remplace 'eqnarray' par 'align', car 'eqnarray' introduit un espace
+  trop grand avant l'equation, avec le style elsart. (Si cela ne te plait
+  pas, je peux facilement retrouver l'ancienne version.)
+
+Quelques remarques:
+
+- il y a beaucoup d'underfull vbox (pages 3, 12, 14, 15, 18, 19) et elles
+ne me paraissent pas tres faciles a enlever. Cela vient du fait que
+l'espace autour des titres de section est tres grand.
+- mettre les footnotes en acknowlegment change beaucoup les underfull
+vbox, sans que le resultat soit tellement meilleur (dans ce cas, il y a des
+underfull vbox pages 6,8,12 et 24).
+- il y a 3 petites overfull hbox: page 16, premiere ligne du theoreme 4 et
+premiere ligne du lemme 5; le 3e overfull hbox est completement
+negligeable (0.16pt).
+- la bibliographie est dans l'ordre d'apparition dans l'article et
+non dans l'ordre alphabetique d'auteur. Cela me parait assez etrange,
+mais est du au style de biblio elsart-num.
+- bibtex se plaint qu'il manque les numeros de page pour Debbabi97 et 
+Denker98, mais ces deux articles viennent de workshops qui n'ont que
+les actes electroniques.
+
+Je joins tous les fichiers:
+elsart.cls
+elsart-num.bst
+mybib.bib
+typing-attacker2-elsart.tex
+
+Amities.
+
+			Bruno
+
+-------------------------------------------------
+Bonjour Martin,
+
+J'ai corrige selon tes remarques d'hier. J'ai corrige une autre petite
+erreur dans la preuve du lemme 5: h ne contient pas seulement des
+faits de la forme \mess(p,x) (x etant une variable), mais aussi
+\mess(p,p'). En effet, quand on introduit un fait nouveau dans h (cas
+input), il est bien de la forme \mess(p,x), mais ensuite le cas "let"
+applique des substitutions dessus, donc x peut etre remplace par
+n'importe quelle pattern.
+
+Points restants:
+
+* Dans la preuve du lemme 5, on pourrait remplacer "Let $\sigma$ be as above"
+par "Let $\sigma$ satisfying (3) and (4)".
+
+* Je n'ai encore rien change dans le cas "let" du lemme 5 (tu trouvais que
+la phrase "There exists \sigma''..." n'etait pas assez justifiee).
+La justification pourrait etre la suivante: 
+
+  If we assume that the set of variables in $\rho(M_i)$ (for all $i$)
+  is disjoint from the set of variables in $p'_i$ (for all $i$), then
+  we can define the subsitution $\sigma''_1 = \sigma_1 \cup \sigma'_1$,
+  and $\sigma''_1$ is the most general unifier of $\rho(M_i)$ and $p'_i$:
+  for all $i$, $\sigma''_1 \rho(M_i) = \sigma''_1 p'_i$. We can also define
+  $\sigma''_2 = \sigma \cup \sigma'$. We have $\sigma''_2 \rho(M_i) =
+  \sigma''_2 p'_i$. By definition of the most general unifier, there
+  exists $\sigma''$ such that $\sigma''_2 = \sigma'' \sigma''_1$. Then
+  $\sigma = \sigma'' \sigma_1$ and $\sigma' = \sigma'' \sigma'_1$.
+
+Mais je serais assez partisan de ne pas detailler a ce point.
+
+* Je pense qu'on pourrait dire quelquepart que, sauf indication
+contraire, toutes les substitutions s'appliquent a des
+variables. (Sauf erreur de ma part, le seul endroit ou ce n'est pas le
+cas est la definition des destructeurs, page 4.)
+
+* Quelques commentaires sur la section 8 (mais je n'ai rien change):
+
+%% MA: a bit vaguer, just because I suspect that we also should do
+%% something about renaming of names, don't we?
+It seems to me that if we take the following formulation:
+<<
+In this treatment, 
+we assume that terms are subject to an equational
+theory $\cal T$, defined by a set of equations $M = N$ where the terms
+$M$ and $N$ contain only variables and constructors. The equational
+theory is the smallest congruence relation that contains this set of
+equations and that is preserved by substitution of any term for
+variables.
+>>
+we have no problem with the renaming of names, because the terms $M$ and $N$
+in the equations do not contain names. (By the way, I wrote "equivalence
+relation", but that should of course be "congruence relation".)
+
+
+I wrote:
+<<
+We attach to each
+constructor $f$ the set of most general equalities $f(M_1, \ldots,
+M_n) = M$ derivable from ${\cal T}$. This assumes that this set is
+finite, so this strongly limits the equational theories that we can
+handle.
+>>
+and you changed that into:
+<<
+To each constructor
+$f$ is attached a finite set of equations $f(M_1, \ldots,
+M_n) = M$. 
+>>
+My text was probably not very clear. I would like to explain
+that the set attached to the constructors is a closure of the initial
+set of equations (essentially a congruence closure), such that, if
+${\cal T} \vdash f(N_1, \ldots, N_n) = N$, then there exists an
+equation $f(M_1, \ldots, M_n) = M$ in the set attached to $f$ and a
+substitution $\sigma$, such that $\forall i \in \{ 1, \ldots, n \},
+\sigma M_i = N_i$ and $\sigma M = N$. As soon as the equations are a
+bit complicated, computing this closure unfortunately yields infinite
+sets.
+
+Amities.
+
+			Bruno.

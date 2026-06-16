@@ -1,0 +1,60 @@
+(* Needham Shroeder shared key protocol
+
+The weakness of this protocol is that if an attacker has
+a session key k[Kas[], Kbs[], Na[Kbs[],c0]]
+for one c0, he can have all secrets of B, since B cannot
+distinguish different sessions.
+
+c:encrypt(decr(Nb[k[Kas[],Kbs[],Na[host(Kbs[])]],host(Kas[])]),k[Kas[],Kbs[],Na[host(Kbs[])]])
+c:encrypt\(decr\(Nb\[k\[Kas\[\],Kbs\[\],Na\[host\(Kbs\[\]\)\]\],host\(Kas\[\]\)\]\),k\[Kas\[\],Kbs\[\],Na\[host\(Kbs\[\]\)\]\]\)
+ *)
+
+param verboseRules = yes.
+
+param selFun = Nounifset.
+
+pred c/1 elimVar, decompData.
+
+fun encrypt/2.
+
+fun host/1.
+
+fun decr/1.
+
+not c:Kas[].
+not c:Kbs[].
+
+query c:secretB[].
+
+reduc
+
+(* Attacker *)
+
+c:k & c:encrypt(m,k) -> c:m;
+c:host(Kas[]);
+c:host(Kbs[]);
+c:host(Kcs[]);
+c:Kcs[];
+c:x & c:y -> c:encrypt(x,y);
+c:x -> c:decr(x);
+(* c:decr(x) -> c:x; *)
+
+(* A *)
+
+c:h -> c:(host(Kas[]), h, Na[h]);
+c:encrypt((Na[h], h, key, m), Kas[]) -> c:m;
+c:encrypt((Na[h], h, key, m), Kas[]) & c:encrypt(n, key) -> c:encrypt(decr(n), key);
+
+(* B *)
+
+c:encrypt((key, h), Kbs[]) -> c:encrypt(Nb[key,h], key);
+
+c:encrypt((key, host(Kas[])), Kbs[]) & c:encrypt(decr(Nb[key,host(Kas[])]), key) -> c:encrypt(secretB[], key);
+
+(* S *)
+
+c:(host(Ks1), host(Ks2), n) -> c:encrypt((n, host(Ks2), k[Ks1, Ks2, n], encrypt((k[Ks1, Ks2, n], host(Ks1)), Ks2)), Ks1).
+
+(* EXPECTPV
+xtime: error in child process (status : 3)
+END *)

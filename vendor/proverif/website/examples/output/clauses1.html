@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+                      <html>
+                    <head>
+                    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+                    <title>ProVerif: clauses for query 1</title>
+                    <link rel="stylesheet" href="cssproverif.css">
+                                                                           </head>
+                                                                         <body>
+                                                                         <H1>Initial clauses</H1>
+
+<ul>
+
+<li><a name=clause0>Clause 0:</a> <span class="pred">attacker</span>(<span class="fun">true</span>)<br>
+<span class="explain">(The attacker applies function <span class="fun">true</span>.)</span><br>
+
+<li><a name=clause1>Clause 1:</a> <span class="pred">attacker</span>(<span class="var">v</span>) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="fun">pk</span>(<span class="var">v</span>))<br>
+<span class="explain">(The attacker applies function <span class="fun">pk</span>.)</span><br>
+
+<li><a name=clause2>Clause 2:</a> <span class="pred">attacker</span>(<span class="fun">false</span>)<br>
+<span class="explain">(The attacker applies function <span class="fun">false</span>.)</span><br>
+
+<li><a name=clause3>Clause 3:</a> <span class="pred">attacker</span>(<span class="var">v</span>) <span class="conn">&amp;&amp;</span> <span class="pred">attacker</span>(<span class="var">v_1</span>) <span class="conn">&amp;&amp;</span> <span class="pred">attacker</span>(<span class="var">v_2</span>) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="fun">enc</span>(<span class="var">v</span>,<span class="var">v_1</span>,<span class="var">v_2</span>))<br>
+<span class="explain">(The attacker applies function <span class="fun">enc</span>.)</span><br>
+
+<li><a name=clause4>Clause 4:</a> <span class="pred">attacker</span>(<span class="fun">enc</span>(<span class="var">m</span>,<span class="fun">pk</span>(<span class="var">k</span>),<span class="var">r_1</span>)) <span class="conn">&amp;&amp;</span> <span class="pred">attacker</span>(<span class="var">k</span>) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="var">m</span>)<br>
+<span class="explain">(The attacker applies function <span class="fun">dec</span>.)</span><br>
+
+<li><a name=clause5>Clause 5:</a> <span class="pred">attacker</span>(0)<br>
+<span class="explain">(The attacker applies function <span class="fun">0</span>.)</span><br>
+
+<li><a name=clause6>Clause 6:</a> <span class="pred">attacker</span>(<span class="var">v</span>) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="var">v</span> <span class="fun">+</span> 1)<br>
+<span class="explain">(The attacker applies function <span class="fun">+</span>.)</span><br>
+
+<li><a name=clause7>Clause 7:</a> <span class="pred">attacker</span>(<span class="var">v</span> <span class="fun">+</span> 1) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="var">v</span>)<br>
+<span class="explain">(The attacker applies function <span class="fun">- 1</span>.)</span><br>
+
+<li><a name=clause8>Clause 8:</a> <span class="pred">attacker</span>(<span class="var">v</span>) <span class="conn">&amp;&amp;</span> <span class="pred">attacker</span>(<span class="var">v_1</span>) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="fun"></span>(<span class="var">v</span>,<span class="var">v_1</span>))<br>
+<span class="explain">(The attacker applies function <span class="fun">2-tuple</span>.)</span><br>
+
+<li><a name=clause9>Clause 9:</a> <span class="pred">attacker</span>(<span class="fun"></span>(<span class="var">v</span>,<span class="var">v_1</span>)) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="var">v</span>)<br>
+<span class="explain">(The attacker applies function <span class="fun">1-proj-2-tuple</span>.)</span><br>
+
+<li><a name=clause10>Clause 10:</a> <span class="pred">attacker</span>(<span class="fun"></span>(<span class="var">v</span>,<span class="var">v_1</span>)) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="var">v_1</span>)<br>
+<span class="explain">(The attacker applies function <span class="fun">2-proj-2-tuple</span>.)</span><br>
+
+<li><a name=clause11>Clause 11:</a> <span class="pred">mess</span>(<span class="var">v</span>,<span class="var">v_1</span>) <span class="conn">&amp;&amp;</span> <span class="pred">attacker</span>(<span class="var">v</span>) <span class="conn">-&gt;</span> <span class="pred">attacker</span>(<span class="var">v_1</span>)<br>
+<span class="explain">(The attacker can listen on all channels it has.)</span><br>
+
+<li><a name=clause12>Clause 12:</a> <span class="pred">attacker</span>(<span class="var">v</span>) <span class="conn">&amp;&amp;</span> <span class="pred">attacker</span>(<span class="var">v_1</span>) <span class="conn">-&gt;</span> <span class="pred">mess</span>(<span class="var">v</span>,<span class="var">v_1</span>)<br>
+<span class="explain">(The attacker can send messages it has on all channels it has.)</span><br>
+
+<li><a name=clause13>Clause 13:</a> <span class="pred">attacker</span>(<span class="fun">fail-any_type</span>)<br>
+<span class="explain">(Initial knowledge of the attacker.)</span><br>
+
+<li><a name=clause14>Clause 14:</a> <span class="pred">attacker</span>(<span class="name">public_channel</span>[])<br>
+<span class="explain">(Initial knowledge of the attacker.)</span><br>
+
+<li><a name=clause15>Clause 15:</a> <span class="pred">equal</span>(<span class="var">v</span>,<span class="var">v</span>)<br>
+<span class="explain">(Definition of equal.)</span><br>
+
+<li><a name=clause16>Clause 16:</a> <span class="pred">attacker</span>(<span class="var">new-name_1</span>)<br>
+<span class="explain">(The attacker can create new names.)</span><br>
+Abbreviations:
+<ul>
+
+<li><span class="var">new-name_1</span> <span class="conn">=</span> <span class="name">new-name</span>[!att = <span class="var">v</span>]
+</ul>
+
+<li><a name=clause17>Clause 17:</a> <span class="pred">attacker</span>(<span class="name">server_skey</span>[])<br>
+<span class="explain">(The message <span class="name">server_skey</span>[] may be sent to the attacker at output <a href="process_0.html#occ1" target="process" class="occ">{1}</a>.)</span><br>
+
+<li><a name=clause18>Clause 18:</a> <span class="pred">attacker</span>(<span class="fun">enc</span>(<span class="name">secret_message</span>[],<span class="fun">pk</span>(<span class="name">server_skey</span>[]),<span class="name">r</span>[]))<br>
+<span class="explain">(The message <span class="fun">enc</span>(<span class="name">secret_message</span>[],<span class="fun">pk</span>(<span class="name">server_skey</span>[]),<span class="name">r</span>[]) may be sent to the attacker at output <a href="process_0.html#occ4" target="process" class="occ">{4}</a>.)</span><br>
+
+</ul>
+</body>
+</html>

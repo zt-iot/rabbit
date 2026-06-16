@@ -1,0 +1,110 @@
+Protocol verifier, copyright INRIA-CNRS, by Bruno Blanchet,
+Vincent Cheval, and Marc Sylvestre 2000-YEAR.
+
+This package contains Windows executables, documentation, and examples
+of a cryptographic protocol verifier. The material contained in this
+package is under the GPL license (see file LICENSE). The verifier
+is also available in source form.
+
+This software can be used to prove secrecy, authenticity, equivalence 
+properties of cryptographic protocols.
+
+INSTALL
+
+The installation of graphviz is required if you want to have a drawing 
+of graphs representing attacks that ProVerif found. It can be downloaded from
+        http://graphviz.org
+
+The installation GTK+2.24 is required if you want to run the interactive
+simulator proverif_interact. At
+	ftp://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/
+download gtk+-bundle_2.24.10-20120208_win32.zip
+unzip it in the directory C:\GTK, and add C:\GTK\bin to your PATH.
+
+* under Cygwin
+
+Uncompress the binary and documentation archives using GNU tar:
+
+	tar -xzf proverifbinVERSION.tar.gz
+	tar -xzf proverifdocVERSION.tar.gz
+
+This will create a directory named proverifVERSION in the current directory.
+
+* under Windows 
+
+Uncompress the archives proverifbinVERSION.tar.gz and 
+proverifdocVERSION.tar.gz using Winzip, in the directory
+of your choice. This will create a subdirectory named proverifVERSION. 
+
+The system can run under Windows, but it is not very Windows-friendly:
+you have to use the command line to run the programs. Improving the interface
+is on the to-do list...
+
+USAGE
+
+This software contains three executable programs, proverif, proveriftotex,
+and proverif_interact. 
+
+The program proverif takes as input a description of a cryptographic
+protocol, and checks whether it satisfies secrecy, authenticity, or
+equivalence properties. The description of the protocol can have
+several different formats.  The recommended format is the typed pi
+calculus format, which is a dialect of the applied pi calculus (Abadi
+and Fournet, POPL'01).  The description of the protocol is first
+translated into Horn clauses, then the core of the verifier is called.
+This input format is documented in the file docs/manual.pdf
+(found in proverifdocVERSION.tar.gz). Examples of protocol descriptions 
+can be found in the examples/pitype subdirectory. 
+To run these examples, use 
+        ./proverif <filename>.pv
+or if your filename does not end in .pv,
+        ./proverif -in pitype <filename>
+For example:
+	./proverif examples/pitype/secr-auth/NeedhamSchroederPK.pv
+
+Other input formats are documented in the file docs/manual-untyped.pv
+Research papers can be downloaded at
+	https://bblanche.gitlabpages.inria.fr/publications/index.html
+They are not included in the distribution because of copyright differences.
+(You cannot redistribute these papers.)
+
+The program proveriftotex takes as input a protocol description
+and converts it into a LaTeX file. This is useful for including
+protocols in research papers.
+
+The program proverif_interact is an interactive simulator for ProVerif
+scripts.
+
+The script "test" runs several tests (cygwin only):
+You can run them by
+         ./test 
+The output of these scripts is written in the directory tests. The
+filename of the output is "typed" followed by the
+date/time of the run.
+
+BUG REPORTS
+
+Bugs and comments should be reported by e-mail to
+	Bruno.Blanchet@inria.fr
+
+MAILING LIST
+
+A mailing list is available for discussions on ProVerif. New releases
+are announced on this mailing list.
+
+* If you wish to subscribe, send an email to sympa@inria.fr with subject
+"subscribe proverif <your name>" (without quotes) and an empty body.
+
+* To post a message on the list, send it to proverif@inria.fr. 
+To avoid spam, only people that have subscribed to the list can post.
+
+ACKNOWLEDGMENTS
+
+Florian Moser contributed the -parse-only command-line option.
+
+I would like to thank all users of ProVerif who contributed to the
+development of the software by their helpful remarks.
+From July 2008 to October 2010, the development of ProVerif was partly 
+supported by DGA.
+
+

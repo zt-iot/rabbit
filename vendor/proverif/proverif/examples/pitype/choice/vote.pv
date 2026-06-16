@@ -1,0 +1,29 @@
+(* Naive vote protocol
+   Taken from Delaune, Jacquemard, LSV-04-1 *)
+
+type skey.
+type pkey.
+
+(* public key encryption *)
+
+fun pk(skey):pkey.
+fun encrypt(bitstring,pkey):bitstring.
+reduc forall x:bitstring, y:skey; decrypt(encrypt(x,pk(y)), y) = x.
+
+free c:channel.
+free v:bitstring [private].
+
+process 
+	(new skS:skey;
+	let pkS = pk(skS) in
+	out(c, pkS);
+	!out(c, encrypt(v, pkS))) 
+	|
+	(phase 1;
+	new w:bitstring;
+	out(c, choice[w,v]))
+
+(* EXPECTPV
+RESULT Observational equivalence cannot be proved.
+0.016s (user 0.012s + system 0.004s), max rss 10088K
+END *)

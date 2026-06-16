@@ -1,0 +1,39 @@
+(* Handshake protocol.
+   Taken from Delaune, Jacquemard, CSFW'04 *)
+
+type passwd.
+type nonce.
+
+(* shared-key encryption as equation *)
+
+fun encrypt(nonce, passwd): nonce.
+fun decrypt(nonce, passwd): nonce.
+equation forall x: nonce, y: passwd; decrypt(encrypt(x,y),y) = x.
+equation forall x: nonce, y: passwd; encrypt(decrypt(x,y),y) = x.
+
+(* addition of one *)
+
+fun incr(nonce): nonce.
+
+free c: channel.
+free pw: passwd [private].
+
+let processA =
+	new N: nonce;
+	out(c, encrypt(N, pw)).
+
+let processB =
+	in(c, x: nonce);
+	let y = decrypt(x, pw) in
+	out(c, encrypt(incr(y), pw)).
+
+process
+	((!processA) | (!processB) |
+	(phase 1;
+	new w: passwd;
+	out(c, choice[w,pw])))
+
+(* EXPECTPV
+RESULT Observational equivalence cannot be proved.
+0.018s (user 0.013s + system 0.004s), max rss 10404K
+END *)

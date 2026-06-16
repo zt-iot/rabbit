@@ -1,0 +1,57 @@
+type key.
+type coins.
+
+fun internal_senc(bitstring, key, coins):bitstring.
+
+reduc forall m:bitstring, k:key, r:coins;
+      sdec(internal_senc(m,k,r),k) = m.
+
+letfun senc(x:bitstring, y:key) = new r: coins; internal_senc(x,y,r).
+
+reduc forall m:bitstring, k:key, r:coins, m':bitstring, r':coins; 
+      samekey(internal_senc(m,k,r), internal_senc(m',k,r')) = true.
+
+
+type seed'.
+type pkey'.
+type skey'.
+
+fun pk'(seed'):pkey'.
+fun sk'(seed'):skey'.
+
+fun aenc'(bitstring, pkey'):bitstring.
+reduc forall m:bitstring, k:seed'; adec'(aenc'(m,pk'(k)),sk'(k)) = m.
+
+(* Probabilistic digital signatures with message recovery *)
+type sskey.
+type spkey.
+type scoins.
+
+fun spk(sskey):spkey.
+fun internal_sign(bitstring, sskey, scoins):bitstring.
+reduc forall m:bitstring, k:sskey, r:scoins; 
+      getmess(internal_sign(m,k,r)) = m.
+reduc forall m:bitstring, k:sskey, r:scoins; 
+      checksign(internal_sign(m,k,r),spk(k)) = m.
+
+letfun sign(m:bitstring, k:sskey) = new r:scoins; internal_sign(m,k,r).
+
+(* leak key *)
+reduc forall m:bitstring,k:sskey,r:scoins;getkey(internal_sign(m,k,r)) = spk(k).
+
+(* Deterministic digital signatures with appendix *)
+type sskey'.
+type spkey'.
+
+fun spk'(sskey'):spkey'.
+fun sign'(bitstring, sskey'):bitstring.
+reduc forall m:bitstring,k:sskey'; checksign'(sign'(m,k),spk'(k),m) = true.
+reduc forall m:bitstring,k:sskey'; getmess'(sign'(m,k)) = m.
+(* MACs *)
+type mkey.
+
+fun mac(bitstring, mkey):bitstring.
+
+reduc forall m:bitstring, k:mkey; get_message(mac(m,k)) = m.
+
+process 0

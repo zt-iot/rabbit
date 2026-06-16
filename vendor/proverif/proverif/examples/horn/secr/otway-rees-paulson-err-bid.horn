@@ -1,0 +1,47 @@
+(* Otway Rees protocol.
+   Flawed version, quoted by Paulson TR443 Inductive... *)
+
+pred c/1 decompData, elimVar.
+
+fun host/1.
+
+fun encrypt/2.
+
+query c:secretA[].
+query c:secretB[].
+
+not c:shrA[].
+
+reduc
+
+(* attacker *)
+c:encrypt(m,k) & c:k -> c:m;
+c:x & c:y -> c:encrypt(x,y);
+c:host(x);
+
+(* A *)
+
+c:X -> c:(Na[X],host(shrA[]),X, encrypt((Na[X], host(shrA[]), X), shrA[]));
+
+c:(Na[host(shrA[])], encrypt((Na[host(shrA[])],key), shrA[])) -> c:encrypt(secretA[], key);
+
+(* B *)
+
+c:(x,y,host(shrA[]),z) -> c:(x,y,host(shrA[]),z,Nb[y], encrypt((x,y,host(shrA[])), shrA[]));
+
+c:(x,y,host(shrA[]),z) & c:(x,y2,encrypt((Nb[y], key), shrA[])) -> c:(x,y2);
+
+c:(x,host(shrA[]),host(shrA[]),z) & c:(x,y2,encrypt((Nb[host(shrA[])],key), shrA[])) -> c:encrypt(secretB[], key);
+
+(* Server *)
+
+c:(na,host(shra), host(shrb), encrypt((na, host(shra), host(shrb)), shra), nb,
+   encrypt((na,host(shra),host(shrb)), shrb)) ->
+c:(na,encrypt((na, k[x,shra,shrb]), shra),encrypt((nb,k[x,shra,shrb]), shrb)).
+
+
+(* EXPECTPV
+RESULT goal reachable: c:secretB[]
+RESULT goal reachable: c:secretA[]
+0.012s (user 0.008s + system 0.004s), max rss 8640K
+END *)

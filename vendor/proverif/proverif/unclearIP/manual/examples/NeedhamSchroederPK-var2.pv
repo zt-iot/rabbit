@@ -1,0 +1,104 @@
+free c: channel.
+
+(* Public key encryption *)
+type pkey.
+type skey.
+
+fun pk(skey): pkey.
+fun aenc(bitstring, pkey): bitstring.
+reduc forall x: bitstring, y: skey; adec(aenc(x, pk(y)),y) = x.
+
+(* Signatures *)
+type spkey.
+type sskey.
+
+fun spk(sskey): spkey.
+fun sign(bitstring, sskey): bitstring.
+reduc forall x: bitstring, y: sskey; getmess(sign(x,y)) = x.
+reduc forall x: bitstring, y: sskey; checksign(sign(x,y), spk(y)) = x.
+
+(* Shared key encryption *)
+type nonce.
+
+fun senc(bitstring,nonce): bitstring.
+reduc forall x: bitstring, y: nonce; sdec(senc(x,y),y) = x.
+
+(* Type converter *)
+fun nonce_to_bitstring(nonce): bitstring [data,typeConverter].
+
+(* Two honest host names A and B *)
+type host.
+free A, B: host.
+
+(* Key table *)
+table keys(host, pkey).
+
+(* Authentication queries *)
+event beginBparam(host).
+event endBparam(host).
+event beginAparam(host).
+event endAparam(host).
+
+query x: host; inj-event(endBparam(x)) ==> inj-event(beginBparam(x)).
+query x: host; inj-event(endAparam(x)) ==> inj-event(beginAparam(x)).
+
+(* Secrecy queries *)
+free secretANa, secretANb, secretBNa, secretBNb: bitstring [private].
+
+query attacker(secretANa);
+      attacker(secretANb);
+      attacker(secretBNa);
+      attacker(secretBNb).
+
+(* Alice *)
+let processA(pkS: spkey, skA: skey) =
+	in(c, hostX: host);
+	event beginBparam(hostX); 		
+	out(c, (A, hostX));                              (* msg 1 *)
+	in(c, ms: bitstring);                            (* msg 2 *)
+	let (pkX: pkey, =hostX) = checksign(ms, pkS) in
+	new Na: nonce; 
+	out(c, aenc((Na, A), pkX));                      (* msg 3 *)
+	in(c, m: bitstring);                             (* msg 6 *)
+	let (=Na, NX: nonce) = adec(m, skA) in
+	out(c, aenc(nonce_to_bitstring(NX), pkX));       (* msg 7 *)
+	if hostX = B then
+	event endAparam(A);
+	out(c, senc(secretANa, Na));
+	out(c, senc(secretANb, NX)).
+
+(* Bob *)
+let processB(pkS: spkey, skB: skey) =
+	in(c, m: bitstring);                             (* msg 3 *)
+	let (NY: nonce, hostY: host) = adec(m, skB) in
+	event beginAparam(hostY);
+	out(c, (B, hostY));                              (* msg 4 *)
+	in(c,ms: bitstring);                             (* msg 5 *)
+	let (pkY: pkey,=hostY) = checksign(ms, pkS) in
+	new Nb: nonce;
+	out(c, aenc((NY, Nb), pkY));                     (* msg 6 *)
+	in(c, m3: bitstring);                            (* msg 7 *)
+	if nonce_to_bitstring(Nb) = adec(m3, skB) then
+	if hostY = A then
+	event endBparam(B);
+	out(c, senc(secretBNa, NY));
+	out(c, senc(secretBNb, Nb)).
+
+(* Trusted key server *)
+let processS(skS: sskey) =  
+	in(c,(a: host, b: host)); 
+	get keys(=b, sb) in
+	out(c,sign((sb,b), skS)).
+
+(* Key registration *)
+let processK =
+	in(c, (h: host, k: pkey));
+	if h <> A && h <> B then insert keys(h,k).
+
+(* Main *)
+process 
+	new skA: skey; let pkA = pk(skA) in out(c, pkA); insert keys(A, pkA);
+	new skB: skey; let pkB = pk(skB) in out(c, pkB); insert keys(B, pkB);
+	new skS: sskey; let pkS = spk(skS) in out(c, pkS);
+	( (!processA(pkS, skA)) | (!processB(pkS, skB)) | 
+	  (!processS(skS)) | (!processK) )

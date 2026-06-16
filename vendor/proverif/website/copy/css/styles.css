@@ -1,0 +1,219 @@
+/* page */
+@font-face {
+    font-family: "Latin Modern Roman";
+    src: url("../fonts/lmroman9-regular.otf");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Latin Modern Roman";
+    font-weight: bold;
+    src: url("../fonts/lmroman12-bold.otf");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Latin Modern Roman";
+    font-weight: 300;
+    src: url("../fonts/lmroman17-regular.otf");
+    font-display: swap;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+
+    font-size: 14px;
+    color: #111;
+    font-family: "Latin Modern Roman", serif;
+    text-align: justify;
+}
+
+h1 {
+    font-size: 2em;
+}
+
+h2 {
+    font-size: 1.8em;
+    margin-top: 1.5em;
+    margin-bottom: 1em;
+}
+
+h3 {
+    font-size: 1.5em;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+h4 {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+a {
+    text-decoration: underline;
+    text-decoration-thickness: from-font;
+}
+
+a:hover, a:focus {
+    text-decoration: underline dotted;
+}
+
+a[href^="http"]::before {
+    content: "";
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    margin-right: 0.25em;
+    vertical-align: center;
+    background-color: currentColor;
+
+    position: relative;
+    top: 0.05em;
+
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 640'%3E%3Cpath fill='black' d='M368 64C359.2 64 352 71.2 352 80C352 88.8 359.2 96 368 96L521.4 96L260.7 356.7C254.5 362.9 254.5 373.1 260.7 379.3C266.9 385.5 277.1 385.5 283.3 379.3L544 118.6L544 272C544 280.8 551.2 288 560 288C568.8 288 576 280.8 576 272L576 80C576 71.2 568.8 64 560 64L368 64zM144 160C99.8 160 64 195.8 64 240L64 496C64 540.2 99.8 576 144 576L400 576C444.2 576 480 540.2 480 496L480 400C480 391.2 472.8 384 464 384C455.2 384 448 391.2 448 400L448 496C448 522.5 426.5 544 400 544L144 544C117.5 544 96 522.5 96 496L96 240C96 213.5 117.5 192 144 192L240 192C248.8 192 256 184.8 256 176C256 167.2 248.8 160 240 160L144 160z'/%3E%3C/svg%3E")
+    no-repeat center / contain;
+}
+
+
+/* components */
+body {
+    position: relative;
+}
+
+section {
+    padding: 2em 1em;
+}
+
+.lead, .subtitle {
+    font-size: 1.5em;
+}
+
+.logo {
+    border: 1px solid grey;
+    border-radius: 0.25rem;
+    padding: 1em;
+    margin-top: 1.4em;
+    max-width: 10em;
+}
+
+li {
+    margin-bottom: 0.5em;
+}
+
+[data-bs-toggle="tooltip"] {
+    text-decoration: underline;
+}
+
+.tooltip-inner {
+    max-width: 20em;
+    width: auto;
+}
+
+.container-wide {
+    max-width: 1500px;
+    margin: 0 auto;
+}
+
+.container-narrow {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+    .md-mt-10em {
+        margin-top: 10em;
+    }
+
+    .title {
+        margin-left: 2em;
+    }
+
+    .logo {
+        max-width: inherit;
+    }
+
+    section {
+        padding: 5em 1em;
+    }
+
+    h1 {
+        font-size: 4em;
+    }
+
+    h2 {
+        font-size: 2em;
+        margin-top: 1.5em;
+        margin-bottom: 1em;
+    }
+
+    h3 {
+        font-size: 1.5em;
+        margin-top: 1em;
+        margin-bottom: 0.5em;
+    }
+
+    html, body {
+        font-size: 17px;
+    }
+}
+
+.code {
+    margin-bottom: 0;
+    padding: 0.5rem;
+    background-color: #efefef;
+
+    .comment {
+        color: #008000;
+    }
+
+    .keyword {
+        color: #AF00DB;
+    }
+
+    .tag, .option {
+        color: #800000;
+    }
+
+    .type {
+        color: #267F99;
+    }
+
+    .variable {
+        color: #001080;
+    }
+
+    .parameter {
+        color: #0070C1;
+    }
+
+    .const {
+        color: #0000FF;
+    }
+
+    .function {
+        color: #795E26;
+    }
+
+    .reference {
+        color: #008000;
+    }
+}
+
+/* for the publications page */
+
+.tagclass{
+    padding-left:0.5rem;
+    padding-right:0.5rem;
+    display:inline-block;
+    color:#0000ff;
+    font-size:15px;
+    line-height:20px;
+    border:1px solid #505050;
+    border-radius:100px;
+    font-weight:400
+}
+

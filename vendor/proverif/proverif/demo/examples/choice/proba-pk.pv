@@ -1,0 +1,27 @@
+type skey.
+type pkey.
+type seed.
+type block.
+type encblock.
+
+(* Probabilistic public-key encryption *)
+
+fun pk(skey): pkey.
+fun enc(block, pkey, seed): encblock.
+fun dec(encblock, skey): block.
+equation forall x: block, y: skey, z: seed;  dec(enc(x, pk(y), z), y) = x.
+
+
+free c,c2: channel.
+
+process
+	new s: skey;
+	(
+	  out(c, pk(s))
+	|
+	  !
+	  in(c2, x: block);
+	  new a: seed;
+	  new r: encblock;
+	  out(c, choice[enc(x, pk(s), a), r])
+	)

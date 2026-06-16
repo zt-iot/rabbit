@@ -1,0 +1,74 @@
+(* ePassport Protocol
+   Taken from Myrto Ryan, CSF'10 *)
+   
+(* set simplifyProcess = interactive. *)
+
+fun enc(bitstring, bitstring): bitstring.
+fun mac(bitstring,bitstring): bitstring.
+
+(* Symetric decryption *)
+
+reduc forall x: bitstring, y:bitstring; dec(enc(x,y),y) = x.
+
+
+(* addition of one *)
+
+free c: channel.
+free d_k:channel [private].
+free get_challenge: bitstring.
+free error_6A80: bitstring.
+free error: bitstring [private].
+
+let reader(c_k:channel) =
+	in(c_k, x_k:bitstring);
+	let (ke:bitstring,km:bitstring) = x_k in
+	out(c, get_challenge);
+	in(c,nt:bitstring);
+	new nr:bitstring; 
+	new kr:bitstring;
+	let m:bitstring = enc((nr,nt,kr),ke) in
+	out(c,(m,mac(m,km)));
+	in(c,y:bitstring).
+
+let passportUK(c_k:channel, ke:bitstring, km:bitstring) =
+	out(c_k,(ke,km));
+	in(c,x:bitstring);
+	if x = get_challenge
+	then
+	  new nt:bitstring;
+	  out(c,nt);
+	  in(c,y:bitstring);
+	  
+	  let (m_e:bitstring,m_m:bitstring) = y in
+	    if mac(m_e,km) = m_m
+	    then
+	      let (nr:bitstring,nt':bitstring,kr:bitstring) = dec(m_e,ke) in
+	        if nt = nt'
+	        then
+	          new kt:bitstring;
+	          let m:bitstring = enc((nt,nr,kt),ke) in
+	            out(c,(m,mac(m,km)))
+	          else 0
+	        else
+	          out(c,error_6A80)
+	      else
+	        out(c, error_6A80)
+	    else
+	      out(c,error_6A80).
+
+
+process
+	new c_k:channel;
+	(
+	  !reader(c_k)
+	|
+	  !new ke1:bitstring; new km1:bitstring;
+	     !new ke2:bitstring; new km2:bitstring;
+	        passportUK(c_k,choice[ke1,ke2],choice[km1,km2])
+	)
+
+(* EXPECTPV
+RESULT Observational equivalence cannot be proved.
+RESULT Observational equivalence cannot be proved.
+0.059s (user 0.043s + system 0.016s), max rss 11196K
+END *)

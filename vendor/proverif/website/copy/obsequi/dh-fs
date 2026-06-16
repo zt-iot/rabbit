@@ -1,0 +1,12 @@
+(* Diffie-Hellman *)
+
+data g/0.
+fun exp/2.
+
+equation exp(exp(g,x),y) = exp(exp(g,y),x).
+
+free c.
+
+process
+	new a1; new a2; new a3;
+	out(c, (exp(g,a1), exp(g,a2), choice[exp(exp(g,a1),a2), exp(g,a3)]))
