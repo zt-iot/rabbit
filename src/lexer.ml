@@ -47,7 +47,7 @@ let reserved = [
   ("fact", FACT) ;
   ("global", GLOBAL) ;
   ("local", LOCAL) ;
-  ("pers", PERSISTENT)
+  ("persist", PERSISTENT)
   ]
 
 let name =
@@ -95,6 +95,8 @@ let safe_int_of_string lexbuf =
   with
     Invalid_argument _ -> Ulexbuf.error ~loc:(loc_of lexbuf) (Ulexbuf.BadNumeral s)
 
+let pending_token = ref []
+
 let rec token ({ Ulexbuf.end_of_input;_ } as lexbuf) =
   if end_of_input then EOF else token_aux lexbuf
 
@@ -141,6 +143,13 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | "::"                     -> f (); DCOLON
   | ':'                      -> f (); COLON
   | ';'                      -> f (); SEMICOLON
+  (* As an exception to prefixop, we use "!::" for persistent global facts *)
+  | "!::"                    -> f ();
+    let p_start = lexbuf.pos_start in
+    let p_end = lexbuf.pos_end in
+    let p_next = { p_start with Lexing.pos_cnum = p_start.pos_cnum + 1} in
+    pending_token := (DCOLON, p_next, p_end) :: !pending_token;
+    EXCL
   (* We record the location of operators here because menhir cannot handle %infix and
      mark_location simultaneously, it seems. *)
   | prefixop                 -> f (); PREFIXOP (Ulexbuf.lexeme lexbuf, loc_of lexbuf)
@@ -190,8 +199,13 @@ let run
     (parser : (Lexing.lexbuf -> 'a) -> Lexing.lexbuf -> 'b)
     (lexbuf : Ulexbuf.t) : 'b =
   let lexer () =
-    let token = lexer lexbuf in
-    (token, lexbuf.Ulexbuf.pos_start, lexbuf.Ulexbuf.pos_end) in
+    (match !pending_token with
+    | (tok, p_start, p_end) :: rest ->
+        pending_token := rest;
+        (tok, p_start, p_end)
+    | [] ->
+        let token = lexer lexbuf in
+        (token, lexbuf.Ulexbuf.pos_start, lexbuf.Ulexbuf.pos_end)) in
   let parser = MenhirLib.Convert.Simplified.traditional2revised parser in
   try
     parser lexer
