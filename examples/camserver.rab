@@ -12,6 +12,11 @@ function verify:3
 equation dec(enc(x, y), y) = x
 equation verify (sign(d, k), d, pk(k)) = true
 
+fact channel [store:1, req:0, ack:0, conn:0, invoke:3, Returned:1, exit:0]
+fact global [False:0]
+fact global persist [Signed:1]
+tag global [ClientClose:0, ClientTAClose:0, ImgRecvValid:1, ImgRecvInvalid:1, ImgSend:1]
+
 (* load syscalls on channels *)
 load "udp_rpc.rab"
 
@@ -154,6 +159,8 @@ process client_ta(ch_rpc : rpc_t) : client_ta_t
 
     _ := fclose(privkey_fd);
 
+    put [!::Signed(image)];
+
     sig 
   }
 
@@ -193,6 +200,7 @@ process server(ch_net : udp_t) : server_t
     repeat 
     | [] →
       var p = recv(ch_net) in
+      case [!::Signed(snd(p))] -> skip end;
       var res = verify(fst(p), snd(p), pubkey) in 
       case 
       | [res = true] →

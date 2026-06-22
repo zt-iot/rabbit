@@ -144,6 +144,7 @@ and decl' =
   | DeclExtFun of Name.ident * int
   | DeclExtEq of expr * expr
   | DeclExtFacts of fact_desc list * (Name.ident * int) list
+  | DeclTags of fact_desc * (Name.ident * int) list
   | DeclExtSyscall of Name.ident * Name.ident list * cmd * bool
   | DeclExtAttack of Name.ident * Name.ident * Name.ident list * cmd
   | DeclType of Name.ident * type_class

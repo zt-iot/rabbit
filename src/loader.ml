@@ -997,7 +997,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           }
           :: env.system
       }
-  | Input.DeclExtFacts _ -> error ~loc Unsupported
+  | Input.DeclExtFacts _ | Input.DeclTags _ -> error ~loc Unsupported
     (* Fact declaration is currently unsupported in legacy compiler *)
 
 and load fn env =

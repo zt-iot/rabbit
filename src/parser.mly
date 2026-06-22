@@ -21,7 +21,7 @@
 
 (* constant tokens for rabbit *)
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
-%token FACT GLOBAL LOCAL PERSISTENT
+%token FACT TAG GLOBAL LOCAL PERSISTENT
 %token CHANNEL PROCESS PATH DATA FILESYS FILE
 %token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LTGT
 %token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL
@@ -61,7 +61,8 @@ plain_decl:
   | CONSTANT id=NAME  { DeclExtFun(id, 0) }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
 
-  | FACT ty=list(fact_type) LBRACKET a=separated_nonempty_list(COMMA, fact_decl) RBRACKET { DeclExtFacts(ty, a) }
+  | FACT tys=list(fact_type) LBRACKET a=separated_nonempty_list(COMMA, fact_decl) RBRACKET { DeclExtFacts(tys, a) }
+  | TAG ty=fact_type LBRACKET a=separated_nonempty_list(COMMA, fact_decl) RBRACKET { DeclTags(ty, a) }
 
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
 

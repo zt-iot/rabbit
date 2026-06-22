@@ -129,6 +129,8 @@ and decl' =
   | DeclExtEq of expr * expr (** external equation, [equation e1 = e2] *)
   | DeclExtFacts of fact_desc list * (Name.ident * int) list
   (** external facts, [fact (ty ?pers) [id1: arity1, ..., idn: arityn]] *)
+  | DeclTags of fact_desc * (Name.ident * int) list
+  (** event tags, [tag ty [id1: arity1, ..., idn: arityn]] *)
   | DeclExtSyscall of Name.ident * Name.ident list * cmd * bool
   (** system call, [syscall f(ty1 a1,..,tyn an) { c }]
                    [passive attack f(ty1 a1,..,tyn an) { c }]
