@@ -22,15 +22,22 @@ let rec vars_of_expr e =
   | Tuple es | Apply (_, es) -> List.fold_left Ident.Set.union Ident.Set.empty @@ List.map vars_of_expr es
   | Transition _ -> Ident.Set.empty
 
+let string_of_ident id =
+  let name, idx = id in
+  if name = "_" then
+    if idx = 0 then "any" else Printf.sprintf "any__%d" idx
+  else
+    Ident.to_string id
+
 let rec string_of_expr = function
   | Unit -> "'()'"
   | String s -> "'" ^ s ^ "'"
   | Integer i -> "\'" ^ string_of_int i ^ "\'"
-  | Ident id -> Ident.to_string id
+  | Ident id -> string_of_ident id
   | Tuple [] -> assert false
   | Tuple [_] -> assert false
   | Tuple es -> "<" ^ String.concat ", " (List.map string_of_expr es) ^ ">"
-  | Apply (s, el) -> Ident.to_string s ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
+  | Apply (s, el) -> string_of_ident s ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
   | Index i -> "'index:" ^ Sem.Index.to_string i ^ "'"
   | Transition tr -> string_of_transition tr
 

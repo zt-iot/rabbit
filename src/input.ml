@@ -9,6 +9,7 @@ type expr = expr' Location.located
 
 and expr' =
   | Var of Name.ident
+  | Wildcard
   | Boolean of bool
   | String of string
   (* | Integer of Mpzf.t *)
@@ -23,6 +24,7 @@ let vars_of_expr e =
   let rec aux s (e : expr) =
     match e.data with
     | Var id -> NS.add id s
+    | Wildcard -> s
     | Boolean _ | String _ | Integer _ | Float _ -> s
     | Apply (_, es) | Tuple es -> List.fold_left aux s es
     | Param (id, e) -> NS.add id (aux s e)

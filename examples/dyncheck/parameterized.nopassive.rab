@@ -86,11 +86,7 @@ process client<k>(ch_net : udp_t, ch_rpc : rpc_t) : client_t
     | [] ->
       var image = get_picture() in
 
-      _ := eaves_mem(image);
-
       var sig = invoke_rpc(conn, invoke_func, image, privkey_path) in
-
-      _ := eaves_mem(sig);
 
       event [::ImgSend(image)];
 
@@ -116,9 +112,6 @@ process client_ta<k>(ch_rpc : rpc_t) : client_ta_t
     var privkey_fd = fopen(privkey_path) in
 
     var privkey = fread(privkey_fd) in
-
-    (* check whether privkey can be decrypted properly *)
-    assume [privkey = enc(priv_k<k>, fek)] in
 
     var privkey0 = dec(privkey, fek) in
 
@@ -175,8 +168,6 @@ process server(ch_net<> : udp_t) : server_t
       (* begin attack *)
       case [::In(k)] -> p := k | [] -> skip end;
       (* end attack *)
-      (* check if p is a pair *)
-      assume [p = (xxx, yyy)] in
       var res = verify(fst(p), snd(p), pubkey<addr>) in
       case
       | [res = true] →

@@ -40,14 +40,6 @@ allow server_t readonly_t     [fopen, fread, fclose]
 (***********)
 (** attacker model *)
 
-attack tamper_channel on recv (c) {
-  case [c::store(j), ::In(w)] ->
-    w
-  end
-}
-
-allow attack server_t [tamper_channel]
-
 passive attack eaves_mem (v) {
   put [::Out(v)]
 }
@@ -172,9 +164,6 @@ process server(ch_net<> : udp_t) : server_t
     repeat
     | [ch_net<addr> :: store(d) ] →
       var p = d in
-      (* begin attack *)
-      case [::In(k)] -> p := k | [] -> skip end;
-      (* end attack *)
       (* check if p is a pair *)
       assume [p = (xxx, yyy)] in
       var res = verify(fst(p), snd(p), pubkey<addr>) in

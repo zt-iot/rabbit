@@ -24,6 +24,7 @@ type error =
   | NonCallableInExpression of Ident.t * Env.desc
   | InvalidAnonymousAssignment
   | GlobalChannelInExpr of Ident.t
+  | WildcardNotAllowed
 
 exception Error of error Location.located
 
@@ -101,6 +102,8 @@ let print_error err ppf =
       Format.pp_print_string ppf "Pure expression is used at _ := e, which has no effect"
   | GlobalChannelInExpr id ->
       Format.fprintf ppf "Global channel %t cannot be used in an expression" (Ident.print id)
+  | WildcardNotAllowed ->
+      Format.pp_print_string ppf "Wildcard '_' is only allowed in case/while guards"
 ;;
 
 module Env : sig
@@ -161,10 +164,16 @@ let check_arity ~loc ~arity ~use =
   if arity <> use then error ~loc @@ ArityMismatch { arity; use }
 ;;
 
-let rec type_expr env (e : Input.expr) : Typed.expr =
+let rec type_expr ?(allow_wildcard = false) env (e : Input.expr) : Typed.expr =
   let loc = e.loc in
   let desc =
     match e.data with
+    | Wildcard ->
+        if allow_wildcard
+        then (
+          let id = Ident.local "_" in
+          Typed.Ident { id; desc = Var; param = None })
+        else error ~loc WildcardNotAllowed
     | Boolean b -> Typed.Boolean b
     | String s -> String s
     | Integer i -> Integer i
@@ -180,9 +189,9 @@ let rec type_expr env (e : Input.expr) : Typed.expr =
         Ident { id; desc; param = None }
     | Tuple es ->
         assert (List.length es > 0);
-        Tuple (List.map (type_expr env) es)
+        Tuple (List.map (type_expr ~allow_wildcard env) es)
     | Apply (f, es) ->
-        let es = List.map (type_expr env) es in
+        let es = List.map (type_expr ~allow_wildcard env) es in
         let use = List.length es in
         (match Env.find ~loc env f with
          | id, (ExtFun arity | ExtSyscall arity | Function arity) ->
@@ -193,7 +202,7 @@ let rec type_expr env (e : Input.expr) : Typed.expr =
     | Param (f, e) (* [f<e>] *) ->
         (match Env.find ~loc env f with
          | id, ((Const _ | Channel _) as desc) ->
-             let e = type_expr env e in
+             let e = type_expr ~allow_wildcard env e in
              Ident { id; desc; param= Some e }
          | id, desc -> error ~loc @@ NonParameterizableIdentifier (id, desc))
   in
@@ -220,12 +229,14 @@ let check_apps e =
   in
   aux e
 
-let type_expr ?(at_assignment=false) env (e : Input.expr) : Typed.expr =
-  let e = type_expr env e in
+let type_expr ?(at_assignment = false) ?(allow_wildcard = false) env (e : Input.expr)
+  : Typed.expr =
+  let e = type_expr ~allow_wildcard env e in
   if not at_assignment then check_apps e;
   e
+;;
 
-let type_fact env (fact : Input.fact) : Typed.fact =
+let type_fact ?(allow_wildcard = false) env (fact : Input.fact) : Typed.fact =
   let loc = fact.loc in
   let desc : Typed.fact' =
     match fact.data with
@@ -236,10 +247,10 @@ let type_fact env (fact : Input.fact) : Typed.fact =
         (match Env.find_fact_opt env name with
          | None ->
              Env.add_fact ~loc env name (Plain, Some nes);
-             Typed.Plain (name, List.map (type_expr env) es)
+             Typed.Plain (name, List.map (type_expr ~allow_wildcard env) es)
          | Some (Plain, Some arity) ->
              check_arity ~loc ~arity ~use:nes;
-             Plain (name, List.map (type_expr env) es)
+             Plain (name, List.map (type_expr ~allow_wildcard env) es)
          | Some (Plain, None) -> assert false
          | Some (desc, _) ->
              error ~loc @@ InvalidFact { name; def= desc; use= Plain }
@@ -247,24 +258,24 @@ let type_fact env (fact : Input.fact) : Typed.fact =
     | GlobalFact (name, es) ->
         let nes = List.length es in
         Env.add_fact ~loc env name (Global, Some nes);
-        Global (name, List.map (type_expr env) es)
+        Global (name, List.map (type_expr ~allow_wildcard env) es)
     | ChannelFact (e, name, es) ->
-        let e = type_expr env e in
-        let es = List.map (type_expr env) es in
+        let e = type_expr ~allow_wildcard env e in
+        let es = List.map (type_expr ~allow_wildcard env) es in
         let nes = List.length es in
         Env.add_fact ~loc env name (Channel, Some nes);
         Channel { channel = e; name; args = es }
     | EqFact (e1, e2) ->
-        let e1 = type_expr env e1 in
-        let e2 = type_expr env e2 in
+        let e1 = type_expr ~allow_wildcard env e1 in
+        let e2 = type_expr ~allow_wildcard env e2 in
         Eq (e1, e2)
     | NeqFact (e1, e2) ->
-        let e1 = type_expr env e1 in
-        let e2 = type_expr env e2 in
+        let e1 = type_expr ~allow_wildcard env e1 in
+        let e2 = type_expr ~allow_wildcard env e2 in
         Neq (e1, e2)
     | FileFact (e1, e2) ->
-        let e1 = type_expr env e1 in
-        let e2 = type_expr env e2 in
+        let e1 = type_expr ~allow_wildcard env e1 in
+        let e2 = type_expr ~allow_wildcard env e2 in
         File { path = e1; contents = e2 }
   in
   { env; loc; desc }
@@ -282,7 +293,9 @@ let extend_with_args env (args : Name.ident list) f =
   env, List.rev rev_ids
 ;;
 
-let type_facts env facts = List.map (type_fact env) facts
+let type_facts ?(allow_wildcard = false) env facts =
+  List.map (type_fact ~allow_wildcard env) facts
+;;
 
 let type_structure_fact ~loc env name es =
   (* [str] must be a structure fact *)
@@ -383,7 +396,7 @@ and type_case env (facts, cmd) : Typed.case =
   let env' =
     List.fold_left (fun env id -> Env.add env id Var) env fresh_ids
   in
-  let facts = type_facts env' facts in
+  let facts = type_facts ~allow_wildcard:true env' facts in
   let cmd = type_cmd env' cmd in
   Typed.{ fresh = fresh_ids; facts; cmd }
 ;;
