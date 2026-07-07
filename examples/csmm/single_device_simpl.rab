@@ -84,11 +84,9 @@ syscall fclose(y) {
 type device_t : process
 type secctlr_t : process
 type ca_t : process
-type dns_t : process
 
 type ch_net_t : channel
 type ch_unsec_t : channel
-type ch_to_dns_t : channel
 
 type device_file_t : filesys
 
@@ -98,18 +96,14 @@ allow device_t ch_net_t [send,recv]
 allow device_t ch_unsec_t [send_unsec,recv_unsec]
 allow device_t device_file_t [fopen,fread,fwrite,fclose]
 allow secctlr_t ch_net_t [send,recv]
-allow secctlr_t ch_to_dns_t [send,recv]
 allow ca_t ch_net_t [send,recv]
 allow ca_t ch_unsec_t [send_unsec,recv_unsec]
-allow ca_t ch_to_dns_t [send,recv]
-allow dns_t ch_to_dns_t [send,recv]
 
 (***********)
 (* global constants *)
 const fresh ca_id
 const fresh device_id
 const fresh ctlr_id
-const fresh dns_id
 
 (* type of requests to CA *)
 const pubk_reg = "0"
@@ -121,15 +115,11 @@ const revocation_req = "5"
 const get_req = "6"
 
 const http_chal_path = "/.well-known/acme-challenge"
-
-const txt_update = "a"
-const read_req = "b"
 const dns_chal_subdom = "_acme-challenge"
 
 (***********)
 channel ch_net: ch_net_t
 channel ch_unsec: ch_unsec_t
-channel ch_to_dns: ch_to_dns_t
 
 process device(ch: ch_net_t, ch_unsec: ch_unsec_t): device_t {
 
@@ -201,7 +191,7 @@ process device(ch: ch_net_t, ch_unsec: ch_unsec_t): device_t {
   }
 }
 
-process secctlr(ch_ca: ch_net_t, ch_dns: ch_to_dns_t): secctlr_t {
+process secctlr(ch_ca: ch_net_t): secctlr_t {
   
   function send_with_sign(c, h, v, k) {
     var msg = (v, sign(v, k)) in
@@ -209,8 +199,7 @@ process secctlr(ch_ca: ch_net_t, ch_dns: ch_to_dns_t): secctlr_t {
   }
 
   function write_dns(token) {
-    var update_req = (txt_update, ((device_id, dns_chal_subdom), token), ctlr_id) in
-    _ := send(ch_dns, dns_id, update_req)
+    put [::DnsRecord((device_id, dns_chal_subdom), token)]
   }
 
   main {
@@ -244,7 +233,7 @@ process secctlr(ch_ca: ch_net_t, ch_dns: ch_to_dns_t): secctlr_t {
   }
 }
 
-process ca(ch: ch_net_t, ch_unsec: ch_unsec_t, ch_dns: ch_to_dns_t): ca_t {
+process ca(ch: ch_net_t, ch_unsec: ch_unsec_t): ca_t {
 
   function get_pubkey(id) {
     case [::PublicKey(id, pubk)] ->
@@ -364,10 +353,7 @@ process ca(ch: ch_net_t, ch_unsec: ch_unsec_t, ch_dns: ch_to_dns_t): ca_t {
         var pubk = get_pubkey(sender) in
         var res = verify(sig, msg, pubk) in
         case [res = true] ->
-          var dns_txt_req = (read_req, (id, dns_chal_subdom), ca_id) in
-          _ := send(ch_dns, dns_id, dns_txt_req);
-          var token = recv(ch_dns, ca_id) in
-          case [::IssueDNSToken(id, token)] ->
+          case [::DnsRecord((id, dns_chal_subdom), token), ::IssueDNSToken(id, token)] ->
             new cert in
             event [::IssueCert(sender, cert)];
             put [::Certificate(sender, id, cert)];
@@ -396,33 +382,8 @@ process ca(ch: ch_net_t, ch_unsec: ch_unsec_t, ch_dns: ch_to_dns_t): ca_t {
   }
 }
 
-process dns(ch: ch_to_dns_t): dns_t {
-  main {
-    (* simple version: just handle 2 requests in order *)
-      (* 1. update TXT record: ctlr *)
-      var req = recv(ch, dns_id) in
-      var typ = fst3(req) in
-      var v = snd3(req) in
-      var sender = trd3(req) in
-      case [typ = txt_update] ->
-        var id = fst2(v) in
-        var dat = snd2(v) in
-        put [::DnsTxtRecord(id, dat)]
-      end;
-      (* 2. read TXT record: ca *)
-      var req = recv(ch, dns_id) in
-      var typ = fst3(req) in
-      var v = snd3(req) in
-      var sender = trd3(req) in
-      case [typ = read_req, ::DnsTxtRecord(v, dat)] ->
-        put [::DnsTxtRecord(v, dat)];
-        _ := send(ch, sender, dat)
-      end
-  }
-}
-
 system
-  device(ch_net, ch_unsec) | secctlr(ch_net, ch_to_dns) | ca(ch_net, ch_unsec, ch_to_dns) | dns(ch_to_dns)
+  device(ch_net, ch_unsec) | secctlr(ch_net) | ca(ch_net, ch_unsec)
 requires
 [
   (*

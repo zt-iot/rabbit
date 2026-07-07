@@ -23,16 +23,22 @@ function verify:3
 function true:0
 equation verify(sign(msg, privk), msg, pk(privk)) = true
 
+fact global [BrokenDevice:1, DnsRecord:2, False:0, Certificate:3]
+fact channel [Store:2]
+fact local [IssueHTTPToken:2, IssueDNSToken:2]
+fact local persist [PublicKey:2]
+tag global [ReceiveCert:2, SecCtlrAuth:3, ReqRevocation:2, IssueCert:2, RevokeCert:2]
+
 (***********)
 (* syscalls on communication *)
 (* NOTE: ACME requires HTTPS communication *)
 syscall send(c, h, v) {
-  put [c::store(h, v)]
+  put [c::Store(h, v)]
 }
 
 syscall recv(c, h) {
   case
-  | [c::store(h, v)] ->
+  | [c::Store(h, v)] ->
     v
   end
 }
@@ -40,12 +46,12 @@ syscall recv(c, h) {
 (* syscalls on unsecure communication *)
 (* NOTE: only when HTTP-01 challenge *)
 syscall send_unsec(c, h, v) {
-  put [c::store(h, v)]
+  put [c::Store(h, v)]
 }
 
 syscall recv_unsec(c, h) {
   case
-  | [c::store(h, v)] ->
+  | [c::Store(h, v)] ->
     v
   end
 }
@@ -84,11 +90,9 @@ syscall fclose(y) {
 type device_t : process
 type secctlr_t : process
 type ca_t : process
-type dns_t : process
 
 type ch_net_t : channel
 type ch_unsec_t : channel
-type ch_to_dns_t : channel
 
 type device_file_t : filesys
 
@@ -98,18 +102,14 @@ allow device_t ch_net_t [send,recv]
 allow device_t ch_unsec_t [send_unsec,recv_unsec]
 allow device_t device_file_t [fopen,fread,fwrite,fclose]
 allow secctlr_t ch_net_t [send,recv]
-allow secctlr_t ch_to_dns_t [send,recv]
 allow ca_t ch_net_t [send,recv]
 allow ca_t ch_unsec_t [send_unsec,recv_unsec]
-allow ca_t ch_to_dns_t [send,recv]
-allow dns_t ch_to_dns_t [send,recv]
 
 (***********)
 (* global constants *)
 const fresh ca_id
 const fresh device_id
 const fresh ctlr_id
-const fresh dns_id
 
 (* type of requests to CA *)
 const pubk_reg = "0"
@@ -121,15 +121,12 @@ const revocation_req = "5"
 const get_req = "6"
 
 const http_chal_path = "/.well-known/acme-challenge"
-
-const txt_update = "a"
-const read_req = "b"
 const dns_chal_subdom = "_acme-challenge"
 
 (***********)
-channel ch_net: ch_net_t
+channel ch_dev2ca: ch_net_t
+channel ch_ctlr2ca: ch_net_t
 channel ch_unsec: ch_unsec_t
-channel ch_to_dns: ch_to_dns_t
 
 process device(ch: ch_net_t, ch_unsec: ch_unsec_t): device_t {
 
@@ -150,6 +147,7 @@ process device(ch: ch_net_t, ch_unsec: ch_unsec_t): device_t {
   }
 
   function respond_to_get(req) {
+    assume [req = (_, _, _)] in
     var typ = fst3(req) in
     case [typ = get_req] ->
       var get_path = snd3(req) in
@@ -157,6 +155,7 @@ process device(ch: ch_net_t, ch_unsec: ch_unsec_t): device_t {
       (* var fd = fopen(get_path) in
       var dat = fread(fd) in
       _ := fclose(fd); *)
+      assume [get_path = (_, _, _)] in
       case [::CreateFile(get_path, dat)] ->
         put [::CreateFile(get_path, dat)];
         _ := send_unsec(ch_unsec, sender, dat)
@@ -176,6 +175,7 @@ process device(ch: ch_net_t, ch_unsec: ch_unsec_t): device_t {
     _ := send_with_sign(ch, ca_id, order_msg, device_privk);
     (* 2. put token / send csr *)
     var token_enc = recv(ch, device_id) in
+    assume [token_enc = aenc(_, device_pubk)] in
     var token = adec(token_enc, device_privk) in
     _ := put_token(token, device_pubk);
     var csr = (http_chal_ready, device_id, device_id) in
@@ -185,6 +185,7 @@ process device(ch: ch_net_t, ch_unsec: ch_unsec_t): device_t {
     _ := respond_to_get(challenge_req);
     (* 3. download certificate *)
     var cert_enc = recv(ch, device_id) in
+    assume [cert_enc = aenc(_, device_pubk)] in
     var cert = adec(cert_enc, device_privk) in
     event [::ReceiveCert(device_id, cert)];
 
@@ -201,7 +202,7 @@ process device(ch: ch_net_t, ch_unsec: ch_unsec_t): device_t {
   }
 }
 
-process secctlr(ch_ca: ch_net_t, ch_dns: ch_to_dns_t): secctlr_t {
+process secctlr(ch: ch_net_t): secctlr_t {
   
   function send_with_sign(c, h, v, k) {
     var msg = (v, sign(v, k)) in
@@ -209,8 +210,7 @@ process secctlr(ch_ca: ch_net_t, ch_dns: ch_to_dns_t): secctlr_t {
   }
 
   function write_dns(token) {
-    var update_req = (txt_update, ((device_id, dns_chal_subdom), token), ctlr_id) in
-    _ := send(ch_dns, dns_id, update_req)
+    put [::DnsRecord((device_id, dns_chal_subdom), token)]
   }
 
   main {
@@ -219,18 +219,20 @@ process secctlr(ch_ca: ch_net_t, ch_dns: ch_to_dns_t): secctlr_t {
     new ctlr_privk in
     var ctlr_pubk = pk(ctlr_privk) in
     var reg_msg = (pubk_reg, (ctlr_id, ctlr_pubk), ctlr_id) in
-    _ := send_with_sign(ch_ca, ca_id, reg_msg, ctlr_privk);
+    _ := send_with_sign(ch, ca_id, reg_msg, ctlr_privk);
     (* 1. send order *)
     var order_msg = (dns_chal_req, device_id, ctlr_id) in
-    _ := send_with_sign(ch_ca, ca_id, order_msg, ctlr_privk);
+    _ := send_with_sign(ch, ca_id, order_msg, ctlr_privk);
     (* 2. put token / send csr *)
-    var token_enc = recv(ch_ca, ctlr_id) in
+    var token_enc = recv(ch, ctlr_id) in
+    assume [token_enc = aenc(_, ctlr_pubk)] in
     var token = adec(token_enc, ctlr_privk) in
     _ := write_dns(token);
     var csr = (dns_chal_ready, device_id, ctlr_id) in
-    _ := send_with_sign(ch_ca, ca_id, csr, ctlr_privk);
+    _ := send_with_sign(ch, ca_id, csr, ctlr_privk);
     (* 3. download certificate *)
-    var cert_enc = recv(ch_ca, ctlr_id) in
+    var cert_enc = recv(ch, ctlr_id) in
+    assume [cert_enc = aenc(_, ctlr_pubk)] in
     var cert = adec(cert_enc, ctlr_privk) in
     event [::SecCtlrAuth(ctlr_id, device_id, cert)];
 
@@ -238,18 +240,17 @@ process secctlr(ch_ca: ch_net_t, ch_dns: ch_to_dns_t): secctlr_t {
     repeat [::BrokenDevice(id)] ->
       var req_revoke = (revocation_req, id, ctlr_id) in
       event [::ReqRevocation(ctlr_id, id)];
-      _ := send_with_sign(ch_ca, ca_id, req_revoke, ctlr_privk)
+      _ := send_with_sign(ch, ca_id, req_revoke, ctlr_privk)
     until [::False()] ->
       skip
     end
   }
 }
 
-process ca(ch: ch_net_t, ch_unsec: ch_unsec_t, ch_dns: ch_to_dns_t): ca_t {
+process ca(ch_dev: ch_net_t, ch_ctlr: ch_net_t, ch_unsec: ch_unsec_t): ca_t {
 
   function get_pubkey(id) {
-    case [::PublicKey(id, pubk)] ->
-      put [::PublicKey(id, pubk)];
+    case [!PublicKey(id, pubk)] ->
       pubk
     end
   }
@@ -259,109 +260,95 @@ process ca(ch: ch_net_t, ch_unsec: ch_unsec_t, ch_dns: ch_to_dns_t): ca_t {
     _ := send(c, h, msg)
   }
 
-  main {
-    repeat
-    | [] ->
-      var d = recv(ch, ca_id) in    (* d: (msg, sign(msg, privk)) *)
-      var msg = fst2(d) in    (* msg: (typ, v, sender) *)
-      var sig = snd2(d) in
-      var typ = fst3(msg) in
-      var v = snd3(msg) in
-      var sender = trd3(msg) in
-      case
-      | [typ = pubk_reg] ->
-          var id = fst2(v) in
-          var pubk = snd2(v) in
-          var res = verify(sig, msg, pubk) in
-          case [res = true] ->
-            put [::PublicKey(id, pubk)]
-          end
-      | [typ = http_chal_req] ->
-          var id = v in
-          var pubk = get_pubkey(sender) in
-          var res = verify(sig, msg, pubk) in
-          case [res = true] ->
-            new token in
-            put [::IssueHTTPToken(id, token)];
-            _ := send_with_aenc(ch, sender, token, pubk)
-          end
-      | [typ = http_chal_ready] ->
-          var id = v in
-          var pubk = get_pubkey(sender) in
-          var res = verify(sig, msg, pubk) in
-          case [res = true] ->
-            case [::IssueHTTPToken(id, token)] ->
-              var token_path = (id, http_chal_path, token) in
-              var challenge_req = (get_req, token_path, ca_id) in
-              _ := send_unsec(ch_unsec, sender, challenge_req);
-              var dat = recv_unsec(ch_unsec, ca_id) in
-              var token_recv = fst2(dat) in
-              var h_pubk = snd2(dat) in
-              case [token = token_recv, hash(pubk) = h_pubk] ->
-                new cert in
-                event [::IssueCert(id, cert)];
-                put [::Certificate(sender, id, cert)];
-                _ := send_with_aenc(ch, sender, cert, pubk)
-              end
-            end
-          end
-      | [typ = dns_chal_req] ->
-          var id = v in
-          var pubk = get_pubkey(sender) in
-          var res = verify(sig, msg, pubk) in
-          case [res = true] ->
-            new token in
-            put [::IssueDNSToken(id, token)];
-            _ := send_with_aenc(ch, sender, token, pubk)
-          end
-      | [typ = dns_chal_ready] ->
-          var id = v in
-          var pubk = get_pubkey(sender) in
-          var res = verify(sig, msg, pubk) in
-          case [res = true] ->
-            var dns_txt_req = (read_req, (id, dns_chal_subdom), ca_id) in
-            _ := send(ch_dns, dns_id, dns_txt_req);
-            var token = recv(ch_dns, ca_id) in
-            case [::IssueDNSToken(id, token)] ->
+  function handle_request(ch, d) {
+    var msg = fst2(d) in    (* msg: (typ, v, sender) *)
+    var sig = snd2(d) in
+    assume [msg = (_, _, _)] in
+    var typ = fst3(msg) in
+    var v = snd3(msg) in
+    var sender = trd3(msg) in
+    case
+    | [typ = pubk_reg] ->
+        var id = fst2(v) in
+        var pubk = snd2(v) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          put [!PublicKey(id, pubk)]
+        end
+    | [typ = http_chal_req] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          new token in
+          put [IssueHTTPToken(id, token)];
+          _ := send_with_aenc(ch, sender, token, pubk)
+        end
+    | [typ = http_chal_ready] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          case [IssueHTTPToken(id, token)] ->
+            var token_path = (id, http_chal_path, token) in
+            var challenge_req = (get_req, token_path, ca_id) in
+            _ := send_unsec(ch_unsec, sender, challenge_req);
+            var dat = recv_unsec(ch_unsec, ca_id) in
+            assume [dat = (_, _)] in
+            var token_recv = fst2(dat) in
+            var h_pubk = snd2(dat) in
+            case [token = token_recv, hash(pubk) = h_pubk] ->
               new cert in
-              event [::IssueCert(sender, cert)];
+              event [::IssueCert(id, cert)];
               put [::Certificate(sender, id, cert)];
               _ := send_with_aenc(ch, sender, cert, pubk)
             end
           end
-      | [typ = revocation_req] ->
-          var id = v in
-          var pubk = get_pubkey(sender) in
-          var res = verify(sig, msg, pubk) in
-          case [res = true] ->
-            case [::Certificate(sender, id, c1), ::Certificate(id, id, c2)] ->
-              event [::RevokeCert(sender, id)];
-              put [::Certificate(sender, id, c1)]
-            end
+        end
+    | [typ = dns_chal_req] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          new token in
+          put [IssueDNSToken(id, token)];
+          _ := send_with_aenc(ch, sender, token, pubk)
+        end
+    | [typ = dns_chal_ready] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          case [::DnsRecord((id, dns_chal_subdom), token), IssueDNSToken(id, token)] ->
+            new cert in
+            event [::IssueCert(sender, cert)];
+            put [::Certificate(sender, id, cert)];
+            _ := send_with_aenc(ch, sender, cert, pubk)
           end
-      end
-    until [::False()] ->
-      skip
+        end
+    | [typ = revocation_req] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          case [::Certificate(sender, id, c1), ::Certificate(id, id, c2)] ->
+            event [::RevokeCert(sender, id)];
+            put [::Certificate(sender, id, c1)]
+          end
+        end
     end
   }
-}
 
-process dns(ch: ch_to_dns_t): dns_t {
   main {
-    repeat [] ->
-      var req = recv(ch, dns_id) in
-      var typ = fst3(req) in
-      var v = snd3(req) in
-      var sender = trd3(req) in
-      case
-      | [typ = txt_update] ->
-          var id = fst2(v) in
-          var dat = snd2(v) in
-          put [::DnsTxtRecord(id, dat)]
-      | [typ = read_req, ::DnsTxtRecord(v, dat)] ->
-          put [::DnsTxtRecord(v, dat)];
-          _ := send(ch, sender, dat)
-      end
+    repeat
+    | [] ->
+      var d = recv(ch_dev, ca_id) in    (* d: (msg, sign(msg, privk)) *)
+      assume [d = (_, _)] in
+      _ := handle_request(ch_dev, d)
+    | [] ->
+      var d = recv(ch_ctlr, ca_id) in    (* d: (msg, sign(msg, privk)) *)
+      assume [d = (_, _)] in
+      _ := handle_request(ch_ctlr, d)
     until [::False()] ->
       skip
     end
@@ -369,7 +356,7 @@ process dns(ch: ch_to_dns_t): dns_t {
 }
 
 system
-  device(ch_net, ch_unsec) | secctlr(ch_net, ch_to_dns) | ca(ch_net, ch_unsec, ch_to_dns) | dns(ch_to_dns)
+  device(ch_dev2ca, ch_unsec) | secctlr(ch_ctlr2ca) | ca(ch_dev2ca, ch_ctlr2ca, ch_unsec)
 requires
 [
   lemma Reachability_1:
