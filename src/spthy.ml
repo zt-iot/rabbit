@@ -141,8 +141,8 @@ type fact' =
   }
 
 let dedup_persistent facts' =
-  let linears, persists = List.partition (fun f' -> f'.config.persist) facts' in
-  linears @ List.sort_uniq compare persists
+  let persists, linears = List.partition (fun f' -> f'.config.persist) facts' in
+  (List.sort_uniq compare persists) @ linears
 
 let fact' f : fact' =
   let with_param (param : Subst.param_id option) =
