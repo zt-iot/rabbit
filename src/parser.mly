@@ -21,6 +21,7 @@
 
 (* constant tokens for rabbit *)
 %token LOAD EQUATION CONSTANT CONST SYSCALL PASSIVE ATTACK ALLOW TYPE ARROW DARROW
+%token FACT TAG GLOBAL LOCAL PERSISTENT
 %token CHANNEL PROCESS PATH DATA FILESYS FILE
 %token WITH FUNC MAIN RETURN SKIP LET EVENT PUT CASE END BAR LT GT LTGT
 %token SYSTEM LEMMA AT DOT DCOLON REPEAT UNTIL IN THEN ON VAR NEW DEL GET BY EXCL ASSUME
@@ -59,6 +60,9 @@ plain_decl:
   | FUNC id=NAME COLON ar=NUMERAL { DeclExtFun(id, ar) }
   | CONSTANT id=NAME  { DeclExtFun(id, 0) }
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
+
+  | FACT tys=list(fact_type) LBRACKET a=separated_nonempty_list(COMMA, fact_decl) RBRACKET { DeclExtFacts(tys, a) }
+  | TAG ty=fact_type LBRACKET a=separated_nonempty_list(COMMA, fact_decl) RBRACKET { DeclTags(ty, a) }
 
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
 
@@ -102,7 +106,15 @@ plain_decl:
   | CONST FRESH t=NAME LT GT { DeclInit(t, Fresh_with_param) }
   | CONST FRESH t=NAME LTGT { DeclInit(t, Fresh_with_param) }
 
+fact_type:
+  | GLOBAL { Global }
+  | CHANNEL { Channel }
+  | LOCAL { Plain }
+  | PROCESS { Process }
+  | PERSISTENT { Persistent }
 
+fact_decl:
+  | id=NAME COLON ar=NUMERAL { (id, ar) }
 
 colon_name_pair :
   | a=NAME COLON b=NAME { ChanParam {id=a; param= None; typ=b} }
@@ -119,13 +131,17 @@ syscall_tk:
 
 fact : mark_location(plain_fact) { $1 }
 plain_fact:
-  | scope=expr DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact(scope, id, es) }
-  | scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact(scope, id, es) }
-  | DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact(id, es) }
-  | id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact(id, es) }
+  | p=is_persistent scope=expr DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ChannelFact{ch=scope; name=id; args=es; persist=p} }
+  | p=is_persistent scope=expr PERCENT id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { ProcessFact{proc=scope; name=id; args=es; persist=p} }
+  | p=is_persistent DCOLON id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { GlobalFact{name=id; args=es; persist=p} }
+  | p=is_persistent id=NAME LPAREN es=separated_list(COMMA, expr) RPAREN { Fact{name=id; args=es; persist=p} }
   | e1=expr EQ e2=expr { EqFact(e1, e2) }
   | e1=expr NEQ e2=expr { NeqFact(e1, e2) }
   | scope=expr DOT e=expr { FileFact(scope, e) }
+
+%inline is_persistent:
+  | { false }
+  | EXCL { true }
 
 sys:
   | SYSTEM p=separated_nonempty_list(BAR, proc) REQUIRES

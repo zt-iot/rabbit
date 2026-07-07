@@ -13,6 +13,7 @@ type error =
   | WrongInputType
   | NoBindingVariable
   | WrongChannelType of string * string
+  | Unsupported
   | WildcardNotAllowed
 
 exception Error of error Location.located
@@ -38,6 +39,7 @@ let print_error err ppf =
   | WrongInputType -> Format.fprintf ppf "wrong input type"
   | NoBindingVariable -> Format.fprintf ppf "no binding variable"
   | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given" x y
+  | Unsupported -> Format.fprintf ppf "currently unsupported in legacy version"
   | WildcardNotAllowed ->
       Format.fprintf ppf "wildcard '_' is not supported in legacy compiler"
 ;;
@@ -149,17 +151,17 @@ let rec process_expr2 new_meta_vars ctx lctx { Location.data = c; Location.loc }
 let process_fact_closed new_meta_vars ctx lctx f =
   let loc = f.Location.loc in
   match f.Location.data with
-  | Input.Fact (id, el) ->
+  | Input.Fact {name=id; args=el; _} ->
       ( Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el)
       , Location.locate
           ~loc:f.Location.loc
           (Syntax.Fact (id, List.map (process_expr2 new_meta_vars ctx lctx) el)) )
-  | Input.GlobalFact (id, el) ->
+  | Input.GlobalFact {name=id; args=el; _} ->
       ( Context.ctx_add_or_check_fact ~loc ctx (id, List.length el)
       , Location.locate
           ~loc:f.Location.loc
           (Syntax.GlobalFact (id, List.map (process_expr2 new_meta_vars ctx lctx) el)) )
-  | Input.ChannelFact (l, id, el) ->
+  | Input.ChannelFact {ch=l; name=id; args=el; _} ->
       (* check validty of local scope l *)
       ( Context.ctx_add_or_check_lfact ~loc ctx (id, List.length el)
       , Location.locate
@@ -1001,6 +1003,8 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           }
           :: env.system
       }
+  | Input.DeclExtFacts _ | Input.DeclTags _ -> error ~loc Unsupported
+    (* Fact declaration is currently unsupported in legacy compiler *)
 
 and load fn env =
   let decls, (used_idents, used_strings) = Lexer.read_file Parser.file fn in

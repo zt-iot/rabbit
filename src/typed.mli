@@ -53,9 +53,14 @@ and fact' =
       { channel : expr
       ; name : name
       ; args : expr list
+      ; persist : bool
       }
     (** Channel fact [ch :: name(args)] *)
-  | Plain of name * expr list  (** [n(e1,..,en)] *)
+  | Plain of
+      { name : name
+      ; args : expr list
+      ; persist : bool
+      }  (** [n(e1,..,en)] *)
   | Eq of expr * expr (** [e1 = e2] *)
   | Neq of expr * expr (** [e1 != e2] *)
   | File of
@@ -63,7 +68,11 @@ and fact' =
       ; contents : expr
       }
     (** File fact [path.contents] *)
-  | Global of string * expr list (** [:: n(e1,..,en)] *)
+  | Global of
+      { name : name
+      ; args : expr list
+      ; persist : bool
+      } (** [:: n(e1,..,en)] *)
 
 type cmd = cmd' loc_env
 

@@ -6,7 +6,7 @@ type named_fact_desc =
 
 let string_of_named_fact_desc = function
   | Channel -> "channel"
-  | Structure -> "struture"
+  | Structure -> "structure"
   | Plain -> "plain"
   | Global -> "global"
 
@@ -44,11 +44,12 @@ let print_desc desc ppf =
 
 type t = {
   vars : (Ident.t * desc) list;
-  facts : (Name.ident * (named_fact_desc * int option)) list ref
+  facts : (Name.ident * (named_fact_desc * int option * bool)) list ref;
   (* The fact environment is global therefore implemented as mutable *)
+  tags : (Name.ident * (named_fact_desc * int option)) list ref;
 }
 
-let empty () = { vars= []; facts= ref [] }
+let empty () = { vars= []; facts= ref []; tags= ref [] }
 
 let find_opt env name =
   List.find_opt (fun (id, _desc) -> name = fst id) env.vars
@@ -68,4 +69,15 @@ let update_fact env name v =
   in
   env.facts := update [] !(env.facts)
 
+let update_tag env name v =
+  let rec update rev_tags = function
+    | [] -> (name, v) :: List.rev rev_tags
+    | (name', _) :: tags when name = name' ->
+        List.rev_append rev_tags ((name, v) :: tags)
+    | t :: tags -> update (t :: rev_tags) tags
+  in
+  env.tags := update [] !(env.tags)
+
 let find_fact_opt env name = List.assoc_opt name !(env.facts)
+
+let find_tag_opt env name = List.assoc_opt name !(env.tags)

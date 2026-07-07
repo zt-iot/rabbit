@@ -20,13 +20,38 @@ and expr' =
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Param of Name.ident * expr (** parameter, [f<e>] *)
 
+type fact_desc =
+  | Channel
+  | Plain
+  | Global
+  | Process
+  | Persistent
+
 type fact = fact' Location.located
 
 and fact' =
-  | Fact of Name.ident * expr list (** [n(e1,..,en)] *)
-  | GlobalFact of Name.ident * expr list (** [:: n(e1,..,en) ]*)
-  | ChannelFact of expr * Name.ident * expr list (** [e :: n(e1,..,en)] *)
-  | ProcessFact of expr * Name.ident * expr list (** [e % n(e1,..,en)] *)
+  | Fact of
+      { name : Name.ident
+      ; args : expr list
+      ; persist : bool
+      } (** [n(e1,..,en)] *)
+  | GlobalFact of
+      { name : Name.ident
+      ; args : expr list
+      ; persist : bool
+      } (** [:: n(e1,..,en) ]*)
+  | ChannelFact of
+      { ch : expr
+      ; name : Name.ident
+      ; args : expr list
+      ; persist : bool
+      } (** [e :: n(e1,..,en)] *)
+  | ProcessFact of
+      { proc : expr
+      ; name : Name.ident
+      ; args : expr list
+      ; persist : bool
+      } (** [e % n(e1,..,en)] *)
   | EqFact of expr * expr (** [e1 = e2] *)
   | NeqFact of expr * expr (** [e1 != e2] *)
   | FileFact of expr * expr (** [S.e] *)
@@ -63,8 +88,12 @@ type chan_arg =
   | ChanArgParam of Name.ident (** [id<>] *)
   | ChanArgParamInst of Name.ident * expr (** [id<e>] *)
 
-type chan_param = ChanParam of { id : Name.ident; param : unit option; typ : Name.ident }
-(** [chan_name : chan_ty] or [chan_name<> : chan_ty] *)
+type chan_param =
+  | ChanParam of
+      { id : Name.ident
+      ; param : unit option
+      ; typ : Name.ident
+      } (** [chan_name : chan_ty] or [chan_name<> : chan_ty] *)
 
 type pproc = pproc' Location.located
 
@@ -99,6 +128,10 @@ type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int (** external function, [function id : arity] *)
   | DeclExtEq of expr * expr (** external equation, [equation e1 = e2] *)
+  | DeclExtFacts of fact_desc list * (Name.ident * int) list
+  (** external facts, [fact (ty ?pers) [id1: arity1, ..., idn: arityn]] *)
+  | DeclTags of fact_desc * (Name.ident * int) list
+  (** event tags, [tag ty [id1: arity1, ..., idn: arityn]] *)
   | DeclExtSyscall of Name.ident * Name.ident list * cmd * bool
   (** system call, [syscall f(ty1 a1,..,tyn an) { c }]
                    [passive attack f(ty1 a1,..,tyn an) { c }]

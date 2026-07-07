@@ -33,12 +33,14 @@ and fact' =
       { channel : Typed.expr
       ; name : Name.t
       ; args : Typed.expr list
+      ; persist : bool
       }
       (** Channel fact [ch :: name(args)] *)
   | Plain of
       { pid : Subst.pid
       ; name : Name.t
       ; args : Typed.expr list
+      ; persist : bool
       }
       (** [n(e1,..,en)] *)
   | Eq of Typed.expr * Typed.expr (** [e1 = e2] *)
@@ -49,7 +51,12 @@ and fact' =
       ; contents : Typed.expr
       }
       (** File fact [path.contents] *)
-  | Global of Name.t * Typed.expr list (** [:: n(e1,..,en)] *)
+  | Global of 
+      { name : Name.t
+      ; args : Typed.expr list
+      ; persist : bool
+      }
+      (** [:: n(e1,..,en)] *)
 
   (* New additions at Sem level *)
 
