@@ -147,11 +147,7 @@ process device(ch: ch_net_t, ch_unsec: ch_unsec_t): device_t {
   }
 
   function respond_to_get(req) {
-    assume [req = (_, _, _)] in
-    var typ = fst3(req) in
-    case [typ = get_req] ->
-      var get_path = snd3(req) in
-      var sender = trd3(req) in
+    case [req = (get_req, get_path, sender)] ->
       (* var fd = fopen(get_path) in
       var dat = fread(fd) in
       _ := fclose(fd); *)
@@ -262,81 +258,72 @@ process ca(ch_dev: ch_net_t, ch_ctlr: ch_net_t, ch_unsec: ch_unsec_t): ca_t {
   }
 
   function handle_request(ch, d) {
-    var msg = fst2(d) in    (* msg: (typ, v, sender) *)
-    var sig = snd2(d) in
-    assume [msg = (_, _, _)] in
-    var typ = fst3(msg) in
-    var v = snd3(msg) in
-    var sender = trd3(msg) in
-    case
-    | [typ = pubk_reg] ->
-        var id = fst2(v) in
-        var pubk = snd2(v) in
-        var res = verify(sig, msg, pubk) in
-        case [res = true] ->
-          put [!PublicKey(id, pubk)]
-        end
-    | [typ = http_chal_req] ->
-        var id = v in
-        var pubk = get_pubkey(sender) in
-        var res = verify(sig, msg, pubk) in
-        case [res = true] ->
-          new token in
-          put [IssueHTTPToken(id, token)];
-          _ := send_with_aenc(ch, sender, token, pubk)
-        end
-    | [typ = http_chal_ready] ->
-        var id = v in
-        var pubk = get_pubkey(sender) in
-        var res = verify(sig, msg, pubk) in
-        case [res = true] ->
-          case [IssueHTTPToken(id, token)] ->
-            var token_path = (id, http_chal_path, token) in
-            var challenge_req = (get_req, token_path, ca_id) in
-            _ := send_unsec(ch_unsec, sender, challenge_req);
-            var dat = recv_unsec(ch_unsec, ca_id) in
-            assume [dat = (_, _)] in
-            var token_recv = fst2(dat) in
-            var h_pubk = snd2(dat) in
-            case [token = token_recv, hash(pubk) = h_pubk] ->
+    case [d = (msg, sig), msg = (typ, v, sender)] ->
+      case
+      | [typ = pubk_reg, v = (id, pubk)] ->
+          var res = verify(sig, msg, pubk) in
+          case [res = true] ->
+            put [!PublicKey(id, pubk)]
+          end
+      | [typ = http_chal_req] ->
+          var id = v in
+          var pubk = get_pubkey(sender) in
+          var res = verify(sig, msg, pubk) in
+          case [res = true] ->
+            new token in
+            put [IssueHTTPToken(id, token)];
+            _ := send_with_aenc(ch, sender, token, pubk)
+          end
+      | [typ = http_chal_ready] ->
+          var id = v in
+          var pubk = get_pubkey(sender) in
+          var res = verify(sig, msg, pubk) in
+          case [res = true] ->
+            case [IssueHTTPToken(id, token)] ->
+              var token_path = (id, http_chal_path, token) in
+              var challenge_req = (get_req, token_path, ca_id) in
+              _ := send_unsec(ch_unsec, sender, challenge_req);
+              var dat = recv_unsec(ch_unsec, ca_id) in
+              case [dat = (token_recv, h_pubk), token = token_recv, hash(pubk) = h_pubk] ->
+                new cert in
+                event [::IssueCert(id, cert)];
+                put [::Certificate(sender, id, cert)];
+                _ := send_with_aenc(ch, sender, cert, pubk)
+              end
+            end
+          end
+      | [typ = dns_chal_req] ->
+          var id = v in
+          var pubk = get_pubkey(sender) in
+          var res = verify(sig, msg, pubk) in
+          case [res = true] ->
+            new token in
+            put [IssueDNSToken(id, token)];
+            _ := send_with_aenc(ch, sender, token, pubk)
+          end
+      | [typ = dns_chal_ready] ->
+          var id = v in
+          var pubk = get_pubkey(sender) in
+          var res = verify(sig, msg, pubk) in
+          case [res = true] ->
+            case [::DnsRecord((id, dns_chal_subdom), token), IssueDNSToken(id, token)] ->
               new cert in
-              event [::IssueCert(id, cert)];
+              event [::IssueCert(sender, cert)];
               put [::Certificate(sender, id, cert)];
               _ := send_with_aenc(ch, sender, cert, pubk)
             end
           end
-        end
-    | [typ = dns_chal_req] ->
-        var id = v in
-        var pubk = get_pubkey(sender) in
-        var res = verify(sig, msg, pubk) in
-        case [res = true] ->
-          new token in
-          put [IssueDNSToken(id, token)];
-          _ := send_with_aenc(ch, sender, token, pubk)
-        end
-    | [typ = dns_chal_ready] ->
-        var id = v in
-        var pubk = get_pubkey(sender) in
-        var res = verify(sig, msg, pubk) in
-        case [res = true] ->
-          case [::DnsRecord((id, dns_chal_subdom), token), IssueDNSToken(id, token)] ->
-            new cert in
-            event [::IssueCert(sender, cert)];
-            put [::Certificate(sender, id, cert)];
-            _ := send_with_aenc(ch, sender, cert, pubk)
+      | [typ = revocation_req] ->
+          var id = v in
+          var pubk = get_pubkey(sender) in
+          var res = verify(sig, msg, pubk) in
+          case [res = true] ->
+            case [::Certificate(sender, id, c1), ::Certificate(id, id, c2)] ->
+              event [::RevokeCert(sender, id)];
+              put [::Certificate(sender, id, c1)]
+            end
           end
-        end
-    | [typ = revocation_req] ->
-        var id = v in
-        var pubk = get_pubkey(sender) in
-        var res = verify(sig, msg, pubk) in
-        case [res = true] ->
-          case [::Certificate(sender, id, c1), ::Certificate(id, id, c2)] ->
-            event [::RevokeCert(sender, id)];
-            put [::Certificate(sender, id, c1)]
-          end
-        end
+      end
     end
   }
 
@@ -344,11 +331,9 @@ process ca(ch_dev: ch_net_t, ch_ctlr: ch_net_t, ch_unsec: ch_unsec_t): ca_t {
     repeat
     | [] ->
       var d = recv(ch_dev, ca_id) in    (* d: (msg, sign(msg, privk)) *)
-      assume [d = (_, _)] in
       _ := handle_request(ch_dev, d)
     | [] ->
       var d = recv(ch_ctlr, ca_id) in    (* d: (msg, sign(msg, privk)) *)
-      assume [d = (_, _)] in
       _ := handle_request(ch_ctlr, d)
     until [::False()] ->
       skip
@@ -365,6 +350,9 @@ requires
 
   lemma Reachability_1a:
     reachable ::ReceiveCert(deviceId, certificationDev), ::SecCtlrAuth(ctlrId, deviceId, certificationCtlr);
+
+  lemma Reachability_1b:
+    reachable ::ReceiveCert(deviceId, certification);
 
   lemma Reachability_2:
     reachable ::RevokeCert(ctlrId, deviceId);
