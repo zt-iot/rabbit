@@ -349,7 +349,7 @@ module Update = struct
           | New e ->
               let e = update_expr u1 e in
               (match List.assoc_opt x u1.items with
-               | Some Drop -> (* Drop + New = Update *) Some (x, Update e) 
+               | Some Drop -> (* Drop + New = Update *) Some (x, Update e)
                | None -> (* New = New *) Some (x, New (update_expr u1 e ))
                | Some (Update _) | Some (New _) -> (* New + New = Error *) assert false)
           | Update e ->
@@ -1110,13 +1110,6 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
       in
       es, i_2, env
 
-and combine_pairs args es =
-  if List.length args <> List.length es then
-    invalid_arg
-      (Printf.sprintf "arity mismatch: expected %d arguments but got %d" (List.length args) (List.length es))
-  else
-    List.combine args es
-
 and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app : expr) : graph * Index.t * Env.t =
   let param = snd proc.pid in
   match app.desc with
@@ -1146,6 +1139,13 @@ and graph_application ~vars ~proc ~syscaller find_def (decls : decl list) i (app
 
        | Some (ExtSyscall _ | Function _ as desc) ->
            (* System calls can be attacked, therefore branching is possible *)
+           let combine_pairs args es =
+             if List.length args <> List.length es then
+               invalid_arg
+                 (Printf.sprintf "arity mismatch: expected %d arguments but got %d" (List.length args) (List.length es))
+             else
+               List.combine args es
+           in
            let i_1 = Index.add i 1 in (* the point of the confluence *)
            let g_attacks =
              match desc with
