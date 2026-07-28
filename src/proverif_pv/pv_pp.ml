@@ -1122,3 +1122,34 @@ let to_string program =
 
 let to_string_with_parens always program =
   with_always_with_parens always (fun () -> to_string program)
+
+let reparsed_program text =
+  Pv_parser.parse_string ~filename:"<pretty-printed>" text
+
+let reparses_to_same_program program text =
+  try
+    let reparsed = reparsed_program text in
+    Pv_ast_equal.equal_program program reparsed
+  with
+  | Parsing.Parse_error
+  | Parsing_helper.InputError _ ->
+      false
+
+let to_string_safe program =
+  let rendered = to_string program in
+  if reparses_to_same_program program rendered then
+    (rendered, Ok ())
+  else
+    let safe_rendered = to_string_with_parens true program in
+    let reparsed_safe =
+      try reparsed_program safe_rendered with
+      | Parsing.Parse_error
+      | Parsing_helper.InputError _ ->
+          failwith
+            "Pv_pp.to_string_safe: parenthesized output does not parse back"
+    in
+    if Pv_ast_equal.equal_program program reparsed_safe then
+      (safe_rendered, Error ())
+    else
+      failwith
+        "Pv_pp.to_string_safe: parenthesized output parses back to a different program"
