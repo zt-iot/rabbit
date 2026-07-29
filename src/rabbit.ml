@@ -239,3 +239,6 @@ let () =
   | Typer.Error err ->
       Print.message ~loc:err.loc "Typer error" "%t" (Typer.print_error err.data);
       exit 1
+  | Sem.Error err ->
+      Print.message ~loc:err.loc "Compilation error" "%t" (Sem.print_error err.data);
+      exit 1
