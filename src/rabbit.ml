@@ -44,7 +44,7 @@ let options = Arg.align [
 
     ("--debug",
      Arg.Set Config.debug,
-     "Print debugging messages");
+     " Print debugging messages");
 
     ("--compress",
      Arg.Bool (fun b -> Config.optimize := b),
