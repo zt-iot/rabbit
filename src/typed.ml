@@ -35,6 +35,105 @@ let rec string_of_expr (e : expr) =
   | Boolean b -> string_of_bool b
   | Unit -> "()"
 
+type subst = (ident * expr) list
+
+let rec equal_expr (e1 : expr) (e2 : expr) =
+  match e1.desc, e2.desc with
+  | Ident { id= id1; desc= desc1; param= param1 }, Ident { id= id2; desc= desc2; param= param2 } ->
+      id1 = id2
+      && desc1 = desc2
+      && (
+        match param1, param2 with
+        | None, None -> true
+        | Some p1, Some p2 -> equal_expr p1 p2
+        | _ -> false
+      )
+  | Boolean b1, Boolean b2 -> b1 = b2
+  | String s1, String s2 -> s1 = s2
+  | Integer i1, Integer i2 -> i1 = i2
+  | Float f1, Float f2 -> f1 = f2
+  | Apply (f1, es1), Apply (f2, es2) ->
+      f1 = f2
+      && List.length es1 = List.length es2
+      && List.for_all2 equal_expr es1 es2
+  | Tuple es1, Tuple es2 ->
+      List.length es1 = List.length es2
+      && List.for_all2 equal_expr es1 es2
+  | Unit, Unit -> true
+  | _ -> false
+
+let rec apply_subst (s : subst) (e : expr) : expr =
+  match e.desc with
+  | Ident { id; desc= Var; param= None } ->
+      Option.value ~default:e (List.assoc_opt id s)
+  | Ident { id; desc; param= Some p } ->
+      { e with desc= Ident { id; desc; param= Some (apply_subst s p) } }
+  | Ident _ -> e
+  | Apply (f, es) -> { e with desc= Apply (f, List.map (apply_subst s) es) }
+  | Tuple es -> { e with desc= Tuple (List.map (apply_subst s) es) }
+  | Boolean _ | String _ | Integer _ | Float _ | Unit -> e
+
+let rec occurs (id : ident) (e : expr) =
+  match e.desc with
+  | Ident { id= id'; desc= Var; param= None } -> id = id'
+  | Ident { param= Some p; _ } -> occurs id p
+  | Ident _ -> false
+  | Apply (_, es) | Tuple es -> List.exists (occurs id) es
+  | Boolean _ | String _ | Integer _ | Float _ | Unit -> false
+
+let bind_var (s : subst) (id : ident) (e : expr) : subst option =
+  let e = apply_subst s e in
+  let self = { e with desc= Ident { id; desc= Var; param= None } } in
+  if equal_expr self e then Some s
+  else if occurs id e then None
+  else
+    let s = List.map (fun (id', e') -> id', apply_subst [id, e] e') s in
+    Some ((id, e) :: s)
+
+let unify_expr (e1 : expr) (e2 : expr) : subst option =
+  let rec aux (s : subst) = function
+    | [] -> Some s
+    | (e1, e2) :: rest ->
+        let e1 = apply_subst s e1 in
+        let e2 = apply_subst s e2 in
+        if equal_expr e1 e2 then aux s rest
+        else
+          match e1.desc, e2.desc with
+          | Ident { id; desc= Var; param= None }, _ ->
+              begin
+                match bind_var s id e2 with
+                | None -> None
+                | Some s -> aux s rest
+              end
+          | _, Ident { id; desc= Var; param= None } ->
+              begin
+                match bind_var s id e1 with
+                | None -> None
+                | Some s -> aux s rest
+              end
+          | Ident { id= id1; desc= desc1; param= param1 }, Ident { id= id2; desc= desc2; param= param2 }
+            when id1 = id2 && desc1 = desc2 ->
+              begin
+                match param1, param2 with
+                | None, None -> aux s rest
+                | Some p1, Some p2 -> aux s ((p1, p2) :: rest)
+                | _ -> None
+              end
+          | Boolean b1, Boolean b2 when b1 = b2 -> aux s rest
+          | String s1, String s2 when s1 = s2 -> aux s rest
+          | Integer i1, Integer i2 when i1 = i2 -> aux s rest
+          | Float f1, Float f2 when f1 = f2 -> aux s rest
+          | Apply (f1, es1), Apply (f2, es2)
+            when f1 = f2 && List.length es1 = List.length es2 ->
+              aux s (List.combine es1 es2 @ rest)
+          | Tuple es1, Tuple es2
+            when List.length es1 = List.length es2 ->
+              aux s (List.combine es1 es2 @ rest)
+          | Unit, Unit -> aux s rest
+          | _ -> None
+  in
+  aux [] [e1, e2]
+
 let vars_of_expr e =
   let rec aux e =
     match e.desc with
