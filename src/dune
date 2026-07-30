@@ -1,9 +1,24 @@
+(library
+  (name rabbit_core)
+  (wrapped false)
+  (modules (:standard \ rabbit rabbit_proverif))
+  (libraries sedlex menhirLib str ocamlgraph unix rabbit_proverif_pv rabbit_proverif_pv_parse)
+  (preprocess (pps sedlex.ppx))
+  (flags -w +a-4-40-41-42-70 -warn-error +a-4-40-42-70))
+
 (executable
   (name "rabbit")
   (public_name "rabbit")
-  (flags -w +a-4-40-41-42-70 -warn-error +a-4-40-42-70)
-  (libraries sedlex menhirLib str ocamlgraph unix)
-  (preprocess (pps sedlex.ppx)))
+  (modules rabbit)
+  (libraries rabbit_core)
+  (flags -w +a-4-40-41-42-70 -warn-error +a-4-40-42-70))
+
+(executable
+  (name "rabbit_proverif")
+  (public_name "rabbit_proverif")
+  (modules rabbit_proverif)
+  (libraries rabbit_core)
+  (flags -w +a-4-40-41-42-70 -warn-error +a-4-40-42-70))
 
 (menhir
   (modules parser)
