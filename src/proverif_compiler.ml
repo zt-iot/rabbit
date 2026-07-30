@@ -48,6 +48,7 @@ let compile_ident (id : Typed.ident) : Pitptree.ident =
 
 let bitstring_ident : Pitptree.ident = pv_ident "bitstring"
 let channel_ident : Pitptree.ident = pv_ident "channel"
+let param_data_ident : Pitptree.ident = pv_ident "param_data"
 let proc_t_ident : Pitptree.ident = pv_ident "proc_t"
 let acc_data_t_ident : Pitptree.ident = pv_ident "acc_data_t"
 let syscall_t_ident : Pitptree.ident = pv_ident "syscall_t"
@@ -63,6 +64,8 @@ let false_ident : Pitptree.ident = pv_ident "false"
 let ptype_arg_ident : Pitptree.ident = pv_ident "ptype"
 let none_syscall_ident : Pitptree.ident = pv_ident "none_syscall_s"
 let precise_ident : Pitptree.ident = pv_ident "precise"
+let private_option : Pitptree.ident * Pitptree.ident list option =
+  pv_ident "private", None
 
 let term (t : Pitptree.term) : Pitptree.term_e = with_dummy_ext t
 let pterm (t : Pitptree.pterm) : Pitptree.pterm_e = with_dummy_ext t
@@ -212,6 +215,8 @@ let unfold_int_minus (t : Pitptree.term_e) (n : int) : Pitptree.term_e =
 
 let rec compile_expr_to_term env (expr : Typed.expr) : Pitptree.term_e =
   match expr.desc with
+  | Typed.Ident { id; param = Some param; _ } ->
+      term (PFunApp (compile_ident id, [compile_expr_to_term env param]))
   | Typed.Ident { id; _ } ->
       term (PIdent (compile_ident id))
   | Apply (id, args) ->
@@ -288,6 +293,8 @@ let find_process_var_exn ~loc (env : process_env) (id : Typed.ident) : Pitptree.
 
 let rec compile_expr_to_pterm (genv : env) (penv : process_env) (expr : Typed.expr) : Pitptree.pterm_e =
   match expr.desc with
+  | Typed.Ident { id; param = Some param; _ } ->
+      pterm (PPFunApp (compile_ident id, [compile_expr_to_pterm genv penv param]))
   | Typed.Ident { id; _ } ->
       (match find_process_var penv id with
        | Some value -> value
@@ -334,6 +341,11 @@ let wrap_with_access_control_get
     (then_proc : Pitptree.tprocess_e)
     (else_proc : Pitptree.tprocess_e)
   : Pitptree.tprocess_e =
+  (* Note: this assumes direct Rabbit accesses are mediated solely by the
+     triple (current process type, target access-data type, current syscall).
+     The current lowering uses [none_syscall_s] for direct process code via
+     [allow ... [.]]. If the spec ends up distinguishing more direct-access
+     contexts, this table lookup may need refinement. *)
   process
     (PGet
        ( access_control_table_ident
@@ -394,6 +406,10 @@ let structure_arg_term (name : Typed.name) (index : int) (struct_term : Pitptree
   pterm (PPFunApp (structure_arg_ident name index, [struct_term]))
 
 let loop_state_bindings (penv : process_env) : (Typed.ident * Pitptree.pterm_e) list =
+  (* Note: the first loop lowering conservatively carries every current
+     process binding across the loop boundary. This is simple and sounder than
+     forgetting mutable state, but it may be larger than necessary. A later
+     refinement could compute the true loop-carried live subset. *)
   List.rev penv.bindings
 
 let loop_state_message
@@ -695,6 +711,11 @@ and compile_case_channelized
     (cases : Typed.case list)
     (k : process_env -> Pitptree.tprocess_e)
   : Pitptree.tprocess_e =
+  (* Note: this is an optimized lowering for the common case where all channel
+     guards in one [case] read the same fact name from the same channel. The
+     full spec also discusses a more general lock-channel encoding for
+     nondeterministic cases; if this optimization ever changes semantics on
+     overlapping guards, we should fall back to that general form. *)
   let channel_guards =
     List.map
       (fun (case : Typed.case) ->
@@ -1015,6 +1036,10 @@ let compile_allow
   let target_typs = List.map compile_ident target_typs in
   match syscalls with
   | None ->
+      (* Note: [allow ... [.] ] is currently represented by granting access to
+         the distinguished pseudo-syscall [none_syscall_s]. This is a pragmatic
+         encoding choice for direct process operations, but it is worth
+         re-checking against the final spec once syscall lowering is in place. *)
       List.iter
         (fun target_typ ->
            Queue.add (process_typ, target_typ, none_syscall_ident) env.allow_entries)
@@ -1038,8 +1063,42 @@ let compile_allow_attack
   =
   error ~loc (Unsupported "compile_allow_attack is not implemented yet")
 
-let compile_init ~loc (_id : Typed.ident) (_desc : Typed.init_desc) =
-  error ~loc (Unsupported "compile_init is not implemented yet")
+let compile_init ~loc:(_loc : Location.t) (env : env) (id : Typed.ident) (desc : Typed.init_desc) : Pitptree.tdecl list =
+  let init_ident = compile_ident id in
+  match desc with
+  | Fresh ->
+      (* Note: this assumes Rabbit top-level fresh constants are best modeled as
+         private free names in ProVerif. If the intended semantics is closer to a
+         definitional constant introduced by restriction at process start, this
+         lowering should be revisited. *)
+      [Pitptree.TFree (init_ident, bitstring_ident, [private_option])]
+  | Value expr ->
+      let init_term = term (PIdent init_ident) in
+      let value_term = compile_expr_to_term env expr in
+      (* Note: this currently lowers [const n = e] as a private constant together
+         with an equation [n = e]. This is a plausible first encoding, but it is
+         worth re-checking whether ProVerif prefers this over a pure equational
+         alias or some other definitional form, especially if [e] itself contains
+         non-trivial function symbols. *)
+      [ Pitptree.TConstDecl (init_ident, bitstring_ident, [private_option])
+      ; TEquation
+          ( [ [], EETerm (term (PFunApp (pv_ident "=", [init_term; value_term]))) ]
+          , [] )
+      ]
+  | Value_with_param (param, expr) ->
+      let param_ident = compile_ident param in
+      let init_term =
+        term (PFunApp (init_ident, [term (PIdent param_ident)]))
+      in
+      let value_term = compile_expr_to_term env expr in
+      [ TReduc
+          ( [ [param_ident, param_data_ident]
+            , EETerm (term (PFunApp (pv_ident "=", [init_term; value_term])))
+            ]
+          , [] )
+      ]
+  | Fresh_with_param ->
+      [Pitptree.TFunDecl (init_ident, [param_data_ident], bitstring_ident, [private_option])]
 
 let compile_channel
     ~loc
@@ -1235,7 +1294,8 @@ let compile_system
       error ~loc (Unsupported "Multiple system declarations are not supported yet")
 
 let compile_prelude (_env : env) : Pitptree.tdecl list =
-  [ TTypeDecl proc_t_ident
+  [ TTypeDecl param_data_ident
+  ; TTypeDecl proc_t_ident
   ; TTypeDecl acc_data_t_ident
   ; TTypeDecl syscall_t_ident
   ; TFree (attacker_channel_ident, channel_ident, [])
@@ -1270,6 +1330,12 @@ let compile_generated_event_decls (env : env) : Pitptree.tdecl list =
       Pitptree.TEventDecl (compile_name name, List.init arity (fun _ -> bitstring_ident)))
 
 let compile_generated_structure_decls (env : env) : Pitptree.tdecl list =
+  (* Note: structure constructors/getters are generated globally from observed
+     Rabbit structure usages. This assumes there is no conflicting user-level
+     ProVerif declaration with the same generated names and that a per-name
+     arity discipline is enough. If the surrounding language grows richer
+     namespaces or imported declarations, this generation scheme may need to be
+     made more explicit. *)
   let mk_var index = pv_ident (Printf.sprintf "x_%d" index) in
   Hashtbl.to_seq env.structure_table
   |> List.of_seq
@@ -1366,7 +1432,7 @@ and compile_decl (env : env) (decl : Typed.decl) : Pitptree.tdecl list =
   | AllowAttack { process_typs; attacks } ->
       [compile_allow_attack ~loc:decl.loc process_typs attacks]
   | Init { id; desc } ->
-      [compile_init ~loc:decl.loc id desc]
+      compile_init ~loc:decl.loc env id desc
   | Channel { id; param; typ } ->
       [compile_channel ~loc:decl.loc id param typ]
   | Process { id; param; args; typ; files; vars; funcs; main } ->
