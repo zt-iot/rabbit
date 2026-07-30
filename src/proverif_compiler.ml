@@ -24,6 +24,15 @@ let pv_ident (s : string) : Pitptree.ident = s, Parsing_helper.dummy_ext
 let compile_ident (id : Typed.ident) : Pitptree.ident = pv_ident (Ident.to_string id)
 
 let bitstring_ident : Pitptree.ident = pv_ident "bitstring"
+let channel_ident : Pitptree.ident = pv_ident "channel"
+let proc_t_ident : Pitptree.ident = pv_ident "proc_t"
+let acc_data_t_ident : Pitptree.ident = pv_ident "acc_data_t"
+let syscall_t_ident : Pitptree.ident = pv_ident "syscall_t"
+let access_control_table_ident : Pitptree.ident = pv_ident "access_control_table"
+let file_type_table_ident : Pitptree.ident = pv_ident "file_type_table"
+let channel_table_ident : Pitptree.ident = pv_ident "channel_table"
+let true_ident : Pitptree.ident = pv_ident "true"
+let false_ident : Pitptree.ident = pv_ident "false"
 
 let term (t : Pitptree.term) : Pitptree.term_e = t, Parsing_helper.dummy_ext
 
@@ -102,14 +111,14 @@ let unfold_int_minus (t : Pitptree.term_e) (n : int) : Pitptree.term_e =
 
 let rec compile_expr_to_term (env : env) (expr : Typed.expr) : Pitptree.term_e =
   match expr.desc with
-  | Typed.Ident { id; _ } -> term (Pitptree.PIdent (compile_ident id))
+  | Typed.Ident { id; _ } -> term (PIdent (compile_ident id))
   | Apply (id, args) ->
       term (Pitptree.PFunApp (compile_ident id, List.map (compile_expr_to_term env) args))
-  | Tuple exprs -> term (Pitptree.PTuple (List.map (compile_expr_to_term env) exprs))
-  | Unit -> term (Pitptree.PTuple [])
-  | String s -> term (Pitptree.PIdent (fresh_string_ident env s))
-  | Boolean true -> term (Pitptree.PIdent (pv_ident "true"))
-  | Boolean false -> term (Pitptree.PIdent (pv_ident "false"))
+  | Tuple exprs -> term (PTuple (List.map (compile_expr_to_term env) exprs))
+  | Unit -> term (PTuple [])
+  | String s -> term (PIdent (fresh_string_ident env s))
+  | Boolean true -> term (PIdent (pv_ident "true"))
+  | Boolean false -> term (PIdent (pv_ident "false"))
   | Integer n when n >= 0 -> unfold_int (zero_term ()) n
   | Integer n -> unfold_int_minus (zero_term ()) (-n)
   | Float _ -> error ~loc:expr.loc (Unsupported "Float terms are not supported in ProVerif term translation")
@@ -117,7 +126,7 @@ let rec compile_expr_to_term (env : env) (expr : Typed.expr) : Pitptree.term_e =
 let compile_function ~loc:(_loc : Location.t) (id : Typed.ident) (arity : int) : Pitptree.tdecl =
   let name = compile_ident id in
   let arg_tys = List.init arity (fun _ -> bitstring_ident) in
-  Pitptree.TFunDecl (name, arg_tys, bitstring_ident, [])
+  TFunDecl (name, arg_tys, bitstring_ident, [])
 
 let compile_equation ~loc:(_loc : Location.t) (env : env) (lhs : Typed.expr) (rhs : Typed.expr) : Pitptree.tdecl =
   let envdecl =
@@ -127,9 +136,9 @@ let compile_equation ~loc:(_loc : Location.t) (env : env) (lhs : Typed.expr) (rh
   let lhs_term = compile_expr_to_term env lhs in
   let rhs_term = compile_expr_to_term env rhs in
   let equality_term =
-    term (Pitptree.PFunApp (pv_ident "=", [lhs_term; rhs_term]))
+    term (PFunApp (pv_ident "=", [lhs_term; rhs_term]))
   in
-  Pitptree.TEquation ([envdecl, Pitptree.EETerm equality_term], [])
+  TEquation ([envdecl, EETerm equality_term], [])
 
 let compile_syscall
     ~loc
@@ -198,8 +207,27 @@ let compile_system
   =
   error ~loc (Unsupported "compile_system is not implemented yet")
 
-let rec compile_load (_filename : string) (decls : Typed.decl list) : Pitptree.tdecl list =
-  let env = create_env () in
+let compile_prelude (_env : env) : Pitptree.tdecl list =
+  [ TTypeDecl proc_t_ident
+  ; TTypeDecl acc_data_t_ident
+  ; TTypeDecl syscall_t_ident
+  ; TTableDecl
+      (access_control_table_ident, [proc_t_ident; acc_data_t_ident; syscall_t_ident])
+  ; TTableDecl
+      (file_type_table_ident, [proc_t_ident; acc_data_t_ident; bitstring_ident])
+  ; TTableDecl
+      (channel_table_ident, [acc_data_t_ident; channel_ident])
+  ; TConstDecl (true_ident, bitstring_ident, [])
+  ; TConstDecl (false_ident, bitstring_ident, [])
+  ]
+
+let compile_generated_string_consts (env : env) : Pitptree.tdecl list =
+  Hashtbl.to_seq_values env.string_table
+  |> List.of_seq
+  |> List.sort_uniq compare
+  |> List.map (fun id -> Pitptree.TConstDecl (id, bitstring_ident, []))
+
+let rec compile_load (env : env) (_filename : string) (decls : Typed.decl list) : Pitptree.tdecl list =
   List.concat_map (compile_decl env) decls
 
 and compile_decl (env : env) (decl : Typed.decl) : Pitptree.tdecl list =
@@ -218,4 +246,11 @@ and compile_decl (env : env) (decl : Typed.decl) : Pitptree.tdecl list =
   | Process { id; param; args; typ; files; vars; funcs; main } ->
       [compile_process ~loc:decl.loc id param args typ files vars funcs main]
   | System (procs, lemmas) -> [compile_system ~loc:decl.loc procs lemmas]
-  | Load (filename, decls) -> compile_load filename decls
+  | Load (filename, decls) -> compile_load env filename decls
+
+let compile_program (decls : Typed.decl list) : Pitptree.tdecl list =
+  let env = create_env () in
+  let body = List.concat_map (compile_decl env) decls in
+  compile_prelude env
+  @ compile_generated_string_consts env
+  @ body
