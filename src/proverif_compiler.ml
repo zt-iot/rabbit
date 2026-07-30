@@ -15,6 +15,7 @@ type env =
   { string_table : (string, Pitptree.ident) Hashtbl.t
   ; syscall_table : (string, Pitptree.ident) Hashtbl.t
   ; allow_entries : (Pitptree.ident * Pitptree.ident * Pitptree.ident) Queue.t
+  ; process_type_table : (string, Pitptree.ident) Hashtbl.t
   ; top_process : Pitptree.tprocess_e option ref
   }
 
@@ -22,6 +23,7 @@ let create_env () : env =
   { string_table = Hashtbl.create 16
   ; syscall_table = Hashtbl.create 16
   ; allow_entries = Queue.create ()
+  ; process_type_table = Hashtbl.create 16
   ; top_process = ref None
   }
 
@@ -43,6 +45,18 @@ let false_ident : Pitptree.ident = pv_ident "false"
 let term (t : Pitptree.term) : Pitptree.term_e = t, Parsing_helper.dummy_ext
 let pterm (t : Pitptree.pterm) : Pitptree.pterm_e = t, Parsing_helper.dummy_ext
 let process (p : Pitptree.tprocess) : Pitptree.tprocess_e = p, Parsing_helper.dummy_ext
+
+let register_process_type (env : env) (process_id : Typed.ident) (typ : Typed.ident) : unit =
+  Hashtbl.replace env.process_type_table (Ident.to_string process_id) (compile_ident typ)
+
+let find_process_type ~loc (env : env) (process_id : Typed.ident) : Pitptree.ident =
+  match Hashtbl.find_opt env.process_type_table (Ident.to_string process_id) with
+  | Some typ -> typ
+  | None ->
+      error ~loc
+        (Unsupported
+           (Printf.sprintf "process type for %s is not available in ProVerif system translation"
+              (Ident.to_string process_id)))
 
 let is_ident_char = function
   | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' -> true
@@ -151,6 +165,23 @@ let rec compile_expr_to_term (env : env) (expr : Typed.expr) : Pitptree.term_e =
   | Integer n -> unfold_int_minus (zero_term ()) (-n)
   | Float _ -> error ~loc:expr.loc (Unsupported "Float terms are not supported in ProVerif term translation")
 
+let rec compile_expr_to_pterm (env : env) (expr : Typed.expr) : Pitptree.pterm_e =
+  match expr.desc with
+  | Typed.Ident { id; _ } -> pterm (PPIdent (compile_ident id))
+  | Apply (id, args) ->
+      pterm (PPFunApp (compile_ident id, List.map (compile_expr_to_pterm env) args))
+  | Tuple exprs -> pterm (PPTuple (List.map (compile_expr_to_pterm env) exprs))
+  | Unit -> pterm (PPTuple [])
+  | String s -> pterm (PPIdent (fresh_string_ident env s))
+  | Boolean true -> pterm (PPIdent true_ident)
+  | Boolean false -> pterm (PPIdent false_ident)
+  | Integer _ ->
+      error ~loc:expr.loc
+        (Unsupported "Integer process terms are not supported yet in ProVerif system translation")
+  | Float _ ->
+      error ~loc:expr.loc
+        (Unsupported "Float process terms are not supported in ProVerif system translation")
+
 let compile_function ~loc:(_loc : Location.t) (id : Typed.ident) (arity : int) : Pitptree.tdecl =
   let name = compile_ident id in
   let arg_tys = List.init arity (fun _ -> bitstring_ident) in
@@ -249,13 +280,57 @@ let compile_process
   =
   error ~loc (Unsupported "compile_process is not implemented yet")
 
+let compile_proc_call (env : env) (proc : Typed.proc) : Pitptree.tprocess_e =
+  let proc_desc = proc.data in
+  let proc_type = find_process_type ~loc:proc.loc env proc_desc.id in
+  let args =
+    pterm (PPIdent proc_type)
+    ::
+    (match proc_desc.parameter with
+     | None -> []
+     | Some _ ->
+         error ~loc:proc.loc
+           (Unsupported "Parameterized process instantiation is not supported yet"))
+    @
+    List.map
+      (fun ({ channel; parameter; _ } : Typed.chan_arg) ->
+         match parameter with
+         | None -> pterm (PPIdent (compile_ident channel))
+         | Some None | Some (Some _) ->
+             error ~loc:proc.loc
+               (Unsupported "Parameterized channel instantiation is not supported yet"))
+      proc_desc.args
+  in
+  process (PLetDef (compile_ident proc_desc.id, args, None))
+
+let parallel_processes (procs : Pitptree.tprocess_e list) : Pitptree.tprocess_e =
+  match procs with
+  | [] -> process PNil
+  | proc :: procs ->
+      List.fold_left
+        (fun acc proc -> process (PPar (acc, proc)))
+        proc
+        procs
+
+let compile_proc_group_desc (env : env) (proc_group : Typed.proc_group_desc) : Pitptree.tprocess_e =
+  match proc_group with
+  | Unbounded proc -> compile_proc_call env proc
+  | Bounded (_id, procs) ->
+      process (PRepl (parallel_processes (List.map (compile_proc_call env) procs)))
+
 let compile_system
     ~loc
-    (_env : env)
-    (_procs : Typed.proc_group_desc list)
+    (env : env)
+    (procs : Typed.proc_group_desc list)
     (_lemmas : (Typed.ident * Typed.lemma) list)
   =
-  error ~loc (Unsupported "compile_system is not implemented yet")
+  let top_process = parallel_processes (List.map (compile_proc_group_desc env) procs) in
+  match !(env.top_process) with
+  | None ->
+      env.top_process := Some top_process;
+      []
+  | Some _ ->
+      error ~loc (Unsupported "Multiple system declarations are not supported yet")
 
 let compile_prelude (_env : env) : Pitptree.tdecl list =
   [ TTypeDecl proc_t_ident
@@ -298,6 +373,15 @@ let wrap_with_allow_init (env : env) (body : Pitptree.tprocess_e) : Pitptree.tpr
     entries
     body
 
+let rec collect_process_types (env : env) (decls : Typed.decl list) : unit =
+  List.iter
+    (fun (decl : Typed.decl) ->
+       match decl.desc with
+       | Process { id; typ; _ } -> register_process_type env id typ
+       | Load (_filename, decls) -> collect_process_types env decls
+       | _ -> ())
+    decls
+
 let rec compile_load (env : env) (_filename : string) (decls : Typed.decl list) : Pitptree.tdecl list =
   List.concat_map (compile_decl env) decls
 
@@ -316,11 +400,12 @@ and compile_decl (env : env) (decl : Typed.decl) : Pitptree.tdecl list =
   | Channel { id; param; typ } -> [compile_channel ~loc:decl.loc id param typ]
   | Process { id; param; args; typ; files; vars; funcs; main } ->
       [compile_process ~loc:decl.loc id param args typ files vars funcs main]
-  | System (procs, lemmas) -> [compile_system ~loc:decl.loc env procs lemmas]
+  | System (procs, lemmas) -> compile_system ~loc:decl.loc env procs lemmas
   | Load (filename, decls) -> compile_load env filename decls
 
 let compile_program (decls : Typed.decl list) =
   let env = create_env () in
+  collect_process_types env decls;
   let body = List.concat_map (compile_decl env) decls in
   let top_process =
     match !(env.top_process) with
