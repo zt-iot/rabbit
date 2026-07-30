@@ -1,5 +1,16 @@
 open Rabbit_proverif_pv_parse
 
+type error =
+  | Unsupported of string
+
+exception Error of error Location.located
+
+let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
+
+let print_error err ppf =
+  match err with
+  | Unsupported s -> Format.pp_print_string ppf s
+
 type env =
   { string_table : (string, Pitptree.ident) Hashtbl.t
   }
@@ -101,7 +112,7 @@ let rec compile_expr_to_term (env : env) (expr : Typed.expr) : Pitptree.term_e =
   | Boolean false -> term (Pitptree.PIdent (pv_ident "false"))
   | Integer n when n >= 0 -> unfold_int (zero_term ()) n
   | Integer n -> unfold_int_minus (zero_term ()) (-n)
-  | Float _ -> assert false
+  | Float _ -> error ~loc:expr.loc (Unsupported "Float terms are not supported in ProVerif term translation")
 
 let compile_function (id : Typed.ident) (arity : int) : Pitptree.tdecl =
   let name = compile_ident id in
@@ -126,7 +137,7 @@ let compile_syscall
     (_cmd : Typed.cmd)
     (_attack : bool)
   =
-  assert false
+  error ~loc:Location.nowhere (Unsupported "compile_syscall is not implemented yet")
 
 let compile_attack
     (_id : Typed.ident)
@@ -134,31 +145,33 @@ let compile_attack
     (_args : Typed.ident list)
     (_cmd : Typed.cmd)
   =
-  assert false
+  error ~loc:Location.nowhere (Unsupported "compile_attack is not implemented yet")
 
-let compile_type (_id : Typed.ident) (_typclass : Input.type_class) = assert false
+let compile_type (_id : Typed.ident) (_typclass : Input.type_class) =
+  error ~loc:Location.nowhere (Unsupported "compile_type is not implemented yet")
 
 let compile_allow
     (_process_typ : Typed.ident)
     (_target_typs : Typed.ident list)
     (_syscalls : Typed.ident list option)
   =
-  assert false
+  error ~loc:Location.nowhere (Unsupported "compile_allow is not implemented yet")
 
 let compile_allow_attack
     (_process_typs : Typed.ident list)
     (_attacks : Typed.ident list)
   =
-  assert false
+  error ~loc:Location.nowhere (Unsupported "compile_allow_attack is not implemented yet")
 
-let compile_init (_id : Typed.ident) (_desc : Typed.init_desc) = assert false
+let compile_init (_id : Typed.ident) (_desc : Typed.init_desc) =
+  error ~loc:Location.nowhere (Unsupported "compile_init is not implemented yet")
 
 let compile_channel
     (_id : Typed.ident)
     (_param : unit option)
     (_typ : Typed.ident)
   =
-  assert false
+  error ~loc:Location.nowhere (Unsupported "compile_channel is not implemented yet")
 
 let compile_process
     (_id : Typed.ident)
@@ -170,12 +183,13 @@ let compile_process
     (_funcs : (Typed.ident * Typed.ident list * Typed.cmd) list)
     (_main : Typed.cmd)
   =
-  assert false
+  error ~loc:Location.nowhere (Unsupported "compile_process is not implemented yet")
 
 let compile_system
     (_procs : Typed.proc_group_desc list)
     (_lemmas : (Typed.ident * Typed.lemma) list)
   =
-  assert false
+  error ~loc:Location.nowhere (Unsupported "compile_system is not implemented yet")
 
-let compile_load (_filename : string) (_decls : Typed.decl list) = assert false
+let compile_load (_filename : string) (_decls : Typed.decl list) =
+  error ~loc:Location.nowhere (Unsupported "compile_load is not implemented yet")
