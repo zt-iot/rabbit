@@ -45,7 +45,7 @@ let compile_files files =
     (fun fn ->
        match load_file fn with
        | Ok decls ->
-           ignore (Proverif_compiler.compile_load fn decls)
+           ignore (Proverif_compiler.compile_program decls)
        | Error exn -> raise exn)
     files
 
