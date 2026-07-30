@@ -114,12 +114,12 @@ let rec compile_expr_to_term (env : env) (expr : Typed.expr) : Pitptree.term_e =
   | Integer n -> unfold_int_minus (zero_term ()) (-n)
   | Float _ -> error ~loc:expr.loc (Unsupported "Float terms are not supported in ProVerif term translation")
 
-let compile_function (id : Typed.ident) (arity : int) : Pitptree.tdecl =
+let compile_function ~loc:(_loc : Location.t) (id : Typed.ident) (arity : int) : Pitptree.tdecl =
   let name = compile_ident id in
   let arg_tys = List.init arity (fun _ -> bitstring_ident) in
   Pitptree.TFunDecl (name, arg_tys, bitstring_ident, [])
 
-let compile_equation (env : env) (lhs : Typed.expr) (rhs : Typed.expr) : Pitptree.tdecl =
+let compile_equation ~loc:(_loc : Location.t) (env : env) (lhs : Typed.expr) (rhs : Typed.expr) : Pitptree.tdecl =
   let envdecl =
     List.sort_uniq compare (Typed.vars_of_expr lhs @ Typed.vars_of_expr rhs)
     |> List.map (fun id -> compile_ident id, bitstring_ident)
@@ -132,48 +132,54 @@ let compile_equation (env : env) (lhs : Typed.expr) (rhs : Typed.expr) : Pitptre
   Pitptree.TEquation ([envdecl, Pitptree.EETerm equality_term], [])
 
 let compile_syscall
+    ~loc
     (_id : Typed.ident)
     (_args : Typed.ident list)
     (_cmd : Typed.cmd)
     (_attack : bool)
   =
-  error ~loc:Location.nowhere (Unsupported "compile_syscall is not implemented yet")
+  error ~loc (Unsupported "compile_syscall is not implemented yet")
 
 let compile_attack
+    ~loc
     (_id : Typed.ident)
     (_syscall : Typed.ident)
     (_args : Typed.ident list)
     (_cmd : Typed.cmd)
   =
-  error ~loc:Location.nowhere (Unsupported "compile_attack is not implemented yet")
+  error ~loc (Unsupported "compile_attack is not implemented yet")
 
-let compile_type (_id : Typed.ident) (_typclass : Input.type_class) =
-  error ~loc:Location.nowhere (Unsupported "compile_type is not implemented yet")
+let compile_type ~loc (_id : Typed.ident) (_typclass : Input.type_class) =
+  error ~loc (Unsupported "compile_type is not implemented yet")
 
 let compile_allow
+    ~loc
     (_process_typ : Typed.ident)
     (_target_typs : Typed.ident list)
     (_syscalls : Typed.ident list option)
   =
-  error ~loc:Location.nowhere (Unsupported "compile_allow is not implemented yet")
+  error ~loc (Unsupported "compile_allow is not implemented yet")
 
 let compile_allow_attack
+    ~loc
     (_process_typs : Typed.ident list)
     (_attacks : Typed.ident list)
   =
-  error ~loc:Location.nowhere (Unsupported "compile_allow_attack is not implemented yet")
+  error ~loc (Unsupported "compile_allow_attack is not implemented yet")
 
-let compile_init (_id : Typed.ident) (_desc : Typed.init_desc) =
-  error ~loc:Location.nowhere (Unsupported "compile_init is not implemented yet")
+let compile_init ~loc (_id : Typed.ident) (_desc : Typed.init_desc) =
+  error ~loc (Unsupported "compile_init is not implemented yet")
 
 let compile_channel
+    ~loc
     (_id : Typed.ident)
     (_param : unit option)
     (_typ : Typed.ident)
   =
-  error ~loc:Location.nowhere (Unsupported "compile_channel is not implemented yet")
+  error ~loc (Unsupported "compile_channel is not implemented yet")
 
 let compile_process
+    ~loc
     (_id : Typed.ident)
     (_param : Typed.ident option)
     (_args : Typed.chan_param list)
@@ -183,13 +189,33 @@ let compile_process
     (_funcs : (Typed.ident * Typed.ident list * Typed.cmd) list)
     (_main : Typed.cmd)
   =
-  error ~loc:Location.nowhere (Unsupported "compile_process is not implemented yet")
+  error ~loc (Unsupported "compile_process is not implemented yet")
 
 let compile_system
+    ~loc
     (_procs : Typed.proc_group_desc list)
     (_lemmas : (Typed.ident * Typed.lemma) list)
   =
-  error ~loc:Location.nowhere (Unsupported "compile_system is not implemented yet")
+  error ~loc (Unsupported "compile_system is not implemented yet")
 
-let compile_load (_filename : string) (_decls : Typed.decl list) =
-  error ~loc:Location.nowhere (Unsupported "compile_load is not implemented yet")
+let rec compile_load (_filename : string) (decls : Typed.decl list) : Pitptree.tdecl list =
+  let env = create_env () in
+  List.concat_map (compile_decl env) decls
+
+and compile_decl (env : env) (decl : Typed.decl) : Pitptree.tdecl list =
+  match decl.desc with
+  | Function { id; arity } -> [compile_function ~loc:decl.loc id arity]
+  | Equation (lhs, rhs) -> [compile_equation ~loc:decl.loc env lhs rhs]
+  | Syscall { id; args; cmd; attack } -> [compile_syscall ~loc:decl.loc id args cmd attack]
+  | Attack { id; syscall; args; cmd } -> [compile_attack ~loc:decl.loc id syscall args cmd]
+  | Type { id; typclass } -> [compile_type ~loc:decl.loc id typclass]
+  | Allow { process_typ; target_typs; syscalls } ->
+      [compile_allow ~loc:decl.loc process_typ target_typs syscalls]
+  | AllowAttack { process_typs; attacks } ->
+      [compile_allow_attack ~loc:decl.loc process_typs attacks]
+  | Init { id; desc } -> [compile_init ~loc:decl.loc id desc]
+  | Channel { id; param; typ } -> [compile_channel ~loc:decl.loc id param typ]
+  | Process { id; param; args; typ; files; vars; funcs; main } ->
+      [compile_process ~loc:decl.loc id param args typ files vars funcs main]
+  | System (procs, lemmas) -> [compile_system ~loc:decl.loc procs lemmas]
+  | Load (filename, decls) -> compile_load filename decls
