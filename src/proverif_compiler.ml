@@ -42,7 +42,7 @@ type env =
   ; allow_attack_table : (string, Typed.ident list) Hashtbl.t
   ; generated_name_table : (string, unit) Hashtbl.t
   ; generated_name_counter : (string, int) Hashtbl.t
-  ; allow_entries : (Pitptree.ident * Pitptree.ident * Pitptree.ident) Queue.t
+  ; mutable allow_entries : (Pitptree.ident * Pitptree.ident * Pitptree.ident) list
   ; process_type_table : (string, Pitptree.ident) Hashtbl.t
   ; structure_table : (string, int) Hashtbl.t
   ; event_table : (string, int) Hashtbl.t
@@ -50,17 +50,17 @@ type env =
   }
 
 let create_env () : env =
-  { string_table = Hashtbl.create 16
-  ; syscall_table = Hashtbl.create 16
-  ; syscall_def_table = Hashtbl.create 16
-  ; attack_def_table = Hashtbl.create 16
-  ; allow_attack_table = Hashtbl.create 16
-  ; generated_name_table = Hashtbl.create 64
-  ; generated_name_counter = Hashtbl.create 64
-  ; allow_entries = Queue.create ()
-  ; process_type_table = Hashtbl.create 16
-  ; structure_table = Hashtbl.create 16
-  ; event_table = Hashtbl.create 16
+  { string_table = Hashtbl.create 101
+  ; syscall_table = Hashtbl.create 101
+  ; syscall_def_table = Hashtbl.create 101
+  ; attack_def_table = Hashtbl.create 101
+  ; allow_attack_table = Hashtbl.create 101
+  ; generated_name_table = Hashtbl.create 101
+  ; generated_name_counter = Hashtbl.create 101
+  ; allow_entries = []
+  ; process_type_table = Hashtbl.create 101
+  ; structure_table = Hashtbl.create 101
+  ; event_table = Hashtbl.create 101
   ; top_process = None
   }
 
@@ -108,11 +108,11 @@ let find_process_type ~loc env (process_id : Typed.ident) : Pitptree.ident =
   with
   | Some typ -> typ
   | None ->
-      error ~loc
-        (Internal_error
-           (Printf.sprintf
-              "process type for %s is not available in ProVerif system translation"
-              (Ident.to_string process_id)))
+      error ~loc @@
+      Internal_error
+        (Printf.sprintf
+           "process type for %s is not available in ProVerif system translation"
+           (Ident.to_string process_id))
 
 let compile_name (name : Typed.name) : Pitptree.ident = pv_ident name
 
@@ -155,6 +155,8 @@ let is_ident_char = function
   | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' -> true
   | _ -> false
 
+(* `"hello-world"`  ->  `"hello_world"`
+   `"__x y__"`  ->  `"x_y"` *)
 let sanitize_string_for_ident s =
   let sanitized =
     let buf = Buffer.create (String.length s) in
@@ -247,73 +249,94 @@ let register_attack_def env (def : attack_def) =
         (Invalid_input
            (Printf.sprintf "Attack %s is defined more than once" name))
 
-let zero_term () : Pitptree.term_e = term (Pitptree.PIdent (pv_ident "0"))
-let zero_pterm () : Pitptree.pterm_e = pterm (Pitptree.PPIdent (pv_ident "0"))
-let zero_gterm () : Pitptree.gterm_e = with_dummy_ext (Pitptree.PGIdent (pv_ident "0"))
+module Int : sig
+  val to_term : int -> Pitptree.term_e
+  val to_pterm : int -> Pitptree.pterm_e
+  val to_gterm : int -> Pitptree.gterm_e
+end = struct
+  let zero_term () : Pitptree.term_e = term (Pitptree.PIdent (pv_ident "0"))
+  let zero_pterm () : Pitptree.pterm_e = pterm (Pitptree.PPIdent (pv_ident "0"))
+  let zero_gterm () : Pitptree.gterm_e = with_dummy_ext (Pitptree.PGIdent (pv_ident "0"))
 
-let rec unfold_int (t : Pitptree.term_e) (n : int) : Pitptree.term_e =
-  match n with
-  | 0 -> t
-  | n ->
-      term (Pitptree.PFunApp (pv_ident "+", [unfold_int t (n - 1)]))
+  let rec unfold (t : Pitptree.term_e) (n : int) : Pitptree.term_e =
+    match n with
+    | 0 -> t
+    | n ->
+        term (Pitptree.PFunApp (pv_ident "+", [unfold t (n - 1)]))
 
-let unfold_int_minus (t : Pitptree.term_e) (n : int) : Pitptree.term_e =
-  match n with
-  | 0 -> t
-  | n ->
-      term (Pitptree.PFunApp (pv_ident ("- " ^ string_of_int n), [t]))
+  let unfold_minus (t : Pitptree.term_e) (n : int) : Pitptree.term_e =
+    match n with
+    | 0 -> t
+    | n ->
+        term (Pitptree.PFunApp (pv_ident ("- " ^ string_of_int n), [t]))
 
-let rec unfold_int_pterm (t : Pitptree.pterm_e) (n : int) : Pitptree.pterm_e =
-  match n with
-  | 0 -> t
-  | n ->
-      pterm (Pitptree.PPFunApp (pv_ident "+", [unfold_int_pterm t (n - 1)]))
+  let rec unfold_pterm (t : Pitptree.pterm_e) (n : int) : Pitptree.pterm_e =
+    match n with
+    | 0 -> t
+    | n ->
+        pterm (Pitptree.PPFunApp (pv_ident "+", [unfold_pterm t (n - 1)]))
 
-let unfold_int_minus_pterm (t : Pitptree.pterm_e) (n : int) : Pitptree.pterm_e =
-  match n with
-  | 0 -> t
-  | n ->
-      pterm (Pitptree.PPFunApp (pv_ident ("- " ^ string_of_int n), [t]))
+  let unfold_minus_pterm (t : Pitptree.pterm_e) (n : int) : Pitptree.pterm_e =
+    match n with
+    | 0 -> t
+    | n ->
+        pterm (Pitptree.PPFunApp (pv_ident ("- " ^ string_of_int n), [t]))
 
-let rec unfold_int_gterm (t : Pitptree.gterm_e) (n : int) : Pitptree.gterm_e =
-  match n with
-  | 0 -> t
-  | n ->
-      with_dummy_ext (Pitptree.PGFunApp (pv_ident "+", [unfold_int_gterm t (n - 1)], None))
+  let rec unfold_gterm (t : Pitptree.gterm_e) (n : int) : Pitptree.gterm_e =
+    match n with
+    | 0 -> t
+    | n ->
+        with_dummy_ext (Pitptree.PGFunApp (pv_ident "+", [unfold_gterm t (n - 1)], None))
 
-let unfold_int_minus_gterm (t : Pitptree.gterm_e) (n : int) : Pitptree.gterm_e =
-  match n with
-  | 0 -> t
-  | n ->
-      with_dummy_ext (Pitptree.PGFunApp (pv_ident ("- " ^ string_of_int n), [t], None))
+  let unfold_minus_gterm (t : Pitptree.gterm_e) (n : int) : Pitptree.gterm_e =
+    match n with
+    | 0 -> t
+    | n ->
+        with_dummy_ext (Pitptree.PGFunApp (pv_ident ("- " ^ string_of_int n), [t], None))
+
+  let to_term (n : int) : Pitptree.term_e =
+    if n >= 0 then
+      unfold (zero_term ()) n
+    else
+      (* Negative integer -n is represented as `0 - n` *)
+      unfold_minus (zero_term ()) (-n)
+
+  let to_pterm (n : int) : Pitptree.pterm_e =
+    if n >= 0 then
+      unfold_pterm (zero_pterm ()) n
+    else
+      unfold_minus_pterm (zero_pterm ()) (-n)
+
+  let to_gterm (n : int) : Pitptree.gterm_e =
+    if n >= 0 then
+      unfold_gterm (zero_gterm ()) n
+    else
+      unfold_minus_gterm (zero_gterm ()) (-n)
+end
 
 let rec compile_expr_to_term env (expr : Typed.expr) : Pitptree.term_e =
   match expr.desc with
   | Typed.Ident { id; param = Some param; _ } ->
-      term (PFunApp (compile_ident id, [compile_expr_to_term env param]))
+      term @@ PFunApp (compile_ident id, [compile_expr_to_term env param])
   | Typed.Ident { id; _ } ->
-      term (PIdent (compile_ident id))
+      term @@ PIdent (compile_ident id)
   | Apply (id, args) ->
-      term (Pitptree.PFunApp (compile_ident id, List.map (compile_expr_to_term env) args))
+      term @@ Pitptree.PFunApp (compile_ident id, List.map (compile_expr_to_term env) args)
   | Tuple exprs ->
-      term (PTuple (List.map (compile_expr_to_term env) exprs))
+      term @@ PTuple (List.map (compile_expr_to_term env) exprs)
   | Unit ->
-      term (PTuple [])
+      term @@ PTuple []
   | String s ->
-      term (PIdent (fresh_string_ident env s))
+      term @@ PIdent (fresh_string_ident env s)
   | Boolean true ->
-      term (PIdent (pv_ident "true"))
+      term @@ PIdent (pv_ident "true")
   | Boolean false ->
-      term (PIdent (pv_ident "false"))
-  | Integer n when n >= 0 ->
-      unfold_int (zero_term ()) n
+      term @@ PIdent (pv_ident "false")
   | Integer n ->
-      (* Negative integer -n is represented as `0 - n` *)
-      unfold_int_minus (zero_term ()) (-n)
+      Int.to_term n
   | Float _ ->
-      error
-        ~loc:expr.loc
-        (Unsupported "Float terms are not supported in ProVerif term translation")
+      error ~loc:expr.loc
+      @@ Unsupported "Float terms are not supported in ProVerif term translation"
 
 type process_env =
   { bindings : (Typed.ident * Pitptree.pterm_e) list
@@ -341,37 +364,37 @@ let create_process_env
   ; return_cont = None
   }
 
-let bind_process_var (env : process_env) (id : Typed.ident) (value : Pitptree.pterm_e) =
-  { env with bindings = (id, value) :: List.remove_assoc id env.bindings }
+let bind_process_var penv (id : Typed.ident) (value : Pitptree.pterm_e) =
+  { penv with bindings = (id, value) :: List.remove_assoc id penv.bindings }
 
-let unbind_process_var (env : process_env) (id : Typed.ident) =
-  { env with bindings = List.remove_assoc id env.bindings }
+let unbind_process_var penv (id : Typed.ident) =
+  { penv with bindings = List.remove_assoc id penv.bindings }
 
 let with_process_return_cont
-    (env : process_env)
+    penv
     (return_cont : process_env -> Pitptree.pterm_e -> Pitptree.tprocess_e)
   : process_env =
-  { env with return_cont = Some return_cont }
+  { penv with return_cont = Some return_cont }
 
-let find_process_var (env : process_env) (id : Typed.ident) : Pitptree.pterm_e option =
-  List.assoc_opt id env.bindings
+let find_process_var penv (id : Typed.ident) : Pitptree.pterm_e option =
+  List.assoc_opt id penv.bindings
 
-let restore_process_var (env : process_env) (id : Typed.ident) (old_value : Pitptree.pterm_e option) =
+let restore_process_var penv (id : Typed.ident) (old_value : Pitptree.pterm_e option) =
   match old_value with
-  | Some value -> bind_process_var env id value
-  | None -> unbind_process_var env id
+  | Some value -> bind_process_var penv id value
+  | None -> unbind_process_var penv id
 
 let restore_process_vars
-    (env : process_env)
+    penv
     (saved : (Typed.ident * Pitptree.pterm_e option) list)
   : process_env =
   List.fold_left
-    (fun env (id, old_value) -> restore_process_var env id old_value)
-    env
+    (fun penv (id, old_value) -> restore_process_var penv id old_value)
+    penv
     saved
 
-let find_process_var_exn ~loc (env : process_env) (id : Typed.ident) : Pitptree.pterm_e =
-  match find_process_var env id with
+let find_process_var_exn ~loc penv (id : Typed.ident) : Pitptree.pterm_e =
+  match find_process_var penv id with
   | Some value -> value
   | None ->
       error ~loc
@@ -382,9 +405,7 @@ let find_process_var_exn ~loc (env : process_env) (id : Typed.ident) : Pitptree.
 let find_syscall_def env (id : Typed.ident) : syscall_def option =
   Hashtbl.find_opt env.syscall_def_table (Ident.to_string id)
 
-let find_local_func_def
-    (penv : process_env)
-    (id : Typed.ident)
+let find_local_func_def penv (id : Typed.ident)
   : (Typed.ident list * Typed.cmd) option =
   List.assoc_opt id penv.local_func_defs
 
@@ -405,69 +426,65 @@ let find_allowed_attacks
        | _ -> None)
     allowed
 
-let rec compile_expr_to_gterm (genv : env) (expr : Typed.expr) : Pitptree.gterm_e =
+let rec compile_expr_to_gterm env (expr : Typed.expr) : Pitptree.gterm_e =
   match expr.desc with
   | Typed.Ident { id; param = Some param; _ } ->
       with_dummy_ext
         (Pitptree.PGFunApp
-           (compile_ident id, [compile_expr_to_gterm genv param], None))
+           (compile_ident id, [compile_expr_to_gterm env param], None))
   | Typed.Ident { id; _ } ->
       with_dummy_ext (Pitptree.PGIdent (compile_ident id))
   | Apply (id, args) ->
       with_dummy_ext
         (Pitptree.PGFunApp
-           (compile_ident id, List.map (compile_expr_to_gterm genv) args, None))
+           (compile_ident id, List.map (compile_expr_to_gterm env) args, None))
   | Tuple exprs ->
       with_dummy_ext
-        (Pitptree.PGTuple (List.map (compile_expr_to_gterm genv) exprs))
+        (Pitptree.PGTuple (List.map (compile_expr_to_gterm env) exprs))
   | Unit ->
       with_dummy_ext (Pitptree.PGTuple [])
   | String s ->
-      with_dummy_ext (Pitptree.PGIdent (fresh_string_ident genv s))
+      with_dummy_ext (Pitptree.PGIdent (fresh_string_ident env s))
   | Boolean true ->
       with_dummy_ext (Pitptree.PGIdent true_ident)
   | Boolean false ->
       with_dummy_ext (Pitptree.PGIdent false_ident)
-  | Integer n when n >= 0 ->
-      unfold_int_gterm (zero_gterm ()) n
   | Integer n ->
-      unfold_int_minus_gterm (zero_gterm ()) (-n)
+      Int.to_gterm n
   | Float _ ->
       error ~loc:expr.loc
         (Unsupported "Float terms are not supported in ProVerif query translation")
 
-let rec compile_expr_to_pterm (genv : env) (penv : process_env) (expr : Typed.expr) : Pitptree.pterm_e =
+let rec compile_expr_to_pterm env penv (expr : Typed.expr) : Pitptree.pterm_e =
   match expr.desc with
   | Typed.Ident { id; param = Some param; _ } ->
-      pterm (PPFunApp (compile_ident id, [compile_expr_to_pterm genv penv param]))
+      pterm (PPFunApp (compile_ident id, [compile_expr_to_pterm env penv param]))
   | Typed.Ident { id; _ } ->
       (match find_process_var penv id with
        | Some value -> value
        | None -> pterm (PPIdent (compile_ident id)))
   | Apply (id, args) ->
-      pterm (PPFunApp (compile_ident id, List.map (compile_expr_to_pterm genv penv) args))
+      pterm (PPFunApp (compile_ident id, List.map (compile_expr_to_pterm env penv) args))
   | Tuple exprs ->
-      pterm (PPTuple (List.map (compile_expr_to_pterm genv penv) exprs))
+      pterm (PPTuple (List.map (compile_expr_to_pterm env penv) exprs))
   | Unit ->
       pterm (PPTuple [])
   | String s ->
-      pterm (PPIdent (fresh_string_ident genv s))
+      pterm (PPIdent (fresh_string_ident env s))
   | Boolean true ->
       pterm (PPIdent true_ident)
   | Boolean false ->
       pterm (PPIdent false_ident)
-  | Integer n when n >= 0 ->
-      unfold_int_pterm (zero_pterm ()) n
   | Integer n ->
-      unfold_int_minus_pterm (zero_pterm ()) (-n)
+      Int.to_pterm n
   | Float _ ->
       error ~loc:expr.loc
         (Unsupported "Float process terms are not supported in ProVerif process translation")
 
-let compile_channel_expr (genv : env) (penv : process_env) (expr : Typed.expr) : Pitptree.pterm_e =
-  compile_expr_to_pterm genv penv expr
+let compile_channel_expr env penv (expr : Typed.expr) : Pitptree.pterm_e =
+  compile_expr_to_pterm env penv expr
 
-let current_syscall ~loc (penv : process_env) : Pitptree.pterm_e =
+let current_syscall ~loc penv : Pitptree.pterm_e =
   match penv.curr_syscall with
   | Some syscall -> syscall
   | None ->
@@ -480,6 +497,19 @@ let parallel_output
   : Pitptree.tprocess_e =
   process (PPar (output_proc, body))
 
+(*
+   3.9 Syscall and Attack Encoding
+
+   ```
+   put [ c :: store(v) ];
+   rest
+   ```
+
+   ```
+   out(c, store(v)) |
+   rest
+   ```
+*)
 let nondet_choose_processes
     (branches : Pitptree.tprocess_e list)
   : Pitptree.tprocess_e =
@@ -511,7 +541,7 @@ let nondet_choose_processes
 
 let wrap_with_access_control_get
     ~loc
-    (penv : process_env)
+    penv
     (target_type : Pitptree.pterm_e)
     (then_proc : Pitptree.tprocess_e)
     (else_proc : Pitptree.tprocess_e)
@@ -537,10 +567,23 @@ let wrap_with_access_control_get
 let wrap_with_channel_access_get
     ~loc
     (channel_term : Pitptree.pterm_e)
-    (penv : process_env)
+    penv
     (then_proc : Pitptree.tprocess_e)
     (else_proc : Pitptree.tprocess_e)
   : Pitptree.tprocess_e =
+  (*
+     3.8 Channel facts Encoding
+
+     ```
+     case [ ch :: msg(x) ] -> c end
+     ```
+
+     ```
+     get channel_table(ch_type:acc_data_t, =ch) in
+     get access_control_table(=ptype, =ch_type, =curr_syscall) in
+     ...
+     ```
+  *)
   let channel_type_id = Ident.local "ch_type" in
   let channel_type_term = pterm (PPIdent (compile_ident channel_type_id)) in
   process
@@ -557,10 +600,23 @@ let wrap_with_channel_access_get
 let wrap_with_file_access_get
     ~loc
     (path_term : Pitptree.pterm_e)
-    (penv : process_env)
+    penv
     (then_proc : Pitptree.tprocess_e)
     (else_proc : Pitptree.tprocess_e)
   : Pitptree.tprocess_e =
+  (*
+     3.7 File Fact Encoding
+
+     ```
+     case [ p.x ] -> c end
+     ```
+
+     ```
+     get file_type_table(=ptype, ftype:acc_data_t, =p) in
+     get access_control_table(=ptype, =ftype, =curr_syscall) in
+     ...
+     ```
+  *)
   let file_type_id = Ident.local "file_type" in
   let file_type_term = pterm (PPIdent (compile_ident file_type_id)) in
   process
@@ -581,7 +637,7 @@ let structure_addr_term (name : Typed.name) (struct_term : Pitptree.pterm_e) : P
 let structure_arg_term (name : Typed.name) (index : int) (struct_term : Pitptree.pterm_e) : Pitptree.pterm_e =
   pterm (PPFunApp (structure_arg_ident name index, [struct_term]))
 
-let loop_state_bindings (penv : process_env) : (Typed.ident * Pitptree.pterm_e) list =
+let loop_state_bindings penv : (Typed.ident * Pitptree.pterm_e) list =
   (* Note: the first loop lowering conservatively carries every current
      process binding across the loop boundary. This is simple and sounder than
      forgetting mutable state, but it may be larger than necessary. A later
@@ -591,7 +647,7 @@ let loop_state_bindings (penv : process_env) : (Typed.ident * Pitptree.pterm_e) 
 let loop_state_message
     ~done_flag
     ~loc
-    (penv : process_env)
+    penv
     (state_ids : Typed.ident list)
   : Pitptree.pterm_e =
   let flag_term =
@@ -623,7 +679,7 @@ let loop_state_pattern
               state_pattern_ids)
 
 let bind_loop_state
-    (penv : process_env)
+    penv
     (state_ids : Typed.ident list)
     (state_pattern_ids : Typed.ident list)
   : process_env =
@@ -634,46 +690,78 @@ let bind_loop_state
     state_ids
     state_pattern_ids
 
-let compile_event_fact (genv : env) (penv : process_env) (fact : Typed.fact) (body : Pitptree.tprocess_e)
+let compile_event_fact env penv (fact : Typed.fact) (body : Pitptree.tprocess_e)
   : Pitptree.tprocess_e =
+  (*
+     3.1 Encoding Strings, Constants, Events and Function Declarations
+
+     ```
+     event [:: ImgSend(image)]
+     ```
+
+     ```
+     event ImgSend(bitstring).
+     ...
+     event ImgSend(image);
+     ```
+  *)
   match fact.desc with
   | Global (name, args) ->
-      register_event genv name (List.length args);
+      register_event env name (List.length args);
       process
         (PEvent
            ( compile_name name
-           , List.map (compile_expr_to_pterm genv penv) args
+           , List.map (compile_expr_to_pterm env penv) args
            , None
            , body ))
   | Plain (name, args) ->
-      register_event genv name (List.length args);
+      register_event env name (List.length args);
       process
         (PEvent
            ( compile_name name
-           , List.map (compile_expr_to_pterm genv penv) args
+           , List.map (compile_expr_to_pterm env penv) args
            , None
            , body ))
   | _ ->
       error ~loc:fact.loc
         (Unsupported "Only plain/global event facts are supported in ProVerif event lowering")
 
-let compile_put_fact (genv : env) (penv : process_env) (fact : Typed.fact) (body : Pitptree.tprocess_e)
+let compile_put_fact env penv (fact : Typed.fact) (body : Pitptree.tprocess_e)
   : Pitptree.tprocess_e =
+  (*
+     3.7 File Fact Encoding
+     3.8 Channel facts Encoding
+     3.9 Syscall and Attack Encoding
+
+     ```
+     put [ ch :: msg(v) ]
+     put [ p.x ]
+     put [ ::Out(v) ]
+     ```
+
+     ```
+     out(ch, msg(v)) |
+     ...
+     out(file_ch, (p, x)) |
+     ...
+     out(attacker, v)
+     ```
+  *)
   match fact.desc with
   | Channel { channel; name; args } ->
-      let channel_term = compile_channel_expr genv penv channel in
+      let channel_term = compile_channel_expr env penv channel in
       let payload =
         pterm
           (PPFunApp
              ( compile_name name
-             , List.map (compile_expr_to_pterm genv penv) args ))
+             , List.map (compile_expr_to_pterm env penv) args ))
       in
       wrap_with_channel_access_get ~loc:fact.loc channel_term penv
         (parallel_output (process (POutput (channel_term, payload, process PNil))) body)
         (process PNil)
   | File { path; contents } ->
-      let path_term = compile_expr_to_pterm genv penv path in
-      let contents_term = compile_expr_to_pterm genv penv contents in
+      let path_term = compile_expr_to_pterm env penv path in
+      let contents_term = compile_expr_to_pterm env penv contents in
       let file_channel =
         match penv.file_channel with
         | Some file_channel -> file_channel
@@ -686,38 +774,56 @@ let compile_put_fact (genv : env) (penv : process_env) (fact : Typed.fact) (body
         (parallel_output (process (POutput (file_channel, payload, process PNil))) body)
         (process PNil)
   | Global ("Out", [arg]) ->
-      process (POutput (pterm (PPIdent attacker_channel_ident), compile_expr_to_pterm genv penv arg, body))
+      process (POutput (pterm (PPIdent attacker_channel_ident), compile_expr_to_pterm env penv arg, body))
   | Global (name, args) ->
-      register_event genv name (List.length args);
+      register_event env name (List.length args);
       process
         (PEvent
            ( compile_name name
-           , List.map (compile_expr_to_pterm genv penv) args
+           , List.map (compile_expr_to_pterm env penv) args
            , None
            , body ))
   | _ ->
       error ~loc:fact.loc
         (Unsupported "Only channel/global output facts are supported in ProVerif put lowering")
 
-let compile_put_facts (genv : env) (penv : process_env) (facts : Typed.fact list) (body : Pitptree.tprocess_e)
+let compile_put_facts env penv (facts : Typed.fact list) (body : Pitptree.tprocess_e)
   : Pitptree.tprocess_e =
-  List.fold_right (compile_put_fact genv penv) facts body
+  List.fold_right (compile_put_fact env penv) facts body
 
-let compile_event_facts (genv : env) (penv : process_env) (facts : Typed.fact list) (body : Pitptree.tprocess_e)
+let compile_event_facts env penv (facts : Typed.fact list) (body : Pitptree.tprocess_e)
   : Pitptree.tprocess_e =
-  List.fold_right (compile_event_fact genv penv) facts body
+  List.fold_right (compile_event_fact env penv) facts body
 
 let eq_pterm (lhs : Pitptree.pterm_e) (rhs : Pitptree.pterm_e) : Pitptree.pterm_e =
   pterm (PPFunApp (pv_ident "=", [lhs; rhs]))
 
 let rec compile_guard_tests
-    (genv : env)
-    (penv : process_env)
+    env
+    penv
     (fresh : Typed.ident list)
     (facts : Typed.fact list)
     (then_proc : Pitptree.tprocess_e)
     (else_proc : Pitptree.tprocess_e)
   : Pitptree.tprocess_e =
+  (*
+     3.5 Case Encoding
+
+     ```
+     case [x = y, p.z, ::In(v)] -> c end
+     ```
+
+     ```
+     if x = y then
+       get file_type_table(...) in
+       get access_control_table(...) in
+       in(file_ch, (=p, z:bitstring)) [precise];
+       in(attacker, v:bitstring);
+       c
+     else
+       ...
+     ```
+  *)
   match facts with
   | [] -> then_proc
   | fact :: facts ->
@@ -725,30 +831,30 @@ let rec compile_guard_tests
        | Eq (lhs, rhs) ->
            let cond =
              eq_pterm
-               (compile_expr_to_pterm genv penv lhs)
-               (compile_expr_to_pterm genv penv rhs)
+               (compile_expr_to_pterm env penv lhs)
+               (compile_expr_to_pterm env penv rhs)
            in
            process
              (PTest
                 ( cond
-                , compile_guard_tests genv penv fresh facts then_proc else_proc
+                , compile_guard_tests env penv fresh facts then_proc else_proc
                 , else_proc ))
        | Neq (lhs, rhs) ->
            let cond =
              eq_pterm
-               (compile_expr_to_pterm genv penv lhs)
-               (compile_expr_to_pterm genv penv rhs)
+               (compile_expr_to_pterm env penv lhs)
+               (compile_expr_to_pterm env penv rhs)
            in
            process
              (PTest
                 ( cond
                 , else_proc
-                , compile_guard_tests genv penv fresh facts then_proc else_proc ))
+                , compile_guard_tests env penv fresh facts then_proc else_proc ))
        | Channel _ ->
            error ~loc:fact.loc
              (Unsupported "Nested channel guard lowering is not supported here")
        | File { path; contents } ->
-           let path_term = compile_expr_to_pterm genv penv path in
+           let path_term = compile_expr_to_pterm env penv path in
            let file_channel =
              match penv.file_channel with
              | Some file_channel -> file_channel
@@ -768,13 +874,13 @@ let rec compile_guard_tests
              match contents.desc with
              | Typed.Ident { id; _ } when List.mem id fresh ->
                  let branch_env = bind_process_var penv id payload_term in
-                 branch_env, compile_guard_tests genv branch_env fresh facts then_proc else_proc
+                 branch_env, compile_guard_tests env branch_env fresh facts then_proc else_proc
              | _ ->
                  let eq_then =
                    process
                      (PTest
-                        ( eq_pterm payload_term (compile_expr_to_pterm genv penv contents)
-                        , compile_guard_tests genv penv fresh facts then_proc else_proc
+                        ( eq_pterm payload_term (compile_expr_to_pterm env penv contents)
+                        , compile_guard_tests env penv fresh facts then_proc else_proc
                         , else_proc ))
                  in
                  penv, eq_then
@@ -794,13 +900,13 @@ let rec compile_guard_tests
              match arg.desc with
              | Typed.Ident { id; _ } when List.mem id fresh ->
                  let branch_env = bind_process_var penv id payload_term in
-                 compile_guard_tests genv branch_env fresh facts then_proc else_proc
+                 compile_guard_tests env branch_env fresh facts then_proc else_proc
              | _ ->
                  let eq_then =
                    process
                       (PTest
-                         ( eq_pterm payload_term (compile_expr_to_pterm genv penv arg)
-                        , compile_guard_tests genv penv fresh facts then_proc else_proc
+                         ( eq_pterm payload_term (compile_expr_to_pterm env penv arg)
+                        , compile_guard_tests env penv fresh facts then_proc else_proc
                         , else_proc ))
                  in
                  eq_then
@@ -814,7 +920,7 @@ let rec compile_guard_tests
        | Global ("False", []) ->
            else_proc
        | Global ("True", []) ->
-           compile_guard_tests genv penv fresh facts then_proc else_proc
+           compile_guard_tests env penv fresh facts then_proc else_proc
        | Global _ | Plain _ ->
            error ~loc:fact.loc
              (Unsupported "Only equality/inequality/file guards are supported in ProVerif case lowering"))
@@ -867,8 +973,8 @@ let rec filter_map2
   | _ -> invalid_arg "filter_map2"
 
 and compile_channel_guard_case
-    (genv : env)
-    (penv : process_env)
+    env
+    penv
     (case : Typed.case)
     (kont : kont)
     (channel : Typed.expr)
@@ -901,7 +1007,7 @@ and compile_channel_guard_case
       args
       payload_terms
   in
-  let then_proc = compile_case_branch_body genv branch_env case kont in
+  let then_proc = compile_case_branch_body env branch_env case kont in
   let arg_eq_tests =
     let rec collect acc args payload_terms =
       match args, payload_terms with
@@ -912,57 +1018,89 @@ and compile_channel_guard_case
                collect acc args payload_terms
            | _ ->
                collect
-                 ((payload_term, compile_expr_to_pterm genv branch_env arg) :: acc)
+                 ((payload_term, compile_expr_to_pterm env branch_env arg) :: acc)
                  args
                  payload_terms)
       | _ -> invalid_arg "compile_channel_guard_case"
     in
     collect [] args payload_terms
   in
-  let channel_term = compile_channel_expr genv penv channel in
+  let channel_term = compile_channel_expr env penv channel in
   wrap_with_channel_access_get ~loc channel_term penv
     (process
        (PInput
           ( channel_term
           , input_pattern
-          , compile_guard_tests genv branch_env case.fresh other_facts
+          , compile_guard_tests env branch_env case.fresh other_facts
               (compile_pterm_eq_tests arg_eq_tests then_proc else_proc)
               else_proc
           , [] )))
     else_proc
 
 and compile_case_branch_body
-    (genv : env)
-    (penv : process_env)
+    env
+    penv
     (case : Typed.case)
     (kont : kont)
   : Pitptree.tprocess_e =
   let saved =
     List.map (fun id -> id, find_process_var penv id) case.fresh
   in
-  compile_cmd genv penv (KRestoreVars (saved, kont)) case.cmd
+  compile_cmd env penv (KRestoreVars (saved, kont)) case.cmd
 
 and compile_case_no_channel
-    (genv : env)
-    (penv : process_env)
+    env
+    penv
     (cases : Typed.case list)
     (kont : kont)
   : Pitptree.tprocess_e =
+  (*
+     3.5 Case Encoding
+
+     ```
+     case [A1] -> c1 | [A2] -> c2 end
+     ```
+
+     ```
+     if A1 then c1 else
+     if A2 then c2 else
+     0
+     ```
+  *)
   let rec go = function
     | [] -> process PNil
     | case :: cases ->
         let else_proc = go cases in
-        let then_proc = compile_case_branch_body genv penv case kont in
-        compile_guard_tests genv penv case.fresh case.facts then_proc else_proc
+        let then_proc = compile_case_branch_body env penv case kont in
+        compile_guard_tests env penv case.fresh case.facts then_proc else_proc
   in
   go cases
 
 and compile_case_channelized
-    (genv : env)
-    (penv : process_env)
+    env
+    penv
     (cases : Typed.case list)
     (kont : kont)
   : Pitptree.tprocess_e =
+  (*
+     3.5 Case Encoding
+
+     ```
+     case
+       [ch :: msg("a")] -> c1
+     | [ch :: msg("b")] -> c2
+     end
+     ```
+
+     ```
+     get channel_table(ch_type:acc_data_t, =ch) in
+     get access_control_table(=ptype, =ch_type, =curr_syscall) in
+     in(ch, msg(x:bitstring));
+     if x = "a" then c1 else
+     if x = "b" then c2 else
+     0
+     ```
+  *)
   (* Note: this is an optimized lowering for the common case where all channel
      guards in one [case] read the same fact name from the same channel. The
      full spec also discusses a more general lock-channel encoding for
@@ -1021,43 +1159,64 @@ and compile_case_channelized
             payload_terms
         in
         let else_proc = branches rest in
-        let then_proc = compile_case_branch_body genv branch_env case kont in
+        let then_proc = compile_case_branch_body env branch_env case kont in
         let arg_eq_tests =
           filter_map2
             (fun (arg : Typed.expr) payload_term ->
                match arg.desc with
                | Typed.Ident { id; _ } when is_fresh_case_var case id -> None
                | _ ->
-                   Some (payload_term, compile_expr_to_pterm genv branch_env arg))
+                   Some (payload_term, compile_expr_to_pterm env branch_env arg))
             args
             payload_terms
         in
-        compile_guard_tests genv branch_env case.fresh facts
+        compile_guard_tests env branch_env case.fresh facts
           (compile_pterm_eq_tests arg_eq_tests then_proc else_proc)
           else_proc
   in
-  let channel_term = compile_channel_expr genv penv first_channel in
+  let channel_term = compile_channel_expr env penv first_channel in
   wrap_with_channel_access_get ~loc:first_loc channel_term penv
     (process (PInput (channel_term, input_pattern, branches channel_guards, [])))
     (process PNil)
 
 and compile_syscall_call
-    (genv : env)
-    (penv : process_env)
+    env
+    penv
     (id : Typed.ident)
     (args : Typed.expr list)
     (on_return : Pitptree.pterm_e -> Pitptree.tprocess_e)
     (on_fallthrough : Pitptree.tprocess_e)
     ~loc
   : Pitptree.tprocess_e =
-  match find_syscall_def genv id with
+  (*
+     3.9 Syscall and Attack Encoding
+
+     ```
+     syscall my_syscall(param) {
+       ...
+       return v
+     }
+
+     let x = my_syscall(arg) in body
+     ```
+
+     ```
+     let curr_syscall = my_syscall_s in
+     let x = (
+       body_of_my_syscall
+     ) in
+     let curr_syscall = none_syscall_s in
+     body
+     ```
+  *)
+  match find_syscall_def env id with
   | None ->
       error ~loc
         (Internal_error
            (Printf.sprintf "syscall definition for %s is not available"
               (Ident.to_string id)))
   | Some def ->
-      let arg_values = List.map (compile_expr_to_pterm genv penv) args in
+      let arg_values = List.map (compile_expr_to_pterm env penv) args in
       let mk_call_env arg_ids =
         List.fold_left2
           bind_process_var
@@ -1068,7 +1227,7 @@ and compile_syscall_call
         with_process_return_cont call_env (fun _call_env value -> on_return value)
       in
       let normal_branch =
-        compile_cmd genv (mk_call_env def.args) (KProc on_fallthrough) def.cmd
+        compile_cmd env (mk_call_env def.args) (KProc on_fallthrough) def.cmd
       in
       let attack_branches =
         match penv.process_typ_id with
@@ -1076,20 +1235,35 @@ and compile_syscall_call
         | Some process_typ_id ->
             List.map
               (fun attack_def ->
-                 compile_cmd genv (mk_call_env attack_def.args) (KProc on_fallthrough) attack_def.cmd)
-              (find_allowed_attacks genv ~process_typ_id ~syscall_id:id)
+                 compile_cmd env (mk_call_env attack_def.args) (KProc on_fallthrough) attack_def.cmd)
+              (find_allowed_attacks env ~process_typ_id ~syscall_id:id)
       in
       nondet_choose_processes (normal_branch :: attack_branches)
 
 and compile_local_function_call
-    (genv : env)
-    (penv : process_env)
+    env
+    penv
     (id : Typed.ident)
     (args : Typed.expr list)
     (on_return : Pitptree.pterm_e -> Pitptree.tprocess_e)
     (on_fallthrough : Pitptree.tprocess_e)
     ~loc
   : Pitptree.tprocess_e =
+  (*
+     3.9 Syscall and Attack Encoding
+
+     ```
+     function helper(a, b) { ...; return v }
+     let x = helper(y, z) in body
+     ```
+
+     ```
+     let x = (
+       body_of_helper
+     ) in
+     body
+     ```
+  *)
   match find_local_func_def penv id with
   | None ->
       error ~loc
@@ -1097,7 +1271,7 @@ and compile_local_function_call
            (Printf.sprintf "local function definition for %s is not available"
               (Ident.to_string id)))
   | Some (arg_ids, cmd) ->
-      let arg_values = List.map (compile_expr_to_pterm genv penv) args in
+      let arg_values = List.map (compile_expr_to_pterm env penv) args in
       let call_env =
         List.fold_left2
           bind_process_var
@@ -1108,86 +1282,120 @@ and compile_local_function_call
       let call_env =
         with_process_return_cont call_env (fun _call_env value -> on_return value)
       in
-      compile_cmd genv call_env (KProc on_fallthrough) cmd
+      compile_cmd env call_env (KProc on_fallthrough) cmd
 
 and compile_let_binding
-    (genv : env)
-    (penv : process_env)
+    env
+    penv
     (kont : kont)
     (id : Typed.ident)
     (expr : Typed.expr)
     (body : Typed.cmd)
   : Pitptree.tprocess_e =
+  (*
+     3.4 Encoding Structured facts, new, let, delete
+     3.9 Syscall and Attack Encoding
+
+     ```
+     let x = e in c
+     let x = my_syscall(a) in c
+     ```
+
+     ```
+     let x = e in
+     c
+
+     let curr_syscall = my_syscall_s in
+     let x = (body_of_my_syscall) in
+     let curr_syscall = none_syscall_s in
+     c
+     ```
+  *)
   match expr.desc with
-  | Apply (syscall_id, args) when Option.is_some (find_syscall_def genv syscall_id) ->
+  | Apply (syscall_id, args) when Option.is_some (find_syscall_def env syscall_id) ->
       let old_value = find_process_var penv id in
-      compile_syscall_call genv penv syscall_id args
+      compile_syscall_call env penv syscall_id args
         (fun value ->
-           compile_cmd genv (bind_process_var penv id value)
+           compile_cmd env (bind_process_var penv id value)
              (KRestoreVar (id, old_value, kont))
              body)
-        (compile_cmd genv penv kont body)
+        (compile_cmd env penv kont body)
         ~loc:expr.loc
   | Apply (func_id, args) when Option.is_some (find_local_func_def penv func_id) ->
       let old_value = find_process_var penv id in
-      compile_local_function_call genv penv func_id args
+      compile_local_function_call env penv func_id args
         (fun value ->
-           compile_cmd genv (bind_process_var penv id value)
+           compile_cmd env (bind_process_var penv id value)
              (KRestoreVar (id, old_value, kont))
              body)
-        (compile_cmd genv penv kont body)
+        (compile_cmd env penv kont body)
         ~loc:expr.loc
   | _ ->
-      let value = compile_expr_to_pterm genv penv expr in
+      let value = compile_expr_to_pterm env penv expr in
       let old_value = find_process_var penv id in
-      compile_cmd genv (bind_process_var penv id value)
+      compile_cmd env (bind_process_var penv id value)
         (KRestoreVar (id, old_value, kont))
         body
 
 and compile_assignment
-    (genv : env)
-    (penv : process_env)
+    env
+    penv
     (kont : kont)
     (id_opt : Typed.ident option)
     (expr : Typed.expr)
   : Pitptree.tprocess_e =
+  (*
+     3.9 Syscall and Attack Encoding
+
+     ```
+     x := my_syscall(a)
+     _ := my_syscall(a)
+     ```
+
+     ```
+     let curr_syscall = my_syscall_s in
+     let x = (body_of_my_syscall) in
+     let curr_syscall = none_syscall_s in
+     ...
+     ```
+  *)
   match expr.desc with
-  | Apply (syscall_id, args) when Option.is_some (find_syscall_def genv syscall_id) ->
+  | Apply (syscall_id, args) when Option.is_some (find_syscall_def env syscall_id) ->
       let on_return =
         match id_opt with
-        | None -> fun _value -> continue_cmd genv penv kont
-        | Some id -> fun value -> continue_cmd genv (bind_process_var penv id value) kont
+        | None -> fun _value -> continue_cmd env penv kont
+        | Some id -> fun value -> continue_cmd env (bind_process_var penv id value) kont
       in
-      compile_syscall_call genv penv syscall_id args on_return
-        (continue_cmd genv penv kont)
+      compile_syscall_call env penv syscall_id args on_return
+        (continue_cmd env penv kont)
         ~loc:expr.loc
   | Apply (func_id, args) when Option.is_some (find_local_func_def penv func_id) ->
       let on_return =
         match id_opt with
-        | None -> fun _value -> continue_cmd genv penv kont
-        | Some id -> fun value -> continue_cmd genv (bind_process_var penv id value) kont
+        | None -> fun _value -> continue_cmd env penv kont
+        | Some id -> fun value -> continue_cmd env (bind_process_var penv id value) kont
       in
-      compile_local_function_call genv penv func_id args on_return
-        (continue_cmd genv penv kont)
+      compile_local_function_call env penv func_id args on_return
+        (continue_cmd env penv kont)
         ~loc:expr.loc
   | _ ->
       (match id_opt with
        | Some id ->
-           let value = compile_expr_to_pterm genv penv expr in
-           continue_cmd genv (bind_process_var penv id value) kont
+           let value = compile_expr_to_pterm env penv expr in
+           continue_cmd env (bind_process_var penv id value) kont
        | None ->
-           let _ = compile_expr_to_pterm genv penv expr in
-           continue_cmd genv penv kont)
+           let _ = compile_expr_to_pterm env penv expr in
+           continue_cmd env penv kont)
 
-and continue_cmd (genv : env) (penv : process_env) (kont : kont) : Pitptree.tprocess_e =
+and continue_cmd env penv (kont : kont) : Pitptree.tprocess_e =
   match kont with
   | KStop -> process PNil
   | KProc proc -> proc
-  | KSeq (cmd, kont) -> compile_cmd genv penv kont cmd
+  | KSeq (cmd, kont) -> compile_cmd env penv kont cmd
   | KRestoreVar (id, old_value, kont) ->
-      continue_cmd genv (restore_process_var penv id old_value) kont
+      continue_cmd env (restore_process_var penv id old_value) kont
   | KRestoreVars (saved, kont) ->
-      continue_cmd genv (restore_process_vars penv saved) kont
+      continue_cmd env (restore_process_vars penv saved) kont
   | KLoopOutput (done_flag, loc, lock_term, state_ids) ->
       process
         (POutput
@@ -1195,31 +1403,50 @@ and continue_cmd (genv : env) (penv : process_env) (kont : kont) : Pitptree.tpro
            , loop_state_message ~done_flag ~loc penv state_ids
            , process PNil ))
 
-and compile_cmd (genv : env) (penv : process_env) (kont : kont) (cmd : Typed.cmd)
+and compile_cmd env penv (kont : kont) (cmd : Typed.cmd)
   : Pitptree.tprocess_e =
   match cmd.desc with
-  | Skip -> continue_cmd genv penv kont
+  | Skip -> continue_cmd env penv kont
   | Sequence (cmd1, cmd2) ->
-      compile_cmd genv penv (KSeq (cmd2, kont)) cmd1
+      compile_cmd env penv (KSeq (cmd2, kont)) cmd1
   | Put facts ->
-      compile_put_facts genv penv facts (continue_cmd genv penv kont)
+      compile_put_facts env penv facts (continue_cmd env penv kont)
   | Event facts ->
-      compile_event_facts genv penv facts (continue_cmd genv penv kont)
+      compile_event_facts env penv facts (continue_cmd env penv kont)
   | Let (id, expr, body) ->
-      compile_let_binding genv penv kont id expr body
+      compile_let_binding env penv kont id expr body
   | Assign (id_opt, expr) ->
-      compile_assignment genv penv kont id_opt expr
+      compile_assignment env penv kont id_opt expr
   | Return expr ->
-      let value = compile_expr_to_pterm genv penv expr in
+      let value = compile_expr_to_pterm env penv expr in
       (match penv.return_cont with
        | Some return_cont -> return_cont penv value
-       | None -> continue_cmd genv penv kont)
+       | None -> continue_cmd env penv kont)
   | Case cases ->
       if List.exists (fun (case : Typed.case) -> Option.is_some (extract_channel_guard case.facts)) cases then
-        compile_case_channelized genv penv cases kont
+        compile_case_channelized env penv cases kont
       else
-        compile_case_no_channel genv penv cases kont
+        compile_case_no_channel env penv cases kont
   | While (repeat_cases, until_cases) ->
+      (*
+         3.6 Repeat Encoding
+
+         ```
+         repeat [A1] -> c1 | ... until [B1] -> d1 | ... end
+         ```
+
+         ```
+         new lock_ch : channel;
+         out(lock_ch, (0, s0, ..., sk)) |
+         !(
+           in(lock_ch, (=0, s0:bitstring, ..., sk:bitstring)) [precise];
+           ...
+         )
+         |
+         in(lock_ch, (=1, s0:bitstring, ..., sk:bitstring)) [precise];
+         rest_of_program
+         ```
+      *)
       let state_ids =
         List.map fst (loop_state_bindings penv)
       in
@@ -1253,19 +1480,19 @@ and compile_cmd (genv : env) (penv : process_env) (kont : kont) (cmd : Typed.cmd
                , process PNil ))
         in
         let then_proc =
-          compile_case_branch_body genv branch_env case
+          compile_case_branch_body env branch_env case
             (KLoopOutput (false, cmd.loc, lock_term, state_ids))
         in
         let guard_proc =
           match extract_channel_guard case.facts with
           | Some (channel, name, args, other_facts, loc) ->
-              compile_channel_guard_case genv branch_env case
+              compile_channel_guard_case env branch_env case
                 (KLoopOutput (false, cmd.loc, lock_term, state_ids))
                 channel name args other_facts
                 ~loc
                 ~else_proc
           | None ->
-              compile_guard_tests genv branch_env case.fresh case.facts then_proc else_proc
+              compile_guard_tests env branch_env case.fresh case.facts then_proc else_proc
         in
         process
           (PInput
@@ -1284,19 +1511,19 @@ and compile_cmd (genv : env) (penv : process_env) (kont : kont) (cmd : Typed.cmd
                , process PNil ))
         in
         let then_proc =
-          compile_case_branch_body genv branch_env case
+          compile_case_branch_body env branch_env case
             (KLoopOutput (true, cmd.loc, lock_term, state_ids))
         in
         let guard_proc =
           match extract_channel_guard case.facts with
           | Some (channel, name, args, other_facts, loc) ->
-              compile_channel_guard_case genv branch_env case
+              compile_channel_guard_case env branch_env case
                 (KLoopOutput (true, cmd.loc, lock_term, state_ids))
                 channel name args other_facts
                 ~loc
                 ~else_proc
           | None ->
-              compile_guard_tests genv branch_env case.fresh case.facts then_proc else_proc
+              compile_guard_tests env branch_env case.fresh case.facts then_proc else_proc
         in
         process
           (PInput
@@ -1316,7 +1543,7 @@ and compile_cmd (genv : env) (penv : process_env) (kont : kont) (cmd : Typed.cmd
           (PInput
              ( lock_term
              , loop_state_pattern ~done_flag:true cont_state_pattern_ids
-             , continue_cmd genv cont_env kont
+             , continue_cmd env cont_env kont
              , [precise_ident, None] ))
       in
       let workers =
@@ -1346,12 +1573,12 @@ and compile_cmd (genv : env) (penv : process_env) (kont : kont) (cmd : Typed.cmd
            ( fresh_ident
            , None
            , bitstring_ident
-           , compile_cmd genv (bind_process_var penv id fresh_term)
+           , compile_cmd env (bind_process_var penv id fresh_term)
                (KRestoreVar (id, old_value, kont))
                body ))
   | New (id, Some (name, args), body) ->
       (* `compile_generated_structure_decls` handle the declarations *)
-      register_structure ~loc:cmd.loc genv name (List.length args);
+      register_structure ~loc:cmd.loc env name (List.length args);
       let fresh_ident = compile_ident id in
       let fresh_term = pterm (PPIdent fresh_ident) in
       let old_value = find_process_var penv id in
@@ -1359,19 +1586,19 @@ and compile_cmd (genv : env) (penv : process_env) (kont : kont) (cmd : Typed.cmd
         pterm @@
         PPFunApp
           ( structure_ctor_ident name
-          , fresh_term :: List.map (compile_expr_to_pterm genv penv) args )
+          , fresh_term :: List.map (compile_expr_to_pterm env penv) args )
       in
       process
         (PRestr
            ( fresh_ident
            , None
            , bitstring_ident
-           , compile_cmd genv (bind_process_var penv id struct_term)
+           , compile_cmd env (bind_process_var penv id struct_term)
                (KRestoreVar (id, old_value, kont))
                body ))
   | Get (ids, expr, name, body) ->
-      register_structure ~loc:cmd.loc genv name (List.length ids);
-      let struct_term = compile_expr_to_pterm genv penv expr in
+      register_structure ~loc:cmd.loc env name (List.length ids);
+      let struct_term = compile_expr_to_pterm env penv expr in
       let addr_term = structure_addr_term name struct_term in
       let saved =
         List.map (fun id -> id, find_process_var penv id) ids
@@ -1390,7 +1617,7 @@ and compile_cmd (genv : env) (penv : process_env) (kont : kont) (cmd : Typed.cmd
            , [Pitptree.PPatEqual addr_term]
            , None
            , process PNil
-           , compile_cmd genv body_env
+           , compile_cmd env body_env
                (KRestoreVars (saved, kont))
                body
            , [] ))
@@ -1408,13 +1635,13 @@ and compile_cmd (genv : env) (penv : process_env) (kont : kont) (cmd : Typed.cmd
          ```
       *)
       (* x_struct *)
-      let struct_term = compile_expr_to_pterm genv penv expr in
+      let struct_term = compile_expr_to_pterm env penv expr in
       (* StructAddr(x_struct) *)
       let addr_term = structure_addr_term name struct_term in
       (* insert deleted_address_table( StructAddr(x_struct) ); ... *)
       process
         (PInsert
-           (deleted_address_table_ident, [addr_term], continue_cmd genv penv kont))
+           (deleted_address_table_ident, [addr_term], continue_cmd env penv kont))
 
 
 (*
@@ -1547,7 +1774,7 @@ let compile_allow
          re-checking against the final spec once syscall lowering is in place. *)
       List.iter
         (fun target_typ ->
-           Queue.add (process_typ, target_typ, none_syscall_ident) env.allow_entries)
+           env.allow_entries <- (process_typ, target_typ, none_syscall_ident) :: env.allow_entries)
         target_typs;
       []
   | Some syscalls ->
@@ -1556,7 +1783,7 @@ let compile_allow
            List.iter
              (fun syscall ->
                 let syscall_ident = fresh_syscall_ident env syscall in
-                Queue.add (process_typ, target_typ, syscall_ident) env.allow_entries)
+                env.allow_entries <- (process_typ, target_typ, syscall_ident) :: env.allow_entries)
              syscalls)
         target_typs;
       []
@@ -1580,6 +1807,20 @@ let compile_allow_attack
   []
 
 let compile_init ~loc:(_loc : Location.t) env (id : Typed.ident) (desc : Typed.init_desc) : Pitptree.tdecl list =
+  (*
+     3.1 Encoding Strings, Constants, Events and Function Declarations
+     3.10 Parametrized Feature Encoding
+
+     ```
+     const fresh priv_k
+     const pubkey<k> = pk(priv_k<k>)
+     ```
+
+     ```
+     free priv_k : bitstring [private].
+     reduc forall k:param_data; pubkey(k) = pk(priv_k(k)).
+     ```
+  *)
   let init_ident = compile_ident id in
   match desc with
   | Fresh ->
@@ -1622,6 +1863,17 @@ let compile_channel
     (param : unit option)
     (_typ : Typed.ident)
   =
+  (*
+     3.3 Encoding of process and channels declarations
+
+     ```
+     channel udp : udp_t
+     ```
+
+     ```
+     free udp : channel [private].
+     ```
+  *)
   match param with
   | Some () ->
       error ~loc (Unsupported "Parameterized channel declarations are not supported yet")
@@ -1635,6 +1887,19 @@ let wrap_with_channel_init
     (args : Typed.chan_param list)
     (body : Pitptree.tprocess_e)
   : Pitptree.tprocess_e =
+  (*
+     3.2 Encoding Process Types, Channel types, File types, and Access Control Policies
+
+     ```
+     process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t { ... }
+     ```
+
+     ```
+     insert channel_table(udp_t, ch_net);
+     insert channel_table(rpc_t, ch_rpc);
+     ...
+     ```
+  *)
   List.fold_right
     (fun ({ channel; param; typ } : Typed.chan_param) acc ->
        match param with
@@ -1654,11 +1919,28 @@ let wrap_with_channel_init
 
 let wrap_with_file_init
     ~loc
-    (genv : env)
-    (penv : process_env)
+    env
+    penv
     (files : (Typed.expr * Typed.ident * Typed.expr) list)
     (body : Pitptree.tprocess_e)
   : Pitptree.tprocess_e =
+  (*
+     3.7 File Fact Encoding
+
+     ```
+     process client_ta(...) : client_ta_t {
+       file "/secret/priv" : readonly_t = enc(priv_k, sym_k)
+       ...
+     }
+     ```
+
+     ```
+     insert file_type_table(ptype, readonly_t, secret_priv_str);
+     new file_ch : channel;
+     out(file_ch, (secret_priv_str, enc(priv_k, sym_k))) |
+     ...
+     ```
+  *)
   match penv.file_channel with
   | None ->
       if files = [] then
@@ -1673,8 +1955,8 @@ let wrap_with_file_init
              let payload =
                pterm
                  (PPTuple
-                    [ compile_expr_to_pterm genv penv path
-                    ; compile_expr_to_pterm genv penv contents
+                    [ compile_expr_to_pterm env penv path
+                    ; compile_expr_to_pterm env penv contents
                     ])
              in
              process (POutput (file_channel, payload, process PNil)))
@@ -1699,7 +1981,7 @@ let wrap_with_file_init
                 ( file_type_table_ident
                 , [ pterm (PPIdent ptype_arg_ident)
                   ; pterm (PPIdent (compile_ident typ))
-                  ; compile_expr_to_pterm genv penv path
+                  ; compile_expr_to_pterm env penv path
                   ]
                 , acc )))
         files
@@ -1718,7 +2000,7 @@ let wrap_with_file_init
    let client(ptype : prot_t, ch_net : channel, ch_rpc : channel) = ..
 *)
 let compile_process
-    genv
+    env
     ~loc
     (id : Typed.ident)
     (param : Typed.ident option)
@@ -1768,15 +2050,26 @@ let compile_process
       let rec init_vars penv = function
         | [] ->
             wrap_with_channel_init ~loc args
-              (wrap_with_file_init ~loc genv penv files
-                 (compile_cmd genv penv KStop main))
+              (wrap_with_file_init ~loc env penv files
+                 (compile_cmd env penv KStop main))
         | (var, expr) :: vars ->
-            let value = compile_expr_to_pterm genv penv expr in
+            let value = compile_expr_to_pterm env penv expr in
             init_vars (bind_process_var penv var value) vars
       in
       Pitptree.TPDef (compile_ident id, proc_args, init_vars base_penv vars)
 
 let compile_proc_call env (proc : Typed.proc) : Pitptree.tprocess_e =
+  (*
+     3.3 Encoding of process and channels declarations
+
+     ```
+     client(udp, rpc)
+     ```
+
+     ```
+     client(client_t, udp, rpc)
+     ```
+  *)
   let proc_desc = proc.data in
   let proc_type = find_process_type ~loc:proc.loc env proc_desc.id in
   let args =
@@ -1809,6 +2102,17 @@ let parallel_processes (procs : Pitptree.tprocess_e list) : Pitptree.tprocess_e 
         procs
 
 let compile_proc_group_desc env (proc_group : Typed.proc_group_desc) : Pitptree.tprocess_e =
+  (*
+     3.3 Encoding of process and channels declarations
+
+     ```
+     !group.(p1 | p2)
+     ```
+
+     ```
+     !(p1 | p2)
+     ```
+  *)
   match proc_group with
   | Unbounded proc -> compile_proc_call env proc
   | Bounded (_id, procs) ->
@@ -1817,23 +2121,31 @@ let compile_proc_group_desc env (proc_group : Typed.proc_group_desc) : Pitptree.
 let gterm_binary (name : string) (lhs : Pitptree.gterm_e) (rhs : Pitptree.gterm_e) : Pitptree.gterm_e =
   with_dummy_ext (Pitptree.PGFunApp (pv_ident name, [lhs; rhs], None))
 
+(* ??? Question
+   Why is this encoded as `PGFunApp ("event", [PGFunApp (name, args, None)], None)`
+   instead of using a dedicated event constructor?
+   Answer: `Pitptree.gterm` has no dedicated event node for query terms; events in
+   lemmas/queries are represented syntactically as the predicate `event(...)`
+   whose single argument must itself be a function application naming the event.
+   This matches the shape accepted by ProVerif's query checker. *)
 let gterm_event
     (name : Typed.name)
     (args : Pitptree.gterm_e list)
   : Pitptree.gterm_e =
-  with_dummy_ext
-    (Pitptree.PGFunApp
-       ( pv_ident "event"
-       , [with_dummy_ext (Pitptree.PGFunApp (compile_name name, args, None))]
-       , None ))
+  with_dummy_ext @@
+  Pitptree.PGFunApp
+    ( pv_ident "event"
+    , [with_dummy_ext @@ Pitptree.PGFunApp (compile_name name, args, None)]
+    , None )
 
-let rec combine_gterms_with op = function
+(* `g1 op g2 op .. op gn` *)
+let rec combine_gterms_with ~loc op = function
   | [] ->
-      error ~loc:Location.nowhere
-        (Internal_error "Cannot combine an empty list of query facts")
+      error ~loc @@
+      Internal_error "Cannot combine an empty list of query facts"
   | [g] -> g
   | g :: gs ->
-      gterm_binary op g (combine_gterms_with op gs)
+      gterm_binary op g (combine_gterms_with ~loc op gs)
 
 let compile_lemma_fact env (fact : Typed.fact) : Pitptree.gterm_e =
   match fact.desc with
@@ -1852,8 +2164,9 @@ let compile_lemma_fact env (fact : Typed.fact) : Pitptree.gterm_e =
         (compile_expr_to_gterm env lhs)
         (compile_expr_to_gterm env rhs)
   | Channel _ | File _ ->
-      error ~loc:fact.loc
-        (Unsupported "Channel/file facts are not supported in ProVerif lemma lowering")
+      (* Section 3.12 does not specify how to translate Channel and File facts *)
+      error ~loc:fact.loc @@
+      Unsupported "Channel/file facts are not supported in ProVerif lemma lowering"
 
 (* 3.12 Encoding Properties
 
@@ -1903,7 +2216,7 @@ let compile_lemma
     | Reachability { facts; _ } ->
         with_dummy_ext @@
         Pitptree.PRealQuery
-          (combine_gterms_with "&&" (List.map (compile_lemma_fact env) facts), [])
+          (combine_gterms_with ~loc:lemma.loc "&&" (List.map (compile_lemma_fact env) facts), [])
     | Correspondence { premise; conclusion; _ } ->
         with_dummy_ext @@
         Pitptree.PRealQuery
@@ -1945,6 +2258,29 @@ let compile_system
   List.map (compile_lemma env) lemmas
 
 let compile_prelude (_env : env) : Pitptree.tdecl list =
+  (*
+     3.2 Encoding Process Types, Channel types, File types, and Access Control Policies
+     3.7 File Fact Encoding
+     3.9 Syscall and Attack Encoding
+
+     ```
+     type client_t : process
+     type udp_t : channel
+     allow client_t udp_t [send]
+     ```
+
+     ```
+     type proc_t.
+     type acc_data_t.
+     type syscall_t.
+     free attacker : channel.
+     table access_control_table(proc_t, acc_data_t, syscall_t).
+     table file_type_table(proc_t, acc_data_t, bitstring).
+     table channel_table(acc_data_t, channel).
+     table deleted_address_table(bitstring).
+     const none_syscall_s : syscall_t.
+     ```
+  *)
   [ TTypeDecl param_data_ident
   ; TTypeDecl proc_t_ident
   ; TTypeDecl acc_data_t_ident
@@ -1962,18 +2298,57 @@ let compile_prelude (_env : env) : Pitptree.tdecl list =
   ]
 
 let compile_generated_string_consts env : Pitptree.tdecl list =
+  (*
+     3.1 Encoding Strings, Constants, Events and Function Declarations
+
+     ```
+     put [ ch :: msg("hello world") ]
+     ```
+
+     ```
+     const str__hello_world : bitstring.
+     ...
+     out(ch, msg(str__hello_world))
+     ```
+  *)
   Hashtbl.to_seq_values env.string_table
   |> List.of_seq
   |> List.sort_uniq compare
   |> List.map (fun id -> Pitptree.TConstDecl (id, bitstring_ident, []))
 
 let compile_generated_syscall_consts env : Pitptree.tdecl list =
+  (*
+     3.2 Encoding Process Types, Channel types, File types, and Access Control Policies
+     3.9 Syscall and Attack Encoding
+
+     ```
+     syscall send(c, v) { ... }
+     ```
+
+     ```
+     const send_s : syscall_t.
+     ```
+  *)
   Hashtbl.to_seq_values env.syscall_table
   |> List.of_seq
   |> List.sort_uniq compare
   |> List.map (fun id -> Pitptree.TConstDecl (id, syscall_t_ident, []))
 
 let compile_generated_event_decls env : Pitptree.tdecl list =
+  (*
+     3.1 Encoding Strings, Constants, Events and Function Declarations
+     3.12 Encoding Properties
+
+     ```
+     event [:: ImgSend(image)]
+     lemma Reachable : reachable ::ImgSend(image)
+     ```
+
+     ```
+     event ImgSend(bitstring).
+     query image:bitstring; event(ImgSend(image)).
+     ```
+  *)
   Hashtbl.to_seq env.event_table
   |> List.of_seq
   |> List.sort_uniq compare
@@ -2063,8 +2438,21 @@ let compile_generated_structure_decls env : Pitptree.tdecl list =
       in
       ctor_decl :: addr_decl :: arg_decls
 
-let wrap_with_allow_init env (body : Pitptree.tprocess_e) : Pitptree.tprocess_e =
-  let entries = List.of_seq (Queue.to_seq env.allow_entries) in
+(*
+   3.2 Encoding Process Types, Channel types, File types, and Access Control Policies
+
+   ```
+   allow client_t udp_t [send]
+   allow client_t readonly_t [.]
+   ```
+
+   ```
+   insert access_control_table(client_t, udp_t, send_s);
+   insert access_control_table(client_t, readonly_t, none_syscall_s);
+   ...
+   ```
+*)
+let add_allow_inits env (body : Pitptree.tprocess_e) : Pitptree.tprocess_e =
   List.fold_right
     (fun (process_typ, target_typ, syscall_ident) acc ->
        process
@@ -2075,7 +2463,7 @@ let wrap_with_allow_init env (body : Pitptree.tprocess_e) : Pitptree.tprocess_e 
               ; pterm (PPIdent syscall_ident)
               ]
             , acc )))
-    entries
+    (List.rev env.allow_entries)
     body
 
 let rec collect_process_types env (decls : Typed.decl list) =
@@ -2087,45 +2475,43 @@ let rec collect_process_types env (decls : Typed.decl list) =
        | _ -> ())
     decls
 
-
 (* `load` simply expands its declaration. *)
 let rec compile_load env (_filename : string) (decls : Typed.decl list) : Pitptree.tdecl list =
   List.concat_map (compile_decl env) decls
 
 and compile_decl env (decl : Typed.decl) : Pitptree.tdecl list =
+  let loc = decl.loc in
   match decl.desc with
   | Function { id; arity } ->
-      [compile_function ~loc:decl.loc id arity]
+      [compile_function ~loc id arity]
   | Equation (lhs, rhs) ->
-      [compile_equation ~loc:decl.loc env lhs rhs]
+      [compile_equation ~loc env lhs rhs]
   | Syscall { id; args; cmd; attack } ->
-      compile_syscall ~loc:decl.loc env id args cmd attack
+      compile_syscall ~loc env id args cmd attack
   | Attack { id; syscall; args; cmd } ->
-      compile_attack ~loc:decl.loc env id syscall args cmd
+      compile_attack ~loc env id syscall args cmd
   | Type { id; typclass } ->
-      [compile_type ~loc:decl.loc id typclass]
+      [compile_type ~loc id typclass]
   | Allow { process_typ; target_typs; syscalls } ->
-      compile_allow ~loc:decl.loc env process_typ target_typs syscalls
+      compile_allow ~loc env process_typ target_typs syscalls
   | AllowAttack { process_typs; attacks } ->
-      compile_allow_attack ~loc:decl.loc env process_typs attacks
+      compile_allow_attack ~loc env process_typs attacks
   | Init { id; desc } ->
-      compile_init ~loc:decl.loc env id desc
+      compile_init ~loc env id desc
   | Channel { id; param; typ } ->
-      [compile_channel ~loc:decl.loc id param typ]
+      [compile_channel ~loc id param typ]
   | Process { id; param; args; typ; files; vars; funcs; main } ->
-      [compile_process env ~loc:decl.loc id param args typ files vars funcs main]
-  | System (procs, lemmas) -> compile_system ~loc:decl.loc env procs lemmas
+      [compile_process env ~loc id param args typ files vars funcs main]
+  | System (procs, lemmas) -> compile_system ~loc env procs lemmas
   | Load (filename, decls) -> compile_load env filename decls
 
 let compile_program (decls : Typed.decl list) =
   let env = create_env () in
+  (* Types must be first scanned for `compile_proc_call` *)
   collect_process_types env decls;
   let body = List.concat_map (compile_decl env) decls in
-  let top_process =
-    match env.top_process with
-    | Some top_process -> wrap_with_allow_init env top_process
-    | None -> wrap_with_allow_init env (process PNil)
-  in
+  let top_process = Option.value env.top_process ~default:(process PNil) in
+  let top_process = add_allow_inits env top_process in
   ( compile_prelude env
     @ compile_generated_structure_decls env
     @ compile_generated_syscall_consts env
