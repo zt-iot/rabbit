@@ -14,4 +14,5 @@ examples/*.log
 examples/*.viz
 examples/*.svg
 examples/*.svg2
+examples/*.pv
 .\#*
