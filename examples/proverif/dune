@@ -1,0 +1,12 @@
+(executable
+  (name "test_proverif_examples")
+  (flags -w +a-4-40-42-70 -warn-error +a-4-40-42-70)
+  (libraries rabbit_core rabbit_proverif_pv unix))
+
+(rule
+ (alias runtest)
+ (deps
+  (glob_files *.rab)
+  (glob_files *.pv))
+ (action
+  (run %{exe:test_proverif_examples.exe} .)))

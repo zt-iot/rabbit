@@ -7,8 +7,3 @@
   (name "test_proverif")
   (flags -w +a-4-40-42-70 -warn-error +a-4-40-42-70)
   (libraries rabbit_core rabbit_proverif_pv))
-
-(executable
-  (name "test_proverif_examples")
-  (flags -w +a-4-40-42-70 -warn-error +a-4-40-42-70)
-  (libraries rabbit_core rabbit_proverif_pv unix))
