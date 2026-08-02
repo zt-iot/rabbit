@@ -20,10 +20,3 @@
 
 (ocamlyacc
  (modules pitparser))
-
-(copy_files# ../../../vendor/proverif/proverif/src/parsing_helper.ml)
-(copy_files# ../../../vendor/proverif/proverif/src/parsing_helper.mli)
-(copy_files# ../../../vendor/proverif/proverif/src/pitparser.mly)
-(copy_files# ../../../vendor/proverif/proverif/src/pitlexer.mll)
-(copy_files# ../../../vendor/proverif/proverif/src/pitptree.mli)
-(copy_files# ../../../vendor/proverif/proverif/src/ptree.mli)
