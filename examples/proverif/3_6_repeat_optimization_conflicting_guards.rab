@@ -1,0 +1,27 @@
+(* Spec 3.6 potential optimization 1: repeat/until could inherit the case
+   optimization that merges mutually exclusive equational guards. This example
+   is for checking how the current compiler treats conflicting repeat guards. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    var state = 0 in
+    repeat
+    | [state = 0] -> state := 1
+    | [state != 0] -> skip
+    until
+    | [state = 1] -> skip
+    end;
+    event [::Valid()]
+  }
+}
+
+system
+  worker()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

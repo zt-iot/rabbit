@@ -1,0 +1,20 @@
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker: channel.
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+const none_syscall_s: syscall_t.
+const true: bitstring.
+const false: bitstring.
+event Valid.
+fun enc(bitstring, bitstring): bitstring.
+fun dec(bitstring, bitstring): bitstring.
+equation forall x__3:bitstring, y__4:bitstring; dec(enc(x__3, y__4), y__4) = x__3.
+const proc_t: proc_t.
+let sender(ptype:proc_t) = event Valid.
+query event(Valid()).
+process sender(proc_t).

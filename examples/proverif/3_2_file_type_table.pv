@@ -1,0 +1,23 @@
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker: channel.
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+const none_syscall_s: syscall_t.
+const true: bitstring.
+const false: bitstring.
+event Valid.
+const hello_str: bitstring.
+const secret_pub_str: bitstring.
+const server_t: proc_t.
+const readonly_t: acc_data_t.
+let server(ptype:proc_t) =
+  insert file_type_table(ptype, readonly_t, secret_pub_str);
+  new rabbit__file_ch:channel;
+  out(rabbit__file_ch, (secret_pub_str, hello_str)) | event Valid.
+query event(Valid()).
+process server(server_t).

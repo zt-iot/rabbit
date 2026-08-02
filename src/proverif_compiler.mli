@@ -9,6 +9,4 @@ exception Error of error Location.located
 
 val print_error : error -> Format.formatter -> unit
 
-val compile_program :
-  Typed.decl list ->
-  Pitptree.tdecl list * Pitptree.tprocess_e * Pitptree.tprocess_e option
+val compile_program : Typed.decl list -> Pv_parser.program

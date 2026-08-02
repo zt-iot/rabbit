@@ -1,0 +1,28 @@
+(* Spec 3.3: from
+
+     channel udp : udp_t
+
+   the ProVerif translation should declare a private channel:
+
+     free udp : channel [private].
+ *)
+
+type client_t : process
+type udp_t : channel
+
+process client() : client_t
+{
+  main {
+    event [::Valid()]
+  }
+}
+
+channel udp : udp_t
+
+system
+  client()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

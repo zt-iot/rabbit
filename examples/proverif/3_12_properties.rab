@@ -1,0 +1,23 @@
+(* Spec 3.12: Rabbit reachability and correspondence lemmas are translated to
+   ProVerif queries. This example keeps both in the smallest form. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::Started()];
+    event [::Finished()]
+  }
+}
+
+system
+  worker()
+requires
+[
+  lemma ReachableFinished :
+    reachable ::Finished() ;
+
+  lemma Correspondence :
+    corresponds ::Finished() ~> ::Started()
+]

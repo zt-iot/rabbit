@@ -1,0 +1,21 @@
+(* Spec 3.11 discusses [assume [A1, ..., An];]. This syntax is not currently
+   supported by the ProVerif compiler path in this repository, so this file is
+   an explicit unsupported example. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    assume [1 = 1];
+    event [::Valid()]
+  }
+}
+
+system
+  worker()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

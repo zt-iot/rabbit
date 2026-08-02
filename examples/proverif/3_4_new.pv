@@ -1,0 +1,33 @@
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker: channel.
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+const none_syscall_s: syscall_t.
+const true: bitstring.
+const false: bitstring.
+fun S(bitstring, bitstring, bitstring, bitstring): bitstring[data].
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; SAddr(S(x_0, x_1, x_2, x_3)) = x_0.
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; SPar1(S(x_0, x_1, x_2, x_3)) = x_1.
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; SPar2(S(x_0, x_1, x_2, x_3)) = x_2.
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; SPar3(S(x_0, x_1, x_2, x_3)) = x_3.
+event Valid.
+const proc_t: proc_t.
+let maker(ptype:proc_t) =
+  new x__15:bitstring;
+  get deleted_address_table(=SAddr(S(x__15, 1, 2, 3)))
+  else
+    (if SPar1(S(x__15, 1, 2, 3)) = 1
+     then
+       if SPar2(S(x__15, 1, 2, 3)) = 2
+       then if SPar3(S(x__15, 1, 2, 3)) = 3 then event Valid).
+query event(Valid()).
+process maker(proc_t).

@@ -1,0 +1,35 @@
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker: channel.
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+const none_syscall_s: syscall_t.
+const true: bitstring.
+const false: bitstring.
+event Sent.
+const proc_t: proc_t.
+const chan_t: acc_data_t.
+let worker(ptype:proc_t, ch__41:channel) =
+  insert channel_table(chan_t, ch__41);
+  new rabbit_loop_ch__42:channel;
+  (out(rabbit_loop_ch__42, false) |
+   !((in(rabbit_loop_ch__42, =false)[precise];
+      if 1 = 1
+      then
+        (get channel_table(ch_type__43:acc_data_t, =ch__41) in
+         get access_control_table(=ptype, =ch_type__43, =none_syscall_s) in
+         out(ch__41, msg(0)) | event Sent; out(rabbit_loop_ch__42, false))
+      else out(rabbit_loop_ch__42, false)) |
+     in(rabbit_loop_ch__42, =false)[precise];
+     if 1 = 1 then out(rabbit_loop_ch__42, false)
+     else out(rabbit_loop_ch__42, true))) |
+  in(rabbit_loop_ch__42, =true)[precise].
+free ch: channel[private].
+query event(Sent()).
+process
+  insert access_control_table(proc_t, chan_t, none_syscall_s);
+  worker(proc_t, ch).

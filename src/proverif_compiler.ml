@@ -87,8 +87,6 @@ let false_ident                 = pv_ident "false"
 let ptype_arg_ident             = pv_ident "ptype"
 let none_syscall_ident          = pv_ident "none_syscall_s"
 let precise_ident               = pv_ident "precise"
-let private_options : options = pv_ident "private", None
-
 let term_e    (t : term)     : term_e     = with_dummy_ext t
 let pterm_e   (t : pterm)    : pterm_e    = with_dummy_ext t
 let gterm_e   (t : gterm)    : gterm_e    = with_dummy_ext t
@@ -169,6 +167,26 @@ let find_process_type ~loc env (process_id : T.ident) : ident =
            "process type for %s is not available in ProVerif system translation"
            (Ident.to_string process_id))
 
+let find_syscall_def env (id : T.ident) : syscall_def option =
+  Hashtbl.find_opt env.syscall_def_table (Ident.to_string id)
+
+let find_allowed_attacks
+    env
+    ~(process_typ_id : T.ident)
+    ~(syscall_id : T.ident)
+  : attack_def list =
+  let allowed =
+    match Hashtbl.find_opt env.allow_attack_table (Ident.to_string process_typ_id) with
+    | None -> []
+    | Some ids -> ids
+  in
+  List.filter_map
+    (fun attack_id ->
+       match Hashtbl.find_opt env.attack_def_table (Ident.to_string attack_id) with
+       | Some def when def.syscall = syscall_id -> Some def
+       | _ -> None)
+    allowed
+
 module Fresh : sig
   val string_ident : env -> string -> ident
   val syscall_ident : env -> T.ident -> ident
@@ -187,9 +205,9 @@ end = struct
       sanitized
 
   let ident env ~base : ident =
-    (* make sure `base` does not end with `__[0-9]+` *)
+    (* make sure `base` does not end with `_g[0-9]+` *)
     let base =
-      if Str.string_match (Str.regexp ".*__[0-9]+$") base 0 then
+      if Str.string_match (Str.regexp ".*_g[0-9]+$") base 0 then
         base ^ "_"
       else
         base
@@ -200,14 +218,14 @@ end = struct
         pv_ident base
     | Some i ->
         Hashtbl.replace env.generated_name_counter base (i+1);
-        pv_ident (Printf.sprintf "%s__%d" base i)
+        pv_ident (Printf.sprintf "%s_g%d" base i)
 
-  (* "hello" -> "str__hello" *)
+  (* "hello" -> "hello_str" *)
   let string_ident env s : ident =
     match Hashtbl.find_opt env.string_table s with
     | Some id -> id
     | None ->
-        let base = "str__" ^ sanitize_string_for_ident s in
+        let base = sanitize_string_for_ident s ^ "_str" in
         let id = ident env ~base in
         Hashtbl.add env.string_table s id;
         id
@@ -377,29 +395,9 @@ let restore_process_vars
     penv
     saved
 
-let find_syscall_def env (id : T.ident) : syscall_def option =
-  Hashtbl.find_opt env.syscall_def_table (Ident.to_string id)
-
 let find_local_func_def penv (id : T.ident)
   : (T.ident list * T.cmd) option =
   List.assoc_opt id penv.local_func_defs
-
-let find_allowed_attacks
-    env
-    ~(process_typ_id : T.ident)
-    ~(syscall_id : T.ident)
-  : attack_def list =
-  let allowed =
-    match Hashtbl.find_opt env.allow_attack_table (Ident.to_string process_typ_id) with
-    | None -> []
-    | Some ids -> ids
-  in
-  List.filter_map
-    (fun attack_id ->
-       match Hashtbl.find_opt env.attack_def_table (Ident.to_string attack_id) with
-       | Some def when def.syscall = syscall_id -> Some def
-       | _ -> None)
-    allowed
 
 let rec compile_expr_to_gterm env (expr : T.expr) : gterm_e =
   gterm_e @@
@@ -455,9 +453,6 @@ let rec compile_expr_to_pterm env penv (expr : T.expr) : pterm_e =
       error ~loc:expr.loc @@
       Unsupported "Float process terms are not supported in ProVerif process translation"
 
-let compile_channel_expr env penv (expr : T.expr) : pterm_e =
-  compile_expr_to_pterm env penv expr
-
 let current_syscall ~loc penv : pterm_e =
   match penv.curr_syscall with
   | Some syscall -> syscall
@@ -465,11 +460,11 @@ let current_syscall ~loc penv : pterm_e =
       error ~loc @@
       Internal_error "Current syscall is not available for access-control lowering"
 
-let parallel_output
-    (output_proc : tprocess_e)
-    (body : tprocess_e)
+let ppar
+    (proc1 : tprocess_e)
+    (proc2 : tprocess_e)
   : tprocess_e =
-  process_e @@ PPar (output_proc, body)
+  process_e @@ PPar (proc1, proc2)
 
 (*
    3.9 Syscall and Attack Encoding
@@ -725,7 +720,7 @@ let compile_put_fact env penv (fact : T.fact) (body : tprocess_e)
   let loc = fact.loc in
   match fact.desc with
   | Channel { channel; name; args } ->
-      let channel_term = compile_channel_expr env penv channel in
+      let channel_term = compile_expr_to_pterm env penv channel in
       let payload =
         pterm_e @@
         PPFunApp
@@ -733,7 +728,7 @@ let compile_put_fact env penv (fact : T.fact) (body : tprocess_e)
           , List.map (compile_expr_to_pterm env penv) args )
       in
       wrap_with_channel_access_get ~loc channel_term penv
-        (parallel_output (process_e @@ POutput (channel_term, payload, process_e PNil)) body)
+        (ppar (process_e @@ POutput (channel_term, payload, process_e PNil)) body)
         (process_e PNil)
   | File { path; contents } ->
       let path_term = compile_expr_to_pterm env penv path in
@@ -747,7 +742,7 @@ let compile_put_fact env penv (fact : T.fact) (body : tprocess_e)
       in
       let payload = pterm_e @@ PPTuple [path_term; contents_term] in
       wrap_with_file_access_get ~loc path_term penv
-        (parallel_output (process_e @@ POutput (file_channel, payload, process_e PNil)) body)
+        (ppar (process_e @@ POutput (file_channel, payload, process_e PNil)) body)
         (process_e PNil)
   | Global ("Out", [arg]) ->
       process_e @@ POutput (pterm_e @@ PPIdent attacker_channel_ident, compile_expr_to_pterm env penv arg, body)
@@ -948,7 +943,7 @@ let rec filter_map2
        | None -> filter_map2 f xs ys)
   | _ -> invalid_arg "filter_map2"
 
-and compile_channel_guard_case
+let rec compile_channel_guard_case
     env
     penv
     (case : T.case)
@@ -1001,7 +996,7 @@ and compile_channel_guard_case
     in
     collect [] args payload_terms
   in
-  let channel_term = compile_channel_expr env penv channel in
+  let channel_term = compile_expr_to_pterm env penv channel in
   wrap_with_channel_access_get ~loc channel_term penv
     (process_e @@
      PInput
@@ -1152,7 +1147,7 @@ and compile_case_channelized
           (compile_pterm_eq_tests arg_eq_tests then_proc else_proc)
           else_proc
   in
-  let channel_term = compile_channel_expr env penv first_channel in
+  let channel_term = compile_expr_to_pterm env penv first_channel in
   wrap_with_channel_access_get ~loc:first_loc channel_term penv
     (process_e @@ PInput (channel_term, input_pattern, branches channel_guards, []))
     (process_e PNil)
@@ -1795,27 +1790,18 @@ let compile_init ~loc:(_loc : Location.t) env (id : T.ident) (desc : T.init_desc
      ```
 
      ```
-     free priv_k : bitstring [private].
+     const priv_k : bitstring.
      reduc forall k:param_data; pubkey(k) = pk(priv_k(k)).
      ```
   *)
   let init_ident = compile_ident id in
   match desc with
   | Fresh ->
-      (* Note: this assumes Rabbit top-level fresh constants are best modeled as
-         private free names in ProVerif. If the intended semantics is closer to a
-         definitional constant introduced by restriction at process start, this
-         lowering should be revisited. *)
-      [TFree (init_ident, bitstring_ident, [private_options])]
+      [TConstDecl (init_ident, bitstring_ident, [])]
   | Value expr ->
       let init_term = term_e @@ PIdent init_ident in
       let value_term = compile_expr_to_term env expr in
-      (* Note: this currently lowers [const n = e] as a private constant together
-         with an equation [n = e]. This is a plausible first encoding, but it is
-         worth re-checking whether ProVerif prefers this over a pure equational
-         alias or some other definitional form, especially if [e] itself contains
-         non-trivial function symbols. *)
-      [ TConstDecl (init_ident, bitstring_ident, [private_options])
+      [ TConstDecl (init_ident, bitstring_ident, [])
       ; TEquation
           ( [ [], EETerm (term_e @@ PFunApp (pv_ident "=", [init_term; value_term])) ]
           , [] )
@@ -1833,7 +1819,7 @@ let compile_init ~loc:(_loc : Location.t) env (id : T.ident) (desc : T.init_desc
           , [] )
       ]
   | Fresh_with_param ->
-      [TFunDecl (init_ident, [param_data_ident], bitstring_ident, [private_options])]
+      [TFunDecl (init_ident, [param_data_ident], bitstring_ident, [])]
 
 let compile_channel
     ~loc
@@ -2285,9 +2271,9 @@ let compile_generated_string_consts env : tdecl list =
      ```
 
      ```
-     const str__hello_world : bitstring.
+     const hello_world_str : bitstring.
      ...
-     out(ch, msg(str__hello_world))
+     out(ch, msg(hello_world_str))
      ```
   *)
   Hashtbl.to_seq_values env.string_table
@@ -2484,7 +2470,7 @@ and compile_decl env (decl : T.decl) : tdecl list =
   | System (procs, lemmas) -> compile_system ~loc env procs lemmas
   | Load (filename, decls) -> compile_load env filename decls
 
-let compile_program (decls : T.decl list) =
+let compile_program (decls : T.decl list) : Pv_parser.program =
   let env = create_env () in
   (* Types must be first scanned for `compile_proc_call` *)
   collect_process_types env decls;

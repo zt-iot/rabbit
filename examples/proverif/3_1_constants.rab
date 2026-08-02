@@ -1,0 +1,24 @@
+(* Spec 3.1: Rabbit constants are compiled to ProVerif declarations.
+   - [const fresh secret] becomes a bitstring constant.
+   - [const alias = secret] becomes a bitstring constant together with an equation. *)
+
+type proc_t : process
+
+const fresh secret
+const alias = secret
+
+process speaker() : proc_t
+{
+  main {
+    event [::Seen(secret)];
+    event [::Seen(alias)]
+  }
+}
+
+system
+  speaker()
+requires
+[
+  lemma ReachableAlias :
+    reachable ::Seen(alias)
+]

@@ -1,0 +1,24 @@
+(* Spec 3.10: parameterized channel declarations are not implemented yet.
+
+     channel udp<> : udp_t
+ *)
+
+type proc_t : process
+type udp_t : channel
+
+channel udp<> : udp_t
+
+process server() : proc_t
+{
+  main {
+    event [::Valid()]
+  }
+}
+
+system
+  server()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

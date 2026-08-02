@@ -1,0 +1,25 @@
+(* Spec 3.4: from
+
+     delete x.S
+
+   the ProVerif translation should record the deleted address by inserting
+   [SAddr(x_struct)] into [deleted_address_table]. *)
+
+type proc_t : process
+
+process maker() : proc_t
+{
+  main {
+    new x = S(1, 2, 3) in
+    delete x.S;
+    event [::Deleted()]
+  }
+}
+
+system
+  maker()
+requires
+[
+  lemma ReachableDeleted :
+    reachable ::Deleted()
+]

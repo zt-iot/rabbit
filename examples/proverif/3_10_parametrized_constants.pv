@@ -1,0 +1,24 @@
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker: channel.
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+const none_syscall_s: syscall_t.
+const true: bitstring.
+const false: bitstring.
+event Other(bitstring).
+event Valid(bitstring).
+fun pk(bitstring): bitstring.
+fun pair(bitstring, bitstring): bitstring.
+fun priv_k(param_data): bitstring.
+reduc forall k__1:param_data; pubkey(k__1) = pk(priv_k(k__1)).
+reduc forall k__2:param_data; cert(k__2) = pair(pubkey(k__2), priv_k(k__2)).
+const proc_t: proc_t.
+let server(ptype:proc_t) = event Valid(cert(0)); event Other(pubkey(1)).
+query event(Valid(cert(0))).
+query event(Other(pubkey(1))).
+process server(proc_t).

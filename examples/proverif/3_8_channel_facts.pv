@@ -1,0 +1,29 @@
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker: channel.
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+const none_syscall_s: syscall_t.
+const true: bitstring.
+const false: bitstring.
+event Valid.
+const proc_t: proc_t.
+const chan_t: acc_data_t.
+let worker(ptype:proc_t, ch__57:channel) =
+  insert channel_table(chan_t, ch__57);
+  get channel_table(ch_type__60:acc_data_t, =ch__57) in
+  get access_control_table(=ptype, =ch_type__60, =none_syscall_s) in
+  out(ch__57, store(1)) |
+  (get channel_table(ch_type__59:acc_data_t, =ch__57) in
+   get access_control_table(=ptype, =ch_type__59, =none_syscall_s) in
+   in(ch__57, store(case_arg_0__58:bitstring));
+   if case_arg_0__58 = 1 then event Valid).
+free ch: channel[private].
+query event(Valid()).
+process
+  insert access_control_table(proc_t, chan_t, none_syscall_s);
+  worker(proc_t, ch).

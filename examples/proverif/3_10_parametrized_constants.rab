@@ -1,0 +1,36 @@
+(* Spec 3.10: parameterized constants are translated using [param_data].
+
+     const fresh priv_k<>
+     const pubkey<k> = pk(priv_k<k>)
+
+   This example also threads the parameter through a second derived constant so
+   the generated ProVerif code shows multiple [param_data]-indexed definitions
+   and uses two different parameter instances. *)
+
+function pk:1
+function pair:2
+
+const fresh priv_k<>
+const pubkey<k> = pk(priv_k<k>)
+const cert<k> = pair(pubkey<k>, priv_k<k>)
+
+type proc_t : process
+
+process server() : proc_t
+{
+  main {
+    event [::Valid(cert<0>)];
+    event [::Other(pubkey<1>)]
+  }
+}
+
+system
+  server()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid(cert<0>) ;
+
+  lemma ReachableOther :
+    reachable ::Other(pubkey<1>)
+]

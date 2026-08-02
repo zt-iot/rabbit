@@ -1,0 +1,41 @@
+(* Spec 3.9: allowed attacks introduce nondeterministic alternatives around a
+   syscall call. This example makes the normal branch and the attack branch
+   observable with distinct events, so it is easier to check whether the
+   generated ProVerif code actually exposes both branches. *)
+
+function succ:1
+
+type proc_t : process
+
+syscall id(v) {
+  event [::Syscall(v)];
+  v
+}
+
+attack tamper_id on id(v) {
+  event [::Attack(v)];
+  succ(v)
+}
+
+process worker() : proc_t
+{
+  main {
+    event [::Sent(0)];
+    var m = id(0) in
+    event [::Observed(m)]
+  }
+}
+
+allow proc_t [id]
+allow attack proc_t [tamper_id]
+
+system
+  worker()
+requires
+[
+  lemma ReachableSyscall :
+    reachable ::Syscall(0) ;
+
+  lemma ReachableAttack :
+    reachable ::Attack(0)
+]

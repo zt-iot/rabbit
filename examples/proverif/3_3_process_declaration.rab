@@ -1,0 +1,45 @@
+(* Spec 3.3: from
+
+     process client(ch : udp_t) : client_t
+     ...
+     process server(ch : udp_t) : server_t
+     ...
+     system client(udp) | server(udp)
+
+   the ProVerif translation should introduce a process definition with an
+   explicit process-type argument, and the system call should pass the process
+   type constant to each process:
+
+     let client(ptype:proc_t, ch:channel) = ...
+     let server(ptype:proc_t, ch:channel) = ...
+     ...
+     process client(client_t, udp) | server(server_t, udp)
+ *)
+
+type client_t : process
+type server_t : process
+type udp_t : channel
+
+process client(ch : udp_t) : client_t
+{
+  main {
+    event [::Valid()]
+  }
+}
+
+process server(ch : udp_t) : server_t
+{
+  main {
+    event [::Served()]
+  }
+}
+
+channel udp : udp_t
+
+system
+  client(udp) | server(udp)
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid(), ::Served()
+]

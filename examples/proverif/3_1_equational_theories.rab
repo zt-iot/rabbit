@@ -1,0 +1,29 @@
+(* Spec 3.1: the Rabbit equational theory
+
+     function enc : 2
+     function dec : 2
+     equation dec(enc(x, y), y) = x
+
+   should become typed ProVerif function declarations together with an
+   equation over bitstring variables. *)
+
+function enc:2
+function dec:2
+equation dec(enc(x, y), y) = x
+
+type proc_t : process
+
+process sender() : proc_t
+{
+  main {
+    event [::Valid()]
+  }
+}
+
+system
+  sender()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

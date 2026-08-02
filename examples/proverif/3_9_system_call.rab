@@ -1,0 +1,26 @@
+(* Spec 3.9: system calls are inlined at the call site, with the current
+   syscall tracked for access-control checks. *)
+
+type proc_t : process
+
+syscall id(v) {
+  v
+}
+
+process worker() : proc_t
+{
+  main {
+    var x = id(0) in
+    event [::Valid(x)]
+  }
+}
+
+allow proc_t [id]
+
+system
+  worker()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid(0)
+]
