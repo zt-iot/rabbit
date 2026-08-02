@@ -4,31 +4,33 @@ open Parsing_helper
 open Ptree
 open Pitptree
 
-let zero () = PIdent (("0",parse_extent())), parse_extent()
+let with_ext x = x, parse_extent(), None
 
 let rec unfold_int t = function
   | 0 -> t
-  | n -> PFunApp(("+", parse_extent()), [unfold_int t (n-1)]), parse_extent()
+  | n -> with_ext @@ PFunApp(("+", parse_extent()), [unfold_int t (n-1)])
 
  let rec unfold_int_minus t = function
    | 0 -> t
-   | n -> PFunApp(("- "^(string_of_int n), parse_extent()), [t]), parse_extent()
+   | n -> with_ext @@ PFunApp(("- "^(string_of_int n), parse_extent()), [t])
 
-let gzero () = PGIdent (("0",parse_extent())), parse_extent()
+let zero () = with_ext @@ PIdent (("0",parse_extent()))
+
+let gzero () = with_ext @@ PGIdent (("0",parse_extent()))
 
 let rec unfold_gint t = function
   | 0 -> t
-  | n -> PGFunApp(("+", parse_extent()), [unfold_gint t (n-1)], None), parse_extent()
+  | n -> with_ext @@ PGFunApp(("+", parse_extent()), [unfold_gint t (n-1)], None)
 
-let pzero () = PPIdent (("0",parse_extent())), parse_extent()
+let pzero () = with_ext @@ PPIdent (("0",parse_extent()))
 
 let rec unfold_pint t = function
   | 0 -> t
-  | n -> PPFunApp(("+", parse_extent()), [unfold_pint t (n-1)]), parse_extent()
+  | n -> with_ext @@ PPFunApp(("+", parse_extent()), [unfold_pint t (n-1)])
 
 let rec unfold_pint_minus t = function
   | 0 -> t
-  | n -> PPFunApp(("- "^(string_of_int n), parse_extent()), [t]), parse_extent()
+  | n -> with_ext @@ PPFunApp(("- "^(string_of_int n), parse_extent()), [t])
 
 let pat_zero () = PPatFunApp (("0",parse_extent()), [])
 
@@ -36,11 +38,11 @@ let rec unfold_pat_int t = function
   | 0 -> t
   | n -> PPatFunApp(("+", parse_extent()), [unfold_pat_int t (n-1)])
 
-let pfg_zero () = PFGIdent (("0",parse_extent())), parse_extent()
+let pfg_zero () = with_ext @@ PFGIdent (("0",parse_extent()))
 
 let rec unfold_pfg_int t = function
   | 0 -> t
-  | n -> PFGFunApp(("+", parse_extent()), [unfold_pfg_int t (n-1)]), parse_extent()
+  | n -> with_ext @@ PFGFunApp(("+", parse_extent()), [unfold_pfg_int t (n-1)])
 
 
 exception Syntax
@@ -174,7 +176,7 @@ exception Syntax
 %nonassoc POWER
 
 %start all
-%type <Pitptree.tdecl list * Pitptree.tprocess_e * Pitptree.tprocess_e option> all
+%type <(Pitptree.tdecl * string option) list * Pitptree.tprocess_e * Pitptree.tprocess_e option> all
 
 %start lib
 %type <Pitptree.tdecl list> lib
@@ -302,13 +304,13 @@ lemma:
 
 all:
 |       lib PROCESS tprocess EOF
-	{ $1, $3, None }
+	{ List.map (fun d -> d, None) $1, $3, None }
 |       lib PROCESS tprocess DOT EOF
-	{ $1, $3, None }
+	{ List.map (fun d -> d, None) $1, $3, None }
 |	lib EQUIVALENCE tprocess tprocess EOF
-	{ $1, $3, Some $4 }
+	{ List.map (fun d -> d, None) $1, $3, Some $4 }
 |	lib EQUIVALENCE tprocess tprocess DOT EOF
-	{ $1, $3, Some $4 }
+	{ List.map (fun d -> d, None) $1, $3, Some $4 }
 
 /* Proofs (for CryptoVerif compatibility only) */
 
@@ -662,16 +664,16 @@ netypeidseq:
 
 term:
 |	FAIL
-	{ PFail, parse_extent () }
+	{ with_ext PFail }
 |	IDENT LPAREN termseq RPAREN
-        { PFunApp ($1, $3), parse_extent() }
+        { with_ext @@ PFunApp ($1, $3) }
 |       PROJECTION LPAREN term RPAREN
-        { PProj ($1,$3), parse_extent() }
+        { with_ext @@ PProj ($1,$3) }
 |       CHOICE LBRACKET term COMMA term RBRACKET
         { Param.has_choice := true;
-	  PFunApp(("choice", parse_extent()), [$3; $5]), parse_extent() }
+	  with_ext @@ PFunApp(("choice", parse_extent()), [$3; $5]) }
 |	IDENT
-	{ PIdent ($1), parse_extent() }
+	{ with_ext @@ PIdent ($1) }
 |       INT
         { Param.has_integer := true; unfold_int (zero ()) $1 }
 |       term MINUS INT
@@ -681,20 +683,20 @@ term:
 |       INT PLUS term
         { Param.has_integer := true; unfold_int $3 $1 }
 |       term EQUAL term
-        { PFunApp(("=", parse_extent()), [$1; $3]), parse_extent() }
+        { with_ext @@ PFunApp(("=", parse_extent()), [$1; $3]) }
 |       term DIFF term
-        { PFunApp(("<>", parse_extent()), [$1; $3]), parse_extent() }
+        { with_ext @@ PFunApp(("<>", parse_extent()), [$1; $3]) }
 |       NOT LPAREN term RPAREN
-        { PFunApp(("not", parse_extent()), [$3]), parse_extent() }
+        { with_ext @@ PFunApp(("not", parse_extent()), [$3]) }
 |       term OR term
-        { PFunApp(("||", parse_extent()), [$1; $3]), parse_extent() }
+        { with_ext @@ PFunApp(("||", parse_extent()), [$1; $3]) }
 |       term WEDGE term
-        { PFunApp(("&&", parse_extent()), [$1; $3]), parse_extent() }
+        { with_ext @@ PFunApp(("&&", parse_extent()), [$1; $3]) }
 |	LPAREN termseq RPAREN
 	{ match $2 with
 	  [t] -> t   (* Allow parentheses for priorities of infix operators;
 			Tuples cannot have one element. *)
-	| l -> PTuple (l), parse_extent() }
+	| l -> with_ext @@ PTuple l }
 
 netermseq:
 	term COMMA netermseq
@@ -757,13 +759,13 @@ tqueryseq:
 
 tquery:
     gterm optpublicvars
-    { PRealQuery($1,$2), parse_extent() }
+    { with_ext @@ PRealQuery($1,$2) }
 |   SECRET IDENT optpublicvars options
-    { PQSecret ($2,$3,$4), parse_extent() }
+    { with_ext @@ PQSecret ($2,$3,$4) }
 |   PUTBEGIN EVENT COLON neidentseq
-    { PPutBegin(false, $4), parse_extent() }
+    { with_ext @@ PPutBegin(false, $4) }
 |   PUTBEGIN INJEVENT COLON neidentseq
-    { PPutBegin(true, $4), parse_extent() }
+    { with_ext @@ PPutBegin(true, $4) }
 
 optpublicvars:
 
@@ -779,9 +781,9 @@ optatident:
 
 gterm:
 	IDENT LPAREN gtermseq RPAREN optatident
-	{ PGFunApp ($1, $3, $5), parse_extent() }
+	{ with_ext @@ PGFunApp ($1, $3, $5) }
 |	IDENT
-	 { PGIdent ($1), parse_extent() }
+	 { with_ext @@ PGIdent ($1) }
 |       INT
         { Param.has_integer := true; unfold_gint (gzero ()) $1 }
 |       gterm PLUS INT
@@ -789,50 +791,50 @@ gterm:
 |       INT PLUS gterm
         { Param.has_integer := true; unfold_gint $3 $1 }
 |       gterm LEQ gterm
-        { Param.has_integer := true; PGFunApp(("<=", parse_extent()), [$1; $3], None), parse_extent() }
+        { Param.has_integer := true; with_ext @@ PGFunApp(("<=", parse_extent()), [$1; $3], None) }
 |       gterm GEQ gterm
-        { Param.has_integer := true; PGFunApp((">=", parse_extent()), [$1; $3], None), parse_extent() }
+        { Param.has_integer := true; with_ext @@ PGFunApp((">=", parse_extent()), [$1; $3], None) }
 |       gterm LESS gterm
-        { Param.has_integer := true; PGFunApp(("<", parse_extent()), [$1; $3], None), parse_extent() }
+        { Param.has_integer := true; with_ext @@ PGFunApp(("<", parse_extent()), [$1; $3], None) }
 |       gterm GREATER gterm
-        { Param.has_integer := true; PGFunApp((">", parse_extent()), [$1; $3], None), parse_extent() }
+        { Param.has_integer := true; with_ext @@ PGFunApp((">", parse_extent()), [$1; $3], None) }
 |       IDENT LPAREN gtermseq RPAREN PHASE INT optatident
-        { PGPhase($1, $3, $6, $7), parse_extent() }
+        { with_ext @@ PGPhase($1, $3, $6, $7) }
 |       TABLE LPAREN gterm RPAREN PHASE INT optatident
-        { PGPhase(("table", parse_extent()), [$3], $6, $7), parse_extent() }
+        { with_ext @@ PGPhase(("table", parse_extent()), [$3], $6, $7) }
 |       gterm EQUAL gterm
-        { PGFunApp(("=", parse_extent()), [$1; $3], None), parse_extent() }
+        { with_ext @@ PGFunApp(("=", parse_extent()), [$1; $3], None) }
 |       gterm DIFF gterm
-        { PGFunApp(("<>", parse_extent()), [$1; $3], None), parse_extent() }
+        { with_ext @@ PGFunApp(("<>", parse_extent()), [$1; $3], None) }
 |       NOT LPAREN gterm RPAREN
-        { PGFunApp(("not", parse_extent()), [$3], None), parse_extent() }
+        { with_ext @@ PGFunApp(("not", parse_extent()), [$3], None) }
 |       gterm OR gterm
-        { PGFunApp(("||", parse_extent()), [$1; $3], None), parse_extent() }
+        { with_ext @@ PGFunApp(("||", parse_extent()), [$1; $3], None) }
 |       gterm WEDGE gterm
-        { PGFunApp(("&&", parse_extent()), [$1; $3], None), parse_extent() }
+        { with_ext @@ PGFunApp(("&&", parse_extent()), [$1; $3], None) }
 |       CHOICE LBRACKET gterm COMMA gterm RBRACKET
-        { PGFunApp(("choice", parse_extent()), [$3; $5], None), parse_extent() }
+        { with_ext @@ PGFunApp(("choice", parse_extent()), [$3; $5], None) }
 |       EVENT LPAREN gtermseq RPAREN optatident
-        { PGFunApp(("event",parse_extent()), $3, $5), parse_extent() }
+        { with_ext @@ PGFunApp(("event",parse_extent()), $3, $5) }
 |       INJEVENT LPAREN gtermseq RPAREN optatident
-        { PGFunApp(("inj-event",parse_extent()), $3, $5), parse_extent() }
+        { with_ext @@ PGFunApp(("inj-event",parse_extent()), $3, $5) }
 |       TABLE LPAREN gterm RPAREN optatident
-        { PGFunApp(("table",parse_extent()), [$3], $5), parse_extent() }
+        { with_ext @@ PGFunApp(("table",parse_extent()), [$3], $5) }
 |       gterm BEFORE gterm
-        { PGFunApp(("==>", parse_extent()), [$1;$3], None), parse_extent() }
+        { with_ext @@ PGFunApp(("==>", parse_extent()), [$1;$3], None) }
 |	LPAREN gtermseq RPAREN
 	{ match $2 with
 	  [t] -> t   (* Allow parentheses for priorities of infix operators;
 			Tuples cannot have one element. *)
-	| l -> PGTuple (l), parse_extent() }
+	| l -> with_ext @@ PGTuple l }
 |       NEW IDENT LBRACKET bindingseq RBRACKET
-        { PGName ($2, $4), parse_extent() }
+        { with_ext @@ PGName ($2, $4) }
 |       NEW IDENT
-        { PGName ($2, []), parse_extent() }
+        { with_ext @@ PGName ($2, []) }
 |       LET IDENT EQUAL gterm IN gterm
-        { PGLet($2, $4, $6), parse_extent() }
+        { with_ext @@ PGLet($2, $4, $6) }
 | IDENT LEFTARROW gterm SEMI gterm
-     { PGLet($1,$3,$5), parse_extent() }
+     { with_ext @@ PGLet($1,$3,$5) }
 
 negtermseq:
 	gterm COMMA negtermseq
@@ -903,11 +905,11 @@ select_value:
 
 gformat:
 	IDENT LPAREN gformatseq RPAREN
-	{ PFGFunApp ($1, $3), parse_extent() }
+	{ with_ext @@ PFGFunApp ($1, $3) }
 |       CHOICE LBRACKET gformat COMMA gformat RBRACKET
-	{ PFGFunApp (("choice", parse_extent()), [$3; $5]), parse_extent() }
+	{ with_ext @@ PFGFunApp (("choice", parse_extent()), [$3; $5]) }
 | IDENT
-    { PFGIdent ($1), parse_extent() }
+    { with_ext @@ PFGIdent ($1) }
 | INT
     { Param.has_integer := true; unfold_pfg_int (pfg_zero ()) $1 }
 | gformat PLUS INT
@@ -918,17 +920,17 @@ gformat:
 	{ match $2 with
 	  [t] -> t   (* Allow parentheses for priorities of infix operators;
 			Tuples cannot have one element. *)
-	| l -> PFGTuple ($2), parse_extent() }
+	| l -> with_ext @@ PFGTuple $2 }
 |       NEW IDENT LBRACKET fbindingseq RBRACKET
-        { PFGName ($2, $4), parse_extent() }
+        { with_ext @@ PFGName ($2, $4) }
 |       NEW IDENT
-        { PFGName ($2, []), parse_extent() }
+        { with_ext @@ PFGName ($2, []) }
 |       STAR IDENT
-        { PFGAny ($2), parse_extent() }
+        { with_ext @@ PFGAny ($2) }
 |       LET IDENT EQUAL gformat IN gformat
-        { PFGLet($2, $4, $6), parse_extent() }
+        { with_ext @@ PFGLet($2, $4, $6) }
 | IDENT LEFTARROW gformat SEMI gformat
-     { PFGLet($1,$3,$5), parse_extent() }
+     { with_ext @@ PFGLet($1,$3,$5) }
 
 
 negformatseq:
@@ -1089,93 +1091,93 @@ tprocess:
   | LPAREN tprocess RPAREN
       { $2 }
   | IDENT syncopt
-      { PLetDef ($1, [], $2), parse_extent() }
+      { with_ext @@ PLetDef ($1, [], $2) }
   | IDENT LPAREN ptermseq RPAREN syncopt
-      { PLetDef ($1, $3, $5), parse_extent() }
+      { with_ext @@ PLetDef ($1, $3, $5) }
   | REPL tprocess %prec REPL
-      { PRepl $2, parse_extent() }
+      { with_ext @@ PRepl $2 }
   | REPL IDENT LEQ IDENT tprocess %prec REPL
       { (* For convergence with CryptoVerif, we allow an identifier (bound on the number of copies) after a replication; it is simply ignored in ProVerif. *)
-        PRepl $5, parse_extent() }
+        with_ext @@ PRepl $5 }
   | FOREACH IDENT LEQ IDENT DO tprocess %prec REPL
       { (* For convergence with CryptoVerif, we allow "foreach i<=N do P"
       as a synonym for !P *)
-      PRepl $6, parse_extent() }
+      with_ext @@ PRepl $6 }
   | INT
       { let x = $1 in
-        if x = 0 then PNil, parse_extent() else
+        if x = 0 then with_ext PNil else
         input_error ("The only integer in a process is 0 for the nil process") (parse_extent()) }
   | YIELD
       { (* For convergence with CryptoVerif, we allow yield instead of 0 *)
-        PNil, parse_extent() }
+        with_ext PNil }
   | NEW IDENT newarg COLON typeid opttprocess
-      { PRestr($2, $3, $5, $6), parse_extent() }
+      { with_ext @@ PRestr($2, $3, $5, $6) }
   | IDENT RANDOM typeid opttprocess
       { (* For convergence with CryptoVerif, we allow x <-R T
         as a synonym for new x: T *)
-        PRestr($1, None, $3, $4), parse_extent() }
+        with_ext @@ PRestr($1, None, $3, $4) }
   | IF pterm THEN tprocess optelseprocess
-      { PTest($2,$4,$5), parse_extent() }
+      { with_ext @@ PTest($2,$4,$5) }
   | IN LPAREN pterm COMMA tpattern RPAREN options opttprocess
-      { PInput($3,$5,$8,$7), parse_extent() }
+      { with_ext @@ PInput($3,$5,$8,$7) }
   | OUT LPAREN pterm COMMA pterm RPAREN progend opttprocess
-      { POutput($3,$5,$8), parse_extent() }
+      { with_ext @@ POutput($3,$5,$8) }
   | LET tpattern EQUAL pterm
-      { PLet($2,$4,(PNil,parse_extent()),(PNil,parse_extent())), parse_extent() }
+      { with_ext @@ PLet($2,$4,with_ext PNil,with_ext PNil) }
   | LET tpattern EQUAL pterm IN tprocess optelseprocess
-      { PLet($2,$4,$6,$7), parse_extent() }
+      { with_ext @@ PLet($2,$4,$6,$7) }
   | basicpattern LEFTARROW pterm opttprocess
       { (* For convergence with CryptoVerif, we allow x[:T] <- M; P
       as a synonym for let x[:T] = M in P *)
-      PLet($1,$3,$4,(PNil,parse_extent())), parse_extent() }
+      with_ext @@ PLet($1,$3,$4,with_ext PNil) }
   | LET nevartype SUCHTHAT pterm options
-      { PLetFilter($2,$4,(PNil,parse_extent()),(PNil,parse_extent()),$5), parse_extent() }
+      { with_ext @@ PLetFilter($2,$4,with_ext PNil,with_ext PNil,$5) }
   | LET nevartype SUCHTHAT pterm options IN tprocess optelseprocess
       { (* Approximating the else clause with a parallel composition
       is not correct for trace reconstruction *)
-      PLetFilter($2,$4,$7,$8,$5), parse_extent() }
+      with_ext @@ PLetFilter($2,$4,$7,$8,$5) }
   | INSERT IDENT LPAREN ptermseq RPAREN opttprocess
-      { PInsert($2, $4, $6), parse_extent() }
+      { with_ext @@ PInsert($2, $4, $6) }
   | GET IDENT LPAREN tpatternseq RPAREN optsuchthat options optinprocess optelseprocess
-      { PGet($2, $4, $6, $8, $9,$7), parse_extent() }
+      { with_ext @@ PGet($2, $4, $6, $8, $9,$7) }
   |	tprocess BAR tprocess
-      { PPar($1,$3), parse_extent() }
+      { with_ext @@ PPar($1,$3) }
   | EVENT IDENT LPAREN ptermseq RPAREN newarg opttprocess
-      { PEvent($2, $4, $6, $7), parse_extent() }
+      { with_ext @@ PEvent($2, $4, $6, $7) }
   | EVENT IDENT newarg opttprocess
-      { PEvent($2, [], $3, $4), parse_extent() }
+      { with_ext @@ PEvent($2, [], $3, $4) }
   | PHASE INT opttprocess
       { if ($2) <= 0 then
       input_error "Phases should be positive integers in processes" (parse_extent());
-      PPhase($2, $3), parse_extent() }
+      with_ext @@ PPhase($2, $3) }
   | BARRIER INT opttprocess
       { if ($2) <= 0 then
       input_error "Sync numbers should be positive integers" (parse_extent());
       Param.has_barrier := true;
-      PBarrier($2, None, $3), parse_extent() }
+      with_ext @@ PBarrier($2, None, $3) }
   | BARRIER INT LBRACKET IDENT RBRACKET opttprocess
       { if ($2) <= 0 then
       input_error "Sync numbers should be positive integers" (parse_extent());
       Param.has_barrier := true;
-      PBarrier($2, Some $4, $6), parse_extent() }
+      with_ext @@ PBarrier($2, Some $4, $6) }
 
 opttprocess:
         SEMI tprocess
         { $2 }
 |
-        { PNil, parse_extent() }
+        { with_ext PNil }
 
 optinprocess:
         IN tprocess
         { $2 }
 |
-        { PNil, parse_extent() }
+        { with_ext PNil }
 
 optelseprocess:
         ELSE tprocess
         { $2 }
 |
-        { PNil, parse_extent() }
+        { with_ext PNil }
 
 basicpattern:
   IDENT
@@ -1228,12 +1230,12 @@ tpatternseq:
 
 pterm:
 	IDENT LPAREN ptermseq RPAREN
-	{ PPFunApp ($1, $3), parse_extent() }
+	{ with_ext @@ PPFunApp ($1, $3) }
 |       CHOICE LBRACKET pterm COMMA pterm RBRACKET
         { Param.has_choice := true;
-	  PPFunApp(("choice", parse_extent()), [$3; $5]), parse_extent() }
+	  with_ext @@ PPFunApp(("choice", parse_extent()), [$3; $5]) }
 |	IDENT
-	{ PPIdent ($1), parse_extent() }
+	{ with_ext @@ PPIdent ($1) }
 |       INT
         { Param.has_integer := true; unfold_pint (pzero ()) $1 }
 |       pterm MINUS INT
@@ -1243,46 +1245,46 @@ pterm:
 |       INT PLUS pterm
         { Param.has_integer := true; unfold_pint $3 $1 }
 |       pterm LESS pterm
-        { Param.has_integer := true; PPFunApp(("<", parse_extent()), [$1; $3]), parse_extent() }
+        { Param.has_integer := true; with_ext @@ PPFunApp(("<", parse_extent()), [$1; $3]) }
 |       pterm GREATER pterm
-        { Param.has_integer := true; PPFunApp((">", parse_extent()), [$1; $3]), parse_extent() }
+        { Param.has_integer := true; with_ext @@ PPFunApp((">", parse_extent()), [$1; $3]) }
 |       pterm LEQ pterm
-        { Param.has_integer := true; PPFunApp(("<=", parse_extent()), [$1; $3]), parse_extent() }
+        { Param.has_integer := true; with_ext @@ PPFunApp(("<=", parse_extent()), [$1; $3]) }
 |       pterm GEQ pterm
-        { Param.has_integer := true; PPFunApp((">=", parse_extent()), [$1; $3]), parse_extent() }
+        { Param.has_integer := true; with_ext @@ PPFunApp((">=", parse_extent()), [$1; $3]) }
 |       pterm EQUAL pterm
-        { PPFunApp(("=", parse_extent()), [$1; $3]), parse_extent() }
+        { with_ext @@ PPFunApp(("=", parse_extent()), [$1; $3]) }
 |       pterm DIFF pterm
-        { PPFunApp(("<>", parse_extent()), [$1; $3]), parse_extent() }
+        { with_ext @@ PPFunApp(("<>", parse_extent()), [$1; $3]) }
 |       NOT LPAREN pterm RPAREN
-        { PPFunApp(("not", parse_extent()), [$3]), parse_extent() }
+        { with_ext @@ PPFunApp(("not", parse_extent()), [$3]) }
 |       pterm OR pterm
-        { PPFunApp(("||", parse_extent()), [$1; $3]), parse_extent() }
+        { with_ext @@ PPFunApp(("||", parse_extent()), [$1; $3]) }
 |       pterm WEDGE pterm
-        { PPFunApp(("&&", parse_extent()), [$1; $3]), parse_extent() }
+        { with_ext @@ PPFunApp(("&&", parse_extent()), [$1; $3]) }
 | 	NEW IDENT newarg COLON typeid SEMI pterm
-        { PPRestr($2, $3, $5, $7), parse_extent() }
+        { with_ext @@ PPRestr($2, $3, $5, $7) }
 |       IDENT RANDOM typeid SEMI pterm
-        { PPRestr($1, None, $3, $5), parse_extent() }
+        { with_ext @@ PPRestr($1, None, $3, $5) }
 |	IF pterm THEN pterm optelseterm
-	{ PPTest($2,$4,$5), parse_extent() }
+	{ with_ext @@ PPTest($2,$4,$5) }
 | 	LET tpattern EQUAL pterm IN pterm optelseterm
-	{ PPLet($2,$4,$6,$7), parse_extent() }
+	{ with_ext @@ PPLet($2,$4,$6,$7) }
 |       basicpattern LEFTARROW pterm SEMI pterm
-        { PPLet($1,$3,$5,None), parse_extent() }
+        { with_ext @@ PPLet($1,$3,$5,None) }
 |       LET nevartype SUCHTHAT pterm IN pterm optelseterm
-        { PPLetFilter($2,$4,$6,$7), parse_extent() }
+        { with_ext @@ PPLetFilter($2,$4,$6,$7) }
 |       EVENT IDENT optargs newarg SEMI pterm
-        { PPEvent($2, $3, $4, $6), parse_extent() }
+        { with_ext @@ PPEvent($2, $3, $4, $6) }
 |       INSERT IDENT LPAREN ptermseq RPAREN SEMI pterm
-        { PPInsert($2,$4,$7), parse_extent() }
+        { with_ext @@ PPInsert($2,$4,$7) }
 |       GET IDENT LPAREN tpatternseq RPAREN optsuchthat options IN pterm optelseterm
-        { PPGet($2,$4,$6,$9,$10,$7), parse_extent() }
+        { with_ext @@ PPGet($2,$4,$6,$9,$10,$7) }
 |	LPAREN ptermseq RPAREN
 	{ match $2 with
 	  [t] -> t   (* Allow parentheses for priorities of infix operators;
 			Tuples cannot have one element. *)
-	| l -> PPTuple (l), parse_extent() }
+	| l -> with_ext @@ PPTuple l }
 
 optelseterm:
     ELSE pterm

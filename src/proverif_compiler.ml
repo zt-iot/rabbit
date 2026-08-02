@@ -64,9 +64,11 @@ let create_env () : env =
   ; top_process            = None
   }
 
-let with_dummy_ext x = x, Parsing_helper.dummy_ext
+let with_dummy_ident_ext x = x, Parsing_helper.dummy_ext
 
-let pv_ident (s : string) : ident = with_dummy_ext s
+let with_dummy_node_ext x = x, Parsing_helper.dummy_ext, None
+
+let pv_ident (s : string) : ident = with_dummy_ident_ext s
 
 let compile_ident (id : T.ident) : ident =
   pv_ident (Ident.to_string id)
@@ -87,11 +89,11 @@ let false_ident                 = pv_ident "false"
 let ptype_arg_ident             = pv_ident "ptype"
 let none_syscall_ident          = pv_ident "none_syscall_s"
 let precise_ident               = pv_ident "precise"
-let term_e    (t : term)     : term_e     = with_dummy_ext t
-let pterm_e   (t : pterm)    : pterm_e    = with_dummy_ext t
-let gterm_e   (t : gterm)    : gterm_e    = with_dummy_ext t
-let process_e (p : tprocess) : tprocess_e = with_dummy_ext p
-let tquery_e  (q : tquery)   : tquery_e   = with_dummy_ext q
+let term_e    (t : term)     : term_e     = with_dummy_node_ext t
+let pterm_e   (t : pterm)    : pterm_e    = with_dummy_node_ext t
+let gterm_e   (t : gterm)    : gterm_e    = with_dummy_node_ext t
+let process_e (p : tprocess) : tprocess_e = with_dummy_node_ext p
+let tquery_e  (q : tquery)   : tquery_e   = with_dummy_node_ext q
 
 let compile_name (name : T.name) : ident = pv_ident name
 
@@ -326,7 +328,8 @@ let rec compile_expr_to_term env (expr : T.expr) : term_e =
   | Boolean false ->
       PIdent (pv_ident "false")
   | Integer n ->
-      fst @@ Int.to_term_e n
+      let term, _, _ = Int.to_term_e n in
+      term
   | Float _ ->
       error ~loc:expr.loc @@
       Unsupported "Float terms are not supported in ProVerif term translation"
@@ -421,7 +424,8 @@ let rec compile_expr_to_gterm env (expr : T.expr) : gterm_e =
   | Boolean false ->
       PGIdent false_ident
   | Integer n ->
-      fst @@ Int.to_gterm_e n
+      let term, _, _ = Int.to_gterm_e n in
+      term
   | Float _ ->
       error ~loc:expr.loc @@
       Unsupported "Float terms are not supported in ProVerif query translation"
@@ -433,7 +437,9 @@ let rec compile_expr_to_pterm env penv (expr : T.expr) : pterm_e =
       PPFunApp (compile_ident id, [compile_expr_to_pterm env penv param])
   | Ident { id; param = None; _ } ->
       (match find_process_var penv id with
-       | Some value -> fst value
+       | Some value ->
+           let term, _, _ = value in
+           term
        | None -> PPIdent (compile_ident id))
   | Apply (id, args) ->
       PPFunApp (compile_ident id, List.map (compile_expr_to_pterm env penv) args)
@@ -448,7 +454,8 @@ let rec compile_expr_to_pterm env penv (expr : T.expr) : pterm_e =
   | Boolean false ->
       PPIdent false_ident
   | Integer n ->
-      fst @@ Int.to_pterm_e n
+      let term, _, _ = Int.to_pterm_e n in
+      term
   | Float _ ->
       error ~loc:expr.loc @@
       Unsupported "Float process terms are not supported in ProVerif process translation"
@@ -2477,11 +2484,13 @@ let compile_program (decls : T.decl list) : Pv_parser.program =
   let body = List.concat_map (compile_decl env) decls in
   let top_process = Option.value env.top_process ~default:(process_e PNil) in
   let top_process = add_allow_inits env top_process in
-  ( compile_prelude env
-    @ compile_generated_structure_decls env
-    @ compile_generated_syscall_consts env
-    @ compile_generated_event_decls env
-    @ compile_generated_string_consts env
-    @ body
+  ( List.map
+      (fun decl -> decl, None)
+      ( compile_prelude env
+        @ compile_generated_structure_decls env
+        @ compile_generated_syscall_consts env
+        @ compile_generated_event_decls env
+        @ compile_generated_string_consts env
+        @ body )
   , top_process
   , None )

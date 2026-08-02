@@ -30,7 +30,7 @@ let equal_nounif_value x y =
 let equal_option_decl (id1, vals1) (id2, vals2) =
   equal_ident id1 id2 && equal_option (equal_list equal_ident) vals1 vals2
 
-let rec equal_term_e (t1, _) (t2, _) =
+let rec equal_term_e (t1, _, _) (t2, _, _) =
   match t1, t2 with
   | PIdent i1, PIdent i2 -> equal_ident i1 i2
   | PFail, PFail -> true
@@ -46,7 +46,7 @@ let rec equal_extended_equation x y =
   | EETerm t1, EETerm t2 -> equal_term_e t1 t2
   | _ -> false
 
-let rec equal_gformat_e (g1, _) (g2, _) =
+let rec equal_gformat_e (g1, _, _) (g2, _, _) =
   match g1, g2 with
   | PFGIdent i1, PFGIdent i2 -> equal_ident i1 i2
   | PFGFunApp (f1, a1), PFGFunApp (f2, a2) -> equal_ident f1 f2 && equal_list equal_gformat_e a1 a2
@@ -66,7 +66,7 @@ let rec equal_nounif_t x y =
       equal_ident i1 i2 && p1 = p2 && equal_list equal_gformat_e a1 a2
   | _ -> false
 
-let rec equal_gterm_e (g1, _) (g2, _) =
+let rec equal_gterm_e (g1, _, _) (g2, _, _) =
   match g1, g2 with
   | PGIdent i1, PGIdent i2 -> equal_ident i1 i2
   | PGFunApp (f1, a1, at1), PGFunApp (f2, a2, at2) ->
@@ -80,7 +80,7 @@ let rec equal_gterm_e (g1, _) (g2, _) =
       equal_ident i1 i2 && equal_gterm_e g1 g2 && equal_gterm_e h1 h2
   | _ -> false
 
-let equal_tquery_e (q1, _) (q2, _) =
+let equal_tquery_e (q1, _, _) (q2, _, _) =
   match q1, q2 with
   | PPutBegin (b1, ids1), PPutBegin (b2, ids2) -> b1 = b2 && equal_list equal_ident ids1 ids2
   | PRealQuery (g1, ids1), PRealQuery (g2, ids2) -> equal_gterm_e g1 g2 && equal_list equal_ident ids1 ids2
@@ -100,7 +100,7 @@ let equal_tlemma (g1, so1, ids1) (g2, so2, ids2) =
   equal_option (fun (a1, b1) (a2, b2) -> equal_ident a1 a2 && equal_ident b1 b2) so1 so2 &&
   equal_list equal_ident ids1 ids2
 
-let rec equal_pterm_e (p1, _) (p2, _) =
+let rec equal_pterm_e (p1, _, _) (p2, _, _) =
   match p1, p2 with
   | PPIdent i1, PPIdent i2 -> equal_ident i1 i2
   | PPFunApp (f1, a1), PPFunApp (f2, a2) -> equal_ident f1 f2 && equal_list equal_pterm_e a1 a2
@@ -136,7 +136,7 @@ and equal_tpattern x y =
   | PPatEqual p1, PPatEqual p2 -> equal_pterm_e p1 p2
   | _ -> false
 
-let rec equal_tprocess_e (p1, _) (p2, _) =
+let rec equal_tprocess_e (p1, _, _) (p2, _, _) =
   match p1, p2 with
   | PNil, PNil -> true
   | PPar (a1, b1), PPar (a2, b2) -> equal_tprocess_e a1 a2 && equal_tprocess_e b1 b2
@@ -252,6 +252,6 @@ let rec equal_tdecl x y =
   | _ -> false
 
 let equal_program (decls1, p1, p1b) (decls2, p2, p2b) =
-  equal_list equal_tdecl decls1 decls2 &&
+  equal_list (fun (decl1, _comment1) (decl2, _comment2) -> equal_tdecl decl1 decl2) decls1 decls2 &&
   equal_tprocess_e p1 p2 &&
   equal_option equal_tprocess_e p1b p2b

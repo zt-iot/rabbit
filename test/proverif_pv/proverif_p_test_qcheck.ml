@@ -11,13 +11,13 @@ let dummy_ext = Parsing_helper.dummy_ext
 
 let mk_ident s = ((s, dummy_ext) : Pitptree.ident)
 
-let mk_pterm t = (t, dummy_ext)
+let mk_pterm t = (t, dummy_ext, None)
 
-let mk_process p = (p, dummy_ext)
+let mk_process p = (p, dummy_ext, None)
 
-let mk_gterm t = (t, dummy_ext)
+let mk_gterm t = (t, dummy_ext, None)
 
-let mk_term t = (t, dummy_ext)
+let mk_term t = (t, dummy_ext, None)
 
 let gen_ident =
   let open QCheck.Gen in
@@ -256,7 +256,7 @@ let gen_pubvars =
 
 let gen_tquery_e =
   let open QCheck.Gen in
-  map (fun q -> (q, dummy_ext))
+  map (fun q -> (q, dummy_ext, None))
     (frequency
        [
          (2, map2 (fun g ids -> PRealQuery (g, ids)) (gen_gterm_e 3) gen_pubvars);
@@ -562,6 +562,9 @@ let gen_simple_decl =
 let gen_decls =
   QCheck.Gen.list_size (QCheck.Gen.int_bound 3) gen_simple_decl
 
+let gen_commented_decls =
+  QCheck.Gen.map (List.map (fun decl -> decl, None)) gen_decls
+
 let rec shrink_tpattern = function
   | PPatVar _
   | PPatAny _ -> Iter.empty
@@ -586,8 +589,8 @@ let rec shrink_tpattern = function
   | PPatEqual _ ->
       Iter.return (PPatAny (dummy_ext, None))
 
-and shrink_pterm_e ((t, _) : Pitptree.pterm_e) =
-  let wrap t' = (t', dummy_ext) in
+and shrink_pterm_e ((t, _, _) : Pitptree.pterm_e) =
+  let wrap t' = (t', dummy_ext, None) in
   let iter_to_list iter =
     let acc = ref [] in
     iter (fun x -> acc := x :: !acc);
@@ -731,8 +734,8 @@ and shrink_pterm_e ((t, _) : Pitptree.pterm_e) =
              Iter.append shrink_cond (Iter.append shrink_body shrink_else)
          | _ -> Iter.empty)
 
-and shrink_tprocess_e ((p, _) : Pitptree.tprocess_e) =
-  let wrap p' = (p', dummy_ext) in
+and shrink_tprocess_e ((p, _, _) : Pitptree.tprocess_e) =
+  let wrap p' = (p', dummy_ext, None) in
   match p with
   | PNil
   | PLetDef _ -> Iter.empty
@@ -871,14 +874,14 @@ let gen_program =
   let open QCheck.Gen in
   frequency
     [
-      (3, map (fun p -> (([] : Pitptree.tdecl list), p, None : Pv_parser.program)) (gen_tprocess_e 5));
+      (3, map (fun p -> (([] : Pv_parser.commented_decl list), p, None : Pv_parser.program)) (gen_tprocess_e 5));
       (2, map2
-            (fun decls p -> ((decls : Pitptree.tdecl list), p, None : Pv_parser.program))
-            gen_decls
+            (fun decls p -> ((decls : Pv_parser.commented_decl list), p, None : Pv_parser.program))
+            gen_commented_decls
             (gen_tprocess_e 5));
       (1, map3
-            (fun decls p1 p2 -> ((decls : Pitptree.tdecl list), p1, Some p2 : Pv_parser.program))
-            gen_decls
+            (fun decls p1 p2 -> ((decls : Pv_parser.commented_decl list), p1, Some p2 : Pv_parser.program))
+            gen_commented_decls
             (gen_tprocess_e 4)
             (gen_tprocess_e 4));
     ]
