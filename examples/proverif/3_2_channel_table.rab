@@ -1,0 +1,28 @@
+(* Spec 3.2: for a process with a channel argument
+
+     process client(ch : udp_t) : client_t
+
+   the ProVerif translation should initialize the channel type information with
+
+     insert channel_table(udp_t, ch);
+ *)
+
+type client_t : process
+type udp_t : channel
+
+process client(ch : udp_t) : client_t
+{
+  main {
+    event [::Valid()]
+  }
+}
+
+channel udp : udp_t
+
+system
+  client(udp)
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

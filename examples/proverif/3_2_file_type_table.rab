@@ -1,0 +1,28 @@
+(* Spec 3.2: for a process-local file declaration
+
+     file "/secret/pub" : readonly_t = "hello"
+
+   the ProVerif translation should initialize the file type information with
+
+     insert file_type_table(ptype, readonly_t, "/secret/pub");
+ *)
+
+type server_t : process
+type readonly_t : filesys
+
+process server() : server_t
+{
+  file "/secret/pub" : readonly_t = "hello"
+
+  main {
+    event [::Valid()]
+  }
+}
+
+system
+  server()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

@@ -1,0 +1,31 @@
+(* Spec 3.6 potential optimization 3: when loop iterations are independent and
+   only produce outputs, sequential lock-step execution may be removable. This
+   example is a candidate for that optimization. *)
+
+type proc_t : process
+type chan_t : channel
+
+process worker(ch : chan_t) : proc_t
+{
+  main {
+    repeat
+    | [1 = 1] ->
+        put [ch::msg(0)];
+        event [::Sent()]
+    until
+    | [1 != 1] -> skip
+    end
+  }
+}
+
+allow proc_t chan_t [.]
+
+channel ch : chan_t
+
+system
+  worker(ch)
+requires
+[
+  lemma ReachableSent :
+    reachable ::Sent()
+]

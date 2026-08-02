@@ -1,0 +1,32 @@
+(* Spec 3.2: from
+
+     allow client_t udp_t [send]
+
+   the ProVerif translation should initialize the access control table with
+
+     insert access_control_table(client_t, udp_t, send_s);
+ *)
+
+type client_t : process
+type udp_t : channel
+
+syscall send(c, v) {
+  put [c::store(v)]
+}
+
+process client() : client_t
+{
+  main {
+    event [::Valid()]
+  }
+}
+
+allow client_t udp_t [send]
+
+system
+  client()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

@@ -1,0 +1,34 @@
+(* Spec 3.7: file facts are encoded using a private file channel together with
+   file_type_table and access_control_table checks before reading or writing. *)
+
+syscall fopen(p) {
+  case
+  | [p.x] ->
+      new y = Fd(x) in
+      put [p.x];
+      y
+  end
+}
+
+type server_t : process
+type readonly_t : filesys
+
+allow server_t readonly_t [fopen]
+
+process server() : server_t
+{
+  file "/secret/pub" : readonly_t = "hello"
+
+  main {
+    var fd = fopen("/secret/pub") in
+    event [::Valid(fd)]
+  }
+}
+
+system
+  server()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid(fd)
+]

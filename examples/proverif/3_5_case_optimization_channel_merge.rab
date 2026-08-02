@@ -1,0 +1,29 @@
+(* Spec 3.5 optimization 2: when all branches read the same fact name from the
+   same channel, the case can be compiled into one channel input followed by
+   conditional tests on the payload. *)
+
+type proc_t : process
+type chan_t : channel
+
+process chooser(ch : chan_t) : proc_t
+{
+  main {
+    put [ch::store(1)];
+    case
+    | [ch::store(1)] -> event [::Valid()]
+    | [ch::store(2)] -> event [::Invalid()]
+    end
+  }
+}
+
+allow proc_t chan_t [.]
+
+channel ch : chan_t
+
+system
+  chooser(ch)
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

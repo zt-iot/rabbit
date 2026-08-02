@@ -1,0 +1,21 @@
+(* Spec 3.10: parameterized process declarations are not implemented yet.
+
+     process server<p>() : proc_t
+ *)
+
+type proc_t : process
+
+process server<p>() : proc_t
+{
+  main {
+    event [::Valid()]
+  }
+}
+
+system
+  !p.server<p>()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

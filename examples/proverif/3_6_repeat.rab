@@ -1,0 +1,27 @@
+(* Spec 3.6: a Rabbit repeat/until loop is compiled using a private lock
+   channel that carries the loop state between replicated worker processes and
+   the continuation after loop exit. This example uses one mutable variable so
+   that the generated ProVerif code has to thread loop state explicitly. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    var state = 0 in
+    repeat
+    | [state = 0] -> state := 1
+    until
+    | [state = 1] -> skip
+    end;
+    event [::Valid()]
+  }
+}
+
+system
+  worker()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

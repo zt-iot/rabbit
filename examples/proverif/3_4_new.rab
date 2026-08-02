@@ -1,0 +1,30 @@
+(* Spec 3.4: from
+
+     new x = S(1, 2, 3) in
+       ...
+
+   the ProVerif translation should allocate a fresh address for [x] and build
+   the structure term from that address and the payload fields. This example
+   also reads [x.S] so the generated ProVerif process has to keep using that
+   structure value. *)
+
+type proc_t : process
+
+process maker() : proc_t
+{
+  main {
+    new x = S(1, 2, 3) in
+    let x1, x2, x3 = x.S in
+    case
+    | [x1 = 1, x2 = 2, x3 = 3] -> event [::Valid()]
+    end
+  }
+}
+
+system
+  maker()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

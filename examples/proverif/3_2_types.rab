@@ -1,0 +1,31 @@
+(* Spec 3.2: from
+
+     type client_t : process
+     type udp_t : channel
+     syscall send(c, v) { ... }
+
+   the ProVerif translation should introduce the typed constants
+   [const client_t : proc_t], [const udp_t : acc_data_t], and
+   [const send_s : syscall_t]. *)
+
+type client_t : process
+type udp_t : channel
+
+syscall send(c, v) {
+  put [c::store(v)]
+}
+
+process client() : client_t
+{
+  main {
+    event [::Valid()]
+  }
+}
+
+system
+  client()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

@@ -1,0 +1,27 @@
+(* Spec 3.8: channel facts are encoded using ProVerif communication primitives
+   preceded by channel_table and access_control_table checks. *)
+
+type proc_t : process
+type chan_t : channel
+
+process worker(ch : chan_t) : proc_t
+{
+  main {
+    put [ch::store(1)];
+    case
+    | [ch::store(1)] -> event [::Valid()]
+    end
+  }
+}
+
+allow proc_t chan_t [.]
+
+channel ch : chan_t
+
+system
+  worker(ch)
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

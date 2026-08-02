@@ -1,0 +1,28 @@
+(* Spec 3.5 optimization 3: when a case has a single branch, the lock-channel
+   encoding can be eliminated. For a channel fact, the result is a single
+   [in(...)]-style input without an extra dispatch tree. *)
+
+type proc_t : process
+type chan_t : channel
+
+process chooser(ch : chan_t) : proc_t
+{
+  main {
+    put [ch::store(1)];
+    case
+    | [ch::store(1)] -> event [::Valid()]
+    end
+  }
+}
+
+allow proc_t chan_t [.]
+
+channel ch : chan_t
+
+system
+  chooser(ch)
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]

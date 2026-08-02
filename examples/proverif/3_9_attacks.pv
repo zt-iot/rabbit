@@ -1,0 +1,24 @@
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker: channel.
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+const none_syscall_s: syscall_t.
+const true: bitstring.
+const false: bitstring.
+const id_s: syscall_t.
+event Attack(bitstring).
+event Observed(bitstring).
+event Sent(bitstring).
+event Syscall(bitstring).
+fun succ(bitstring): bitstring.
+const proc_t: proc_t.
+let worker(ptype:proc_t) =
+  event Sent(0); event Syscall(0); event Observed(0).
+query event(Syscall(0)).
+query event(Attack(0)).
+process worker(proc_t).

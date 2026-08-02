@@ -1,0 +1,24 @@
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker: channel.
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+const none_syscall_s: syscall_t.
+const true: bitstring.
+const false: bitstring.
+event Served.
+event Valid.
+const client_t: proc_t.
+const server_t: proc_t.
+const udp_t: acc_data_t.
+let client(ptype:proc_t, ch__12:channel) =
+  insert channel_table(udp_t, ch__12); event Valid.
+let server(ptype:proc_t, ch__13:channel) =
+  insert channel_table(udp_t, ch__13); event Served.
+free udp: channel[private].
+query event(Valid()) && event(Served()).
+process client(client_t, udp) | server(server_t, udp).
