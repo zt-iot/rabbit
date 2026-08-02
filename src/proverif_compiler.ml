@@ -159,55 +159,61 @@ let register_structure =
 let register_event =
   register_with_arity "Event" @@ fun env -> env.event_table
 
-(* Propose a variable name for a string constant *)
-let sanitize_string_for_ident s =
-  let sanitized =
-    s
-    |> Str.global_replace (Str.regexp "[^A-Za-z0-9_]+") "_"
-    |> Str.global_replace (Str.regexp "_+") "_"
-    |> Str.global_replace (Str.regexp "^_\\|_$") ""
-  in
-  if sanitized = "" then
-    "empty"
-  else
-    sanitized
-
-let fresh_ident env ~base : P.ident =
-  (* make sure `base` does not end with `__[0-9]+` *)
-  let base =
-    if Str.string_match (Str.regexp ".*__[0-9]+$") base 0 then
-      base ^ "_"
+module Fresh : sig
+  val ident : env -> base:string -> P.ident
+  val string_ident : env -> string -> P.ident
+  val syscall_ident : env -> T.ident -> P.ident
+end = struct
+  (* Propose a variable name for a string constant *)
+  let sanitize_string_for_ident s =
+    let sanitized =
+      s
+      |> Str.global_replace (Str.regexp "[^A-Za-z0-9_]+") "_"
+      |> Str.global_replace (Str.regexp "_+") "_"
+      |> Str.global_replace (Str.regexp "^_\\|_$") ""
+    in
+    if sanitized = "" then
+      "empty"
     else
-      base
-  in
-  match Hashtbl.find_opt env.generated_name_counter base with
-  | None ->
-      Hashtbl.add env.generated_name_counter base 1;
-      pv_ident base
-  | Some i ->
-      Hashtbl.replace env.generated_name_counter base (i+1);
-      pv_ident (Printf.sprintf "%s__%d" base i)
+      sanitized
 
-(* "hello" -> "str__hello" *)
-let fresh_string_ident env s : P.ident =
-  match Hashtbl.find_opt env.string_table s with
-  | Some id -> id
-  | None ->
-      let base = "str__" ^ sanitize_string_for_ident s in
-      let id = fresh_ident env ~base in
-      Hashtbl.add env.string_table s id;
-      id
+  let ident env ~base : P.ident =
+    (* make sure `base` does not end with `__[0-9]+` *)
+    let base =
+      if Str.string_match (Str.regexp ".*__[0-9]+$") base 0 then
+        base ^ "_"
+      else
+        base
+    in
+    match Hashtbl.find_opt env.generated_name_counter base with
+    | None ->
+        Hashtbl.add env.generated_name_counter base 1;
+        pv_ident base
+    | Some i ->
+        Hashtbl.replace env.generated_name_counter base (i+1);
+        pv_ident (Printf.sprintf "%s__%d" base i)
 
-(* "name" -> "name_s" *)
-let fresh_syscall_ident env (id : T.ident) : P.ident =
-  let name = Ident.to_string id in
-  match Hashtbl.find_opt env.syscall_table name with
-  | Some id -> id
-  | None ->
-      let base = sanitize_string_for_ident name ^ "_s" in
-      let syscall_ident = fresh_ident env ~base in
-      Hashtbl.add env.syscall_table name syscall_ident;
-      syscall_ident
+  (* "hello" -> "str__hello" *)
+  let string_ident env s : P.ident =
+    match Hashtbl.find_opt env.string_table s with
+    | Some id -> id
+    | None ->
+        let base = "str__" ^ sanitize_string_for_ident s in
+        let id = ident env ~base in
+        Hashtbl.add env.string_table s id;
+        id
+
+  (* "name" -> "name_s" *)
+  let syscall_ident env (id : T.ident) : P.ident =
+    let name = Ident.to_string id in
+    match Hashtbl.find_opt env.syscall_table name with
+    | Some id -> id
+    | None ->
+        let base = sanitize_string_for_ident name ^ "_s" in
+        let syscall_ident = ident env ~base in
+        Hashtbl.add env.syscall_table name syscall_ident;
+        syscall_ident
+end
 
 module Int : sig
   val to_term : int -> P.term_e
@@ -287,7 +293,7 @@ let rec compile_expr_to_term env (expr : T.expr) : P.term_e =
   | Unit ->
       term @@ PTuple []
   | String s ->
-      term @@ PIdent (fresh_string_ident env s)
+      term @@ PIdent (Fresh.string_ident env s)
   | Boolean true ->
       term @@ PIdent (pv_ident "true")
   | Boolean false ->
@@ -405,7 +411,7 @@ let rec compile_expr_to_gterm env (expr : T.expr) : P.gterm_e =
   | Unit ->
       with_dummy_ext @@ PGTuple []
   | String s ->
-      with_dummy_ext @@ PGIdent (fresh_string_ident env s)
+      with_dummy_ext @@ PGIdent (Fresh.string_ident env s)
   | Boolean true ->
       with_dummy_ext @@ PGIdent true_ident
   | Boolean false ->
@@ -431,7 +437,7 @@ let rec compile_expr_to_pterm env penv (expr : T.expr) : P.pterm_e =
   | Unit ->
       pterm @@ PPTuple []
   | String s ->
-      pterm @@ PPIdent (fresh_string_ident env s)
+      pterm @@ PPIdent (Fresh.string_ident env s)
   | Boolean true ->
       pterm @@ PPIdent true_ident
   | Boolean false ->
@@ -1671,7 +1677,7 @@ let compile_syscall
     (cmd : T.cmd)
     (attack : bool)
   =
-  let syscall_ident = fresh_syscall_ident env id in
+  let syscall_ident = Fresh.syscall_ident env id in
   let def = { id; syscall_ident; args; cmd; attack; loc } in
   register_syscall_def ~loc env id def;
   []
@@ -1747,7 +1753,7 @@ let compile_allow
         (fun target_typ ->
            List.iter
              (fun syscall ->
-                let syscall_ident = fresh_syscall_ident env syscall in
+                let syscall_ident = Fresh.syscall_ident env syscall in
                 env.allow_entries <- (process_typ, target_typ, syscall_ident) :: env.allow_entries)
              syscalls)
         target_typs;
