@@ -13,7 +13,7 @@ type term =
   | PProj of ident * term_e
   | PTuple of term_e list
 
-and term_e = term * Parsing_helper.extent
+and term_e = term * Parsing_helper.extent * string option
 
 (* Equational theory *)
 
@@ -37,7 +37,7 @@ type gformat =
   | PFGAny of ident
   | PFGLet of ident * gformat_e * gformat_e
 
-and gformat_e = gformat * Parsing_helper.extent
+and gformat_e = gformat * Parsing_helper.extent * string option
 
 type nounif_t =
     BFLet of ident * gformat_e * nounif_t
@@ -53,7 +53,7 @@ type gterm =
   | PGName of ident * (ident * gterm_e) list
   | PGLet of ident * gterm_e * gterm_e
 
-and gterm_e = gterm * Parsing_helper.extent
+and gterm_e = gterm * Parsing_helper.extent * string option
 
 type tquery =
     PPutBegin of bool * ident list
@@ -61,7 +61,7 @@ type tquery =
   | PRealQuery of gterm_e * ident list(*public variables*)
   | PQSecret of ident * ident list(*public variables*) * options list(*options*)
 
-type tquery_e = tquery * Parsing_helper.extent
+type tquery_e = tquery * Parsing_helper.extent * string option
 
 type lemma_kind =
   | KAxiom
@@ -94,7 +94,7 @@ type pterm =
   | PPInsert of ident * pterm_e list * pterm_e
   | PPGet of ident * tpattern list * pterm_e option * pterm_e * pterm_e option * options list
 
-and pterm_e = pterm * Parsing_helper.extent
+and pterm_e = pterm * Parsing_helper.extent * string option
 
 and tpattern =
     PPatVar of ident * ident option(*type*)
@@ -121,7 +121,7 @@ type tprocess =
   | PInsert of ident * pterm_e list * tprocess_e
   | PGet of ident * tpattern list * pterm_e option * tprocess_e * tprocess_e * options list
 
-and tprocess_e = tprocess * Parsing_helper.extent
+and tprocess_e = tprocess * Parsing_helper.extent * string option
 
 (* Declarations *)
 
