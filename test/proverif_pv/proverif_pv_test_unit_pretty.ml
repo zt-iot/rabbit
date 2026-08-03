@@ -38,6 +38,17 @@ let cases_dir =
         "Unit pretty cases directory not found. Tried: %s"
         (String.concat ", " cases_dir_candidates)
 
+let update_all_unit_pretty_cases = ref false
+
+let parse_args () =
+  Arg.parse
+    [ ("--update", Arg.Set update_all_unit_pretty_cases, "Rewrite all unit_pretty_cases PARSED and EXPECTED sections") ]
+    (fun arg ->
+       Proverif_pv_test_support.failwithf
+         "Unexpected argument: %s"
+         arg)
+    "proverif_pv_test_unit_pretty.exe [--update]"
+
 let read_file path =
   let ic = open_in_bin path in
   Fun.protect
@@ -219,6 +230,9 @@ let save_unit_pretty_case path ~source ~parsed ~expected =
   in
   write_file path contents
 
+let report_rewrite_all path =
+  Printf.eprintf "Rewrote PARSED and EXPECTED in %s\n%!" path
+
 let report_autofill path ~parsed_is_blank ~pretty_is_blank =
   let fields =
     match (parsed_is_blank, pretty_is_blank) with
@@ -272,13 +286,22 @@ let run_unit_pretty_case (path, name, source, expected_parsed, expected_pretty) 
   let actual_parsed = Pv_pp.to_string_with_parens true ast1 |> trim_edge_newlines in
   let actual_pretty = Pv_pp.to_string ast1 |> trim_edge_newlines in
   let expected_parsed, expected_pretty =
-    autofill_if_blank
-      ~path
-      ~source
-      ~expected_parsed:(trim_edge_newlines expected_parsed)
-      ~expected_pretty:(trim_edge_newlines expected_pretty)
-      ~actual_parsed
-      ~actual_pretty
+    if !update_all_unit_pretty_cases then (
+      save_unit_pretty_case
+        path
+        ~source
+        ~parsed:actual_parsed
+        ~expected:actual_pretty;
+      report_rewrite_all path;
+      (actual_parsed, actual_pretty)
+    ) else
+      autofill_if_blank
+        ~path
+        ~source
+        ~expected_parsed:(trim_edge_newlines expected_parsed)
+        ~expected_pretty:(trim_edge_newlines expected_pretty)
+        ~actual_parsed
+        ~actual_pretty
   in
   if not (String.equal actual_parsed expected_parsed) then
     fail_pretty_mismatch
@@ -321,4 +344,5 @@ let run () =
   List.iter run_unit_pretty_case unit_pretty_cases
 
 let () =
+  parse_args ();
   run ()
