@@ -135,6 +135,15 @@ let binary_prec = function
   | "=" | "<>" | "<=" | ">=" | "<" | ">" -> Some (prec_cmp, Non_assoc)
   | _ -> None
 
+let pp_with_comments fmt (comments, f) =
+  match comments with
+  | [] -> f ()
+  | _ ->
+      fprintf fmt "@[<v>";
+      List.iter (fun c -> fprintf fmt "(* %s *)@ " c) comments;
+      f ();
+      fprintf fmt "@]"
+
 module Term = struct
   let prec ((t, _, _) : Pitptree.term_e) =
     match t with
@@ -212,10 +221,7 @@ module Term = struct
       | PProj (f, t1) -> fprintf fmt "%s(%a)" (ident f) pp t1
       | PTuple ts -> fprintf fmt "(%a)" (pp_list ~sep:", " pp) ts
     in
-    match comment with
-    | None -> f ()
-    | Some c -> fprintf fmt "@["; f (); fprintf fmt "(* %s *)@]" c
-
+    pp_with_comments fmt (comment, f)
 
   and pp fmt te = pp_prec prec_lowest fmt te
 end
@@ -313,9 +319,7 @@ module Gterm = struct
       | PGLet (id, t1, t2) ->
           fprintf fmt "@[@[<2>let %s =@ %a@]@ in@ %a@]" (ident id) pp t1 pp t2
     in
-    match comment with
-    | None -> f ()
-    | Some c -> fprintf fmt "@["; f (); fprintf fmt "(* %s *)@]" c
+    pp_with_comments fmt (comment, f)
 
   and pp fmt ge = pp_prec prec_lowest fmt ge
 
@@ -364,9 +368,7 @@ module Gformat = struct
       | PFGLet (id, t1, t2) ->
           fprintf fmt "@[@[<2>let %s =@ %a@]@ in@ %a@]" (ident id) pp t1 pp t2
     in
-    match comment with
-    | None -> f ()
-    | Some c -> fprintf fmt "@["; f (); fprintf fmt "(* %s *)@]" c
+    pp_with_comments fmt (comment, f)
 
   and pp_binding fmt (id, t) = fprintf fmt "%s = %a" (ident id) pp t
 end
@@ -514,9 +516,7 @@ module Pterm = struct
             (pp_prec prec_closed_branch) body
             (pp_prec prec_closed_branch) else_t
     in
-    match comment with
-    | None -> f ()
-    | Some c -> fprintf fmt "@["; f (); fprintf fmt "(* %s *)@]" c
+    pp_with_comments fmt (comment, f)
 
   and pp fmt te = pp_prec prec_lowest fmt te
 
@@ -609,7 +609,7 @@ module Tprocess = struct
 
 
   let dummy_ext = Parsing_helper.dummy_ext
-  let tprocess_dummy : Pitptree.tprocess_e = PNil, dummy_ext, None
+  let tprocess_dummy : Pitptree.tprocess_e = PNil, dummy_ext, []
 
   let ctx ?(position = Top_level) ?(scope = Open_scope) prec =
     { prec; position; scope }
@@ -637,22 +637,24 @@ module Tprocess = struct
   let parallel_right_ctx { scope; _ } =
     ctx ~position:Parallel_right_operand ~scope prec_bar
 
-  let decompose_semi (((p, _, _) as te) : Pitptree.tprocess_e) =
+  let decompose_semi (((p, ext, comment) as te) : Pitptree.tprocess_e)
+    : Pitptree.tprocess_e * Pitptree.tprocess_e option
+    =
     match p with
     | PRestr (id, newarg, ty, p1) when not (is_nil_process p1) ->
-        (PRestr (id, newarg, ty, tprocess_dummy), dummy_ext, None), Some p1
+        (PRestr (id, newarg, ty, tprocess_dummy), ext, comment), Some p1
     | PInput (ch, pat, p1, options) when not (is_nil_process p1) ->
-        (PInput (ch, pat, tprocess_dummy, options), dummy_ext, None), Some p1
+        (PInput (ch, pat, tprocess_dummy, options), ext, comment), Some p1
     | POutput (ch, msg, p1) when not (is_nil_process p1) ->
-        (POutput (ch, msg, tprocess_dummy), dummy_ext, None), Some p1
+        (POutput (ch, msg, tprocess_dummy), ext, comment), Some p1
     | PEvent (id, args, newarg, p1) when not (is_nil_process p1) ->
-        (PEvent (id, args, newarg, tprocess_dummy), dummy_ext, None), Some p1
+        (PEvent (id, args, newarg, tprocess_dummy), ext, comment), Some p1
     | PPhase (n, p1) when not (is_nil_process p1) ->
-        (PPhase (n, tprocess_dummy), dummy_ext, None), Some p1
+        (PPhase (n, tprocess_dummy), ext, comment), Some p1
     | PBarrier (n, o, p1) when not (is_nil_process p1) ->
-        (PBarrier (n, o, tprocess_dummy), dummy_ext, None), Some p1
+        (PBarrier (n, o, tprocess_dummy), ext, comment), Some p1
     | PInsert (id, args, p1) when not (is_nil_process p1) ->
-        (PInsert (id, args, tprocess_dummy), dummy_ext, None), Some p1
+        (PInsert (id, args, tprocess_dummy), ext, comment), Some p1
     | _ -> te, None
 
   let rec pp_ctx ({ prec = ctx_prec; scope; position } as current_ctx) fmt (te : Pitptree.tprocess_e) =
@@ -698,7 +700,7 @@ module Tprocess = struct
       (fun fmt () ->
         match te'_opt with
         | Some te' ->
-            fprintf fmt "@[%a;@ %a@]"
+            fprintf fmt "@[<v>%a;@ %a@]"
               (pp_base current_ctx) te
               (pp_ctx (sequence_rhs_ctx current_ctx)) te'
         | None ->
@@ -861,9 +863,7 @@ module Tprocess = struct
                 (pp_ctx (then_closed_ctx ())) p1
                 (pp_ctx (else_ctx ())) p2
     in
-    match comment with
-    | None -> f ()
-    | Some c -> fprintf fmt "@["; f (); fprintf fmt "(* %s *)@]" c
+    pp_with_comments fmt (comment, f)
 end
 
 let rec pp_extended_equation fmt = function
@@ -1122,17 +1122,14 @@ let rec pp_decl fmt = function
         pp_env env
         (pp_list ~sep:";@ " pp_tlemma) lemmas
         pp_options options
-
-let pp_commented_decl fmt (decl, comment) =
-  match comment with
-  | None -> pp_decl fmt decl
-  | Some c -> fprintf fmt "@[<v>(* %s *)@,%a@]" c pp_decl decl
+  | TComment comment ->
+      fprintf fmt "(* %s *)" comment
 
 let pp_program fmt (decls, proc, second_proc) =
   let pp_decl_text () =
     match decls with
     | [] -> ()
-    | _ -> fprintf fmt "@[<v>%a@]@." (pp_list ~sep:"@," pp_commented_decl) decls
+    | _ -> fprintf fmt "@[<v>%a@]@." (pp_list ~sep:"@," pp_decl) decls
   in
   let pp_body () =
     match second_proc with

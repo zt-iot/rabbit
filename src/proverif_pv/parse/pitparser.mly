@@ -4,7 +4,7 @@ open Parsing_helper
 open Ptree
 open Pitptree
 
-let with_ext x = x, parse_extent(), None
+let with_ext x = x, parse_extent(), []
 
 let rec unfold_int t = function
   | 0 -> t
@@ -176,7 +176,7 @@ exception Syntax
 %nonassoc POWER
 
 %start all
-%type <(Pitptree.tdecl * string option) list * Pitptree.tprocess_e * Pitptree.tprocess_e option> all
+%type <Pitptree.tdecl list * Pitptree.tprocess_e * Pitptree.tprocess_e option> all
 
 %start lib
 %type <Pitptree.tdecl list> lib
@@ -304,13 +304,13 @@ lemma:
 
 all:
 |       lib PROCESS tprocess EOF
-	{ List.map (fun d -> d, None) $1, $3, None }
+	{ $1, $3, None }
 |       lib PROCESS tprocess DOT EOF
-	{ List.map (fun d -> d, None) $1, $3, None }
+	{ $1, $3, None }
 |	lib EQUIVALENCE tprocess tprocess EOF
-	{ List.map (fun d -> d, None) $1, $3, Some $4 }
+	{ $1, $3, Some $4 }
 |	lib EQUIVALENCE tprocess tprocess DOT EOF
-	{ List.map (fun d -> d, None) $1, $3, Some $4 }
+	{ $1, $3, Some $4 }
 
 /* Proofs (for CryptoVerif compatibility only) */
 
