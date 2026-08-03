@@ -1,6 +1,8 @@
 === INPUT ===
 process a(x) | in(c, b); d(e).
 === PARSED ===
-process ((a((x))) | (in((c), b); (d((e))))).
+process ((a((x))) | (in((c), b);
+                     (d((e))))).
 === EXPECTED ===
-process a(x) | in(c, b); d(e).
+process a(x) | in(c, b);
+               d(e).
