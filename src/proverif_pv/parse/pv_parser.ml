@@ -1,6 +1,4 @@
-type commented_decl = Pitptree.tdecl * string option
-
-type program = commented_decl list * Pitptree.tprocess_e * Pitptree.tprocess_e option
+type program = Pitptree.tdecl list * Pitptree.tprocess_e * Pitptree.tprocess_e option
 
 let parse_lexbuf ~filename (lexbuf : Lexing.lexbuf) =
   Param.reset ();

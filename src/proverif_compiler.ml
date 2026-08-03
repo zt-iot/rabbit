@@ -43,7 +43,7 @@ type env =
   ; attack_def_table       : (string, attack_def) Hashtbl.t
   ; allow_attack_table     : (string, T.ident list) Hashtbl.t
   ; generated_name_counter : (string, int) Hashtbl.t
-  ; mutable allow_entries  : (ident * ident * ident) list
+  ; mutable allow_entries  : (T.ident * T.ident * T.ident option * ident * ident * ident) list
   ; process_type_table     : (string, ident) Hashtbl.t
   ; structure_table        : (string, int) Hashtbl.t
   ; event_table            : (string, int) Hashtbl.t
@@ -66,7 +66,7 @@ let create_env () : env =
 
 let with_dummy_ident_ext x = x, Parsing_helper.dummy_ext
 
-let with_dummy_node_ext x = x, Parsing_helper.dummy_ext, None
+let with_dummy_node_ext x = x, Parsing_helper.dummy_ext, []
 
 let pv_ident (s : string) : ident = with_dummy_ident_ext s
 
@@ -94,6 +94,8 @@ let pterm_e   (t : pterm)    : pterm_e    = with_dummy_node_ext t
 let gterm_e   (t : gterm)    : gterm_e    = with_dummy_node_ext t
 let process_e (p : tprocess) : tprocess_e = with_dummy_node_ext p
 let tquery_e  (q : tquery)   : tquery_e   = with_dummy_node_ext q
+
+let add_comment c (a, b, comments) = (a, b, c :: comments)
 
 let compile_name (name : T.name) : ident = pv_ident name
 
@@ -475,6 +477,8 @@ let ppar
 
 (*
    3.9 Syscall and Attack Encoding
+
+   XXX Example is wrong
 
    ```
    put [ c :: store(v) ];
@@ -1619,6 +1623,7 @@ and compile_cmd env penv (kont : kont) (cmd : T.cmd)
       (* StructAddr(x_struct) *)
       let addr_term = structure_addr_term name struct_term in
       (* insert deleted_address_table( StructAddr(x_struct) ); ... *)
+      add_comment (Printf.sprintf "delete _.%s" name) @@
       process_e
         (PInsert
            (deleted_address_table_ident, [addr_term], continue_cmd env penv kont))
@@ -1639,10 +1644,12 @@ and compile_cmd env penv (kont : kont) (cmd : T.cmd)
   fun enc ( bitstring, bitstring ): bitstring.
   ```
 *)
-let compile_function ~loc:_loc (id : T.ident) (arity : int) : tdecl =
+let compile_function ~loc:_loc (id : T.ident) (arity : int) : tdecl list =
   let name = compile_ident id in
   let arg_tys = List.init arity (fun _ -> bitstring_ident) in
-  TFunDecl (name, arg_tys, bitstring_ident, [])
+  [ TComment (Printf.sprintf "function %s:%d" (fst id) arity)
+  ; TFunDecl (name, arg_tys, bitstring_ident, [])
+  ]
 
 (*
    Line 25:  Encoding Equational Theories
@@ -1663,7 +1670,7 @@ let compile_function ~loc:_loc (id : T.ident) (arity : int) : tdecl =
 
    TODO: Line 40: Potential Improvement
 *)
-let compile_equation ~loc:_loc env (lhs : T.expr) (rhs : T.expr) : tdecl =
+let compile_equation ~loc:_loc env (lhs : T.expr) (rhs : T.expr) : tdecl list =
   let envdecl =
     List.sort_uniq compare (T.vars_of_expr lhs @ T.vars_of_expr rhs)
     |> List.map (fun id -> compile_ident id, bitstring_ident)
@@ -1673,7 +1680,9 @@ let compile_equation ~loc:_loc env (lhs : T.expr) (rhs : T.expr) : tdecl =
   let equality_term =
     term_e @@ PFunApp (pv_ident "=", [lhs_term; rhs_term])
   in
-  TEquation ([envdecl, EETerm equality_term], [])
+  [ TComment (Printf.sprintf "equation %s = %s" (T.string_of_expr lhs) (T.string_of_expr rhs))
+  ; TEquation ([envdecl, EETerm equality_term], [])
+  ]
 
 (* Syscalls are expanded when they are called.
    No declaration is generated at this point.
@@ -1723,7 +1732,9 @@ let compile_type ~loc:_loc (id : T.ident) (typclass : Input.type_class) =
     | CProc -> proc_t_ident
     | CFsys | CChan -> acc_data_t_ident
   in
-  TConstDecl (compile_ident id, ty, [])
+  [ TComment (Printf.sprintf "type %s : %s" (Ident.to_string id) (Input.string_of_type_class typclass))
+  ; TConstDecl (compile_ident id, ty, [])
+  ]
 
 (* 3.2 Encoding Process Types, Channel types, File types, and Control Policies
 
@@ -1740,32 +1751,34 @@ let compile_type ~loc:_loc (id : T.ident) (typclass : Input.type_class) =
 let compile_allow
     ~loc:_loc
     env
-    (process_typ : T.ident)
-    (target_typs : T.ident list)
+    (t_process_typ : T.ident)
+    (t_target_typs : T.ident list)
     (syscalls : T.ident list option)
   =
-  let process_typ = compile_ident process_typ in
-  let target_typs = List.map compile_ident target_typs in
+  let process_typ = compile_ident t_process_typ in
+  let target_typs = List.map compile_ident t_target_typs in
   match syscalls with
   | None ->
       (* Note: [allow ... [.] ] is currently represented by granting access to
          the distinguished pseudo-syscall [none_syscall_s]. This is a pragmatic
          encoding choice for direct process operations, but it is worth
          re-checking against the final spec once syscall lowering is in place. *)
-      List.iter
-        (fun target_typ ->
-           env.allow_entries <- (process_typ, target_typ, none_syscall_ident) :: env.allow_entries)
-        target_typs;
+      List.iter2
+        (fun t_target_typ target_typ ->
+           env.allow_entries <- (t_process_typ, t_target_typ, None,
+                                 process_typ, target_typ, none_syscall_ident) :: env.allow_entries)
+        t_target_typs target_typs;
       []
   | Some syscalls ->
-      List.iter
-        (fun target_typ ->
+      List.iter2
+        (fun t_target_typ target_typ ->
            List.iter
              (fun syscall ->
                 let syscall_ident = Fresh.syscall_ident env syscall in
-                env.allow_entries <- (process_typ, target_typ, syscall_ident) :: env.allow_entries)
+                env.allow_entries <- (t_process_typ, t_target_typ, Some syscall,
+                                      process_typ, target_typ, syscall_ident) :: env.allow_entries)
              syscalls)
-        target_typs;
+        t_target_typs target_typs;
       []
 
 let compile_allow_attack
@@ -1804,11 +1817,14 @@ let compile_init ~loc:(_loc : Location.t) env (id : T.ident) (desc : T.init_desc
   let init_ident = compile_ident id in
   match desc with
   | Fresh ->
-      [TConstDecl (init_ident, bitstring_ident, [])]
+      [ TComment (Printf.sprintf "const fresh %s" (Ident.to_string id))
+      ; TConstDecl (init_ident, bitstring_ident, [])
+      ]
   | Value expr ->
       let init_term = term_e @@ PIdent init_ident in
       let value_term = compile_expr_to_term env expr in
-      [ TConstDecl (init_ident, bitstring_ident, [])
+      [ TComment (Printf.sprintf "const %s = .." (Ident.to_string id))
+      ; TConstDecl (init_ident, bitstring_ident, [])
       ; TEquation
           ( [ [], EETerm (term_e @@ PFunApp (pv_ident "=", [init_term; value_term])) ]
           , [] )
@@ -1819,20 +1835,22 @@ let compile_init ~loc:(_loc : Location.t) env (id : T.ident) (desc : T.init_desc
         term_e @@ PFunApp (init_ident, [term_e @@ PIdent param_ident])
       in
       let value_term = compile_expr_to_term env expr in
-      [ TReduc
+      [ TComment (Printf.sprintf "const %s<%s> = .." (Ident.to_string id) (Ident.to_string param))
+      ; TReduc
           ( [ [param_ident, param_data_ident]
             , EETerm (term_e @@ PFunApp (pv_ident "=", [init_term; value_term]))
             ]
           , [] )
       ]
   | Fresh_with_param ->
-      [TFunDecl (init_ident, [param_data_ident], bitstring_ident, [])]
+      [ TComment (Printf.sprintf "const fresh %s<>" (Ident.to_string id))
+      ; TFunDecl (init_ident, [param_data_ident], bitstring_ident, [])]
 
 let compile_channel
     ~loc
     (id : T.ident)
     (param : unit option)
-    (_typ : T.ident)
+    (typ : T.ident)
   =
   (*
      3.3 Encoding of process and channels declarations
@@ -1849,7 +1867,9 @@ let compile_channel
   | Some () ->
       error ~loc @@ Unsupported "Parameterized channel declarations are not supported yet"
   | None ->
-      TFree (compile_ident id, channel_ident, [pv_ident "private", None])
+      [ TComment (Printf.sprintf "channel %s : %s" (Ident.to_string id) (Ident.to_string typ))
+      ; TFree (compile_ident id, channel_ident, [pv_ident "private", None])
+      ]
 
 let process_file_channel_ident : ident = pv_ident "rabbit__file_ch"
 
@@ -1878,6 +1898,7 @@ let wrap_with_channel_init
            error ~loc @@
            Unsupported "Parameterized process channel arguments are not supported yet"
        | None ->
+           add_comment (Printf.sprintf "Channel %s : %s" (Ident.to_string channel) (Ident.to_string typ)) @@
            process_e @@
              PInsert
                 ( channel_table_ident
@@ -1947,6 +1968,7 @@ let wrap_with_file_init
       in
       List.fold_right
         (fun ((path, typ, _contents) : T.expr * T.ident * T.expr) acc ->
+           add_comment (Printf.sprintf "file %s : %s = .." (T.string_of_expr path) (Ident.to_string typ)) @@
            process_e @@
              PInsert
                 ( file_type_table_ident
@@ -1981,7 +2003,7 @@ let compile_process
     (vars : (T.ident * T.expr) list)
     (funcs : (T.ident * T.ident list * T.cmd) list)
     (main : T.cmd)
-  : tdecl =
+  : tdecl list =
   let local_func_defs =
     List.map (fun (id, args, cmd) -> id, (args, cmd)) funcs
   in
@@ -2027,7 +2049,9 @@ let compile_process
             let value = compile_expr_to_pterm env penv expr in
             init_vars (bind_process_var penv var value) vars
       in
-      TPDef (compile_ident id, proc_args, init_vars base_penv vars)
+      [ TComment (Printf.sprintf "process %s(..): %s" (Ident.to_string id) (Ident.to_string typ))
+      ; TPDef (compile_ident id, proc_args, init_vars base_penv vars)
+      ]
 
 let compile_proc_call env (proc : T.proc) : tprocess_e =
   (*
@@ -2063,7 +2087,7 @@ let compile_proc_call env (proc : T.proc) : tprocess_e =
   in
   process_e @@ PLetDef (compile_ident proc_desc.id, args, None)
 
-let parallel_processes (procs : tprocess_e list) : tprocess_e =
+let parallel_proc (procs : tprocess_e list) : tprocess_e =
   match procs with
   | [] -> process_e @@ PNil
   | proc :: procs ->
@@ -2087,18 +2111,20 @@ let compile_proc_group_desc env (proc_group : T.proc_group_desc) : tprocess_e =
   match proc_group with
   | Unbounded proc -> compile_proc_call env proc
   | Bounded (_id, procs) ->
-      process_e @@ PRepl (parallel_processes (List.map (compile_proc_call env) procs))
+      process_e @@ PRepl (parallel_proc (List.map (compile_proc_call env) procs))
 
-let gterm_binary (name : string) (lhs : gterm_e) (rhs : gterm_e) : gterm_e =
-  gterm_e @@ PGFunApp (pv_ident name, [lhs; rhs], None)
+let gterm_binary (op : string) (lhs : gterm_e) (rhs : gterm_e) : gterm_e =
+  gterm_e @@ PGFunApp (pv_ident op, [lhs; rhs], None)
 
-(* ??? Question
-   Why is this encoded as `PGFunApp ("event", [PGFunApp (name, args, None)], None)`
-   instead of using a dedicated event constructor?
-   Answer: `gterm` has no dedicated event node for query terms; events in
-   lemmas/queries are represented syntactically as the predicate `event(...)`
-   whose single argument must itself be a function application naming the event.
-   This matches the shape accepted by ProVerif's query checker. *)
+(* `g1 op g2 op .. op gn` *)
+let rec gterm_binary_mult ~loc op = function
+  | [] ->
+      error ~loc @@
+      Internal_error "Cannot combine an empty list of query facts"
+  | [g] -> g
+  | g :: gs ->
+      gterm_binary op g (gterm_binary_mult ~loc op gs)
+
 let gterm_event
     (name : T.name)
     (args : gterm_e list)
@@ -2108,15 +2134,6 @@ let gterm_event
     ( pv_ident "event"
     , [gterm_e @@ PGFunApp (compile_name name, args, None)]
     , None )
-
-(* `g1 op g2 op .. op gn` *)
-let rec combine_gterms_with ~loc op = function
-  | [] ->
-      error ~loc @@
-      Internal_error "Cannot combine an empty list of query facts"
-  | [g] -> g
-  | g :: gs ->
-      gterm_binary op g (combine_gterms_with ~loc op gs)
 
 let compile_lemma_fact env (fact : T.fact) : gterm_e =
   let loc = fact.loc in
@@ -2167,7 +2184,7 @@ let compile_lemma_fact env (fact : T.fact) : gterm_e =
 *)
 let compile_lemma
     env
-    ((_lemma_id, lemma) : T.ident * T.lemma) : tdecl =
+    ((lemma_id, lemma) : T.ident * T.lemma) : tdecl list =
   let envdecl =
     List.map
       (fun id -> compile_ident id, bitstring_ident)
@@ -2186,17 +2203,21 @@ let compile_lemma
              "Plain lemma %S is not supported in ProVerif query lowering"
              s)
     | Reachability { facts; _ } ->
+        add_comment (Printf.sprintf "reachable %s" (String.concat ", " (List.map (fun _ -> "_") facts))) @@
         tquery_e @@
         PRealQuery
-          (combine_gterms_with ~loc:lemma.loc "&&" (List.map (compile_lemma_fact env) facts), [])
+          (gterm_binary_mult ~loc:lemma.loc "&&" (List.map (compile_lemma_fact env) facts), [])
     | Correspondence { premise; conclusion; _ } ->
+        add_comment "corresponds _ ~> _" @@
         tquery_e @@
         PRealQuery
           (gterm_binary "==>"
              (compile_lemma_fact env premise)
              (compile_lemma_fact env conclusion), [])
   in
-  TQuery (envdecl, [query], [])
+  [ TComment (Printf.sprintf "lemma %s" (Ident.to_string lemma_id))
+  ; TQuery (envdecl, [query], [])
+  ]
 
 (* 3.3 Encoding of process and channels declarations
 
@@ -2225,9 +2246,9 @@ let compile_system
   =
   if env.top_process <> None then
     error ~loc @@ Invalid_input "Multiple system declarations are not accepted";
-  let top_process = parallel_processes (List.map (compile_proc_group_desc env) procs) in
+  let top_process = parallel_proc @@ List.map (compile_proc_group_desc env) procs in
   env.top_process <- Some top_process;
-  List.map (compile_lemma env) lemmas
+  TComment "Requires" :: List.concat_map (compile_lemma env) lemmas
 
 let compile_prelude (_env : env) : tdecl list =
   (*
@@ -2253,18 +2274,22 @@ let compile_prelude (_env : env) : tdecl list =
      const none_syscall_s : syscall_t.
      ```
   *)
-  [ TTypeDecl param_data_ident
+  [ TComment "Predefined types"
+  ; TTypeDecl param_data_ident
   ; TTypeDecl proc_t_ident
   ; TTypeDecl acc_data_t_ident
   ; TTypeDecl syscall_t_ident
   ; TFree (attacker_channel_ident, channel_ident, [])
+  ; TComment "Tables"
   ; TTableDecl
       (access_control_table_ident, [proc_t_ident; acc_data_t_ident; syscall_t_ident])
   ; TTableDecl
       (file_type_table_ident, [proc_t_ident; acc_data_t_ident; bitstring_ident])
   ; TTableDecl (channel_table_ident, [acc_data_t_ident; channel_ident])
   ; TTableDecl (deleted_address_table_ident, [bitstring_ident])
+  ; TComment "Pattern which matches with any system call"
   ; TConstDecl (none_syscall_ident, syscall_t_ident, [])
+  ; TComment "Booleans"
   ; TConstDecl (true_ident, bitstring_ident, [])
   ; TConstDecl (false_ident, bitstring_ident, [])
   ]
@@ -2283,10 +2308,12 @@ let compile_generated_string_consts env : tdecl list =
      out(ch, msg(hello_world_str))
      ```
   *)
-  Hashtbl.to_seq_values env.string_table
+  Hashtbl.to_seq env.string_table
   |> List.of_seq
   |> List.sort_uniq compare
-  |> List.map (fun id -> TConstDecl (id, bitstring_ident, []))
+  |> List.concat_map (fun (s, id) ->
+      [ TComment (Printf.sprintf "String constant %S" s)
+      ; TConstDecl (id, bitstring_ident, []) ])
 
 let compile_generated_syscall_consts env : tdecl list =
   (*
@@ -2301,10 +2328,13 @@ let compile_generated_syscall_consts env : tdecl list =
      const send_s : syscall_t.
      ```
   *)
-  Hashtbl.to_seq_values env.syscall_table
+  Hashtbl.to_seq env.syscall_table
   |> List.of_seq
   |> List.sort_uniq compare
-  |> List.map (fun id -> TConstDecl (id, syscall_t_ident, []))
+  |> List.concat_map (fun (s, id) ->
+      [ TComment (Printf.sprintf "syscall %s(..)" s)
+      ; TConstDecl (id, syscall_t_ident, [])
+      ])
 
 let compile_generated_event_decls env : tdecl list =
   (*
@@ -2324,8 +2354,10 @@ let compile_generated_event_decls env : tdecl list =
   Hashtbl.to_seq env.event_table
   |> List.of_seq
   |> List.sort_uniq compare
-  |> List.map (fun (name, arity) ->
-      TEventDecl (compile_name name, List.init arity (fun _ -> bitstring_ident)))
+  |> List.concat_map (fun (name, arity) ->
+      [ TComment (Printf.sprintf "Event declaration ::%s(..)" name)
+      ; TEventDecl (compile_name name, List.init arity (fun _ -> bitstring_ident))
+      ])
 
 (* 3.4 Encoding Structured facts, new, let, delete
 
@@ -2408,6 +2440,8 @@ let compile_generated_structure_decls env : tdecl list =
                  ]
                , [] ))
       in
+      TComment (Printf.sprintf "Structure declaration %s(%s)"
+                  name (String.concat "," @@ List.init arity (fun _ -> "_"))) ::
       ctor_decl :: addr_decl :: arg_decls
 
 (*
@@ -2426,7 +2460,12 @@ let compile_generated_structure_decls env : tdecl list =
 *)
 let add_allow_inits env (body : tprocess_e) : tprocess_e =
   List.fold_right
-    (fun (process_typ, target_typ, syscall_ident) acc ->
+    (fun (t_process_typ, t_target_typ, syscall_opt, process_typ, target_typ, syscall_ident) acc ->
+       add_comment
+         (Printf.sprintf "allow %s %s [%s]"
+            (Ident.to_string t_process_typ)
+            (Ident.to_string t_target_typ)
+            (match syscall_opt with Some s -> Ident.to_string s | None -> ".")) @@
        process_e @@
          PInsert
             ( access_control_table_ident
@@ -2448,22 +2487,23 @@ let rec collect_process_types env (decls : T.decl list) =
     decls
 
 (* `load` simply expands its declaration. *)
-let rec compile_load env (_filename : string) (decls : T.decl list) : tdecl list =
+let rec compile_load env (filename : string) (decls : T.decl list) : tdecl list =
+  TComment (Printf.sprintf "Load %s" filename) ::
   List.concat_map (compile_decl env) decls
 
 and compile_decl env (decl : T.decl) : tdecl list =
   let loc = decl.loc in
   match decl.desc with
   | Function { id; arity } ->
-      [compile_function ~loc id arity]
+      compile_function ~loc id arity
   | Equation (lhs, rhs) ->
-      [compile_equation ~loc env lhs rhs]
+      compile_equation ~loc env lhs rhs
   | Syscall { id; args; cmd; attack } ->
       compile_syscall ~loc env id args cmd attack
   | Attack { id; syscall; args; cmd } ->
       compile_attack ~loc env id syscall args cmd
   | Type { id; typclass } ->
-      [compile_type ~loc id typclass]
+      compile_type ~loc id typclass
   | Allow { process_typ; target_typs; syscalls } ->
       compile_allow ~loc env process_typ target_typs syscalls
   | AllowAttack { process_typs; attacks } ->
@@ -2471,11 +2511,13 @@ and compile_decl env (decl : T.decl) : tdecl list =
   | Init { id; desc } ->
       compile_init ~loc env id desc
   | Channel { id; param; typ } ->
-      [compile_channel ~loc id param typ]
+      compile_channel ~loc id param typ
   | Process { id; param; args; typ; files; vars; funcs; main } ->
-      [compile_process env ~loc id param args typ files vars funcs main]
-  | System (procs, lemmas) -> compile_system ~loc env procs lemmas
-  | Load (filename, decls) -> compile_load env filename decls
+      compile_process env ~loc id param args typ files vars funcs main
+  | System (procs, lemmas) ->
+      compile_system ~loc env procs lemmas
+  | Load (filename, decls) ->
+      compile_load env filename decls
 
 let compile_program (decls : T.decl list) : Pv_parser.program =
   let env = create_env () in
@@ -2484,13 +2526,13 @@ let compile_program (decls : T.decl list) : Pv_parser.program =
   let body = List.concat_map (compile_decl env) decls in
   let top_process = Option.value env.top_process ~default:(process_e PNil) in
   let top_process = add_allow_inits env top_process in
-  ( List.map
-      (fun decl -> decl, None)
-      ( compile_prelude env
-        @ compile_generated_structure_decls env
-        @ compile_generated_syscall_consts env
-        @ compile_generated_event_decls env
-        @ compile_generated_string_consts env
-        @ body )
+  ( compile_prelude env
+    @ compile_generated_structure_decls env
+    @ compile_generated_syscall_consts env
+    @ compile_generated_event_decls env
+    @ compile_generated_string_consts env
+    @ [ TComment "Body" ]
+    @ body
+    @ [ TComment "System" ]
   , top_process
   , None )

@@ -180,6 +180,7 @@ let equal_tclause x y =
 
 let rec equal_tdecl x y =
   match x, y with
+  | TComment s1, TComment s2 -> String.equal s1 s2
   | TTypeDecl i1, TTypeDecl i2 -> equal_ident i1 i2
   | TFunDecl (i1, a1, r1, o1), TFunDecl (i2, a2, r2, o2) ->
       equal_ident i1 i2 && equal_list equal_ident a1 a2 && equal_ident r1 r2 && equal_list equal_option_decl o1 o2
@@ -251,7 +252,14 @@ let rec equal_tdecl x y =
       equal_list equal_option_decl o1 o2
   | _ -> false
 
+let drop_tcomments decls =
+  List.filter
+    (function
+      | TComment _ -> false
+      | _ -> true)
+    decls
+
 let equal_program (decls1, p1, p1b) (decls2, p2, p2b) =
-  equal_list (fun (decl1, _comment1) (decl2, _comment2) -> equal_tdecl decl1 decl2) decls1 decls2 &&
+  equal_list equal_tdecl (drop_tcomments decls1) (drop_tcomments decls2) &&
   equal_tprocess_e p1 p2 &&
   equal_option equal_tprocess_e p1b p2b

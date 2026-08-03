@@ -5,6 +5,8 @@ type type_class =
   | CFsys (** [filesys] *)
   | CChan (** [channel] *)
 
+val string_of_type_class : type_class -> string
+
 type expr = expr' Location.located
 
 and expr' =

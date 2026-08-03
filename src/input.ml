@@ -5,6 +5,11 @@ type type_class =
   | CFsys
   | CChan
 
+let string_of_type_class = function
+  | CProc -> "process"
+  | CFsys -> "filesys"
+  | CChan -> "channel"
+
 type expr = expr' Location.located
 
 and expr' =
