@@ -15,7 +15,7 @@ equation verify (sign(d, k), d, pk(k)) = true
 fact channel [store:1, req:0, ack:0, conn:0, invoke:3, Returned:1, exit:0]
 fact global [False:0]
 fact global persist [Signed:1]
-tag global [ClientClose:0, ClientTAClose:0, ImgRecvValid:1, ImgRecvInvalid:1, ImgSend:1]
+tag [ClientClose:0, ClientTAClose:0, ImgRecvValid:1, ImgRecvInvalid:1, ImgSend:1]
 
 (* load syscalls on channels *)
 load "udp_rpc.rab"

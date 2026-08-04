@@ -62,6 +62,7 @@ plain_decl:
   | EQUATION x=expr EQ y=expr { DeclExtEq(x, y) }
 
   | FACT tys=list(fact_type) LBRACKET a=separated_nonempty_list(COMMA, fact_decl) RBRACKET { DeclExtFacts(tys, a) }
+  | TAG (* fact_type *) LBRACKET a=separated_nonempty_list(COMMA, fact_decl) RBRACKET { DeclTags(Global, a) }
   | TAG ty=fact_type LBRACKET a=separated_nonempty_list(COMMA, fact_decl) RBRACKET { DeclTags(ty, a) }
 
   | TYPE id=NAME COLON c=type_c { DeclType(id,c) }
