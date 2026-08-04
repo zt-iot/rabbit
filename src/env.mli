@@ -40,6 +40,8 @@ type t = {
 
 val empty : unit -> t
 
+val init_env : unit -> t
+
 val mem : t -> Name.ident -> bool
 
 val find_opt : t -> Name.ident -> (Ident.t * desc) option

@@ -300,6 +300,28 @@ let check_persist ~loc ~name ~persist ~use =
   if persist <> use then error ~loc @@ PersistencyMismatch { name; persist; use }
 ;;
 
+let check_env_fact ~is_tag ~loc env typ name arity persist =
+  if not is_tag then
+    (match Env.find_fact_opt env name with
+    | None ->
+        error ~loc @@ UnknownName name
+    | Some (desc, Some arity', persist') when desc = typ ->
+        check_arity ~loc ~arity:arity' ~use:arity;
+        check_persist ~loc ~name ~persist:persist' ~use:persist
+    | Some (desc, None, _) when desc = typ -> assert false
+    | Some (desc, _, _) ->
+        error ~loc @@ InvalidFact { name; def = desc; use = typ })
+  else (
+    if persist then error ~loc @@ PersistentTag name;
+    (match Env.find_tag_opt env name with
+    | None ->
+        error ~loc @@ UnknownName name
+    | Some (desc, Some arity') when desc = typ ->
+        check_arity ~loc ~arity:arity' ~use:arity
+    | Some (desc, None) when desc = typ -> assert false
+    | Some (desc, _) ->
+        error ~loc @@ InvalidFact { name; def = desc; use = typ }))
+
 let type_fact ?(is_tag = false) env (fact : Input.fact) : Typed.fact =
   let loc = fact.loc in
   let desc : Typed.fact' =
@@ -308,11 +330,13 @@ let type_fact ?(is_tag = false) env (fact : Input.fact) : Typed.fact =
     | Fact { name; args = es; persist } ->
         (* Which fact? For strucure? *)
         let nes = List.length es in
-        if not is_tag then  (* for fact *)
+        check_env_fact ~is_tag ~loc env Plain name nes persist;
+        (* if not is_tag then  (* for fact *)
           (match Env.find_fact_opt env name with
           | None ->
-              Env.add_fact ~loc env name (Plain, Some nes, persist);
-              Typed.Plain { name; args = List.map (type_expr env) es; persist }
+              (* Env.add_fact ~loc env name (Plain, Some nes, persist);
+              Typed.Plain { name; args = List.map (type_expr env) es; persist } *)
+              error ~loc @@ UnknownName name
           | Some (Plain, Some arity, persist') ->
               check_arity ~loc ~arity ~use:nes;
               check_persist ~loc ~name ~persist:persist' ~use:persist;
@@ -325,31 +349,71 @@ let type_fact ?(is_tag = false) env (fact : Input.fact) : Typed.fact =
           else
           (match Env.find_tag_opt env name with
           | None ->
-              Env.add_tag ~loc env name (Plain, Some nes);
-              Typed.Plain { name; args = List.map (type_expr env) es; persist }
+              (* Env.add_tag ~loc env name (Plain, Some nes);
+              Typed.Plain { name; args = List.map (type_expr env) es; persist } *)
+              error ~loc @@ UnknownName name
           | Some (Plain, Some arity) ->
               check_arity ~loc ~arity ~use:nes;
               Plain { name; args = List.map (type_expr env) es; persist }
           | Some (Plain, None) -> assert false
           | Some (desc, _) ->
-              error ~loc @@ InvalidTag { name; def = desc; use = Plain })
+              error ~loc @@ InvalidTag { name; def = desc; use = Plain }) *)
+        Plain { name; args = List.map (type_expr env) es; persist }
     | GlobalFact { name; args = es; persist } ->
         let nes = List.length es in
-        if not is_tag then
-          Env.add_fact ~loc env name (Global, Some nes, persist)
+        check_env_fact ~is_tag ~loc env Global name nes persist;
+        (* if not is_tag then
+          (match Env.find_fact_opt env name with
+          | None ->
+              error ~loc @@ UnknownName name
+          | Some (Global, Some arity, persist') ->
+              check_arity ~loc ~arity ~use:nes;
+              check_persist ~loc ~name ~persist:persist' ~use:persist;
+              Global { name; args = List.map (type_expr env) es; persist }
+          | Some (Global, None, _) -> assert false
+          | Some (desc, _, _) ->
+              error ~loc @@ InvalidFact { name; def = desc; use = Global})
         else
           if persist then error ~loc @@ PersistentTag name
-          else Env.add_tag ~loc env name (Global, Some nes);
+          else
+          (match Env.find_tag_opt env name with
+          | None ->
+              error ~loc @@ UnknownName name
+          | Some (Global, Some arity) ->
+              check_arity ~loc ~arity ~use:nes;
+              Global { name; args = List.map (type_expr env) es; persist }
+          | Some (Global, None) -> assert false
+          | Some (desc, _) ->
+              error ~loc @@ InvalidFact { name; def = desc; use = Global}) *)
         Global { name; args = List.map (type_expr env) es; persist }
     | ChannelFact { ch = e; name; args = es; persist } ->
         let e = type_expr env e in
         let es = List.map (type_expr env) es in
         let nes = List.length es in
-        if not is_tag then
-          Env.add_fact ~loc env name (Channel, Some nes, persist)
+        check_env_fact ~is_tag ~loc env Channel name nes persist;
+        (* if not is_tag then
+          (match Env.find_fact_opt env name with
+          | None ->
+              error ~loc @@ UnknownName name
+          | Some (Channel, Some arity, persist') ->
+              check_arity ~loc ~arity ~use:nes;
+              check_persist ~loc ~name ~persist:persist' ~use:persist;
+              Channel { channel = e; name; args = es; persist }
+          | Some (Channel, None, _) -> assert false
+          | Some (desc, _, _) ->
+              error ~loc @@ InvalidFact { name; def = desc; use = Channel})
         else
           if persist then error ~loc @@ PersistentTag name
-          else Env.add_tag ~loc env name (Channel, Some nes);
+          else
+          (match Env.find_tag_opt env name with
+          | None ->
+              error ~loc @@ UnknownName name
+          | Some (Channel, Some arity) ->
+              check_arity ~loc ~arity ~use:nes;
+              Channel { channel = e; name; args = es; persist }
+          | Some (Channel, None) -> assert false
+          | Some (desc, _) ->
+              error ~loc @@ InvalidFact { name; def = desc; use = Channel}) *)
         Channel { channel = e; name; args = es; persist }
     | EqFact (e1, e2) ->
         let e1 = type_expr env e1 in

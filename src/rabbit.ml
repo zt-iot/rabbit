@@ -80,7 +80,7 @@ let load_file (env : Loader.env) fn =
 let new_load_file fn =
   try
     (* The new compiler loads each file with the empty env *)
-    Ok (snd @@ Typer.load (Env.empty ()) fn)
+    Ok (snd @@ Typer.load (Env.init_env ()) fn)
   with
   | (Typer.Error _ as exn) -> Error exn
   | exn ->

@@ -51,6 +51,12 @@ type t = {
 
 let empty () = { vars= []; facts= ref []; tags= ref [] }
 
+let init_env () =
+  let env = empty () in
+  env.facts := ("In", (Global, Some 1, false)) :: ("Out", (Global, Some 1, false)) :: !(env.facts);
+  env.tags := ("K", (Global, Some 1)) :: !(env.tags);
+  env
+
 let find_opt env name =
   List.find_opt (fun (id, _desc) -> name = fst id) env.vars
 
