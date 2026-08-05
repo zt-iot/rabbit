@@ -1718,7 +1718,91 @@ let rec optimize_edges edges =
   in
   sort_edges @@ aux pairs
 
-let optimize_proc proc = { proc with edges = optimize_edges proc.edges }
+
+(*
+  If an edge contains equality facts like Eq(v, e) for v = e,
+  replace all of v with e in the edge.
+  (in order to reduce a verification time)
+  
+  * Substitution occurs only if either of Eq arguments is Ident (variable name).
+*)
+let subst_eq_expr ((id1, e2): expr' * expr') (expr: expr) : expr =
+  let rec aux e =
+    match e.desc with
+    | Ident _ when e.desc = id1 -> { e with desc = e2 }
+    | Ident { id; desc; param = Some e'; } -> { e with desc = Ident { id; desc; param = Some (aux e')} }
+    | Apply (id, args) -> { e with desc = Apply (id, List.map aux args) }
+    | Tuple es -> { e with desc = Tuple (List.map aux es) }
+    | _ -> e
+  in
+  aux expr
+
+let subst_eq_fact (facts: fact list) (eq: expr * expr) : fact list =
+  (* eq = (id1, e2), then substitute e2 for id1 *)
+  let eq =
+    match eq with
+    | { desc = Ident _; _ } as e1, e2 -> e1.desc, e2.desc
+    | _ -> assert false
+  in
+  List.map
+    (fun fact ->
+      (match fact.desc with
+      | Channel { channel; name; args } ->
+          { fact with desc = Channel {
+            channel = subst_eq_expr eq channel;
+            name;
+            args = List.map (subst_eq_expr eq) args }}
+      | Plain { pid; name; args } ->
+          { fact with desc = Plain {
+            pid;  name;
+            args = List.map (subst_eq_expr eq) args }}
+      | Eq (el, er) ->
+          { fact with desc = Eq (subst_eq_expr eq el, subst_eq_expr eq er) }
+      | Neq (el, er) ->
+          { fact with desc = Neq (subst_eq_expr eq el, subst_eq_expr eq er) }
+      | File { pid; path; contents } ->
+          { fact with desc = File {
+            pid; path = subst_eq_expr eq path; contents = subst_eq_expr eq contents }}
+      | Global (name, args) ->
+          { fact with desc = Global (name, List.map (subst_eq_expr eq) args) }
+      | Structure { pid; name; address; args } ->
+          { fact with desc = Structure {
+            pid;  name;
+            address = subst_eq_expr eq address;
+            args = List.map (subst_eq_expr eq) args
+          }}
+      | Access { pid; channel; syscall} ->
+          { fact with desc = Access { pid; channel = subst_eq_expr eq channel; syscall }}
+      | _ -> fact ))
+    facts
+
+let subst_eq_edge edge =
+  let eqs, pre_rest =
+    List.partition_map
+    (fun fact ->
+      match fact.desc with
+      | Eq (e1, e2) ->
+          (match e1.desc, e2.desc with
+          | Ident _, _ -> Left (e1, e2)
+          | _, Ident _ -> Left (e2, e1)
+          | _ -> Right fact)
+      | _ -> Right fact)
+    edge.pre
+  in
+  let eqs = (* Substitute e2 for id1 in each e2' of eqs *)
+    List.map2
+      (fun (id1, e2) (id1', e2') -> (id1', subst_eq_expr (id1.desc, e2.desc) e2'))
+      eqs
+      eqs
+  in
+  let new_pre = List.fold_left subst_eq_fact pre_rest eqs in  (* eqs are excluded from new_pre *)
+  let new_tag = List.fold_left subst_eq_fact edge.tag eqs in
+  let new_post = List.fold_left subst_eq_fact edge.post eqs in
+  { edge with pre = new_pre; tag = new_tag; post = new_post }
+
+let optimize_proc proc =
+  let compressed_edges = optimize_edges proc.edges in
+  { proc with edges = List.map subst_eq_edge compressed_edges }
 
 let optimize_proc_group_desc = function
   | Unbounded proc -> Unbounded (optimize_proc proc)
