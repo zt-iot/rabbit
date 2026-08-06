@@ -573,6 +573,32 @@ let subst_eq_fact (facts: fact list) (eq: expr * expr) : fact list =
       | _ -> fact ))
     facts
 
+exception Eqs_Mutual_Dependence of ((expr * expr) * (expr * expr))
+(* comparison function for sorting eqs with respect to dependency *)
+let comp_eqs (id1, e1) (id2, e2) =
+  let rec check_exp_has_id id exp =
+    match exp with
+    | Ident _ when exp = id -> true
+    | Apply (_, args) -> List.exists (check_exp_has_id id) args
+    | Tuple es -> List.exists (check_exp_has_id id) es
+    | _ -> false
+  in
+  let lt = check_exp_has_id id1 e2 in
+  let gt = check_exp_has_id id2 e1 in
+  match lt, gt with
+  | true, true -> raise (Eqs_Mutual_Dependence ((id1, e1), (id2, e2)))
+  | true, false -> -1 (* eq1 < eq2 *)
+  | false, true -> 1  (* eq1 > eq2 *)
+  | false, false -> 0 (* eq1 = eq2 *)
+
+let rec sort_eqs eqs label =
+  try
+    (List.stable_sort comp_eqs eqs, label)
+  with Eqs_Mutual_Dependence (_, (id2, e2)) ->
+    let eqs = List.filter (fun eq -> eq <> (id2, e2)) eqs in
+    let label = Eq (id2, e2) :: label in
+    sort_eqs eqs label
+
 let subst_eq_rule (pre, label, post) =
   let eqs, label_rest =
     List.partition_map
@@ -586,16 +612,27 @@ let subst_eq_rule (pre, label, post) =
       | _ -> Right fact)
     label
   in
-  let eqs = (* Substitute e2 for id1 in each e2' of eqs *)
-    List.map2
-      (fun (id1, e2) (id1', e2') -> (id1', subst_eq_expr (id1, e2) e2'))
-      eqs
-      eqs
+  (* sort eqs with respect to dependency *)
+  let eqs, label_rest = sort_eqs eqs label_rest in
+  (* substitute e2 for id1 in each exp of eqs *)
+  let eqs =
+    let rec aux eqs_cur eqs_target =
+      match eqs_cur with
+      | [] -> eqs_target
+      | eq :: rest ->
+          let eqs_target = List.map (fun (id1', e2') -> (id1', subst_eq_expr eq e2')) eqs_target in
+          let rest = List.map (fun (id1', e2') -> (id1', subst_eq_expr eq e2')) rest in
+          aux rest eqs_target
+    in
+    aux eqs eqs
   in
   let new_pre = List.fold_left subst_eq_fact pre eqs in
   let new_label = List.fold_left subst_eq_fact label_rest eqs in  (* eqs are excluded from new_label *)
   let new_post = List.fold_left subst_eq_fact post eqs in
   (new_pre, new_label, new_post)
+
+(* TODO: dependency cycle (>2)
+  ex. v1 = v2, v2 = v3, v3 = v1 *)
 (************)
 
 let rule_of_edge (pid : Subst.pid) (edge : Sem.edge) =
