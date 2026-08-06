@@ -517,23 +517,18 @@ let facts_of_edge (e : Sem.edge) =
   
   * Substitution occurs only if either of Eq arguments is Ident (variable name).
 *)
-let subst_eq_expr ((id1, e2): expr * expr) (expr: expr) : expr =
+let subst_eq_expr ((id1, e2): Ident.t * expr) (expr: expr) : expr =
   let rec aux e =
     match e with
-    | Ident _ when e = id1 -> e2
+    | Ident id' when id' = id1 -> e2
     | Apply (id, args) -> Apply (id, List.map aux args)
     | Tuple es -> Tuple (List.map aux es)
     | _ -> e
   in
   aux expr
 
-let subst_eq_fact (facts: fact list) (eq: expr * expr) : fact list =
-  (* eq = (id1, e2), then substitute e2 for id1 *)
-  let eq =
-    match eq with
-    | Ident _, _ -> eq
-    | _ -> assert false
-  in
+let subst_eq_fact (facts: fact list) (eq: Ident.t * expr) : fact list =
+  (* eq = (id1, e2), then substitute e2 in facts for id1 *)
   List.map
     (fun fact ->
       (match fact with
@@ -573,12 +568,12 @@ let subst_eq_fact (facts: fact list) (eq: expr * expr) : fact list =
       | _ -> fact ))
     facts
 
-exception Eqs_Mutual_Dependence of ((expr * expr) * (expr * expr))
+exception Eqs_Mutual_Dependence of ((Ident.t * expr) * (Ident.t * expr))
 (* comparison function for sorting eqs with respect to dependency *)
 let comp_eqs (id1, e1) (id2, e2) =
   let rec check_exp_has_id id exp =
     match exp with
-    | Ident _ when exp = id -> true
+    | Ident id' when id' = id -> true
     | Apply (_, args) -> List.exists (check_exp_has_id id) args
     | Tuple es -> List.exists (check_exp_has_id id) es
     | _ -> false
@@ -596,7 +591,7 @@ let rec sort_eqs eqs label =
     (List.stable_sort comp_eqs eqs, label)
   with Eqs_Mutual_Dependence (_, (id2, e2)) ->
     let eqs = List.filter (fun eq -> eq <> (id2, e2)) eqs in
-    let label = Eq (id2, e2) :: label in
+    let label = Eq (Ident id2, e2) :: label in
     sort_eqs eqs label
 
 let subst_eq_rule (pre, label, post) =
@@ -606,8 +601,8 @@ let subst_eq_rule (pre, label, post) =
       match fact with
       | Eq (e1, e2) ->
           (match e1, e2 with
-          | Ident _, _ -> Left (e1, e2)
-          | _, Ident _ -> Left (e2, e1)
+          | Ident id1, _ -> Left (id1, e2)
+          | _, Ident id2 -> Left (id2, e1)
           | _ -> Right fact)
       | _ -> Right fact)
     label
@@ -631,8 +626,11 @@ let subst_eq_rule (pre, label, post) =
   let new_post = List.fold_left subst_eq_fact post eqs in
   (new_pre, new_label, new_post)
 
-(* TODO: dependency cycle (>2)
-  ex. v1 = v2, v2 = v3, v3 = v1 *)
+(*
+  NOTE: If there is a cycle of dependency (>2),
+  it won't be detected and just substituted n times (= a number of Eqs)
+    ex. v1 = v2, v2 = v3, v3 = v1
+*)
 (************)
 
 let rule_of_edge (pid : Subst.pid) (edge : Sem.edge) =
