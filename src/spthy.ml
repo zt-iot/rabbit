@@ -511,8 +511,8 @@ let facts_of_edge (e : Sem.edge) =
 
 (************)
 (*
-  If an edge contains equality facts like Eq(v, e) for v = e,
-  replace all of v with e in the edge.
+  If a rule contains equality facts like Eq(v, e) for v = e,
+  replace all of v with e in the rule.
   (in order to reduce a verification time)
   
   * Substitution occurs only if either of Eq arguments is Ident (variable name).
@@ -573,7 +573,7 @@ let subst_eq_fact (facts: fact list) (eq: expr * expr) : fact list =
       | _ -> fact ))
     facts
 
-let subst_eq_edge (pre, label, post) =
+let subst_eq_rule (pre, label, post) =
   let eqs, label_rest =
     List.partition_map
     (fun fact ->
@@ -645,7 +645,7 @@ let rule_of_edge (pid : Subst.pid) (edge : Sem.edge) =
   let post = state_post :: post in
   (* replace equality facts with direct substitution *)
   let pre, label, post =
-    if !Config.optimize then subst_eq_edge (pre, label, post) else (pre, label, post)
+    if !Config.optimize then subst_eq_rule (pre, label, post) else (pre, label, post)
   in
   let pre = facts' pre in
   let label = facts' label in
