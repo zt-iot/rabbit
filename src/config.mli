@@ -17,3 +17,6 @@ val optimize : bool ref
 
 (** Flag to enable transition tagging in output *)
 val tag_transition : bool ref
+
+(** Flag to enable direct substitutions instead of equality restrictions *)
+val eq_subst : bool ref

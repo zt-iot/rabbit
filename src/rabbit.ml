@@ -54,6 +54,10 @@ let options = Arg.align [
      Arg.Bool (fun b -> Config.tag_transition := b),
      "<bool> Enable or disable tagging transitions in produced Tamarin model (default: true)");
 
+    ("--eq-opt",
+     Arg.Bool (fun b -> Config.eq_subst := b),
+     "<bool> Enable of disable the optimization on equality facts (default: true)");
+
     ("-o",
      Arg.String (fun str -> add_ofile str),
      "<file> Printing the translated Tamarin program into <file>");

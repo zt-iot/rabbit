@@ -594,7 +594,7 @@ let rec sort_eqs eqs label =
     let label = Eq (Ident id2, e2) :: label in
     sort_eqs eqs label
 
-let subst_eq_rule (pre, label, post) =
+let subst_eq_rule rule_id (pre, label, post) =
   let eqs, label_rest =
     List.partition_map
     (fun fact ->
@@ -621,6 +621,16 @@ let subst_eq_rule (pre, label, post) =
     in
     aux eqs eqs
   in
+  (* print for debug *)
+  if !Config.debug && not (List.is_empty eqs) then
+    Format.eprintf
+      "@[<v2>Substitute (%s)@ %a@]@.@."
+      (Ident.to_string rule_id)
+      (Format.pp_print_list
+         ~pp_sep:(fun ppf () -> Format.fprintf ppf "@ ")
+         (fun ppf (id, e) ->
+            Format.fprintf ppf "%s => %s" (Ident.to_string id) (string_of_expr e)))
+      eqs;
   let new_pre = List.fold_left subst_eq_fact pre eqs in
   let new_label = List.fold_left subst_eq_fact label_rest eqs in  (* eqs are excluded from new_label *)
   let new_post = List.fold_left subst_eq_fact post eqs in
@@ -680,7 +690,7 @@ let rule_of_edge (pid : Subst.pid) (edge : Sem.edge) =
   let post = state_post :: post in
   (* replace equality facts with direct substitution *)
   let pre, label, post =
-    if !Config.optimize then subst_eq_rule (pre, label, post) else (pre, label, post)
+    if !Config.eq_subst then subst_eq_rule (edge.id :> Ident.t) (pre, label, post) else (pre, label, post)
   in
   let pre = facts' pre in
   let label = facts' label in
