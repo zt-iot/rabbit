@@ -432,73 +432,77 @@ let rec compile_expr_to_term genv (expr : T.expr) : term_e =
       error ~loc:expr.loc @@
       Unsupported "Float terms are not supported in ProVerif term translation"
 
-type process_env =
-  { bindings : (T.ident * pterm_e) list
-  ; local_func_defs : (T.ident * (T.ident list * T.cmd)) list
-  ; process_typ_id : T.ident option
-  ; proc_type : pterm_e
-  ; curr_syscall : pterm_e option
-  ; file_channel : pterm_e option
-  ; return_cont : (process_env -> pterm_e -> tprocess_e) option
-  }
+module PEnv = struct
 
-let create_process_env
-    ~(local_func_defs : (T.ident * (T.ident list * T.cmd)) list)
-    ~(process_typ_id : T.ident option)
-    ~(proc_type : pterm_e)
-    ~(curr_syscall : pterm_e option)
-    ~(file_channel : pterm_e option)
-  : process_env =
-  { bindings = []
-  ; local_func_defs
-  ; process_typ_id
-  ; proc_type
-  ; curr_syscall
-  ; file_channel
-  ; return_cont = None
-  }
+  type t =
+    { bindings : (T.ident * pterm_e) list
+    ; local_func_defs : (T.ident * (T.ident list * T.cmd)) list
+    ; process_typ_id : T.ident option
+    ; proc_type : pterm_e
+    ; curr_syscall : pterm_e option
+    ; file_channel : pterm_e option
+    ; return_cont : (t -> pterm_e -> tprocess_e) option
+    }
 
-let bind_process_var penv (id : T.ident) (value : pterm_e) =
-  { penv with bindings = (id, value) :: List.remove_assoc id penv.bindings }
+  let create_process_env
+      ~(local_func_defs : (T.ident * (T.ident list * T.cmd)) list)
+      ~(process_typ_id : T.ident option)
+      ~(proc_type : pterm_e)
+      ~(curr_syscall : pterm_e option)
+      ~(file_channel : pterm_e option)
+    : t =
+    { bindings = []
+    ; local_func_defs
+    ; process_typ_id
+    ; proc_type
+    ; curr_syscall
+    ; file_channel
+    ; return_cont = None
+    }
 
-let unbind_process_var penv (id : T.ident) =
-  { penv with bindings = List.remove_assoc id penv.bindings }
+  let bind_process_var (penv : t) (id : T.ident) (value : pterm_e) =
+    { penv with bindings = (id, value) :: List.remove_assoc id penv.bindings }
 
-let with_process_return_cont
-    penv
-    (return_cont : process_env -> pterm_e -> tprocess_e)
-  : process_env =
-  { penv with return_cont = Some return_cont }
+  let find_process_var penv (id : T.ident) : pterm_e option =
+    List.assoc_opt id penv.bindings
 
-let find_process_var penv (id : T.ident) : pterm_e option =
-  List.assoc_opt id penv.bindings
+  let find_process_var_exn ~loc penv (id : T.ident) : pterm_e =
+    match find_process_var penv id with
+    | Some value -> value
+    | None ->
+        error ~loc @@
+        Internal_error
+          (Printf.sprintf "Loop-carried variable %s is not available"
+             (Ident.to_string id))
 
-let find_process_var_exn ~loc penv (id : T.ident) : pterm_e =
-  match find_process_var penv id with
-  | Some value -> value
-  | None ->
-      error ~loc @@
-      Internal_error
-        (Printf.sprintf "Loop-carried variable %s is not available"
-           (Ident.to_string id))
+  let unbind_process_var (penv : t) (id : T.ident) =
+    { penv with bindings = List.remove_assoc id penv.bindings }
 
-let restore_process_var penv (id : T.ident) (old_value : pterm_e option) =
-  match old_value with
-  | Some value -> bind_process_var penv id value
-  | None -> unbind_process_var penv id
+  let restore_process_var penv (id : T.ident) (old_value : pterm_e option) =
+    match old_value with
+    | Some value -> bind_process_var penv id value
+    | None -> unbind_process_var penv id
 
-let restore_process_vars
-    penv
-    (saved : (T.ident * pterm_e option) list)
-  : process_env =
-  List.fold_left
-    (fun penv (id, old_value) -> restore_process_var penv id old_value)
-    penv
-    saved
+  let restore_process_vars
+      penv
+      (saved : (T.ident * pterm_e option) list)
+    : t =
+    List.fold_left
+      (fun penv (id, old_value) -> restore_process_var penv id old_value)
+      penv
+      saved
 
-let find_local_func_def penv (id : T.ident)
-  : (T.ident list * T.cmd) option =
-  List.assoc_opt id penv.local_func_defs
+  let with_process_return_cont
+      (penv : t)
+      (return_cont : t -> pterm_e -> tprocess_e)
+    : t =
+    { penv with return_cont = Some return_cont }
+
+  let find_local_func_def penv (id : T.ident)
+    : (T.ident list * T.cmd) option =
+    List.assoc_opt id penv.local_func_defs
+
+end
 
 let rec compile_expr_to_gterm genv (expr : T.expr) : gterm_e =
   gterm_e @@
@@ -534,7 +538,7 @@ let rec compile_expr_to_pterm genv penv (expr : T.expr) : pterm_e =
   | T.Ident { id; param = Some param; _ } ->
       PPFunApp (compile_ident id, [compile_expr_to_pterm genv penv param])
   | Ident { id; param = None; _ } ->
-      (match find_process_var penv id with
+      (match PEnv.find_process_var penv id with
        | Some value ->
            let term, _, _ = value in
            term
@@ -558,7 +562,7 @@ let rec compile_expr_to_pterm genv penv (expr : T.expr) : pterm_e =
       error ~loc:expr.loc @@
       Unsupported "Float process terms are not supported in ProVerif process translation"
 
-let current_syscall ~loc penv : pterm_e =
+let current_syscall ~loc (penv : PEnv.t) : pterm_e =
   match penv.curr_syscall with
   | Some syscall -> syscall
   | None ->
@@ -608,7 +612,7 @@ let nondet_choose_processes
 
 let wrap_with_access_control_get
     ~loc
-    penv
+    (penv : PEnv.t)
     (target_type : pterm_e)
     (then_proc : tprocess_e)
     (else_proc : tprocess_e)
@@ -667,7 +671,7 @@ let wrap_with_channel_access_get
 let wrap_with_file_access_get
     ~loc
     (path_term : pterm_e)
-    penv
+    (penv : PEnv.t)
     (then_proc : tprocess_e)
     (else_proc : tprocess_e)
   : tprocess_e =
@@ -704,7 +708,7 @@ let structure_addr_term (name : T.name) (struct_term : pterm_e) : pterm_e =
 let structure_arg_term (name : T.name) (index : int) (struct_term : pterm_e) : pterm_e =
   pterm_e @@ PPFunApp (structure_arg_ident name index, [struct_term])
 
-let loop_state_bindings penv : (T.ident * pterm_e) list =
+let loop_state_bindings (penv : PEnv.t) : (T.ident * pterm_e) list =
   (* Note: the first loop lowering conservatively carries every current
      process binding across the loop boundary. This is simple and sounder than
      forgetting mutable state, but it may be larger than necessary. A later
@@ -726,7 +730,7 @@ let loop_state_message
       pterm_e @@
       PPTuple
         (flag_term
-         :: List.map (find_process_var_exn ~loc penv) state_ids)
+         :: List.map (PEnv.find_process_var_exn ~loc penv) state_ids)
 
 let loop_state_pattern
     ~done_flag
@@ -749,10 +753,10 @@ let bind_loop_state
     penv
     (state_ids : T.ident list)
     (state_pattern_ids : T.ident list)
-  : process_env =
+  : PEnv.t =
   List.fold_left2
     (fun penv state_id pattern_id ->
-       bind_process_var penv state_id (pterm_e @@ PPIdent (compile_ident pattern_id)))
+       PEnv.bind_process_var penv state_id (pterm_e @@ PPIdent (compile_ident pattern_id)))
     penv
     state_ids
     state_pattern_ids
@@ -942,7 +946,7 @@ let rec compile_guard_tests
            let branch_env, then_proc =
              match contents.desc with
              | T.Ident { id; _ } when List.mem id fresh ->
-                 let branch_env = bind_process_var penv id payload_term in
+                 let branch_env = PEnv.bind_process_var penv id payload_term in
                  branch_env, compile_guard_tests genv branch_env fresh facts then_proc else_proc
              | _ ->
                  let eq_then =
@@ -968,7 +972,7 @@ let rec compile_guard_tests
            let then_proc =
              match arg.desc with
              | T.Ident { id; _ } when List.mem id fresh ->
-                 let branch_env = bind_process_var penv id payload_term in
+                 let branch_env = PEnv.bind_process_var penv id payload_term in
                  compile_guard_tests genv branch_env fresh facts then_proc else_proc
              | _ ->
                  let eq_then =
@@ -1070,7 +1074,7 @@ let rec compile_channel_guard_case
       (fun penv (arg : T.expr) payload_term ->
          match arg.desc with
          | T.Ident { id; _ } when is_fresh_case_var case id ->
-             bind_process_var penv id payload_term
+             PEnv.bind_process_var penv id payload_term
          | _ -> penv)
       penv
       args
@@ -1113,7 +1117,7 @@ and compile_case_branch_body
     (kont : kont)
   : tprocess_e =
   let saved =
-    List.map (fun id -> id, find_process_var penv id) case.fresh
+    List.map (fun id -> id, PEnv.find_process_var penv id) case.fresh
   in
   compile_cmd genv penv (KRestoreVars (saved, kont)) case.cmd
 
@@ -1223,7 +1227,7 @@ and compile_case_channelized
             (fun penv (arg : T.expr) payload_term ->
                match arg.desc with
                | T.Ident { id; _ } when is_fresh_case_var case id ->
-                   bind_process_var penv id payload_term
+                   PEnv.bind_process_var penv id payload_term
                | _ -> penv)
             penv
             args
@@ -1290,12 +1294,12 @@ and compile_syscall_call
       let arg_values = List.map (compile_expr_to_pterm genv penv) args in
       let mk_call_env arg_ids =
         List.fold_left2
-          bind_process_var
+          PEnv.bind_process_var
           { penv with curr_syscall = Some (pterm_e @@ PPIdent def.syscall_ident) }
           arg_ids
           arg_values
         |> fun call_env ->
-        with_process_return_cont call_env (fun _call_env value -> on_return value)
+        PEnv.with_process_return_cont call_env (fun _call_env value -> on_return value)
       in
       let normal_branch =
         compile_cmd genv (mk_call_env def.args) (KProc on_fallthrough) def.cmd
@@ -1335,7 +1339,7 @@ and compile_local_function_call
      body
      ```
   *)
-  match find_local_func_def penv id with
+  match PEnv.find_local_func_def penv id with
   | None ->
       error ~loc @@
       Internal_error
@@ -1345,13 +1349,13 @@ and compile_local_function_call
       let arg_values = List.map (compile_expr_to_pterm genv penv) args in
       let call_env =
         List.fold_left2
-          bind_process_var
+          PEnv.bind_process_var
           penv
           arg_ids
           arg_values
       in
       let call_env =
-        with_process_return_cont call_env (fun _call_env value -> on_return value)
+        PEnv.with_process_return_cont call_env (fun _call_env value -> on_return value)
       in
       compile_cmd genv call_env (KProc on_fallthrough) cmd
 
@@ -1384,27 +1388,27 @@ and compile_let_binding
   *)
   match expr.desc with
   | Apply (syscall_id, args) when Option.is_some (GEnv.find_syscall_def genv syscall_id) ->
-      let old_value = find_process_var penv id in
+      let old_value = PEnv.find_process_var penv id in
       compile_syscall_call genv penv syscall_id args
         (fun value ->
-           compile_cmd genv (bind_process_var penv id value)
+           compile_cmd genv (PEnv.bind_process_var penv id value)
              (KRestoreVar (id, old_value, kont))
              body)
         (compile_cmd genv penv kont body)
         ~loc:expr.loc
-  | Apply (func_id, args) when Option.is_some (find_local_func_def penv func_id) ->
-      let old_value = find_process_var penv id in
+  | Apply (func_id, args) when Option.is_some (PEnv.find_local_func_def penv func_id) ->
+      let old_value = PEnv.find_process_var penv id in
       compile_local_function_call genv penv func_id args
         (fun value ->
-           compile_cmd genv (bind_process_var penv id value)
+           compile_cmd genv (PEnv.bind_process_var penv id value)
              (KRestoreVar (id, old_value, kont))
              body)
         (compile_cmd genv penv kont body)
         ~loc:expr.loc
   | _ ->
       let value = compile_expr_to_pterm genv penv expr in
-      let old_value = find_process_var penv id in
-      compile_cmd genv (bind_process_var penv id value)
+      let old_value = PEnv.find_process_var penv id in
+      compile_cmd genv (PEnv.bind_process_var penv id value)
         (KRestoreVar (id, old_value, kont))
         body
 
@@ -1435,16 +1439,16 @@ and compile_assignment
       let on_return =
         match id_opt with
         | None -> fun _value -> continue_cmd genv penv kont
-        | Some id -> fun value -> continue_cmd genv (bind_process_var penv id value) kont
+        | Some id -> fun value -> continue_cmd genv (PEnv.bind_process_var penv id value) kont
       in
       compile_syscall_call genv penv syscall_id args on_return
         (continue_cmd genv penv kont)
         ~loc:expr.loc
-  | Apply (func_id, args) when Option.is_some (find_local_func_def penv func_id) ->
+  | Apply (func_id, args) when Option.is_some (PEnv.find_local_func_def penv func_id) ->
       let on_return =
         match id_opt with
         | None -> fun _value -> continue_cmd genv penv kont
-        | Some id -> fun value -> continue_cmd genv (bind_process_var penv id value) kont
+        | Some id -> fun value -> continue_cmd genv (PEnv.bind_process_var penv id value) kont
       in
       compile_local_function_call genv penv func_id args on_return
         (continue_cmd genv penv kont)
@@ -1453,7 +1457,7 @@ and compile_assignment
       (match id_opt with
        | Some id ->
            let value = compile_expr_to_pterm genv penv expr in
-           continue_cmd genv (bind_process_var penv id value) kont
+           continue_cmd genv (PEnv.bind_process_var penv id value) kont
        | None ->
            let _ = compile_expr_to_pterm genv penv expr in
            continue_cmd genv penv kont)
@@ -1464,9 +1468,9 @@ and continue_cmd genv penv (kont : kont) : tprocess_e =
   | KProc proc -> proc
   | KSeq (cmd, kont) -> compile_cmd genv penv kont cmd
   | KRestoreVar (id, old_value, kont) ->
-      continue_cmd genv (restore_process_var penv id old_value) kont
+      continue_cmd genv (PEnv.restore_process_var penv id old_value) kont
   | KRestoreVars (saved, kont) ->
-      continue_cmd genv (restore_process_vars penv saved) kont
+      continue_cmd genv (PEnv.restore_process_vars penv saved) kont
   | KLoopOutput (done_flag, loc, lock_term, state_ids) ->
       process_e
         (POutput
@@ -1638,13 +1642,13 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
   | New (id, None, body) ->
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
-      let old_value = find_process_var penv id in
+      let old_value = PEnv.find_process_var penv id in
       process_e @@
         PRestr
            ( fresh_ident
            , None
            , bitstring_ident
-           , compile_cmd genv (bind_process_var penv id fresh_term)
+           , compile_cmd genv (PEnv.bind_process_var penv id fresh_term)
                (KRestoreVar (id, old_value, kont))
                body )
   | New (id, Some (name, args), body) ->
@@ -1652,7 +1656,7 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
       GEnv.register_structure ~loc:cmd.loc genv name (List.length args);
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
-      let old_value = find_process_var penv id in
+      let old_value = PEnv.find_process_var penv id in
       let struct_term =
         pterm_e @@
         PPFunApp
@@ -1664,7 +1668,7 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
            ( fresh_ident
            , None
            , bitstring_ident
-           , compile_cmd genv (bind_process_var penv id struct_term)
+           , compile_cmd genv (PEnv.bind_process_var penv id struct_term)
                (KRestoreVar (id, old_value, kont))
                body )
   | Get (ids, expr, name, body) ->
@@ -1672,14 +1676,14 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
       let struct_term = compile_expr_to_pterm genv penv expr in
       let addr_term = structure_addr_term name struct_term in
       let saved =
-        List.map (fun id -> id, find_process_var penv id) ids
+        List.map (fun id -> id, PEnv.find_process_var penv id) ids
       in
       let body_env =
         List.mapi
           (fun index id -> id, structure_arg_term name (index + 1) struct_term)
           ids
         |> List.fold_left
-             (fun penv (id, value) -> bind_process_var penv id value)
+             (fun penv (id, value) -> PEnv.bind_process_var penv id value)
              penv
       in
       process_e
@@ -1995,8 +1999,8 @@ let wrap_with_channel_init
 
 let wrap_with_file_init
     ~loc
-    genv
-    penv
+    (genv : GEnv.t)
+    (penv : PEnv.t)
     (files : (T.expr * T.ident * T.expr) list)
     (body : tprocess_e)
   : tprocess_e =
@@ -2110,14 +2114,14 @@ let compile_process
       in
       let base_penv =
         if files = [] then
-          create_process_env
+          PEnv.create_process_env
             ~local_func_defs
             ~process_typ_id:(Some typ)
             ~proc_type:(pterm_e @@ PPIdent ptype_arg_ident)
             ~curr_syscall:(Some (pterm_e @@ PPIdent none_syscall_ident))
             ~file_channel:None
         else
-          create_process_env
+          PEnv.create_process_env
             ~local_func_defs
             ~process_typ_id:(Some typ)
             ~proc_type:(pterm_e @@ PPIdent ptype_arg_ident)
@@ -2131,7 +2135,7 @@ let compile_process
                  (compile_cmd genv penv KStop main))
         | (var, expr) :: vars ->
             let value = compile_expr_to_pterm genv penv expr in
-            init_vars (bind_process_var penv var value) vars
+            init_vars (PEnv.bind_process_var penv var value) vars
       in
       [ TComment (Printf.sprintf "process %s(..): %s" (Ident.to_string id) (Ident.to_string typ))
       ; TPDef (compile_ident id, proc_args, init_vars base_penv vars)
