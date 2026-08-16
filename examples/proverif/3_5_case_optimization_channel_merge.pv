@@ -1,20 +1,31 @@
+(* Predefined types *)
 type param_data.
 type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker: channel.
+(* Tables *)
 table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
+(* Booleans *)
 const true: bitstring.
 const false: bitstring.
+(* Event declaration ::Invalid(..) *)
 event Invalid.
+(* Event declaration ::Valid(..) *)
 event Valid.
+(* Body *)
+(* type proc_t : process *)
 const proc_t: proc_t.
+(* type chan_t : channel *)
 const chan_t: acc_data_t.
+(* process chooser(..): proc_t *)
 let chooser(ptype:proc_t, ch__21:channel) =
+  (* Channel ch__21 : chan_t *)
   insert channel_table(chan_t, ch__21);
   get channel_table(ch_type__24:acc_data_t, =ch__21) in
   get access_control_table(=ptype, =ch_type__24, =none_syscall_s) in
@@ -24,8 +35,13 @@ let chooser(ptype:proc_t, ch__21:channel) =
    in(ch__21, store(case_arg_0__22:bitstring));
    if case_arg_0__22 = 1 then event Valid
    else (if case_arg_0__22 = 2 then event Invalid)).
+(* channel ch : chan_t *)
 free ch: channel[private].
+(* Requires *)
+(* lemma ReachableValid *)
 query event(Valid()).
+(* System *)
 process
+  (* allow proc_t chan_t [.] *)
   insert access_control_table(proc_t, chan_t, none_syscall_s);
   chooser(proc_t, ch).

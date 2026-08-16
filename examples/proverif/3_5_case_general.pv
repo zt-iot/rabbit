@@ -1,19 +1,29 @@
+(* Predefined types *)
 type param_data.
 type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker: channel.
+(* Tables *)
 table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
+(* Booleans *)
 const true: bitstring.
 const false: bitstring.
+(* Event declaration ::Invalid(..) *)
 event Invalid.
+(* Event declaration ::Unexpected(..) *)
 event Unexpected.
+(* Event declaration ::Valid(..) *)
 event Valid.
+(* Body *)
+(* type proc_t : process *)
 const proc_t: proc_t.
+(* process chooser(..): proc_t *)
 let chooser(ptype:proc_t) =
   if 1 = 1
   then
@@ -29,5 +39,8 @@ let chooser(ptype:proc_t) =
     then
       if 2 = 2 then if 1 = 1 then 0 else event Invalid else event Unexpected
     else if 1 = 1 then 0 else event Invalid.
+(* Requires *)
+(* lemma ReachableValid *)
 query event(Valid()).
+(* System *)
 process chooser(proc_t).

@@ -1,20 +1,34 @@
+(* Predefined types *)
 type param_data.
 type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker: channel.
+(* Tables *)
 table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
+(* Booleans *)
 const true: bitstring.
 const false: bitstring.
+(* Event declaration ::Valid(..) *)
 event Valid.
+(* Body *)
+(* function enc:2 *)
 fun enc(bitstring, bitstring): bitstring.
+(* function dec:2 *)
 fun dec(bitstring, bitstring): bitstring.
+(* equation dec(enc(x__3, y__4), y__4) = x__3 *)
 equation forall x__3:bitstring, y__4:bitstring; dec(enc(x__3, y__4), y__4) = x__3.
+(* type proc_t : process *)
 const proc_t: proc_t.
+(* process sender(..): proc_t *)
 let sender(ptype:proc_t) = event Valid.
+(* Requires *)
+(* lemma ReachableValid *)
 query event(Valid()).
+(* System *)
 process sender(proc_t).

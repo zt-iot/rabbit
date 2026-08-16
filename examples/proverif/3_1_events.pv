@@ -1,17 +1,29 @@
+(* Predefined types *)
 type param_data.
 type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker: channel.
+(* Tables *)
 table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
+(* Booleans *)
 const true: bitstring.
 const false: bitstring.
+(* Event declaration ::ImgSend(..) *)
 event ImgSend(bitstring).
+(* Body *)
+(* type proc_t : process *)
 const proc_t: proc_t.
-let sender(ptype:proc_t) = new image__5:bitstring; event ImgSend(image__5).
+(* process sender(..): proc_t *)
+let sender(ptype:proc_t) = new image__5:bitstring;
+                           event ImgSend(image__5).
+(* Requires *)
+(* lemma ReachableImgSend *)
 query image__6:bitstring; event(ImgSend(image__6)).
+(* System *)
 process sender(proc_t).

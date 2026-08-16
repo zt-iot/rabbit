@@ -1,19 +1,33 @@
+(* Predefined types *)
 type param_data.
 type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker: channel.
+(* Tables *)
 table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
+(* Booleans *)
 const true: bitstring.
 const false: bitstring.
+(* Event declaration ::Finished(..) *)
 event Finished.
+(* Event declaration ::Started(..) *)
 event Started.
+(* Body *)
+(* type proc_t : process *)
 const proc_t: proc_t.
-let worker(ptype:proc_t) = event Started; event Finished.
+(* process worker(..): proc_t *)
+let worker(ptype:proc_t) = event Started;
+                           event Finished.
+(* Requires *)
+(* lemma ReachableFinished *)
 query event(Finished()).
+(* lemma Correspondence *)
 query event(Finished()) ==> event(Started()).
+(* System *)
 process worker(proc_t).
