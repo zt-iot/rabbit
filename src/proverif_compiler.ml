@@ -37,30 +37,30 @@ type attack_def =
 [@@warning "-69"]
 
 type env =
-  { string_table           : (string, ident) Hashtbl.t
-  ; syscall_table          : (string, ident) Hashtbl.t
+  { mutable strings        : (string * ident) list
+  ; mutable syscalls       : (string * ident) list
   ; syscall_def_table      : (string, syscall_def) Hashtbl.t
   ; attack_def_table       : (string, attack_def) Hashtbl.t
   ; allow_attack_table     : (string, T.ident list) Hashtbl.t
   ; generated_name_counter : (string, int) Hashtbl.t
   ; mutable allow_entries  : (T.ident * T.ident * T.ident option * ident * ident * ident) list
   ; process_type_table     : (string, ident) Hashtbl.t
-  ; structure_table        : (string, int) Hashtbl.t
-  ; event_table            : (string, int) Hashtbl.t
+  ; mutable structures     : (string * int) list
+  ; mutable events         : (string * int) list (** event name and arity *)
   ; mutable top_process    : tprocess_e option
   }
 
 let create_env () : env =
-  { string_table           = Hashtbl.create 101
-  ; syscall_table          = Hashtbl.create 101
+  { strings                = []
+  ; syscalls               = []
   ; syscall_def_table      = Hashtbl.create 101
   ; attack_def_table       = Hashtbl.create 101
   ; allow_attack_table     = Hashtbl.create 101
   ; generated_name_counter = Hashtbl.create 101
   ; allow_entries          = []
   ; process_type_table     = Hashtbl.create 101
-  ; structure_table        = Hashtbl.create 101
-  ; event_table            = Hashtbl.create 101
+  ; structures             = []
+  ; events                 = []
   ; top_process            = None
   }
 
@@ -127,10 +127,10 @@ end = struct
         Invalid_input
           (Printf.sprintf "%s %s is defined more than once" kind name)
 
-  let register_with_arity kind get_table ~loc env (name : T.name) (arity : int) =
-    let table = get_table env in
-    match Hashtbl.find_opt table name with
-    | None -> Hashtbl.add table name arity
+  let register_with_arity kind get_entries set_entries ~loc env (name : T.name) (arity : int) =
+    let entries = get_entries env in
+    match List.assoc_opt name entries with
+    | None -> set_entries env (entries @ [name, arity])
     | Some arity' when arity' = arity -> ()
     | Some arity' ->
         error ~loc @@
@@ -146,10 +146,16 @@ end = struct
     register "Attack" (fun env -> env.attack_def_table)
 
   let structure =
-    register_with_arity "Structure" @@ fun env -> env.structure_table
+    register_with_arity
+      "Structure"
+      (fun env -> env.structures)
+      (fun env structures -> env.structures <- structures)
 
   let event =
-    register_with_arity "Event" @@ fun env -> env.event_table
+    register_with_arity
+      "Event"
+      (fun env -> env.events)
+      (fun env events -> env.events <- events)
 
 end
 
@@ -192,6 +198,7 @@ let find_allowed_attacks
     allowed
 
 module Fresh : sig
+  val register_string : env -> string -> unit
   val string_ident : env -> string -> ident
   val syscall_ident : env -> T.ident -> ident
 end = struct
@@ -225,26 +232,126 @@ end = struct
         pv_ident (Printf.sprintf "%s_g%d" base i)
 
   (* "hello" -> "hello_str" *)
-  let string_ident env s : ident =
-    match Hashtbl.find_opt env.string_table s with
-    | Some id -> id
+  let register_string env s =
+    match List.assoc_opt s env.strings with
+    | Some _ -> ()
     | None ->
         let base = sanitize_string_for_ident s ^ "_str" in
         let id = ident env ~base in
-        Hashtbl.add env.string_table s id;
-        id
+        env.strings <- env.strings @ [s, id]
+
+  let string_ident env s : ident =
+    register_string env s;
+    match List.assoc_opt s env.strings with
+    | Some id -> id
+    | None -> assert false
 
   (* "name" -> "name_s" *)
   let syscall_ident env (id : T.ident) : ident =
     let name = Ident.to_string id in
-    match Hashtbl.find_opt env.syscall_table name with
+    match List.assoc_opt name env.syscalls with
     | Some id -> id
     | None ->
         let base = sanitize_string_for_ident name ^ "_s" in
         let syscall_ident = ident env ~base in
-        Hashtbl.add env.syscall_table name syscall_ident;
+        env.syscalls <- env.syscalls @ [name, syscall_ident];
         syscall_ident
 end
+
+let rec register_expr_strings env (expr : T.expr) =
+  match expr.desc with
+  | Ident { param; _ } -> Option.iter (register_expr_strings env) param
+  | Apply (_, args) | Tuple args -> List.iter (register_expr_strings env) args
+  | String s -> Fresh.register_string env s
+  | Boolean _ | Integer _ | Float _ | Unit -> ()
+
+let register_fact_strings env (fact : T.fact) =
+  match fact.desc with
+  | Channel { channel; args; _ } ->
+      register_expr_strings env channel;
+      List.iter (register_expr_strings env) args
+  | Plain (_name, args) | Global (_name, args) ->
+      List.iter (register_expr_strings env) args
+  | Eq (lhs, rhs) | Neq (lhs, rhs) ->
+      register_expr_strings env lhs;
+      register_expr_strings env rhs
+  | File { path; contents } ->
+      register_expr_strings env path;
+      register_expr_strings env contents
+
+let rec register_cmd_strings env (cmd : T.cmd) =
+  match cmd.desc with
+  | Skip -> ()
+  | Sequence (lhs, rhs) ->
+      register_cmd_strings env lhs;
+      register_cmd_strings env rhs
+  | Put facts | Event facts -> List.iter (register_fact_strings env) facts
+  | Let (_id, expr, body) ->
+      register_expr_strings env expr;
+      register_cmd_strings env body
+  | Assign (_, expr) | Return expr | Del (expr, _) ->
+      register_expr_strings env expr
+  | Case cases -> List.iter (register_case_strings env) cases
+  | While (repeat_cases, until_cases) ->
+      List.iter (register_case_strings env) repeat_cases;
+      List.iter (register_case_strings env) until_cases
+  | New (_id, value, body) ->
+      Option.iter
+        (fun (_name, args) -> List.iter (register_expr_strings env) args)
+        value;
+      register_cmd_strings env body
+  | Get (_ids, expr, _name, body) ->
+      register_expr_strings env expr;
+      register_cmd_strings env body
+
+and register_case_strings env ({ facts; cmd; _ } : T.case) =
+  List.iter (register_fact_strings env) facts;
+  register_cmd_strings env cmd
+
+let register_proc_strings env (proc : T.proc) =
+  let { T.parameter; args; _ } = proc.data in
+  Option.iter (register_expr_strings env) parameter;
+  List.iter
+    (fun ({ parameter; _ } : T.chan_arg) ->
+       Option.iter (Option.iter (register_expr_strings env)) parameter)
+    args
+
+let register_proc_group_strings env = function
+  | T.Unbounded proc -> register_proc_strings env proc
+  | Bounded (_id, procs) -> List.iter (register_proc_strings env) procs
+
+let register_lemma_strings env (_id, lemma : T.ident * T.lemma) =
+  match lemma.desc with
+  | Plain _ -> ()
+  | Reachability { facts; _ } -> List.iter (register_fact_strings env) facts
+  | Correspondence { premise; conclusion; _ } ->
+      register_fact_strings env premise;
+      register_fact_strings env conclusion
+
+let rec register_decl_strings env (decl : T.decl) =
+  match decl.desc with
+  | Equation (lhs, rhs) ->
+      register_expr_strings env lhs;
+      register_expr_strings env rhs
+  | Syscall { cmd; _ } | Attack { cmd; _ } -> register_cmd_strings env cmd
+  | Init { desc = Value expr; _ }
+  | Init { desc = Value_with_param (_, expr); _ } ->
+      register_expr_strings env expr
+  | Process { files; vars; funcs; main; _ } ->
+      List.iter
+        (fun (path, _typ, contents) ->
+           register_expr_strings env path;
+           register_expr_strings env contents)
+        files;
+      List.iter (fun (_id, expr) -> register_expr_strings env expr) vars;
+      List.iter (fun (_id, _args, cmd) -> register_cmd_strings env cmd) funcs;
+      register_cmd_strings env main
+  | System (procs, lemmas) ->
+      List.iter (register_proc_group_strings env) procs;
+      List.iter (register_lemma_strings env) lemmas
+  | Load (_filename, decls) -> List.iter (register_decl_strings env) decls
+  | Function _ | Type _ | Allow _ | AllowAttack _
+  | Init { desc = Fresh | Fresh_with_param; _ } | Channel _ -> ()
 
 module Int : sig
   val to_term_e : int -> term_e
@@ -2308,11 +2415,9 @@ let compile_generated_string_consts env : tdecl list =
      out(ch, msg(hello_world_str))
      ```
   *)
-  Hashtbl.to_seq env.string_table
-  |> List.of_seq
-  |> List.sort_uniq compare
-  |> List.concat_map (fun (s, id) ->
-      [ TComment (Printf.sprintf "String constant %S" s)
+  env.strings
+  |> List.concat_map (fun (literal, id) ->
+      [ TComment (Printf.sprintf "String constant %S" literal)
       ; TConstDecl (id, bitstring_ident, []) ])
 
 let compile_generated_syscall_consts env : tdecl list =
@@ -2328,9 +2433,7 @@ let compile_generated_syscall_consts env : tdecl list =
      const send_s : syscall_t.
      ```
   *)
-  Hashtbl.to_seq env.syscall_table
-  |> List.of_seq
-  |> List.sort_uniq compare
+  env.syscalls
   |> List.concat_map (fun (s, id) ->
       [ TComment (Printf.sprintf "syscall %s(..)" s)
       ; TConstDecl (id, syscall_t_ident, [])
@@ -2351,13 +2454,10 @@ let compile_generated_event_decls env : tdecl list =
      query image:bitstring; event(ImgSend(image)).
      ```
   *)
-  Hashtbl.to_seq env.event_table
-  |> List.of_seq
-  |> List.sort_uniq compare
-  |> List.concat_map (fun (name, arity) ->
+  List.concat_map (fun (name, arity) ->
       [ TComment (Printf.sprintf "Event declaration ::%s(..)" name)
       ; TEventDecl (compile_name name, List.init arity (fun _ -> bitstring_ident))
-      ])
+      ]) env.events
 
 (* 3.4 Encoding Structured facts, new, let, delete
 
@@ -2384,9 +2484,7 @@ let compile_generated_structure_decls env : tdecl list =
      namespaces or imported declarations, this generation scheme may need to be
      made more explicit. *)
   let mk_var index = pv_ident (Printf.sprintf "x_%d" index) in
-  Hashtbl.to_seq env.structure_table
-  |> List.of_seq
-  |> List.sort_uniq compare
+  env.structures
   |> List.concat_map @@ fun (name, arity) ->
       let envdecl =
         List.init (arity + 1) (fun index -> mk_var index, bitstring_ident)
@@ -2521,6 +2619,7 @@ and compile_decl env (decl : T.decl) : tdecl list =
 
 let compile_program (decls : T.decl list) : Pv_parser.program =
   let env = create_env () in
+  List.iter (register_decl_strings env) decls;
   (* Types must be first scanned for `compile_proc_call` *)
   collect_process_types env decls;
   let body = List.concat_map (compile_decl env) decls in
