@@ -1,23 +1,38 @@
+(* Predefined types *)
 type param_data.
 type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker: channel.
+(* Tables *)
 table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
+(* Booleans *)
 const true: bitstring.
 const false: bitstring.
+(* Event declaration ::Valid(..) *)
 event Valid.
-const hello_str: bitstring.
+(* String constant "/secret/pub" *)
 const secret_pub_str: bitstring.
+(* String constant "hello" *)
+const hello_str: bitstring.
+(* Body *)
+(* type server_t : process *)
 const server_t: proc_t.
+(* type readonly_t : filesys *)
 const readonly_t: acc_data_t.
+(* process server(..): server_t *)
 let server(ptype:proc_t) =
+  (* file "/secret/pub" : readonly_t = .. *)
   insert file_type_table(ptype, readonly_t, secret_pub_str);
   new rabbit__file_ch:channel;
   out(rabbit__file_ch, (secret_pub_str, hello_str)) | event Valid.
+(* Requires *)
+(* lemma ReachableValid *)
 query event(Valid()).
+(* System *)
 process server(server_t).
