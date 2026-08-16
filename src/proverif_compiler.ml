@@ -585,17 +585,8 @@ let ppar
 (*
    3.9 Syscall and Attack Encoding
 
-   XXX Example is wrong
-
-   ```
-   put [ c :: store(v) ];
-   rest
-   ```
-
-   ```
-   out(c, store(v)) |
-   rest
-   ```
+   A single token is sent on a private channel. Each branch races to receive
+   that token, so exactly one branch can proceed.
 *)
 let nondet_choose_processes
     (branches : tprocess_e list)
@@ -1794,7 +1785,7 @@ let compile_equation ~loc:_loc env (lhs : T.expr) (rhs : T.expr) : tdecl list =
 (* Syscalls are expanded when they are called.
    No declaration is generated at this point.
 *)
-let compile_syscall
+let collect_syscall
     ~loc
     env
     (id : T.ident)
@@ -1804,10 +1795,9 @@ let compile_syscall
   =
   let syscall_ident = Fresh.syscall_ident env id in
   let def = { id; syscall_ident; args; cmd; attack; loc } in
-  Register.syscall_def ~loc env id def;
-  []
+  Register.syscall_def ~loc env id def
 
-let compile_attack
+let collect_attack
     ~loc
     env
     (id : T.ident)
@@ -1815,8 +1805,7 @@ let compile_attack
     (args : T.ident list)
     (cmd : T.cmd)
   =
-  Register.attack_def ~loc env id { id; syscall; args; cmd; loc };
-  []
+  Register.attack_def ~loc env id { id; syscall; args; cmd; loc }
 
 (* 3.2 Encoding Process Types, Channel types, File types, and Access
 
@@ -1888,7 +1877,7 @@ let compile_allow
         t_target_typs target_typs;
       []
 
-let compile_allow_attack
+let collect_allow_attack
     ~loc:(_loc : Location.t)
     env
     (process_typs : T.ident list)
@@ -1903,8 +1892,7 @@ let compile_allow_attack
          | Some prev -> prev
        in
        Hashtbl.replace env.allow_attack_table key (prev @ attacks))
-    process_typs;
-  []
+    process_typs
 
 let compile_init ~loc:(_loc : Location.t) env (id : T.ident) (desc : T.init_desc) : tdecl list =
   (*
@@ -2575,14 +2563,20 @@ let add_allow_inits env (body : tprocess_e) : tprocess_e =
     (List.rev env.allow_entries)
     body
 
-let rec collect_process_types env (decls : T.decl list) =
-  List.iter
-    (fun (decl : T.decl) ->
-       match decl.desc with
-       | Process { id; typ; _ } -> register_process_type env id typ
-       | Load (_filename, decls) -> collect_process_types env decls
-       | _ -> ())
-    decls
+let rec collect_decl env (decl : T.decl) =
+  let loc = decl.loc in
+  match decl.desc with
+  | Syscall { id; args; cmd; attack } ->
+      collect_syscall ~loc env id args cmd attack
+  | Attack { id; syscall; args; cmd } ->
+      collect_attack ~loc env id syscall args cmd
+  | AllowAttack { process_typs; attacks } ->
+      collect_allow_attack ~loc env process_typs attacks
+  | Process { id; typ; _ } ->
+      register_process_type env id typ
+  | Load (_filename, decls) ->
+      List.iter (collect_decl env) decls
+  | _ -> ()
 
 (* `load` simply expands its declaration. *)
 let rec compile_load env (filename : string) (decls : T.decl list) : tdecl list =
@@ -2596,16 +2590,14 @@ and compile_decl env (decl : T.decl) : tdecl list =
       compile_function ~loc id arity
   | Equation (lhs, rhs) ->
       compile_equation ~loc env lhs rhs
-  | Syscall { id; args; cmd; attack } ->
-      compile_syscall ~loc env id args cmd attack
-  | Attack { id; syscall; args; cmd } ->
-      compile_attack ~loc env id syscall args cmd
+  | Syscall _ | Attack _ ->
+      []
   | Type { id; typclass } ->
       compile_type ~loc id typclass
   | Allow { process_typ; target_typs; syscalls } ->
       compile_allow ~loc env process_typ target_typs syscalls
-  | AllowAttack { process_typs; attacks } ->
-      compile_allow_attack ~loc env process_typs attacks
+  | AllowAttack _ ->
+      []
   | Init { id; desc } ->
       compile_init ~loc env id desc
   | Channel { id; param; typ } ->
@@ -2620,8 +2612,7 @@ and compile_decl env (decl : T.decl) : tdecl list =
 let compile_program (decls : T.decl list) : Pv_parser.program =
   let env = create_env () in
   List.iter (register_decl_strings env) decls;
-  (* Types must be first scanned for `compile_proc_call` *)
-  collect_process_types env decls;
+  List.iter (collect_decl env) decls;
   let body = List.concat_map (compile_decl env) decls in
   let top_process = Option.value env.top_process ~default:(process_e PNil) in
   let top_process = add_allow_inits env top_process in
