@@ -36,42 +36,13 @@ type attack_def =
   }
 [@@warning "-69"]
 
-type global_env =
-  { mutable strings        : (string * ident) list
-  ; mutable syscalls       : (string * ident) list
-  ; syscall_def_table      : (string, syscall_def) Hashtbl.t
-  ; attack_def_table       : (string, attack_def) Hashtbl.t
-  ; allow_attack_table     : (string, T.ident list) Hashtbl.t
-  ; generated_name_counter : (string, int) Hashtbl.t
-  ; mutable allow_entries  : (T.ident * T.ident * T.ident option * ident * ident * ident) list
-  ; process_type_table     : (string, ident) Hashtbl.t
-  ; mutable structures     : (string * int) list
-  ; mutable events         : (string * int) list (** event name and arity *)
-  ; mutable top_process    : tprocess_e option
-  }
-
-let create_env () : global_env =
-  { strings                = []
-  ; syscalls               = []
-  ; syscall_def_table      = Hashtbl.create 101
-  ; attack_def_table       = Hashtbl.create 101
-  ; allow_attack_table     = Hashtbl.create 101
-  ; generated_name_counter = Hashtbl.create 101
-  ; allow_entries          = []
-  ; process_type_table     = Hashtbl.create 101
-  ; structures             = []
-  ; events                 = []
-  ; top_process            = None
-  }
-
 let with_dummy_ident_ext x = x, Parsing_helper.dummy_ext
 
 let with_dummy_node_ext x = x, Parsing_helper.dummy_ext, []
 
 let pv_ident (s : string) : ident = with_dummy_ident_ext s
 
-let compile_ident (id : T.ident) : ident =
-  pv_ident (Ident.to_string id)
+let compile_ident (id : T.ident) : ident = pv_ident (Ident.to_string id)
 
 let bitstring_ident             = pv_ident "bitstring"
 let channel_ident               = pv_ident "channel"
@@ -110,248 +81,6 @@ let structure_addr_ident (name : T.name) : ident =
 (* "StructPar1" for "Struct" and 1 *)
 let structure_arg_ident (name : T.name) (index : int) : ident =
   pv_ident (Printf.sprintf "%sPar%d" name index)
-
-module Register : sig
-  val syscall_def : loc:Location.t -> global_env -> Ident.t -> syscall_def -> unit
-  val attack_def : loc:Location.t -> global_env -> Ident.t -> attack_def -> unit
-  val structure : loc:Location.t -> global_env -> T.name -> int -> unit
-  val event : loc:Location.t -> global_env -> T.name -> int -> unit
-end = struct
-  let register kind get_table ~loc genv id def =
-    let table = get_table genv in
-    let name = Ident.to_string id in
-    match Hashtbl.find_opt table name with
-    | None -> Hashtbl.add table name def
-    | Some _ ->
-        error ~loc @@
-        Invalid_input
-          (Printf.sprintf "%s %s is defined more than once" kind name)
-
-  let register_with_arity kind get_entries set_entries ~loc genv (name : T.name) (arity : int) =
-    let entries = get_entries genv in
-    match List.assoc_opt name entries with
-    | None -> set_entries genv (entries @ [name, arity])
-    | Some arity' when arity' = arity -> ()
-    | Some arity' ->
-        error ~loc @@
-        Invalid_input
-          (Printf.sprintf
-             "%s %s is used with inconsistent arities (%d and %d)"
-             kind name arity' arity)
-
-  let syscall_def =
-    register "Syscall" (fun genv -> genv.syscall_def_table)
-
-  let attack_def =
-    register "Attack" (fun genv -> genv.attack_def_table)
-
-  let structure =
-    register_with_arity
-      "Structure"
-      (fun genv -> genv.structures)
-      (fun genv structures -> genv.structures <- structures)
-
-  let event =
-    register_with_arity
-      "Event"
-      (fun genv -> genv.events)
-      (fun genv events -> genv.events <- events)
-
-end
-
-let register_process_type genv (process_id : T.ident) (typ : T.ident) =
-  Hashtbl.replace
-    genv.process_type_table
-    (Ident.to_string process_id)
-    (compile_ident typ)
-
-let find_process_type ~loc genv (process_id : T.ident) : ident =
-  match
-    Hashtbl.find_opt genv.process_type_table (Ident.to_string process_id)
-  with
-  | Some typ -> typ
-  | None ->
-      error ~loc @@
-      Internal_error
-        (Printf.sprintf
-           "process type for %s is not available in ProVerif system translation"
-           (Ident.to_string process_id))
-
-let find_syscall_def genv (id : T.ident) : syscall_def option =
-  Hashtbl.find_opt genv.syscall_def_table (Ident.to_string id)
-
-let find_allowed_attacks
-    genv
-    ~(process_typ_id : T.ident)
-    ~(syscall_id : T.ident)
-  : attack_def list =
-  let allowed =
-    match Hashtbl.find_opt genv.allow_attack_table (Ident.to_string process_typ_id) with
-    | None -> []
-    | Some ids -> ids
-  in
-  List.filter_map
-    (fun attack_id ->
-       match Hashtbl.find_opt genv.attack_def_table (Ident.to_string attack_id) with
-       | Some def when def.syscall = syscall_id -> Some def
-       | _ -> None)
-    allowed
-
-module Fresh : sig
-  val register_string : global_env -> string -> unit
-  val string_ident : global_env -> string -> ident
-  val syscall_ident : global_env -> T.ident -> ident
-end = struct
-  (* Propose a variable name for a string constant *)
-  let sanitize_string_for_ident s =
-    let sanitized =
-      s
-      |> Str.global_replace (Str.regexp "[^A-Za-z0-9_]+") "_"
-      |> Str.global_replace (Str.regexp "_+") "_"
-      |> Str.global_replace (Str.regexp "^_\\|_$") ""
-    in
-    if sanitized = "" then
-      "empty"
-    else
-      sanitized
-
-  let ident genv ~base : ident =
-    (* make sure `base` does not end with `_g[0-9]+` *)
-    let base =
-      if Str.string_match (Str.regexp ".*_g[0-9]+$") base 0 then
-        base ^ "_"
-      else
-        base
-    in
-    match Hashtbl.find_opt genv.generated_name_counter base with
-    | None ->
-        Hashtbl.add genv.generated_name_counter base 1;
-        pv_ident base
-    | Some i ->
-        Hashtbl.replace genv.generated_name_counter base (i+1);
-        pv_ident (Printf.sprintf "%s_g%d" base i)
-
-  (* "hello" -> "hello_str" *)
-  let register_string genv s =
-    match List.assoc_opt s genv.strings with
-    | Some _ -> ()
-    | None ->
-        let base = sanitize_string_for_ident s ^ "_str" in
-        let id = ident genv ~base in
-        genv.strings <- genv.strings @ [s, id]
-
-  let string_ident genv s : ident =
-    register_string genv s;
-    match List.assoc_opt s genv.strings with
-    | Some id -> id
-    | None -> assert false
-
-  (* "name" -> "name_s" *)
-  let syscall_ident genv (id : T.ident) : ident =
-    let name = Ident.to_string id in
-    match List.assoc_opt name genv.syscalls with
-    | Some id -> id
-    | None ->
-        let base = sanitize_string_for_ident name ^ "_s" in
-        let syscall_ident = ident genv ~base in
-        genv.syscalls <- genv.syscalls @ [name, syscall_ident];
-        syscall_ident
-end
-
-let rec register_expr_strings genv (expr : T.expr) =
-  match expr.desc with
-  | Ident { param; _ } -> Option.iter (register_expr_strings genv) param
-  | Apply (_, args) | Tuple args -> List.iter (register_expr_strings genv) args
-  | String s -> Fresh.register_string genv s
-  | Boolean _ | Integer _ | Float _ | Unit -> ()
-
-let register_fact_strings genv (fact : T.fact) =
-  match fact.desc with
-  | Channel { channel; args; _ } ->
-      register_expr_strings genv channel;
-      List.iter (register_expr_strings genv) args
-  | Plain (_name, args) | Global (_name, args) ->
-      List.iter (register_expr_strings genv) args
-  | Eq (lhs, rhs) | Neq (lhs, rhs) ->
-      register_expr_strings genv lhs;
-      register_expr_strings genv rhs
-  | File { path; contents } ->
-      register_expr_strings genv path;
-      register_expr_strings genv contents
-
-let rec register_cmd_strings genv (cmd : T.cmd) =
-  match cmd.desc with
-  | Skip -> ()
-  | Sequence (lhs, rhs) ->
-      register_cmd_strings genv lhs;
-      register_cmd_strings genv rhs
-  | Put facts | Event facts -> List.iter (register_fact_strings genv) facts
-  | Let (_id, expr, body) ->
-      register_expr_strings genv expr;
-      register_cmd_strings genv body
-  | Assign (_, expr) | Return expr | Del (expr, _) ->
-      register_expr_strings genv expr
-  | Case cases -> List.iter (register_case_strings genv) cases
-  | While (repeat_cases, until_cases) ->
-      List.iter (register_case_strings genv) repeat_cases;
-      List.iter (register_case_strings genv) until_cases
-  | New (_id, value, body) ->
-      Option.iter
-        (fun (_name, args) -> List.iter (register_expr_strings genv) args)
-        value;
-      register_cmd_strings genv body
-  | Get (_ids, expr, _name, body) ->
-      register_expr_strings genv expr;
-      register_cmd_strings genv body
-
-and register_case_strings genv ({ facts; cmd; _ } : T.case) =
-  List.iter (register_fact_strings genv) facts;
-  register_cmd_strings genv cmd
-
-let register_proc_strings genv (proc : T.proc) =
-  let { T.parameter; args; _ } = proc.data in
-  Option.iter (register_expr_strings genv) parameter;
-  List.iter
-    (fun ({ parameter; _ } : T.chan_arg) ->
-       Option.iter (Option.iter (register_expr_strings genv)) parameter)
-    args
-
-let register_proc_group_strings genv = function
-  | T.Unbounded proc -> register_proc_strings genv proc
-  | Bounded (_id, procs) -> List.iter (register_proc_strings genv) procs
-
-let register_lemma_strings genv (_id, lemma : T.ident * T.lemma) =
-  match lemma.desc with
-  | Plain _ -> ()
-  | Reachability { facts; _ } -> List.iter (register_fact_strings genv) facts
-  | Correspondence { premise; conclusion; _ } ->
-      register_fact_strings genv premise;
-      register_fact_strings genv conclusion
-
-let rec register_decl_strings genv (decl : T.decl) =
-  match decl.desc with
-  | Equation (lhs, rhs) ->
-      register_expr_strings genv lhs;
-      register_expr_strings genv rhs
-  | Syscall { cmd; _ } | Attack { cmd; _ } -> register_cmd_strings genv cmd
-  | Init { desc = Value expr; _ }
-  | Init { desc = Value_with_param (_, expr); _ } ->
-      register_expr_strings genv expr
-  | Process { files; vars; funcs; main; _ } ->
-      List.iter
-        (fun (path, _typ, contents) ->
-           register_expr_strings genv path;
-           register_expr_strings genv contents)
-        files;
-      List.iter (fun (_id, expr) -> register_expr_strings genv expr) vars;
-      List.iter (fun (_id, _args, cmd) -> register_cmd_strings genv cmd) funcs;
-      register_cmd_strings genv main
-  | System (procs, lemmas) ->
-      List.iter (register_proc_group_strings genv) procs;
-      List.iter (register_lemma_strings genv) lemmas
-  | Load (_filename, decls) -> List.iter (register_decl_strings genv) decls
-  | Function _ | Type _ | Allow _ | AllowAttack _
-  | Init { desc = Fresh | Fresh_with_param; _ } | Channel _ -> ()
 
 module Int : sig
   val to_term_e : int -> term_e
@@ -418,6 +147,266 @@ end = struct
       unfold_minus_gterm (zero_gterm_e ()) (-n)
 end
 
+module GEnv = struct
+
+  type t =
+    { mutable strings        : (string * ident) list
+    ; mutable syscalls       : (string * ident) list
+    ; syscall_def_table      : (string, syscall_def) Hashtbl.t
+    ; attack_def_table       : (string, attack_def) Hashtbl.t
+    ; allow_attack_table     : (string, T.ident list) Hashtbl.t
+    ; generated_name_counter : (string, int) Hashtbl.t
+    ; mutable allow_entries  : (T.ident * T.ident * T.ident option * ident * ident * ident) list
+    ; process_type_table     : (string, ident) Hashtbl.t
+    ; mutable structures     : (string * int) list
+    ; mutable events         : (string * int) list (** event name and arity *)
+    ; mutable top_process    : tprocess_e option
+    }
+
+  let create () : t =
+    { strings                = []
+    ; syscalls               = []
+    ; syscall_def_table      = Hashtbl.create 101
+    ; attack_def_table       = Hashtbl.create 101
+    ; allow_attack_table     = Hashtbl.create 101
+    ; generated_name_counter = Hashtbl.create 101
+    ; allow_entries          = []
+    ; process_type_table     = Hashtbl.create 101
+    ; structures             = []
+    ; events                 = []
+    ; top_process            = None
+    }
+
+  let register kind get_table ~loc genv id def =
+    let table = get_table genv in
+    let name = Ident.to_string id in
+    match Hashtbl.find_opt table name with
+    | None -> Hashtbl.add table name def
+    | Some _ ->
+        error ~loc @@
+        Invalid_input
+          (Printf.sprintf "%s %s is defined more than once" kind name)
+
+  let register_with_arity kind get_entries set_entries ~loc genv (name : T.name) (arity : int) =
+    let entries = get_entries genv in
+    match List.assoc_opt name entries with
+    | None -> set_entries genv (entries @ [name, arity])
+    | Some arity' when arity' = arity -> ()
+    | Some arity' ->
+        error ~loc @@
+        Invalid_input
+          (Printf.sprintf
+             "%s %s is used with inconsistent arities (%d and %d)"
+             kind name arity' arity)
+
+  let register_syscall_def =
+    register "Syscall" (fun genv -> genv.syscall_def_table)
+
+  let register_attack_def =
+    register "Attack" (fun genv -> genv.attack_def_table)
+
+  let register_structure =
+    register_with_arity
+      "Structure"
+      (fun genv -> genv.structures)
+      (fun genv structures -> genv.structures <- structures)
+
+  let register_event =
+    register_with_arity
+      "Event"
+      (fun genv -> genv.events)
+      (fun genv events -> genv.events <- events)
+
+  let register_process_type genv (process_id : T.ident) (typ : T.ident) =
+    Hashtbl.replace
+      genv.process_type_table
+      (Ident.to_string process_id)
+      (compile_ident typ)
+
+  let find_process_type ~loc genv (process_id : T.ident) : ident =
+    match
+      Hashtbl.find_opt genv.process_type_table (Ident.to_string process_id)
+    with
+    | Some typ -> typ
+    | None ->
+        error ~loc @@
+        Internal_error
+          (Printf.sprintf
+             "process type for %s is not available in ProVerif system translation"
+             (Ident.to_string process_id))
+
+  let find_syscall_def genv (id : T.ident) : syscall_def option =
+    Hashtbl.find_opt genv.syscall_def_table (Ident.to_string id)
+
+  let find_allowed_attacks
+      genv
+      ~(process_typ_id : T.ident)
+      ~(syscall_id : T.ident)
+    : attack_def list =
+    let allowed =
+      match Hashtbl.find_opt genv.allow_attack_table (Ident.to_string process_typ_id) with
+      | None -> []
+      | Some ids -> ids
+    in
+    List.filter_map
+      (fun attack_id ->
+         match Hashtbl.find_opt genv.attack_def_table (Ident.to_string attack_id) with
+         | Some def when def.syscall = syscall_id -> Some def
+         | _ -> None)
+      allowed
+
+  (* Propose a variable name for a string constant *)
+  let sanitize_string_for_ident s =
+    let sanitized =
+      s
+      |> Str.global_replace (Str.regexp "[^A-Za-z0-9_]+") "_"
+      |> Str.global_replace (Str.regexp "_+") "_"
+      |> Str.global_replace (Str.regexp "^_\\|_$") ""
+    in
+    if sanitized = "" then
+      "empty"
+    else
+      sanitized
+
+  let register_ident genv ~base : ident =
+    (* make sure `base` does not end with `_g[0-9]+` *)
+    let base =
+      if Str.string_match (Str.regexp ".*_g[0-9]+$") base 0 then
+        base ^ "_"
+      else
+        base
+    in
+    match Hashtbl.find_opt genv.generated_name_counter base with
+    | None ->
+        Hashtbl.add genv.generated_name_counter base 1;
+        pv_ident base
+    | Some i ->
+        Hashtbl.replace genv.generated_name_counter base (i+1);
+        pv_ident (Printf.sprintf "%s_g%d" base i)
+
+  (* "hello" -> "hello_str" *)
+  let register_string genv s =
+    match List.assoc_opt s genv.strings with
+    | Some _ -> ()
+    | None ->
+        let base = sanitize_string_for_ident s ^ "_str" in
+        let id = register_ident genv ~base in
+        genv.strings <- genv.strings @ [s, id]
+
+  let fresh_string_ident genv s : ident =
+    register_string genv s;
+    match List.assoc_opt s genv.strings with
+    | Some id -> id
+    | None -> assert false
+
+  (* "name" -> "name_s" *)
+  let fresh_syscall_ident genv (id : T.ident) : ident =
+    let name = Ident.to_string id in
+    match List.assoc_opt name genv.syscalls with
+    | Some id -> id
+    | None ->
+        let base = sanitize_string_for_ident name ^ "_s" in
+        let syscall_ident = register_ident genv ~base in
+        genv.syscalls <- genv.syscalls @ [name, syscall_ident];
+        syscall_ident
+
+  let rec register_expr_strings genv (expr : T.expr) =
+    match expr.desc with
+    | Ident { param; _ } -> Option.iter (register_expr_strings genv) param
+    | Apply (_, args) | Tuple args -> List.iter (register_expr_strings genv) args
+    | String s -> register_string genv s
+    | Boolean _ | Integer _ | Float _ | Unit -> ()
+
+  let register_fact_strings genv (fact : T.fact) =
+    match fact.desc with
+    | Channel { channel; args; _ } ->
+        register_expr_strings genv channel;
+        List.iter (register_expr_strings genv) args
+    | Plain (_name, args) | Global (_name, args) ->
+        List.iter (register_expr_strings genv) args
+    | Eq (lhs, rhs) | Neq (lhs, rhs) ->
+        register_expr_strings genv lhs;
+        register_expr_strings genv rhs
+    | File { path; contents } ->
+        register_expr_strings genv path;
+        register_expr_strings genv contents
+
+  let rec register_cmd_strings genv (cmd : T.cmd) =
+    match cmd.desc with
+    | Skip -> ()
+    | Sequence (lhs, rhs) ->
+        register_cmd_strings genv lhs;
+        register_cmd_strings genv rhs
+    | Put facts | Event facts -> List.iter (register_fact_strings genv) facts
+    | Let (_id, expr, body) ->
+        register_expr_strings genv expr;
+        register_cmd_strings genv body
+    | Assign (_, expr) | Return expr | Del (expr, _) ->
+        register_expr_strings genv expr
+    | Case cases -> List.iter (register_case_strings genv) cases
+    | While (repeat_cases, until_cases) ->
+        List.iter (register_case_strings genv) repeat_cases;
+        List.iter (register_case_strings genv) until_cases
+    | New (_id, value, body) ->
+        Option.iter
+          (fun (_name, args) -> List.iter (register_expr_strings genv) args)
+          value;
+        register_cmd_strings genv body
+    | Get (_ids, expr, _name, body) ->
+        register_expr_strings genv expr;
+        register_cmd_strings genv body
+
+  and register_case_strings genv ({ facts; cmd; _ } : T.case) =
+    List.iter (register_fact_strings genv) facts;
+    register_cmd_strings genv cmd
+
+  let register_proc_strings genv (proc : T.proc) =
+    let { T.parameter; args; _ } = proc.data in
+    Option.iter (register_expr_strings genv) parameter;
+    List.iter
+      (fun ({ parameter; _ } : T.chan_arg) ->
+         Option.iter (Option.iter (register_expr_strings genv)) parameter)
+      args
+
+  let register_proc_group_strings genv = function
+    | T.Unbounded proc -> register_proc_strings genv proc
+    | Bounded (_id, procs) -> List.iter (register_proc_strings genv) procs
+
+  let register_lemma_strings genv (_id, lemma : T.ident * T.lemma) =
+    match lemma.desc with
+    | Plain _ -> ()
+    | Reachability { facts; _ } -> List.iter (register_fact_strings genv) facts
+    | Correspondence { premise; conclusion; _ } ->
+        register_fact_strings genv premise;
+        register_fact_strings genv conclusion
+
+  let rec register_decl_strings genv (decl : T.decl) =
+    match decl.desc with
+    | Equation (lhs, rhs) ->
+        register_expr_strings genv lhs;
+        register_expr_strings genv rhs
+    | Syscall { cmd; _ } | Attack { cmd; _ } -> register_cmd_strings genv cmd
+    | Init { desc = Value expr; _ }
+    | Init { desc = Value_with_param (_, expr); _ } ->
+        register_expr_strings genv expr
+    | Process { files; vars; funcs; main; _ } ->
+        List.iter
+          (fun (path, _typ, contents) ->
+             register_expr_strings genv path;
+             register_expr_strings genv contents)
+          files;
+        List.iter (fun (_id, expr) -> register_expr_strings genv expr) vars;
+        List.iter (fun (_id, _args, cmd) -> register_cmd_strings genv cmd) funcs;
+        register_cmd_strings genv main
+    | System (procs, lemmas) ->
+        List.iter (register_proc_group_strings genv) procs;
+        List.iter (register_lemma_strings genv) lemmas
+    | Load (_filename, decls) -> List.iter (register_decl_strings genv) decls
+    | Function _ | Type _ | Allow _ | AllowAttack _
+    | Init { desc = Fresh | Fresh_with_param; _ } | Channel _ -> ()
+
+end
+
 let rec compile_expr_to_term genv (expr : T.expr) : term_e =
   term_e @@ match expr.desc with
   | T.Ident { id; param = Some param; _ } ->
@@ -431,7 +420,7 @@ let rec compile_expr_to_term genv (expr : T.expr) : term_e =
   | Unit ->
       PTuple []
   | String s ->
-      PIdent (Fresh.string_ident genv s)
+      PIdent (GEnv.fresh_string_ident genv s)
   | Boolean true ->
       PIdent (pv_ident "true")
   | Boolean false ->
@@ -527,7 +516,7 @@ let rec compile_expr_to_gterm genv (expr : T.expr) : gterm_e =
   | Unit ->
       PGTuple []
   | String s ->
-      PGIdent (Fresh.string_ident genv s)
+      PGIdent (GEnv.fresh_string_ident genv s)
   | Boolean true ->
       PGIdent true_ident
   | Boolean false ->
@@ -557,7 +546,7 @@ let rec compile_expr_to_pterm genv penv (expr : T.expr) : pterm_e =
   | Unit ->
       PPTuple []
   | String s ->
-      PPIdent (Fresh.string_ident genv s)
+      PPIdent (GEnv.fresh_string_ident genv s)
   | Boolean true ->
       PPIdent true_ident
   | Boolean false ->
@@ -786,7 +775,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
   let loc = fact.loc in
   match fact.desc with
   | Global (name, args) ->
-      Register.event ~loc genv name (List.length args);
+      GEnv.register_event ~loc genv name (List.length args);
       process_e @@
       PEvent
         ( compile_name name
@@ -794,7 +783,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , None
         , body )
   | Plain (name, args) ->
-      Register.event ~loc genv name (List.length args);
+      GEnv.register_event ~loc genv name (List.length args);
       process_e
       @@ PEvent
         ( compile_name name
@@ -856,7 +845,7 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
   | Global ("Out", [arg]) ->
       process_e @@ POutput (pterm_e @@ PPIdent attacker_channel_ident, compile_expr_to_pterm genv penv arg, body)
   | Global (name, args) ->
-      Register.event ~loc genv name (List.length args);
+      GEnv.register_event ~loc genv name (List.length args);
       process_e @@
       PEvent
         ( compile_name name
@@ -1291,7 +1280,7 @@ and compile_syscall_call
      body
      ```
   *)
-  match find_syscall_def genv id with
+  match GEnv.find_syscall_def genv id with
   | None ->
       error ~loc @@
       Internal_error
@@ -1318,7 +1307,7 @@ and compile_syscall_call
             List.map
               (fun attack_def ->
                  compile_cmd genv (mk_call_env attack_def.args) (KProc on_fallthrough) attack_def.cmd)
-              (find_allowed_attacks genv ~process_typ_id ~syscall_id:id)
+              (GEnv.find_allowed_attacks genv ~process_typ_id ~syscall_id:id)
       in
       nondet_choose_processes (normal_branch :: attack_branches)
 
@@ -1394,7 +1383,7 @@ and compile_let_binding
      ```
   *)
   match expr.desc with
-  | Apply (syscall_id, args) when Option.is_some (find_syscall_def genv syscall_id) ->
+  | Apply (syscall_id, args) when Option.is_some (GEnv.find_syscall_def genv syscall_id) ->
       let old_value = find_process_var penv id in
       compile_syscall_call genv penv syscall_id args
         (fun value ->
@@ -1442,7 +1431,7 @@ and compile_assignment
      ```
   *)
   match expr.desc with
-  | Apply (syscall_id, args) when Option.is_some (find_syscall_def genv syscall_id) ->
+  | Apply (syscall_id, args) when Option.is_some (GEnv.find_syscall_def genv syscall_id) ->
       let on_return =
         match id_opt with
         | None -> fun _value -> continue_cmd genv penv kont
@@ -1660,7 +1649,7 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
                body )
   | New (id, Some (name, args), body) ->
       (* `compile_generated_structure_decls` handle the declarations *)
-      Register.structure ~loc:cmd.loc genv name (List.length args);
+      GEnv.register_structure ~loc:cmd.loc genv name (List.length args);
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
       let old_value = find_process_var penv id in
@@ -1679,7 +1668,7 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
                (KRestoreVar (id, old_value, kont))
                body )
   | Get (ids, expr, name, body) ->
-      Register.structure ~loc:cmd.loc genv name (List.length ids);
+      GEnv.register_structure ~loc:cmd.loc genv name (List.length ids);
       let struct_term = compile_expr_to_pterm genv penv expr in
       let addr_term = structure_addr_term name struct_term in
       let saved =
@@ -1793,9 +1782,9 @@ let collect_syscall
     (cmd : T.cmd)
     (attack : bool)
   =
-  let syscall_ident = Fresh.syscall_ident genv id in
+  let syscall_ident = GEnv.fresh_syscall_ident genv id in
   let def = { id; syscall_ident; args; cmd; attack; loc } in
-  Register.syscall_def ~loc genv id def
+  GEnv.register_syscall_def ~loc genv id def
 
 let collect_attack
     ~loc
@@ -1805,7 +1794,7 @@ let collect_attack
     (args : T.ident list)
     (cmd : T.cmd)
   =
-  Register.attack_def ~loc genv id { id; syscall; args; cmd; loc }
+  GEnv.register_attack_def ~loc genv id { id; syscall; args; cmd; loc }
 
 (* 3.2 Encoding Process Types, Channel types, File types, and Access
 
@@ -1846,7 +1835,7 @@ let compile_type ~loc:_loc (id : T.ident) (typclass : Input.type_class) =
 *)
 let compile_allow
     ~loc:_loc
-    genv
+    (genv : GEnv.t)
     (t_process_typ : T.ident)
     (t_target_typs : T.ident list)
     (syscalls : T.ident list option)
@@ -1870,7 +1859,7 @@ let compile_allow
         (fun t_target_typ target_typ ->
            List.iter
              (fun syscall ->
-                let syscall_ident = Fresh.syscall_ident genv syscall in
+                let syscall_ident = GEnv.fresh_syscall_ident genv syscall in
                 genv.allow_entries <- (t_process_typ, t_target_typ, Some syscall,
                                       process_typ, target_typ, syscall_ident) :: genv.allow_entries)
              syscalls)
@@ -1879,7 +1868,7 @@ let compile_allow
 
 let collect_allow_attack
     ~loc:(_loc : Location.t)
-    genv
+    (genv : GEnv.t)
     (process_typs : T.ident list)
     (attacks : T.ident list)
   =
@@ -2161,7 +2150,7 @@ let compile_proc_call genv (proc : T.proc) : tprocess_e =
      ```
   *)
   let proc_desc = proc.data in
-  let proc_type = find_process_type ~loc:proc.loc genv proc_desc.id in
+  let proc_type = GEnv.find_process_type ~loc:proc.loc genv proc_desc.id in
   let args =
     (pterm_e @@ PPIdent proc_type)
     ::
@@ -2234,10 +2223,10 @@ let compile_lemma_fact genv (fact : T.fact) : gterm_e =
   let loc = fact.loc in
   match fact.desc with
   | Global (name, args) ->
-      Register.event ~loc genv name (List.length args);
+      GEnv.register_event ~loc genv name (List.length args);
       gterm_event name (List.map (compile_expr_to_gterm genv) args)
   | Plain (name, args) ->
-      Register.event ~loc genv name (List.length args);
+      GEnv.register_event ~loc genv name (List.length args);
       gterm_event name (List.map (compile_expr_to_gterm genv) args)
   | Eq (lhs, rhs) ->
       gterm_binary "="
@@ -2335,7 +2324,7 @@ let compile_lemma
 *)
 let compile_system
     ~loc
-    genv
+    (genv : GEnv.t)
     (procs : T.proc_group_desc list)
     (lemmas : (T.ident * T.lemma) list) : tdecl list
   =
@@ -2345,7 +2334,7 @@ let compile_system
   genv.top_process <- Some top_process;
   TComment "Requires" :: List.concat_map (compile_lemma genv) lemmas
 
-let compile_prelude (_genv : global_env) : tdecl list =
+let compile_prelude (_genv : GEnv.t) : tdecl list =
   (*
      3.2 Encoding Process Types, Channel types, File types, and Access Control Policies
      3.7 File Fact Encoding
@@ -2389,7 +2378,7 @@ let compile_prelude (_genv : global_env) : tdecl list =
   ; TConstDecl (false_ident, bitstring_ident, [])
   ]
 
-let compile_generated_string_consts genv : tdecl list =
+let compile_string_consts (genv : GEnv.t) : tdecl list =
   (*
      3.1 Encoding Strings, Constants, Events and Function Declarations
 
@@ -2403,12 +2392,11 @@ let compile_generated_string_consts genv : tdecl list =
      out(ch, msg(hello_world_str))
      ```
   *)
-  genv.strings
-  |> List.concat_map (fun (literal, id) ->
+  List.concat_map (fun (literal, id) ->
       [ TComment (Printf.sprintf "String constant %S" literal)
-      ; TConstDecl (id, bitstring_ident, []) ])
+      ; TConstDecl (id, bitstring_ident, []) ]) genv.strings
 
-let compile_generated_syscall_consts genv : tdecl list =
+let compile_syscall_consts (genv : GEnv.t) : tdecl list =
   (*
      3.2 Encoding Process Types, Channel types, File types, and Access Control Policies
      3.9 Syscall and Attack Encoding
@@ -2421,13 +2409,12 @@ let compile_generated_syscall_consts genv : tdecl list =
      const send_s : syscall_t.
      ```
   *)
-  genv.syscalls
-  |> List.concat_map (fun (s, id) ->
+  List.concat_map (fun (s, id) ->
       [ TComment (Printf.sprintf "syscall %s(..)" s)
       ; TConstDecl (id, syscall_t_ident, [])
-      ])
+      ]) genv.syscalls
 
-let compile_generated_event_decls genv : tdecl list =
+let compile_event_decls (genv : GEnv.t) : tdecl list =
   (*
      3.1 Encoding Strings, Constants, Events and Function Declarations
      3.12 Encoding Properties
@@ -2464,7 +2451,7 @@ let compile_generated_event_decls genv : tdecl list =
    ...
    ```
 *)
-let compile_generated_structure_decls genv : tdecl list =
+let compile_structure_decls (genv : GEnv.t) : tdecl list =
   (* Note: structure constructors/getters are generated globally from observed
      Rabbit structure usages. This assumes there is no conflicting user-level
      ProVerif declaration with the same generated names and that a per-name
@@ -2544,7 +2531,7 @@ let compile_generated_structure_decls genv : tdecl list =
    ...
    ```
 *)
-let add_allow_inits genv (body : tprocess_e) : tprocess_e =
+let add_allow_inits (genv : GEnv.t) (body : tprocess_e) : tprocess_e =
   List.fold_right
     (fun (t_process_typ, t_target_typ, syscall_opt, process_typ, target_typ, syscall_ident) acc ->
        add_comment
@@ -2563,7 +2550,7 @@ let add_allow_inits genv (body : tprocess_e) : tprocess_e =
     (List.rev genv.allow_entries)
     body
 
-let rec collect_decl genv (decl : T.decl) =
+let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
   let loc = decl.loc in
   match decl.desc with
   | Syscall { id; args; cmd; attack } ->
@@ -2573,7 +2560,7 @@ let rec collect_decl genv (decl : T.decl) =
   | AllowAttack { process_typs; attacks } ->
       collect_allow_attack ~loc genv process_typs attacks
   | Process { id; typ; _ } ->
-      register_process_type genv id typ
+      GEnv.register_process_type genv id typ
   | Load (_filename, decls) ->
       List.iter (collect_decl genv) decls
   | _ -> ()
@@ -2610,17 +2597,17 @@ and compile_load genv (filename : string) (decls : T.decl list) : tdecl list =
 
 
 let compile_program (decls : T.decl list) : Pv_parser.program =
-  let genv = create_env () in
-  List.iter (register_decl_strings genv) decls;
+  let genv = GEnv.create () in
+  List.iter (GEnv.register_decl_strings genv) decls;
   List.iter (collect_decl genv) decls;
   let body = List.concat_map (compile_decl genv) decls in
   let top_process = Option.value genv.top_process ~default:(process_e PNil) in
   let top_process = add_allow_inits genv top_process in
   ( compile_prelude genv
-    @ compile_generated_structure_decls genv
-    @ compile_generated_syscall_consts genv
-    @ compile_generated_event_decls genv
-    @ compile_generated_string_consts genv
+    @ compile_structure_decls genv
+    @ compile_syscall_consts genv
+    @ compile_event_decls genv
+    @ compile_string_consts genv
     @ [ TComment "Body" ]
     @ body
     @ [ TComment "System" ]
