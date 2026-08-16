@@ -1,24 +1,43 @@
+(* Predefined types *)
 type param_data.
 type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker: channel.
+(* Tables *)
 table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
+(* Booleans *)
 const true: bitstring.
 const false: bitstring.
+(* Event declaration ::Other(..) *)
 event Other(bitstring).
+(* Event declaration ::Valid(..) *)
 event Valid(bitstring).
+(* Body *)
+(* function pk:1 *)
 fun pk(bitstring): bitstring.
+(* function pair:2 *)
 fun pair(bitstring, bitstring): bitstring.
+(* const fresh priv_k<> *)
 fun priv_k(param_data): bitstring.
+(* const pubkey<k__1> = .. *)
 reduc forall k__1:param_data; pubkey(k__1) = pk(priv_k(k__1)).
+(* const cert<k__2> = .. *)
 reduc forall k__2:param_data; cert(k__2) = pair(pubkey(k__2), priv_k(k__2)).
+(* type proc_t : process *)
 const proc_t: proc_t.
-let server(ptype:proc_t) = event Valid(cert(0)); event Other(pubkey(1)).
+(* process server(..): proc_t *)
+let server(ptype:proc_t) = event Valid(cert(0));
+                           event Other(pubkey(1)).
+(* Requires *)
+(* lemma ReachableValid *)
 query event(Valid(cert(0))).
+(* lemma ReachableOther *)
 query event(Other(pubkey(1))).
+(* System *)
 process server(proc_t).

@@ -1,17 +1,25 @@
+(* Predefined types *)
 type param_data.
 type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker: channel.
+(* Tables *)
 table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
+(* Booleans *)
 const true: bitstring.
 const false: bitstring.
+(* Event declaration ::Valid(..) *)
 event Valid.
+(* Body *)
+(* type proc_t : process *)
 const proc_t: proc_t.
+(* process worker(..): proc_t *)
 let worker(ptype:proc_t) =
   new rabbit_loop_ch__31:channel;
   (out(rabbit_loop_ch__31, (false, 0)) |
@@ -24,5 +32,8 @@ let worker(ptype:proc_t) =
      else out(rabbit_loop_ch__31, (false, loop_state_0__33)))) |
   in(rabbit_loop_ch__31, (=true, loop_done_state_0__32:bitstring))[precise];
   event Valid.
+(* Requires *)
+(* lemma ReachableValid *)
 query event(Valid()).
+(* System *)
 process worker(proc_t).

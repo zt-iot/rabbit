@@ -1,19 +1,29 @@
+(* Predefined types *)
 type param_data.
 type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker: channel.
+(* Tables *)
 table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
+(* Booleans *)
 const true: bitstring.
 const false: bitstring.
+(* Event declaration ::Sent(..) *)
 event Sent.
+(* Body *)
+(* type proc_t : process *)
 const proc_t: proc_t.
+(* type chan_t : channel *)
 const chan_t: acc_data_t.
+(* process worker(..): proc_t *)
 let worker(ptype:proc_t, ch__41:channel) =
+  (* Channel ch__41 : chan_t *)
   insert channel_table(chan_t, ch__41);
   new rabbit_loop_ch__42:channel;
   (out(rabbit_loop_ch__42, false) |
@@ -22,14 +32,20 @@ let worker(ptype:proc_t, ch__41:channel) =
       then
         (get channel_table(ch_type__43:acc_data_t, =ch__41) in
          get access_control_table(=ptype, =ch_type__43, =none_syscall_s) in
-         out(ch__41, msg(0)) | event Sent; out(rabbit_loop_ch__42, false))
+         out(ch__41, msg(0)) | event Sent;
+                               out(rabbit_loop_ch__42, false))
       else out(rabbit_loop_ch__42, false)) |
      in(rabbit_loop_ch__42, =false)[precise];
      if 1 = 1 then out(rabbit_loop_ch__42, false)
      else out(rabbit_loop_ch__42, true))) |
   in(rabbit_loop_ch__42, =true)[precise].
+(* channel ch : chan_t *)
 free ch: channel[private].
+(* Requires *)
+(* lemma ReachableSent *)
 query event(Sent()).
+(* System *)
 process
+  (* allow proc_t chan_t [.] *)
   insert access_control_table(proc_t, chan_t, none_syscall_s);
   worker(proc_t, ch).

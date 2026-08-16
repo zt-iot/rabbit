@@ -1,20 +1,34 @@
+(* Predefined types *)
 type param_data.
 type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker: channel.
+(* Tables *)
 table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
+(* Booleans *)
 const true: bitstring.
 const false: bitstring.
+(* Event declaration ::Seen(..) *)
 event Seen(bitstring).
+(* Body *)
+(* type proc_t : process *)
 const proc_t: proc_t.
+(* const fresh secret *)
 const secret: bitstring.
+(* const alias = .. *)
 const alias: bitstring.
 equation alias = secret.
-let speaker(ptype:proc_t) = event Seen(secret); event Seen(alias).
+(* process speaker(..): proc_t *)
+let speaker(ptype:proc_t) = event Seen(secret);
+                            event Seen(alias).
+(* Requires *)
+(* lemma ReachableAlias *)
 query event(Seen(alias)).
+(* System *)
 process speaker(proc_t).
