@@ -402,17 +402,19 @@ let compile_process
           ~curr_syscall:(pterm_e @@ PPIdent none_syscall_ident)
           ~file_channel
       in
-      let rec init_vars penv = function
-        | [] ->
-            wrap_with_channel_init ~loc args
-            @@ wrap_with_file_init ~loc genv penv files
-            @@ compile_process_body genv penv main
-        | (var, expr) :: vars ->
+      let penv =
+        List.fold_left (fun penv (var, expr) ->
             let value = compile_expr_to_pterm genv penv expr in
-            init_vars (PEnv.bind_process_var penv var value) vars
+            PEnv.bind_process_var penv var value)
+          base_penv vars
+      in
+      let process =
+        wrap_with_channel_init ~loc args
+        @@ wrap_with_file_init ~loc genv penv files
+        @@ compile_process_body genv penv main
       in
       [ TComment (Printf.sprintf "process %s(..): %s" (Ident.to_string id) (Ident.to_string typ))
-      ; TPDef (compile_ident id, proc_args, init_vars base_penv vars)
+      ; TPDef (compile_ident id, proc_args, process)
       ]
 
 let compile_proc_call genv (proc : T.proc) : tprocess_e =
