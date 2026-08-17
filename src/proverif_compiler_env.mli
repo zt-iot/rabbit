@@ -1,0 +1,90 @@
+open Rabbit_proverif_pv_parse
+open Pitptree
+
+include module type of Proverif_compiler_support
+
+type syscall_def =
+  { pv_id : ident
+  ; args : T.ident list
+  ; cmd : T.cmd
+  }
+
+type attack_def =
+  { syscall : T.ident
+  ; args : T.ident list
+  ; cmd : T.cmd
+  }
+
+type allow_entry =
+  { rabbit_process_type : T.ident
+  ; rabbit_target_type : T.ident
+  ; rabbit_syscall : T.ident option
+  ; pv_process_type : ident
+  ; pv_target_type : ident
+  ; pv_syscall : ident
+  }
+
+module GEnv : sig
+  type t
+
+  val create : unit -> t
+  val add_allow_entry : t -> allow_entry -> unit
+  val add_allowed_attacks : t -> T.ident -> T.ident list -> unit
+  val allow_entries : t -> allow_entry list
+  val strings : t -> (string * ident) list
+  val syscalls : t -> (T.ident * syscall_def) list
+  val structures : t -> (T.name * int) list
+  val events : t -> (string * int) list
+  val top_process : t -> tprocess_e option
+  val set_top_process : t -> tprocess_e -> unit
+
+  val register_syscall : loc:Location.t -> t -> T.ident -> syscall_def -> unit
+  val register_attack_def : loc:Location.t -> t -> T.ident -> attack_def -> unit
+  val register_structure : loc:Location.t -> t -> T.name -> int -> unit
+  val register_event : loc:Location.t -> t -> T.name -> int -> unit
+  val register_process_type : loc:Location.t -> t -> T.ident -> T.ident -> unit
+  val find_process_type : loc:Location.t -> t -> T.ident -> ident
+  val find_syscall_def : t -> T.ident -> syscall_def option
+
+  val find_allowed_attacks :
+    loc:Location.t ->
+    t ->
+    process_typ_id:T.ident ->
+    syscall_id:T.ident ->
+    attack_def list
+
+  val fresh_string_ident : t -> string -> ident
+  val fresh_syscall_ident : loc:Location.t -> t -> T.ident -> ident
+  val register_decl_strings : t -> T.decl -> unit
+end
+
+module PEnv : sig
+  type t
+
+  val create_process_env :
+    local_func_defs:(T.ident * (T.ident list * T.cmd)) list ->
+    process_typ_id:T.ident option ->
+    proc_type:pterm_e ->
+    curr_syscall:pterm_e option ->
+    file_channel:pterm_e option ->
+    t
+
+  val bindings : t -> (T.ident * pterm_e) list
+  val process_typ_id : t -> T.ident option
+  val proc_type : t -> pterm_e
+  val curr_syscall : t -> pterm_e option
+  val file_channel : t -> pterm_e option
+  val return_cont : t -> (pterm_e -> tprocess_e) option
+  val with_curr_syscall : t -> pterm_e option -> t
+  val bind_process_var : t -> T.ident -> pterm_e -> t
+  val find_process_var : t -> T.ident -> pterm_e option
+  val find_process_var_exn : loc:Location.t -> t -> T.ident -> pterm_e
+
+  val restore_process_vars :
+    t ->
+    (T.ident * pterm_e option) list ->
+    t
+
+  val with_process_return_cont : t -> (pterm_e -> tprocess_e) -> t
+  val find_local_func_def : t -> T.ident -> (T.ident list * T.cmd) option
+end

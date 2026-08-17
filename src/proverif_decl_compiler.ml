@@ -1,0 +1,908 @@
+open Rabbit_proverif_pv_parse
+open Pitptree
+include Proverif_process_compiler
+
+(*
+  Line 30:
+
+  ```
+  function enc:2
+
+  fun enc ( bitstring, bitstring ).
+  ```
+
+  Here a function has a return type `bitstring`:
+
+  ```
+  fun enc ( bitstring, bitstring ): bitstring.
+  ```
+*)
+let compile_function ~loc:_loc (id : T.ident) (arity : int) : tdecl list =
+  let name = compile_ident id in
+  let arg_tys = List.init arity (fun _ -> bitstring_ident) in
+  [ TComment (Printf.sprintf "function %s:%d" (fst id) arity)
+  ; TFunDecl (name, arg_tys, bitstring_ident, [])
+  ]
+
+(*
+   Line 25:  Encoding Equational Theories
+
+   ```
+   equation dec(enc(x, y), y) = x
+
+   equation forall d:bitstring, k:bitstring;
+     dec(enc(d, k), k) = d.
+   ```
+
+   Here we have with a return type:
+
+   ```
+   equation forall x__5:bitstring, y__6:bitstring;
+     dec(enc(x__5, y__6), y__6) = x__5.
+   ```
+
+   TODO: Line 40: Potential Improvement
+*)
+let compile_equation ~loc:_loc genv (lhs : T.expr) (rhs : T.expr) : tdecl list =
+  let envdecl =
+    List.sort_uniq compare (T.vars_of_expr lhs @ T.vars_of_expr rhs)
+    |> List.map (fun id -> compile_ident id, bitstring_ident)
+  in
+  let lhs_term = compile_expr_to_term genv lhs in
+  let rhs_term = compile_expr_to_term genv rhs in
+  let equality_term =
+    term_e @@ PFunApp (pv_ident "=", [lhs_term; rhs_term])
+  in
+  [ TComment (Printf.sprintf "equation %s = %s" (T.string_of_expr lhs) (T.string_of_expr rhs))
+  ; TEquation ([envdecl, EETerm equality_term], [])
+  ]
+
+(* Syscalls are expanded when they are called.
+   No declaration is generated at this point.
+*)
+let collect_syscall
+    ~loc
+    genv
+    (id : T.ident)
+    (args : T.ident list)
+    (cmd : T.cmd)
+  =
+  let pv_id = GEnv.fresh_syscall_ident ~loc genv id in
+  let def = { pv_id; args; cmd; } in
+  GEnv.register_syscall ~loc genv id def
+
+let collect_attack
+    ~loc
+    genv
+    (id : T.ident)
+    (syscall : T.ident)
+    (args : T.ident list)
+    (cmd : T.cmd)
+  =
+  GEnv.register_attack_def ~loc genv id { syscall; args; cmd; }
+
+(* 3.2 Encoding Process Types, Channel types, File types, and Access
+
+   ```
+   type client_t : process
+   type udp_t : channel
+   ```
+
+   ```
+   type proc_t.
+   type acc_data_t.
+
+   const client_t : proc_t.
+   const udp_t : acc_data_t.
+   ```
+*)
+let compile_type ~loc:_loc (id : T.ident) (typclass : Input.type_class) =
+  let ty =
+    match typclass with
+    | CProc -> proc_t_ident
+    | CFsys | CChan -> acc_data_t_ident
+  in
+  [ TComment (Printf.sprintf "type %s : %s" (Ident.to_string id) (Input.string_of_type_class typclass))
+  ; TConstDecl (compile_ident id, ty, [])
+  ]
+
+(* 3.2 Encoding Process Types, Channel types, File types, and Control Policies
+
+   ```
+   allow client_t udp_t [send]
+   ```
+
+   ```
+   table access_control_table(proc_t, acc_data_t, syscall_t).
+   ...
+   insert access_control_table(client_t, udp_t, send_s);
+   ```
+*)
+let compile_allow
+    ~loc
+    (genv : GEnv.t)
+    (t_process_typ : T.ident)
+    (t_target_typs : T.ident list)
+    (syscalls : T.ident list option)
+  =
+  let process_typ = compile_ident t_process_typ in
+  let target_typs = List.map compile_ident t_target_typs in
+  match syscalls with
+  | None ->
+      (* Note: [allow ... [.] ] is currently represented by granting access to
+         the distinguished pseudo-syscall [none_syscall_s]. This is a pragmatic
+         encoding choice for direct process operations, but it is worth
+         re-checking against the final spec once syscall lowering is in place. *)
+      List.iter2
+        (fun t_target_typ target_typ ->
+           let entry =
+             { rabbit_process_type = t_process_typ
+             ; rabbit_target_type = t_target_typ
+             ; rabbit_syscall = None
+             ; pv_process_type = process_typ
+             ; pv_target_type = target_typ
+             ; pv_syscall = none_syscall_ident
+             }
+           in
+           GEnv.add_allow_entry genv entry)
+        t_target_typs target_typs;
+      []
+  | Some syscalls ->
+      List.iter2 (fun t_target_typ target_typ ->
+          List.iter (fun syscall ->
+              match GEnv.find_syscall_def genv syscall with
+              | None ->
+                  Error.internal ~loc "Syscall %s is not registered"
+                    (Ident.to_string syscall)
+              | Some def ->
+                  let entry =
+                    { rabbit_process_type = t_process_typ
+                    ; rabbit_target_type = t_target_typ
+                    ; rabbit_syscall = Some syscall
+                    ; pv_process_type = process_typ
+                    ; pv_target_type = target_typ
+                    ; pv_syscall = def.pv_id
+                    }
+                  in
+                  GEnv.add_allow_entry genv entry)
+            syscalls)
+        t_target_typs target_typs;
+      []
+
+let collect_allow_attack
+    ~loc:(_loc : Location.t)
+    (genv : GEnv.t)
+    (process_typs : T.ident list)
+    (attacks : T.ident list)
+  =
+  List.iter
+    (fun process_typ -> GEnv.add_allowed_attacks genv process_typ attacks)
+    process_typs
+
+let compile_init ~loc:(_loc : Location.t) genv (id : T.ident) (desc : T.init_desc) : tdecl list =
+  (*
+     3.1 Encoding Strings, Constants, Events and Function Declarations
+     3.10 Parametrized Feature Encoding
+
+     ```
+     const fresh priv_k
+     const pubkey<k> = pk(priv_k<k>)
+     ```
+
+     ```
+     const priv_k : bitstring.
+     reduc forall k:param_data; pubkey(k) = pk(priv_k(k)).
+     ```
+  *)
+  let init_ident = compile_ident id in
+  match desc with
+  | Fresh ->
+      [ TComment (Printf.sprintf "const fresh %s" (Ident.to_string id))
+      ; TConstDecl (init_ident, bitstring_ident, [])
+      ]
+  | Value expr ->
+      let init_term = term_e @@ PIdent init_ident in
+      let value_term = compile_expr_to_term genv expr in
+      [ TComment (Printf.sprintf "const %s = .." (Ident.to_string id))
+      ; TConstDecl (init_ident, bitstring_ident, [])
+      ; TEquation
+          ( [ [], EETerm (term_e @@ PFunApp (pv_ident "=", [init_term; value_term])) ]
+          , [] )
+      ]
+  | Value_with_param (param, expr) ->
+      let param_ident = compile_ident param in
+      let init_term =
+        term_e @@ PFunApp (init_ident, [term_e @@ PIdent param_ident])
+      in
+      let value_term = compile_expr_to_term genv expr in
+      [ TComment (Printf.sprintf "const %s<%s> = .." (Ident.to_string id) (Ident.to_string param))
+      ; TReduc
+          ( [ [param_ident, param_data_ident]
+            , EETerm (term_e @@ PFunApp (pv_ident "=", [init_term; value_term]))
+            ]
+          , [] )
+      ]
+  | Fresh_with_param ->
+      [ TComment (Printf.sprintf "const fresh %s<>" (Ident.to_string id))
+      ; TFunDecl (init_ident, [param_data_ident], bitstring_ident, [])]
+
+let compile_channel
+    ~loc
+    (id : T.ident)
+    (param : unit option)
+    (typ : T.ident)
+  =
+  (*
+     3.3 Encoding of process and channels declarations
+
+     ```
+     channel udp : udp_t
+     ```
+
+     ```
+     free udp : channel [private].
+     ```
+  *)
+  match param with
+  | Some () ->
+      Error.unsupported ~loc
+        "Parameterized channel declarations are not supported yet"
+  | None ->
+      [ TComment (Printf.sprintf "channel %s : %s" (Ident.to_string id) (Ident.to_string typ))
+      ; TFree (compile_ident id, channel_ident, [pv_ident "private", None])
+      ]
+
+let process_file_channel_ident : ident = pv_ident "rabbit__file_ch"
+
+let wrap_with_channel_init
+    ~loc
+    (args : T.chan_param list)
+    (body : tprocess_e)
+  : tprocess_e =
+  (*
+     3.2 Encoding Process Types, Channel types, File types, and Access Control Policies
+
+     ```
+     process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t { ... }
+     ```
+
+     ```
+     insert channel_table(udp_t, ch_net);
+     insert channel_table(rpc_t, ch_rpc);
+     ...
+     ```
+  *)
+  List.fold_right
+    (fun ({ channel; param; typ } : T.chan_param) acc ->
+       match param with
+       | Some () ->
+           Error.unsupported ~loc
+             "Parameterized process channel arguments are not supported yet"
+       | None ->
+           add_comment (Printf.sprintf "Channel %s : %s" (Ident.to_string channel) (Ident.to_string typ)) @@
+           process_e @@
+             PInsert
+                ( channel_table_ident
+                , [ pterm_e @@ PPIdent (compile_ident typ)
+                  ; pterm_e @@ PPIdent (compile_ident channel)
+                  ]
+                , acc ))
+    args
+    body
+
+let wrap_with_file_init
+    ~loc
+    (genv : GEnv.t)
+    (penv : PEnv.t)
+    (files : (T.expr * T.ident * T.expr) list)
+    (body : tprocess_e)
+  : tprocess_e =
+  (*
+     3.7 File Fact Encoding
+
+     ```
+     process client_ta(...) : client_ta_t {
+       file "/secret/priv" : readonly_t = enc(priv_k, sym_k)
+       ...
+     }
+     ```
+
+     ```
+     insert file_type_table(ptype, readonly_t, secret_priv_str);
+     new file_ch : channel;
+     out(file_ch, (secret_priv_str, enc(priv_k, sym_k))) |
+     ...
+     ```
+  *)
+  match PEnv.file_channel penv with
+  | None ->
+      if files = [] then
+        body
+      else
+        Error.internal ~loc
+          "Internal file channel is not available for process file setup"
+  | Some file_channel ->
+      let output_processes =
+        List.map
+          (fun ((path, _typ, contents) : T.expr * T.ident * T.expr) ->
+             let payload =
+               pterm_e @@
+                 PPTuple
+                    [ compile_expr_to_pterm genv penv path
+                    ; compile_expr_to_pterm genv penv contents
+                    ]
+             in
+             process_e @@ POutput (file_channel, payload, process_e @@ PNil))
+          files
+      in
+      let parallel_body =
+        match output_processes with
+        | [] -> body
+        | proc :: procs ->
+            List.fold_left
+              (fun acc proc -> process_e @@ PPar (acc, proc))
+              proc
+              (body :: procs)
+      in
+      let with_channel =
+        process_e @@ PRestr (process_file_channel_ident, None, channel_ident, parallel_body)
+      in
+      List.fold_right
+        (fun ((path, typ, _contents) : T.expr * T.ident * T.expr) acc ->
+           add_comment (Printf.sprintf "file %s : %s = .." (T.string_of_expr path) (Ident.to_string typ)) @@
+           process_e @@
+             PInsert
+                ( file_type_table_ident
+                , [ pterm_e @@ PPIdent ptype_arg_ident
+                  ; pterm_e @@ PPIdent (compile_ident typ)
+                  ; compile_expr_to_pterm genv penv path
+                  ]
+                , acc ))
+        files
+        with_channel
+
+(* 3.3 Encoding of process and channels declarations
+
+   ```
+   process client(ch_net : udp_t, ch_rpc : rpc_t) : client_t
+   {
+      ..
+   }
+   ```
+
+   ```
+   let client(ptype : prot_t, ch_net : channel, ch_rpc : channel) = ..
+*)
+let compile_process
+    genv
+    ~loc
+    (id : T.ident)
+    (param : T.ident option)
+    (args : T.chan_param list)
+    (typ : T.ident)
+    (files : (T.expr * T.ident * T.expr) list)
+    (vars : (T.ident * T.expr) list)
+    (funcs : (T.ident * T.ident list * T.cmd) list)
+    (main : T.cmd)
+  : tdecl list =
+  let local_func_defs =
+    List.map (fun (id, args, cmd) -> id, (args, cmd)) funcs
+  in
+  match param with
+  | Some _ ->
+      Error.unsupported ~loc
+        "Parameterized process declarations are not supported yet"
+  | None ->
+      let proc_args =
+        (ptype_arg_ident, proc_t_ident, false)
+        ::
+        List.map
+          (fun ({ channel; param; _ } : T.chan_param) ->
+             match param with
+             | Some () ->
+                 Error.unsupported ~loc
+                   "Parameterized process channel arguments are not supported yet"
+             | None -> compile_ident channel, channel_ident, false)
+          args
+      in
+      let base_penv =
+        if files = [] then
+          PEnv.create_process_env
+            ~local_func_defs
+            ~process_typ_id:(Some typ)
+            ~proc_type:(pterm_e @@ PPIdent ptype_arg_ident)
+            ~curr_syscall:(Some (pterm_e @@ PPIdent none_syscall_ident))
+            ~file_channel:None
+        else
+          PEnv.create_process_env
+            ~local_func_defs
+            ~process_typ_id:(Some typ)
+            ~proc_type:(pterm_e @@ PPIdent ptype_arg_ident)
+            ~curr_syscall:(Some (pterm_e @@ PPIdent none_syscall_ident))
+            ~file_channel:(Some (pterm_e @@ PPIdent process_file_channel_ident))
+      in
+      let rec init_vars penv = function
+        | [] ->
+            wrap_with_channel_init ~loc args
+            @@ wrap_with_file_init ~loc genv penv files
+            @@ compile_process_body genv penv main
+        | (var, expr) :: vars ->
+            let value = compile_expr_to_pterm genv penv expr in
+            init_vars (PEnv.bind_process_var penv var value) vars
+      in
+      [ TComment (Printf.sprintf "process %s(..): %s" (Ident.to_string id) (Ident.to_string typ))
+      ; TPDef (compile_ident id, proc_args, init_vars base_penv vars)
+      ]
+
+let compile_proc_call genv (proc : T.proc) : tprocess_e =
+  (*
+     3.3 Encoding of process and channels declarations
+
+     ```
+     client(udp, rpc)
+     ```
+
+     ```
+     client(client_t, udp, rpc)
+     ```
+  *)
+  let proc_desc = proc.data in
+  let proc_type = GEnv.find_process_type ~loc:proc.loc genv proc_desc.id in
+  let args =
+    (pterm_e @@ PPIdent proc_type)
+    ::
+    (match proc_desc.parameter with
+     | None -> []
+     | Some _ ->
+         Error.unsupported ~loc:proc.loc
+           "Parameterized process instantiation is not supported yet")
+    @
+    List.map
+      (fun ({ channel; parameter; _ } : T.chan_arg) ->
+         match parameter with
+         | None -> pterm_e @@ PPIdent (compile_ident channel)
+         | Some None | Some (Some _) ->
+             Error.unsupported ~loc:proc.loc
+               "Parameterized channel instantiation is not supported yet")
+      proc_desc.args
+  in
+  process_e @@ PLetDef (compile_ident proc_desc.id, args, None)
+
+let parallel_proc (procs : tprocess_e list) : tprocess_e =
+  match procs with
+  | [] -> process_e @@ PNil
+  | proc :: procs ->
+      List.fold_left
+        (fun acc proc -> process_e @@ PPar (acc, proc))
+        proc
+        procs
+
+let compile_proc_group_desc genv (proc_group : T.proc_group_desc) : tprocess_e =
+  (*
+     3.3 Encoding of process and channels declarations
+
+     ```
+     !group.(p1 | p2)
+     ```
+
+     ```
+     !(p1 | p2)
+     ```
+  *)
+  match proc_group with
+  | Unbounded proc -> compile_proc_call genv proc
+  | Bounded (_id, procs) ->
+      process_e @@ PRepl (parallel_proc (List.map (compile_proc_call genv) procs))
+
+let gterm_binary (op : string) (lhs : gterm_e) (rhs : gterm_e) : gterm_e =
+  gterm_e @@ PGFunApp (pv_ident op, [lhs; rhs], None)
+
+(* `g1 op g2 op .. op gn` *)
+let rec gterm_binary_mult ~loc op = function
+  | [] ->
+      Error.internal ~loc "Cannot combine an empty list of query facts"
+  | [g] -> g
+  | g :: gs ->
+      gterm_binary op g (gterm_binary_mult ~loc op gs)
+
+let gterm_event
+    (name : T.name)
+    (args : gterm_e list)
+  : gterm_e =
+  gterm_e @@
+  PGFunApp
+    ( pv_ident "event"
+    , [gterm_e @@ PGFunApp (compile_name name, args, None)]
+    , None )
+
+let compile_lemma_fact genv (fact : T.fact) : gterm_e =
+  let loc = fact.loc in
+  match fact.desc with
+  | Global (name, args) ->
+      GEnv.register_event ~loc genv name (List.length args);
+      gterm_event name (List.map (compile_expr_to_gterm genv) args)
+  | Plain (name, args) ->
+      GEnv.register_event ~loc genv name (List.length args);
+      gterm_event name (List.map (compile_expr_to_gterm genv) args)
+  | Eq (lhs, rhs) ->
+      gterm_binary "="
+        (compile_expr_to_gterm genv lhs)
+        (compile_expr_to_gterm genv rhs)
+  | Neq (lhs, rhs) ->
+      gterm_binary "<>"
+        (compile_expr_to_gterm genv lhs)
+        (compile_expr_to_gterm genv rhs)
+  | Channel _ | File _ ->
+      (* Section 3.12 does not specify how to translate Channel and File facts *)
+      Error.unsupported ~loc
+        "Channel/file facts are not supported in ProVerif lemma lowering"
+
+(* 3.12 Encoding Properties
+
+   ```
+   system
+     ...
+   requires
+   [
+     lemma Reachable :
+       reachable ::ClientClose(), ::ClientTAClose(), ::ImgRecvValid(x) ;
+
+     lemma Correspondence : (* falsified *)
+       corresponds ::ImgRecvValid(x) ~> ::ImgSend (x)
+   ]
+   ```
+
+   ```
+   query x:bitstring;
+     event(ClientClose)
+     && event(ClientTAClose)
+     && event(ImgRecvValid(x)) .
+
+   query x:bitstring;
+     event(ImgRecvValid(x)) ==> event(ImgSend(x)) .
+   ```
+*)
+let compile_lemma
+    genv
+    ((lemma_id, lemma) : T.ident * T.lemma) : tdecl list =
+  let envdecl =
+    List.map
+      (fun id -> compile_ident id, bitstring_ident)
+      (match lemma.desc with
+       | T.Plain _ -> []
+       | Reachability { fresh; _ } -> fresh
+       | Correspondence { fresh; _ } -> fresh)
+  in
+  let query =
+    match lemma.desc with
+    | T.Plain s ->
+        (* No spec for Plain lemma *)
+        Error.unsupported ~loc:lemma.loc
+          "Plain lemma %S is not supported in ProVerif query lowering" s
+    | Reachability { facts; _ } ->
+        add_comment (Printf.sprintf "reachable %s" (String.concat ", " (List.map (fun _ -> "_") facts))) @@
+        tquery_e @@
+        PRealQuery
+          (gterm_binary_mult ~loc:lemma.loc "&&" (List.map (compile_lemma_fact genv) facts), [])
+    | Correspondence { premise; conclusion; _ } ->
+        add_comment "corresponds _ ~> _" @@
+        tquery_e @@
+        PRealQuery
+          (gterm_binary "==>"
+             (compile_lemma_fact genv premise)
+             (compile_lemma_fact genv conclusion), [])
+  in
+  [ TComment (Printf.sprintf "lemma %s" (Ident.to_string lemma_id))
+  ; TQuery (envdecl, [query], [])
+  ]
+
+(* 3.3 Encoding of process and channels declarations
+
+   ```
+   system
+     client(udp, rpc)
+     | server(udp)
+     | client_ta(rpc)
+   requires ..
+   ```
+
+   ```
+   process
+     ...
+     client(client_t, udp, rpc)
+     | server(server_t, udp)
+     | client_ta(client_ta_t, rpc)
+     ...
+   ```
+*)
+let compile_system
+    ~loc
+    (genv : GEnv.t)
+    (procs : T.proc_group_desc list)
+    (lemmas : (T.ident * T.lemma) list) : tdecl list
+  =
+  if GEnv.top_process genv <> None then
+    Error.invalid_input ~loc "Multiple system declarations are not accepted";
+  let top_process = parallel_proc @@ List.map (compile_proc_group_desc genv) procs in
+  GEnv.set_top_process genv top_process;
+  TComment "Requires" :: List.concat_map (compile_lemma genv) lemmas
+
+let compile_prelude (_genv : GEnv.t) : tdecl list =
+  (*
+     3.2 Encoding Process Types, Channel types, File types, and Access Control Policies
+     3.7 File Fact Encoding
+     3.9 Syscall and Attack Encoding
+
+     ```
+     type client_t : process
+     type udp_t : channel
+     allow client_t udp_t [send]
+     ```
+
+     ```
+     type proc_t.
+     type acc_data_t.
+     type syscall_t.
+     free attacker : channel.
+     table access_control_table(proc_t, acc_data_t, syscall_t).
+     table file_type_table(proc_t, acc_data_t, bitstring).
+     table channel_table(acc_data_t, channel).
+     table deleted_address_table(bitstring).
+     const none_syscall_s : syscall_t.
+     ```
+  *)
+  [ TComment "Predefined types"
+  ; TTypeDecl param_data_ident
+  ; TTypeDecl proc_t_ident
+  ; TTypeDecl acc_data_t_ident
+  ; TTypeDecl syscall_t_ident
+  ; TFree (attacker_channel_ident, channel_ident, [])
+  ; TComment "Tables"
+  ; TTableDecl
+      (access_control_table_ident, [proc_t_ident; acc_data_t_ident; syscall_t_ident])
+  ; TTableDecl
+      (file_type_table_ident, [proc_t_ident; acc_data_t_ident; bitstring_ident])
+  ; TTableDecl (channel_table_ident, [acc_data_t_ident; channel_ident])
+  ; TTableDecl (deleted_address_table_ident, [bitstring_ident])
+  ; TComment "Pattern which matches with any system call"
+  ; TConstDecl (none_syscall_ident, syscall_t_ident, [])
+  ; TComment "Booleans"
+  ; TConstDecl (true_ident, bitstring_ident, [])
+  ; TConstDecl (false_ident, bitstring_ident, [])
+  ]
+
+let compile_string_consts (genv : GEnv.t) : tdecl list =
+  (*
+     3.1 Encoding Strings, Constants, Events and Function Declarations
+
+     ```
+     put [ ch :: msg("hello world") ]
+     ```
+
+     ```
+     const hello_world_str : bitstring.
+     ...
+     out(ch, msg(hello_world_str))
+     ```
+  *)
+  List.concat_map (fun (literal, id) ->
+      [ TComment (Printf.sprintf "String constant %S" literal)
+      ; TConstDecl (id, bitstring_ident, []) ]) (GEnv.strings genv)
+
+let compile_syscall_consts (genv : GEnv.t) : tdecl list =
+  (*
+     3.2 Encoding Process Types, Channel types, File types, and Access Control Policies
+     3.9 Syscall and Attack Encoding
+
+     ```
+     syscall send(c, v) { ... }
+     ```
+
+     ```
+     const send_s : syscall_t.
+     ```
+  *)
+  List.concat_map (fun (id, def) ->
+      [ TComment (Printf.sprintf "syscall %s(..)" (Ident.to_string id))
+      ; TConstDecl (def.pv_id, syscall_t_ident, [])
+      ]) (GEnv.syscalls genv)
+
+let compile_event_decls (genv : GEnv.t) : tdecl list =
+  (*
+     3.1 Encoding Strings, Constants, Events and Function Declarations
+     3.12 Encoding Properties
+
+     ```
+     event [:: ImgSend(image)]
+     lemma Reachable : reachable ::ImgSend(image)
+     ```
+
+     ```
+     event ImgSend(bitstring).
+     query image:bitstring; event(ImgSend(image)).
+     ```
+  *)
+  List.concat_map (fun (name, arity) ->
+      [ TComment (Printf.sprintf "Event declaration ::%s(..)" name)
+      ; TEventDecl (compile_name name, List.init arity (fun _ -> bitstring_ident))
+      ]) (GEnv.events genv)
+
+(* 3.4 Encoding Structured facts, new, let, delete
+
+   ```
+   new x := Struct(x1, ..., xn)
+   ```
+
+   ```
+   fun Struct ( bitstring , ... , bitstring ) : bitstring [ data ] .
+   reduc forall x_0 : bitstring , ... , x_n : bitstring ;
+     StructAddr ( Struct ( x_0 , ... , x_n ) = x_0 .
+   reduc forall x_0 : bitstring , ... , x_n : bitstring ;
+     StructPar1 ( Struct ( x_0 , ... , x_n ) = x_1 .
+   reduc forall x_0 : bitstring , ... , x_n : bitstring ;
+     StructParn ( Struct ( x_0 , ... , x_n ) = x_n .
+   ...
+   ```
+*)
+let compile_structure_decls (genv : GEnv.t) : tdecl list =
+  (* Note: structure constructors/getters are generated globally from observed
+     Rabbit structure usages. This assumes there is no conflicting user-level
+     ProVerif declaration with the same generated names and that a per-name
+     arity discipline is enough. If the surrounding language grows richer
+     namespaces or imported declarations, this generation scheme may need to be
+     made more explicit. *)
+  let mk_var index = pv_ident (Printf.sprintf "x_%d" index) in
+  GEnv.structures genv
+  |> List.concat_map @@ fun (name, arity) ->
+      let envdecl =
+        List.init (arity + 1) (fun index -> mk_var index, bitstring_ident)
+      in
+      let vars =
+        List.map (fun (id, _ty) -> term_e @@ PIdent id) envdecl
+      in
+      let struct_term =
+        (* Struct(x_0, ..., x_n) *)
+        term_e @@ PFunApp (structure_ctor_ident name, vars)
+      in
+      let ctor_decl =
+        (* fun Struct (bitstring, ..., bitstring) : bitstring[data]. *)
+        TFunDecl
+          ( structure_ctor_ident name
+          , List.init (arity + 1) (fun _ -> bitstring_ident)
+          , bitstring_ident
+          , [pv_ident "data", None] )
+      in
+      let addr_decl =
+        (* reduc forall x_0:bitstring, ..., x_n:bitstring;
+             StructAddr(Struct(x_0, ..., x_n) = x_0.
+        *)
+        TReduc
+          ( [ envdecl
+            , EETerm
+                (term_e @@
+                   PFunApp
+                      ( pv_ident "="
+                      , [ term_e @@ PFunApp (structure_addr_ident name, [struct_term])
+                        ; List.nth vars 0
+                        ] ))
+            ]
+          , [] )
+      in
+      let arg_decls =
+        (* reduc forall x_0:bitstring, ..., x_n:bitstring;
+             StructPari(Struct(x_0, ..., x_n) = x_i.
+        *)
+        List.init arity
+          (fun index ->
+             TReduc
+               ( [ envdecl
+                 , EETerm
+                     (term_e @@
+                        PFunApp
+                           ( pv_ident "="
+                           , [ term_e @@ PFunApp (structure_arg_ident name (index + 1), [struct_term])
+                             ; List.nth vars (index + 1)
+                             ] ))
+                 ]
+               , [] ))
+      in
+      TComment (Printf.sprintf "Structure declaration %s(%s)"
+                  name (String.concat "," @@ List.init arity (fun _ -> "_"))) ::
+      ctor_decl :: addr_decl :: arg_decls
+
+(*
+   3.2 Encoding Process Types, Channel types, File types, and Access Control Policies
+
+   ```
+   allow client_t udp_t [send]
+   allow client_t readonly_t [.]
+   ```
+
+   ```
+   insert access_control_table(client_t, udp_t, send_s);
+   insert access_control_table(client_t, readonly_t, none_syscall_s);
+   ...
+   ```
+*)
+let add_allow_inits (genv : GEnv.t) (body : tprocess_e) : tprocess_e =
+  List.fold_right
+    (fun entry acc ->
+       add_comment
+         (Printf.sprintf "allow %s %s [%s]"
+            (Ident.to_string entry.rabbit_process_type)
+            (Ident.to_string entry.rabbit_target_type)
+            (match entry.rabbit_syscall with Some s -> Ident.to_string s | None -> ".")) @@
+       process_e @@
+         PInsert
+            ( access_control_table_ident
+            , [ pterm_e @@ PPIdent entry.pv_process_type
+              ; pterm_e @@ PPIdent entry.pv_target_type
+              ; pterm_e @@ PPIdent entry.pv_syscall
+              ]
+            , acc ))
+    (List.rev (GEnv.allow_entries genv))
+    body
+
+let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
+  let loc = decl.loc in
+  match decl.desc with
+  | Syscall { id; args; cmd; attack=_ } ->
+      collect_syscall ~loc genv id args cmd
+  | Attack { id; syscall; args; cmd } ->
+      collect_attack ~loc genv id syscall args cmd
+  | AllowAttack { process_typs; attacks } ->
+      collect_allow_attack ~loc genv process_typs attacks
+  | Process { id; typ; _ } ->
+      GEnv.register_process_type ~loc genv id typ
+  | Load (_filename, decls) ->
+      List.iter (collect_decl genv) decls
+  | _ -> ()
+
+let rec compile_decl genv (decl : T.decl) : tdecl list =
+  let loc = decl.loc in
+  match decl.desc with
+  | Syscall _ | Attack _ | AllowAttack _ ->
+      (* They are handled by `collect_decl` *)
+      []
+  | Function { id; arity } ->
+      compile_function ~loc id arity
+  | Equation (lhs, rhs) ->
+      compile_equation ~loc genv lhs rhs
+  | Type { id; typclass } ->
+      compile_type ~loc id typclass
+  | Allow { process_typ; target_typs; syscalls } ->
+      compile_allow ~loc genv process_typ target_typs syscalls
+  | Init { id; desc } ->
+      compile_init ~loc genv id desc
+  | Channel { id; param; typ } ->
+      compile_channel ~loc id param typ
+  | Process { id; param; args; typ; files; vars; funcs; main } ->
+      compile_process genv ~loc id param args typ files vars funcs main
+  | System (procs, lemmas) ->
+      compile_system ~loc genv procs lemmas
+  | Load (filename, decls) ->
+      compile_load genv filename decls
+
+(* `load` simply expands its declaration. *)
+and compile_load genv (filename : string) (decls : T.decl list) : tdecl list =
+  TComment (Printf.sprintf "Load %s" filename) ::
+  List.concat_map (compile_decl genv) decls
+
+
+let compile_program (decls : T.decl list) : Pv_parser.program =
+  let genv = GEnv.create () in
+  List.iter (GEnv.register_decl_strings genv) decls;
+  List.iter (collect_decl genv) decls;
+  let body = List.concat_map (compile_decl genv) decls in
+  let top_process = Option.value (GEnv.top_process genv) ~default:(process_e PNil) in
+  let top_process = add_allow_inits genv top_process in
+  ( compile_prelude genv
+    @ compile_structure_decls genv
+    @ compile_syscall_consts genv
+    @ compile_event_decls genv
+    @ compile_string_consts genv
+    @ [ TComment "Body" ]
+    @ body
+    @ [ TComment "System" ]
+  , top_process
+  , None )
