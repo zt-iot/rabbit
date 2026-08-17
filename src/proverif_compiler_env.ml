@@ -323,7 +323,7 @@ module PEnv = struct
   type t =
     { bindings : (T.ident * pterm_e) list (** variales and their values in Proverif *)
     ; local_func_defs : (T.ident * (T.ident list * T.cmd)) list
-    ; process_typ_id : T.ident option
+    ; process_typ_id : T.ident
     ; proc_type : pterm_e
     ; curr_syscall : pterm_e
     ; file_channel : pterm_e option
@@ -332,7 +332,7 @@ module PEnv = struct
 
   let create_process_env
       ~(local_func_defs : (T.ident * (T.ident list * T.cmd)) list)
-      ~(process_typ_id : T.ident option)
+      ~(process_typ_id : T.ident)
       ~(proc_type : pterm_e)
       ~(curr_syscall : pterm_e)
       ~(file_channel : pterm_e option)

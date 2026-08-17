@@ -76,7 +76,7 @@ module PEnv : sig
 
   val create_process_env :
     local_func_defs:(T.ident * (T.ident list * T.cmd)) list ->
-    process_typ_id:T.ident option ->
+    process_typ_id:T.ident ->
     proc_type:pterm_e ->
     curr_syscall:pterm_e ->
     file_channel:pterm_e option ->
@@ -94,7 +94,7 @@ module PEnv : sig
 
   val find_local_func_def : t -> T.ident -> (T.ident list * T.cmd) option
 
-  val process_typ_id : t -> T.ident option
+  val process_typ_id : t -> T.ident
   val proc_type : t -> pterm_e
 
   val curr_syscall : t -> pterm_e

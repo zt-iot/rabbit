@@ -818,13 +818,11 @@ and compile_syscall_call
         compile_cmd genv (mk_call_env def.args) (KProc on_fallthrough) def.cmd
       in
       let attack_branches =
-        match PEnv.process_typ_id penv with
-        | None -> []
-        | Some process_typ_id ->
-            List.map
-              (fun attack_def ->
-                 compile_cmd genv (mk_call_env attack_def.args) (KProc on_fallthrough) attack_def.cmd)
-              (GEnv.find_allowed_attacks ~loc genv ~process_typ_id ~syscall_id:id)
+        List.map
+          (fun attack_def ->
+             compile_cmd genv (mk_call_env attack_def.args) (KProc on_fallthrough) attack_def.cmd)
+          (GEnv.find_allowed_attacks ~loc genv
+             ~process_typ_id:(PEnv.process_typ_id penv) ~syscall_id:id)
       in
       nondet_choose_processes (normal_branch :: attack_branches)
 

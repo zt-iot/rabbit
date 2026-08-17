@@ -126,10 +126,7 @@ let compile_allow
   let target_typs = List.map compile_ident t_target_typs in
   match syscalls with
   | None ->
-      (* Note: there is no specification how to compile `allow ... [.]`.
-         Currently it is represented by granting access to the distinguished pseudo-syscall
-         `none_syscall_s`.
-      *)
+      (* Note: there is no specification how to compile `allow ... [.]`. *)
       List.iter2 (fun t_target_typ target_typ ->
           let entry =
             { rabbit_process_type = t_process_typ
@@ -371,7 +368,7 @@ let compile_process
     (funcs : (T.ident * T.ident list * T.cmd) list)
     (main : T.cmd)
   : tdecl list =
-  let local_func_defs =
+  let funcs =
     List.map (fun (id, args, cmd) -> id, (args, cmd)) funcs
   in
   match param with
@@ -380,6 +377,7 @@ let compile_process
         "Parameterized process declarations are not supported yet"
   | None ->
       let proc_args =
+        (* List of (identifier, type, may_fail) *)
         (ptype_arg_ident, proc_t_ident, false)
         ::
         List.map
@@ -392,20 +390,17 @@ let compile_process
           args
       in
       let base_penv =
-        if files = [] then
-          PEnv.create_process_env
-            ~local_func_defs
-            ~process_typ_id:(Some typ)
-            ~proc_type:(pterm_e @@ PPIdent ptype_arg_ident)
-            ~curr_syscall:(pterm_e @@ PPIdent none_syscall_ident)
-            ~file_channel:None
-        else
-          PEnv.create_process_env
-            ~local_func_defs
-            ~process_typ_id:(Some typ)
-            ~proc_type:(pterm_e @@ PPIdent ptype_arg_ident)
-            ~curr_syscall:(pterm_e @@ PPIdent none_syscall_ident)
-            ~file_channel:(Some (pterm_e @@ PPIdent process_file_channel_ident))
+        let file_channel =
+          match files with
+          | [] -> None
+          | _ -> Some (pterm_e @@ PPIdent process_file_channel_ident)
+        in
+        PEnv.create_process_env
+          ~local_func_defs:funcs
+          ~process_typ_id:typ
+          ~proc_type:(pterm_e @@ PPIdent ptype_arg_ident)
+          ~curr_syscall:(pterm_e @@ PPIdent none_syscall_ident)
+          ~file_channel
       in
       let rec init_vars penv = function
         | [] ->
@@ -823,7 +818,11 @@ let add_allow_inits (genv : GEnv.t) (body : tprocess_e) : tprocess_e =
             ( access_control_table_ident
             , [ pterm_e @@ PPIdent entry.pv_process_type
               ; pterm_e @@ PPIdent entry.pv_target_type
-              ; pterm_e @@ PPIdent
+              ; (* Rabbit [.] permits direct access outside a syscall. Since
+                   ProVerif table entries require a concrete [syscall_t], encode
+                   that case with the distinguished [none_syscall_s] constant.
+                   This encoding choice is not specified in Section 3.2. *)
+                pterm_e @@ PPIdent
                   (Option.value entry.pv_syscall ~default:none_syscall_ident)
               ]
             , acc ))
