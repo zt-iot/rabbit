@@ -2,6 +2,11 @@
   (name rabbit_core)
   (wrapped false)
   (modules (:standard \ rabbit rabbit_proverif))
+  (private_modules
+    proverif_compiler_support
+    proverif_compiler_env
+    proverif_process_compiler
+    proverif_decl_compiler)
   (libraries sedlex menhirLib str ocamlgraph unix rabbit_proverif_pv rabbit_proverif_pv_parse)
   (preprocess (pps sedlex.ppx))
   (flags -w +a-4-40-41-42-70 -warn-error +a-4-40-42-70))

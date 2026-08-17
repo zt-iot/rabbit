@@ -1,0 +1,1244 @@
+open Rabbit_proverif_pv_parse
+open Pitptree
+include Proverif_compiler_env
+
+let rec compile_expr_to_term genv (expr : T.expr) : term_e =
+  term_e @@ match expr.desc with
+  | T.Ident { id; param = Some param; _ } ->
+      PFunApp (compile_ident id, [compile_expr_to_term genv param])
+  | T.Ident { id; _ } ->
+      PIdent (compile_ident id)
+  | Apply (id, args) ->
+      PFunApp (compile_ident id, List.map (compile_expr_to_term genv) args)
+  | Tuple exprs ->
+      PTuple (List.map (compile_expr_to_term genv) exprs)
+  | Unit ->
+      PTuple []
+  | String s ->
+      PIdent (GEnv.fresh_string_ident genv s)
+  | Boolean true ->
+      PIdent (pv_ident "true")
+  | Boolean false ->
+      PIdent (pv_ident "false")
+  | Integer n ->
+      let term, _, _ = Int.to_term_e n in
+      term
+  | Float _ ->
+      Error.unsupported ~loc:expr.loc
+        "Float terms are not supported in ProVerif term translation"
+
+let rec compile_expr_to_gterm genv (expr : T.expr) : gterm_e =
+  gterm_e @@
+  match expr.desc with
+  | T.Ident { id; param = Some param; _ } ->
+      PGFunApp
+        (compile_ident id, [compile_expr_to_gterm genv param], None)
+  | Ident { id; param = None; _ } ->
+      PGIdent (compile_ident id)
+  | Apply (id, args) ->
+      PGFunApp
+        (compile_ident id, List.map (compile_expr_to_gterm genv) args, None)
+  | Tuple exprs ->
+      PGTuple (List.map (compile_expr_to_gterm genv) exprs)
+  | Unit ->
+      PGTuple []
+  | String s ->
+      PGIdent (GEnv.fresh_string_ident genv s)
+  | Boolean true ->
+      PGIdent true_ident
+  | Boolean false ->
+      PGIdent false_ident
+  | Integer n ->
+      let term, _, _ = Int.to_gterm_e n in
+      term
+  | Float _ ->
+      Error.unsupported ~loc:expr.loc
+        "Float terms are not supported in ProVerif query translation"
+
+let rec compile_expr_to_pterm genv penv (expr : T.expr) : pterm_e =
+  pterm_e @@
+  match expr.desc with
+  | T.Ident { id; param = Some param; _ } ->
+      PPFunApp (compile_ident id, [compile_expr_to_pterm genv penv param])
+  | Ident { id; param = None; _ } ->
+      (match PEnv.find_process_var penv id with
+       | Some value ->
+           let term, _, _ = value in
+           term
+       | None -> PPIdent (compile_ident id))
+  | Apply (id, args) ->
+      PPFunApp (compile_ident id, List.map (compile_expr_to_pterm genv penv) args)
+  | Tuple exprs ->
+      PPTuple (List.map (compile_expr_to_pterm genv penv) exprs)
+  | Unit ->
+      PPTuple []
+  | String s ->
+      PPIdent (GEnv.fresh_string_ident genv s)
+  | Boolean true ->
+      PPIdent true_ident
+  | Boolean false ->
+      PPIdent false_ident
+  | Integer n ->
+      let term, _, _ = Int.to_pterm_e n in
+      term
+  | Float _ ->
+      Error.unsupported ~loc:expr.loc
+        "Float process terms are not supported in ProVerif process translation"
+
+let current_syscall ~loc (penv : PEnv.t) : pterm_e =
+  match PEnv.curr_syscall penv with
+  | Some syscall -> syscall
+  | None ->
+      Error.internal ~loc
+        "Current syscall is not available for access-control lowering"
+
+let ppar
+    (proc1 : tprocess_e)
+    (proc2 : tprocess_e)
+  : tprocess_e =
+  process_e @@ PPar (proc1, proc2)
+
+(*
+   3.9 Syscall and Attack Encoding
+
+   A single token is sent on a private channel. Each branch races to receive
+   that token, so exactly one branch can proceed.
+*)
+let nondet_choose_processes
+    (branches : tprocess_e list)
+  : tprocess_e =
+  match branches with
+  | [] -> process_e @@ PNil
+  | [branch] -> branch
+  | _ ->
+      let choice_id = pv_ident "rabbit_attack_choice_ch" in
+      let choice_term = pterm_e @@ PPIdent choice_id in
+      let token = pterm_e @@ PPIdent true_ident in
+      let pick_one =
+        List.map
+          (fun branch ->
+             process_e @@
+               PInput
+                  ( choice_term
+                  , PPatAny (Parsing_helper.dummy_ext, Some bitstring_ident)
+                  , branch
+                  , [] ))
+          branches
+      in
+      let body =
+        List.fold_left
+          (fun acc branch -> process_e @@ PPar (acc, branch))
+          (process_e @@ POutput (choice_term, token, process_e @@ PNil))
+          pick_one
+      in
+      process_e @@ PRestr (choice_id, None, channel_ident, body)
+
+let wrap_with_access_control_get
+    ~loc
+    (penv : PEnv.t)
+    (target_type : pterm_e)
+    (then_proc : tprocess_e)
+    (else_proc : tprocess_e)
+  : tprocess_e =
+  (* No spec for allow ... [.] *)
+  (* Note: this assumes direct Rabbit accesses are mediated solely by the
+     triple (current process type, target access-data type, current syscall).
+     The current lowering uses [none_syscall_s] for direct process code via
+     [allow ... [.]]. If the spec ends up distinguishing more direct-access
+     contexts, this table lookup may need refinement. *)
+  process_e @@
+  PGet
+    ( access_control_table_ident
+    , [ PPatEqual (PEnv.proc_type penv)
+      ; PPatEqual target_type
+      ; PPatEqual (current_syscall ~loc penv)
+      ]
+    , None
+    , then_proc
+    , else_proc
+    , [] )
+
+let wrap_with_channel_access_get
+    ~loc
+    (channel_term : pterm_e)
+    penv
+    (then_proc : tprocess_e)
+    (else_proc : tprocess_e)
+  : tprocess_e =
+  (*
+     3.8 Channel facts Encoding
+
+     ```
+     case [ ch :: msg(x) ] -> c end
+     ```
+
+     ```
+     get channel_table(ch_type:acc_data_t, =ch) in
+     get access_control_table(=ptype, =ch_type, =curr_syscall) in
+     ...
+     ```
+  *)
+  let channel_type_id = Ident.local "ch_type" in
+  let channel_type_term = pterm_e @@ PPIdent (compile_ident channel_type_id) in
+  process_e @@
+  PGet
+    ( channel_table_ident
+    , [ PPatVar (compile_ident channel_type_id, Some acc_data_t_ident)
+      ; PPatEqual channel_term
+      ]
+    , None
+    , wrap_with_access_control_get ~loc penv channel_type_term then_proc else_proc
+    , else_proc
+    , [] )
+
+let wrap_with_file_access_get
+    ~loc
+    (path_term : pterm_e)
+    (penv : PEnv.t)
+    (then_proc : tprocess_e)
+    (else_proc : tprocess_e)
+  : tprocess_e =
+  (*
+     3.7 File Fact Encoding
+
+     ```
+     case [ p.x ] -> c end
+     ```
+
+     ```
+     get file_type_table(=ptype, ftype:acc_data_t, =p) in
+     get access_control_table(=ptype, =ftype, =curr_syscall) in
+     ...
+     ```
+  *)
+  let file_type_id = Ident.local "file_type" in
+  let file_type_term = pterm_e @@ PPIdent (compile_ident file_type_id) in
+  process_e @@
+  PGet
+    ( file_type_table_ident
+    , [ PPatEqual (PEnv.proc_type penv)
+      ; PPatVar (compile_ident file_type_id, Some acc_data_t_ident)
+      ; PPatEqual path_term
+      ]
+    , None
+    , wrap_with_access_control_get ~loc penv file_type_term then_proc else_proc
+    , else_proc
+    , [] )
+
+let structure_addr_term (name : T.name) (struct_term : pterm_e) : pterm_e =
+  pterm_e @@ PPFunApp (structure_addr_ident name, [struct_term])
+
+let structure_arg_term (name : T.name) (index : int) (struct_term : pterm_e) : pterm_e =
+  pterm_e @@ PPFunApp (structure_arg_ident name index, [struct_term])
+
+let loop_state_bindings (penv : PEnv.t) : (T.ident * pterm_e) list =
+  (* Note: the first loop lowering conservatively carries every current
+     process binding across the loop boundary. This is simple and sounder than
+     forgetting mutable state, but it may be larger than necessary. A later
+     refinement could compute the true loop-carried live subset. *)
+  List.rev (PEnv.bindings penv)
+
+let loop_state_message
+    ~done_flag
+    ~loc
+    penv
+    (state_ids : T.ident list)
+  : pterm_e =
+  let flag_term =
+    pterm_e @@ PPIdent (if done_flag then true_ident else false_ident)
+  in
+  match state_ids with
+  | [] -> flag_term
+  | _ ->
+      pterm_e @@
+      PPTuple
+        (flag_term
+         :: List.map (PEnv.find_process_var_exn ~loc penv) state_ids)
+
+let loop_state_pattern
+    ~done_flag
+    (state_pattern_ids : T.ident list)
+  : tpattern =
+  let flag_pattern =
+    PPatEqual
+      (pterm_e @@ PPIdent (if done_flag then true_ident else false_ident))
+  in
+  match state_pattern_ids with
+  | [] -> flag_pattern
+  | _ ->
+      PPatTuple
+        (flag_pattern
+         :: List.map
+              (fun id -> PPatVar (compile_ident id, Some bitstring_ident))
+              state_pattern_ids)
+
+let bind_loop_state
+    penv
+    (state_ids : T.ident list)
+    (state_pattern_ids : T.ident list)
+  : PEnv.t =
+  List.fold_left2
+    (fun penv state_id pattern_id ->
+       PEnv.bind_process_var penv state_id (pterm_e @@ PPIdent (compile_ident pattern_id)))
+    penv
+    state_ids
+    state_pattern_ids
+
+let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
+  : tprocess_e =
+  (*
+     3.1 Encoding Strings, Constants, Events and Function Declarations
+
+     ```
+     event [:: ImgSend(image)]
+     ```
+
+     ```
+     event ImgSend(bitstring).
+     ...
+     event ImgSend(image);
+     ```
+  *)
+  let loc = fact.loc in
+  match fact.desc with
+  | Global (name, args) ->
+      GEnv.register_event ~loc genv name (List.length args);
+      process_e @@
+      PEvent
+        ( compile_name name
+        , List.map (compile_expr_to_pterm genv penv) args
+        , None
+        , body )
+  | Plain (name, args) ->
+      GEnv.register_event ~loc genv name (List.length args);
+      process_e
+      @@ PEvent
+        ( compile_name name
+        , List.map (compile_expr_to_pterm genv penv) args
+        , None
+        , body )
+  | _ ->
+      Error.unsupported ~loc
+        "Only plain/global event facts are supported in ProVerif event lowering"
+
+let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
+  : tprocess_e =
+  (*
+     3.7 File Fact Encoding
+     3.8 Channel facts Encoding
+     3.9 Syscall and Attack Encoding
+
+     ```
+     put [ ch :: msg(v) ]
+     put [ p.x ]
+     put [ ::Out(v) ]
+     ```
+
+     ```
+     out(ch, msg(v)) |
+     ...
+     out(file_ch, (p, x)) |
+     ...
+     out(attacker, v)
+     ```
+  *)
+  let loc = fact.loc in
+  match fact.desc with
+  | Channel { channel; name; args } ->
+      let channel_term = compile_expr_to_pterm genv penv channel in
+      let payload =
+        pterm_e @@
+        PPFunApp
+          ( compile_name name
+          , List.map (compile_expr_to_pterm genv penv) args )
+      in
+      wrap_with_channel_access_get ~loc channel_term penv
+        (ppar (process_e @@ POutput (channel_term, payload, process_e PNil)) body)
+        (process_e PNil)
+  | File { path; contents } ->
+      let path_term = compile_expr_to_pterm genv penv path in
+      let contents_term = compile_expr_to_pterm genv penv contents in
+      let file_channel =
+        match PEnv.file_channel penv with
+        | Some file_channel -> file_channel
+        | None ->
+            Error.internal ~loc
+              "File output requires a process-local file channel"
+      in
+      let payload = pterm_e @@ PPTuple [path_term; contents_term] in
+      wrap_with_file_access_get ~loc path_term penv
+        (ppar (process_e @@ POutput (file_channel, payload, process_e PNil)) body)
+        (process_e PNil)
+  | Global ("Out", [arg]) ->
+      process_e @@ POutput (pterm_e @@ PPIdent attacker_channel_ident, compile_expr_to_pterm genv penv arg, body)
+  | Global (name, args) ->
+      GEnv.register_event ~loc genv name (List.length args);
+      process_e @@
+      PEvent
+        ( compile_name name
+        , List.map (compile_expr_to_pterm genv penv) args
+        , None
+        , body )
+  | _ ->
+      Error.unsupported ~loc
+        "Only channel/global output facts are supported in ProVerif put lowering"
+
+let compile_put_facts genv penv (facts : T.fact list) (body : tprocess_e)
+  : tprocess_e =
+  List.fold_right (compile_put_fact genv penv) facts body
+
+let compile_event_facts genv penv (facts : T.fact list) (body : tprocess_e)
+  : tprocess_e =
+  List.fold_right (compile_event_fact genv penv) facts body
+
+let eq_pterm (lhs : pterm_e) (rhs : pterm_e) : pterm_e =
+  pterm_e @@ PPFunApp (pv_ident "=", [lhs; rhs])
+
+let rec compile_guard_tests
+    genv
+    penv
+    (fresh : T.ident list)
+    (facts : T.fact list)
+    (then_proc : tprocess_e)
+    (else_proc : tprocess_e)
+  : tprocess_e =
+  (*
+     3.5 Case Encoding
+
+     ```
+     case [x = y, p.z, ::In(v)] -> c end
+     ```
+
+     ```
+     if x = y then
+       get file_type_table(...) in
+       get access_control_table(...) in
+       in(file_ch, (=p, z:bitstring)) [precise];
+       in(attacker, v:bitstring);
+       c
+     else
+       ...
+     ```
+  *)
+  match facts with
+  | [] -> then_proc
+  | fact :: facts ->
+      (match fact.desc with
+       | Eq (lhs, rhs) ->
+           let cond =
+             eq_pterm
+               (compile_expr_to_pterm genv penv lhs)
+               (compile_expr_to_pterm genv penv rhs)
+           in
+           process_e @@
+           PTest
+             ( cond
+             , compile_guard_tests genv penv fresh facts then_proc else_proc
+             , else_proc )
+       | Neq (lhs, rhs) ->
+           let cond =
+             eq_pterm
+               (compile_expr_to_pterm genv penv lhs)
+               (compile_expr_to_pterm genv penv rhs)
+           in
+           process_e @@
+           PTest
+             ( cond
+             , else_proc
+             , compile_guard_tests genv penv fresh facts then_proc else_proc )
+       | Channel _ ->
+           Error.unsupported ~loc:fact.loc
+             "Nested channel guard lowering is not supported here"
+       | File { path; contents } ->
+           let path_term = compile_expr_to_pterm genv penv path in
+           let file_channel =
+             match PEnv.file_channel penv with
+             | Some file_channel -> file_channel
+             | None ->
+                 Error.internal ~loc:fact.loc
+                   "File guard requires a process-local file channel"
+           in
+           let payload_id = Ident.local "file_contents" in
+           let payload_term = pterm_e @@ PPIdent (compile_ident payload_id) in
+           let payload_pattern =
+             PPatTuple
+               [ PPatEqual path_term
+               ; PPatVar (compile_ident payload_id, Some bitstring_ident)
+               ]
+           in
+           let branch_env, then_proc =
+             match contents.desc with
+             | T.Ident { id; _ } when List.mem id fresh ->
+                 let branch_env = PEnv.bind_process_var penv id payload_term in
+                 branch_env, compile_guard_tests genv branch_env fresh facts then_proc else_proc
+             | _ ->
+                 let eq_then =
+                   process_e @@
+                   PTest
+                     ( eq_pterm payload_term (compile_expr_to_pterm genv penv contents)
+                     , compile_guard_tests genv penv fresh facts then_proc else_proc
+                     , else_proc )
+                 in
+                 penv, eq_then
+           in
+           wrap_with_file_access_get ~loc:fact.loc path_term branch_env
+             (process_e @@ PInput (file_channel, payload_pattern, then_proc, [precise_ident, None]))
+             else_proc
+       | Global ("In", [_arg]) ->
+           let arg =
+             match fact.desc with
+             | Global ("In", [arg]) -> arg
+             | _ -> assert false
+           in
+           let payload_id = Ident.local "attacker_input" in
+           let payload_term = pterm_e @@ PPIdent (compile_ident payload_id) in
+           let then_proc =
+             match arg.desc with
+             | T.Ident { id; _ } when List.mem id fresh ->
+                 let branch_env = PEnv.bind_process_var penv id payload_term in
+                 compile_guard_tests genv branch_env fresh facts then_proc else_proc
+             | _ ->
+                 let eq_then =
+                   process_e @@
+                   PTest
+                     ( eq_pterm payload_term (compile_expr_to_pterm genv penv arg)
+                     , compile_guard_tests genv penv fresh facts then_proc else_proc
+                     , else_proc )
+                 in
+                 eq_then
+           in
+           process_e @@
+           PInput
+             ( pterm_e @@ PPIdent attacker_channel_ident
+             , PPatVar (compile_ident payload_id, Some bitstring_ident)
+             , then_proc
+             , [] )
+       | Global ("False", []) ->
+           else_proc
+       | Global ("True", []) ->
+           compile_guard_tests genv penv fresh facts then_proc else_proc
+       | Global _ | Plain _ ->
+           Error.unsupported ~loc:fact.loc
+             "Only equality/inequality/file guards are supported in ProVerif case lowering")
+
+let compile_pterm_eq_tests
+    (tests : (pterm_e * pterm_e) list)
+    (then_proc : tprocess_e)
+    (else_proc : tprocess_e)
+  : tprocess_e =
+  List.fold_right
+    (fun (lhs, rhs) acc ->
+       process_e @@ PTest (eq_pterm lhs rhs, acc, else_proc))
+    tests
+    then_proc
+
+let extract_channel_guard (facts : T.fact list) =
+  let rec go rev_prefix = function
+    | [] -> None
+    | (fact : T.fact) :: rest ->
+        (match fact.desc with
+         | Channel { channel; name; args } ->
+             Some (channel, name, args, List.rev rev_prefix @ rest, fact.loc)
+         | _ ->
+             go (fact :: rev_prefix) rest)
+  in
+  go [] facts
+
+let is_fresh_case_var (case : T.case) (id : T.ident) =
+  List.mem id case.fresh
+
+type kont =
+  | KStop
+  | KProc of tprocess_e
+  | KSeq of T.cmd * kont
+  | KRestoreVars of (T.ident * pterm_e option) list * kont
+  | KLoopOutput of bool * Location.t * pterm_e * T.ident list
+
+let rec filter_map2
+    (f : 'a -> 'b -> 'c option)
+    (xs : 'a list)
+    (ys : 'b list)
+  : 'c list =
+  match xs, ys with
+  | [], [] -> []
+  | x :: xs, y :: ys ->
+      (match f x y with
+       | Some z -> z :: filter_map2 f xs ys
+       | None -> filter_map2 f xs ys)
+  | _ -> invalid_arg "filter_map2"
+
+let rec compile_channel_guard_case
+    genv
+    penv
+    (case : T.case)
+    (kont : kont)
+    (channel : T.expr)
+    (name : T.name)
+    (args : T.expr list)
+    (other_facts : T.fact list)
+    ~loc
+    ~(else_proc : tprocess_e)
+  : tprocess_e =
+  let payload_vars =
+    List.init (List.length args) (fun i -> Ident.local (Printf.sprintf "case_arg_%d" i))
+  in
+  let payload_patterns =
+    List.map
+      (fun id -> PPatVar (compile_ident id, Some bitstring_ident))
+      payload_vars
+  in
+  let input_pattern = PPatFunApp (compile_name name, payload_patterns) in
+  let payload_terms =
+    List.map (fun id -> pterm_e @@ PPIdent (compile_ident id)) payload_vars
+  in
+  let branch_env =
+    List.fold_left2
+      (fun penv (arg : T.expr) payload_term ->
+         match arg.desc with
+         | T.Ident { id; _ } when is_fresh_case_var case id ->
+             PEnv.bind_process_var penv id payload_term
+         | _ -> penv)
+      penv
+      args
+      payload_terms
+  in
+  let then_proc = compile_case_branch_body genv branch_env case kont in
+  let arg_eq_tests =
+    let rec collect acc args payload_terms =
+      match args, payload_terms with
+      | [], [] -> List.rev acc
+      | (arg : T.expr) :: args, payload_term :: payload_terms ->
+          (match arg.desc with
+           | T.Ident { id; _ } when is_fresh_case_var case id ->
+               collect acc args payload_terms
+           | _ ->
+               collect
+                 ((payload_term, compile_expr_to_pterm genv branch_env arg) :: acc)
+                 args
+                 payload_terms)
+      | _ -> invalid_arg "compile_channel_guard_case"
+    in
+    collect [] args payload_terms
+  in
+  let channel_term = compile_expr_to_pterm genv penv channel in
+  wrap_with_channel_access_get ~loc channel_term penv
+    (process_e @@
+     PInput
+       ( channel_term
+       , input_pattern
+       , compile_guard_tests genv branch_env case.fresh other_facts
+           (compile_pterm_eq_tests arg_eq_tests then_proc else_proc)
+           else_proc
+       , [] ))
+    else_proc
+
+and compile_case_branch_body
+    genv
+    penv
+    (case : T.case)
+    (kont : kont)
+  : tprocess_e =
+  let saved =
+    List.map (fun id -> id, PEnv.find_process_var penv id) case.fresh
+  in
+  compile_cmd genv penv (KRestoreVars (saved, kont)) case.cmd
+
+and compile_case_no_channel
+    genv
+    penv
+    (cases : T.case list)
+    (kont : kont)
+  : tprocess_e =
+  (*
+     3.5 Case Encoding
+
+     ```
+     case [A1] -> c1 | [A2] -> c2 end
+     ```
+
+     ```
+     if A1 then c1 else
+     if A2 then c2 else
+     0
+     ```
+  *)
+  let rec go = function
+    | [] -> process_e PNil
+    | case :: cases ->
+        let else_proc = go cases in
+        let then_proc = compile_case_branch_body genv penv case kont in
+        compile_guard_tests genv penv case.fresh case.facts then_proc else_proc
+  in
+  go cases
+
+and compile_case_channelized
+    genv
+    penv
+    (cases : T.case list)
+    (kont : kont)
+  : tprocess_e =
+  (*
+     3.5 Case Encoding
+
+     ```
+     case
+       [ch :: msg("a")] -> c1
+     | [ch :: msg("b")] -> c2
+     end
+     ```
+
+     ```
+     get channel_table(ch_type:acc_data_t, =ch) in
+     get access_control_table(=ptype, =ch_type, =curr_syscall) in
+     in(ch, msg(x:bitstring));
+     if x = "a" then c1 else
+     if x = "b" then c2 else
+     0
+     ```
+  *)
+  (* Note: this is an optimized lowering for the common case where all channel
+     guards in one [case] read the same fact name from the same channel. The
+     full spec also discusses a more general lock-channel encoding for
+     nondeterministic cases; if this optimization ever changes semantics on
+     overlapping guards, we should fall back to that general form. *)
+  let channel_guards =
+    List.map
+      (fun (case : T.case) ->
+         match extract_channel_guard case.facts with
+         | Some (channel, name, args, other_facts, loc) ->
+             case, channel, name, args, other_facts, loc
+         | None ->
+             Error.unsupported ~loc:case.cmd.loc
+               "Mixed channel/non-channel case branches are not supported yet")
+      cases
+  in
+  let first_channel, first_name, first_args, first_loc =
+    match channel_guards with
+    | (_, first_channel, first_name, first_args, _, first_loc) :: _ ->
+        first_channel, first_name, first_args, first_loc
+    | [] ->
+        Error.internal ~loc:Location.nowhere
+          "Empty channelized case is not supported"
+  in
+  let channel_key = T.string_of_expr first_channel in
+  let arity = List.length first_args in
+  List.iter
+    (fun (_case, channel, name, args, _facts, loc) ->
+       if T.string_of_expr channel <> channel_key then
+         Error.invalid_input ~loc
+           "All channel guards in one case must use the same channel";
+       if name <> first_name then
+         Error.invalid_input ~loc
+           "All channel guards in one case must use the same fact name";
+       if List.length args <> arity then
+         Error.invalid_input ~loc
+           "All channel guards in one case must use the same arity")
+    channel_guards;
+  let payload_vars =
+    List.init arity (fun i -> Ident.local (Printf.sprintf "case_arg_%d" i))
+  in
+  let payload_patterns =
+    List.map (fun id -> PPatVar (compile_ident id, Some bitstring_ident)) payload_vars
+  in
+  let input_pattern = PPatFunApp (compile_name first_name, payload_patterns) in
+  let payload_terms =
+    List.map (fun id -> pterm_e @@ PPIdent (compile_ident id)) payload_vars
+  in
+  let rec branches = function
+    | [] -> process_e PNil
+    | (case, _channel, _name, args, facts, _loc) :: rest ->
+        let branch_env =
+          List.fold_left2
+            (fun penv (arg : T.expr) payload_term ->
+               match arg.desc with
+               | T.Ident { id; _ } when is_fresh_case_var case id ->
+                   PEnv.bind_process_var penv id payload_term
+               | _ -> penv)
+            penv
+            args
+            payload_terms
+        in
+        let else_proc = branches rest in
+        let then_proc = compile_case_branch_body genv branch_env case kont in
+        let arg_eq_tests =
+          filter_map2
+            (fun (arg : T.expr) payload_term ->
+               match arg.desc with
+               | T.Ident { id; _ } when is_fresh_case_var case id -> None
+               | _ ->
+                   Some (payload_term, compile_expr_to_pterm genv branch_env arg))
+            args
+            payload_terms
+        in
+        compile_guard_tests genv branch_env case.fresh facts
+          (compile_pterm_eq_tests arg_eq_tests then_proc else_proc)
+          else_proc
+  in
+  let channel_term = compile_expr_to_pterm genv penv first_channel in
+  wrap_with_channel_access_get ~loc:first_loc channel_term penv
+    (process_e @@ PInput (channel_term, input_pattern, branches channel_guards, []))
+    (process_e PNil)
+
+and compile_syscall_call
+    genv
+    penv
+    (id : T.ident)
+    (args : T.expr list)
+    ~on_return:(on_return : pterm_e -> tprocess_e)
+    (on_fallthrough : tprocess_e)
+    ~loc
+  : tprocess_e =
+  (*
+     3.9 Syscall and Attack Encoding
+
+     ```
+     syscall my_syscall(param) {
+       ...
+       return v
+     }
+
+     let x = my_syscall(arg) in body
+     ```
+
+     ```
+     let curr_syscall = my_syscall_s in
+     let x = (
+       body_of_my_syscall
+     ) in
+     let curr_syscall = none_syscall_s in
+     body
+     ```
+  *)
+  match GEnv.find_syscall_def genv id with
+  | None ->
+      Error.internal ~loc "syscall definition for %s is not available"
+        (Ident.to_string id)
+  | Some def ->
+      let arg_values = List.map (compile_expr_to_pterm genv penv) args in
+      let mk_call_env arg_ids =
+        let call_env =
+          List.fold_left2
+            PEnv.bind_process_var
+            (PEnv.with_curr_syscall penv (Some (pterm_e @@ PPIdent def.pv_id)))
+            arg_ids
+            arg_values
+        in
+        PEnv.with_process_return_cont call_env on_return
+      in
+      let normal_branch =
+        compile_cmd genv (mk_call_env def.args) (KProc on_fallthrough) def.cmd
+      in
+      let attack_branches =
+        match PEnv.process_typ_id penv with
+        | None -> []
+        | Some process_typ_id ->
+            List.map
+              (fun attack_def ->
+                 compile_cmd genv (mk_call_env attack_def.args) (KProc on_fallthrough) attack_def.cmd)
+              (GEnv.find_allowed_attacks ~loc genv ~process_typ_id ~syscall_id:id)
+      in
+      nondet_choose_processes (normal_branch :: attack_branches)
+
+and compile_local_function_call
+    genv
+    penv
+    (id : T.ident)
+    (args : T.expr list)
+    ~on_return:(on_return : pterm_e -> tprocess_e)
+    (on_fallthrough : tprocess_e)
+    ~loc
+  : tprocess_e =
+  (*
+     3.9 Syscall and Attack Encoding
+
+     ```
+     function helper(a, b) { ...; return v }
+     let x = helper(y, z) in body
+     ```
+
+     ```
+     let x = (
+       body_of_helper
+     ) in
+     body
+     ```
+  *)
+  match PEnv.find_local_func_def penv id with
+  | None ->
+      Error.internal ~loc "local function definition for %s is not available"
+        (Ident.to_string id)
+  | Some (arg_ids, cmd) ->
+      let arg_values = List.map (compile_expr_to_pterm genv penv) args in
+      let call_env =
+        List.fold_left2
+          PEnv.bind_process_var
+          penv
+          arg_ids
+          arg_values
+      in
+      let call_env =
+        PEnv.with_process_return_cont call_env on_return
+      in
+      compile_cmd genv call_env (KProc on_fallthrough) cmd
+
+and compile_let_binding
+    genv
+    penv
+    (kont : kont)
+    (id : T.ident)
+    (expr : T.expr)
+    (body : T.cmd)
+  : tprocess_e =
+  (*
+     3.4 Encoding Structured facts, new, let, delete
+     3.9 Syscall and Attack Encoding
+
+     ```
+     let x = e in c
+     let x = my_syscall(a) in c
+     ```
+
+     ```
+     let x = e in
+     c
+
+     let curr_syscall = my_syscall_s in
+     let x = (body_of_my_syscall) in
+     let curr_syscall = none_syscall_s in
+     c
+     ```
+  *)
+  match expr.desc with
+  | Apply (syscall_id, args) when Option.is_some (GEnv.find_syscall_def genv syscall_id) ->
+      let old_value = PEnv.find_process_var penv id in
+      compile_syscall_call genv penv syscall_id args
+        ~on_return: (fun value ->
+            compile_cmd genv (PEnv.bind_process_var penv id value)
+              (KRestoreVars ([id, old_value], kont))
+              body)
+        (compile_cmd genv penv kont body)
+        ~loc:expr.loc
+  | Apply (func_id, args) when Option.is_some (PEnv.find_local_func_def penv func_id) ->
+      let old_value = PEnv.find_process_var penv id in
+      compile_local_function_call genv penv func_id args
+        ~on_return: (fun value ->
+            compile_cmd genv (PEnv.bind_process_var penv id value)
+              (KRestoreVars ([id, old_value], kont))
+              body)
+        (compile_cmd genv penv kont body)
+        ~loc:expr.loc
+  | _ ->
+      let value = compile_expr_to_pterm genv penv expr in
+      let old_value = PEnv.find_process_var penv id in
+      compile_cmd genv (PEnv.bind_process_var penv id value)
+        (KRestoreVars ([id, old_value], kont))
+        body
+
+and compile_assignment
+    genv
+    penv
+    (kont : kont)
+    (id_opt : T.ident option)
+    (expr : T.expr)
+  : tprocess_e =
+  (*
+     3.9 Syscall and Attack Encoding
+
+     ```
+     x := my_syscall(a)
+     _ := my_syscall(a)
+     ```
+
+     ```
+     let curr_syscall = my_syscall_s in
+     let x = (body_of_my_syscall) in
+     let curr_syscall = none_syscall_s in
+     ...
+     ```
+  *)
+  match expr.desc with
+  | Apply (syscall_id, args) when Option.is_some (GEnv.find_syscall_def genv syscall_id) ->
+      let on_return =
+        match id_opt with
+        | None -> fun _value -> continue_cmd genv penv kont
+        | Some id -> fun value -> continue_cmd genv (PEnv.bind_process_var penv id value) kont
+      in
+      compile_syscall_call genv penv syscall_id args ~on_return
+        (continue_cmd genv penv kont)
+        ~loc:expr.loc
+  | Apply (func_id, args) when Option.is_some (PEnv.find_local_func_def penv func_id) ->
+      let on_return =
+        match id_opt with
+        | None -> fun _value -> continue_cmd genv penv kont
+        | Some id -> fun value -> continue_cmd genv (PEnv.bind_process_var penv id value) kont
+      in
+      compile_local_function_call genv penv func_id args ~on_return
+        (continue_cmd genv penv kont)
+        ~loc:expr.loc
+  | _ ->
+      (match id_opt with
+       | Some id ->
+           let value = compile_expr_to_pterm genv penv expr in
+           continue_cmd genv (PEnv.bind_process_var penv id value) kont
+       | None ->
+           let _ = compile_expr_to_pterm genv penv expr in
+           continue_cmd genv penv kont)
+
+and continue_cmd genv penv (kont : kont) : tprocess_e =
+  match kont with
+  | KStop -> process_e PNil
+  | KProc proc -> proc
+  | KSeq (cmd, kont) -> compile_cmd genv penv kont cmd
+  | KRestoreVars (saved, kont) ->
+      continue_cmd genv (PEnv.restore_process_vars penv saved) kont
+  | KLoopOutput (done_flag, loc, lock_term, state_ids) ->
+      process_e
+        (POutput
+           ( lock_term
+           , loop_state_message ~done_flag ~loc penv state_ids
+           , process_e PNil ))
+
+and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
+  : tprocess_e =
+  match cmd.desc with
+  | Skip -> continue_cmd genv penv kont
+  | Sequence (cmd1, cmd2) ->
+      compile_cmd genv penv (KSeq (cmd2, kont)) cmd1
+  | Put facts ->
+      compile_put_facts genv penv facts (continue_cmd genv penv kont)
+  | Event facts ->
+      compile_event_facts genv penv facts (continue_cmd genv penv kont)
+  | Let (id, expr, body) ->
+      compile_let_binding genv penv kont id expr body
+  | Assign (id_opt, expr) ->
+      compile_assignment genv penv kont id_opt expr
+  | Return expr ->
+      let value = compile_expr_to_pterm genv penv expr in
+      (match PEnv.return_cont penv with
+       | Some return_cont -> return_cont value
+       | None -> continue_cmd genv penv kont)
+  | Case cases ->
+      if List.exists (fun (case : T.case) -> Option.is_some (extract_channel_guard case.facts)) cases then
+        compile_case_channelized genv penv cases kont
+      else
+        compile_case_no_channel genv penv cases kont
+  | While (repeat_cases, until_cases) ->
+      (*
+         3.6 Repeat Encoding
+
+         ```
+         repeat [A1] -> c1 | ... until [B1] -> d1 | ... end
+         ```
+
+         ```
+         new lock_ch : channel;
+         out(lock_ch, (0, s0, ..., sk)) |
+         !(
+           in(lock_ch, (=0, s0:bitstring, ..., sk:bitstring)) [precise];
+           ...
+         )
+         |
+         in(lock_ch, (=1, s0:bitstring, ..., sk:bitstring)) [precise];
+         rest_of_program
+         ```
+      *)
+      let state_ids =
+        List.map fst (loop_state_bindings penv)
+      in
+      let parallelize = function
+        | [] -> process_e PNil
+        | proc :: procs ->
+            List.fold_left
+              (fun acc proc -> process_e @@ PPar (acc, proc))
+              proc
+              procs
+      in
+      let lock_id = Ident.local "rabbit_loop_ch" in
+      let lock_ident = compile_ident lock_id in
+      let lock_term = pterm_e @@ PPIdent lock_ident in
+      let mk_branch_input_env () =
+        let state_pattern_ids =
+          List.mapi
+            (fun index _id -> Ident.local (Printf.sprintf "loop_state_%d" index))
+            state_ids
+        in
+        let branch_env = bind_loop_state penv state_ids state_pattern_ids in
+        state_pattern_ids, branch_env
+      in
+      let repeat_branch (case : T.case) =
+        let state_pattern_ids, branch_env = mk_branch_input_env () in
+        let else_proc =
+          process_e
+            (POutput
+               ( lock_term
+               , loop_state_message ~done_flag:false ~loc:cmd.loc branch_env state_ids
+               , process_e PNil ))
+        in
+        let then_proc =
+          compile_case_branch_body genv branch_env case
+            (KLoopOutput (false, cmd.loc, lock_term, state_ids))
+        in
+        let guard_proc =
+          match extract_channel_guard case.facts with
+          | Some (channel, name, args, other_facts, loc) ->
+              compile_channel_guard_case genv branch_env case
+                (KLoopOutput (false, cmd.loc, lock_term, state_ids))
+                channel name args other_facts
+                ~loc
+                ~else_proc
+          | None ->
+              compile_guard_tests genv branch_env case.fresh case.facts then_proc else_proc
+        in
+        process_e
+          (PInput
+             ( lock_term
+             , loop_state_pattern ~done_flag:false state_pattern_ids
+             , guard_proc
+             , [precise_ident, None] ))
+      in
+      let until_branch (case : T.case) =
+        let state_pattern_ids, branch_env = mk_branch_input_env () in
+        let else_proc =
+          process_e
+            (POutput
+               ( lock_term
+               , loop_state_message ~done_flag:false ~loc:cmd.loc branch_env state_ids
+               , process_e PNil ))
+        in
+        let then_proc =
+          compile_case_branch_body genv branch_env case
+            (KLoopOutput (true, cmd.loc, lock_term, state_ids))
+        in
+        let guard_proc =
+          match extract_channel_guard case.facts with
+          | Some (channel, name, args, other_facts, loc) ->
+              compile_channel_guard_case genv branch_env case
+                (KLoopOutput (true, cmd.loc, lock_term, state_ids))
+                channel name args other_facts
+                ~loc
+                ~else_proc
+          | None ->
+              compile_guard_tests genv branch_env case.fresh case.facts then_proc else_proc
+        in
+        process_e
+          (PInput
+             ( lock_term
+             , loop_state_pattern ~done_flag:false state_pattern_ids
+             , guard_proc
+             , [precise_ident, None] ))
+      in
+      let cont_state_pattern_ids =
+        List.mapi
+          (fun index _id -> Ident.local (Printf.sprintf "loop_done_state_%d" index))
+          state_ids
+      in
+      let cont_env = bind_loop_state penv state_ids cont_state_pattern_ids in
+      let continuation =
+        process_e
+          (PInput
+             ( lock_term
+             , loop_state_pattern ~done_flag:true cont_state_pattern_ids
+             , continue_cmd genv cont_env kont
+             , [precise_ident, None] ))
+      in
+      let workers =
+        match List.map repeat_branch repeat_cases @ List.map until_branch until_cases with
+        | [] -> process_e PNil
+        | procs -> process_e @@ PRepl (parallelize procs)
+      in
+      let init_proc =
+        process_e
+          (POutput
+             ( lock_term
+             , loop_state_message ~done_flag:false ~loc:cmd.loc penv state_ids
+             , process_e PNil ))
+      in
+      process_e
+        (PRestr
+           ( lock_ident
+           , None
+           , channel_ident
+           , parallelize [init_proc; workers; continuation] ))
+
+  | New (id, None, body) ->
+      let fresh_ident = compile_ident id in
+      let fresh_term = pterm_e @@ PPIdent fresh_ident in
+      let old_value = PEnv.find_process_var penv id in
+      process_e @@
+        PRestr
+           ( fresh_ident
+           , None
+           , bitstring_ident
+           , compile_cmd genv (PEnv.bind_process_var penv id fresh_term)
+               (KRestoreVars ([id, old_value], kont))
+               body )
+  | New (id, Some (name, args), body) ->
+      (* `compile_generated_structure_decls` handle the declarations *)
+      GEnv.register_structure ~loc:cmd.loc genv name (List.length args);
+      let fresh_ident = compile_ident id in
+      let fresh_term = pterm_e @@ PPIdent fresh_ident in
+      let old_value = PEnv.find_process_var penv id in
+      let struct_term =
+        pterm_e @@
+        PPFunApp
+          ( structure_ctor_ident name
+          , fresh_term :: List.map (compile_expr_to_pterm genv penv) args )
+      in
+      process_e @@
+        PRestr
+           ( fresh_ident
+           , None
+           , bitstring_ident
+           , compile_cmd genv (PEnv.bind_process_var penv id struct_term)
+               (KRestoreVars ([id, old_value], kont))
+               body )
+  | Get (ids, expr, name, body) ->
+      GEnv.register_structure ~loc:cmd.loc genv name (List.length ids);
+      let struct_term = compile_expr_to_pterm genv penv expr in
+      let addr_term = structure_addr_term name struct_term in
+      let saved =
+        List.map (fun id -> id, PEnv.find_process_var penv id) ids
+      in
+      let body_env =
+        List.mapi
+          (fun index id -> id, structure_arg_term name (index + 1) struct_term)
+          ids
+        |> List.fold_left
+             (fun penv (id, value) -> PEnv.bind_process_var penv id value)
+             penv
+      in
+      process_e
+        (PGet
+           ( deleted_address_table_ident
+           , [PPatEqual addr_term]
+           , None
+           , process_e PNil
+           , compile_cmd genv body_env
+               (KRestoreVars (saved, kont))
+               body
+           , [] ))
+  | Del (expr, name) ->
+      (* 3.4  Encoding Structured facts, new, let, delete
+
+         ```
+         delete x.Struct
+         ```
+
+         ```
+         table deleted_address_table(bitstring).
+         ...
+         insert deleted_address_table(StructAddr(x_struct));
+         ```
+      *)
+      (* x_struct *)
+      let struct_term = compile_expr_to_pterm genv penv expr in
+      (* StructAddr(x_struct) *)
+      let addr_term = structure_addr_term name struct_term in
+      (* insert deleted_address_table( StructAddr(x_struct) ); ... *)
+      add_comment (Printf.sprintf "delete _.%s" name) @@
+      process_e
+        (PInsert
+           (deleted_address_table_ident, [addr_term], continue_cmd genv penv kont))
+
+let compile_process_body genv penv cmd =
+  compile_cmd genv penv KStop cmd
