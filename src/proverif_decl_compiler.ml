@@ -2,6 +2,27 @@ open Rabbit_proverif_pv_parse
 open Pitptree
 include Proverif_process_compiler
 
+let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
+  let loc = decl.loc in
+  match decl.desc with
+  | Syscall { id; args; cmd; attack=_ } ->
+      (* Syscalls are expanded when they are called.
+         No declaration is generated at this point.  *)
+      GEnv.add_syscall_def ~loc genv id args cmd
+  | Attack { id; syscall; args; cmd } ->
+      (* Attacks are expanded when they are called.
+         No declaration is generated at this point.  *)
+      GEnv.add_attack_def ~loc genv id { syscall; args; cmd; }
+  | AllowAttack { process_typs; attacks } ->
+      List.iter
+        (fun process_typ -> GEnv.add_allowed_attacks genv process_typ attacks)
+        process_typs
+  | Process { id; typ; _ } ->
+      GEnv.add_process_type ~loc genv id typ
+  | Load (_filename, decls) ->
+      List.iter (collect_decl genv) decls
+  | _ -> ()
+
 (*
   Line 30:
 
@@ -57,30 +78,6 @@ let compile_equation ~loc:_loc genv (lhs : T.expr) (rhs : T.expr) : tdecl list =
   ; TEquation ([envdecl, EETerm equality_term], [])
   ]
 
-(* Syscalls are expanded when they are called.
-   No declaration is generated at this point.
-*)
-let collect_syscall
-    ~loc
-    genv
-    (id : T.ident)
-    (args : T.ident list)
-    (cmd : T.cmd)
-  =
-  let pv_id = GEnv.fresh_syscall_ident ~loc genv id in
-  let def = { pv_id; args; cmd; } in
-  GEnv.register_syscall ~loc genv id def
-
-let collect_attack
-    ~loc
-    genv
-    (id : T.ident)
-    (syscall : T.ident)
-    (args : T.ident list)
-    (cmd : T.cmd)
-  =
-  GEnv.register_attack_def ~loc genv id { syscall; args; cmd; }
-
 (* 3.2 Encoding Process Types, Channel types, File types, and Access
 
    ```
@@ -129,22 +126,21 @@ let compile_allow
   let target_typs = List.map compile_ident t_target_typs in
   match syscalls with
   | None ->
-      (* Note: [allow ... [.] ] is currently represented by granting access to
-         the distinguished pseudo-syscall [none_syscall_s]. This is a pragmatic
-         encoding choice for direct process operations, but it is worth
-         re-checking against the final spec once syscall lowering is in place. *)
-      List.iter2
-        (fun t_target_typ target_typ ->
-           let entry =
-             { rabbit_process_type = t_process_typ
-             ; rabbit_target_type = t_target_typ
-             ; rabbit_syscall = None
-             ; pv_process_type = process_typ
-             ; pv_target_type = target_typ
-             ; pv_syscall = none_syscall_ident
-             }
-           in
-           GEnv.add_allow_entry genv entry)
+      (* Note: there is no specification how to compile `allow ... [.]`.
+         Currently it is represented by granting access to the distinguished pseudo-syscall
+         `none_syscall_s`.
+      *)
+      List.iter2 (fun t_target_typ target_typ ->
+          let entry =
+            { rabbit_process_type = t_process_typ
+            ; rabbit_target_type = t_target_typ
+            ; rabbit_syscall = None
+            ; pv_process_type = process_typ
+            ; pv_target_type = target_typ
+            ; pv_syscall = None
+            }
+          in
+          GEnv.add_allow_entry genv entry)
         t_target_typs target_typs;
       []
   | Some syscalls ->
@@ -161,23 +157,13 @@ let compile_allow
                     ; rabbit_syscall = Some syscall
                     ; pv_process_type = process_typ
                     ; pv_target_type = target_typ
-                    ; pv_syscall = def.pv_id
+                    ; pv_syscall = Some def.pv_id
                     }
                   in
                   GEnv.add_allow_entry genv entry)
             syscalls)
         t_target_typs target_typs;
       []
-
-let collect_allow_attack
-    ~loc:(_loc : Location.t)
-    (genv : GEnv.t)
-    (process_typs : T.ident list)
-    (attacks : T.ident list)
-  =
-  List.iter
-    (fun process_typ -> GEnv.add_allowed_attacks genv process_typ attacks)
-    process_typs
 
 let compile_init ~loc:(_loc : Location.t) genv (id : T.ident) (desc : T.init_desc) : tdecl list =
   (*
@@ -411,14 +397,14 @@ let compile_process
             ~local_func_defs
             ~process_typ_id:(Some typ)
             ~proc_type:(pterm_e @@ PPIdent ptype_arg_ident)
-            ~curr_syscall:(Some (pterm_e @@ PPIdent none_syscall_ident))
+            ~curr_syscall:(pterm_e @@ PPIdent none_syscall_ident)
             ~file_channel:None
         else
           PEnv.create_process_env
             ~local_func_defs
             ~process_typ_id:(Some typ)
             ~proc_type:(pterm_e @@ PPIdent ptype_arg_ident)
-            ~curr_syscall:(Some (pterm_e @@ PPIdent none_syscall_ident))
+            ~curr_syscall:(pterm_e @@ PPIdent none_syscall_ident)
             ~file_channel:(Some (pterm_e @@ PPIdent process_file_channel_ident))
       in
       let rec init_vars penv = function
@@ -519,10 +505,10 @@ let compile_lemma_fact genv (fact : T.fact) : gterm_e =
   let loc = fact.loc in
   match fact.desc with
   | Global (name, args) ->
-      GEnv.register_event ~loc genv name (List.length args);
+      GEnv.add_event ~loc genv name (List.length args);
       gterm_event name (List.map (compile_expr_to_gterm genv) args)
   | Plain (name, args) ->
-      GEnv.register_event ~loc genv name (List.length args);
+      GEnv.add_event ~loc genv name (List.length args);
       gterm_event name (List.map (compile_expr_to_gterm genv) args)
   | Eq (lhs, rhs) ->
       gterm_binary "="
@@ -837,26 +823,12 @@ let add_allow_inits (genv : GEnv.t) (body : tprocess_e) : tprocess_e =
             ( access_control_table_ident
             , [ pterm_e @@ PPIdent entry.pv_process_type
               ; pterm_e @@ PPIdent entry.pv_target_type
-              ; pterm_e @@ PPIdent entry.pv_syscall
+              ; pterm_e @@ PPIdent
+                  (Option.value entry.pv_syscall ~default:none_syscall_ident)
               ]
             , acc ))
     (List.rev (GEnv.allow_entries genv))
     body
-
-let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
-  let loc = decl.loc in
-  match decl.desc with
-  | Syscall { id; args; cmd; attack=_ } ->
-      collect_syscall ~loc genv id args cmd
-  | Attack { id; syscall; args; cmd } ->
-      collect_attack ~loc genv id syscall args cmd
-  | AllowAttack { process_typs; attacks } ->
-      collect_allow_attack ~loc genv process_typs attacks
-  | Process { id; typ; _ } ->
-      GEnv.register_process_type ~loc genv id typ
-  | Load (_filename, decls) ->
-      List.iter (collect_decl genv) decls
-  | _ -> ()
 
 let rec compile_decl genv (decl : T.decl) : tdecl list =
   let loc = decl.loc in
@@ -891,7 +863,7 @@ and compile_load genv (filename : string) (decls : T.decl list) : tdecl list =
 
 let compile_program (decls : T.decl list) : Pv_parser.program =
   let genv = GEnv.create () in
-  List.iter (GEnv.register_decl_strings genv) decls;
+  List.iter (GEnv.add_decl_strings genv) decls;
   List.iter (collect_decl genv) decls;
   let body = List.concat_map (compile_decl genv) decls in
   let top_process = Option.value (GEnv.top_process genv) ~default:(process_e PNil) in
