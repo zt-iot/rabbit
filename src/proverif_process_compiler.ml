@@ -85,13 +85,6 @@ let rec compile_expr_to_pterm genv penv (expr : T.expr) : pterm_e =
       Error.unsupported ~loc:expr.loc
         "Float process terms are not supported in ProVerif process translation"
 
-let current_syscall ~loc (penv : PEnv.t) : pterm_e =
-  match PEnv.curr_syscall penv with
-  | Some syscall -> syscall
-  | None ->
-      Error.internal ~loc
-        "Current syscall is not available for access-control lowering"
-
 let ppar
     (proc1 : tprocess_e)
     (proc2 : tprocess_e)
@@ -134,7 +127,6 @@ let nondet_choose_processes
       process_e @@ PRestr (choice_id, None, channel_ident, body)
 
 let wrap_with_access_control_get
-    ~loc
     (penv : PEnv.t)
     (target_type : pterm_e)
     (then_proc : tprocess_e)
@@ -151,7 +143,7 @@ let wrap_with_access_control_get
     ( access_control_table_ident
     , [ PPatEqual (PEnv.proc_type penv)
       ; PPatEqual target_type
-      ; PPatEqual (current_syscall ~loc penv)
+      ; PPatEqual (PEnv.curr_syscall penv)
       ]
     , None
     , then_proc
@@ -159,7 +151,6 @@ let wrap_with_access_control_get
     , [] )
 
 let wrap_with_channel_access_get
-    ~loc
     (channel_term : pterm_e)
     penv
     (then_proc : tprocess_e)
@@ -187,12 +178,11 @@ let wrap_with_channel_access_get
       ; PPatEqual channel_term
       ]
     , None
-    , wrap_with_access_control_get ~loc penv channel_type_term then_proc else_proc
+    , wrap_with_access_control_get penv channel_type_term then_proc else_proc
     , else_proc
     , [] )
 
 let wrap_with_file_access_get
-    ~loc
     (path_term : pterm_e)
     (penv : PEnv.t)
     (then_proc : tprocess_e)
@@ -221,7 +211,7 @@ let wrap_with_file_access_get
       ; PPatEqual path_term
       ]
     , None
-    , wrap_with_access_control_get ~loc penv file_type_term then_proc else_proc
+    , wrap_with_access_control_get penv file_type_term then_proc else_proc
     , else_proc
     , [] )
 
@@ -302,7 +292,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
   let loc = fact.loc in
   match fact.desc with
   | Global (name, args) ->
-      GEnv.register_event ~loc genv name (List.length args);
+      GEnv.add_event ~loc genv name (List.length args);
       process_e @@
       PEvent
         ( compile_name name
@@ -310,7 +300,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , None
         , body )
   | Plain (name, args) ->
-      GEnv.register_event ~loc genv name (List.length args);
+      GEnv.add_event ~loc genv name (List.length args);
       process_e
       @@ PEvent
         ( compile_name name
@@ -352,7 +342,7 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
           ( compile_name name
           , List.map (compile_expr_to_pterm genv penv) args )
       in
-      wrap_with_channel_access_get ~loc channel_term penv
+      wrap_with_channel_access_get channel_term penv
         (ppar (process_e @@ POutput (channel_term, payload, process_e PNil)) body)
         (process_e PNil)
   | File { path; contents } ->
@@ -366,13 +356,13 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
               "File output requires a process-local file channel"
       in
       let payload = pterm_e @@ PPTuple [path_term; contents_term] in
-      wrap_with_file_access_get ~loc path_term penv
+      wrap_with_file_access_get path_term penv
         (ppar (process_e @@ POutput (file_channel, payload, process_e PNil)) body)
         (process_e PNil)
   | Global ("Out", [arg]) ->
       process_e @@ POutput (pterm_e @@ PPIdent attacker_channel_ident, compile_expr_to_pterm genv penv arg, body)
   | Global (name, args) ->
-      GEnv.register_event ~loc genv name (List.length args);
+      GEnv.add_event ~loc genv name (List.length args);
       process_e @@
       PEvent
         ( compile_name name
@@ -481,7 +471,7 @@ let rec compile_guard_tests
                  in
                  penv, eq_then
            in
-           wrap_with_file_access_get ~loc:fact.loc path_term branch_env
+           wrap_with_file_access_get path_term branch_env
              (process_e @@ PInput (file_channel, payload_pattern, then_proc, [precise_ident, None]))
              else_proc
        | Global ("In", [_arg]) ->
@@ -576,7 +566,6 @@ let rec compile_channel_guard_case
     (name : T.name)
     (args : T.expr list)
     (other_facts : T.fact list)
-    ~loc
     ~(else_proc : tprocess_e)
   : tprocess_e =
   let payload_vars =
@@ -621,7 +610,7 @@ let rec compile_channel_guard_case
     collect [] args payload_terms
   in
   let channel_term = compile_expr_to_pterm genv penv channel in
-  wrap_with_channel_access_get ~loc channel_term penv
+  wrap_with_channel_access_get channel_term penv
     (process_e @@
      PInput
        ( channel_term
@@ -712,10 +701,10 @@ and compile_case_channelized
                "Mixed channel/non-channel case branches are not supported yet")
       cases
   in
-  let first_channel, first_name, first_args, first_loc =
+  let first_channel, first_name, first_args =
     match channel_guards with
-    | (_, first_channel, first_name, first_args, _, first_loc) :: _ ->
-        first_channel, first_name, first_args, first_loc
+    | (_, first_channel, first_name, first_args, _, _) :: _ ->
+        first_channel, first_name, first_args
     | [] ->
         Error.internal ~loc:Location.nowhere
           "Empty channelized case is not supported"
@@ -775,7 +764,7 @@ and compile_case_channelized
           else_proc
   in
   let channel_term = compile_expr_to_pterm genv penv first_channel in
-  wrap_with_channel_access_get ~loc:first_loc channel_term penv
+  wrap_with_channel_access_get channel_term penv
     (process_e @@ PInput (channel_term, input_pattern, branches channel_guards, []))
     (process_e PNil)
 
@@ -819,7 +808,7 @@ and compile_syscall_call
         let call_env =
           List.fold_left2
             PEnv.bind_process_var
-            (PEnv.with_curr_syscall penv (Some (pterm_e @@ PPIdent def.pv_id)))
+            (PEnv.with_curr_syscall penv (pterm_e @@ PPIdent def.pv_id))
             arg_ids
             arg_values
         in
@@ -1080,11 +1069,10 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
         in
         let guard_proc =
           match extract_channel_guard case.facts with
-          | Some (channel, name, args, other_facts, loc) ->
+          | Some (channel, name, args, other_facts, _loc) ->
               compile_channel_guard_case genv branch_env case
                 (KLoopOutput (false, cmd.loc, lock_term, state_ids))
                 channel name args other_facts
-                ~loc
                 ~else_proc
           | None ->
               compile_guard_tests genv branch_env case.fresh case.facts then_proc else_proc
@@ -1111,11 +1099,10 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
         in
         let guard_proc =
           match extract_channel_guard case.facts with
-          | Some (channel, name, args, other_facts, loc) ->
+          | Some (channel, name, args, other_facts, _loc) ->
               compile_channel_guard_case genv branch_env case
                 (KLoopOutput (true, cmd.loc, lock_term, state_ids))
                 channel name args other_facts
-                ~loc
                 ~else_proc
           | None ->
               compile_guard_tests genv branch_env case.fresh case.facts then_proc else_proc
@@ -1174,7 +1161,7 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
                body )
   | New (id, Some (name, args), body) ->
       (* `compile_generated_structure_decls` handle the declarations *)
-      GEnv.register_structure ~loc:cmd.loc genv name (List.length args);
+      GEnv.add_structure ~loc:cmd.loc genv name (List.length args);
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
       let old_value = PEnv.find_process_var penv id in
@@ -1193,7 +1180,7 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
                (KRestoreVars ([id, old_value], kont))
                body )
   | Get (ids, expr, name, body) ->
-      GEnv.register_structure ~loc:cmd.loc genv name (List.length ids);
+      GEnv.add_structure ~loc:cmd.loc genv name (List.length ids);
       let struct_term = compile_expr_to_pterm genv penv expr in
       let addr_term = structure_addr_term name struct_term in
       let saved =
