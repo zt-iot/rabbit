@@ -74,6 +74,7 @@ let () =
   | Typer.Error err ->
       Print.message ~loc:err.loc "Typer error" "%t" (Typer.print_error err.data);
       exit 1
-  | Proverif_compiler.Error err ->
-      Print.message ~loc:err.loc "ProVerif compiler error" "%t" (Proverif_compiler.print_error err.data);
+  | Proverif_compiler.Error.Error err ->
+      Print.message ~loc:err.loc "ProVerif compiler error" "%t"
+        (Proverif_compiler.Error.print_error err.data);
       exit 1

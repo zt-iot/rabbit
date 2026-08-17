@@ -2,20 +2,28 @@ module T = Typed
 open Rabbit_proverif_pv_parse
 open Pitptree
 
-type error =
-  | Unsupported of string
-  | Invalid_input of string
-  | Internal_error of string
+module Error = struct
+  type error =
+    | Unsupported of string
+    | Invalid_input of string
+    | Internal_error of string
 
-exception Error of error Location.located
+  exception Error of error Location.located
 
-let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
+  let _error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 
-let print_error err ppf =
-  match err with
-  | Unsupported s -> Format.pp_print_string ppf s
-  | Invalid_input s -> Format.pp_print_string ppf s
-  | Internal_error s -> Format.pp_print_string ppf s
+  let _error_ex ex ~loc fmt = Printf.ksprintf (fun s -> _error ~loc (ex s)) fmt
+
+  let unsupported ~loc fmt = _error_ex (fun s -> Unsupported s) ~loc fmt
+  let invalid_input ~loc fmt = _error_ex (fun s -> Invalid_input s) ~loc fmt
+  let internal ~loc fmt = _error_ex (fun s -> Internal_error s) ~loc fmt
+
+  let print_error err ppf =
+    match err with
+    | Unsupported s -> Format.pp_print_string ppf s
+    | Invalid_input s -> Format.pp_print_string ppf s
+    | Internal_error s -> Format.pp_print_string ppf s
+end
 
 type syscall_def =
   { id : T.ident (** Rabbit id *)
@@ -181,11 +189,9 @@ module GEnv = struct
     | None -> set_entries genv (entries @ [name, arity])
     | Some arity' when arity' = arity -> ()
     | Some arity' ->
-        error ~loc @@
-        Invalid_input
-          (Printf.sprintf
-             "%s %s is used with inconsistent arities (%d and %d)"
-             kind name arity' arity)
+        Error.invalid_input ~loc
+          "%s %s is used with inconsistent arities (%d and %d)"
+          kind name arity' arity
 
   let register_syscall ~loc:_ genv id def =
     genv.syscalls <- (id, def) :: genv.syscalls
@@ -208,8 +214,8 @@ module GEnv = struct
   let register_process_type ~loc genv (process_id : T.ident) (typ : T.ident) =
     match List.assoc_opt process_id genv.process_types with
     | Some _ ->
-        error ~loc @@
-        Invalid_input (Printf.sprintf "Process %s is already defined" (Ident.to_string process_id))
+        Error.invalid_input ~loc "Process %s is already defined"
+          (Ident.to_string process_id)
     | None ->
         genv.process_types <- (process_id, compile_ident typ) :: genv.process_types
 
@@ -217,11 +223,9 @@ module GEnv = struct
     match List.assoc_opt process_id genv.process_types with
     | Some typ -> typ
     | None ->
-        error ~loc @@
-        Internal_error
-          (Printf.sprintf
-             "process type for %s is not available in ProVerif system translation"
-             (Ident.to_string process_id))
+        Error.internal ~loc
+          "process type for %s is not available in ProVerif system translation"
+          (Ident.to_string process_id)
 
   let find_syscall_def genv (id : T.ident) : syscall_def option =
     List.assoc_opt id genv.syscalls
@@ -242,8 +246,8 @@ module GEnv = struct
          match List.assoc_opt attack_id genv.attacks with
          | Some def when def.syscall = syscall_id -> Some def
          | _ ->
-             error ~loc @@
-             Internal_error (Printf.sprintf "Attack %s has no definition" (Ident.to_string attack_id)))
+             Error.internal ~loc "Attack %s has no definition"
+               (Ident.to_string attack_id))
       allowed
 
   (* Propose a variable name for a string constant *)
@@ -295,8 +299,7 @@ module GEnv = struct
     let name = Ident.to_string id in
     match List.assoc_opt id genv.syscalls with
     | Some _ ->
-        error ~loc @@
-        Invalid_input (Printf.sprintf "Syscall %s is already defined" (Ident.to_string id))
+        Error.invalid_input ~loc "Syscall %s is already defined" (Ident.to_string id)
     | None ->
         let base = sanitize_string_for_ident name ^ "_s" in
         let syscall_ident = register_ident genv ~base in
@@ -421,8 +424,8 @@ let rec compile_expr_to_term genv (expr : T.expr) : term_e =
       let term, _, _ = Int.to_term_e n in
       term
   | Float _ ->
-      error ~loc:expr.loc @@
-      Unsupported "Float terms are not supported in ProVerif term translation"
+      Error.unsupported ~loc:expr.loc
+        "Float terms are not supported in ProVerif term translation"
 
 module PEnv = struct
 
@@ -462,10 +465,8 @@ module PEnv = struct
     match find_process_var penv id with
     | Some value -> value
     | None ->
-        error ~loc @@
-        Internal_error
-          (Printf.sprintf "Loop-carried variable %s is not available"
-             (Ident.to_string id))
+        Error.internal ~loc "Loop-carried variable %s is not available"
+          (Ident.to_string id)
 
   let unbind_process_var (penv : t) (id : T.ident) =
     { penv with bindings = List.remove_assoc id penv.bindings }
@@ -521,8 +522,8 @@ let rec compile_expr_to_gterm genv (expr : T.expr) : gterm_e =
       let term, _, _ = Int.to_gterm_e n in
       term
   | Float _ ->
-      error ~loc:expr.loc @@
-      Unsupported "Float terms are not supported in ProVerif query translation"
+      Error.unsupported ~loc:expr.loc
+        "Float terms are not supported in ProVerif query translation"
 
 let rec compile_expr_to_pterm genv penv (expr : T.expr) : pterm_e =
   pterm_e @@
@@ -551,15 +552,15 @@ let rec compile_expr_to_pterm genv penv (expr : T.expr) : pterm_e =
       let term, _, _ = Int.to_pterm_e n in
       term
   | Float _ ->
-      error ~loc:expr.loc @@
-      Unsupported "Float process terms are not supported in ProVerif process translation"
+      Error.unsupported ~loc:expr.loc
+        "Float process terms are not supported in ProVerif process translation"
 
 let current_syscall ~loc (penv : PEnv.t) : pterm_e =
   match penv.curr_syscall with
   | Some syscall -> syscall
   | None ->
-      error ~loc @@
-      Internal_error "Current syscall is not available for access-control lowering"
+      Error.internal ~loc
+        "Current syscall is not available for access-control lowering"
 
 let ppar
     (proc1 : tprocess_e)
@@ -787,8 +788,8 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , None
         , body )
   | _ ->
-      error ~loc @@
-      Unsupported "Only plain/global event facts are supported in ProVerif event lowering"
+      Error.unsupported ~loc
+        "Only plain/global event facts are supported in ProVerif event lowering"
 
 let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
   : tprocess_e =
@@ -831,8 +832,8 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
         match penv.file_channel with
         | Some file_channel -> file_channel
         | None ->
-            error ~loc @@
-            Internal_error "File output requires a process-local file channel"
+            Error.internal ~loc
+              "File output requires a process-local file channel"
       in
       let payload = pterm_e @@ PPTuple [path_term; contents_term] in
       wrap_with_file_access_get ~loc path_term penv
@@ -849,8 +850,8 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
         , None
         , body )
   | _ ->
-      error ~loc @@
-      Unsupported "Only channel/global output facts are supported in ProVerif put lowering"
+      Error.unsupported ~loc
+        "Only channel/global output facts are supported in ProVerif put lowering"
 
 let compile_put_facts genv penv (facts : T.fact list) (body : tprocess_e)
   : tprocess_e =
@@ -916,16 +917,16 @@ let rec compile_guard_tests
              , else_proc
              , compile_guard_tests genv penv fresh facts then_proc else_proc )
        | Channel _ ->
-           error ~loc:fact.loc @@
-           Unsupported "Nested channel guard lowering is not supported here"
+           Error.unsupported ~loc:fact.loc
+             "Nested channel guard lowering is not supported here"
        | File { path; contents } ->
            let path_term = compile_expr_to_pterm genv penv path in
            let file_channel =
              match penv.file_channel with
              | Some file_channel -> file_channel
              | None ->
-                 error ~loc:fact.loc @@
-                 Internal_error "File guard requires a process-local file channel"
+                 Error.internal ~loc:fact.loc
+                   "File guard requires a process-local file channel"
            in
            let payload_id = Ident.local "file_contents" in
            let payload_term = pterm_e @@ PPIdent (compile_ident payload_id) in
@@ -987,8 +988,8 @@ let rec compile_guard_tests
        | Global ("True", []) ->
            compile_guard_tests genv penv fresh facts then_proc else_proc
        | Global _ | Plain _ ->
-           error ~loc:fact.loc @@
-           Unsupported "Only equality/inequality/file guards are supported in ProVerif case lowering")
+           Error.unsupported ~loc:fact.loc
+             "Only equality/inequality/file guards are supported in ProVerif case lowering")
 
 let compile_pterm_eq_tests
     (tests : (pterm_e * pterm_e) list)
@@ -1178,8 +1179,8 @@ and compile_case_channelized
          | Some (channel, name, args, other_facts, loc) ->
              case, channel, name, args, other_facts, loc
          | None ->
-             error ~loc:case.cmd.loc @@
-             Unsupported "Mixed channel/non-channel case branches are not supported yet")
+             Error.unsupported ~loc:case.cmd.loc
+               "Mixed channel/non-channel case branches are not supported yet")
       cases
   in
   let first_channel, first_name, first_args, first_loc =
@@ -1187,19 +1188,22 @@ and compile_case_channelized
     | (_, first_channel, first_name, first_args, _, first_loc) :: _ ->
         first_channel, first_name, first_args, first_loc
     | [] ->
-        error ~loc:Location.nowhere @@
-        Internal_error "Empty channelized case is not supported"
+        Error.internal ~loc:Location.nowhere
+          "Empty channelized case is not supported"
   in
   let channel_key = T.string_of_expr first_channel in
   let arity = List.length first_args in
   List.iter
     (fun (_case, channel, name, args, _facts, loc) ->
        if T.string_of_expr channel <> channel_key then
-         error ~loc @@ Invalid_input "All channel guards in one case must use the same channel";
+         Error.invalid_input ~loc
+           "All channel guards in one case must use the same channel";
        if name <> first_name then
-         error ~loc @@ Invalid_input "All channel guards in one case must use the same fact name";
+         Error.invalid_input ~loc
+           "All channel guards in one case must use the same fact name";
        if List.length args <> arity then
-         error ~loc @@ Invalid_input "All channel guards in one case must use the same arity")
+         Error.invalid_input ~loc
+           "All channel guards in one case must use the same arity")
     channel_guards;
   let payload_vars =
     List.init arity (fun i -> Ident.local (Printf.sprintf "case_arg_%d" i))
@@ -1278,10 +1282,8 @@ and compile_syscall_call
   *)
   match GEnv.find_syscall_def genv id with
   | None ->
-      error ~loc @@
-      Internal_error
-        (Printf.sprintf "syscall definition for %s is not available"
-           (Ident.to_string id))
+      Error.internal ~loc "syscall definition for %s is not available"
+        (Ident.to_string id)
   | Some def ->
       let arg_values = List.map (compile_expr_to_pterm genv penv) args in
       let mk_call_env arg_ids =
@@ -1334,10 +1336,8 @@ and compile_local_function_call
   *)
   match PEnv.find_local_func_def penv id with
   | None ->
-      error ~loc @@
-      Internal_error
-        (Printf.sprintf "local function definition for %s is not available"
-           (Ident.to_string id))
+      Error.internal ~loc "local function definition for %s is not available"
+        (Ident.to_string id)
   | Some (arg_ids, cmd) ->
       let arg_values = List.map (compile_expr_to_pterm genv penv) args in
       let call_env =
@@ -1856,8 +1856,8 @@ let compile_allow
           List.iter (fun syscall ->
               match GEnv.find_syscall_def genv syscall with
               | None ->
-                  error ~loc @@
-                  Internal_error (Printf.sprintf "Syscall %s is not registered" (Ident.to_string syscall))
+                  Error.internal ~loc "Syscall %s is not registered"
+                    (Ident.to_string syscall)
               | Some def ->
                   genv.allow_entries <- (t_process_typ, t_target_typ, Some syscall,
                                          process_typ, target_typ, def.pv_id) :: genv.allow_entries)
@@ -1946,7 +1946,8 @@ let compile_channel
   *)
   match param with
   | Some () ->
-      error ~loc @@ Unsupported "Parameterized channel declarations are not supported yet"
+      Error.unsupported ~loc
+        "Parameterized channel declarations are not supported yet"
   | None ->
       [ TComment (Printf.sprintf "channel %s : %s" (Ident.to_string id) (Ident.to_string typ))
       ; TFree (compile_ident id, channel_ident, [pv_ident "private", None])
@@ -1976,8 +1977,8 @@ let wrap_with_channel_init
     (fun ({ channel; param; typ } : T.chan_param) acc ->
        match param with
        | Some () ->
-           error ~loc @@
-           Unsupported "Parameterized process channel arguments are not supported yet"
+           Error.unsupported ~loc
+             "Parameterized process channel arguments are not supported yet"
        | None ->
            add_comment (Printf.sprintf "Channel %s : %s" (Ident.to_string channel) (Ident.to_string typ)) @@
            process_e @@
@@ -2019,8 +2020,8 @@ let wrap_with_file_init
       if files = [] then
         body
       else
-        error ~loc @@
-        Internal_error "Internal file channel is not available for process file setup"
+        Error.internal ~loc
+          "Internal file channel is not available for process file setup"
   | Some file_channel ->
       let output_processes =
         List.map
@@ -2090,8 +2091,8 @@ let compile_process
   in
   match param with
   | Some _ ->
-      error ~loc @@
-      Unsupported "Parameterized process declarations are not supported yet"
+      Error.unsupported ~loc
+        "Parameterized process declarations are not supported yet"
   | None ->
       let proc_args =
         (ptype_arg_ident, proc_t_ident, false)
@@ -2100,8 +2101,8 @@ let compile_process
           (fun ({ channel; param; _ } : T.chan_param) ->
              match param with
              | Some () ->
-                 error ~loc
-                 @@ Unsupported "Parameterized process channel arguments are not supported yet"
+                 Error.unsupported ~loc
+                   "Parameterized process channel arguments are not supported yet"
              | None -> compile_ident channel, channel_ident, false)
           args
       in
@@ -2154,16 +2155,16 @@ let compile_proc_call genv (proc : T.proc) : tprocess_e =
     (match proc_desc.parameter with
      | None -> []
      | Some _ ->
-         error ~loc:proc.loc @@
-         Unsupported "Parameterized process instantiation is not supported yet")
+         Error.unsupported ~loc:proc.loc
+           "Parameterized process instantiation is not supported yet")
     @
     List.map
       (fun ({ channel; parameter; _ } : T.chan_arg) ->
          match parameter with
          | None -> pterm_e @@ PPIdent (compile_ident channel)
          | Some None | Some (Some _) ->
-             error ~loc:proc.loc @@
-             Unsupported "Parameterized channel instantiation is not supported yet")
+             Error.unsupported ~loc:proc.loc
+               "Parameterized channel instantiation is not supported yet")
       proc_desc.args
   in
   process_e @@ PLetDef (compile_ident proc_desc.id, args, None)
@@ -2200,8 +2201,7 @@ let gterm_binary (op : string) (lhs : gterm_e) (rhs : gterm_e) : gterm_e =
 (* `g1 op g2 op .. op gn` *)
 let rec gterm_binary_mult ~loc op = function
   | [] ->
-      error ~loc @@
-      Internal_error "Cannot combine an empty list of query facts"
+      Error.internal ~loc "Cannot combine an empty list of query facts"
   | [g] -> g
   | g :: gs ->
       gterm_binary op g (gterm_binary_mult ~loc op gs)
@@ -2235,8 +2235,8 @@ let compile_lemma_fact genv (fact : T.fact) : gterm_e =
         (compile_expr_to_gterm genv rhs)
   | Channel _ | File _ ->
       (* Section 3.12 does not specify how to translate Channel and File facts *)
-      error ~loc @@
-      Unsupported "Channel/file facts are not supported in ProVerif lemma lowering"
+      Error.unsupported ~loc
+        "Channel/file facts are not supported in ProVerif lemma lowering"
 
 (* 3.12 Encoding Properties
 
@@ -2278,11 +2278,8 @@ let compile_lemma
     match lemma.desc with
     | T.Plain s ->
         (* No spec for Plain lemma *)
-        error ~loc:lemma.loc @@
-        Unsupported
-          (Printf.sprintf
-             "Plain lemma %S is not supported in ProVerif query lowering"
-             s)
+        Error.unsupported ~loc:lemma.loc
+          "Plain lemma %S is not supported in ProVerif query lowering" s
     | Reachability { facts; _ } ->
         add_comment (Printf.sprintf "reachable %s" (String.concat ", " (List.map (fun _ -> "_") facts))) @@
         tquery_e @@
@@ -2326,7 +2323,7 @@ let compile_system
     (lemmas : (T.ident * T.lemma) list) : tdecl list
   =
   if genv.top_process <> None then
-    error ~loc @@ Invalid_input "Multiple system declarations are not accepted";
+    Error.invalid_input ~loc "Multiple system declarations are not accepted";
   let top_process = parallel_proc @@ List.map (compile_proc_group_desc genv) procs in
   genv.top_process <- Some top_process;
   TComment "Requires" :: List.concat_map (compile_lemma genv) lemmas
