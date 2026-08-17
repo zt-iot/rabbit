@@ -26,23 +26,16 @@ module Error = struct
 end
 
 type syscall_def =
-  { id : T.ident (** Rabbit id *)
-  ; pv_id : ident (** Proverif id *)
+  { pv_id : ident (** Proverif id *)
   ; args : T.ident list
   ; cmd : T.cmd
-  ; attack : bool
-  ; loc : Location.t
   }
-[@@warning "-69"]
 
 type attack_def =
-  { id : T.ident (** Attack id *)
-  ; syscall : T.ident (** Target id *)
+  { syscall : T.ident (** Target id *)
   ; args : T.ident list
   ; cmd : T.cmd
-  ; loc : Location.t
   }
-[@@warning "-69"]
 
 type allow_entry =
   { rabbit_process_type : T.ident
@@ -1786,10 +1779,9 @@ let collect_syscall
     (id : T.ident)
     (args : T.ident list)
     (cmd : T.cmd)
-    (attack : bool)
   =
   let pv_id = GEnv.fresh_syscall_ident ~loc genv id in
-  let def = { id; pv_id; args; cmd; attack; loc } in
+  let def = { pv_id; args; cmd; } in
   GEnv.register_syscall ~loc genv id def
 
 let collect_attack
@@ -1800,7 +1792,7 @@ let collect_attack
     (args : T.ident list)
     (cmd : T.cmd)
   =
-  GEnv.register_attack_def ~loc genv id { id; syscall; args; cmd; loc }
+  GEnv.register_attack_def ~loc genv id { syscall; args; cmd; }
 
 (* 3.2 Encoding Process Types, Channel types, File types, and Access
 
@@ -2572,8 +2564,8 @@ let add_allow_inits (genv : GEnv.t) (body : tprocess_e) : tprocess_e =
 let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
   let loc = decl.loc in
   match decl.desc with
-  | Syscall { id; args; cmd; attack } ->
-      collect_syscall ~loc genv id args cmd attack
+  | Syscall { id; args; cmd; attack=_ } ->
+      collect_syscall ~loc genv id args cmd
   | Attack { id; syscall; args; cmd } ->
       collect_attack ~loc genv id syscall args cmd
   | AllowAttack { process_typs; attacks } ->
