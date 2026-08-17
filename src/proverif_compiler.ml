@@ -44,6 +44,15 @@ type attack_def =
   }
 [@@warning "-69"]
 
+type allow_entry =
+  { rabbit_process_type : T.ident
+  ; rabbit_target_type : T.ident
+  ; rabbit_syscall : T.ident option
+  ; pv_process_type : ident
+  ; pv_target_type : ident
+  ; pv_syscall : ident
+  }
+
 let with_dummy_ident_ext x = x, Parsing_helper.dummy_ext
 
 let with_dummy_node_ext x = x, Parsing_helper.dummy_ext, []
@@ -163,7 +172,7 @@ module GEnv = struct
     ; mutable attacks        : (Ident.t * attack_def) list (** attacks and definitions *)
     ; allow_attack_table     : (Ident.t, T.ident list) Hashtbl.t (** process type and allowed attacks *)
     ; generated_name_counter : (string, int) Hashtbl.t (** Name resolver state *)
-    ; mutable allow_entries  : (T.ident * T.ident * T.ident option * ident * ident * ident) list
+    ; mutable allow_entries  : allow_entry list
     ; mutable process_types  : (Ident.t * ident) list (** process types in Rabbit and Proverif *)
     ; mutable structures     : (Name.t * int) list (** structure name and arity *)
     ; mutable events         : (string * int) list (** event name and arity *)
@@ -1847,8 +1856,16 @@ let compile_allow
          re-checking against the final spec once syscall lowering is in place. *)
       List.iter2
         (fun t_target_typ target_typ ->
-           genv.allow_entries <- (t_process_typ, t_target_typ, None,
-                                 process_typ, target_typ, none_syscall_ident) :: genv.allow_entries)
+           let entry =
+             { rabbit_process_type = t_process_typ
+             ; rabbit_target_type = t_target_typ
+             ; rabbit_syscall = None
+             ; pv_process_type = process_typ
+             ; pv_target_type = target_typ
+             ; pv_syscall = none_syscall_ident
+             }
+           in
+           genv.allow_entries <- entry :: genv.allow_entries)
         t_target_typs target_typs;
       []
   | Some syscalls ->
@@ -1859,8 +1876,16 @@ let compile_allow
                   Error.internal ~loc "Syscall %s is not registered"
                     (Ident.to_string syscall)
               | Some def ->
-                  genv.allow_entries <- (t_process_typ, t_target_typ, Some syscall,
-                                         process_typ, target_typ, def.pv_id) :: genv.allow_entries)
+                  let entry =
+                    { rabbit_process_type = t_process_typ
+                    ; rabbit_target_type = t_target_typ
+                    ; rabbit_syscall = Some syscall
+                    ; pv_process_type = process_typ
+                    ; pv_target_type = target_typ
+                    ; pv_syscall = def.pv_id
+                    }
+                  in
+                  genv.allow_entries <- entry :: genv.allow_entries)
             syscalls)
         t_target_typs target_typs;
       []
@@ -2527,18 +2552,18 @@ let compile_structure_decls (genv : GEnv.t) : tdecl list =
 *)
 let add_allow_inits (genv : GEnv.t) (body : tprocess_e) : tprocess_e =
   List.fold_right
-    (fun (t_process_typ, t_target_typ, syscall_opt, process_typ, target_typ, syscall_ident) acc ->
+    (fun entry acc ->
        add_comment
          (Printf.sprintf "allow %s %s [%s]"
-            (Ident.to_string t_process_typ)
-            (Ident.to_string t_target_typ)
-            (match syscall_opt with Some s -> Ident.to_string s | None -> ".")) @@
+            (Ident.to_string entry.rabbit_process_type)
+            (Ident.to_string entry.rabbit_target_type)
+            (match entry.rabbit_syscall with Some s -> Ident.to_string s | None -> ".")) @@
        process_e @@
          PInsert
             ( access_control_table_ident
-            , [ pterm_e @@ PPIdent process_typ
-              ; pterm_e @@ PPIdent target_typ
-              ; pterm_e @@ PPIdent syscall_ident
+            , [ pterm_e @@ PPIdent entry.pv_process_type
+              ; pterm_e @@ PPIdent entry.pv_target_type
+              ; pterm_e @@ PPIdent entry.pv_syscall
               ]
             , acc ))
     (List.rev genv.allow_entries)
