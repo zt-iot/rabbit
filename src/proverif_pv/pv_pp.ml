@@ -1063,10 +1063,15 @@ let rec pp_decl fmt = function
           pp_mayfail_typed_ident_list args
           (Tprocess.pp_prec prec_lowest) proc
   | TQuery (env, queries, options) ->
-      fprintf fmt "@[<2>query %a@,%a%a.@]"
-        pp_env env
-        (pp_list ~sep:";@ " pp_tquery_e) queries
-        pp_options options
+      if env = [] then
+        fprintf fmt "@[<2>query@ %a%a.@]"
+          (pp_list ~sep:";@ " pp_tquery_e) queries
+          pp_options options
+      else
+        fprintf fmt "@[<2>query %a@,%a%a.@]"
+          pp_env env
+          (pp_list ~sep:";@ " pp_tquery_e) queries
+          pp_options options
   | TNoninterf (env, xs) ->
       fprintf fmt "@[<2>noninterf %a@,%a.@]"
         pp_env env
