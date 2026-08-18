@@ -33,6 +33,15 @@ module GEnv : sig
   val fresh_string_ident : t -> string -> ident
   val add_decl_strings : t -> T.decl -> unit
 
+  val integers : t -> (int * ident) list
+  val fresh_integer_ident : t -> int -> ident
+
+  val parameters : t -> (string * ident) list
+  val fresh_parameter_ident : t -> T.expr -> ident
+
+  val add_param_init : t -> T.ident -> T.ident -> T.expr -> unit
+  val find_param_init : t -> T.ident -> (T.ident * T.expr) option
+
   val syscalls : t -> (T.ident * syscall_def) list
   val find_syscall_def : t -> T.ident -> syscall_def option
 
@@ -63,6 +72,9 @@ module GEnv : sig
 
   val structures : t -> (T.name * int) list
   val add_structure : loc:Location.t -> t -> T.name -> int -> unit
+
+  val facts : t -> (T.name * int) list
+  val add_fact : loc:Location.t -> t -> T.name -> int -> unit
 
   val events : t -> (string * int) list
   val add_event : loc:Location.t -> t -> T.name -> int -> unit

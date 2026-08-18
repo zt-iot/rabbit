@@ -5,7 +5,10 @@ include Proverif_process_compiler
 let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
   let loc = decl.loc in
   match decl.desc with
-  | Syscall { id; args; cmd; attack=_ } ->
+  | Syscall { attack = true; _ } ->
+      Error.unsupported ~loc
+        "Passive attack declarations are not supported yet"
+  | Syscall { id; args; cmd; attack = false } ->
       (* Syscalls are expanded when they are called.
          No declaration is generated at this point.  *)
       GEnv.add_syscall_def ~loc genv id args cmd
@@ -19,6 +22,8 @@ let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
         process_typs
   | Process { id; typ; _ } ->
       GEnv.add_process_type ~loc genv id typ
+  | Init { id; desc = Value_with_param (param, expr) } ->
+      GEnv.add_param_init genv id param expr
   | Load (_filename, decls) ->
       List.iter (collect_decl genv) decls
   | _ -> ()
@@ -162,6 +167,39 @@ let compile_allow
         t_target_typs target_typs;
       []
 
+let rec compile_param_init_expr genv (formal : T.ident) (expr : T.expr) : pterm_e =
+  let compile = compile_param_init_expr genv formal in
+  let compile_argument (argument : T.expr) =
+    match argument.desc with
+    | Ident { id; param = None; _ } when id = formal ->
+        pterm_e @@ PPIdent (compile_ident formal)
+    | _ ->
+        pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv argument)
+  in
+  pterm_e @@
+  match expr.desc with
+  | Ident { id; param = Some argument; _ } ->
+      PPFunApp (compile_ident id, [compile_argument argument])
+  | Ident { id; param = None; _ } ->
+      PPIdent (compile_ident id)
+  | Apply (id, args) ->
+      PPFunApp (compile_ident id, List.map compile args)
+  | Tuple exprs ->
+      PPTuple (List.map compile exprs)
+  | Unit ->
+      PPTuple []
+  | String s ->
+      PPIdent (GEnv.fresh_string_ident genv s)
+  | Boolean true ->
+      PPIdent true_ident
+  | Boolean false ->
+      PPIdent false_ident
+  | Integer n ->
+      PPIdent (GEnv.fresh_integer_ident genv n)
+  | Float _ ->
+      Error.unsupported ~loc:expr.loc
+        "Float terms are not supported in ProVerif term translation"
+
 let compile_init ~loc:(_loc : Location.t) genv (id : T.ident) (desc : T.init_desc) : tdecl list =
   (*
      3.1 Encoding Strings, Constants, Events and Function Declarations
@@ -194,20 +232,17 @@ let compile_init ~loc:(_loc : Location.t) genv (id : T.ident) (desc : T.init_des
       ]
   | Value_with_param (param, expr) ->
       let param_ident = compile_ident param in
-      let init_term =
-        term_e @@ PFunApp (init_ident, [term_e @@ PIdent param_ident])
-      in
-      let value_term = compile_expr_to_term genv expr in
+      let value_term = compile_param_init_expr genv param expr in
       [ TComment (Printf.sprintf "const %s<%s> = .." (Ident.to_string id) (Ident.to_string param))
-      ; TReduc
-          ( [ [param_ident, param_data_ident]
-            , EETerm (term_e @@ PFunApp (pv_ident "=", [init_term; value_term]))
-            ]
-          , [] )
+      ; TLetFun (init_ident, [param_ident, param_data_ident, false], value_term)
       ]
   | Fresh_with_param ->
       [ TComment (Printf.sprintf "const fresh %s<>" (Ident.to_string id))
-      ; TFunDecl (init_ident, [param_data_ident], bitstring_ident, [])]
+      ; TFunDecl
+          ( init_ident
+          , [param_data_ident]
+          , bitstring_ident
+          , [pv_ident "private", None] )]
 
 let compile_channel
     ~loc
@@ -623,12 +658,12 @@ let compile_prelude (_genv : GEnv.t) : tdecl list =
      ```
 
      ```
-     type proc_t.
+     type rabbit_proc_t.
      type acc_data_t.
      type syscall_t.
-     free attacker : channel.
-     table access_control_table(proc_t, acc_data_t, syscall_t).
-     table file_type_table(proc_t, acc_data_t, bitstring).
+     free attacker_ch : channel.
+     table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
+     table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
      table channel_table(acc_data_t, channel).
      table deleted_address_table(bitstring).
      const none_syscall_s : syscall_t.
@@ -672,6 +707,20 @@ let compile_string_consts (genv : GEnv.t) : tdecl list =
       [ TComment (Printf.sprintf "String constant %S" literal)
       ; TConstDecl (id, bitstring_ident, []) ]) (GEnv.strings genv)
 
+let compile_integer_consts (genv : GEnv.t) : tdecl list =
+  List.concat_map
+    (fun (value, id) ->
+       [ TComment (Printf.sprintf "Integer constant %d" value)
+       ; TConstDecl (id, bitstring_ident, []) ])
+    (GEnv.integers genv)
+
+let compile_parameter_consts (genv : GEnv.t) : tdecl list =
+  List.concat_map
+    (fun (value, id) ->
+       [ TComment (Printf.sprintf "Parameter value %s" value)
+       ; TConstDecl (id, param_data_ident, []) ])
+    (GEnv.parameters genv)
+
 let compile_syscall_consts (genv : GEnv.t) : tdecl list =
   (*
      3.2 Encoding Process Types, Channel types, File types, and Access Control Policies
@@ -709,6 +758,18 @@ let compile_event_decls (genv : GEnv.t) : tdecl list =
       [ TComment (Printf.sprintf "Event declaration ::%s(..)" name)
       ; TEventDecl (compile_name name, List.init arity (fun _ -> bitstring_ident))
       ]) (GEnv.events genv)
+
+let compile_fact_decls (genv : GEnv.t) : tdecl list =
+  List.concat_map
+    (fun (name, arity) ->
+       [ TComment (Printf.sprintf "Channel fact declaration %s(..)" name)
+       ; TFunDecl
+           ( compile_name name
+           , List.init arity (fun _ -> bitstring_ident)
+           , bitstring_ident
+           , [pv_ident "data", None] )
+       ])
+    (GEnv.facts genv)
 
 (* 3.4 Encoding Structured facts, new, let, delete
 
@@ -871,9 +932,12 @@ let compile_program (decls : T.decl list) : Pv_parser.program =
   let top_process = add_allow_inits genv top_process in
   ( compile_prelude genv
     @ compile_structure_decls genv
+    @ compile_fact_decls genv
     @ compile_syscall_consts genv
     @ compile_event_decls genv
     @ compile_string_consts genv
+    @ compile_integer_consts genv
+    @ compile_parameter_consts genv
     @ [ TComment "Body" ]
     @ body
     @ [ TComment "System" ]

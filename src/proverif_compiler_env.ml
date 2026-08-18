@@ -27,6 +27,10 @@ module GEnv = struct
 
   type t =
     { mutable strings       : (string * ident) list (** string constants and their identifiers *)
+    ; mutable integers      : (int * ident) list (** integer constants and their identifiers *)
+    ; mutable parameters    : (string * ident) list (** concrete parameter values *)
+    ; mutable param_inits   : (T.ident * (T.ident * T.expr)) list
+        (** parameterized derived constants and their definitions *)
     ; mutable syscalls      : (Ident.t * syscall_def) list (** system calls and definitions *)
     ; mutable attacks       : (Ident.t * attack_def) list (** attacks and definitions *)
     ; allow_attack_table    : (Ident.t, T.ident list) Hashtbl.t (** process type and allowed attacks *)
@@ -34,12 +38,16 @@ module GEnv = struct
     ; mutable allow_entries : allow_entry list
     ; mutable process_types : (Ident.t * ident) list (** process types in Rabbit and Proverif *)
     ; mutable structures    : (Name.t * int) list (** structure name and arity *)
+    ; mutable facts         : (Name.t * int) list (** channel fact constructor and arity *)
     ; mutable events        : (string * int) list (** event name and arity *)
     ; mutable top_process   : tprocess_e option
     }
 
   let create () : t =
     { strings            = []
+    ; integers           = []
+    ; parameters         = []
+    ; param_inits        = []
     ; syscalls           = []
     ; attacks            = []
     ; allow_attack_table = Hashtbl.create 101
@@ -47,6 +55,7 @@ module GEnv = struct
     ; allow_entries      = []
     ; process_types      = []
     ; structures         = []
+    ; facts              = []
     ; events             = []
     ; top_process        = None
     }
@@ -108,6 +117,45 @@ module GEnv = struct
     match List.assoc_opt s genv.strings with
     | Some id -> id
     | None -> assert false
+
+  (* integers *********************************************)
+
+  let integers genv = genv.integers
+
+  let fresh_integer_ident genv n : ident =
+    match List.assoc_opt n genv.integers with
+    | Some id -> id
+    | None ->
+        let printed = string_of_int n in
+        let suffix =
+          if printed.[0] = '-' then
+            "neg_" ^ String.sub printed 1 (String.length printed - 1)
+          else
+            printed
+        in
+        let id = add_ident genv ~base:("rabbit_int_" ^ suffix) in
+        genv.integers <- genv.integers @ [n, id];
+        id
+
+  (* concrete parameter values *****************************)
+
+  let parameters genv = genv.parameters
+
+  let fresh_parameter_ident genv (expr : T.expr) : ident =
+    let value = T.string_of_expr expr in
+    match List.assoc_opt value genv.parameters with
+    | Some id -> id
+    | None ->
+        let suffix = sanitize_string_for_ident value in
+        let id = add_ident genv ~base:("rabbit_param_" ^ suffix) in
+        genv.parameters <- genv.parameters @ [value, id];
+        id
+
+  let add_param_init genv id param expr =
+    genv.param_inits <- genv.param_inits @ [id, (param, expr)]
+
+  let find_param_init genv id =
+    List.assoc_opt id genv.param_inits
 
   let rec add_expr_strings genv (expr : T.expr) =
     match expr.desc with
@@ -300,6 +348,16 @@ module GEnv = struct
       "Structure"
       (fun genv -> genv.structures)
       (fun genv structures -> genv.structures <- structures)
+
+  (* channel facts *****************************************)
+
+  let facts genv = genv.facts
+
+  let add_fact =
+    add_with_arity
+      "Channel fact"
+      (fun genv -> genv.facts)
+      (fun genv facts -> genv.facts <- facts)
 
   (* events *************************************************)
 
