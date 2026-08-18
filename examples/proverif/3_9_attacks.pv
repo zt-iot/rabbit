@@ -1,19 +1,19 @@
 (* Predefined types *)
 type param_data.
-type proc_t.
+type rabbit_proc_t.
 type acc_data_t.
 type syscall_t.
-free attacker: channel.
+free attacker_ch: channel.
 (* Tables *)
-table access_control_table(proc_t, acc_data_t, syscall_t).
-table file_type_table(proc_t, acc_data_t, bitstring).
+table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
+table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
 (* Booleans *)
-const true: bitstring.
-const false: bitstring.
+const rabbit_true: bitstring.
+const rabbit_false: bitstring.
 (* syscall id(..) *)
 const id_s: syscall_t.
 (* Event declaration ::Observed(..) *)
@@ -24,26 +24,28 @@ event Syscall(bitstring).
 event Attack(bitstring).
 (* Event declaration ::Sent(..) *)
 event Sent(bitstring).
+(* Integer constant 0 *)
+const rabbit_int_0: bitstring.
 (* Body *)
 (* function succ:1 *)
 fun succ(bitstring): bitstring.
 (* type proc_t : process *)
-const proc_t: proc_t.
+const proc_t: rabbit_proc_t.
 (* process worker(..): proc_t *)
-let worker(ptype:proc_t) =
-  event Sent(0);
+let worker(ptype:rabbit_proc_t) =
+  event Sent(rabbit_int_0);
   new rabbit_attack_choice_ch:channel;
-  (out(rabbit_attack_choice_ch, true) |
+  (out(rabbit_attack_choice_ch, rabbit_true) |
    in(rabbit_attack_choice_ch, _:bitstring);
-   event Syscall(0);
-   event Observed(0)) |
+   event Syscall(rabbit_int_0);
+   event Observed(rabbit_int_0)) |
   in(rabbit_attack_choice_ch, _:bitstring);
-  event Attack(0);
-  event Observed(succ(0)).
+  event Attack(rabbit_int_0);
+  event Observed(succ(rabbit_int_0)).
 (* Requires *)
 (* lemma ReachableSyscall *)
-query event(Syscall(0)).
+query event(Syscall(rabbit_int_0)).
 (* lemma ReachableAttack *)
-query event(Attack(0)).
+query event(Attack(rabbit_int_0)).
 (* System *)
 process worker(proc_t).

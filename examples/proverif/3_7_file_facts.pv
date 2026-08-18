@@ -1,19 +1,19 @@
 (* Predefined types *)
 type param_data.
-type proc_t.
+type rabbit_proc_t.
 type acc_data_t.
 type syscall_t.
-free attacker: channel.
+free attacker_ch: channel.
 (* Tables *)
-table access_control_table(proc_t, acc_data_t, syscall_t).
-table file_type_table(proc_t, acc_data_t, bitstring).
+table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
+table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
 (* Booleans *)
-const true: bitstring.
-const false: bitstring.
+const rabbit_true: bitstring.
+const rabbit_false: bitstring.
 (* Structure declaration Fd(_) *)
 fun Fd(bitstring, bitstring): bitstring[data].
 reduc forall x_0:bitstring, x_1:bitstring; FdAddr(Fd(x_0, x_1)) = x_0.
@@ -28,26 +28,26 @@ const secret_pub_str: bitstring.
 const hello_str: bitstring.
 (* Body *)
 (* type server_t : process *)
-const server_t: proc_t.
+const server_t: rabbit_proc_t.
 (* type readonly_t : filesys *)
 const readonly_t: acc_data_t.
 (* process server(..): server_t *)
-let server(ptype:proc_t) =
+let server(ptype:rabbit_proc_t) =
   (* file "/secret/pub" : readonly_t = .. *)
   insert file_type_table(ptype, readonly_t, secret_pub_str);
   new rabbit__file_ch:channel;
   out(rabbit__file_ch, (secret_pub_str, hello_str)) |
-  (get file_type_table(=ptype, file_type__56:acc_data_t, =secret_pub_str) in
-   get access_control_table(=ptype, =file_type__56, =fopen_s) in
-   in(rabbit__file_ch, (=secret_pub_str, file_contents__55:bitstring))[precise];
-   new y__51:bitstring;
-   get file_type_table(=ptype, file_type__54:acc_data_t, =secret_pub_str) in
-   get access_control_table(=ptype, =file_type__54, =fopen_s) in
-   out(rabbit__file_ch, (secret_pub_str, x__50)) |
-   event Valid(Fd(y__51, x__50))).
+  (get file_type_table(=ptype, file_type__59:acc_data_t, =secret_pub_str) in
+   get access_control_table(=ptype, =file_type__59, =fopen_s) in
+   in(rabbit__file_ch, (=secret_pub_str, file_contents__57:bitstring))[precise];
+   new y__54:bitstring;
+   get file_type_table(=ptype, file_type__58:acc_data_t, =secret_pub_str) in
+   get access_control_table(=ptype, =file_type__58, =fopen_s) in
+   out(rabbit__file_ch, (secret_pub_str, file_contents__57)) |
+   event Valid(Fd(y__54, file_contents__57))).
 (* Requires *)
 (* lemma ReachableValid *)
-query fd__53:bitstring; event(Valid(fd__53)).
+query fd__56:bitstring; event(Valid(fd__56)).
 (* System *)
 process
   (* allow server_t readonly_t [fopen] *)

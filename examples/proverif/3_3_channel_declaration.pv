@@ -1,28 +1,28 @@
 (* Predefined types *)
 type param_data.
-type proc_t.
+type rabbit_proc_t.
 type acc_data_t.
 type syscall_t.
-free attacker: channel.
+free attacker_ch: channel.
 (* Tables *)
-table access_control_table(proc_t, acc_data_t, syscall_t).
-table file_type_table(proc_t, acc_data_t, bitstring).
+table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
+table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
 (* Booleans *)
-const true: bitstring.
-const false: bitstring.
+const rabbit_true: bitstring.
+const rabbit_false: bitstring.
 (* Event declaration ::Valid(..) *)
 event Valid.
 (* Body *)
 (* type client_t : process *)
-const client_t: proc_t.
+const client_t: rabbit_proc_t.
 (* type udp_t : channel *)
 const udp_t: acc_data_t.
 (* process client(..): client_t *)
-let client(ptype:proc_t) = event Valid.
+let client(ptype:rabbit_proc_t) = event Valid.
 (* channel udp : udp_t *)
 free udp: channel[private].
 (* Requires *)

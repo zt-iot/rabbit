@@ -1,0 +1,20 @@
+(* Spec 3.1: generated string constants preserve the order of their first
+   occurrence in the Rabbit source, rather than sorting by literal value. *)
+
+type proc_t : process
+
+process speaker() : proc_t
+{
+  main {
+    event [::Seen("zebra")];
+    event [::Seen("alpha")]
+  }
+}
+
+system
+  speaker()
+requires
+[
+  lemma ReachableAlpha :
+    reachable ::Seen("alpha")
+]
