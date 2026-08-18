@@ -1,0 +1,24 @@
+(* Verification feature: skip continues with the following command.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    skip;
+    event [::AfterSkip()]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The no-op `skip` leaves the following event executable.
+  true
+  *)
+  lemma ContinuationRuns : reachable ::AfterSkip()
+]

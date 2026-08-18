@@ -1,0 +1,30 @@
+(* Verification feature: emitting an event makes it reachable.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process sender() : proc_t
+{
+  main {
+    event [::Sent()]
+  }
+}
+
+system
+  sender()
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma SentIsReachable :
+    reachable ::Sent() ;
+
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma OtherIsUnreachable :
+    reachable ::Other()
+]

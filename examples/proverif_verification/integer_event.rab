@@ -1,0 +1,40 @@
+(* Verification feature: integer literals are symbolic bitstring constants.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::Value(1)];
+    event [::Negative(-7)]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma OneIsReachable : reachable ::Value(1) ;
+
+  (* PROVERIF EXPECTED
+  # No event of 2
+  false
+  *)
+  lemma TwoIsUnreachable : reachable ::Value(2) ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma NegativeIntegerIsReachable : reachable ::Negative(-7) ;
+
+  (* PROVERIF EXPECTED
+  # No event of -8
+  false
+  *)
+  lemma DifferentNegativeIntegerIsUnreachable : reachable ::Negative(-8)
+]

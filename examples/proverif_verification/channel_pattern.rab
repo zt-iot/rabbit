@@ -1,0 +1,44 @@
+(* Verification feature: a channel case checks non-fresh payload fields.
+
+   Reviewed.
+*)
+
+const fresh accepted
+const fresh rejected
+
+type proc_t : process
+type transport_t : channel
+
+process worker(ch : transport_t) : proc_t
+{
+  main {
+    put [ch::Message(accepted)];
+    case
+    | [ch::Message(accepted)] -> event [::Matched()]
+    | [ch::Message(rejected)] -> event [::Mismatched()]
+    end
+  }
+}
+
+allow proc_t transport_t [.]
+
+channel transport : transport_t
+
+system
+  worker(transport)
+requires
+[
+  (* PROVERIF EXPECTED
+  # The first always matches.
+  true
+  *)
+  lemma ExactPatternMatches :
+    reachable ::Matched() ;
+
+  (* PROVERIF EXPECTED
+  # The second never matches.
+  false
+  *)
+  lemma DifferentPatternDoesNotMatch :
+    reachable ::Mismatched()
+]

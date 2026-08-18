@@ -1,0 +1,33 @@
+(* Verification feature: correspondence distinguishes ordering from reachability.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::Started()];
+    event [::Finished()]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Started, then Finished.
+  true
+  *)
+  lemma StartedBeforeFinished :
+    corresponds ::Finished() ~> ::Started() ;
+
+  (* PROVERIF EXPECTED
+  # Not the opposite: Finished then Started
+  false
+  *)
+  lemma FinishedBeforeStarted :
+    corresponds ::Started() ~> ::Finished()
+]

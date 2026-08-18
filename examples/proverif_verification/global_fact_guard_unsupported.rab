@@ -1,0 +1,21 @@
+(* Known gap: arbitrary global facts cannot be consumed by ProVerif case
+   lowering.  Rabbit global facts are linear state, not events. *)
+
+const fresh payload
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    case
+    | [::Stored(payload)] -> event [::Consumed()]
+    end
+  }
+}
+
+system worker()
+requires
+[
+  lemma ConsumedIsReachable : reachable ::Consumed()
+]

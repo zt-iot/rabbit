@@ -1,0 +1,18 @@
+(* Known gap: ordinary plain facts cannot be used as case guards. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    case
+    | [Flag()] -> event [::Selected()]
+    end
+  }
+}
+
+system worker()
+requires
+[
+  lemma SelectedIsReachable : reachable ::Selected()
+]

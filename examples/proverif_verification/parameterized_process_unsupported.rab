@@ -1,0 +1,19 @@
+(* Known gap: parameterized process declarations are not implemented. *)
+
+type proc_t : process
+
+process worker<p>() : proc_t
+{
+  main { event [::Ready()] }
+}
+
+process peer<p>() : proc_t
+{
+  main { event [::PeerReady()] }
+}
+
+system !p.(worker<p>() | peer<p>())
+requires
+[
+  lemma ReadyIsReachable : reachable ::Ready(), ::PeerReady()
+]

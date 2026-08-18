@@ -1,0 +1,47 @@
+(* Verification feature: allowing an attack keeps both normal and attack paths.
+
+   Reviewed
+*)
+
+function succ:1
+
+type proc_t : process
+
+syscall id(v) {
+  event [::Normal()];
+  v
+}
+
+attack tamper_id on id(v) {
+  event [::Tampered()];
+  succ(v)
+}
+
+process worker() : proc_t
+{
+  main {
+    _ := id(0)
+  }
+}
+
+allow proc_t [id]
+allow attack proc_t [tamper_id]
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Normal execution
+  true
+  *)
+  lemma NormalIsReachable :
+    reachable ::Normal() ;
+
+  (* PROVERIF EXPECTED
+  # The attack is allowed
+  true
+  *)
+  lemma TamperedIsReachable :
+    reachable ::Tampered()
+]

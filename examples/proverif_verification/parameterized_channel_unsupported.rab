@@ -1,0 +1,17 @@
+(* Known gap: parameterized channel declarations are not implemented. *)
+
+type proc_t : process
+type transport_t : channel
+
+channel transport<> : transport_t
+
+process worker() : proc_t
+{
+  main { event [::Ready()] }
+}
+
+system worker()
+requires
+[
+  lemma ReadyIsReachable : reachable ::Ready()
+]

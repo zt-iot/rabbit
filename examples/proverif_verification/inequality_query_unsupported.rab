@@ -1,0 +1,17 @@
+(* Known gap: Rabbit-to-ProVerif compilation succeeds, but ProVerif rejects a
+   standalone inequality query because it has no positive event or fact. *)
+
+const fresh value
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main { skip }
+}
+
+system worker()
+requires
+[
+  lemma IrreflexiveInequality : reachable value != value
+]

@@ -1,0 +1,28 @@
+(* Verification feature: facts in a case guard are combined by conjunction. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    case
+    | [1 = 1, 2 = 2] -> event [::AllMatched()]
+    | [1 = 1, 2 != 2] -> event [::OneFailed()]
+    end
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Both equalities in the first guard hold, so their conjunction enables the branch.
+  true
+  *)
+  lemma AllFactsMatch : reachable ::AllMatched() ;
+  (* PROVERIF EXPECTED
+  # The false inequality in the second guard makes the entire conjunction fail.
+  false
+  *)
+  lemma OneFailedFactDisablesBranch : reachable ::OneFailed()
+]

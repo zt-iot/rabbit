@@ -1,0 +1,33 @@
+(* Verification feature: system composition runs component processes in parallel.
+
+   Reviewed.
+ *)
+
+type left_t : process
+type right_t : process
+
+process left() : left_t
+{
+  main {
+    event [::Left()]
+  }
+}
+
+process right() : right_t
+{
+  main {
+    event [::Right()]
+  }
+}
+
+system
+  left() | right()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Parallel system composition executes both component processes in the same trace.
+  true
+  *)
+  lemma BothComponentsRun :
+    reachable ::Left(), ::Right()
+]

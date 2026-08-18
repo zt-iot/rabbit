@@ -1,0 +1,38 @@
+(* Verification feature: a syscall reads a process-local file after policy checks.
+
+   Reviewed.
+*)
+
+syscall read_file(p) {
+  case
+  | [p.contents] ->
+      event [::Read(contents)];
+      contents
+  end
+}
+
+type server_t : process
+type readonly_t : filesys
+
+allow server_t readonly_t [read_file]
+
+process server() : server_t
+{
+  file "/data" : readonly_t = "initial"
+
+  main {
+    _ := read_file("/data")
+  }
+}
+
+system
+  server()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Contents are read properly
+  true
+  *)
+  lemma InitialContentsAreReadable :
+    reachable ::Read("initial")
+]

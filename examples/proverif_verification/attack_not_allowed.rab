@@ -1,0 +1,43 @@
+(* Verification feature: an undelegated active attack is not an alternative.
+
+   Reviewed
+*)
+
+const fresh normal_result
+const fresh tampered_result
+
+type proc_t : process
+
+syscall transform() {
+  normal_result
+}
+
+attack tamper_transform on transform() {
+  tampered_result
+}
+
+allow proc_t [transform]
+
+process worker() : proc_t
+{
+  main {
+    var result = transform() in
+    event [::Result(result)]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The permitted syscall body returns `normal_result` to the caller.
+  true
+  *)
+  lemma NormalResultIsReachable : reachable ::Result(normal_result) ;
+
+  (* PROVERIF EXPECTED
+  # No `allow attack` entry enables the attack body, so `tampered_result` cannot reach the caller.
+  false
+  *)
+  lemma AttackResultIsUnreachable : reachable ::Result(tampered_result)
+]

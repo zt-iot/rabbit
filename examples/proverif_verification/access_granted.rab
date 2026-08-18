@@ -1,0 +1,33 @@
+(* Verification feature: channel access with an allow entry continues.
+
+   Reviewed
+*)
+
+const fresh payload
+
+type sender_t : process
+type transport_t : channel
+
+allow sender_t transport_t [.]
+
+process sender(ch : transport_t) : sender_t
+{
+  main {
+    put [ch::Message(payload)];
+    event [::AfterGrantedPut()]
+  }
+}
+
+channel transport : transport_t
+
+system
+  sender(transport)
+requires
+[
+  (* PROVERIF EXPECTED
+  # The direct-access entry permits the channel put, so execution reaches the following event.
+  true
+  *)
+  lemma ContinuationIsReachable :
+    reachable ::AfterGrantedPut()
+]

@@ -1,0 +1,38 @@
+(* Verification feature: a local function without return falls through to its
+   caller when its result is discarded.
+
+
+   Reviewed.
+*)
+
+const fresh payload
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  function notify(value) {
+    event [::Notified(value)]
+  }
+
+  main {
+    _ := notify(payload);
+    event [::Continued()]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # notify(payload) is called
+  true
+  *)
+  lemma LocalFunctionRuns : reachable ::Notified(payload) ;
+
+  (* PROVERIF EXPECTED
+  # Discarding the return value does not affect the continuaiton.
+  true
+  *)
+  lemma FallthroughContinues : reachable ::Continued()
+]

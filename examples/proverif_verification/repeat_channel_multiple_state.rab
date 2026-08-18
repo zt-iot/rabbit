@@ -1,0 +1,63 @@
+(* Verification feature: repeat supports a channel guard and carries multiple
+   mutable variables through the loop lock.
+
+   Reviewed.
+*)
+
+const fresh payload
+const fresh initial_phase
+const fresh finished_phase
+const fresh empty_value
+
+type proc_t : process
+type transport_t : channel
+
+process worker(ch : transport_t) : proc_t
+{
+  main {
+    var phase = initial_phase in
+    var saved = empty_value in
+    put [ch::Step(payload)];
+    repeat
+    | [ch::Step(value), phase = initial_phase] ->
+        event [::StepConsumed(value)];
+        phase := finished_phase;
+        saved := value
+    until
+    | [phase = finished_phase, saved = payload] ->
+        event [::UntilMatched(phase, saved)]
+    end;
+    event [::LoopFinished(phase, saved)]
+  }
+}
+
+allow proc_t transport_t [.]
+
+channel transport : transport_t
+
+system worker(transport)
+requires
+[
+  (* PROVERIF EXPECTED
+  # The channel branch stores both `finished_phase` and `payload`, which the continuation receives.
+  true
+  *)
+  lemma FinalStateIsReachable :
+    reachable ::LoopFinished(finished_phase, payload) ;
+
+  (* PROVERIF EXPECTED
+  # The until guard observes the state written only after `StepConsumed` handles the channel fact.
+  true
+  *)
+  lemma UntilFollowsConsumption :
+    corresponds ::UntilMatched(finished_phase, payload)
+      ~> ::StepConsumed(payload) ;
+
+  (* PROVERIF EXPECTED
+  # The continuation receives the done-state token emitted after `UntilMatched`.
+  true
+  *)
+  lemma ContinuationFollowsUntil :
+    corresponds ::LoopFinished(finished_phase, payload)
+      ~> ::UntilMatched(finished_phase, payload)
+]

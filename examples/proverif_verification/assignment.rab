@@ -1,0 +1,37 @@
+(* Verification feature: assignment changes the value used by the continuation.
+
+   Reviewed
+*)
+
+const fresh before
+const fresh after
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    var value = before in
+    value := after;
+    event [::Assigned(value)]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The assignment replaces `before` with `after` before emitting `Assigned`.
+  true
+  *)
+  lemma NewValueIsReachable :
+    reachable ::Assigned(after) ;
+
+  (* PROVERIF EXPECTED
+  # The old value is overwritten before `Assigned` is emitted.
+  false
+  *)
+  lemma OldValueIsUnreachable :
+    reachable ::Assigned(before)
+]

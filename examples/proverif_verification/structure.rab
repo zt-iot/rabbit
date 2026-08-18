@@ -1,0 +1,32 @@
+(* Verification feature: structured new/get preserves fields and pointer identity.
+
+   Reviewed.
+*)
+
+const fresh payload
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    new value = Box(payload) in
+    var alias = value in
+    let field = alias.Box in
+    case
+    | [value = alias] -> event [::Read(field)]
+    end
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The alias preserves the structure address, and `get` projects its `payload` field.
+  true
+  *)
+  lemma FieldIsReachable :
+    reachable ::Read(payload)
+]

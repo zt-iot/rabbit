@@ -1,0 +1,52 @@
+(* Verification feature: overlapping case guards are selected nondeterministically.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  var x = 0
+
+  main {
+    case
+    | [1 = 1] -> event [::First()]; x := 1
+    | [1 = 1] -> event [::Second()]; x := 2
+    end;
+    event [::Merged(x)]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Overlapping true guards allow the first branch to be chosen.
+  true
+  *)
+  lemma FirstBranchIsReachable :
+    reachable ::First() ;
+
+  (* PROVERIF EXPECTED
+  # Overlapping true guards allow the second branch to be chosen.
+  true
+  *)
+  lemma SecondBranchIsReachable :
+    reachable ::Second() ;
+
+  (* PROVERIF EXPECTED
+  # Reaching Merged(1) records that the first branch was taken.
+  true
+  *)
+  lemma FirstBranchIsMerged :
+    corresponds ::Merged(1) ~> ::First() ;
+
+  (* PROVERIF EXPECTED
+  # Reaching Merged(2) records that the second branch was taken.
+  true
+  *)
+  lemma SecondBranchIsMerged :
+    corresponds ::Merged(2) ~> ::Second()
+]

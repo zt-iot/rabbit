@@ -1,0 +1,34 @@
+(* Verification feature: tuples survive expression translation.
+
+   Reviewed.
+*)
+
+const fresh item
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::Value((item, "selected"))]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The tuple emitted by the process exactly matches the queried tuple.
+  true
+  *)
+  lemma CompositeValueIsReachable :
+    reachable ::Value((item, "selected")) ;
+
+  (* PROVERIF EXPECTED
+  # Changing the tuple's string component produces a distinct term that is never emitted.
+  false
+  *)
+  lemma DifferentTupleIsUnreachable :
+    reachable ::Value((item, "rejected"))
+]

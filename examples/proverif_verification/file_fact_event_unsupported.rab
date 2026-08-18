@@ -1,0 +1,19 @@
+(* Known gap: ProVerif event lowering does not support file facts. *)
+
+type proc_t : process
+type data_t : filesys
+
+process worker() : proc_t
+{
+  file "/data" : data_t = "initial"
+
+  main {
+    event ["/data"."initial"]
+  }
+}
+
+system worker()
+requires
+[
+  lemma ModelRuns : reachable ::Never()
+]

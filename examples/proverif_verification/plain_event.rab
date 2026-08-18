@@ -1,0 +1,31 @@
+(* Verification feature: plain and global event facts use the same event semantics.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [PlainEvent()];
+    event [::GlobalEvent()]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma PlainIsReachable :
+    reachable PlainEvent() ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma GlobalIsReachable :
+    reachable ::GlobalEvent()
+]

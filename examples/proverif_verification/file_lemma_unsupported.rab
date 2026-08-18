@@ -1,0 +1,16 @@
+(* Known gap: file facts cannot be lowered in ProVerif queries. *)
+
+type proc_t : process
+type file_t : filesys
+
+process worker() : proc_t
+{
+  file "/data" : file_t = "value"
+  main { skip }
+}
+
+system worker()
+requires
+[
+  lemma FileIsReachable : reachable "/data".value
+]

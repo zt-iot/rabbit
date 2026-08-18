@@ -1,0 +1,29 @@
+(* Verification feature: process-level variables initialize the main environment.
+
+   Reviewed.
+*)
+
+const fresh initial_value
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  var state = initial_value
+
+  main {
+    event [::Initialized(state)]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The process-level initializer binds `state` before `main` emits it.
+  true
+  *)
+  lemma InitialValueIsVisible :
+    reachable ::Initialized(initial_value)
+]

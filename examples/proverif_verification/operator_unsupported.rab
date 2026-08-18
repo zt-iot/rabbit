@@ -1,0 +1,17 @@
+(* Known gap: operator tokens cannot currently be declared as external functions.
+
+   This is a bug of Rabbit.  It cannot declare operators like `function +:2`.
+*)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main { event [::Value(1 + 2)] }
+}
+
+system worker()
+requires
+[
+  lemma ValueIsReachable : reachable ::Value(1 + 2)
+]

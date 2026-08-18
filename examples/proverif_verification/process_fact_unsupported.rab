@@ -1,0 +1,18 @@
+(* Known gap: process facts are parsed but unused by the Typed AST. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    case
+    | [worker % State(value)] -> event [::Ready()]
+    end
+  }
+}
+
+system worker()
+requires
+[
+  lemma ReadyIsReachable : reachable ::Ready()
+]

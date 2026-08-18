@@ -1,0 +1,14 @@
+(* Known gap: trace-language string lemmas have no ProVerif lowering. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main { event [::Ready()] }
+}
+
+system worker()
+requires
+[
+  lemma TraceProperty : exists-trace "Ex #i . Ready() @ #i"
+]

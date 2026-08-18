@@ -1,0 +1,36 @@
+(* Verification feature: reachability facts are compiled as a conjunction. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::First()];
+    event [::Second()]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The single trace emits both `First` and `Second`, satisfying the query conjunction.
+  true
+  *)
+  lemma BothAreReachable :
+    reachable ::First(), ::Second() ;
+
+  (* PROVERIF EXPECTED
+  # First then Second
+  true
+  *)
+  lemma FirstThenSecond :
+    corresponds ::Second() ~> ::First() ;
+
+  (* PROVERIF EXPECTED
+  # No command emits `Missing`, so the conjunction cannot be satisfied.
+  false
+  *)
+  lemma MissingConjunctMakesQueryUnreachable :
+    reachable ::First(), ::Missing()
+]

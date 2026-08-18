@@ -1,0 +1,35 @@
+(* Verification feature: ::True succeeds and ::False cannot select a branch.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    case
+    | [::True()] -> event [::Selected()]
+    | [::False()] -> event [::Rejected()]
+    end
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The special guard `::True()` always enables its branch.
+  true
+  *)
+  lemma TrueBranchIsReachable :
+    reachable ::Selected() ;
+
+  (* PROVERIF EXPECTED
+  # The special guard `::False()` always disables its branch.
+  false
+  *)
+  lemma FalseBranchIsUnreachable :
+    reachable ::Rejected()
+]

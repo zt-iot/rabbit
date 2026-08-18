@@ -1,0 +1,53 @@
+(* Verification feature: channel put/case communicates a fact with access checks.
+
+   Reviewed.
+*)
+
+const fresh payload
+
+type sender_t : process
+type receiver_t : process
+type transport_t : channel
+
+process sender(ch : transport_t) : sender_t
+{
+  main {
+    put [ch::Message(payload)]
+  }
+}
+
+process receiver(ch : transport_t) : receiver_t
+{
+  main {
+    case
+    | [ch::Message(value)] -> event [::Received(value)]
+    end;
+    case
+    | [ch::Message(value)] -> event [::ReceivedAgain(value)]
+    end
+  }
+}
+
+allow sender_t transport_t [.]
+allow receiver_t transport_t [.]
+
+channel transport : transport_t
+
+system
+  sender(transport) | receiver(transport)
+requires
+[
+  (* PROVERIF EXPECTED
+  # The first channel case can consume the fact emitted by the sender.
+  true
+  *)
+  lemma PayloadIsReceived :
+    reachable ::Received(payload) ;
+
+  (* PROVERIF EXPECTED
+  # Rabbit has only one linear message, but ProVerif's approximation cannot prove that a second receive is impossible.
+  unknown
+  *)
+  lemma PayloadIsReceivedTwice :
+    reachable ::ReceivedAgain(payload)
+]

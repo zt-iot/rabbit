@@ -1,0 +1,14 @@
+(* Known gap: ordinary plain facts cannot be emitted with put. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main { put [Message("payload")] }
+}
+
+system worker()
+requires
+[
+  lemma ModelRuns : reachable ::Never()
+]

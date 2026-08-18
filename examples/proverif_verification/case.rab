@@ -1,0 +1,35 @@
+(* Verification feature: only a case branch whose guard holds is executed.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process chooser() : proc_t
+{
+  main {
+    case
+    | [1 = 1] -> event [::Selected()]
+    | [1 != 1] -> event [::Rejected()]
+    end
+  }
+}
+
+system
+  chooser()
+requires
+[
+  (* PROVERIF EXPECTED
+  # `1 = 1` is selected.
+  true
+  *)
+  lemma SelectedIsReachable :
+    reachable ::Selected() ;
+
+  (* PROVERIF EXPECTED
+  # `1 != 1` is never selected.
+  false
+  *)
+  lemma RejectedIsUnreachable :
+    reachable ::Rejected()
+]

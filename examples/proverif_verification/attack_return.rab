@@ -1,0 +1,45 @@
+(* Verification feature: active-attack alternatives propagate return values.
+
+   Reviewed
+*)
+
+const fresh payload
+const fresh normal_result
+const fresh tampered_result
+
+type proc_t : process
+
+syscall transform(value) {
+  normal_result
+}
+
+attack tamper_transform on transform(value) {
+  tampered_result
+}
+
+allow proc_t [transform]
+allow attack proc_t [tamper_transform]
+
+process worker() : proc_t
+{
+  main {
+    var result = transform(payload) in
+    event [::Result(result)]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Normal execution
+  true
+  *)
+  lemma NormalResultReachesCaller : reachable ::Result(normal_result) ;
+
+  (* PROVERIF EXPECTED
+  # The allowed attack alternative returns `tampered_result` through the same binding.
+  true
+  *)
+  lemma AttackResultReachesCaller : reachable ::Result(tampered_result)
+]

@@ -1,0 +1,39 @@
+(* Verification feature: separately allocated structures have distinct addresses.
+
+   Reviewed.
+*)
+
+const fresh payload
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    new left = Box(payload) in
+    new right = Box(payload) in
+    case
+    | [left = right] -> event [::SameAddress()]
+    | [left != right] -> event [::DifferentAddresses()]
+    end
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Separate `new` allocations produce distinct fresh addresses, so their equality guard fails.
+  false
+  *)
+  lemma EqualBranchIsUnreachable :
+    reachable ::SameAddress() ;
+
+  (* PROVERIF EXPECTED
+  # The inequality guard succeeds because the two structures have distinct fresh addresses.
+  true
+  *)
+  lemma DistinctBranchIsReachable :
+    reachable ::DifferentAddresses()
+]
