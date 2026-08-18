@@ -1,0 +1,2 @@
+(* used by load.rab *)
+const fresh loaded_value

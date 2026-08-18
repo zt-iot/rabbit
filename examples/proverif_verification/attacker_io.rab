@@ -1,0 +1,32 @@
+(* Verification feature: ::Out and ::In communicate through the attacker channel.
+
+   Remember: ::Out and ::In are special facts for channels between attackers.
+
+   Reviewed
+*)
+
+const fresh disclosed_value
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    put [::Out(disclosed_value)];
+    case
+    | [::In(value)] -> event [::AttackerReturned(value)]
+    end
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # After `::Out` discloses the value, the attacker can supply it to `::In`.
+  true
+  *)
+  lemma DisclosedValueCanReturn :
+    reachable ::AttackerReturned(disclosed_value)
+]

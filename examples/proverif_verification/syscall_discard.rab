@@ -1,0 +1,40 @@
+(* Verification feature: discarding a syscall result still runs its effects.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+syscall mark() {
+  event [::Marked()];
+  "result"
+}
+
+allow proc_t [mark]
+
+process worker() : proc_t
+{
+  main {
+    _ := mark();
+    event [::Continued()]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Discarding the syscall result still executes the syscall's `Marked` event.
+  true
+  *)
+  lemma SyscallEffectIsReachable :
+    reachable ::Marked() ;
+
+  (* PROVERIF EXPECTED
+  # After the discarded syscall completes, control returns to the caller's next event.
+  true
+  *)
+  lemma CallerContinues :
+    reachable ::Continued()
+]

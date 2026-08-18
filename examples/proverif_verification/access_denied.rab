@@ -1,0 +1,31 @@
+(* Verification feature: channel access without an allow entry deadlocks.
+
+   Reviewed
+*)
+
+const fresh payload
+
+type sender_t : process
+type transport_t : channel
+
+process sender(ch : transport_t) : sender_t
+{
+  main {
+    put [ch::Message(payload)];
+    event [::AfterDeniedPut()]
+  }
+}
+
+channel transport : transport_t
+
+system
+  sender(transport)
+requires
+[
+  (* PROVERIF EXPECTED
+  # No access-control entry permits the channel put, so execution cannot reach the following event.
+  false
+  *)
+  lemma ContinuationIsUnreachable :
+    reachable ::AfterDeniedPut()
+]

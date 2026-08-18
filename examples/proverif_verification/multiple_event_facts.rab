@@ -1,0 +1,31 @@
+(* Verification feature: one event command emits every fact in its list.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::First(), ::Second()]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # First then Second
+  true
+  *)
+  lemma FirstPrecedesSecond :
+    corresponds ::Second() ~> ::First() ;
+
+  (* PROVERIF EXPECTED
+  # not, Second then First
+  false
+  *)
+  lemma SecondDoesNotPrecedeFirst :
+    corresponds ::First() ~> ::Second()
+]

@@ -1,0 +1,43 @@
+(* Verification feature: a syscall return value updates an existing variable.
+
+   Reviewed.
+*)
+
+const fresh before
+const fresh after
+
+type proc_t : process
+
+syscall identity(value) {
+  value
+}
+
+allow proc_t [identity]
+
+process worker() : proc_t
+{
+  main {
+    var result = before in
+    result := identity(after);
+    event [::Assigned(result)]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The syscall returns `after`, and assignment stores it in the existing variable.
+  true
+  *)
+  lemma AssignedReturnIsReachable :
+    reachable ::Assigned(after) ;
+
+  (* PROVERIF EXPECTED
+  # The assignment overwrites `before` before the event reads the variable.
+  false
+  *)
+  lemma PreviousValueIsUnreachable :
+    reachable ::Assigned(before)
+]

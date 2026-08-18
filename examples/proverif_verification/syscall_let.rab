@@ -1,0 +1,34 @@
+(* Verification feature: a syscall return value binds a var/in continuation.
+
+   Reviewed.
+ *)
+
+const fresh argument
+
+type proc_t : process
+
+syscall identity(value) {
+  value
+}
+
+allow proc_t [identity]
+
+process worker() : proc_t
+{
+  main {
+    var result = identity(argument) in
+    event [::Returned(result)]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The syscall returns its argument, which the `var ... in` binding exposes to the event.
+  true
+  *)
+  lemma ReturnValueIsBound :
+    reachable ::Returned(argument)
+]

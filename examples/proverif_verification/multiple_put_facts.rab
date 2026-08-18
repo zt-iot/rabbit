@@ -1,0 +1,66 @@
+(* Verification feature: one put command emits every fact in its list.
+
+   Reviewed.
+*)
+
+const fresh left_payload
+const fresh right_payload
+
+type sender_t : process
+type receiver_t : process
+type left_t : channel
+type right_t : channel
+
+process sender(left_ch : left_t, right_ch : right_t) : sender_t
+{
+  main {
+    put [left_ch::Message(left_payload), right_ch::Message(right_payload)]
+  }
+}
+
+process left_receiver(ch : left_t) : receiver_t
+{
+  main {
+    case
+    | [ch::Message(value)] -> event [::LeftReceived(value)]
+    end
+  }
+}
+
+process right_receiver(ch : right_t) : receiver_t
+{
+  main {
+    case
+    | [ch::Message(value)] -> event [::RightReceived(value)]
+    end
+  }
+}
+
+allow sender_t left_t [.]
+allow sender_t right_t [.]
+allow receiver_t left_t [.]
+allow receiver_t right_t [.]
+
+channel left_transport : left_t
+channel right_transport : right_t
+
+system
+  sender(left_transport, right_transport)
+  | left_receiver(left_transport)
+  | right_receiver(right_transport)
+requires
+[
+  (* PROVERIF EXPECTED
+  # The left receiver receives the left.
+  true
+  *)
+  lemma LeftPayloadIsReceived :
+    reachable ::LeftReceived(left_payload) ;
+
+  (* PROVERIF EXPECTED
+  # and vice-versa.
+  true
+  *)
+  lemma RightPayloadIsReceived :
+    reachable ::RightReceived(right_payload)
+]

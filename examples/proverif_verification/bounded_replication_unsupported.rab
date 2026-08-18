@@ -1,0 +1,23 @@
+(* Known gap: Rabbit requires every process in a bounded replicated group to be
+   parameterized by the group binder.  The ProVerif backend rejects those
+   parameterized process declarations before reaching its Bounded lowering. *)
+
+type proc_t : process
+
+process left<instance>() : proc_t
+{
+  main { event [::Left()] }
+}
+
+process right<instance>() : proc_t
+{
+  main { event [::Right()] }
+}
+
+system
+  !instance.(left<instance>() | right<instance>())
+requires
+[
+  lemma LeftIsReachable : reachable ::Left() ;
+  lemma RightIsReachable : reachable ::Right()
+]

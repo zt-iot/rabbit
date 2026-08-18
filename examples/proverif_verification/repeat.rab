@@ -1,0 +1,77 @@
+(* Verification feature: repeat supports multiple repeat/until cases and threads
+   each branch's mutable state to the continuation.
+
+   Reviewed.
+*)
+
+const fresh initial_state
+const fresh left_state
+const fresh right_state
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    var state = initial_state in
+    repeat
+    | [state = initial_state] ->
+        event [::LeftRepeat()];
+        state := left_state
+    | [state = initial_state] ->
+        event [::RightRepeat()];
+        state := right_state
+    until
+    | [state = left_state] -> event [::LeftUntil()]
+    | [state = right_state] -> event [::RightUntil()]
+    end;
+    event [::Finished(state)]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # LeftRepeat then LeftUntil
+  true
+  *)
+  lemma LeftUntilFollowsLeftRepeat :
+    corresponds ::LeftUntil() ~> ::LeftRepeat() ;
+
+  (* PROVERIF EXPECTED
+  # RightRepeat then RightUntil
+  true
+  *)
+  lemma RightUntilFollowsRightRepeat :
+    corresponds ::RightUntil() ~> ::RightRepeat() ;
+
+  (* PROVERIF EXPECTED
+  # LeftUntil then left_state is set.
+  true
+  *)
+  lemma LeftContinuationFollowsLeftUntil :
+    corresponds ::Finished(left_state) ~> ::LeftUntil() ;
+
+  (* PROVERIF EXPECTED
+  # RightUntil then right_state is set.
+  true
+  *)
+  lemma RightContinuationFollowsRightUntil :
+    corresponds ::Finished(right_state) ~> ::RightUntil() ;
+
+  (* PROVERIF EXPECTED
+  # Not, RightRepeat then LeftUntil
+  false
+  *)
+  lemma LeftUntilDoesNotFollowRightRepeat :
+    corresponds ::LeftUntil() ~> ::RightRepeat() ;
+
+  (* PROVERIF EXPECTED
+  # Not LeftRepeat then RightUntil
+  false
+  *)
+  lemma RightUntilDoesNotFollowLeftRepeat :
+    corresponds ::RightUntil() ~> ::LeftRepeat()
+]

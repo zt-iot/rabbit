@@ -1,0 +1,32 @@
+(* Verification feature: declared Rabbit channels are private from the attacker.
+
+   Reviewed.
+*)
+
+type receiver_t : process
+type transport_t : channel
+
+process receiver(ch : transport_t) : receiver_t
+{
+  main {
+    case
+    | [ch::Message(value)] -> event [::Received(value)]
+    end
+  }
+}
+
+allow receiver_t transport_t [.]
+
+channel transport : transport_t
+
+system
+  receiver(transport)
+requires
+[
+  (* PROVERIF EXPECTED
+  # No process outputs on the private Rabbit channel, and the attacker cannot access it.
+  false
+  *)
+  lemma AttackerCannotSupplyPrivateChannel :
+    reachable ::Received(value)
+]

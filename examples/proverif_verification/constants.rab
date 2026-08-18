@@ -1,0 +1,28 @@
+(* Verification feature: fresh and derived Rabbit constants preserve equations.
+
+   Reviewed.
+ *)
+
+const fresh secret
+const alias = secret
+
+type proc_t : process
+
+process speaker() : proc_t
+{
+  main {
+    event [::Seen(secret)]
+  }
+}
+
+system
+  speaker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The derived constant equation reduces `alias` to the emitted `secret`.
+  true
+  *)
+  lemma AliasDenotesSecret :
+    reachable ::Seen(alias)
+]

@@ -1,0 +1,40 @@
+(* Verification feature: dereferencing any alias after delete deadlocks.
+
+   Reviewed.
+*)
+
+const fresh payload
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    new value = Box(payload) in
+    var alias = value in
+    delete value.Box;
+    event [::Deleted()];
+    let field = alias.Box in
+    event [::Dereferenced(field)]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The delete command completes before the guarded dereference is attempted.
+  true
+  *)
+  lemma DeleteCompletes :
+    reachable ::Deleted() ;
+
+  (* PROVERIF EXPECTED
+  # The deleted-address check should block dereferencing the alias,
+  # but ProVerif cannot prove that it always does.
+  unknown
+  *)
+  lemma DereferenceDeadlocks :
+    reachable ::Dereferenced(payload)
+]

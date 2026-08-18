@@ -1,0 +1,47 @@
+(* Verification feature: channel access uses the current inlined syscall id.
+
+   Reviewed.
+*)
+
+const fresh payload
+
+type sender_t : process
+type receiver_t : process
+type transport_t : channel
+
+syscall send_message(ch, value) {
+  put [ch::Message(value)]
+}
+
+process sender(ch : transport_t) : sender_t
+{
+  main {
+    _ := send_message(ch, payload)
+  }
+}
+
+process receiver(ch : transport_t) : receiver_t
+{
+  main {
+    case
+    | [ch::Message(value)] -> event [::Received(value)]
+    end
+  }
+}
+
+allow sender_t transport_t [send_message]
+allow receiver_t transport_t [.]
+
+channel transport : transport_t
+
+system
+  sender(transport) | receiver(transport)
+requires
+[
+  (* PROVERIF EXPECTED
+  # During the inlined syscall, the access check uses `send_message` and matches its allow entry.
+  true
+  *)
+  lemma SyscallPolicyAllowsCommunication :
+    reachable ::Received(payload)
+]

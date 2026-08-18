@@ -1,0 +1,39 @@
+(* Verification feature: a syscall without return falls through to its caller.
+
+   Reviewed.
+ *)
+
+type proc_t : process
+
+syscall notify() {
+  event [::Notified()]
+}
+
+allow proc_t [notify]
+
+process worker() : proc_t
+{
+  main {
+    _ := notify();
+    event [::Continued()]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Calling `notify` executes its body even though it has no explicit return.
+  true
+  *)
+  lemma SyscallBodyRuns :
+    reachable ::Notified() ;
+
+  (* PROVERIF EXPECTED
+  # Reaching the end of the syscall body resumes the caller continuation.
+  true
+  *)
+  lemma FallthroughContinues :
+    reachable ::Continued()
+]

@@ -1,0 +1,23 @@
+(* Verification feature: `constant` declares a callable arity-zero symbol.
+
+   Reviewed.
+*)
+
+constant marker
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main { event [::Marked(marker)] }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The arity-zero external symbol `marker` is the argument of the emitted event.
+  true
+  *)
+  lemma MarkerIsReachable : reachable ::Marked(marker)
+]

@@ -1,0 +1,34 @@
+(* Verification feature: a fresh parameterized constant emits a private function.
+
+   Reviewed.
+*)
+
+const fresh indexed_value<>
+function wrap:1
+const wrapped_value<p> = wrap(indexed_value<p>)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::Ready(wrapped_value<0>)]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma ModelIsWellTypedAndRuns :
+    reachable ::Ready(wrap(indexed_value<0>)) ;
+
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma DifferentParametersRemainDistinct :
+    reachable ::Ready(wrap(indexed_value<1>))
+]

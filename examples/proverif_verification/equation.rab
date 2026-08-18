@@ -1,0 +1,32 @@
+(* Verification feature: Rabbit equational theories are used by ProVerif.
+
+   Reviewed.
+*)
+
+function enc:2
+function dec:2
+equation dec(enc(message, key), key) = message
+
+const fresh plaintext
+const fresh encryption_key
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::Decoded(dec(enc(plaintext, encryption_key), encryption_key))]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The declared equation reduces `dec(enc(plaintext, key), key)` to `plaintext`.
+  true
+  *)
+  lemma EquationReducesTerm :
+    reachable ::Decoded(plaintext)
+]

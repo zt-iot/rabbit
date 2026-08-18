@@ -1,0 +1,36 @@
+(* Verification feature: return from a local-function case branch resumes the
+   caller with that branch's value.
+
+   Reviewed.
+*)
+
+const fresh left
+const fresh right
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  function choose(value) {
+    case
+    | [value = left] -> left
+    | [value != left] -> right
+    end
+  }
+
+  main {
+    var first = choose(left) in
+    var second = choose(right) in
+    event [::Returned(first, second)]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The two calls select opposite branches and return `left` and `right` into their respective bindings.
+  true
+  *)
+  lemma BranchValuesReachCaller : reachable ::Returned(left, right)
+]

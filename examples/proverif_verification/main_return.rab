@@ -1,0 +1,26 @@
+(* Verification feature: a return expression in main does not lose its continuation.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    "unused";
+    event [::Continued()]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Discarding the standalone expression in `main` does not terminate the following sequence.
+  true
+  *)
+  lemma MainContinuationRuns :
+    reachable ::Continued()
+]

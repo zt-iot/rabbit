@@ -1,0 +1,60 @@
+(* Verification feature: overlapping channel branches are nondeterministic.
+
+   Reviewed.
+*)
+
+const fresh payload
+
+type proc_t : process
+type transport_t : channel
+
+process worker(ch : transport_t) : proc_t
+{
+  var x = 0
+
+  main {
+    put [ch::Message(payload)];
+    case
+    | [ch::Message(payload)] -> event [::First()]; x := 1
+    | [ch::Message(payload)] -> event [::Second()]; x := 2
+    end;
+    event [::Merged(x)]
+  }
+}
+
+allow proc_t transport_t [.]
+
+channel transport : transport_t
+
+system
+  worker(transport)
+requires
+[
+  (* PROVERIF EXPECTED
+  # Either overlapping channel guard may consume the available message, including the first one.
+  true
+  *)
+  lemma FirstBranchIsReachable :
+    reachable ::First() ;
+
+  (* PROVERIF EXPECTED
+  # Either overlapping channel guard may consume the available message, including the second one.
+  true
+  *)
+  lemma SecondBranchIsReachable :
+    reachable ::Second() ;
+
+  (* PROVERIF EXPECTED
+  # Reaching Merged(1) records that the first channel branch was taken.
+  true
+  *)
+  lemma FirstBranchIsMerged :
+    corresponds ::Merged(1) ~> ::First() ;
+
+  (* PROVERIF EXPECTED
+  # Reaching Merged(2) records that the second channel branch was taken.
+  true
+  *)
+  lemma SecondBranchIsMerged :
+    corresponds ::Merged(2) ~> ::Second()
+]

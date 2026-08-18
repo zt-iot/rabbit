@@ -1,0 +1,28 @@
+(executable
+ (name test_proverif_verification)
+ (flags -w +a-4-40-42-70 -warn-error +a-4-40-42-70)
+ (libraries rabbit_core rabbit_proverif_pv unix))
+
+(rule
+ (alias runtest)
+ (target proverif_under_test.exe)
+ (deps
+  build_proverif_under_test.sh
+  (source_tree ../../vendor/proverif/proverif))
+ (action
+  (run
+   sh
+   %{dep:build_proverif_under_test.sh}
+   ../../vendor/proverif/proverif
+   %{target})))
+
+(rule
+ (alias runtest)
+ (deps
+  (glob_files *.rab)
+  (glob_files *.error))
+ (action
+  (run
+   %{exe:test_proverif_verification.exe}
+   %{dep:proverif_under_test.exe}
+   .)))

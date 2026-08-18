@@ -1,0 +1,26 @@
+(* Verification feature: load makes declarations from another Rabbit file visible.
+
+   Reviewed.
+*)
+
+load "load_library.rab"
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::Loaded(loaded_value)]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma LoadedDeclarationIsUsable :
+    reachable ::Loaded(loaded_value)
+]

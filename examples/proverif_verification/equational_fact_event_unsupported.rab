@@ -1,0 +1,16 @@
+(* Known gap: ProVerif event lowering does not support equational facts. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [1 = 1]
+  }
+}
+
+system worker()
+requires
+[
+  lemma ModelRuns : reachable ::Never()
+]

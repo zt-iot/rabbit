@@ -1,0 +1,31 @@
+(* Verification feature: Rabbit booleans are user-defined nullary functions.
+
+   Reviewed
+*)
+
+(* `false` and `true` are not primitive! *)
+function true:0
+function false:0
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::Value(true)]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma TrueIsReachable : reachable ::Value(true) ;
+
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseIsUnreachable : reachable ::Value(false)
+]

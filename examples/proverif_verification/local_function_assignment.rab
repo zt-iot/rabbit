@@ -1,0 +1,51 @@
+(* Verification feature: local-function returns support assignment and discard calls.
+
+   Reviewed.
+*)
+
+const fresh before
+const fresh after
+const fresh discarded_argument
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  function identity(value) {
+    event [::Called(value)];
+    value
+  }
+
+  main {
+    var result = before in
+    result := identity(after);
+    _ := identity(discarded_argument);
+    event [::Assigned(result)]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # identity(after) is called
+  true
+  *)
+  lemma FunctionCalled :
+    reachable ::Called(after) ;
+
+  (* PROVERIF EXPECTED
+  # result is assigned
+  true
+  *)
+  lemma AssignmentUsesReturn :
+    reachable ::Assigned(after) ;
+
+  (* PROVERIF EXPECTED
+  # call is executed properly even when the result is discarded
+  true
+  *)
+  lemma DiscardedCallExecutes :
+    reachable ::Called(discarded_argument)
+]

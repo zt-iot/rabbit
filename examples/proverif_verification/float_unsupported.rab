@@ -1,0 +1,16 @@
+(* Known gap: float terms have no ProVerif lowering. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::Value(1.5)]
+  }
+}
+
+system worker()
+requires
+[
+  lemma ValueIsReachable : reachable ::Value(1.5)
+]
