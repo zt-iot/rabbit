@@ -1,0 +1,1 @@
+Global facts other than ::Out(...) are not supported in ProVerif put lowering
