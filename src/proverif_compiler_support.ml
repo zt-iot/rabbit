@@ -44,19 +44,25 @@ let proverif_keywords =
   ; "true"; "false"
   ]
 
-let escape_proverif_ident name =
+let rec escape_proverif_ident name =
   if List.mem name proverif_keywords then
-    "rabbit_user_" ^ name
+    escape_proverif_ident (name ^ "_")
   else
     name
 
 let compile_ident (id : T.ident) : ident =
-  pv_ident (escape_proverif_ident (Ident.to_string id))
+  pv_ident @@ escape_proverif_ident @@
+  (* `Ident.to_string` is not usable since it does not suffix globals *)
+  Printf.sprintf "%s__%d" (fst id) (snd id)
+
+let compile_ident_kind (id : T.ident) (kind : string) : ident =
+  pv_ident @@ escape_proverif_ident @@
+  Printf.sprintf "%s__%d__%s" (fst id) (snd id) kind
 
 let bitstring_ident             = pv_ident "bitstring"
 let channel_ident               = pv_ident "channel"
 let param_data_ident            = pv_ident "param_data"
-let proc_t_ident                = pv_ident "rabbit_proc_t"
+let proc_t_ident                = pv_ident "proc_t"
 let acc_data_t_ident            = pv_ident "acc_data_t"
 let syscall_t_ident             = pv_ident "syscall_t"
 let access_control_table_ident  = pv_ident "access_control_table"
@@ -64,10 +70,10 @@ let file_type_table_ident       = pv_ident "file_type_table"
 let channel_table_ident         = pv_ident "channel_table"
 let deleted_address_table_ident = pv_ident "deleted_address_table"
 let attacker_channel_ident      = pv_ident "attacker_ch"
-let true_ident                  = pv_ident "rabbit_true"
-let false_ident                 = pv_ident "rabbit_false"
+let true_ident                  = pv_ident "true__bool"
+let false_ident                 = pv_ident "false__bool"
 let ptype_arg_ident             = pv_ident "ptype"
-let none_syscall_ident          = pv_ident "none_syscall_s"
+let none_syscall_ident          = pv_ident "none__syscall"
 let precise_ident               = pv_ident "precise"
 let term_e    (t : term)     : term_e     = with_dummy_node_ext t
 let pterm_e   (t : pterm)    : pterm_e    = with_dummy_node_ext t
@@ -77,19 +83,20 @@ let tquery_e  (q : tquery)   : tquery_e   = with_dummy_node_ext q
 
 let add_comment c (a, b, comments) = (a, b, c :: comments)
 
-let compile_name (name : T.name) : ident = pv_ident (escape_proverif_ident name)
+let compile_name (name : T.name) (kind : string) : ident =
+  pv_ident @@ escape_proverif_ident (name ^ "__" ^ kind)
 
-(* "Struct" for "Struct" *)
+(* "Struct__struct" for "Struct" *)
 let structure_ctor_ident (name : T.name) : ident =
-  compile_name name
+  compile_name name "struct"
 
-(* "StructAddr" for "Struct" *)
+(* "Struct__struct_addr" for "Struct" *)
 let structure_addr_ident (name : T.name) : ident =
-  pv_ident (escape_proverif_ident (name ^ "Addr"))
+  compile_name name "struct_addr"
 
-(* "StructPar1" for "Struct" and 1 *)
+(* "Struct__struct_par_1" for "Struct" and 1 *)
 let structure_arg_ident (name : T.name) (index : int) : ident =
-  pv_ident (escape_proverif_ident (Printf.sprintf "%sPar%d" name index))
+  compile_name name (Printf.sprintf "struct_par_%d" index)
 
 module Int : sig
   val to_term_e : int -> term_e

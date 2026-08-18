@@ -6,7 +6,7 @@
 
    the ProVerif translation should introduce the typed constants
    [const client_t : proc_t], [const udp_t : acc_data_t], and
-   [const send_s : syscall_t]. *)
+   [const send__0__syscall : syscall_t]. *)
 
 type client_t : process
 type udp_t : channel

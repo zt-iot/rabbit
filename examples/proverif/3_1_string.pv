@@ -1,32 +1,32 @@
 (* Predefined types *)
 type param_data.
-type rabbit_proc_t.
+type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker_ch: channel.
 (* Tables *)
-table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
-table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
-const none_syscall_s: syscall_t.
+const none__syscall: syscall_t.
 (* Booleans *)
-const rabbit_true: bitstring.
-const rabbit_false: bitstring.
+const true__bool: bitstring.
+const false__bool: bitstring.
 (* Event declaration ::Seen(..) *)
-event Seen(bitstring).
+event Seen__event_global(bitstring).
 (* String constant "hello" *)
-const hello_str: bitstring.
+const hello__str: bitstring.
 (* Body *)
 (* type proc_t : process *)
-const proc_t: rabbit_proc_t.
+const proc_t__0: proc_t.
 (* process speaker(..): proc_t *)
-let speaker(ptype:rabbit_proc_t) =
-  event Seen(hello_str);
-  event Seen(hello_str).
+let speaker__0(ptype:proc_t) =
+  event Seen__event_global(hello__str);
+  event Seen__event_global(hello__str).
 (* Requires *)
 (* lemma ReachableHello *)
-query event(Seen(hello_str)).
+query event(Seen__event_global(hello__str)).
 (* System *)
-process speaker(proc_t).
+process speaker__0(proc_t__0).

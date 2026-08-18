@@ -1,44 +1,44 @@
 (* Predefined types *)
 type param_data.
-type rabbit_proc_t.
+type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker_ch: channel.
 (* Tables *)
-table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
-table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
-const none_syscall_s: syscall_t.
+const none__syscall: syscall_t.
 (* Booleans *)
-const rabbit_true: bitstring.
-const rabbit_false: bitstring.
+const true__bool: bitstring.
+const false__bool: bitstring.
 (* Event declaration ::Valid(..) *)
-event Valid.
+event Valid__event_global.
 (* Event declaration ::Served(..) *)
-event Served.
+event Served__event_global.
 (* Body *)
 (* type client_t : process *)
-const client_t: rabbit_proc_t.
+const client_t__0: proc_t.
 (* type server_t : process *)
-const server_t: rabbit_proc_t.
+const server_t__0: proc_t.
 (* type udp_t : channel *)
-const udp_t: acc_data_t.
+const udp_t__0: acc_data_t.
 (* process client(..): client_t *)
-let client(ptype:rabbit_proc_t, ch__12:channel) =
+let client__0(ptype:proc_t, ch__12:channel) =
   (* Channel ch__12 : udp_t *)
-  insert channel_table(udp_t, ch__12);
-  event Valid.
+  insert channel_table(udp_t__0, ch__12);
+  event Valid__event_global.
 (* process server(..): server_t *)
-let server(ptype:rabbit_proc_t, ch__13:channel) =
+let server__0(ptype:proc_t, ch__13:channel) =
   (* Channel ch__13 : udp_t *)
-  insert channel_table(udp_t, ch__13);
-  event Served.
+  insert channel_table(udp_t__0, ch__13);
+  event Served__event_global.
 (* channel udp : udp_t *)
-free udp: channel[private].
+free udp__0: channel[private].
 (* Requires *)
 (* lemma ReachableValid *)
-query event(Valid()) && event(Served()).
+query event(Valid__event_global()) && event(Served__event_global()).
 (* System *)
-process client(client_t, udp) | server(server_t, udp).
+process client__0(client_t__0, udp__0) | server__0(server_t__0, udp__0).

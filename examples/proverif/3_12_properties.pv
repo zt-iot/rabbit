@@ -1,33 +1,34 @@
 (* Predefined types *)
 type param_data.
-type rabbit_proc_t.
+type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker_ch: channel.
 (* Tables *)
-table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
-table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
-const none_syscall_s: syscall_t.
+const none__syscall: syscall_t.
 (* Booleans *)
-const rabbit_true: bitstring.
-const rabbit_false: bitstring.
+const true__bool: bitstring.
+const false__bool: bitstring.
 (* Event declaration ::Finished(..) *)
-event Finished.
+event Finished__event_global.
 (* Event declaration ::Started(..) *)
-event Started.
+event Started__event_global.
 (* Body *)
 (* type proc_t : process *)
-const proc_t: rabbit_proc_t.
+const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
-let worker(ptype:rabbit_proc_t) = event Started;
-                                  event Finished.
+let worker__0(ptype:proc_t) =
+  event Started__event_global;
+  event Finished__event_global.
 (* Requires *)
 (* lemma ReachableFinished *)
-query event(Finished()).
+query event(Finished__event_global()).
 (* lemma Correspondence *)
-query event(Finished()) ==> event(Started()).
+query event(Finished__event_global()) ==> event(Started__event_global()).
 (* System *)
-process worker(proc_t).
+process worker__0(proc_t__0).

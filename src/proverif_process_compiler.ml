@@ -152,7 +152,7 @@ let nondet_choose_processes
   | [] -> process_e @@ PNil
   | [branch] -> branch
   | _ ->
-      let choice_id = pv_ident "rabbit_attack_choice_ch" in
+      let choice_id = pv_ident "attack_choice_ch" in
       let choice_term = pterm_e @@ PPIdent choice_id in
       let token = pterm_e @@ PPIdent true_ident in
       let pick_one =
@@ -183,7 +183,7 @@ let wrap_with_access_control_get
   (* No spec for allow ... [.] *)
   (* Note: this assumes direct Rabbit accesses are mediated solely by the
      triple (current process type, target access-data type, current syscall).
-     The current lowering uses [none_syscall_s] for direct process code via
+     The current lowering uses [none__syscall] for direct process code via
      [allow ... [.]]. If the spec ends up distinguishing more direct-access
      contexts, this table lookup may need refinement. *)
   process_e @@
@@ -340,18 +340,18 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
   let loc = fact.loc in
   match fact.desc with
   | Global (name, args) ->
-      GEnv.add_event ~loc genv name (List.length args);
+      GEnv.add_event ~loc genv name Global (List.length args);
       process_e @@
       PEvent
-        ( compile_name name
+        ( compile_event_name name Global
         , List.map (compile_expr_to_pterm genv penv) args
         , None
         , body )
   | Plain (name, args) ->
-      GEnv.add_event ~loc genv name (List.length args);
+      GEnv.add_event ~loc genv name Plain (List.length args);
       process_e
       @@ PEvent
-        ( compile_name name
+        ( compile_event_name name Plain
         , List.map (compile_expr_to_pterm genv penv) args
         , None
         , body )
@@ -383,12 +383,12 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
   let loc = fact.loc in
   match fact.desc with
   | Channel { channel; name; args } ->
-      GEnv.add_fact ~loc genv name (List.length args);
+      GEnv.add_channel_fact ~loc genv name (List.length args);
       let channel_term = compile_expr_to_pterm genv penv channel in
       let payload =
         pterm_e @@
         PPFunApp
-          ( compile_name name
+          ( compile_name name "chan"
           , List.map (compile_expr_to_pterm genv penv) args )
       in
       wrap_with_channel_access_get channel_term penv
@@ -411,10 +411,10 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
   | Global ("Out", [arg]) ->
       process_e @@ POutput (pterm_e @@ PPIdent attacker_channel_ident, compile_expr_to_pterm genv penv arg, body)
   | Global (name, args) ->
-      GEnv.add_event ~loc genv name (List.length args);
+      GEnv.add_event ~loc genv name Global (List.length args);
       process_e @@
       PEvent
-        ( compile_name name
+        ( compile_event_name name Global
         , List.map (compile_expr_to_pterm genv penv) args
         , None
         , body )
@@ -617,7 +617,7 @@ let rec compile_channel_guard_case
     (other_facts : T.fact list)
     ~(else_proc : tprocess_e)
   : tprocess_e =
-  GEnv.add_fact ~loc:case.cmd.loc genv name (List.length args);
+  GEnv.add_channel_fact ~loc:case.cmd.loc genv name (List.length args);
   let payload_vars =
     List.init (List.length args) (fun i -> Ident.local (Printf.sprintf "case_arg_%d" i))
   in
@@ -632,7 +632,7 @@ let rec compile_channel_guard_case
       (fun id -> PPatVar (compile_ident id, Some bitstring_ident))
       payload_vars
   in
-  let input_pattern = PPatFunApp (compile_name name, payload_patterns) in
+  let input_pattern = PPatFunApp (compile_name name "chan", payload_patterns) in
   let payload_terms =
     List.map (fun id -> pterm_e @@ PPIdent (compile_ident id)) payload_vars
   in
@@ -717,7 +717,7 @@ and compile_case_no_channel
         (fun final_env -> compile_case_branch_body genv final_env case kont)
         (process_e PNil)
   | _ ->
-      let lock_id = Ident.local "rabbit_case_ch" in
+      let lock_id = Ident.local "case_ch" in
       let lock_ident = compile_ident lock_id in
       let lock_term = pterm_e @@ PPIdent lock_ident in
       let token = pterm_e @@ PPIdent true_ident in
@@ -781,7 +781,7 @@ and compile_case_channelized
   in
   List.iter
     (fun (_case, _channel, name, args, _other_facts, loc) ->
-       GEnv.add_fact ~loc genv name (List.length args))
+       GEnv.add_channel_fact ~loc genv name (List.length args))
     channel_guards;
   let first_channel, first_name, first_args =
     match channel_guards with
@@ -811,7 +811,7 @@ and compile_case_channelized
   let payload_patterns =
     List.map (fun id -> PPatVar (compile_ident id, Some bitstring_ident)) payload_vars
   in
-  let input_pattern = PPatFunApp (compile_name first_name, payload_patterns) in
+  let input_pattern = PPatFunApp (compile_name first_name "chan", payload_patterns) in
   let payload_terms =
     List.map (fun id -> pterm_e @@ PPIdent (compile_ident id)) payload_vars
   in
@@ -851,7 +851,7 @@ and compile_case_channelized
     | [channel_guard] ->
         compile_branch ~else_proc:(process_e PNil) channel_guard
     | _ ->
-        let choice_id = Ident.local "rabbit_channel_case_ch" in
+        let choice_id = Ident.local "channel_case_ch" in
         let choice_ident = compile_ident choice_id in
         let choice_term = pterm_e @@ PPIdent choice_ident in
         let token = pterm_e @@ PPIdent true_ident in
@@ -900,11 +900,11 @@ and compile_syscall_call
      ```
 
      ```
-     let curr_syscall = my_syscall_s in
+     let curr_syscall = my_syscall__0__syscall in
      let x = (
        body_of_my_syscall
      ) in
-     let curr_syscall = none_syscall_s in
+     let curr_syscall = none__syscall in
      body
      ```
   *)
@@ -999,9 +999,9 @@ and compile_let_binding
      let x = e in
      c
 
-     let curr_syscall = my_syscall_s in
+     let curr_syscall = my_syscall__0__syscall in
      let x = (body_of_my_syscall) in
-     let curr_syscall = none_syscall_s in
+     let curr_syscall = none__syscall in
      c
      ```
   *)
@@ -1047,9 +1047,9 @@ and compile_assignment
      ```
 
      ```
-     let curr_syscall = my_syscall_s in
+     let curr_syscall = my_syscall__0__syscall in
      let x = (body_of_my_syscall) in
-     let curr_syscall = none_syscall_s in
+     let curr_syscall = none__syscall in
      ...
      ```
   *)
@@ -1167,7 +1167,7 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
       (* `s0, ..., sk` *)
       let state_ids = List.map fst (loop_state_bindings penv) in
       (* `lock_ch` *)
-      let lock_id = Ident.local "rabbit_loop_ch" in
+      let lock_id = Ident.local "loop_ch" in
       let lock_ident = compile_ident lock_id in
       let lock_term = pterm_e @@ PPIdent lock_ident in
       let branch is_until (case : T.case) =
@@ -1296,7 +1296,7 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
          ```
       *)
       (* `compile_generated_structure_decls` handle the declarations *)
-      GEnv.add_structure ~loc:cmd.loc genv name (List.length args);
+      GEnv.add_structure_fact ~loc:cmd.loc genv name (List.length args);
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
       let old_value = PEnv.find_process_var penv id in
@@ -1322,11 +1322,11 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
          ```
 
          ```
-         get deleted_address_table(=SAddr(e))
-         else c[SPar1(e)/x1, ..., SParn(e)/xn]
+         get deleted_address_table(=S__struct_addr(e))
+         else c[S__struct_par_1(e)/x1, ..., S__struct_par_n(e)/xn]
          ```
       *)
-      GEnv.add_structure ~loc:cmd.loc genv name (List.length ids);
+      GEnv.add_structure_fact ~loc:cmd.loc genv name (List.length ids);
       let struct_term = compile_expr_to_pterm genv penv expr in
       let addr_term = structure_addr_term name struct_term in
       let saved =
@@ -1334,7 +1334,7 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
         List.map (fun id -> id, PEnv.find_process_var penv id) ids
       in
       let body_env =
-        (* xi => SPari(e) *)
+        (* xi => S__struct_par_i(e) *)
         List.mapi
           (fun index id -> id, structure_arg_term name (index + 1) struct_term)
           ids
@@ -1363,14 +1363,14 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
          ```
          table deleted_address_table(bitstring).
          ...
-         insert deleted_address_table(StructAddr(x_struct));
+         insert deleted_address_table(Struct__struct_addr(x_struct));
          ```
       *)
       (* x_struct *)
       let struct_term = compile_expr_to_pterm genv penv expr in
-      (* StructAddr(x_struct) *)
+      (* Struct__struct_addr(x_struct) *)
       let addr_term = structure_addr_term name struct_term in
-      (* insert deleted_address_table( StructAddr(x_struct) ); ... *)
+      (* insert deleted_address_table( Struct__struct_addr(x_struct) ); ... *)
       add_comment (Printf.sprintf "delete _.%s" name) @@
       process_e
         (PInsert

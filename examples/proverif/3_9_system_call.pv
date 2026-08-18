@@ -1,32 +1,32 @@
 (* Predefined types *)
 type param_data.
-type rabbit_proc_t.
+type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker_ch: channel.
 (* Tables *)
-table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
-table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
-const none_syscall_s: syscall_t.
+const none__syscall: syscall_t.
 (* Booleans *)
-const rabbit_true: bitstring.
-const rabbit_false: bitstring.
+const true__bool: bitstring.
+const false__bool: bitstring.
 (* syscall id(..) *)
-const id_s: syscall_t.
+const id__0__syscall: syscall_t.
 (* Event declaration ::Valid(..) *)
-event Valid(bitstring).
+event Valid__event_global(bitstring).
 (* Integer constant 0 *)
-const rabbit_int_0: bitstring.
+const int__pos_0: bitstring.
 (* Body *)
 (* type proc_t : process *)
-const proc_t: rabbit_proc_t.
+const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
-let worker(ptype:rabbit_proc_t) = event Valid(rabbit_int_0).
+let worker__0(ptype:proc_t) = event Valid__event_global(int__pos_0).
 (* Requires *)
 (* lemma ReachableValid *)
-query event(Valid(rabbit_int_0)).
+query event(Valid__event_global(int__pos_0)).
 (* System *)
-process worker(proc_t).
+process worker__0(proc_t__0).

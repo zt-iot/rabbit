@@ -4,7 +4,7 @@
 
    the ProVerif translation should initialize the access control table with
 
-     insert access_control_table(client_t, udp_t, send_s);
+     insert access_control_table(client_t, udp_t, send__0__syscall);
  *)
 
 type client_t : process

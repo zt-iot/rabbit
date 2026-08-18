@@ -1,35 +1,35 @@
 (* Predefined types *)
 type param_data.
-type rabbit_proc_t.
+type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker_ch: channel.
 (* Tables *)
-table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
-table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
-const none_syscall_s: syscall_t.
+const none__syscall: syscall_t.
 (* Booleans *)
-const rabbit_true: bitstring.
-const rabbit_false: bitstring.
+const true__bool: bitstring.
+const false__bool: bitstring.
 (* syscall send(..) *)
-const send_s: syscall_t.
+const send__0__syscall: syscall_t.
 (* Event declaration ::Valid(..) *)
-event Valid.
+event Valid__event_global.
 (* Body *)
 (* type client_t : process *)
-const client_t: rabbit_proc_t.
+const client_t__0: proc_t.
 (* type udp_t : channel *)
-const udp_t: acc_data_t.
+const udp_t__0: acc_data_t.
 (* process client(..): client_t *)
-let client(ptype:rabbit_proc_t) = event Valid.
+let client__0(ptype:proc_t) = event Valid__event_global.
 (* Requires *)
 (* lemma ReachableValid *)
-query event(Valid()).
+query event(Valid__event_global()).
 (* System *)
 process
   (* allow client_t udp_t [send] *)
-  insert access_control_table(client_t, udp_t, send_s);
-  client(client_t).
+  insert access_control_table(client_t__0, udp_t__0, send__0__syscall);
+  client__0(client_t__0).
