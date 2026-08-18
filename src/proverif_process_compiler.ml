@@ -410,14 +410,9 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
         (process_e PNil)
   | Global ("Out", [arg]) ->
       process_e @@ POutput (pterm_e @@ PPIdent attacker_channel_ident, compile_expr_to_pterm genv penv arg, body)
-  | Global (name, args) ->
-      GEnv.add_event ~loc genv name Global (List.length args);
-      process_e @@
-      PEvent
-        ( compile_event_name name Global
-        , List.map (compile_expr_to_pterm genv penv) args
-        , None
-        , body )
+  | Global _ ->
+      Error.unsupported ~loc
+        "Global facts other than ::Out(...) are not supported in ProVerif put lowering"
   | _ ->
       Error.unsupported ~loc
         "Only channel/global output facts are supported in ProVerif put lowering"

@@ -1,0 +1,18 @@
+(* Unsupported: the ProVerif translation specification does not define an
+   encoding for producing and consuming linear global facts. In particular,
+   `put [::Recorded()]` must not be lowered to an event. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    put [::Recorded()]
+  }
+}
+
+system worker()
+requires
+[
+  lemma ModelRuns : reachable ::Never()
+]
