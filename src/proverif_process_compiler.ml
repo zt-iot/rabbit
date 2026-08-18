@@ -2,88 +2,136 @@ open Rabbit_proverif_pv_parse
 open Pitptree
 include Proverif_compiler_env
 
-let rec compile_expr_to_term genv (expr : T.expr) : term_e =
+let check_param_cycle expanding id loc =
+  if List.mem id expanding then
+    Error.invalid_input ~loc
+      "Cyclic parameterized constant definition involving %s"
+      (Ident.to_string id)
+
+let rec compile_expr_to_term_with genv bindings expanding (expr : T.expr) : term_e =
+  let compile = compile_expr_to_term_with genv bindings expanding in
+  let compile_parameter (parameter : T.expr) =
+    match parameter.desc with
+    | Ident { id; param = None; _ } ->
+        Option.value
+          (List.assoc_opt id bindings)
+          ~default:(term_e @@ PIdent (GEnv.fresh_parameter_ident genv parameter))
+    | _ -> term_e @@ PIdent (GEnv.fresh_parameter_ident genv parameter)
+  in
   term_e @@ match expr.desc with
   | T.Ident { id; param = Some param; _ } ->
-      PFunApp (compile_ident id, [compile_expr_to_term genv param])
+      let parameter = compile_parameter param in
+      (match GEnv.find_param_init genv id with
+       | None -> PFunApp (compile_ident id, [parameter])
+       | Some (formal, body) ->
+           check_param_cycle expanding id expr.loc;
+           let body, _, _ =
+             compile_expr_to_term_with genv
+               ((formal, parameter) :: bindings) (id :: expanding) body
+           in
+           body)
   | T.Ident { id; _ } ->
-      PIdent (compile_ident id)
-  | Apply (id, args) ->
-      PFunApp (compile_ident id, List.map (compile_expr_to_term genv) args)
-  | Tuple exprs ->
-      PTuple (List.map (compile_expr_to_term genv) exprs)
-  | Unit ->
-      PTuple []
-  | String s ->
-      PIdent (GEnv.fresh_string_ident genv s)
-  | Boolean true ->
-      PIdent (pv_ident "true")
-  | Boolean false ->
-      PIdent (pv_ident "false")
-  | Integer n ->
-      let term, _, _ = Int.to_term_e n in
-      term
+      (match List.assoc_opt id bindings with
+       | Some (term, _, _) -> term
+       | None -> PIdent (compile_ident id))
+  | Apply (id, args) -> PFunApp (compile_ident id, List.map compile args)
+  | Tuple exprs -> PTuple (List.map compile exprs)
+  | Unit -> PTuple []
+  | String s -> PIdent (GEnv.fresh_string_ident genv s)
+  | Boolean true -> PIdent true_ident
+  | Boolean false -> PIdent false_ident
+  | Integer n -> PIdent (GEnv.fresh_integer_ident genv n)
   | Float _ ->
       Error.unsupported ~loc:expr.loc
         "Float terms are not supported in ProVerif term translation"
 
-let rec compile_expr_to_gterm genv (expr : T.expr) : gterm_e =
-  gterm_e @@
-  match expr.desc with
+let compile_expr_to_term genv expr =
+  compile_expr_to_term_with genv [] [] expr
+
+let rec compile_expr_to_gterm_with genv bindings expanding (expr : T.expr) : gterm_e =
+  let compile = compile_expr_to_gterm_with genv bindings expanding in
+  let compile_parameter (parameter : T.expr) =
+    match parameter.desc with
+    | Ident { id; param = None; _ } ->
+        Option.value
+          (List.assoc_opt id bindings)
+          ~default:(gterm_e @@ PGIdent (GEnv.fresh_parameter_ident genv parameter))
+    | _ -> gterm_e @@ PGIdent (GEnv.fresh_parameter_ident genv parameter)
+  in
+  gterm_e @@ match expr.desc with
   | T.Ident { id; param = Some param; _ } ->
-      PGFunApp
-        (compile_ident id, [compile_expr_to_gterm genv param], None)
+      let parameter = compile_parameter param in
+      (match GEnv.find_param_init genv id with
+       | None -> PGFunApp (compile_ident id, [parameter], None)
+       | Some (formal, body) ->
+           check_param_cycle expanding id expr.loc;
+           let body, _, _ =
+             compile_expr_to_gterm_with genv
+               ((formal, parameter) :: bindings) (id :: expanding) body
+           in
+           body)
   | Ident { id; param = None; _ } ->
-      PGIdent (compile_ident id)
-  | Apply (id, args) ->
-      PGFunApp
-        (compile_ident id, List.map (compile_expr_to_gterm genv) args, None)
-  | Tuple exprs ->
-      PGTuple (List.map (compile_expr_to_gterm genv) exprs)
-  | Unit ->
-      PGTuple []
-  | String s ->
-      PGIdent (GEnv.fresh_string_ident genv s)
-  | Boolean true ->
-      PGIdent true_ident
-  | Boolean false ->
-      PGIdent false_ident
-  | Integer n ->
-      let term, _, _ = Int.to_gterm_e n in
-      term
+      (match List.assoc_opt id bindings with
+       | Some (term, _, _) -> term
+       | None -> PGIdent (compile_ident id))
+  | Apply (id, args) -> PGFunApp (compile_ident id, List.map compile args, None)
+  | Tuple exprs -> PGTuple (List.map compile exprs)
+  | Unit -> PGTuple []
+  | String s -> PGIdent (GEnv.fresh_string_ident genv s)
+  | Boolean true -> PGIdent true_ident
+  | Boolean false -> PGIdent false_ident
+  | Integer n -> PGIdent (GEnv.fresh_integer_ident genv n)
   | Float _ ->
       Error.unsupported ~loc:expr.loc
         "Float terms are not supported in ProVerif query translation"
 
-let rec compile_expr_to_pterm genv penv (expr : T.expr) : pterm_e =
-  pterm_e @@
-  match expr.desc with
+let compile_expr_to_gterm genv expr =
+  compile_expr_to_gterm_with genv [] [] expr
+
+let rec compile_expr_to_pterm_with genv penv bindings expanding (expr : T.expr) : pterm_e =
+  let compile = compile_expr_to_pterm_with genv penv bindings expanding in
+  let compile_parameter (parameter : T.expr) =
+    match parameter.desc with
+    | Ident { id; param = None; _ } ->
+        Option.value
+          (List.assoc_opt id bindings)
+          ~default:(pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv parameter))
+    | _ -> pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv parameter)
+  in
+  pterm_e @@ match expr.desc with
   | T.Ident { id; param = Some param; _ } ->
-      PPFunApp (compile_ident id, [compile_expr_to_pterm genv penv param])
+      let parameter = compile_parameter param in
+      (match GEnv.find_param_init genv id with
+       | None -> PPFunApp (compile_ident id, [parameter])
+       | Some (formal, body) ->
+           check_param_cycle expanding id expr.loc;
+           let body, _, _ =
+             compile_expr_to_pterm_with genv penv
+               ((formal, parameter) :: bindings) (id :: expanding) body
+           in
+           body)
   | Ident { id; param = None; _ } ->
-      (match PEnv.find_process_var penv id with
-       | Some value ->
-           let term, _, _ = value in
-           term
-       | None -> PPIdent (compile_ident id))
-  | Apply (id, args) ->
-      PPFunApp (compile_ident id, List.map (compile_expr_to_pterm genv penv) args)
-  | Tuple exprs ->
-      PPTuple (List.map (compile_expr_to_pterm genv penv) exprs)
-  | Unit ->
-      PPTuple []
-  | String s ->
-      PPIdent (GEnv.fresh_string_ident genv s)
-  | Boolean true ->
-      PPIdent true_ident
-  | Boolean false ->
-      PPIdent false_ident
-  | Integer n ->
-      let term, _, _ = Int.to_pterm_e n in
-      term
+      (match List.assoc_opt id bindings with
+       | Some (term, _, _) -> term
+       | None ->
+           match PEnv.find_process_var penv id with
+           | Some value ->
+               let term, _, _ = value in
+               term
+           | None -> PPIdent (compile_ident id))
+  | Apply (id, args) -> PPFunApp (compile_ident id, List.map compile args)
+  | Tuple exprs -> PPTuple (List.map compile exprs)
+  | Unit -> PPTuple []
+  | String s -> PPIdent (GEnv.fresh_string_ident genv s)
+  | Boolean true -> PPIdent true_ident
+  | Boolean false -> PPIdent false_ident
+  | Integer n -> PPIdent (GEnv.fresh_integer_ident genv n)
   | Float _ ->
       Error.unsupported ~loc:expr.loc
         "Float process terms are not supported in ProVerif process translation"
+
+let compile_expr_to_pterm genv penv expr =
+  compile_expr_to_pterm_with genv penv [] [] expr
 
 let ppar
     (proc1 : tprocess_e)
@@ -335,6 +383,7 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
   let loc = fact.loc in
   match fact.desc with
   | Channel { channel; name; args } ->
+      GEnv.add_fact ~loc genv name (List.length args);
       let channel_term = compile_expr_to_pterm genv penv channel in
       let payload =
         pterm_e @@
@@ -389,7 +438,7 @@ let rec compile_guard_tests
     penv
     (fresh : T.ident list)
     (facts : T.fact list)
-    (then_proc : tprocess_e)
+    (then_proc : PEnv.t -> tprocess_e)
     (else_proc : tprocess_e)
   : tprocess_e =
   (*
@@ -411,7 +460,7 @@ let rec compile_guard_tests
      ```
   *)
   match facts with
-  | [] -> then_proc
+  | [] -> then_proc penv
   | fact :: facts ->
       (match fact.desc with
        | Eq (lhs, rhs) ->
@@ -568,10 +617,17 @@ let rec compile_channel_guard_case
     (other_facts : T.fact list)
     ~(else_proc : tprocess_e)
   : tprocess_e =
+  GEnv.add_fact ~loc:case.cmd.loc genv name (List.length args);
   let payload_vars =
     List.init (List.length args) (fun i -> Ident.local (Printf.sprintf "case_arg_%d" i))
   in
   let payload_patterns =
+    (* BUG: Rabbit consumes a channel fact only when the complete case guard
+       matches. Binding every payload here and checking non-fresh arguments and
+       the other facts after [in] can consume a message even when the case guard
+       ultimately fails. Non-fresh arguments should at least use exact input
+       patterns; preserving atomicity with the remaining facts requires a more
+       general fix. *)
     List.map
       (fun id -> PPatVar (compile_ident id, Some bitstring_ident))
       payload_vars
@@ -591,7 +647,6 @@ let rec compile_channel_guard_case
       args
       payload_terms
   in
-  let then_proc = compile_case_branch_body genv branch_env case kont in
   let arg_eq_tests =
     let rec collect acc args payload_terms =
       match args, payload_terms with
@@ -616,7 +671,10 @@ let rec compile_channel_guard_case
        ( channel_term
        , input_pattern
        , compile_guard_tests genv branch_env case.fresh other_facts
-           (compile_pterm_eq_tests arg_eq_tests then_proc else_proc)
+           (fun final_env ->
+              compile_pterm_eq_tests arg_eq_tests
+                (compile_case_branch_body genv final_env case kont)
+                else_proc)
            else_proc
        , [] ))
     else_proc
@@ -635,8 +693,8 @@ and compile_case_branch_body
 and compile_case_no_channel
     genv
     penv
-    (cases : T.case list)
-    (kont : kont)
+  (cases : T.case list)
+  (kont : kont)
   : tprocess_e =
   (*
      3.5 Case Encoding
@@ -646,19 +704,41 @@ and compile_case_no_channel
      ```
 
      ```
-     if A1 then c1 else
-     if A2 then c2 else
-     0
+     new lock_ch: channel;
+     out(lock_ch, token)
+     | (in(lock_ch, _); if A1 then c1 else out(lock_ch, token))
+     | (in(lock_ch, _); if A2 then c2 else out(lock_ch, token))
      ```
   *)
-  let rec go = function
-    | [] -> process_e PNil
-    | case :: cases ->
-        let else_proc = go cases in
-        let then_proc = compile_case_branch_body genv penv case kont in
-        compile_guard_tests genv penv case.fresh case.facts then_proc else_proc
-  in
-  go cases
+  match cases with
+  | [] -> process_e PNil
+  | [case] ->
+      compile_guard_tests genv penv case.fresh case.facts
+        (fun final_env -> compile_case_branch_body genv final_env case kont)
+        (process_e PNil)
+  | _ ->
+      let lock_id = Ident.local "rabbit_case_ch" in
+      let lock_ident = compile_ident lock_id in
+      let lock_term = pterm_e @@ PPIdent lock_ident in
+      let token = pterm_e @@ PPIdent true_ident in
+      let retry = process_e @@ POutput (lock_term, token, process_e PNil) in
+      let compile_branch (case : T.case) =
+        process_e @@
+        PInput
+          ( lock_term
+          , PPatAny (Parsing_helper.dummy_ext, Some bitstring_ident)
+          , compile_guard_tests genv penv case.fresh case.facts
+              (fun final_env -> compile_case_branch_body genv final_env case kont)
+              retry
+          , [precise_ident, None] )
+      in
+      let branches =
+        List.fold_left
+          (fun acc case -> ppar acc (compile_branch case))
+          (process_e @@ POutput (lock_term, token, process_e PNil))
+          cases
+      in
+      process_e @@ PRestr (lock_ident, None, channel_ident, branches)
 
 and compile_case_channelized
     genv
@@ -685,22 +765,24 @@ and compile_case_channelized
      0
      ```
   *)
-  (* Note: this is an optimized lowering for the common case where all channel
-     guards in one [case] read the same fact name from the same channel. The
-     full spec also discusses a more general lock-channel encoding for
-     nondeterministic cases; if this optimization ever changes semantics on
-     overlapping guards, we should fall back to that general form. *)
+  (* This is an optimized lowering for the common case where all channel
+     guards in one [case] read the same fact name from the same channel. After
+     the shared input, a private token preserves nondeterministic selection
+     when multiple payload guards hold. *)
   let channel_guards =
-    List.map
-      (fun (case : T.case) ->
-         match extract_channel_guard case.facts with
-         | Some (channel, name, args, other_facts, loc) ->
-             case, channel, name, args, other_facts, loc
-         | None ->
-             Error.unsupported ~loc:case.cmd.loc
-               "Mixed channel/non-channel case branches are not supported yet")
+    List.map (fun (case : T.case) ->
+        match extract_channel_guard case.facts with
+        | Some (channel, name, args, other_facts, loc) ->
+            case, channel, name, args, other_facts, loc
+        | None ->
+            Error.unsupported ~loc:case.cmd.loc
+              "Mixed channel/non-channel case branches are not supported yet")
       cases
   in
+  List.iter
+    (fun (_case, _channel, name, args, _other_facts, loc) ->
+       GEnv.add_fact ~loc genv name (List.length args))
+    channel_guards;
   let first_channel, first_name, first_args =
     match channel_guards with
     | (_, first_channel, first_name, first_args, _, _) :: _ ->
@@ -733,9 +815,8 @@ and compile_case_channelized
   let payload_terms =
     List.map (fun id -> pterm_e @@ PPIdent (compile_ident id)) payload_vars
   in
-  let rec branches = function
-    | [] -> process_e PNil
-    | (case, _channel, _name, args, facts, _loc) :: rest ->
+  let compile_branch ~else_proc
+      (case, _channel, _name, args, facts, _loc) =
         let branch_env =
           List.fold_left2
             (fun penv (arg : T.expr) payload_term ->
@@ -747,8 +828,6 @@ and compile_case_channelized
             args
             payload_terms
         in
-        let else_proc = branches rest in
-        let then_proc = compile_case_branch_body genv branch_env case kont in
         let arg_eq_tests =
           filter_map2
             (fun (arg : T.expr) payload_term ->
@@ -760,12 +839,43 @@ and compile_case_channelized
             payload_terms
         in
         compile_guard_tests genv branch_env case.fresh facts
-          (compile_pterm_eq_tests arg_eq_tests then_proc else_proc)
+          (fun final_env ->
+             compile_pterm_eq_tests arg_eq_tests
+               (compile_case_branch_body genv final_env case kont)
+               else_proc)
           else_proc
+  in
+  let branches =
+    match channel_guards with
+    | [] -> process_e PNil
+    | [channel_guard] ->
+        compile_branch ~else_proc:(process_e PNil) channel_guard
+    | _ ->
+        let choice_id = Ident.local "rabbit_channel_case_ch" in
+        let choice_ident = compile_ident choice_id in
+        let choice_term = pterm_e @@ PPIdent choice_ident in
+        let token = pterm_e @@ PPIdent true_ident in
+        let retry = process_e @@ POutput (choice_term, token, process_e PNil) in
+        let choices =
+          List.fold_left
+            (fun acc channel_guard ->
+               let choice =
+                 process_e @@
+                 PInput
+                   ( choice_term
+                   , PPatAny (Parsing_helper.dummy_ext, Some bitstring_ident)
+                   , compile_branch ~else_proc:retry channel_guard
+                   , [precise_ident, None] )
+               in
+               ppar acc choice)
+            (process_e @@ POutput (choice_term, token, process_e PNil))
+            channel_guards
+        in
+        process_e @@ PRestr (choice_ident, None, channel_ident, choices)
   in
   let channel_term = compile_expr_to_pterm genv penv first_channel in
   wrap_with_channel_access_get channel_term penv
-    (process_e @@ PInput (channel_term, input_pattern, branches channel_guards, []))
+    (process_e @@ PInput (channel_term, input_pattern, branches, []))
     (process_e PNil)
 
 and compile_syscall_call
@@ -985,16 +1095,15 @@ and continue_cmd genv penv (kont : kont) : tprocess_e =
            , loop_state_message ~done_flag ~loc penv state_ids
            , process_e PNil ))
 
-and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
-  : tprocess_e =
+and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
   match cmd.desc with
   | Skip -> continue_cmd genv penv kont
   | Sequence (cmd1, cmd2) ->
       compile_cmd genv penv (KSeq (cmd2, kont)) cmd1
   | Put facts ->
-      compile_put_facts genv penv facts (continue_cmd genv penv kont)
+      compile_put_facts genv penv facts @@ continue_cmd genv penv kont
   | Event facts ->
-      compile_event_facts genv penv facts (continue_cmd genv penv kont)
+      compile_event_facts genv penv facts @@ continue_cmd genv penv kont
   | Let (id, expr, body) ->
       compile_let_binding genv penv kont id expr body
   | Assign (id_opt, expr) ->
@@ -1003,9 +1112,14 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
       let value = compile_expr_to_pterm genv penv expr in
       (match PEnv.return_cont penv with
        | Some return_cont -> return_cont value
-       | None -> continue_cmd genv penv kont)
+       | None ->
+           (* return in the main process *)
+           continue_cmd genv penv kont
+      )
   | Case cases ->
-      if List.exists (fun (case : T.case) -> Option.is_some (extract_channel_guard case.facts)) cases then
+      if List.exists (fun (case : T.case) ->
+          Option.is_some (extract_channel_guard case.facts)) cases
+      then
         compile_case_channelized genv penv cases kont
       else
         compile_case_no_channel genv penv cases kont
@@ -1019,19 +1133,98 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
 
          ```
          new lock_ch : channel;
-         out(lock_ch, (0, s0, ..., sk)) |
-         !(
-           in(lock_ch, (=0, s0:bitstring, ..., sk:bitstring)) [precise];
-           ...
-         )
+
+         (* start *)
+         out(lock_ch, (0, s0, ..., sk))
          |
+         (* loop *)
+         !( (* loop *)
+            in(lock_ch, (=0, s0:bitstring, ..., sk:bitstring)) [precise];
+            ...
+            if ... then
+              case body
+              out(lock_ch, (0, s0', ..., sk')) (* keep looping *)
+            else
+              (* guard failure *)
+              out(lock_ch, (0, s0', ..., sk')) (* keep looping *)
+            |
+            (* until *)
+            in(lock_ch, (=0, s0:bitstring, ..., sk:bitstring)) [precise];
+            ...
+            if ... then
+              until case body
+              out(lock_ch, (1, s0', ..., sk')) (* exit the loop *)
+            else
+              (* guard failure *)
+              out(lock_ch, (0, s0', ..., sk')) (* keep looping *)
+          )
+         |
+         (* out of the loop *)
          in(lock_ch, (=1, s0:bitstring, ..., sk:bitstring)) [precise];
-         rest_of_program
+          rest_of_program
          ```
       *)
-      let state_ids =
-        List.map fst (loop_state_bindings penv)
+      (* `s0, ..., sk` *)
+      let state_ids = List.map fst (loop_state_bindings penv) in
+      (* `lock_ch` *)
+      let lock_id = Ident.local "rabbit_loop_ch" in
+      let lock_ident = compile_ident lock_id in
+      let lock_term = pterm_e @@ PPIdent lock_ident in
+      let branch is_until (case : T.case) =
+        let state_pattern_ids =
+          List.mapi (fun index _id ->
+              Ident.local @@ Printf.sprintf "loop_state_%d" index)
+            state_ids
+        in
+        let branch_env = bind_loop_state penv state_ids state_pattern_ids in
+        let else_proc =
+          process_e @@
+          POutput
+            ( lock_term
+            , loop_state_message ~done_flag:false ~loc:cmd.loc branch_env state_ids
+            , process_e PNil )
+        in
+        let guard_proc =
+          match extract_channel_guard case.facts with
+          | Some (channel, name, args, other_facts, _loc) ->
+              compile_channel_guard_case genv branch_env case
+                (KLoopOutput (is_until, cmd.loc, lock_term, state_ids))
+                channel name args other_facts
+                ~else_proc
+          | None ->
+              compile_guard_tests genv branch_env case.fresh case.facts
+                (fun final_env ->
+                   compile_case_branch_body genv final_env case @@
+                   KLoopOutput (is_until, cmd.loc, lock_term, state_ids))
+                else_proc
+        in
+        (*
+            ```
+            in(lock_ch, (=0, s0:bitstring, ..., sk:bitstring)) [precise];
+            ...
+            if ... then
+              case body
+              out(lock_ch, (0, s0', ..., sk')) (* keep looping *)
+            else
+              (* guard failure *)
+              out(lock_ch, (0, s0', ..., sk')) (* keep looping *)
+            ```
+        *)
+        process_e @@
+        PInput
+          ( lock_term
+          , loop_state_pattern ~done_flag:false state_pattern_ids
+          , guard_proc
+          , [precise_ident, None] )
       in
+      let repeat_branch = branch false in
+      let until_branch = branch true in
+      let cont_state_pattern_ids =
+        List.mapi
+          (fun index _id -> Ident.local (Printf.sprintf "loop_done_state_%d" index))
+          state_ids
+      in
+      let cont_env = bind_loop_state penv state_ids cont_state_pattern_ids in
       let parallelize = function
         | [] -> process_e PNil
         | proc :: procs ->
@@ -1040,103 +1233,30 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
               proc
               procs
       in
-      let lock_id = Ident.local "rabbit_loop_ch" in
-      let lock_ident = compile_ident lock_id in
-      let lock_term = pterm_e @@ PPIdent lock_ident in
-      let mk_branch_input_env () =
-        let state_pattern_ids =
-          List.mapi
-            (fun index _id -> Ident.local (Printf.sprintf "loop_state_%d" index))
-            state_ids
-        in
-        let branch_env = bind_loop_state penv state_ids state_pattern_ids in
-        state_pattern_ids, branch_env
-      in
-      let repeat_branch (case : T.case) =
-        let state_pattern_ids, branch_env = mk_branch_input_env () in
-        let else_proc =
-          process_e
-            (POutput
-               ( lock_term
-               , loop_state_message ~done_flag:false ~loc:cmd.loc branch_env state_ids
-               , process_e PNil ))
-        in
-        let then_proc =
-          compile_case_branch_body genv branch_env case
-            (KLoopOutput (false, cmd.loc, lock_term, state_ids))
-        in
-        let guard_proc =
-          match extract_channel_guard case.facts with
-          | Some (channel, name, args, other_facts, _loc) ->
-              compile_channel_guard_case genv branch_env case
-                (KLoopOutput (false, cmd.loc, lock_term, state_ids))
-                channel name args other_facts
-                ~else_proc
-          | None ->
-              compile_guard_tests genv branch_env case.fresh case.facts then_proc else_proc
-        in
+      let init_proc =
+        (* `out(lock_ch, (0, s0, ..., sk))` *)
         process_e
-          (PInput
+          (POutput
              ( lock_term
-             , loop_state_pattern ~done_flag:false state_pattern_ids
-             , guard_proc
-             , [precise_ident, None] ))
+             , loop_state_message ~done_flag:false ~loc:cmd.loc penv state_ids
+             , process_e PNil ))
       in
-      let until_branch (case : T.case) =
-        let state_pattern_ids, branch_env = mk_branch_input_env () in
-        let else_proc =
-          process_e
-            (POutput
-               ( lock_term
-               , loop_state_message ~done_flag:false ~loc:cmd.loc branch_env state_ids
-               , process_e PNil ))
-        in
-        let then_proc =
-          compile_case_branch_body genv branch_env case
-            (KLoopOutput (true, cmd.loc, lock_term, state_ids))
-        in
-        let guard_proc =
-          match extract_channel_guard case.facts with
-          | Some (channel, name, args, other_facts, _loc) ->
-              compile_channel_guard_case genv branch_env case
-                (KLoopOutput (true, cmd.loc, lock_term, state_ids))
-                channel name args other_facts
-                ~else_proc
-          | None ->
-              compile_guard_tests genv branch_env case.fresh case.facts then_proc else_proc
-        in
-        process_e
-          (PInput
-             ( lock_term
-             , loop_state_pattern ~done_flag:false state_pattern_ids
-             , guard_proc
-             , [precise_ident, None] ))
+      let workers =
+        match
+          List.map repeat_branch repeat_cases
+          @ List.map until_branch until_cases
+        with
+        | [] -> process_e PNil
+        | procs -> process_e @@ PRepl (parallelize procs)
       in
-      let cont_state_pattern_ids =
-        List.mapi
-          (fun index _id -> Ident.local (Printf.sprintf "loop_done_state_%d" index))
-          state_ids
-      in
-      let cont_env = bind_loop_state penv state_ids cont_state_pattern_ids in
       let continuation =
+        (* `in(lock_ch, (=1, s0:bitstring, ..., sk:bitstring)) [precise];` *)
         process_e
           (PInput
              ( lock_term
              , loop_state_pattern ~done_flag:true cont_state_pattern_ids
              , continue_cmd genv cont_env kont
              , [precise_ident, None] ))
-      in
-      let workers =
-        match List.map repeat_branch repeat_cases @ List.map until_branch until_cases with
-        | [] -> process_e PNil
-        | procs -> process_e @@ PRepl (parallelize procs)
-      in
-      let init_proc =
-        process_e
-          (POutput
-             ( lock_term
-             , loop_state_message ~done_flag:false ~loc:cmd.loc penv state_ids
-             , process_e PNil ))
       in
       process_e
         (PRestr
@@ -1146,45 +1266,75 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
            , parallelize [init_proc; workers; continuation] ))
 
   | New (id, None, body) ->
+      (* ```
+         new x in c
+         ```
+
+         ```
+         new x:bitstring; c
+         ```
+      *)
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
       let old_value = PEnv.find_process_var penv id in
       process_e @@
-        PRestr
-           ( fresh_ident
-           , None
-           , bitstring_ident
-           , compile_cmd genv (PEnv.bind_process_var penv id fresh_term)
-               (KRestoreVars ([id, old_value], kont))
-               body )
+      PRestr
+        ( fresh_ident
+        , None
+        , bitstring_ident
+        , compile_cmd genv
+            (PEnv.bind_process_var penv id fresh_term) (* compile body with id *)
+            (KRestoreVars ([id, old_value], kont)) (* recover the original PEnv for kont *)
+            body )
   | New (id, Some (name, args), body) ->
+      (* ```
+         new x = S(e1, ..., en) in c
+         ```
+
+         ```
+         new a:bitstring; c[S(a, e1, ..., en)/x]]
+         ```
+      *)
       (* `compile_generated_structure_decls` handle the declarations *)
       GEnv.add_structure ~loc:cmd.loc genv name (List.length args);
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
       let old_value = PEnv.find_process_var penv id in
       let struct_term =
+        (* `S(a, e1, ..., en)` *)
         pterm_e @@
         PPFunApp
           ( structure_ctor_ident name
           , fresh_term :: List.map (compile_expr_to_pterm genv penv) args )
       in
       process_e @@
-        PRestr
-           ( fresh_ident
-           , None
-           , bitstring_ident
-           , compile_cmd genv (PEnv.bind_process_var penv id struct_term)
-               (KRestoreVars ([id, old_value], kont))
-               body )
+      PRestr
+        ( fresh_ident
+        , None
+        , bitstring_ident
+        , compile_cmd genv
+            (PEnv.bind_process_var penv id struct_term) (* compile body with id *)
+            (KRestoreVars ([id, old_value], kont)) (* recover the original PEnv for kont *)
+            body )
   | Get (ids, expr, name, body) ->
+      (* ```
+         let x1, ..., xn = e.S in c
+         ```
+
+         ```
+         get deleted_address_table(=SAddr(e))
+         else c[SPar1(e)/x1, ..., SParn(e)/xn]
+         ```
+      *)
       GEnv.add_structure ~loc:cmd.loc genv name (List.length ids);
       let struct_term = compile_expr_to_pterm genv penv expr in
       let addr_term = structure_addr_term name struct_term in
       let saved =
+        (* the values of x1, ..., xn before let *)
         List.map (fun id -> id, PEnv.find_process_var penv id) ids
       in
       let body_env =
+        (* xi => SPari(e) *)
         List.mapi
           (fun index id -> id, structure_arg_term name (index + 1) struct_term)
           ids
@@ -1192,16 +1342,17 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd)
              (fun penv (id, value) -> PEnv.bind_process_var penv id value)
              penv
       in
-      process_e
-        (PGet
-           ( deleted_address_table_ident
-           , [PPatEqual addr_term]
-           , None
-           , process_e PNil
-           , compile_cmd genv body_env
-               (KRestoreVars (saved, kont))
-               body
-           , [] ))
+      process_e @@
+      PGet
+        ( deleted_address_table_ident
+        , [PPatEqual addr_term]
+        , None
+        , process_e PNil
+        , (* else *)
+          compile_cmd genv body_env (* compile body under body_env *)
+            (KRestoreVars (saved, kont)) (* Recover saved for kont *)
+            body
+        , [] )
   | Del (expr, name) ->
       (* 3.4  Encoding Structured facts, new, let, delete
 
