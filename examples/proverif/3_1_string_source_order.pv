@@ -14,17 +14,21 @@ const none_syscall_s: syscall_t.
 (* Booleans *)
 const rabbit_true: bitstring.
 const rabbit_false: bitstring.
-(* Event declaration ::ImgSend(..) *)
-event ImgSend(bitstring).
+(* Event declaration ::Seen(..) *)
+event Seen(bitstring).
+(* String constant "zebra" *)
+const zebra_str: bitstring.
+(* String constant "alpha" *)
+const alpha_str: bitstring.
 (* Body *)
 (* type proc_t : process *)
 const proc_t: rabbit_proc_t.
-(* process sender(..): proc_t *)
-let sender(ptype:rabbit_proc_t) =
-  new image__5:bitstring;
-  event ImgSend(image__5).
+(* process speaker(..): proc_t *)
+let speaker(ptype:rabbit_proc_t) =
+  event Seen(zebra_str);
+  event Seen(alpha_str).
 (* Requires *)
-(* lemma ReachableImgSend *)
-query image__6:bitstring; event(ImgSend(image__6)).
+(* lemma ReachableAlpha *)
+query event(Seen(alpha_str)).
 (* System *)
-process sender(proc_t).
+process speaker(proc_t).

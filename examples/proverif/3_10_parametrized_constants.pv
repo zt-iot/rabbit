@@ -1,43 +1,52 @@
 (* Predefined types *)
 type param_data.
-type proc_t.
+type rabbit_proc_t.
 type acc_data_t.
 type syscall_t.
-free attacker: channel.
+free attacker_ch: channel.
 (* Tables *)
-table access_control_table(proc_t, acc_data_t, syscall_t).
-table file_type_table(proc_t, acc_data_t, bitstring).
+table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
+table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
 (* Booleans *)
-const true: bitstring.
-const false: bitstring.
+const rabbit_true: bitstring.
+const rabbit_false: bitstring.
 (* Event declaration ::Other(..) *)
 event Other(bitstring).
 (* Event declaration ::Valid(..) *)
 event Valid(bitstring).
+(* Parameter value 1 *)
+const rabbit_param_1: param_data.
+(* Parameter value k__1 *)
+const rabbit_param_k_1: param_data.
+(* Parameter value 0 *)
+const rabbit_param_0: param_data.
+(* Parameter value k__2 *)
+const rabbit_param_k_2: param_data.
 (* Body *)
 (* function pk:1 *)
 fun pk(bitstring): bitstring.
 (* function pair:2 *)
 fun pair(bitstring, bitstring): bitstring.
 (* const fresh priv_k<> *)
-fun priv_k(param_data): bitstring.
+fun priv_k(param_data): bitstring[private].
 (* const pubkey<k__1> = .. *)
-reduc forall k__1:param_data; pubkey(k__1) = pk(priv_k(k__1)).
+letfun pubkey(k__1:param_data) = pk(priv_k(k__1)).
 (* const cert<k__2> = .. *)
-reduc forall k__2:param_data; cert(k__2) = pair(pubkey(k__2), priv_k(k__2)).
+letfun cert(k__2:param_data) = pair(pubkey(k__2), priv_k(k__2)).
 (* type proc_t : process *)
-const proc_t: proc_t.
+const proc_t: rabbit_proc_t.
 (* process server(..): proc_t *)
-let server(ptype:proc_t) = event Valid(cert(0));
-                           event Other(pubkey(1)).
+let server(ptype:rabbit_proc_t) =
+  event Valid(pair(pk(priv_k(rabbit_param_0)), priv_k(rabbit_param_0)));
+  event Other(pk(priv_k(rabbit_param_1))).
 (* Requires *)
 (* lemma ReachableValid *)
-query event(Valid(cert(0))).
+query event(Valid(pair(pk(priv_k(rabbit_param_0)), priv_k(rabbit_param_0)))).
 (* lemma ReachableOther *)
-query event(Other(pubkey(1))).
+query event(Other(pk(priv_k(rabbit_param_1)))).
 (* System *)
 process server(proc_t).

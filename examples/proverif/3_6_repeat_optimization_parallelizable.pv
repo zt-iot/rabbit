@@ -1,44 +1,52 @@
 (* Predefined types *)
 type param_data.
-type proc_t.
+type rabbit_proc_t.
 type acc_data_t.
 type syscall_t.
-free attacker: channel.
+free attacker_ch: channel.
 (* Tables *)
-table access_control_table(proc_t, acc_data_t, syscall_t).
-table file_type_table(proc_t, acc_data_t, bitstring).
+table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
+table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
 (* Booleans *)
-const true: bitstring.
-const false: bitstring.
+const rabbit_true: bitstring.
+const rabbit_false: bitstring.
+(* Channel fact declaration msg(..) *)
+fun msg(bitstring): bitstring[data].
 (* Event declaration ::Sent(..) *)
 event Sent.
+(* Integer constant 1 *)
+const rabbit_int_1: bitstring.
+(* Integer constant 0 *)
+const rabbit_int_0: bitstring.
 (* Body *)
 (* type proc_t : process *)
-const proc_t: proc_t.
+const proc_t: rabbit_proc_t.
 (* type chan_t : channel *)
 const chan_t: acc_data_t.
 (* process worker(..): proc_t *)
-let worker(ptype:proc_t, ch__41:channel) =
-  (* Channel ch__41 : chan_t *)
-  insert channel_table(chan_t, ch__41);
-  new rabbit_loop_ch__42:channel;
-  (out(rabbit_loop_ch__42, false) |
-   !((in(rabbit_loop_ch__42, =false)[precise];
-      if 1 = 1
+let worker(ptype:rabbit_proc_t, ch__44:channel) =
+  (* Channel ch__44 : chan_t *)
+  insert channel_table(chan_t, ch__44);
+  new rabbit_loop_ch__45:channel;
+  (out(rabbit_loop_ch__45, rabbit_false) |
+   !((in(rabbit_loop_ch__45, =rabbit_false)[precise];
+      if rabbit_int_1 = rabbit_int_1
       then
-        (get channel_table(ch_type__43:acc_data_t, =ch__41) in
-         get access_control_table(=ptype, =ch_type__43, =none_syscall_s) in
-         out(ch__41, msg(0)) | event Sent;
-                               out(rabbit_loop_ch__42, false))
-      else out(rabbit_loop_ch__42, false)) |
-     in(rabbit_loop_ch__42, =false)[precise];
-     if 1 = 1 then out(rabbit_loop_ch__42, false)
-     else out(rabbit_loop_ch__42, true))) |
-  in(rabbit_loop_ch__42, =true)[precise].
+        (get channel_table(ch_type__46:acc_data_t, =ch__44) in
+         get access_control_table(=ptype, =ch_type__46, =none_syscall_s) in
+         out(ch__44, msg(rabbit_int_0)) |
+         event Sent;
+         out(rabbit_loop_ch__45, rabbit_false))
+      else out(rabbit_loop_ch__45, rabbit_false)) |
+     in(rabbit_loop_ch__45, =rabbit_false)[precise];
+     if rabbit_int_1 = rabbit_int_1
+     then out(rabbit_loop_ch__45, rabbit_false)
+     else out(rabbit_loop_ch__45, rabbit_true))) |
+  in(rabbit_loop_ch__45, =rabbit_true)[precise].
 (* channel ch : chan_t *)
 free ch: channel[private].
 (* Requires *)

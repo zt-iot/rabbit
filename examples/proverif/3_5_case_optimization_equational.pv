@@ -1,29 +1,38 @@
 (* Predefined types *)
 type param_data.
-type proc_t.
+type rabbit_proc_t.
 type acc_data_t.
 type syscall_t.
-free attacker: channel.
+free attacker_ch: channel.
 (* Tables *)
-table access_control_table(proc_t, acc_data_t, syscall_t).
-table file_type_table(proc_t, acc_data_t, bitstring).
+table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
+table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
 (* Booleans *)
-const true: bitstring.
-const false: bitstring.
-(* Event declaration ::Invalid(..) *)
-event Invalid.
+const rabbit_true: bitstring.
+const rabbit_false: bitstring.
 (* Event declaration ::Valid(..) *)
 event Valid.
+(* Event declaration ::Invalid(..) *)
+event Invalid.
+(* Integer constant 1 *)
+const rabbit_int_1: bitstring.
 (* Body *)
 (* type proc_t : process *)
-const proc_t: proc_t.
+const proc_t: rabbit_proc_t.
 (* process chooser(..): proc_t *)
-let chooser(ptype:proc_t) =
-  if 1 = 1 then event Valid else if 1 = 1 then 0 else event Invalid.
+let chooser(ptype:rabbit_proc_t) =
+  new rabbit_case_ch__28:channel;
+  (out(rabbit_case_ch__28, rabbit_true) |
+   in(rabbit_case_ch__28, _:bitstring)[precise];
+   if rabbit_int_1 = rabbit_int_1 then event Valid
+   else out(rabbit_case_ch__28, rabbit_true)) |
+  in(rabbit_case_ch__28, _:bitstring)[precise];
+  if rabbit_int_1 = rabbit_int_1 then out(rabbit_case_ch__28, rabbit_true)
+  else event Invalid.
 (* Requires *)
 (* lemma ReachableValid *)
 query event(Valid()).

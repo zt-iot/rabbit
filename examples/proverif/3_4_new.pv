@@ -1,19 +1,19 @@
 (* Predefined types *)
 type param_data.
-type proc_t.
+type rabbit_proc_t.
 type acc_data_t.
 type syscall_t.
-free attacker: channel.
+free attacker_ch: channel.
 (* Tables *)
-table access_control_table(proc_t, acc_data_t, syscall_t).
-table file_type_table(proc_t, acc_data_t, bitstring).
+table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
+table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
 const none_syscall_s: syscall_t.
 (* Booleans *)
-const true: bitstring.
-const false: bitstring.
+const rabbit_true: bitstring.
+const rabbit_false: bitstring.
 (* Structure declaration S(_,_,_) *)
 fun S(bitstring, bitstring, bitstring, bitstring): bitstring[data].
 reduc
@@ -26,18 +26,29 @@ reduc
   forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; SPar3(S(x_0, x_1, x_2, x_3)) = x_3.
 (* Event declaration ::Valid(..) *)
 event Valid.
+(* Integer constant 1 *)
+const rabbit_int_1: bitstring.
+(* Integer constant 2 *)
+const rabbit_int_2: bitstring.
+(* Integer constant 3 *)
+const rabbit_int_3: bitstring.
 (* Body *)
 (* type proc_t : process *)
-const proc_t: proc_t.
+const proc_t: rabbit_proc_t.
 (* process maker(..): proc_t *)
-let maker(ptype:proc_t) =
+let maker(ptype:rabbit_proc_t) =
   new x__15:bitstring;
-  get deleted_address_table(=SAddr(S(x__15, 1, 2, 3)))
+  get deleted_address_table(=SAddr(S(x__15, rabbit_int_1, rabbit_int_2, rabbit_int_3)))
   else
-    (if SPar1(S(x__15, 1, 2, 3)) = 1
+    (if
+       SPar1(S(x__15, rabbit_int_1, rabbit_int_2, rabbit_int_3)) = rabbit_int_1
      then
-       if SPar2(S(x__15, 1, 2, 3)) = 2
-       then if SPar3(S(x__15, 1, 2, 3)) = 3 then event Valid).
+       if
+         SPar2(S(x__15, rabbit_int_1, rabbit_int_2, rabbit_int_3)) = rabbit_int_2
+       then
+         if
+           SPar3(S(x__15, rabbit_int_1, rabbit_int_2, rabbit_int_3)) = rabbit_int_3
+         then event Valid).
 (* Requires *)
 (* lemma ReachableValid *)
 query event(Valid()).
