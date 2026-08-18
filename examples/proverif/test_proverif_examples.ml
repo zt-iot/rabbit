@@ -69,7 +69,7 @@ type test_result =
   | Mismatch of string
   | Test_failure of string
 
-let test_file rab_filename =
+let test_file ~update rab_filename =
   let expected_pv = pv_filename rab_filename in
   let current_pv = current_pv_filename rab_filename in
   match compile_to_string rab_filename with
@@ -77,7 +77,11 @@ let test_file rab_filename =
       remove_if_exists current_pv;
       Test_failure (string_of_failure rab_filename exn)
   | Ok actual ->
-      if not (Sys.file_exists expected_pv) then (
+      if update then (
+        write_text_file expected_pv actual;
+        remove_if_exists current_pv;
+        Match
+      ) else if not (Sys.file_exists expected_pv) then (
         write_text_file current_pv actual;
         Test_failure (Printf.sprintf "%s: expected file %s is missing" rab_filename expected_pv)
       ) else
@@ -101,11 +105,16 @@ let () =
   Format.set_max_boxes !Config.max_boxes;
   Format.set_margin !Config.columns;
   Format.set_ellipsis_text "...";
-  let examples_dir =
-    if Array.length Sys.argv > 1 then Sys.argv.(1) else "examples/proverif"
+  let update = ref false in
+  let examples_dir = ref "examples/proverif" in
+  Arg.parse
+    ["--update", Arg.Set update, "Rewrite expected .pv files"]
+    (fun dir -> examples_dir := dir)
+    "test_proverif_examples.exe [--update] [DIR]";
+  let rab_files = collect_rab_files !examples_dir in
+  let results =
+    List.map (fun rab_filename -> rab_filename, test_file ~update:!update rab_filename) rab_files
   in
-  let rab_files = collect_rab_files examples_dir in
-  let results = List.map (fun rab_filename -> rab_filename, test_file rab_filename) rab_files in
   List.iter
     (function
       | rab_filename, Match ->
