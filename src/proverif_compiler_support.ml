@@ -31,21 +31,41 @@ let with_dummy_node_ext x = x, Parsing_helper.dummy_ext, []
 
 let pv_ident (s : string) : ident = with_dummy_ident_ext s
 
-let compile_ident (id : T.ident) : ident = pv_ident (Ident.to_string id)
+let proverif_keywords =
+  [ "among"; "attacker"; "axiom"; "channel"; "choice"; "clauses"; "const"
+  ; "def"; "diff"; "do"; "else"; "elimtrue"; "equation"; "equivalence"
+  ; "event"; "expand"; "fail"; "for"; "forall"; "foreach"; "free"; "fun"
+  ; "get"; "if"; "implementation"; "in"; "insert"; "lemma"; "let"
+  ; "letfun"; "letproba"; "new"; "noninterf"; "noselect"; "not"; "nounif"
+  ; "or"; "otherwise"; "out"; "param"; "phase"; "pred"; "proba"; "process"
+  ; "proof"; "public_vars"; "putbegin"; "query"; "reduc"; "restriction"
+  ; "secret"; "select"; "set"; "suchthat"; "sync"; "table"; "then"; "type"
+  ; "weaksecret"; "yield"
+  ; "true"; "false"
+  ]
+
+let escape_proverif_ident name =
+  if List.mem name proverif_keywords then
+    "rabbit_user_" ^ name
+  else
+    name
+
+let compile_ident (id : T.ident) : ident =
+  pv_ident (escape_proverif_ident (Ident.to_string id))
 
 let bitstring_ident             = pv_ident "bitstring"
 let channel_ident               = pv_ident "channel"
 let param_data_ident            = pv_ident "param_data"
-let proc_t_ident                = pv_ident "proc_t"
+let proc_t_ident                = pv_ident "rabbit_proc_t"
 let acc_data_t_ident            = pv_ident "acc_data_t"
 let syscall_t_ident             = pv_ident "syscall_t"
 let access_control_table_ident  = pv_ident "access_control_table"
 let file_type_table_ident       = pv_ident "file_type_table"
 let channel_table_ident         = pv_ident "channel_table"
 let deleted_address_table_ident = pv_ident "deleted_address_table"
-let attacker_channel_ident      = pv_ident "attacker"
-let true_ident                  = pv_ident "true"
-let false_ident                 = pv_ident "false"
+let attacker_channel_ident      = pv_ident "attacker_ch"
+let true_ident                  = pv_ident "rabbit_true"
+let false_ident                 = pv_ident "rabbit_false"
 let ptype_arg_ident             = pv_ident "ptype"
 let none_syscall_ident          = pv_ident "none_syscall_s"
 let precise_ident               = pv_ident "precise"
@@ -57,7 +77,7 @@ let tquery_e  (q : tquery)   : tquery_e   = with_dummy_node_ext q
 
 let add_comment c (a, b, comments) = (a, b, c :: comments)
 
-let compile_name (name : T.name) : ident = pv_ident name
+let compile_name (name : T.name) : ident = pv_ident (escape_proverif_ident name)
 
 (* "Struct" for "Struct" *)
 let structure_ctor_ident (name : T.name) : ident =
@@ -65,11 +85,11 @@ let structure_ctor_ident (name : T.name) : ident =
 
 (* "StructAddr" for "Struct" *)
 let structure_addr_ident (name : T.name) : ident =
-  pv_ident (name ^ "Addr")
+  pv_ident (escape_proverif_ident (name ^ "Addr"))
 
 (* "StructPar1" for "Struct" and 1 *)
 let structure_arg_ident (name : T.name) (index : int) : ident =
-  pv_ident (Printf.sprintf "%sPar%d" name index)
+  pv_ident (escape_proverif_ident (Printf.sprintf "%sPar%d" name index))
 
 module Int : sig
   val to_term_e : int -> term_e
