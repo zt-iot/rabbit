@@ -1,34 +1,40 @@
 (* Predefined types *)
 type param_data.
-type rabbit_proc_t.
+type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker_ch: channel.
 (* Tables *)
-table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
-table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
-const none_syscall_s: syscall_t.
+const none__syscall: syscall_t.
 (* Booleans *)
-const rabbit_true: bitstring.
-const rabbit_false: bitstring.
+const true__bool: bitstring.
+const false__bool: bitstring.
 (* Event declaration ::Seen(..) *)
-event Seen(bitstring).
+event Seen__event_global(bitstring).
 (* String constant "zebra" *)
-const zebra_str: bitstring.
+const zebra__str: bitstring.
 (* String constant "alpha" *)
-const alpha_str: bitstring.
+const alpha__str: bitstring.
+(* String constant "a-b" *)
+const a_b__str: bitstring.
+(* String constant "a b" *)
+const a_b__str_1: bitstring.
 (* Body *)
 (* type proc_t : process *)
-const proc_t: rabbit_proc_t.
+const proc_t__0: proc_t.
 (* process speaker(..): proc_t *)
-let speaker(ptype:rabbit_proc_t) =
-  event Seen(zebra_str);
-  event Seen(alpha_str).
+let speaker__0(ptype:proc_t) =
+  event Seen__event_global(zebra__str);
+  event Seen__event_global(alpha__str);
+  event Seen__event_global(a_b__str);
+  event Seen__event_global(a_b__str_1).
 (* Requires *)
 (* lemma ReachableAlpha *)
-query event(Seen(alpha_str)).
+query event(Seen__event_global(alpha__str)).
 (* System *)
-process speaker(proc_t).
+process speaker__0(proc_t__0).

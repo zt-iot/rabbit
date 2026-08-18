@@ -7,7 +7,11 @@ process speaker() : proc_t
 {
   main {
     event [::Seen("zebra")];
-    event [::Seen("alpha")]
+    event [::Seen("alpha")];
+    (* These literals have the same sanitized base and therefore exercise the
+       numeric collision suffix. *)
+    event [::Seen("a-b")];
+    event [::Seen("a b")]
   }
 }
 

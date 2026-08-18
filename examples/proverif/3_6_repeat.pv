@@ -1,44 +1,44 @@
 (* Predefined types *)
 type param_data.
-type rabbit_proc_t.
+type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker_ch: channel.
 (* Tables *)
-table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
-table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
-const none_syscall_s: syscall_t.
+const none__syscall: syscall_t.
 (* Booleans *)
-const rabbit_true: bitstring.
-const rabbit_false: bitstring.
+const true__bool: bitstring.
+const false__bool: bitstring.
 (* Event declaration ::Valid(..) *)
-event Valid.
+event Valid__event_global.
 (* Integer constant 0 *)
-const rabbit_int_0: bitstring.
+const int__pos_0: bitstring.
 (* Integer constant 1 *)
-const rabbit_int_1: bitstring.
+const int__pos_1: bitstring.
 (* Body *)
 (* type proc_t : process *)
-const proc_t: rabbit_proc_t.
+const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
-let worker(ptype:rabbit_proc_t) =
-  new rabbit_loop_ch__34:channel;
-  (out(rabbit_loop_ch__34, (rabbit_false, rabbit_int_0)) |
-   !((in(rabbit_loop_ch__34, (=rabbit_false, loop_state_0__37:bitstring))[precise];
-      if loop_state_0__37 = rabbit_int_0
-      then out(rabbit_loop_ch__34, (rabbit_false, rabbit_int_1))
-      else out(rabbit_loop_ch__34, (rabbit_false, loop_state_0__37))) |
-     in(rabbit_loop_ch__34, (=rabbit_false, loop_state_0__36:bitstring))[precise];
-     if loop_state_0__36 = rabbit_int_1
-     then out(rabbit_loop_ch__34, (rabbit_true, loop_state_0__36))
-     else out(rabbit_loop_ch__34, (rabbit_false, loop_state_0__36)))) |
-  in(rabbit_loop_ch__34, (=rabbit_true, loop_done_state_0__35:bitstring))[precise];
-  event Valid.
+let worker__0(ptype:proc_t) =
+  new loop_ch__34:channel;
+  (out(loop_ch__34, (false__bool, int__pos_0)) |
+   !((in(loop_ch__34, (=false__bool, loop_state_0__37:bitstring))[precise];
+      if loop_state_0__37 = int__pos_0
+      then out(loop_ch__34, (false__bool, int__pos_1))
+      else out(loop_ch__34, (false__bool, loop_state_0__37))) |
+     in(loop_ch__34, (=false__bool, loop_state_0__36:bitstring))[precise];
+     if loop_state_0__36 = int__pos_1
+     then out(loop_ch__34, (true__bool, loop_state_0__36))
+     else out(loop_ch__34, (false__bool, loop_state_0__36)))) |
+  in(loop_ch__34, (=true__bool, loop_done_state_0__35:bitstring))[precise];
+  event Valid__event_global.
 (* Requires *)
 (* lemma ReachableValid *)
-query event(Valid()).
+query event(Valid__event_global()).
 (* System *)
-process worker(proc_t).
+process worker__0(proc_t__0).

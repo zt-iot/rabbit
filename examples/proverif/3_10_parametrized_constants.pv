@@ -1,52 +1,53 @@
 (* Predefined types *)
 type param_data.
-type rabbit_proc_t.
+type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker_ch: channel.
 (* Tables *)
-table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
-table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
-const none_syscall_s: syscall_t.
+const none__syscall: syscall_t.
 (* Booleans *)
-const rabbit_true: bitstring.
-const rabbit_false: bitstring.
+const true__bool: bitstring.
+const false__bool: bitstring.
 (* Event declaration ::Other(..) *)
-event Other(bitstring).
+event Other__event_global(bitstring).
 (* Event declaration ::Valid(..) *)
-event Valid(bitstring).
+event Valid__event_global(bitstring).
 (* Parameter value 1 *)
-const rabbit_param_1: param_data.
+const value_1__param: param_data.
 (* Parameter value k__1 *)
-const rabbit_param_k_1: param_data.
+const k_1__param: param_data.
 (* Parameter value 0 *)
-const rabbit_param_0: param_data.
+const value_0__param: param_data.
 (* Parameter value k__2 *)
-const rabbit_param_k_2: param_data.
+const k_2__param: param_data.
 (* Body *)
 (* function pk:1 *)
-fun pk(bitstring): bitstring.
+fun pk__0(bitstring): bitstring.
 (* function pair:2 *)
-fun pair(bitstring, bitstring): bitstring.
+fun pair__0(bitstring, bitstring): bitstring.
 (* const fresh priv_k<> *)
-fun priv_k(param_data): bitstring[private].
+fun priv_k__0(param_data): bitstring[private].
 (* const pubkey<k__1> = .. *)
-letfun pubkey(k__1:param_data) = pk(priv_k(k__1)).
+letfun pubkey__0(k__1:param_data) = pk__0(priv_k__0(k__1)).
 (* const cert<k__2> = .. *)
-letfun cert(k__2:param_data) = pair(pubkey(k__2), priv_k(k__2)).
+letfun cert__0(k__2:param_data) = pair__0(pubkey__0(k__2), priv_k__0(k__2)).
 (* type proc_t : process *)
-const proc_t: rabbit_proc_t.
+const proc_t__0: proc_t.
 (* process server(..): proc_t *)
-let server(ptype:rabbit_proc_t) =
-  event Valid(pair(pk(priv_k(rabbit_param_0)), priv_k(rabbit_param_0)));
-  event Other(pk(priv_k(rabbit_param_1))).
+let server__0(ptype:proc_t) =
+  event Valid__event_global(pair__0(pk__0(priv_k__0(value_0__param)), priv_k__0(value_0__param)));
+  event Other__event_global(pk__0(priv_k__0(value_1__param))).
 (* Requires *)
 (* lemma ReachableValid *)
-query event(Valid(pair(pk(priv_k(rabbit_param_0)), priv_k(rabbit_param_0)))).
+query
+  event(Valid__event_global(pair__0(pk__0(priv_k__0(value_0__param)), priv_k__0(value_0__param)))).
 (* lemma ReachableOther *)
-query event(Other(pk(priv_k(rabbit_param_1)))).
+query event(Other__event_global(pk__0(priv_k__0(value_1__param)))).
 (* System *)
-process server(proc_t).
+process server__0(proc_t__0).

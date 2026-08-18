@@ -24,6 +24,12 @@ type allow_entry =
   ; pv_syscall : ident option
   }
 
+type event_kind =
+  | Global
+  | Plain
+
+val compile_event_name : T.name -> event_kind -> ident
+
 module GEnv : sig
   type t
 
@@ -70,14 +76,14 @@ module GEnv : sig
   val find_process_type : loc:Location.t -> t -> T.ident -> ident
   val add_process_type : loc:Location.t -> t -> T.ident -> T.ident -> unit
 
-  val structures : t -> (T.name * int) list
-  val add_structure : loc:Location.t -> t -> T.name -> int -> unit
+  val structure_facts : t -> (T.name * int) list
+  val add_structure_fact : loc:Location.t -> t -> T.name -> int -> unit
 
-  val facts : t -> (T.name * int) list
-  val add_fact : loc:Location.t -> t -> T.name -> int -> unit
+  val channel_facts : t -> (T.name * int) list
+  val add_channel_fact : loc:Location.t -> t -> T.name -> int -> unit
 
-  val events : t -> (string * int) list
-  val add_event : loc:Location.t -> t -> T.name -> int -> unit
+  val events : t -> (T.name * (event_kind * int)) list
+  val add_event : loc:Location.t -> t -> T.name -> event_kind -> int -> unit
 
   val top_process : t -> tprocess_e option
   val set_top_process : t -> tprocess_e -> unit

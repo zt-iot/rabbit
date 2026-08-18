@@ -23,6 +23,14 @@ type allow_entry =
   ; pv_syscall : ident option (** `None` for `[.]` *)
   }
 
+type event_kind =
+  | Global
+  | Plain
+
+let compile_event_name (name : T.name) = function
+  | Global -> compile_name name "event_global"
+  | Plain -> compile_name name "event_plain"
+
 module GEnv = struct
 
   type t =
@@ -34,12 +42,12 @@ module GEnv = struct
     ; mutable syscalls      : (Ident.t * syscall_def) list (** system calls and definitions *)
     ; mutable attacks       : (Ident.t * attack_def) list (** attacks and definitions *)
     ; allow_attack_table    : (Ident.t, T.ident list) Hashtbl.t (** process type and allowed attacks *)
-    ; generated_names       : (string, int) Hashtbl.t (** Name resolver state *)
+    ; generated_names       : (string, unit) Hashtbl.t (** Generated ProVerif identifiers in use *)
     ; mutable allow_entries : allow_entry list
     ; mutable process_types : (Ident.t * ident) list (** process types in Rabbit and Proverif *)
-    ; mutable structures    : (Name.t * int) list (** structure name and arity *)
-    ; mutable facts         : (Name.t * int) list (** channel fact constructor and arity *)
-    ; mutable events        : (string * int) list (** event name and arity *)
+    ; mutable structure_facts : (Name.t * int) list (** structure fact constructor and arity *)
+    ; mutable channel_facts   : (Name.t * int) list (** channel fact constructor and arity *)
+    ; mutable events        : (Name.t * (event_kind * int)) list (** event name, kind and arity *)
     ; mutable top_process   : tprocess_e option
     }
 
@@ -54,8 +62,8 @@ module GEnv = struct
     ; generated_names    = Hashtbl.create 101
     ; allow_entries      = []
     ; process_types      = []
-    ; structures         = []
-    ; facts              = []
+    ; structure_facts    = []
+    ; channel_facts      = []
     ; events             = []
     ; top_process        = None
     }
@@ -84,31 +92,31 @@ module GEnv = struct
     in
     if sanitized = "" then
       "empty"
+    else if Str.string_match (Str.regexp "[0-9]") sanitized 0 then
+      "value_" ^ sanitized
     else
       sanitized
 
   let add_ident genv ~base : ident =
-    (* make sure `base` does not end with `_g[0-9]+` *)
-    let base =
-      if Str.string_match (Str.regexp ".*_g[0-9]+$") base 0 then
-        base ^ "_"
+    let rec find_available index =
+      let candidate =
+        if index = 0 then base else Printf.sprintf "%s_%d" base index
+      in
+      if Hashtbl.mem genv.generated_names candidate then
+        find_available (index + 1)
       else
-        base
+        candidate
     in
-    match Hashtbl.find_opt genv.generated_names base with
-    | None ->
-        Hashtbl.add genv.generated_names base 1;
-        pv_ident base
-    | Some i ->
-        Hashtbl.replace genv.generated_names base (i+1);
-        pv_ident (Printf.sprintf "%s_g%d" base i)
+    let name = find_available 0 in
+    Hashtbl.add genv.generated_names name ();
+    pv_ident name
 
-  (* "hello" -> "hello_str" *)
+  (* "hello" -> "hello__str" *)
   let add_string genv s =
     match List.assoc_opt s genv.strings with
     | Some _ -> ()
     | None ->
-        let base = sanitize_string_for_ident s ^ "_str" in
+        let base = sanitize_string_for_ident s ^ "__str" in
         let id = add_ident genv ~base in
         genv.strings <- genv.strings @ [s, id]
 
@@ -131,9 +139,9 @@ module GEnv = struct
           if printed.[0] = '-' then
             "neg_" ^ String.sub printed 1 (String.length printed - 1)
           else
-            printed
+            "pos_" ^ printed
         in
-        let id = add_ident genv ~base:("rabbit_int_" ^ suffix) in
+        let id = add_ident genv ~base:("int__" ^ suffix) in
         genv.integers <- genv.integers @ [n, id];
         id
 
@@ -147,7 +155,7 @@ module GEnv = struct
     | Some id -> id
     | None ->
         let suffix = sanitize_string_for_ident value in
-        let id = add_ident genv ~base:("rabbit_param_" ^ suffix) in
+        let id = add_ident genv ~base:(suffix ^ "__param") in
         genv.parameters <- genv.parameters @ [value, id];
         id
 
@@ -259,16 +267,12 @@ module GEnv = struct
   let find_syscall_def genv (id : T.ident) : syscall_def option =
     List.assoc_opt id genv.syscalls
 
-  (* "name" -> "name_s" *)
-  let fresh_syscall_ident ~loc genv (id : T.ident) : ident =
-    let name = Ident.to_string id in
+  (* ("name", stamp) -> "name__stamp__syscall" *)
+  let compile_syscall_ident ~loc genv (id : T.ident) : ident =
     match List.assoc_opt id genv.syscalls with
     | Some _ ->
         Error.invalid_input ~loc "Syscall %s is already defined" (Ident.to_string id)
-    | None ->
-        let base = sanitize_string_for_ident name ^ "_s" in
-        let syscall_ident = add_ident genv ~base in
-        syscall_ident
+    | None -> compile_ident_kind id "syscall"
 
   let add_syscall_def
       ~loc
@@ -277,7 +281,7 @@ module GEnv = struct
       (args : T.ident list)
       (cmd : T.cmd)
     =
-    let pv_id = fresh_syscall_ident ~loc genv id in
+    let pv_id = compile_syscall_ident ~loc genv id in
     let def = { pv_id; args; cmd; } in
     genv.syscalls <- (id, def) :: genv.syscalls
 
@@ -339,35 +343,43 @@ module GEnv = struct
     | None ->
         genv.process_types <- (process_id, compile_ident typ) :: genv.process_types
 
-  (* structures *********************************************)
+  (* structure facts ****************************************)
 
-  let structures genv = genv.structures
+  let structure_facts genv = genv.structure_facts
 
-  let add_structure =
+  let add_structure_fact =
     add_with_arity
       "Structure"
-      (fun genv -> genv.structures)
-      (fun genv structures -> genv.structures <- structures)
+      (fun genv -> genv.structure_facts)
+      (fun genv structure_facts -> genv.structure_facts <- structure_facts)
 
   (* channel facts *****************************************)
 
-  let facts genv = genv.facts
+  let channel_facts genv = genv.channel_facts
 
-  let add_fact =
+  let add_channel_fact =
     add_with_arity
       "Channel fact"
-      (fun genv -> genv.facts)
-      (fun genv facts -> genv.facts <- facts)
+      (fun genv -> genv.channel_facts)
+      (fun genv channel_facts -> genv.channel_facts <- channel_facts)
 
   (* events *************************************************)
 
   let events genv = genv.events
 
-  let add_event =
-    add_with_arity
-      "Event"
-      (fun genv -> genv.events)
-      (fun genv events -> genv.events <- events)
+  let add_event ~loc genv (name : T.name) kind arity =
+    match List.assoc_opt name genv.events with
+    | None ->
+        genv.events <- genv.events @ [name, (kind, arity)]
+    | Some (kind', arity') when kind = kind' && arity = arity' -> ()
+    | Some (kind', _) when kind <> kind' ->
+        Error.invalid_input ~loc
+          "Event %s is used as both a global and a plain fact"
+          name
+    | Some (_, arity') ->
+        Error.invalid_input ~loc
+          "Event %s is used with inconsistent arities (%d and %d)"
+          name arity' arity
 
   (* top process ********************************************)
 

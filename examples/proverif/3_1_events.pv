@@ -1,30 +1,30 @@
 (* Predefined types *)
 type param_data.
-type rabbit_proc_t.
+type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker_ch: channel.
 (* Tables *)
-table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
-table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
-const none_syscall_s: syscall_t.
+const none__syscall: syscall_t.
 (* Booleans *)
-const rabbit_true: bitstring.
-const rabbit_false: bitstring.
+const true__bool: bitstring.
+const false__bool: bitstring.
 (* Event declaration ::ImgSend(..) *)
-event ImgSend(bitstring).
+event ImgSend__event_global(bitstring).
 (* Body *)
 (* type proc_t : process *)
-const proc_t: rabbit_proc_t.
+const proc_t__0: proc_t.
 (* process sender(..): proc_t *)
-let sender(ptype:rabbit_proc_t) =
+let sender__0(ptype:proc_t) =
   new image__5:bitstring;
-  event ImgSend(image__5).
+  event ImgSend__event_global(image__5).
 (* Requires *)
 (* lemma ReachableImgSend *)
-query image__6:bitstring; event(ImgSend(image__6)).
+query image__6:bitstring; event(ImgSend__event_global(image__6)).
 (* System *)
-process sender(proc_t).
+process sender__0(proc_t__0).

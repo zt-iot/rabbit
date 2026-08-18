@@ -1,59 +1,58 @@
 (* Predefined types *)
 type param_data.
-type rabbit_proc_t.
+type proc_t.
 type acc_data_t.
 type syscall_t.
 free attacker_ch: channel.
 (* Tables *)
-table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
-table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
 (* Pattern which matches with any system call *)
-const none_syscall_s: syscall_t.
+const none__syscall: syscall_t.
 (* Booleans *)
-const rabbit_true: bitstring.
-const rabbit_false: bitstring.
+const true__bool: bitstring.
+const false__bool: bitstring.
 (* Channel fact declaration msg(..) *)
-fun msg(bitstring): bitstring[data].
+fun msg__chan(bitstring): bitstring[data].
 (* Event declaration ::Sent(..) *)
-event Sent.
+event Sent__event_global.
 (* Integer constant 1 *)
-const rabbit_int_1: bitstring.
+const int__pos_1: bitstring.
 (* Integer constant 0 *)
-const rabbit_int_0: bitstring.
+const int__pos_0: bitstring.
 (* Body *)
 (* type proc_t : process *)
-const proc_t: rabbit_proc_t.
+const proc_t__0: proc_t.
 (* type chan_t : channel *)
-const chan_t: acc_data_t.
+const chan_t__0: acc_data_t.
 (* process worker(..): proc_t *)
-let worker(ptype:rabbit_proc_t, ch__44:channel) =
+let worker__0(ptype:proc_t, ch__44:channel) =
   (* Channel ch__44 : chan_t *)
-  insert channel_table(chan_t, ch__44);
-  new rabbit_loop_ch__45:channel;
-  (out(rabbit_loop_ch__45, rabbit_false) |
-   !((in(rabbit_loop_ch__45, =rabbit_false)[precise];
-      if rabbit_int_1 = rabbit_int_1
+  insert channel_table(chan_t__0, ch__44);
+  new loop_ch__45:channel;
+  (out(loop_ch__45, false__bool) |
+   !((in(loop_ch__45, =false__bool)[precise];
+      if int__pos_1 = int__pos_1
       then
         (get channel_table(ch_type__46:acc_data_t, =ch__44) in
-         get access_control_table(=ptype, =ch_type__46, =none_syscall_s) in
-         out(ch__44, msg(rabbit_int_0)) |
-         event Sent;
-         out(rabbit_loop_ch__45, rabbit_false))
-      else out(rabbit_loop_ch__45, rabbit_false)) |
-     in(rabbit_loop_ch__45, =rabbit_false)[precise];
-     if rabbit_int_1 = rabbit_int_1
-     then out(rabbit_loop_ch__45, rabbit_false)
-     else out(rabbit_loop_ch__45, rabbit_true))) |
-  in(rabbit_loop_ch__45, =rabbit_true)[precise].
+         get access_control_table(=ptype, =ch_type__46, =none__syscall) in
+         out(ch__44, msg__chan(int__pos_0)) |
+         event Sent__event_global;
+         out(loop_ch__45, false__bool))
+      else out(loop_ch__45, false__bool)) |
+     in(loop_ch__45, =false__bool)[precise];
+     if int__pos_1 = int__pos_1 then out(loop_ch__45, false__bool)
+     else out(loop_ch__45, true__bool))) |
+  in(loop_ch__45, =true__bool)[precise].
 (* channel ch : chan_t *)
-free ch: channel[private].
+free ch__0: channel[private].
 (* Requires *)
 (* lemma ReachableSent *)
-query event(Sent()).
+query event(Sent__event_global()).
 (* System *)
 process
   (* allow proc_t chan_t [.] *)
-  insert access_control_table(proc_t, chan_t, none_syscall_s);
-  worker(proc_t, ch).
+  insert access_control_table(proc_t__0, chan_t__0, none__syscall);
+  worker__0(proc_t__0, ch__0).

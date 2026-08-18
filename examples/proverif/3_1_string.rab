@@ -1,5 +1,5 @@
 (* Spec 3.1: a Rabbit string literal like "hello" is compiled to a generated
-   ProVerif constant such as hello_str. *)
+   ProVerif constant such as hello__str. *)
 
 type proc_t : process
 
@@ -7,7 +7,7 @@ process speaker() : proc_t
 {
   main {
     (* The same string literal is compiled to the same ident. *)
-    event [::Seen("hello")]; (* const hello_str: bitstring. *)
+    event [::Seen("hello")]; (* const hello__str: bitstring. *)
     event [::Seen("hello")]
   }
 }

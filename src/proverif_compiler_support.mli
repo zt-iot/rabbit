@@ -19,6 +19,7 @@ end
 
 val pv_ident : string -> ident
 val compile_ident : T.ident -> ident
+val compile_ident_kind : T.ident -> string -> ident
 
 val bitstring_ident : ident
 val channel_ident : ident
@@ -44,7 +45,7 @@ val process_e : tprocess -> tprocess_e
 val tquery_e : tquery -> tquery_e
 val add_comment : string -> 'a * 'b * string list -> 'a * 'b * string list
 
-val compile_name : T.name -> ident
+val compile_name : T.name -> string -> ident
 val structure_ctor_ident : T.name -> ident
 val structure_addr_ident : T.name -> ident
 val structure_arg_ident : T.name -> int -> ident

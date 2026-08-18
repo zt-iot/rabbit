@@ -34,19 +34,13 @@ let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
   ```
   function enc:2
 
-  fun enc ( bitstring, bitstring ).
-  ```
-
-  Here a function has a return type `bitstring`:
-
-  ```
-  fun enc ( bitstring, bitstring ): bitstring.
+  fun enc__0 ( bitstring, bitstring ): bitstring.
   ```
 *)
 let compile_function ~loc:_loc (id : T.ident) (arity : int) : tdecl list =
   let name = compile_ident id in
   let arg_tys = List.init arity (fun _ -> bitstring_ident) in
-  [ TComment (Printf.sprintf "function %s:%d" (fst id) arity)
+  [ TComment (Printf.sprintf "function %s:%d" (Ident.to_string id) arity)
   ; TFunDecl (name, arg_tys, bitstring_ident, [])
   ]
 
@@ -117,7 +111,7 @@ let compile_type ~loc:_loc (id : T.ident) (typclass : Input.type_class) =
    ```
    table access_control_table(proc_t, acc_data_t, syscall_t).
    ...
-   insert access_control_table(client_t, udp_t, send_s);
+   insert access_control_table(client_t, udp_t, send__0__syscall);
    ```
 *)
 let compile_allow
@@ -270,7 +264,7 @@ let compile_channel
       ; TFree (compile_ident id, channel_ident, [pv_ident "private", None])
       ]
 
-let process_file_channel_ident : ident = pv_ident "rabbit__file_ch"
+let process_file_channel_ident : ident = pv_ident "file_ch"
 
 let wrap_with_channel_init
     ~loc
@@ -326,9 +320,9 @@ let wrap_with_file_init
      ```
 
      ```
-     insert file_type_table(ptype, readonly_t, secret_priv_str);
+     insert file_type_table(ptype, readonly_t, secret_priv__str);
      new file_ch : channel;
-     out(file_ch, (secret_priv_str, enc(priv_k, sym_k))) |
+     out(file_ch, (secret_priv__str, enc(priv_k, sym_k))) |
      ...
      ```
   *)
@@ -525,23 +519,24 @@ let rec gterm_binary_mult ~loc op = function
 
 let gterm_event
     (name : T.name)
+    (kind : event_kind)
     (args : gterm_e list)
   : gterm_e =
   gterm_e @@
   PGFunApp
     ( pv_ident "event"
-    , [gterm_e @@ PGFunApp (compile_name name, args, None)]
+    , [gterm_e @@ PGFunApp (compile_event_name name kind, args, None)]
     , None )
 
 let compile_lemma_fact genv (fact : T.fact) : gterm_e =
   let loc = fact.loc in
   match fact.desc with
   | Global (name, args) ->
-      GEnv.add_event ~loc genv name (List.length args);
-      gterm_event name (List.map (compile_expr_to_gterm genv) args)
+      GEnv.add_event ~loc genv name Global (List.length args);
+      gterm_event name Global (List.map (compile_expr_to_gterm genv) args)
   | Plain (name, args) ->
-      GEnv.add_event ~loc genv name (List.length args);
-      gterm_event name (List.map (compile_expr_to_gterm genv) args)
+      GEnv.add_event ~loc genv name Plain (List.length args);
+      gterm_event name Plain (List.map (compile_expr_to_gterm genv) args)
   | Eq (lhs, rhs) ->
       gterm_binary "="
         (compile_expr_to_gterm genv lhs)
@@ -658,15 +653,15 @@ let compile_prelude (_genv : GEnv.t) : tdecl list =
      ```
 
      ```
-     type rabbit_proc_t.
+     type proc_t.
      type acc_data_t.
      type syscall_t.
      free attacker_ch : channel.
-     table access_control_table(rabbit_proc_t, acc_data_t, syscall_t).
-     table file_type_table(rabbit_proc_t, acc_data_t, bitstring).
+     table access_control_table(proc_t, acc_data_t, syscall_t).
+     table file_type_table(proc_t, acc_data_t, bitstring).
      table channel_table(acc_data_t, channel).
      table deleted_address_table(bitstring).
-     const none_syscall_s : syscall_t.
+     const none__syscall : syscall_t.
      ```
   *)
   [ TComment "Predefined types"
@@ -698,9 +693,9 @@ let compile_string_consts (genv : GEnv.t) : tdecl list =
      ```
 
      ```
-     const hello_world_str : bitstring.
+     const hello_world__str : bitstring.
      ...
-     out(ch, msg(hello_world_str))
+     out(ch, msg(hello_world__str))
      ```
   *)
   List.concat_map (fun (literal, id) ->
@@ -731,7 +726,7 @@ let compile_syscall_consts (genv : GEnv.t) : tdecl list =
      ```
 
      ```
-     const send_s : syscall_t.
+     const send__0__syscall : syscall_t.
      ```
   *)
   List.concat_map (fun (id, def) ->
@@ -754,9 +749,14 @@ let compile_event_decls (genv : GEnv.t) : tdecl list =
      query image:bitstring; event(ImgSend(image)).
      ```
   *)
-  List.concat_map (fun (name, arity) ->
-      [ TComment (Printf.sprintf "Event declaration ::%s(..)" name)
-      ; TEventDecl (compile_name name, List.init arity (fun _ -> bitstring_ident))
+  List.concat_map (fun (name, (kind, arity)) ->
+      let source_name =
+        match kind with
+        | Global -> "::" ^ name
+        | Plain -> name
+      in
+      [ TComment (Printf.sprintf "Event declaration %s(..)" source_name)
+      ; TEventDecl (compile_event_name name kind, List.init arity (fun _ -> bitstring_ident))
       ]) (GEnv.events genv)
 
 let compile_fact_decls (genv : GEnv.t) : tdecl list =
@@ -764,12 +764,12 @@ let compile_fact_decls (genv : GEnv.t) : tdecl list =
     (fun (name, arity) ->
        [ TComment (Printf.sprintf "Channel fact declaration %s(..)" name)
        ; TFunDecl
-           ( compile_name name
+           ( compile_name name "chan"
            , List.init arity (fun _ -> bitstring_ident)
            , bitstring_ident
            , [pv_ident "data", None] )
        ])
-    (GEnv.facts genv)
+    (GEnv.channel_facts genv)
 
 (* 3.4 Encoding Structured facts, new, let, delete
 
@@ -780,11 +780,11 @@ let compile_fact_decls (genv : GEnv.t) : tdecl list =
    ```
    fun Struct ( bitstring , ... , bitstring ) : bitstring [ data ] .
    reduc forall x_0 : bitstring , ... , x_n : bitstring ;
-     StructAddr ( Struct ( x_0 , ... , x_n ) = x_0 .
+     Struct__struct_addr ( Struct__struct ( x_0 , ... , x_n ) = x_0 .
    reduc forall x_0 : bitstring , ... , x_n : bitstring ;
-     StructPar1 ( Struct ( x_0 , ... , x_n ) = x_1 .
+     Struct__struct_par_1 ( Struct__struct ( x_0 , ... , x_n ) = x_1 .
    reduc forall x_0 : bitstring , ... , x_n : bitstring ;
-     StructParn ( Struct ( x_0 , ... , x_n ) = x_n .
+     Struct__struct_par_n ( Struct__struct ( x_0 , ... , x_n ) = x_n .
    ...
    ```
 *)
@@ -796,7 +796,7 @@ let compile_structure_decls (genv : GEnv.t) : tdecl list =
      namespaces or imported declarations, this generation scheme may need to be
      made more explicit. *)
   let mk_var index = pv_ident (Printf.sprintf "x_%d" index) in
-  GEnv.structures genv
+  GEnv.structure_facts genv
   |> List.concat_map @@ fun (name, arity) ->
       let envdecl =
         List.init (arity + 1) (fun index -> mk_var index, bitstring_ident)
@@ -818,7 +818,7 @@ let compile_structure_decls (genv : GEnv.t) : tdecl list =
       in
       let addr_decl =
         (* reduc forall x_0:bitstring, ..., x_n:bitstring;
-             StructAddr(Struct(x_0, ..., x_n) = x_0.
+             Struct__struct_addr(Struct__struct(x_0, ..., x_n) = x_0.
         *)
         TReduc
           ( [ envdecl
@@ -834,7 +834,7 @@ let compile_structure_decls (genv : GEnv.t) : tdecl list =
       in
       let arg_decls =
         (* reduc forall x_0:bitstring, ..., x_n:bitstring;
-             StructPari(Struct(x_0, ..., x_n) = x_i.
+             Struct__struct_par_i(Struct__struct(x_0, ..., x_n) = x_i.
         *)
         List.init arity
           (fun index ->
@@ -863,8 +863,8 @@ let compile_structure_decls (genv : GEnv.t) : tdecl list =
    ```
 
    ```
-   insert access_control_table(client_t, udp_t, send_s);
-   insert access_control_table(client_t, readonly_t, none_syscall_s);
+   insert access_control_table(client_t, udp_t, send__0__syscall);
+   insert access_control_table(client_t, readonly_t, none__syscall);
    ...
    ```
 *)
@@ -883,7 +883,7 @@ let add_allow_inits (genv : GEnv.t) (body : tprocess_e) : tprocess_e =
               ; pterm_e @@ PPIdent entry.pv_target_type
               ; (* Rabbit [.] permits direct access outside a syscall. Since
                    ProVerif table entries require a concrete [syscall_t], encode
-                   that case with the distinguished [none_syscall_s] constant.
+                   that case with the distinguished [none__syscall] constant.
                    This encoding choice is not specified in Section 3.2. *)
                 pterm_e @@ PPIdent
                   (Option.value entry.pv_syscall ~default:none_syscall_ident)
