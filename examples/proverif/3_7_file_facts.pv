@@ -39,17 +39,17 @@ let server__0(ptype:proc_t) =
   insert file_type_table(ptype, readonly_t__0, secret_pub__str);
   new file_ch:channel;
   out(file_ch, (secret_pub__str, hello__str)) |
-  (get file_type_table(=ptype, file_type__59:acc_data_t, =secret_pub__str) in
-   get access_control_table(=ptype, =file_type__59, =fopen__0__syscall) in
-   in(file_ch, (=secret_pub__str, file_contents__57:bitstring))[precise];
-   new y__54:bitstring;
-   get file_type_table(=ptype, file_type__58:acc_data_t, =secret_pub__str) in
-   get access_control_table(=ptype, =file_type__58, =fopen__0__syscall) in
-   out(file_ch, (secret_pub__str, file_contents__57)) |
-   event Valid__event_global(Fd__struct(y__54, file_contents__57))).
+  (get file_type_table(=ptype, file_type__75:acc_data_t, =secret_pub__str) in
+   get access_control_table(=ptype, =file_type__75, =fopen__0__syscall) in
+   in(file_ch, (=secret_pub__str, file_contents__73:bitstring))[precise];
+   new y__70:bitstring;
+   get file_type_table(=ptype, file_type__74:acc_data_t, =secret_pub__str) in
+   get access_control_table(=ptype, =file_type__74, =fopen__0__syscall) in
+   out(file_ch, (secret_pub__str, file_contents__73)) |
+   event Valid__event_global(Fd__struct(y__70, file_contents__73))).
 (* Requires *)
 (* lemma ReachableValid *)
-query fd__56:bitstring; event(Valid__event_global(fd__56)).
+query fd__72:bitstring; event(Valid__event_global(fd__72)).
 (* System *)
 process
   (* allow server_t readonly_t [fopen] *)

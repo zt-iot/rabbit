@@ -30,23 +30,28 @@ const proc_t__0: proc_t.
 (* type chan_t : channel *)
 const chan_t__0: acc_data_t.
 (* process chooser(..): proc_t *)
-let chooser__0(ptype:proc_t, ch__22:channel) =
-  (* Channel ch__22 : chan_t *)
-  insert channel_table(chan_t__0, ch__22);
-  get channel_table(ch_type__26:acc_data_t, =ch__22) in
-  get access_control_table(=ptype, =ch_type__26, =none__syscall) in
-  out(ch__22, store__chan(int__pos_1)) |
-  (get channel_table(ch_type__25:acc_data_t, =ch__22) in
-   get access_control_table(=ptype, =ch_type__25, =none__syscall) in
-   in(ch__22, store__chan(case_arg_0__23:bitstring));
-   new channel_case_ch__24:channel;
-   (out(channel_case_ch__24, true__bool) |
-    in(channel_case_ch__24, _:bitstring)[precise];
-    if case_arg_0__23 = int__pos_1 then event Valid__event_global
-    else out(channel_case_ch__24, true__bool)) |
-   in(channel_case_ch__24, _:bitstring)[precise];
-   if case_arg_0__23 = int__pos_2 then event Invalid__event_global
-   else out(channel_case_ch__24, true__bool)).
+let chooser__0(ptype:proc_t, ch__35:channel) =
+  (* Channel ch__35 : chan_t *)
+  insert channel_table(chan_t__0, ch__35);
+  get channel_table(ch_type__39:acc_data_t, =ch__35) in
+  get access_control_table(=ptype, =ch_type__39, =none__syscall) in
+  out(ch__35, store__chan(int__pos_1)) |
+  (get channel_table(ch_type__38:acc_data_t, =ch__35) in
+   get access_control_table(=ptype, =ch_type__38, =none__syscall) in
+   in(ch__35, store__chan(case_arg_0__36:bitstring));
+   new channel_case_ch__37:channel;
+   ((out(channel_case_ch__37, false__bool) |
+     in(channel_case_ch__37, =false__bool)[precise];
+     if case_arg_0__36 = int__pos_1
+     then event Valid__event_global;
+          out(channel_case_ch__37, true__bool)
+     else out(channel_case_ch__37, false__bool)) |
+    in(channel_case_ch__37, =false__bool)[precise];
+    if case_arg_0__36 = int__pos_2
+    then event Invalid__event_global;
+         out(channel_case_ch__37, true__bool)
+    else out(channel_case_ch__37, false__bool)) |
+   in(channel_case_ch__37, =true__bool)[precise]).
 (* channel ch : chan_t *)
 free ch__0: channel[private].
 (* Requires *)

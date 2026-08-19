@@ -1,28 +1,25 @@
-(* Spec 3.5: a general non-channel Rabbit case
+(* Spec 3.5: a general non-channel Rabbit case with a state-carrying join
 
      case [A1] -> c1 | [A2] -> c2 | [A3] -> c3 end
 
-   where each branch may use multiple equational guards,
-   is compiled into a ProVerif conditional tree. In the current implementation,
-   the generic non-channel path is still this nested [if ... then ... else ...]
-   encoding.
-
-   This example is intentionally separate from the equational optimization
-   example: it uses three branches and branch-local conjunctions rather than
-   just a two-way split on one equality. *)
+   Each branch receives the current process-variable state from a private lock
+   channel and returns its updated state. A single continuation receives the
+   selected branch's state. *)
 
 type proc_t : process
 
 process chooser() : proc_t
 {
   main {
+    var result = 0 in
     var one = 1 in
     var two = 2 in
     case
-    | [one = 1, two = 2]  -> event [::Valid()]
-    | [one = 1, two != 2] -> event [::Unexpected()]
-    | [one != 1]          -> event [::Invalid()]
-     end
+    | [one = 1, two = 2]  -> event [::Valid()]; result := 1
+    | [one = 1, two != 2] -> event [::Unexpected()]; result := 2
+    | [one != 1]          -> event [::Invalid()]; result := 3
+    end;
+    event [::Joined(result)]
   }
 }
 

@@ -25,14 +25,21 @@ const int__pos_1: bitstring.
 const proc_t__0: proc_t.
 (* process chooser(..): proc_t *)
 let chooser__0(ptype:proc_t) =
-  new case_ch__28:channel;
-  (out(case_ch__28, true__bool) |
-   in(case_ch__28, _:bitstring)[precise];
-   if int__pos_1 = int__pos_1 then event Valid__event_global
-   else out(case_ch__28, true__bool)) |
-  in(case_ch__28, _:bitstring)[precise];
-  if int__pos_1 = int__pos_1 then out(case_ch__28, true__bool)
-  else event Invalid__event_global.
+  new case_ch__41:channel;
+  ((out(case_ch__41, (false__bool, int__pos_1)) |
+    in(case_ch__41, (=false__bool, case_state_0__43:bitstring))[precise];
+    if case_state_0__43 = int__pos_1
+    then
+      event Valid__event_global;
+      out(case_ch__41, (true__bool, case_state_0__43))
+    else out(case_ch__41, (false__bool, case_state_0__43))) |
+   in(case_ch__41, (=false__bool, case_state_0__44:bitstring))[precise];
+   if case_state_0__44 = int__pos_1
+   then out(case_ch__41, (false__bool, case_state_0__44))
+   else
+     event Invalid__event_global;
+     out(case_ch__41, (true__bool, case_state_0__44))) |
+  in(case_ch__41, (=true__bool, case_done_state_0__42:bitstring))[precise].
 (* Requires *)
 (* lemma ReachableValid *)
 query event(Valid__event_global()).
