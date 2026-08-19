@@ -195,6 +195,47 @@ let string_of_fact f =
         (string_of_expr channel)
         syscall
 
+let string s = { env= Env.empty (); loc= Location.nowhere; desc= String s }
+let ident ?param id desc = { env= Env.empty (); loc= Location.nowhere; desc= Ident { id; desc; param } }
+let tuple es = { env= Env.empty (); loc= Location.nowhere; desc= Tuple es }
+
+let pid_args ((proc_id : Subst.proc_id), (param : Subst.param_id option)) =
+  let proc = string (Ident.to_string (proc_id :> Ident.t)) in
+  match param with
+  | None -> [proc]
+  | Some p -> [proc; ident (p :> Ident.t) Param]
+
+let pid_expr pid =
+  match pid_args pid with
+  | [e] -> e
+  | [e1; e2] -> tuple [e1; e2]
+  | _ -> assert false
+
+let fact_symbol_and_args (f : fact) =
+  match f.desc with
+  | Channel { channel; name; args } -> Some (`Channel name, channel :: args)
+  | Plain { pid; name; args } -> Some (`Plain name, pid_args pid @ args)
+  | Eq (e1, e2) -> Some (`Eq, [e1; e2])
+  | Neq (e1, e2) -> Some (`NEq, [e1; e2])
+  | File { pid; path; contents } -> Some (`File, pid_args pid @ [path; contents])
+  | Global (name, args) -> Some (`Global name, args)
+  | Fresh id -> Some (`Fresh, [ident id Var])
+  | Structure { pid; name; address; args } ->
+      Some (`Structure, pid_args pid @ string name :: address :: args)
+  | Loop { pid; mode; index } ->
+      Some (`Loop mode, [pid_expr pid; string (Index.to_string index)])
+  | Access { pid; channel; syscall } ->
+      Some (`Access, pid_args pid @ [channel; string (match syscall with None -> "." | Some id -> Ident.to_string id)])
+
+let unify_fact (f1 : fact) (f2 : fact) : Typed.subst option =
+  match fact_symbol_and_args f1, fact_symbol_and_args f2 with
+  | Some (name1, args1), Some (name2, args2)
+    when name1 = name2 && List.length args1 = List.length args2 ->
+      Typed.unify_expr (tuple args1) (tuple args2)
+  | _ -> None
+
+let unifiable_fact f1 f2 = Option.is_some (unify_fact f1 f2)
+
 let vars_of_fact f =
   let vars_of_expr e = vars_of_expr e in
   let vars_of_pid = function
@@ -1559,8 +1600,8 @@ let compressable edges e1 e2 =
   in
   file_facts &&
 
+  let e2_pre = List.map (Update.update_fact e1.update) e2.pre in
   let structure =
-    let e2_pre = List.map (Update.update_fact e1.update) e2.pre in
     List.for_all (fun e2_pre_f ->
         match e2_pre_f.desc with
         | Structure { pid; name; address; args=_ } ->
@@ -1576,7 +1617,28 @@ let compressable edges e1 e2 =
                 | _ -> true) e1.post
         | _ -> true) e2_pre
   in
-  structure
+  structure &&
+
+  let dangerous_pairs =
+    List.filter (fun (f1, f2) ->
+        match f1.desc, f2.desc with
+        | Structure _, Structure _ ->
+            (* Structure pairs are checked in the above `structure` *)
+            false
+        | _ -> unifiable_fact f1 f2)
+      (List.concat_map (fun e1post ->
+           List.map (fun e2pre ->
+               (e1post, e2pre)) e2_pre) e1.post)
+  in
+  (if dangerous_pairs <> [] && !Config.debug then (
+      Format.eprintf "Dangerous pairs!!!@.";
+      List.iter (fun (f1, f2) ->
+          Format.eprintf "  %s <==> %s@."
+            (string_of_fact f1)
+            (string_of_fact f2)) dangerous_pairs;
+    );
+   dangerous_pairs = [])
+
 
 let compress (e1 : edge) (e2 : edge) =
   (* facts in [e2] must be substituted by [e1.update] *)
@@ -1629,7 +1691,6 @@ let compress (e1 : edge) (e2 : edge) =
   let e2_pre = Update.update_facts u e2_pre in
   let e2_tag = Update.update_facts u e2_tag in
   let e2_post =Update.update_facts u e2_post in
-
   let pre = e1.pre @ e2_pre in
   let tag = e1.tag @ e2_tag in
   let post = e1_post (* not [e1.post] *) @ e2_post in
@@ -1650,13 +1711,11 @@ let compress (e1 : edge) (e2 : edge) =
   }, enforces <> []
 
 let compress e1 e2 =
-  let e12, with_enforces = compress e1 e2 in
-  if !Config.debug && with_enforces then (
+  let e12, _with_enforces = compress e1 e2 in
+  if !Config.debug then (
     Format.eprintf "@[<v2>Compress@ %a@ %a@]@."
       print_edge_summary e1
-      print_edge_summary e2
-  );
-  if !Config.debug && with_enforces then (
+      print_edge_summary e2;
     Format.eprintf "  @[=> %a@]@.@."
       print_edge_summary e12
   );

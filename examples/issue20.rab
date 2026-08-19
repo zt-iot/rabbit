@@ -1,0 +1,22 @@
+type proc_t : process
+
+process alice(): proc_t {
+  main {
+    new n in
+
+    put [TEST()];
+    case [TEST()] ->
+      skip
+    end;
+    
+    event [::Ok(n)]
+  }
+}
+
+system
+  alice()
+requires
+[
+  lemma Reachable:
+    reachable ::Ok(x)
+]

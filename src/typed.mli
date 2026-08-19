@@ -31,6 +31,8 @@ and expr' =
   | Tuple of expr list (** tuple, [(e1,..,en)] *)
   | Unit
 
+type subst = (ident * expr) list
+
 val string_of_expr : expr -> string
 
 val vars_of_expr : expr -> Ident.t list
@@ -38,6 +40,11 @@ val vars_of_expr : expr -> Ident.t list
 
 val constants : expr -> expr list
 (** Extract the constants of an expression *)
+
+val unify_expr : expr -> expr -> subst option
+(** First-order unification on [expr].
+    Only identifiers with descriptor [Env.Var] are treated as unification variables;
+    all other identifiers are rigid. Returns a substitution on success. *)
 
 type loop_mode =
   | In

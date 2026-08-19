@@ -75,6 +75,12 @@ and fact' =
 
 val string_of_fact : fact -> string
 
+val unify_fact : fact -> fact -> Typed.subst option
+(** Conservative fact unification aligned with the fact encoding used for
+    downstream Tamarin/SPTHY generation. Returns a substitution on success. *)
+
+val unifiable_fact : fact -> fact -> bool
+
 val fact_of_typed : Subst.pid option -> Typed.fact -> fact
 (** Canonically maps [Typed.fact] to [fact].
     The funciton fails for local facts [Plain _]
