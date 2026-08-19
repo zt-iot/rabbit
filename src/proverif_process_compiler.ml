@@ -902,6 +902,23 @@ and compile_syscall_call
      let curr_syscall = none__syscall in
      body
      ```
+
+     Section 3.9 says that a passive attack is compiled like a syscall: its
+     body is copied at the call site. Attacker facts use `attacker_ch`.
+
+     ```
+     passive attack eaves_mem(v) {
+       put [::Out(v)]
+     }
+     _ := eaves_mem(value)
+     ```
+
+     ```
+     out(attacker_ch, value);
+     ```
+
+     While compiling the copied body, access-control checks use
+     `eaves_mem__0__syscall` as the current syscall.
   *)
   match GEnv.find_syscall_def genv id with
   | None ->
@@ -923,11 +940,14 @@ and compile_syscall_call
         compile_cmd genv (mk_call_env def.args) (KProc on_fallthrough) def.cmd
       in
       let attack_branches =
-        List.map
-          (fun attack_def ->
-             compile_cmd genv (mk_call_env attack_def.args) (KProc on_fallthrough) attack_def.cmd)
-          (GEnv.find_allowed_attacks ~loc genv
-             ~process_typ_id:(PEnv.process_typ_id penv) ~syscall_id:id)
+        if def.passive then
+          []
+        else
+          List.map
+            (fun attack_def ->
+               compile_cmd genv (mk_call_env attack_def.args) (KProc on_fallthrough) attack_def.cmd)
+            (GEnv.find_allowed_attacks ~loc genv
+               ~process_typ_id:(PEnv.process_typ_id penv) ~syscall_id:id)
       in
       nondet_choose_processes (normal_branch :: attack_branches)
 

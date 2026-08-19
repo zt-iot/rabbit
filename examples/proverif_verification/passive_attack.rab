@@ -1,0 +1,35 @@
+(* Verification feature: passive attack
+
+   Reviewed.
+*)
+
+const fresh observed_value
+
+passive attack observe(value)
+{
+  put [::Out(value)]
+}
+
+type proc_t : process
+
+allow proc_t [observe]
+
+process worker() : proc_t
+{
+  main {
+    _ := observe(observed_value);
+    case
+    | [::In(value)] -> event [::Observed(value)]
+    end
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The passive attack exposes `observed_value`, so the attacker can return it.
+  true
+  *)
+  lemma ObservationIsReachable : reachable ::Observed(observed_value)
+]

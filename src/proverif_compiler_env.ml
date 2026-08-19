@@ -6,6 +6,7 @@ type syscall_def =
   { pv_id : ident (** Proverif id *)
   ; args : T.ident list
   ; cmd : T.cmd
+  ; passive : bool
   }
 
 type attack_def =
@@ -276,13 +277,14 @@ module GEnv = struct
 
   let add_syscall_def
       ~loc
+      ~passive
       genv
       (id : T.ident)
       (args : T.ident list)
       (cmd : T.cmd)
     =
     let pv_id = compile_syscall_ident ~loc genv id in
-    let def = { pv_id; args; cmd; } in
+    let def = { pv_id; args; cmd; passive; } in
     genv.syscalls <- (id, def) :: genv.syscalls
 
   (* attacks ************************************************)
