@@ -32,4 +32,4 @@ query event(Valid__event_global()).
 process
   (* allow client_t udp_t [send] *)
   insert access_control_table(client_t__0, udp_t__0, send__0__syscall);
-  client__0(client_t__0).
+  client__0(client_t__0)

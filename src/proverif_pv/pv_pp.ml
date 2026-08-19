@@ -1139,9 +1139,9 @@ let pp_program fmt (decls, proc, second_proc) =
   let pp_body () =
     match second_proc with
     | None ->
-        fprintf fmt "@[<2>process@ %a.@]@," (Tprocess.pp_prec prec_lowest) proc
+        fprintf fmt "@[<2>process@ %a@]@," (Tprocess.pp_prec prec_lowest) proc
     | Some proc2 ->
-        fprintf fmt "@[<2>equivalence@ @[(%a)@]@ @[(%a).@]@]@,"
+        fprintf fmt "@[<2>equivalence@ @[(%a)@]@ @[(%a)@]@]@,"
           (Tprocess.pp_prec prec_lowest) proc
           (Tprocess.pp_prec prec_lowest) proc2
   in

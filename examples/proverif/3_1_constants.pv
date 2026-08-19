@@ -32,4 +32,4 @@ let speaker__0(ptype:proc_t) =
 (* lemma ReachableAlias *)
 query event(Seen__event_global(alias__0)).
 (* System *)
-process speaker__0(proc_t__0).
+process speaker__0(proc_t__0)

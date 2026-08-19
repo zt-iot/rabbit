@@ -5,6 +5,6 @@ process
 === PARSED ===
 process
   ((out((c), (b))) |
-   (if ((a) = (b)) then (out((c), (d))) else (out((c), (f))))).
+   (if ((a) = (b)) then (out((c), (d))) else (out((c), (f)))))
 === EXPECTED ===
-process out(c, b) | if a = b then out(c, d) else out(c, f).
+process out(c, b) | if a = b then out(c, d) else out(c, f)

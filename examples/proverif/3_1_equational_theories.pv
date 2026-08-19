@@ -31,4 +31,4 @@ let sender__0(ptype:proc_t) = event Valid__event_global.
 (* lemma ReachableValid *)
 query event(Valid__event_global()).
 (* System *)
-process sender__0(proc_t__0).
+process sender__0(proc_t__0)

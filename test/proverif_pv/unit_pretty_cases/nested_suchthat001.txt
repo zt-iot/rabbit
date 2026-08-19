@@ -8,7 +8,7 @@ process
 === PARSED ===
 process
   (let x:bitstring suchthat ((x) = (a)) in
-     (let y = (b) in (out((c), (y))) else (out((c), (e))))).
+     (let y = (b) in (out((c), (y))) else (out((c), (e)))))
 === EXPECTED ===
 process
-  let x:bitstring suchthat x = a in let y = b in out(c, y) else out(c, e).
+  let x:bitstring suchthat x = a in let y = b in out(c, y) else out(c, e)

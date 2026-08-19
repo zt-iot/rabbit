@@ -45,4 +45,4 @@ let maker__0(ptype:proc_t) =
 (* lemma ReachableDeleted *)
 query event(Deleted__event_global()).
 (* System *)
-process maker__0(proc_t__0).
+process maker__0(proc_t__0)

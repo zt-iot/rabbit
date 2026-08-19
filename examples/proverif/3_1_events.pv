@@ -27,4 +27,4 @@ let sender__0(ptype:proc_t) =
 (* lemma ReachableImgSend *)
 query image__6:bitstring; event(ImgSend__event_global(image__6)).
 (* System *)
-process sender__0(proc_t__0).
+process sender__0(proc_t__0)

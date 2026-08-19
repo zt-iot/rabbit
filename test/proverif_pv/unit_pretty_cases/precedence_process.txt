@@ -20,11 +20,11 @@ process
       then
         (if (((d) = (e)) || (((e) = (f)) || ((f) = (g))))
          then (out((c), (d))) else (out((c), (e))))
-      else (out((c), (f))))))).
+      else (out((c), (f)))))))
 === EXPECTED ===
 process
   let x = a in
   out(c, x);
   out(c, b) |
   if a = b then if d = e || e = f || f = g then out(c, d) else out(c, e)
-  else out(c, f).
+  else out(c, f)

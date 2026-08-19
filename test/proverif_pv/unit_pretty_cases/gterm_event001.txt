@@ -5,8 +5,8 @@ process 0.
 === PARSED ===
 query x:bitstring; (((event((x))@t) && (inj-event((x))@u)) ==> ((t) = (u))).
 query x:bitstring; ((state((x)) phase 1@t) ==> (event((x))@t)).
-process (0).
+process (0)
 === EXPECTED ===
 query x:bitstring; event(x)@t && inj-event(x)@u ==> t = u.
 query x:bitstring; state(x) phase 1@t ==> event(x)@t.
-process 0.
+process 0
