@@ -7,9 +7,9 @@ process 0.
 query x:nat; (((p((x))) || (q((x)))) ==> ((r((x))) && (s((x))))).
 query x:nat; (((p((x))) ==> (q((x)))) ==> (r((x)))).
 query x:nat; ((p((x))) ==> ((q((x))) ==> (r((x))))).
-process (0).
+process (0)
 === EXPECTED ===
 query x:nat; p(x) || q(x) ==> r(x) && s(x).
 query x:nat; (p(x) ==> q(x)) ==> r(x).
 query x:nat; p(x) ==> (q(x) ==> r(x)).
-process 0.
+process 0

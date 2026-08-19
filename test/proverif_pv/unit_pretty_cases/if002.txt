@@ -5,7 +5,7 @@ process
   (if (x0)
    then
      (if (x1) then (out((c), (x2));
-                    (out((c), (x3)))) else (out((c), (x4))))).
+                    (out((c), (x3)))) else (out((c), (x4)))))
 === EXPECTED ===
 process if x0 then if x1 then out(c, x2);
-                              out(c, x3) else out(c, x4).
+                              out(c, x3) else out(c, x4)

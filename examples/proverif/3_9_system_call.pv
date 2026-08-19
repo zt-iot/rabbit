@@ -29,4 +29,4 @@ let worker__0(ptype:proc_t) = event Valid__event_global(int__pos_0).
 (* lemma ReachableValid *)
 query event(Valid__event_global(int__pos_0)).
 (* System *)
-process worker__0(proc_t__0).
+process worker__0(proc_t__0)

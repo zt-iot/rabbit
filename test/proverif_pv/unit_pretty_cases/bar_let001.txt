@@ -1,6 +1,6 @@
 === INPUT ===
 process out(c, x) | let h = y in out(c, h).
 === PARSED ===
-process ((out((c), (x))) | (let h = (y) in (out((c), (h))))).
+process ((out((c), (x))) | (let h = (y) in (out((c), (h)))))
 === EXPECTED ===
-process out(c, x) | let h = y in out(c, h).
+process out(c, x) | let h = y in out(c, h)

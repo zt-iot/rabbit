@@ -29,4 +29,4 @@ let client__0(ptype:proc_t) = event Valid__event_global.
 (* lemma ReachableValid *)
 query event(Valid__event_global()).
 (* System *)
-process client__0(client_t__0).
+process client__0(client_t__0)

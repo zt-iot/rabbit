@@ -93,7 +93,7 @@ process
                                        ((get g(a) in (get g(a) in (p))
                                          else (z)) |
                                         ((get g(a) in (get g(a) else (z))) |
-                                         (get g(a) in (get g(a)) else (z))))))))))))))))))))))))))))))))))))))))).
+                                         (get g(a) in (get g(a)) else (z)))))))))))))))))))))))))))))))))))))))))
 === EXPECTED ===
 process
   (if x then if x then y else z) |
@@ -134,4 +134,4 @@ process
   (get g(a) in (let v:T suchthat st in p) else z) |
   (get g(a) in get g(a) in p else z) |
   (get g(a) in (get g(a) in p) else z) |
-  (get g(a) in get g(a) else z) | (get g(a) in (get g(a)) else z).
+  (get g(a) in get g(a) else z) | (get g(a) in (get g(a)) else z)

@@ -8,8 +8,8 @@ process
 === PARSED ===
 process
   (get storage(x:bitstring, y:bitstring) suchthat ((x) = (y)) in
-   (let z = (b) in (out((c), (z))) else (out((c), (e))))).
+   (let z = (b) in (out((c), (z))) else (out((c), (e)))))
 === EXPECTED ===
 process
   get storage(x:bitstring, y:bitstring) suchthat x = y in
-  let z = b in out(c, z) else out(c, e).
+  let z = b in out(c, z) else out(c, e)

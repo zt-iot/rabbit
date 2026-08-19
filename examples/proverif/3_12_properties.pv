@@ -31,4 +31,4 @@ query event(Finished__event_global()).
 (* lemma Correspondence *)
 query event(Finished__event_global()) ==> event(Started__event_global()).
 (* System *)
-process worker__0(proc_t__0).
+process worker__0(proc_t__0)

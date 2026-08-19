@@ -54,4 +54,4 @@ query fd__56:bitstring; event(Valid__event_global(fd__56)).
 process
   (* allow server_t readonly_t [fopen] *)
   insert access_control_table(server_t__0, readonly_t__0, fopen__0__syscall);
-  server__0(server_t__0).
+  server__0(server_t__0)

@@ -41,4 +41,4 @@ free udp__0: channel[private].
 (* lemma ReachableValid *)
 query event(Valid__event_global()) && event(Served__event_global()).
 (* System *)
-process client__0(client_t__0, udp__0) | server__0(server_t__0, udp__0).
+process client__0(client_t__0, udp__0) | server__0(server_t__0, udp__0)

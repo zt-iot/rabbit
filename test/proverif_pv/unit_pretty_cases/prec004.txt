@@ -2,7 +2,7 @@
 process (in(x5, _); x7) | x3.
 === PARSED ===
 process ((in((x5), _);
-          (x7)) | (x3)).
+          (x7)) | (x3))
 === EXPECTED ===
 process (in(x5, _);
-         x7) | x3.
+         x7) | x3

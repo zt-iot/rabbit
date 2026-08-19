@@ -50,4 +50,4 @@ query
 (* lemma ReachableOther *)
 query event(Other__event_global(pk__0(priv_k__0(value_1__param)))).
 (* System *)
-process server__0(proc_t__0).
+process server__0(proc_t__0)

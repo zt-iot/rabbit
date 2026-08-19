@@ -103,7 +103,7 @@ letfun p45 = (get g(a) suchthat (st) in (get g(a) in (p) else (z))).
 letfun p46 = (get g(a) suchthat (st) in (get g(a) in (p)) else (z)).
 letfun p47 = (get g(a) in (get g(a) suchthat (st) in (p) else (z))).
 letfun p48 = (get g(a) in (get g(a) suchthat (st) in (p)) else (z)).
-process (0).
+process (0)
 === EXPECTED ===
 letfun p01 = if x then if x then y else z.
 letfun p02 = if x then (if x then y) else z.
@@ -153,4 +153,4 @@ letfun p45 = get g(a) suchthat st in get g(a) in p else z.
 letfun p46 = get g(a) suchthat st in (get g(a) in p) else z.
 letfun p47 = get g(a) in get g(a) suchthat st in p else z.
 letfun p48 = get g(a) in (get g(a) suchthat st in p) else z.
-process 0.
+process 0

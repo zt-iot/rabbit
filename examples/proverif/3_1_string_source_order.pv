@@ -37,4 +37,4 @@ let speaker__0(ptype:proc_t) =
 (* lemma ReachableAlpha *)
 query event(Seen__event_global(alpha__str)).
 (* System *)
-process speaker__0(proc_t__0).
+process speaker__0(proc_t__0)

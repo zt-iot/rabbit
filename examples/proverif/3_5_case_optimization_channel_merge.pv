@@ -56,4 +56,4 @@ query event(Valid__event_global()).
 process
   (* allow proc_t chan_t [.] *)
   insert access_control_table(proc_t__0, chan_t__0, none__syscall);
-  chooser__0(proc_t__0, ch__0).
+  chooser__0(proc_t__0, ch__0)

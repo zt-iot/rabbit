@@ -5,8 +5,8 @@ process 0.
 === PARSED ===
 query x:nat; (let y = (x) in ((p((y))) ==> (q((y))))).
 query x:nat; ((p((x))) ==> (let y = (x) in (q((y))))).
-process (0).
+process (0)
 === EXPECTED ===
 query x:nat; let y = x in p(y) ==> q(y).
 query x:nat; p(x) ==> (let y = x in q(y)).
-process 0.
+process 0
