@@ -202,7 +202,7 @@ let compile_init ~loc:(_loc : Location.t) genv (id : T.ident) (desc : T.init_des
      ```
 
      ```
-     const priv_k : bitstring.
+     const priv_k : bitstring [private].
      reduc forall k:param_data; pubkey(k) = pk(priv_k(k)).
      ```
   *)
@@ -210,7 +210,7 @@ let compile_init ~loc:(_loc : Location.t) genv (id : T.ident) (desc : T.init_des
   match desc with
   | Fresh ->
       [ TComment (Printf.sprintf "const fresh %s" (Ident.to_string id))
-      ; TConstDecl (init_ident, bitstring_ident, [])
+      ; TConstDecl (init_ident, bitstring_ident, [pv_ident "private", None])
       ]
   | Value expr ->
       let init_term = term_e @@ PIdent init_ident in

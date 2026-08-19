@@ -1,0 +1,29 @@
+(* Verification feature: string literals are public symbolic constants.
+
+   The process never sends `"public"` to the attacker. Reachability therefore
+   depends on the attacker knowing the string literal initially.
+*)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    case
+    | [::In(candidate)] ->
+      case
+      | [candidate = "public"] -> event [::PublicStringReturned()]
+      end
+    end
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # String literals are public, so the attacker can supply `"public"` without a preceding `::Out`.
+  true
+  *)
+  lemma AttackerKnowsStringLiteral : reachable ::PublicStringReturned()
+]
