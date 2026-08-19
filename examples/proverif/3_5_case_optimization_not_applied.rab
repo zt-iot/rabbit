@@ -1,5 +1,7 @@
-(* Spec 3.5 optimization 1: mutually exclusive equational case branches can be
-   merged into a single [if ... then ... else ...] tree. *)
+(* Spec 3.5 equational guards using the general encoding.
+
+   This currently uses the private lock encoding. It does not test the optional
+   optimization that merges exclusive guards into an if-then-else tree. *)
 
 type proc_t : process
 

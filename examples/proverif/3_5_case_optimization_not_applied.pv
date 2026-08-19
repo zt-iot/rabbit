@@ -37,4 +37,4 @@ let chooser__0(ptype:proc_t) =
 (* lemma ReachableValid *)
 query event(Valid__event_global()).
 (* System *)
-process chooser__0(proc_t__0).
+process chooser__0(proc_t__0)
