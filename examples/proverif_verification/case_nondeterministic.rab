@@ -1,4 +1,6 @@
-(* Verification feature: overlapping case guards are selected nondeterministically.
+(* Regression: overlapping case guards are selected nondeterministically, and
+   the single post-case continuation receives the selected branch's updated
+   process-variable state through the private lock channel.
 
    Reviewed.
 *)

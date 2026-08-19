@@ -26,16 +26,16 @@ const proc_t__0: proc_t.
 (* type chan_t : channel *)
 const chan_t__0: acc_data_t.
 (* process worker(..): proc_t *)
-let worker__0(ptype:proc_t, ch__60:channel) =
-  (* Channel ch__60 : chan_t *)
-  insert channel_table(chan_t__0, ch__60);
-  get channel_table(ch_type__63:acc_data_t, =ch__60) in
-  get access_control_table(=ptype, =ch_type__63, =none__syscall) in
-  out(ch__60, store__chan(int__pos_1)) |
-  (get channel_table(ch_type__62:acc_data_t, =ch__60) in
-   get access_control_table(=ptype, =ch_type__62, =none__syscall) in
-   in(ch__60, store__chan(case_arg_0__61:bitstring));
-   if case_arg_0__61 = int__pos_1 then event Valid__event_global).
+let worker__0(ptype:proc_t, ch__76:channel) =
+  (* Channel ch__76 : chan_t *)
+  insert channel_table(chan_t__0, ch__76);
+  get channel_table(ch_type__79:acc_data_t, =ch__76) in
+  get access_control_table(=ptype, =ch_type__79, =none__syscall) in
+  out(ch__76, store__chan(int__pos_1)) |
+  (get channel_table(ch_type__78:acc_data_t, =ch__76) in
+   get access_control_table(=ptype, =ch_type__78, =none__syscall) in
+   in(ch__76, store__chan(case_arg_0__77:bitstring));
+   if case_arg_0__77 = int__pos_1 then event Valid__event_global).
 (* channel ch : chan_t *)
 free ch__0: channel[private].
 (* Requires *)
