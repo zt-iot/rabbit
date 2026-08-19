@@ -307,7 +307,8 @@ module GEnv = struct
       (fun attack_id ->
          match List.assoc_opt attack_id genv.attacks with
          | Some def when def.syscall = syscall_id -> Some def
-         | _ ->
+         | Some _ -> None
+         | None ->
              Error.internal ~loc "Attack %s has no definition"
                (Ident.to_string attack_id))
       allowed

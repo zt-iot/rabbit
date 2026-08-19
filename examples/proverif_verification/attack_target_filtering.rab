@@ -1,0 +1,50 @@
+(* Verification feature: an allowed active attack applies only to its target syscall.
+
+   Reviewed.
+*)
+
+function succ:1
+
+type proc_t : process
+
+syscall unrelated() {
+  event [::UnrelatedCalled()];
+  0
+}
+
+syscall target(value) {
+  event [::TargetCalled()];
+  value
+}
+
+attack tamper_target on target(value) {
+  event [::TargetTampered()];
+  succ(value)
+}
+
+allow proc_t [unrelated, target]
+allow attack proc_t [tamper_target]
+
+process worker() : proc_t
+{
+  main {
+    _ := unrelated();
+    _ := target(0)
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # `tamper_target` targets `target`, so it must not block the preceding `unrelated` call.
+  true
+  *)
+  lemma UnrelatedCallIsReachable : reachable ::UnrelatedCalled() ;
+
+  (* PROVERIF EXPECTED
+  # The attack remains available when its actual target syscall is called.
+  true
+  *)
+  lemma TargetAttackIsReachable : reachable ::TargetTampered()
+]
