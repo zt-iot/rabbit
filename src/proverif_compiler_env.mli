@@ -7,6 +7,7 @@ type syscall_def =
   { pv_id : ident
   ; args : T.ident list
   ; cmd : T.cmd
+  ; passive : bool
   }
 
 type attack_def =
@@ -53,6 +54,7 @@ module GEnv : sig
 
   val add_syscall_def :
     loc:Location.t ->
+    passive:bool ->
     t ->
     T.ident ->
     T.ident list ->

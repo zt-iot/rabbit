@@ -5,13 +5,10 @@ include Proverif_process_compiler
 let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
   let loc = decl.loc in
   match decl.desc with
-  | Syscall { attack = true; _ } ->
-      Error.unsupported ~loc
-        "Passive attack declarations are not supported yet"
-  | Syscall { id; args; cmd; attack = false } ->
-      (* Syscalls are expanded when they are called.
+  | Syscall { id; args; cmd; attack = passive } ->
+      (* Syscalls and passive attacks are expanded when they are called.
          No declaration is generated at this point.  *)
-      GEnv.add_syscall_def ~loc genv id args cmd
+      GEnv.add_syscall_def ~loc ~passive genv id args cmd
   | Attack { id; syscall; args; cmd } ->
       (* Attacks are expanded when they are called.
          No declaration is generated at this point.  *)
@@ -723,14 +720,17 @@ let compile_syscall_consts (genv : GEnv.t) : tdecl list =
 
      ```
      syscall send(c, v) { ... }
+     passive attack eaves_mem(v) { ... }
      ```
 
      ```
      const send__0__syscall : syscall_t.
+     const eaves_mem__0__syscall : syscall_t.
      ```
   *)
   List.concat_map (fun (id, def) ->
-      [ TComment (Printf.sprintf "syscall %s(..)" (Ident.to_string id))
+      let kind = if def.passive then "passive attack" else "syscall" in
+      [ TComment (Printf.sprintf "%s %s(..)" kind (Ident.to_string id))
       ; TConstDecl (def.pv_id, syscall_t_ident, [])
       ]) (GEnv.syscalls genv)
 
