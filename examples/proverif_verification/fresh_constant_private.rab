@@ -1,0 +1,31 @@
+(* Verification feature: `const fresh` is initially private.
+
+   The process never sends `secret` to the attacker. The attacker must therefore
+   be unable to return the same value through `::In`.
+*)
+
+const fresh secret
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    case
+    | [::In(candidate)] ->
+      case
+      | [candidate = secret] -> event [::SecretReturned()]
+      end
+    end
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # No `::Out` discloses the fresh constant, so the attacker cannot return it.
+  false
+  *)
+  lemma FreshSecretCannotBeReturned : reachable ::SecretReturned()
+]
