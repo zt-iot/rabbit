@@ -289,42 +289,43 @@ let lock_state_message
   let flag_term =
     pterm_e @@ PPIdent (if done_flag then true_ident else false_ident)
   in
-  match state_ids with
-  | [] -> flag_term
-  | _ ->
-      pterm_e @@
-      PPTuple
-        (flag_term
-         :: List.map (PEnv.find_process_var_exn ~loc penv) state_ids)
+  pterm_e @@
+  PPTuple
+    (flag_term
+     :: PEnv.result penv
+     :: List.map (PEnv.find_process_var_exn ~loc penv) state_ids)
 
 let lock_state_pattern
     ~done_flag
+    (result_pattern_id : T.ident)
     (state_pattern_ids : T.ident list)
   : tpattern =
   let flag_pattern =
     PPatEqual
       (pterm_e @@ PPIdent (if done_flag then true_ident else false_ident))
   in
-  match state_pattern_ids with
-  | [] -> flag_pattern
-  | _ ->
-      PPatTuple
-        (flag_pattern
-         :: List.map
-              (fun id -> PPatVar (compile_ident id, Some bitstring_ident))
-              state_pattern_ids)
+  PPatTuple
+    (flag_pattern
+     :: PPatVar (compile_ident result_pattern_id, Some bitstring_ident)
+     :: List.map
+          (fun id -> PPatVar (compile_ident id, Some bitstring_ident))
+          state_pattern_ids)
 
 let bind_lock_state
     penv
+    (result_pattern_id : T.ident)
     (state_ids : T.ident list)
     (state_pattern_ids : T.ident list)
   : PEnv.t =
+  let penv =
+    PEnv.with_result penv
+      (pterm_e @@ PPIdent (compile_ident result_pattern_id))
+  in
   List.fold_left2
     (fun penv state_id pattern_id ->
-       PEnv.bind_process_var penv state_id (pterm_e @@ PPIdent (compile_ident pattern_id)))
-    penv
-    state_ids
-    state_pattern_ids
+       PEnv.bind_process_var penv state_id
+         (pterm_e @@ PPIdent (compile_ident pattern_id)))
+    penv state_ids state_pattern_ids
 
 let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
   : tprocess_e =
@@ -585,12 +586,35 @@ let extract_channel_guard (facts : T.fact list) =
 let is_fresh_case_var (case : T.case) (id : T.ident) =
   List.mem id case.fresh
 
-type kont =
-  | KStop
-  | KProc of tprocess_e
-  | KSeq of T.cmd * kont
-  | KRestoreVars of (T.ident * pterm_e option) list * kont
-  | KLockOutput of bool * Location.t * pterm_e * T.ident list
+type process_fragment = tprocess_e -> tprocess_e
+
+let empty_fragment : process_fragment = Fun.id
+
+let unit_result penv =
+  PEnv.with_result penv (pterm_e @@ PPTuple [])
+
+let compose_fragments
+    (first : process_fragment)
+    (second : process_fragment)
+  : process_fragment =
+  fun rest -> first (second rest)
+
+let closed_fragment (process : tprocess_e) : process_fragment =
+  fun _rest -> process
+
+let lock_output_fragment
+    ~done_flag
+    ~loc
+    lock_term
+    state_ids
+    penv
+  : process_fragment =
+  fun _rest ->
+    process_e @@
+    POutput
+      ( lock_term
+      , lock_state_message ~done_flag ~loc penv state_ids
+      , process_e PNil )
 
 let rec filter_map2
     (f : 'a -> 'b -> 'c option)
@@ -609,11 +633,11 @@ let rec compile_channel_guard_case
     genv
     penv
     (case : T.case)
-    (kont : kont)
     (channel : T.expr)
     (name : T.name)
     (args : T.expr list)
     (other_facts : T.fact list)
+    ~(on_success : PEnv.t -> tprocess_e)
     ~(else_proc : tprocess_e)
   : tprocess_e =
   GEnv.add_channel_fact ~loc:case.cmd.loc genv name (List.length args);
@@ -671,8 +695,11 @@ let rec compile_channel_guard_case
        , input_pattern
        , compile_guard_tests genv branch_env case.fresh other_facts
            (fun final_env ->
+              let body_env, body_fragment =
+                compile_case_branch_body genv (unit_result final_env) case
+              in
               compile_pterm_eq_tests arg_eq_tests
-                (compile_case_branch_body genv final_env case kont)
+                (body_fragment (on_success body_env))
                 else_proc)
            else_proc
        , [] ))
@@ -682,19 +709,18 @@ and compile_case_branch_body
     genv
     penv
     (case : T.case)
-    (kont : kont)
-  : tprocess_e =
+  : PEnv.t * process_fragment =
   let saved =
     List.map (fun id -> id, PEnv.find_process_var penv id) case.fresh
   in
-  compile_cmd genv penv (KRestoreVars (saved, kont)) case.cmd
+  let body_env, body_fragment = compile_cmd genv penv case.cmd in
+  PEnv.restore_process_vars body_env saved, body_fragment
 
 and compile_case_no_channel
     genv
     penv
-  (cases : T.case list)
-  (kont : kont)
-  : tprocess_e =
+    (cases : T.case list)
+  : PEnv.t * process_fragment =
   (*
      3.5 Case Encoding
 
@@ -715,24 +741,24 @@ and compile_case_no_channel
      ```
   *)
   match cases with
-  | [] -> process_e PNil
-  | [case] ->
-      compile_guard_tests genv penv case.fresh case.facts
-        (fun final_env -> compile_case_branch_body genv final_env case kont)
-        (process_e PNil)
+  | [] -> penv, closed_fragment (process_e PNil)
   | _ ->
       let loc = (List.hd cases).cmd.loc in
-      let state_ids = List.map fst (lock_state_bindings penv) in
+      let case_env = unit_result penv in
+      let state_ids = List.map fst (lock_state_bindings case_env) in
       let lock_id = Ident.local "case_ch" in
       let lock_ident = compile_ident lock_id in
       let lock_term = pterm_e @@ PPIdent lock_ident in
       let compile_branch (case : T.case) =
+        let result_pattern_id = Ident.local "case_result" in
         let state_pattern_ids =
           List.mapi
             (fun index _id -> Ident.local (Printf.sprintf "case_state_%d" index))
             state_ids
         in
-        let branch_env = bind_lock_state penv state_ids state_pattern_ids in
+        let branch_env =
+          bind_lock_state case_env result_pattern_id state_ids state_pattern_ids
+        in
         let retry =
           process_e @@
           POutput
@@ -743,47 +769,61 @@ and compile_case_no_channel
         let guard_proc =
           compile_guard_tests genv branch_env case.fresh case.facts
             (fun final_env ->
-               compile_case_branch_body genv final_env case
-                 (KLockOutput (true, loc, lock_term, state_ids)))
+               let body_env, body_fragment =
+                 compile_case_branch_body genv final_env case
+               in
+               body_fragment @@
+               lock_output_fragment ~done_flag:true ~loc lock_term state_ids
+                 body_env (process_e PNil))
             retry
         in
         process_e @@
         PInput
           ( lock_term
-          , lock_state_pattern ~done_flag:false state_pattern_ids
+          , lock_state_pattern ~done_flag:false result_pattern_id
+              state_pattern_ids
           , guard_proc
           , [precise_ident, None] )
       in
+      let cont_result_pattern_id = Ident.local "case_done_result" in
       let cont_state_pattern_ids =
         List.mapi
           (fun index _id -> Ident.local (Printf.sprintf "case_done_state_%d" index))
           state_ids
       in
-      let cont_env = bind_lock_state penv state_ids cont_state_pattern_ids in
+      let cont_env =
+        bind_lock_state case_env cont_result_pattern_id state_ids
+          cont_state_pattern_ids
+      in
       let init_proc =
         process_e @@
         POutput
           ( lock_term
-          , lock_state_message ~done_flag:false ~loc penv state_ids
+          , lock_state_message ~done_flag:false ~loc case_env state_ids
           , process_e PNil )
       in
-      let continuation =
-        process_e @@
-        PInput
-          ( lock_term
-          , lock_state_pattern ~done_flag:true cont_state_pattern_ids
-          , continue_cmd genv cont_env kont
-          , [precise_ident, None] )
-      in
-      let body = parallelize (init_proc :: List.map compile_branch cases @ [continuation]) in
-      process_e @@ PRestr (lock_ident, None, channel_ident, body)
+      cont_env,
+      fun rest ->
+        let continuation =
+          process_e @@
+          PInput
+            ( lock_term
+            , lock_state_pattern ~done_flag:true cont_result_pattern_id
+                cont_state_pattern_ids
+            , rest
+            , [precise_ident, None] )
+        in
+        let body =
+          parallelize
+            (init_proc :: List.map compile_branch cases @ [continuation])
+        in
+        process_e @@ PRestr (lock_ident, None, channel_ident, body)
 
 and compile_case_channelized
     genv
     penv
     (cases : T.case list)
-    (kont : kont)
-  : tprocess_e =
+  : PEnv.t * process_fragment =
   (*
      3.5 Case Encoding
 
@@ -853,7 +893,7 @@ and compile_case_channelized
   let payload_terms =
     List.map (fun id -> pterm_e @@ PPIdent (compile_ident id)) payload_vars
   in
-  let compile_branch base_env ~branch_kont ~else_proc
+  let compile_branch base_env ~on_success ~else_proc
       (case, _channel, _name, args, facts, _loc) =
         let branch_env =
           List.fold_left2
@@ -878,102 +918,111 @@ and compile_case_channelized
         in
         compile_guard_tests genv branch_env case.fresh facts
           (fun final_env ->
+             let body_env, body_fragment =
+               compile_case_branch_body genv final_env case
+             in
              compile_pterm_eq_tests arg_eq_tests
-               (compile_case_branch_body genv final_env case branch_kont)
+               (body_fragment (on_success body_env))
                else_proc)
           else_proc
   in
-  let branches =
+  let loc =
     match channel_guards with
-    | [] -> process_e PNil
-    | [channel_guard] ->
-        compile_branch penv ~branch_kont:kont
-          ~else_proc:(process_e PNil) channel_guard
-    | _ ->
-        let loc =
-          match channel_guards with
-          | (case, _, _, _, _, _) :: _ -> case.cmd.loc
-          | [] -> assert false
-        in
-        let state_ids = List.map fst (lock_state_bindings penv) in
-        let choice_id = Ident.local "channel_case_ch" in
-        let choice_ident = compile_ident choice_id in
-        let choice_term = pterm_e @@ PPIdent choice_ident in
-        let compile_choice channel_guard =
-          let state_pattern_ids =
-            List.mapi
-              (fun index _id ->
-                 Ident.local (Printf.sprintf "channel_case_state_%d" index))
-              state_ids
-          in
-          let choice_env = bind_lock_state penv state_ids state_pattern_ids in
-          let retry =
-            process_e @@
-            POutput
-              ( choice_term
-              , lock_state_message ~done_flag:false ~loc choice_env state_ids
-              , process_e PNil )
-          in
-          process_e @@
-          PInput
-            ( choice_term
-            , lock_state_pattern ~done_flag:false state_pattern_ids
-            , compile_branch choice_env
-                ~branch_kont:(KLockOutput (true, loc, choice_term, state_ids))
-                ~else_proc:retry channel_guard
-            , [precise_ident, None] )
-        in
-        let cont_state_pattern_ids =
-          List.mapi
-            (fun index _id ->
-               Ident.local (Printf.sprintf "channel_case_done_state_%d" index))
-            state_ids
-        in
-        let cont_env = bind_lock_state penv state_ids cont_state_pattern_ids in
-        let init_proc =
-          process_e @@
-          POutput
-            ( choice_term
-            , lock_state_message ~done_flag:false ~loc penv state_ids
-            , process_e PNil )
-        in
-        let continuation =
-          process_e @@
-          PInput
-            ( choice_term
-            , lock_state_pattern ~done_flag:true cont_state_pattern_ids
-            , continue_cmd genv cont_env kont
-            , [precise_ident, None] )
-        in
-        process_e @@
-        PRestr
-          ( choice_ident
-          , None
-          , channel_ident
-          , parallelize
-              (init_proc :: List.map compile_choice channel_guards @ [continuation]) )
+    | (case, _, _, _, _, _) :: _ -> case.cmd.loc
+    | [] -> assert false
+  in
+  let case_env = unit_result penv in
+  let state_ids = List.map fst (lock_state_bindings case_env) in
+  let choice_id = Ident.local "channel_case_ch" in
+  let choice_ident = compile_ident choice_id in
+  let choice_term = pterm_e @@ PPIdent choice_ident in
+  let compile_choice channel_guard =
+    let result_pattern_id = Ident.local "channel_case_result" in
+    let state_pattern_ids =
+      List.mapi
+        (fun index _id ->
+           Ident.local (Printf.sprintf "channel_case_state_%d" index))
+        state_ids
+    in
+    let choice_env =
+      bind_lock_state case_env result_pattern_id state_ids state_pattern_ids
+    in
+    let retry =
+      process_e @@
+      POutput
+        ( choice_term
+        , lock_state_message ~done_flag:false ~loc choice_env state_ids
+        , process_e PNil )
+    in
+    let success body_env =
+      lock_output_fragment ~done_flag:true ~loc choice_term state_ids body_env
+        (process_e PNil)
+    in
+    process_e @@
+    PInput
+      ( choice_term
+      , lock_state_pattern ~done_flag:false result_pattern_id state_pattern_ids
+      , compile_branch choice_env ~on_success:success ~else_proc:retry
+          channel_guard
+      , [precise_ident, None] )
+  in
+  let cont_result_pattern_id = Ident.local "channel_case_done_result" in
+  let cont_state_pattern_ids =
+    List.mapi
+      (fun index _id ->
+         Ident.local (Printf.sprintf "channel_case_done_state_%d" index))
+      state_ids
+  in
+  let cont_env =
+    bind_lock_state case_env cont_result_pattern_id state_ids
+      cont_state_pattern_ids
+  in
+  let init_proc =
+    process_e @@
+    POutput
+      ( choice_term
+      , lock_state_message ~done_flag:false ~loc case_env state_ids
+      , process_e PNil )
   in
   let channel_term = compile_expr_to_pterm genv penv first_channel in
-  wrap_with_channel_access_get channel_term penv
-    (process_e @@ PInput (channel_term, input_pattern, branches, []))
-    (process_e PNil)
+  cont_env,
+  fun rest ->
+    let continuation =
+      process_e @@
+      PInput
+        ( choice_term
+        , lock_state_pattern ~done_flag:true cont_result_pattern_id
+            cont_state_pattern_ids
+        , rest
+        , [precise_ident, None] )
+    in
+    let branches =
+      process_e @@
+      PRestr
+        ( choice_ident
+        , None
+        , channel_ident
+        , parallelize
+            (init_proc :: List.map compile_choice channel_guards @ [continuation]) )
+    in
+    wrap_with_channel_access_get channel_term penv
+      (process_e @@ PInput (channel_term, input_pattern, branches, []))
+      (process_e PNil)
 
 and compile_syscall_call
     genv
     penv
     (id : T.ident)
     (args : T.expr list)
-    ~on_return:(on_return : pterm_e -> tprocess_e)
-    (on_fallthrough : tprocess_e)
     ~loc
-  : tprocess_e =
+  : PEnv.t * process_fragment =
   (*
      3.9 Syscall and Attack Encoding
 
      ```
      syscall my_syscall(param) {
        ...
-       return v
+       v
      }
 
      let x = my_syscall(arg) in body
@@ -1011,45 +1060,51 @@ and compile_syscall_call
         (Ident.to_string id)
   | Some def ->
       let arg_values = List.map (compile_expr_to_pterm genv penv) args in
-      let mk_call_env arg_ids =
+      let compile_branch arg_ids cmd =
+        let saved =
+          List.map (fun id -> id, PEnv.find_process_var penv id) arg_ids
+        in
         let call_env =
           List.fold_left2
             PEnv.bind_process_var
-            (PEnv.with_curr_syscall penv (pterm_e @@ PPIdent def.pv_id))
+            (unit_result @@
+             PEnv.with_curr_syscall penv (pterm_e @@ PPIdent def.pv_id))
             arg_ids
             arg_values
         in
-        PEnv.with_process_return_cont call_env on_return
+        let body_env, body_fragment = compile_cmd genv call_env cmd in
+        let completed_env =
+          PEnv.restore_process_vars body_env saved
+          |> fun env -> PEnv.with_curr_syscall env (PEnv.curr_syscall penv)
+        in
+        completed_env, body_fragment
       in
       let normal_branch =
-        compile_cmd genv (mk_call_env def.args) (KProc on_fallthrough) def.cmd
+        compile_branch def.args def.cmd
       in
       let attack_branches =
         if def.passive then
           []
         else
           List.map
-            (fun attack_def ->
-               compile_cmd genv (mk_call_env attack_def.args) (KProc on_fallthrough) attack_def.cmd)
+            (fun attack_def -> compile_branch attack_def.args attack_def.cmd)
             (GEnv.find_allowed_attacks ~loc genv
                ~process_typ_id:(PEnv.process_typ_id penv) ~syscall_id:id)
       in
-      nondet_choose_processes (normal_branch :: attack_branches)
+      join_call_branches penv ~loc (normal_branch :: attack_branches)
 
 and compile_local_function_call
     genv
     penv
     (id : T.ident)
     (args : T.expr list)
-    ~on_return:(on_return : pterm_e -> tprocess_e)
-    (on_fallthrough : tprocess_e)
     ~loc
-  : tprocess_e =
+  : PEnv.t * process_fragment =
   (*
      3.9 Syscall and Attack Encoding
 
      ```
-     function helper(a, b) { ...; return v }
+     function helper(a, b) { ...; v }
      let x = helper(y, z) in body
      ```
 
@@ -1066,26 +1121,75 @@ and compile_local_function_call
         (Ident.to_string id)
   | Some (arg_ids, cmd) ->
       let arg_values = List.map (compile_expr_to_pterm genv penv) args in
+      let saved =
+        List.map (fun id -> id, PEnv.find_process_var penv id) arg_ids
+      in
       let call_env =
         List.fold_left2
           PEnv.bind_process_var
-          penv
+          (unit_result penv)
           arg_ids
           arg_values
       in
-      let call_env =
-        PEnv.with_process_return_cont call_env on_return
+      let body_env, body_fragment = compile_cmd genv call_env cmd in
+      PEnv.restore_process_vars body_env saved, body_fragment
+
+and join_call_branches
+    penv
+    ~loc
+    (branches : (PEnv.t * process_fragment) list)
+  : PEnv.t * process_fragment =
+  match branches with
+  | [] -> penv, closed_fragment (process_e PNil)
+  | [branch] -> branch
+  | _ ->
+      let state_ids = List.map fst (lock_state_bindings penv) in
+      let join_id = Ident.local "call_join_ch" in
+      let join_ident = compile_ident join_id in
+      let join_term = pterm_e @@ PPIdent join_ident in
+      let branch_processes =
+        List.map
+          (fun (branch_env, branch_fragment) ->
+             branch_fragment @@
+             lock_output_fragment ~done_flag:true ~loc join_term state_ids
+               branch_env (process_e PNil))
+          branches
       in
-      compile_cmd genv call_env (KProc on_fallthrough) cmd
+      let result_pattern_id = Ident.local "call_result" in
+      let state_pattern_ids =
+        List.mapi
+          (fun index _id ->
+             Ident.local (Printf.sprintf "call_state_%d" index))
+          state_ids
+      in
+      let completed_env =
+        bind_lock_state penv result_pattern_id state_ids state_pattern_ids
+      in
+      completed_env,
+      fun rest ->
+        let continuation =
+          process_e @@
+          PInput
+            ( join_term
+            , lock_state_pattern ~done_flag:true result_pattern_id
+                state_pattern_ids
+            , rest
+            , [precise_ident, None] )
+        in
+        process_e @@
+        PRestr
+          ( join_ident
+          , None
+          , channel_ident
+          , ppar (nondet_choose_processes branch_processes) continuation )
 
 and compile_let_binding
     genv
     penv
-    (kont : kont)
     (id : T.ident)
     (expr : T.expr)
     (body : T.cmd)
-  : tprocess_e =
+  : PEnv.t * process_fragment =
   (*
      3.4 Encoding Structured facts, new, let, delete
      3.9 Syscall and Attack Encoding
@@ -1105,43 +1209,33 @@ and compile_let_binding
      c
      ```
   *)
-  (* A value-binding body cannot run when the call falls through without
-     returning: there is no value with which to bind [id]. Discarded calls are
-     handled by [compile_assignment] below and do retain their fallthrough
-     continuation. *)
-  match expr.desc with
-  | Apply (syscall_id, args) when Option.is_some (GEnv.find_syscall_def genv syscall_id) ->
-      let old_value = PEnv.find_process_var penv id in
-      compile_syscall_call genv penv syscall_id args
-        ~on_return: (fun value ->
-            compile_cmd genv (PEnv.bind_process_var penv id value)
-              (KRestoreVars ([id, old_value], kont))
-              body)
-        (process_e PNil)
-        ~loc:expr.loc
-  | Apply (func_id, args) when Option.is_some (PEnv.find_local_func_def penv func_id) ->
-      let old_value = PEnv.find_process_var penv id in
-      compile_local_function_call genv penv func_id args
-        ~on_return: (fun value ->
-            compile_cmd genv (PEnv.bind_process_var penv id value)
-              (KRestoreVars ([id, old_value], kont))
-              body)
-        (process_e PNil)
-        ~loc:expr.loc
-  | _ ->
-      let value = compile_expr_to_pterm genv penv expr in
-      let old_value = PEnv.find_process_var penv id in
-      compile_cmd genv (PEnv.bind_process_var penv id value)
-        (KRestoreVars ([id, old_value], kont))
-        body
+  let value_env, value_fragment =
+    match expr.desc with
+    | Apply (syscall_id, args)
+      when Option.is_some (GEnv.find_syscall_def genv syscall_id) ->
+        compile_syscall_call genv penv syscall_id args ~loc:expr.loc
+    | Apply (func_id, args)
+      when Option.is_some (PEnv.find_local_func_def penv func_id) ->
+        compile_local_function_call genv penv func_id args ~loc:expr.loc
+    | _ ->
+        let value = compile_expr_to_pterm genv penv expr in
+        PEnv.with_result penv value, empty_fragment
+  in
+  let value = PEnv.result value_env in
+  let old_value = PEnv.find_process_var value_env id in
+  let body_start_env =
+    PEnv.bind_process_var (unit_result value_env) id value
+  in
+  let body_env, body_fragment = compile_cmd genv body_start_env body in
+  let completed_env = PEnv.restore_process_vars body_env [id, old_value] in
+  completed_env, compose_fragments value_fragment body_fragment
 
 and compile_assignment
     genv
     penv
-    (kont : kont)
     (id_opt : T.ident option)
     (expr : T.expr)
-  : tprocess_e =
+  : PEnv.t * process_fragment =
   (*
      3.9 Syscall and Attack Encoding
 
@@ -1157,76 +1251,51 @@ and compile_assignment
      ...
      ```
   *)
-  match expr.desc with
-  | Apply (syscall_id, args) when Option.is_some (GEnv.find_syscall_def genv syscall_id) ->
-      let on_return =
-        match id_opt with
-        | None -> fun _value -> continue_cmd genv penv kont
-        | Some id -> fun value -> continue_cmd genv (PEnv.bind_process_var penv id value) kont
-      in
-      compile_syscall_call genv penv syscall_id args ~on_return
-        (continue_cmd genv penv kont)
-        ~loc:expr.loc
-  | Apply (func_id, args) when Option.is_some (PEnv.find_local_func_def penv func_id) ->
-      let on_return =
-        match id_opt with
-        | None -> fun _value -> continue_cmd genv penv kont
-        | Some id -> fun value -> continue_cmd genv (PEnv.bind_process_var penv id value) kont
-      in
-      compile_local_function_call genv penv func_id args ~on_return
-        (continue_cmd genv penv kont)
-        ~loc:expr.loc
-  | _ ->
-      (match id_opt with
-       | Some id ->
-           let value = compile_expr_to_pterm genv penv expr in
-           continue_cmd genv (PEnv.bind_process_var penv id value) kont
-       | None ->
-           let _ = compile_expr_to_pterm genv penv expr in
-           continue_cmd genv penv kont)
+  let value_env, value_fragment =
+    match expr.desc with
+    | Apply (syscall_id, args)
+      when Option.is_some (GEnv.find_syscall_def genv syscall_id) ->
+        compile_syscall_call genv penv syscall_id args ~loc:expr.loc
+    | Apply (func_id, args)
+      when Option.is_some (PEnv.find_local_func_def penv func_id) ->
+        compile_local_function_call genv penv func_id args ~loc:expr.loc
+    | _ ->
+        let value = compile_expr_to_pterm genv penv expr in
+        PEnv.with_result penv value, empty_fragment
+  in
+  let value = PEnv.result value_env in
+  let assigned_env =
+    match id_opt with
+    | Some id -> PEnv.bind_process_var value_env id value
+    | None -> value_env
+  in
+  unit_result assigned_env, value_fragment
 
-and continue_cmd genv penv (kont : kont) : tprocess_e =
-  match kont with
-  | KStop -> process_e PNil
-  | KProc proc -> proc
-  | KSeq (cmd, kont) -> compile_cmd genv penv kont cmd
-  | KRestoreVars (saved, kont) ->
-      continue_cmd genv (PEnv.restore_process_vars penv saved) kont
-  | KLockOutput (done_flag, loc, lock_term, state_ids) ->
-      process_e
-        (POutput
-           ( lock_term
-           , lock_state_message ~done_flag ~loc penv state_ids
-           , process_e PNil ))
-
-and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
+and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
   match cmd.desc with
-  | Skip -> continue_cmd genv penv kont
+  | Skip -> unit_result penv, empty_fragment
   | Sequence (cmd1, cmd2) ->
-      compile_cmd genv penv (KSeq (cmd2, kont)) cmd1
+      let env1, fragment1 = compile_cmd genv penv cmd1 in
+      let env2, fragment2 = compile_cmd genv env1 cmd2 in
+      env2, compose_fragments fragment1 fragment2
   | Put facts ->
-      compile_put_facts genv penv facts @@ continue_cmd genv penv kont
+      unit_result penv, fun rest -> compile_put_facts genv penv facts rest
   | Event facts ->
-      compile_event_facts genv penv facts @@ continue_cmd genv penv kont
+      unit_result penv, fun rest -> compile_event_facts genv penv facts rest
   | Let (id, expr, body) ->
-      compile_let_binding genv penv kont id expr body
+      compile_let_binding genv penv id expr body
   | Assign (id_opt, expr) ->
-      compile_assignment genv penv kont id_opt expr
+      compile_assignment genv penv id_opt expr
   | Return expr ->
       let value = compile_expr_to_pterm genv penv expr in
-      (match PEnv.return_cont penv with
-       | Some return_cont -> return_cont value
-       | None ->
-           (* return in the main process *)
-           continue_cmd genv penv kont
-      )
+      PEnv.with_result penv value, empty_fragment
   | Case cases ->
       if List.exists (fun (case : T.case) ->
           Option.is_some (extract_channel_guard case.facts)) cases
       then
-        compile_case_channelized genv penv cases kont
+        compile_case_channelized genv penv cases
       else
-        compile_case_no_channel genv penv cases kont
+        compile_case_no_channel genv penv cases
   | While (repeat_cases, until_cases) ->
       (*
          3.6 Repeat Encoding
@@ -1269,18 +1338,23 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
          ```
       *)
       (* `s0, ..., sk` *)
-      let state_ids = List.map fst (lock_state_bindings penv) in
+      let loop_env = unit_result penv in
+      let state_ids = List.map fst (lock_state_bindings loop_env) in
       (* `lock_ch` *)
       let lock_id = Ident.local "loop_ch" in
       let lock_ident = compile_ident lock_id in
       let lock_term = pterm_e @@ PPIdent lock_ident in
       let branch is_until (case : T.case) =
+        let result_pattern_id = Ident.local "loop_result" in
         let state_pattern_ids =
           List.mapi (fun index _id ->
               Ident.local @@ Printf.sprintf "loop_state_%d" index)
             state_ids
         in
-        let branch_env = bind_lock_state penv state_ids state_pattern_ids in
+        let branch_env =
+          bind_lock_state loop_env result_pattern_id state_ids
+            state_pattern_ids
+        in
         let else_proc =
           process_e @@
           POutput
@@ -1292,14 +1366,20 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
           match extract_channel_guard case.facts with
           | Some (channel, name, args, other_facts, _loc) ->
               compile_channel_guard_case genv branch_env case
-                (KLockOutput (is_until, cmd.loc, lock_term, state_ids))
                 channel name args other_facts
+                ~on_success:(fun body_env ->
+                  lock_output_fragment ~done_flag:is_until ~loc:cmd.loc
+                    lock_term state_ids body_env (process_e PNil))
                 ~else_proc
           | None ->
               compile_guard_tests genv branch_env case.fresh case.facts
                 (fun final_env ->
-                   compile_case_branch_body genv final_env case @@
-                   KLockOutput (is_until, cmd.loc, lock_term, state_ids))
+                   let body_env, body_fragment =
+                     compile_case_branch_body genv (unit_result final_env) case
+                   in
+                   body_fragment @@
+                   lock_output_fragment ~done_flag:is_until ~loc:cmd.loc
+                     lock_term state_ids body_env (process_e PNil))
                 else_proc
         in
         (*
@@ -1317,24 +1397,29 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
         process_e @@
         PInput
           ( lock_term
-          , lock_state_pattern ~done_flag:false state_pattern_ids
+          , lock_state_pattern ~done_flag:false result_pattern_id
+              state_pattern_ids
           , guard_proc
           , [precise_ident, None] )
       in
       let repeat_branch = branch false in
       let until_branch = branch true in
+      let cont_result_pattern_id = Ident.local "loop_done_result" in
       let cont_state_pattern_ids =
         List.mapi
           (fun index _id -> Ident.local (Printf.sprintf "loop_done_state_%d" index))
           state_ids
       in
-      let cont_env = bind_lock_state penv state_ids cont_state_pattern_ids in
+      let cont_env =
+        bind_lock_state loop_env cont_result_pattern_id state_ids
+          cont_state_pattern_ids
+      in
       let init_proc =
         (* `out(lock_ch, (0, s0, ..., sk))` *)
         process_e
           (POutput
              ( lock_term
-             , lock_state_message ~done_flag:false ~loc:cmd.loc penv state_ids
+             , lock_state_message ~done_flag:false ~loc:cmd.loc loop_env state_ids
              , process_e PNil ))
       in
       let workers =
@@ -1345,21 +1430,24 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
         | [] -> process_e PNil
         | procs -> process_e @@ PRepl (parallelize procs)
       in
-      let continuation =
-        (* `in(lock_ch, (=1, s0:bitstring, ..., sk:bitstring)) [precise];` *)
+      cont_env,
+      fun rest ->
+        let continuation =
+          (* `in(lock_ch, (=1, s0:bitstring, ..., sk:bitstring)) [precise];` *)
+          process_e
+            (PInput
+               ( lock_term
+               , lock_state_pattern ~done_flag:true cont_result_pattern_id
+                   cont_state_pattern_ids
+               , rest
+               , [precise_ident, None] ))
+        in
         process_e
-          (PInput
-             ( lock_term
-             , lock_state_pattern ~done_flag:true cont_state_pattern_ids
-             , continue_cmd genv cont_env kont
-             , [precise_ident, None] ))
-      in
-      process_e
-        (PRestr
-           ( lock_ident
-           , None
-           , channel_ident
-           , parallelize [init_proc; workers; continuation] ))
+          (PRestr
+             ( lock_ident
+             , None
+             , channel_ident
+             , parallelize [init_proc; workers; continuation] ))
 
   | New (id, None, body) ->
       (* ```
@@ -1373,15 +1461,21 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
       let old_value = PEnv.find_process_var penv id in
-      process_e @@
-      PRestr
-        ( fresh_ident
-        , None
-        , bitstring_ident
-        , compile_cmd genv
-            (PEnv.bind_process_var penv id fresh_term) (* compile body with id *)
-            (KRestoreVars ([id, old_value], kont)) (* recover the original PEnv for kont *)
-            body )
+      let body_start_env =
+        PEnv.bind_process_var (unit_result penv) id fresh_term
+      in
+      let body_env, body_fragment = compile_cmd genv body_start_env body in
+      let completed_env =
+        PEnv.restore_process_vars body_env [id, old_value]
+      in
+      completed_env,
+      fun rest ->
+        process_e @@
+        PRestr
+          ( fresh_ident
+          , None
+          , bitstring_ident
+          , body_fragment rest )
   | New (id, Some (name, args), body) ->
       (* ```
          new x = S(e1, ..., en) in c
@@ -1403,15 +1497,21 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
           ( structure_ctor_ident name
           , fresh_term :: List.map (compile_expr_to_pterm genv penv) args )
       in
-      process_e @@
-      PRestr
-        ( fresh_ident
-        , None
-        , bitstring_ident
-        , compile_cmd genv
-            (PEnv.bind_process_var penv id struct_term) (* compile body with id *)
-            (KRestoreVars ([id, old_value], kont)) (* recover the original PEnv for kont *)
-            body )
+      let body_start_env =
+        PEnv.bind_process_var (unit_result penv) id struct_term
+      in
+      let body_env, body_fragment = compile_cmd genv body_start_env body in
+      let completed_env =
+        PEnv.restore_process_vars body_env [id, old_value]
+      in
+      completed_env,
+      fun rest ->
+        process_e @@
+        PRestr
+          ( fresh_ident
+          , None
+          , bitstring_ident
+          , body_fragment rest )
   | Get (ids, expr, name, body) ->
       (* ```
          let x1, ..., xn = e.S in c
@@ -1436,19 +1536,20 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
           ids
         |> List.fold_left
              (fun penv (id, value) -> PEnv.bind_process_var penv id value)
-             penv
+             (unit_result penv)
       in
-      process_e @@
-      PGet
-        ( deleted_address_table_ident
-        , [PPatEqual addr_term]
-        , None
-        , process_e PNil
-        , (* else *)
-          compile_cmd genv body_env (* compile body under body_env *)
-            (KRestoreVars (saved, kont)) (* Recover saved for kont *)
-            body
-        , [] )
+      let body_env, body_fragment = compile_cmd genv body_env body in
+      let completed_env = PEnv.restore_process_vars body_env saved in
+      completed_env,
+      fun rest ->
+        process_e @@
+        PGet
+          ( deleted_address_table_ident
+          , [PPatEqual addr_term]
+          , None
+          , process_e PNil
+          , body_fragment rest
+          , [] )
   | Del (expr, name) ->
       (* 3.4  Encoding Structured facts, new, let, delete
 
@@ -1467,10 +1568,12 @@ and compile_cmd genv penv (kont : kont) (cmd : T.cmd) : tprocess_e =
       (* Struct__struct_addr(x_struct) *)
       let addr_term = structure_addr_term name struct_term in
       (* insert deleted_address_table( Struct__struct_addr(x_struct) ); ... *)
-      add_comment (Printf.sprintf "delete _.%s" name) @@
-      process_e
-        (PInsert
-           (deleted_address_table_ident, [addr_term], continue_cmd genv penv kont))
+      unit_result penv,
+      fun rest ->
+        add_comment (Printf.sprintf "delete _.%s" name) @@
+        process_e
+          (PInsert (deleted_address_table_ident, [addr_term], rest))
 
 let compile_process_body genv penv cmd =
-  compile_cmd genv penv KStop cmd
+  let _env, fragment = compile_cmd genv penv cmd in
+  fragment (process_e PNil)

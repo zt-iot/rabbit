@@ -39,17 +39,26 @@ let server__0(ptype:proc_t) =
   insert file_type_table(ptype, readonly_t__0, secret_pub__str);
   new file_ch:channel;
   out(file_ch, (secret_pub__str, hello__str)) |
-  (get file_type_table(=ptype, file_type__75:acc_data_t, =secret_pub__str) in
-   get access_control_table(=ptype, =file_type__75, =fopen__0__syscall) in
-   in(file_ch, (=secret_pub__str, file_contents__73:bitstring))[precise];
-   new y__70:bitstring;
-   get file_type_table(=ptype, file_type__74:acc_data_t, =secret_pub__str) in
-   get access_control_table(=ptype, =file_type__74, =fopen__0__syscall) in
-   out(file_ch, (secret_pub__str, file_contents__73)) |
-   event Valid__event_global(Fd__struct(y__70, file_contents__73))).
+  new case_ch__110:channel;
+  (out(case_ch__110, (false__bool, (), secret_pub__str)) |
+   in(case_ch__110, (=false__bool, case_result__113:bitstring, case_state_0__114:bitstring))[precise];
+   get file_type_table(=ptype, file_type__117:acc_data_t, =case_state_0__114)
+   in
+   get access_control_table(=ptype, =file_type__117, =fopen__0__syscall) in
+   in(file_ch, (=case_state_0__114, file_contents__115:bitstring))[precise];
+   new y__107:bitstring;
+   (get file_type_table(=ptype, file_type__116:acc_data_t, =case_state_0__114)
+    in
+    get access_control_table(=ptype, =file_type__116, =fopen__0__syscall) in
+    out(file_ch, (case_state_0__114, file_contents__115)) |
+    out(case_ch__110, (true__bool, Fd__struct(y__107, file_contents__115), case_state_0__114)))
+   else out(case_ch__110, (false__bool, case_result__113, case_state_0__114))
+   else out(case_ch__110, (false__bool, case_result__113, case_state_0__114))) |
+  in(case_ch__110, (=true__bool, case_done_result__111:bitstring, case_done_state_0__112:bitstring))[precise];
+  event Valid__event_global(case_done_result__111).
 (* Requires *)
 (* lemma ReachableValid *)
-query fd__72:bitstring; event(Valid__event_global(fd__72)).
+query fd__109:bitstring; event(Valid__event_global(fd__109)).
 (* System *)
 process
   (* allow server_t readonly_t [fopen] *)

@@ -122,6 +122,6 @@ module PEnv : sig
 
   val file_channel : t -> pterm_e option
 
-  val return_cont : t -> (pterm_e -> tprocess_e) option
-  val with_process_return_cont : t -> (pterm_e -> tprocess_e) -> t
+  val result : t -> pterm_e
+  val with_result : t -> pterm_e -> t
 end

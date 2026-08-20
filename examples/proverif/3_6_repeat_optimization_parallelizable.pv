@@ -28,24 +28,25 @@ const proc_t__0: proc_t.
 (* type chan_t : channel *)
 const chan_t__0: acc_data_t.
 (* process worker(..): proc_t *)
-let worker__0(ptype:proc_t, ch__60:channel) =
-  (* Channel ch__60 : chan_t *)
-  insert channel_table(chan_t__0, ch__60);
-  new loop_ch__61:channel;
-  (out(loop_ch__61, false__bool) |
-   !((in(loop_ch__61, =false__bool)[precise];
+let worker__0(ptype:proc_t, ch__91:channel) =
+  (* Channel ch__91 : chan_t *)
+  insert channel_table(chan_t__0, ch__91);
+  new loop_ch__92:channel;
+  (out(loop_ch__92, (false__bool, ())) |
+   !((in(loop_ch__92, (=false__bool, loop_result__95:bitstring))[precise];
       if int__pos_1 = int__pos_1
       then
-        (get channel_table(ch_type__62:acc_data_t, =ch__60) in
-         get access_control_table(=ptype, =ch_type__62, =none__syscall) in
-         out(ch__60, msg__chan(int__pos_0)) |
+        (get channel_table(ch_type__96:acc_data_t, =ch__91) in
+         get access_control_table(=ptype, =ch_type__96, =none__syscall) in
+         out(ch__91, msg__chan(int__pos_0)) |
          event Sent__event_global;
-         out(loop_ch__61, false__bool))
-      else out(loop_ch__61, false__bool)) |
-     in(loop_ch__61, =false__bool)[precise];
-     if int__pos_1 = int__pos_1 then out(loop_ch__61, false__bool)
-     else out(loop_ch__61, true__bool))) |
-  in(loop_ch__61, =true__bool)[precise].
+         out(loop_ch__92, (false__bool, ())))
+      else out(loop_ch__92, (false__bool, loop_result__95))) |
+     in(loop_ch__92, (=false__bool, loop_result__94:bitstring))[precise];
+     if int__pos_1 = int__pos_1
+     then out(loop_ch__92, (false__bool, loop_result__94))
+     else out(loop_ch__92, (true__bool, ())))) |
+  in(loop_ch__92, (=true__bool, loop_done_result__93:bitstring))[precise].
 (* channel ch : chan_t *)
 free ch__0: channel[private].
 (* Requires *)

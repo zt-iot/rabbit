@@ -95,7 +95,12 @@ and cmd' =
         end
     *)
   | Event of fact list (** tag, event[T] *)
-  | Return of expr (** return *)
+  | Return of expr
+    (** A bare expression command, represented internally as [Return expr].
+        This is not a non-local return: execution continues with any following
+        commands. It sets the command result register to [expr], which remains
+        the result unless a later command overwrites that register.
+    *)
   | New of ident * (name * expr list) option * cmd
     (** allocation, new x := S(e1,..en) in c *)
   | Get of ident list * expr * name * cmd (** fetch, let x1,..,xn := e.S in c *)
