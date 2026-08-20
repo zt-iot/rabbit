@@ -16,12 +16,12 @@ const true__bool: bitstring.
 const false__bool: bitstring.
 (* syscall id(..) *)
 const id__0__syscall: syscall_t.
-(* Event declaration ::Observed(..) *)
-event Observed__event_global(bitstring).
 (* Event declaration ::Syscall(..) *)
 event Syscall__event_global(bitstring).
 (* Event declaration ::Attack(..) *)
 event Attack__event_global(bitstring).
+(* Event declaration ::Observed(..) *)
+event Observed__event_global(bitstring).
 (* Event declaration ::Sent(..) *)
 event Sent__event_global(bitstring).
 (* Integer constant 0 *)
@@ -34,14 +34,17 @@ const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
 let worker__0(ptype:proc_t) =
   event Sent__event_global(int__pos_0);
-  new attack_choice_ch:channel;
-  (out(attack_choice_ch, true__bool) |
+  new call_join_ch__128:channel;
+  (new attack_choice_ch:channel;
+   (out(attack_choice_ch, true__bool) |
+    in(attack_choice_ch, _:bitstring);
+    event Syscall__event_global(int__pos_0);
+    out(call_join_ch__128, (true__bool, int__pos_0))) |
    in(attack_choice_ch, _:bitstring);
-   event Syscall__event_global(int__pos_0);
-   event Observed__event_global(int__pos_0)) |
-  in(attack_choice_ch, _:bitstring);
-  event Attack__event_global(int__pos_0);
-  event Observed__event_global(succ__0(int__pos_0)).
+   event Attack__event_global(int__pos_0);
+   out(call_join_ch__128, (true__bool, succ__0(int__pos_0)))) |
+  in(call_join_ch__128, (=true__bool, call_result__129:bitstring))[precise];
+  event Observed__event_global(call_result__129).
 (* Requires *)
 (* lemma ReachableSyscall *)
 query event(Syscall__event_global(int__pos_0)).

@@ -40,15 +40,24 @@ let maker__0(ptype:proc_t) =
   new x__15:bitstring;
   get deleted_address_table(=S__struct_addr(S__struct(x__15, int__pos_1, int__pos_2, int__pos_3)))
   else
-    (if
-       S__struct_par_1(S__struct(x__15, int__pos_1, int__pos_2, int__pos_3)) = int__pos_1
+    new case_ch__19:channel;
+    (out(case_ch__19, (false__bool, (), S__struct(x__15, int__pos_1, int__pos_2, int__pos_3), S__struct_par_1(S__struct(x__15, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_2(S__struct(x__15, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_3(S__struct(x__15, int__pos_1, int__pos_2, int__pos_3)))) |
+     in(case_ch__19, (=false__bool, case_result__25:bitstring, case_state_0__26:bitstring, case_state_1__27:bitstring, case_state_2__28:bitstring, case_state_3__29:bitstring))[precise];
+     if case_state_1__27 = int__pos_1
      then
-       if
-         S__struct_par_2(S__struct(x__15, int__pos_1, int__pos_2, int__pos_3)) = int__pos_2
+       if case_state_2__28 = int__pos_2
        then
-         if
-           S__struct_par_3(S__struct(x__15, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
-         then event Valid__event_global).
+         if case_state_3__29 = int__pos_3
+         then
+           event Valid__event_global;
+           out(case_ch__19, (true__bool, (), case_state_0__26, case_state_1__27, case_state_2__28, case_state_3__29))
+         else
+           out(case_ch__19, (false__bool, case_result__25, case_state_0__26, case_state_1__27, case_state_2__28, case_state_3__29))
+       else
+         out(case_ch__19, (false__bool, case_result__25, case_state_0__26, case_state_1__27, case_state_2__28, case_state_3__29))
+     else
+       out(case_ch__19, (false__bool, case_result__25, case_state_0__26, case_state_1__27, case_state_2__28, case_state_3__29))) |
+    in(case_ch__19, (=true__bool, case_done_result__20:bitstring, case_done_state_0__21:bitstring, case_done_state_1__22:bitstring, case_done_state_2__23:bitstring, case_done_state_3__24:bitstring))[precise].
 (* Requires *)
 (* lemma ReachableValid *)
 query event(Valid__event_global()).

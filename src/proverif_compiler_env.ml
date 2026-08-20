@@ -400,7 +400,7 @@ module PEnv = struct
     ; proc_type : pterm_e
     ; curr_syscall : pterm_e
     ; file_channel : pterm_e option
-    ; return_cont : (pterm_e -> tprocess_e) option
+    ; result : pterm_e
     }
 
   let create_process_env
@@ -416,7 +416,7 @@ module PEnv = struct
     ; proc_type
     ; curr_syscall
     ; file_channel
-    ; return_cont = None
+    ; result = pterm_e @@ PPTuple []
     }
 
   (* bindings **********************************************)
@@ -472,14 +472,10 @@ module PEnv = struct
 
   let file_channel penv = penv.file_channel
 
-  (* return continuation ************************************)
+  (* result register ****************************************)
 
-  let return_cont penv = penv.return_cont
+  let result penv = penv.result
 
-  let with_process_return_cont
-      (penv : t)
-      (return_cont : pterm_e -> tprocess_e)
-    : t =
-    { penv with return_cont = Some return_cont }
+  let with_result penv result = { penv with result }
 
 end

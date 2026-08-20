@@ -1,0 +1,38 @@
+(* Verification feature: a bare expression in a local-function case branch
+   updates the result register without skipping the code after the case.
+
+   Reviewed.
+*)
+
+const fresh left
+const fresh right
+const fresh joined
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  function choose(value) {
+    case
+    | [value = left] -> left
+    | [value != left] -> right
+    end;
+    joined
+  }
+
+  main {
+    var first = choose(left) in
+    var second = choose(right) in
+    event [::Returned(first, second)]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Both calls continue after the case and return `joined` into their respective bindings.
+  true
+  *)
+  lemma BranchValuesReachCaller : reachable ::Returned(joined, joined)
+]
