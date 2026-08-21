@@ -1,0 +1,75 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Channel fact declaration store(..) *)
+fun store__chan(bitstring): bitstring[data].
+(* syscall recv(..) *)
+const recv__0__syscall: syscall_t.
+(* syscall send(..) *)
+const send__0__syscall: syscall_t.
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Event declaration ::Received(..) *)
+event Received__event_global.
+(* Event declaration ::Sent(..) *)
+event Sent__event_global.
+(* Integer constant 1 *)
+const int__pos_1: bitstring.
+(* Body *)
+(* type person_t : process *)
+const person_t__0: proc_t.
+(* type chan_t : channel *)
+const chan_t__0: acc_data_t.
+(* process alice(..): person_t *)
+let alice__0(ptype:proc_t, ch__5:channel) =
+  (* Channel ch__5 : chan_t *)
+  insert channel_table(chan_t__0, ch__5);
+  get channel_table(ch_type__19:acc_data_t, =ch__5) in
+  get access_control_table(=ptype, =ch_type__19, =send__0__syscall) in
+  out(ch__5, store__chan(int__pos_1)) |
+  event Sent__event_global;
+  get channel_table(ch_type__18:acc_data_t, =ch__5) in
+  get access_control_table(=ptype, =ch_type__18, =recv__0__syscall) in
+  in(ch__5, store__chan(case_arg_0__7:bitstring));
+  new channel_case_ch__8:channel;
+  (out(channel_case_ch__8, (false__bool, (), ch__5)) |
+   in(channel_case_ch__8, (=false__bool, channel_case_result__16:bitstring, channel_case_state_0__17:bitstring))[precise];
+   out(channel_case_ch__8, (true__bool, case_arg_0__7, channel_case_state_0__17))) |
+  in(channel_case_ch__8, (=true__bool, channel_case_done_result__9:bitstring, channel_case_done_state_0__10:bitstring))[precise];
+  event Received__event_global;
+  new case_ch__11:channel;
+  (out(case_ch__11, (false__bool, (), channel_case_done_result__9)) |
+   in(case_ch__11, (=false__bool, case_result__14:bitstring, case_state_0__15:bitstring))[precise];
+   if case_state_0__15 = int__pos_1
+   then
+     event Valid__event_global;
+     out(case_ch__11, (true__bool, (), case_state_0__15))
+   else out(case_ch__11, (false__bool, case_result__14, case_state_0__15))) |
+  in(case_ch__11, (=true__bool, case_done_result__12:bitstring, case_done_state_0__13:bitstring))[precise].
+(* channel chan : chan_t *)
+free chan__0: channel[private].
+(* Requires *)
+(* lemma Reachable *)
+query event(Valid__event_global()).
+(* lemma Correspondent *)
+query event(Received__event_global()) ==> event(Sent__event_global()).
+(* System *)
+process
+  (* allow person_t chan_t [send] *)
+  insert access_control_table(person_t__0, chan_t__0, send__0__syscall);
+  (* allow person_t chan_t [recv] *)
+  insert access_control_table(person_t__0, chan_t__0, recv__0__syscall);
+  alice__0(person_t__0, chan__0)

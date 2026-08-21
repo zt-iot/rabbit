@@ -7,6 +7,7 @@
  (alias runtest)
  (deps
   (glob_files *.rab)
-  (glob_files *.pv))
+  (glob_files *.pv)
+  (glob_files *.error))
  (action
   (run %{exe:test_proverif_examples.exe} .)))

@@ -1,0 +1,36 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Body *)
+(* type person_t : process *)
+const person_t__0: proc_t.
+(* process alice(..): person_t *)
+let alice__0(ptype:proc_t) =
+  event Valid__event_global;
+  new loop_ch__548:channel;
+  (out(loop_ch__548, (false__bool, ())) |
+   !((in(loop_ch__548, (=false__bool, loop_result__551:bitstring))[precise];
+      out(loop_ch__548, (false__bool, ()))) |
+     in(loop_ch__548, (=false__bool, loop_result__550:bitstring))[precise];
+     out(loop_ch__548, (false__bool, loop_result__550)))) |
+  in(loop_ch__548, (=true__bool, loop_done_result__549:bitstring))[precise].
+(* Requires *)
+(* lemma Valid *)
+query event(Valid__event_global()).
+(* System *)
+process alice__0(person_t__0)

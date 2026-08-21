@@ -1,0 +1,31 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* syscall accept_rpc(..) *)
+const accept_rpc__0__syscall: syscall_t.
+(* syscall close_rpc(..) *)
+const close_rpc__0__syscall: syscall_t.
+(* syscall invoke_rpc(..) *)
+const invoke_rpc__0__syscall: syscall_t.
+(* syscall connect_rpc(..) *)
+const connect_rpc__0__syscall: syscall_t.
+(* syscall recv(..) *)
+const recv__0__syscall: syscall_t.
+(* syscall send(..) *)
+const send__0__syscall: syscall_t.
+(* Body *)
+(* System *)
+process 0

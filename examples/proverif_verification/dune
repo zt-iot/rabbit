@@ -1,7 +1,7 @@
 (executable
  (name test_proverif_verification)
  (flags -w +a-4-40-42-70 -warn-error +a-4-40-42-70)
- (libraries rabbit_core rabbit_proverif_pv unix))
+ (libraries re rabbit_core rabbit_proverif_pv unix))
 
 (rule
  (alias runtest)

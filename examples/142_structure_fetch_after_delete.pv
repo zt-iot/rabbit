@@ -1,0 +1,77 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Structure declaration S(_,_,_) *)
+fun S__struct(bitstring, bitstring, bitstring, bitstring): bitstring[data].
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_addr(S__struct(x_0, x_1, x_2, x_3)) = x_0.
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_par_1(S__struct(x_0, x_1, x_2, x_3)) = x_1.
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_par_2(S__struct(x_0, x_1, x_2, x_3)) = x_2.
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_par_3(S__struct(x_0, x_1, x_2, x_3)) = x_3.
+(* Event declaration ::Deleted(..) *)
+event Deleted__event_global.
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Event declaration ::Allocated(..) *)
+event Allocated__event_global.
+(* Integer constant 1 *)
+const int__pos_1: bitstring.
+(* Integer constant 2 *)
+const int__pos_2: bitstring.
+(* Integer constant 3 *)
+const int__pos_3: bitstring.
+(* Body *)
+(* type proc_t : process *)
+const proc_t__0: proc_t.
+(* process p(..): proc_t *)
+let p__0(ptype:proc_t) =
+  new x__861:bitstring;
+  event Allocated__event_global;
+  (* delete _.S *)
+  insert deleted_address_table(S__struct_addr(S__struct(x__861, int__pos_1, int__pos_2, int__pos_3)));
+  get deleted_address_table(=S__struct_addr(S__struct(x__861, int__pos_1, int__pos_2, int__pos_3)))
+  else
+    new case_ch__865:channel;
+    (out(case_ch__865, (false__bool, (), S__struct(x__861, int__pos_1, int__pos_2, int__pos_3), S__struct_par_1(S__struct(x__861, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_2(S__struct(x__861, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_3(S__struct(x__861, int__pos_1, int__pos_2, int__pos_3)))) |
+     in(case_ch__865, (=false__bool, case_result__871:bitstring, case_state_0__872:bitstring, case_state_1__873:bitstring, case_state_2__874:bitstring, case_state_3__875:bitstring))[precise];
+     if case_state_1__873 = int__pos_1
+     then
+       if case_state_2__874 = int__pos_2
+       then
+         if case_state_3__875 = int__pos_3
+         then
+           event Valid__event_global;
+           out(case_ch__865, (true__bool, (), case_state_0__872, case_state_1__873, case_state_2__874, case_state_3__875))
+         else
+           out(case_ch__865, (false__bool, case_result__871, case_state_0__872, case_state_1__873, case_state_2__874, case_state_3__875))
+       else
+         out(case_ch__865, (false__bool, case_result__871, case_state_0__872, case_state_1__873, case_state_2__874, case_state_3__875))
+     else
+       out(case_ch__865, (false__bool, case_result__871, case_state_0__872, case_state_1__873, case_state_2__874, case_state_3__875))) |
+    in(case_ch__865, (=true__bool, case_done_result__866:bitstring, case_done_state_0__867:bitstring, case_done_state_1__868:bitstring, case_done_state_2__869:bitstring, case_done_state_3__870:bitstring))[precise];
+    event Deleted__event_global.
+(* Requires *)
+(* lemma Allocated *)
+query event(Allocated__event_global()).
+(* lemma Deleted *)
+query event(Deleted__event_global()).
+(* lemma Correspondence *)
+query event(Deleted__event_global()) ==> event(Allocated__event_global()).
+(* System *)
+process p__0(proc_t__0)
