@@ -1,0 +1,27 @@
+(* An equation does not make `dec` a partial function in Rabbit or Tamarin.
+   When its argument is not an encryption under the given key, the term stays
+   unreduced and execution continues. *)
+
+function enc:2
+function dec:2
+equation dec(enc(message, key), key) = message
+
+const fresh decryption_key
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    var result = dec("not a ciphertext", decryption_key) in
+    event [::Continued(result)]
+  }
+}
+
+system
+  worker()
+requires
+[
+  lemma UnreducedDecryptionContinues : (* verified *)
+    reachable ::Continued(dec("not a ciphertext", decryption_key))
+]
