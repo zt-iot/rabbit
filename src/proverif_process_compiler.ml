@@ -8,6 +8,11 @@ let check_param_cycle expanding id loc =
       "Cyclic parameterized constant definition involving %s"
       (Ident.to_string id)
 
+let reject_wildcard ~loc ((name, _) : T.ident) =
+  if name = "_" then
+    Error.unsupported ~loc
+      "Wildcard patterns are not supported in ProVerif translation"
+
 let rec compile_expr_to_term_with genv bindings expanding (expr : T.expr) : term_e =
   let compile = compile_expr_to_term_with genv bindings expanding in
   let compile_parameter (parameter : T.expr) =
@@ -93,6 +98,7 @@ let rec compile_expr_to_pterm_with genv penv bindings expanding (expr : T.expr) 
   let compile_parameter (parameter : T.expr) =
     match parameter.desc with
     | Ident { id; param = None; _ } ->
+        reject_wildcard ~loc:parameter.loc id;
         Option.value
           (List.assoc_opt id bindings)
           ~default:(pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv parameter))
@@ -111,6 +117,7 @@ let rec compile_expr_to_pterm_with genv penv bindings expanding (expr : T.expr) 
            in
            body)
   | Ident { id; param = None; _ } ->
+      reject_wildcard ~loc:expr.loc id;
       (match List.assoc_opt id bindings with
        | Some (term, _, _) -> term
        | None ->

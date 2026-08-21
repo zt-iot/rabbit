@@ -1,0 +1,22 @@
+(* Known gap: wildcard patterns in assumptions do not have a specified
+   ProVerif encoding.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    var value = (1, 2) in
+    assume [value = (_, _)] in
+    event [::Matched()]
+  }
+}
+
+system worker()
+requires
+[
+  lemma MatchedIsReachable : reachable ::Matched()
+]

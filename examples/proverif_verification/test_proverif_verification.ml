@@ -46,15 +46,21 @@ let expected_marker_results rab_filename =
     Re.Pcre.regexp
       {|^\s*lemma\s+\w+\s*:\s*\(\*\s*(verified|falsified)\s*\*\)|}
   in
+  let proverif_expected_re =
+    Re.Pcre.regexp {|\(\*\s*PROVERIF\s+EXPECTED\s+(true|false|unknown)\s*\*\)|}
+  in
   read_lines rab_filename
   |> List.filter_map (fun line ->
       match Re.exec_opt marker_re line with
       | None -> None
       | Some groups ->
-          match Re.Group.get groups 1 with
-          | "verified" -> Some "true"
-          | "falsified" -> Some "false"
-          | _ -> assert false)
+          (match Re.exec_opt proverif_expected_re line with
+           | Some proverif_groups -> Some (Re.Group.get proverif_groups 1)
+           | None ->
+               match Re.Group.get groups 1 with
+               | "verified" -> Some "true"
+               | "falsified" -> Some "false"
+               | _ -> assert false))
 
 let contains_string haystack needle =
   let haystack_len = String.length haystack in

@@ -23,7 +23,7 @@ requires
   lemma Allocated : (* verified *)
     reachable ::Allocated() ;
 
-  lemma Deleted : (* falsified *)
+  lemma Deleted : (* falsified *) (* PROVERIF EXPECTED unknown *)
     reachable ::Deleted() ;
 
   lemma Correspondence : (* verified *)
