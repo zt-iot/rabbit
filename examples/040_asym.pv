@@ -1,0 +1,75 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Event declaration ::Invalid(..) *)
+event Invalid__event_global.
+(* Body *)
+(* function fst:1 *)
+fun fst__0(bitstring): bitstring.
+(* function snd:1 *)
+fun snd__0(bitstring): bitstring.
+(* equation fst((x__583, y__584)) = x__583 *)
+equation forall x__583:bitstring, y__584:bitstring; fst__0((x__583, y__584)) = x__583.
+(* equation snd((x__585, y__586)) = y__586 *)
+equation forall x__585:bitstring, y__586:bitstring; snd__0((x__585, y__586)) = y__586.
+(* function true:0 *)
+fun true__0(): bitstring.
+(* function false:0 *)
+fun false__0(): bitstring.
+(* function pk:1 *)
+fun pk__0(bitstring): bitstring.
+(* function sign:2 *)
+fun sign__0(bitstring, bitstring): bitstring.
+(* function verify:3 *)
+fun verify__0(bitstring, bitstring, bitstring): bitstring.
+(* equation verify(sign(d__587, k__588), d__587, pk(k__588)) = true *)
+equation forall d__587:bitstring, k__588:bitstring; verify__0(sign__0(d__587, k__588), d__587, pk__0(k__588)) = true__0.
+(* type process_t : process *)
+const process_t__0: proc_t.
+(* const fresh privkey *)
+const privkey__0: bitstring[private].
+(* const pubkey = .. *)
+const pubkey__0: bitstring.
+equation pubkey__0 = pk__0(privkey__0).
+(* process client(..): process_t *)
+let client__0(ptype:proc_t) =
+  new msg__589:bitstring;
+  new case_ch__592:channel;
+  ((out(case_ch__592, (false__bool, (), msg__589, sign__0(msg__589, privkey__0), verify__0(sign__0(msg__589, privkey__0), msg__589, pubkey__0))) |
+    in(case_ch__592, (=false__bool, case_result__597:bitstring, case_state_0__598:bitstring, case_state_1__599:bitstring, case_state_2__600:bitstring))[precise];
+    if case_state_2__600 = true__0
+    then
+      event Valid__event_global;
+      out(case_ch__592, (true__bool, (), case_state_0__598, case_state_1__599, case_state_2__600))
+    else
+      out(case_ch__592, (false__bool, case_result__597, case_state_0__598, case_state_1__599, case_state_2__600))) |
+   in(case_ch__592, (=false__bool, case_result__601:bitstring, case_state_0__602:bitstring, case_state_1__603:bitstring, case_state_2__604:bitstring))[precise];
+   if case_state_2__604 = false__0
+   then
+     event Invalid__event_global;
+     out(case_ch__592, (true__bool, (), case_state_0__602, case_state_1__603, case_state_2__604))
+   else
+     out(case_ch__592, (false__bool, case_result__601, case_state_0__602, case_state_1__603, case_state_2__604))) |
+  in(case_ch__592, (=true__bool, case_done_result__593:bitstring, case_done_state_0__594:bitstring, case_done_state_1__595:bitstring, case_done_state_2__596:bitstring))[precise].
+(* Requires *)
+(* lemma Reachable *)
+query event(Valid__event_global()).
+(* lemma NotReachable *)
+query event(Invalid__event_global()).
+(* System *)
+process client__0(process_t__0)

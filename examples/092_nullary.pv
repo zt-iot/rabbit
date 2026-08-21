@@ -1,0 +1,44 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Integer constant 1 *)
+const int__pos_1: bitstring.
+(* Body *)
+(* function true:0 *)
+fun true__0(): bitstring.
+(* function eq:2 *)
+fun eq__0(bitstring, bitstring): bitstring.
+(* equation eq(x__822, x__822) = true *)
+equation forall x__822:bitstring; eq__0(x__822, x__822) = true__0.
+(* type proc_t : process *)
+const proc_t__0: proc_t.
+(* process proc(..): proc_t *)
+let proc__0(ptype:proc_t) =
+  new case_ch__823:channel;
+  (out(case_ch__823, (false__bool, ())) |
+   in(case_ch__823, (=false__bool, case_result__825:bitstring))[precise];
+   if eq__0(int__pos_1, int__pos_1) = true__0
+   then event Valid__event_global;
+        out(case_ch__823, (true__bool, ()))
+   else out(case_ch__823, (false__bool, case_result__825))) |
+  in(case_ch__823, (=true__bool, case_done_result__824:bitstring))[precise].
+(* Requires *)
+(* lemma Reachable *)
+query event(Valid__event_global()).
+(* System *)
+process proc__0(proc_t__0)

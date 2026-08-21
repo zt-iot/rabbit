@@ -1,0 +1,52 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Event declaration ::Invalid(..) *)
+event Invalid__event_global.
+(* Integer constant 1 *)
+const int__pos_1: bitstring.
+(* Body *)
+(* type person_t : process *)
+const person_t__0: proc_t.
+(* type chan_t : channel *)
+const chan_t__0: acc_data_t.
+(* process alice(..): person_t *)
+let alice__0(ptype:proc_t) =
+  new case_ch__830:channel;
+  ((out(case_ch__830, (false__bool, (), int__pos_1)) |
+    in(case_ch__830, (=false__bool, case_result__833:bitstring, case_state_0__834:bitstring))[precise];
+    if case_state_0__834 = int__pos_1
+    then
+      event Valid__event_global;
+      out(case_ch__830, (true__bool, (), case_state_0__834))
+    else
+      out(case_ch__830, (false__bool, case_result__833, case_state_0__834))) |
+   in(case_ch__830, (=false__bool, case_result__835:bitstring, case_state_0__836:bitstring))[precise];
+   if case_state_0__836 = int__pos_1
+   then out(case_ch__830, (false__bool, case_result__835, case_state_0__836))
+   else
+     event Invalid__event_global;
+     out(case_ch__830, (true__bool, (), case_state_0__836))) |
+  in(case_ch__830, (=true__bool, case_done_result__831:bitstring, case_done_state_0__832:bitstring))[precise].
+(* Requires *)
+(* lemma Reachable *)
+query event(Valid__event_global()).
+(* lemma NotReachable *)
+query event(Invalid__event_global()).
+(* System *)
+process alice__0(person_t__0)

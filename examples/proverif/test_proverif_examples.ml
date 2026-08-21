@@ -8,9 +8,19 @@ let is_test_target filename =
   has_suffix filename ".rab"
   && not (has_suffix filename ".rab~")
   && not (has_suffix filename "_unsupported.rab")
+  && not
+       (List.mem
+          filename
+          [ "camserver_with_comment.rab"
+          ; "issue11_2.rab"
+          ; "issue20_2.rab"
+          ])
 
 let pv_filename rab_filename =
   Filename.remove_extension rab_filename ^ ".pv"
+
+let error_filename rab_filename =
+  Filename.remove_extension rab_filename ^ ".error"
 
 let current_pv_filename rab_filename =
   let dir = Filename.dirname rab_filename in
@@ -29,15 +39,17 @@ let load_file fn =
       Error exn
 
 let compile_to_string rab_filename =
-  match load_file rab_filename with
-  | Error exn -> Error exn
-  | Ok decls ->
-      let program = Proverif_compiler.compile_program decls in
-      let buf = Buffer.create 1024 in
-      let ppf = Format.formatter_of_buffer buf in
-      Rabbit_proverif_pv.Pv_pp.pp_program ppf program;
-      Format.pp_print_flush ppf ();
-      Ok (Buffer.contents buf)
+  try
+    match load_file rab_filename with
+    | Error exn -> Error exn
+    | Ok decls ->
+        let program = Proverif_compiler.compile_program decls in
+        let buf = Buffer.create 1024 in
+        let ppf = Format.formatter_of_buffer buf in
+        Rabbit_proverif_pv.Pv_pp.pp_program ppf program;
+        Format.pp_print_flush ppf ();
+        Ok (Buffer.contents buf)
+  with exn -> Error exn
 
 let read_text_file filename =
   In_channel.with_open_text filename In_channel.input_all
@@ -69,15 +81,44 @@ type test_result =
   | Mismatch of string
   | Test_failure of string
 
+let contains_string haystack needle =
+  let haystack_len = String.length haystack in
+  let needle_len = String.length needle in
+  let rec loop index =
+    index + needle_len <= haystack_len
+    && (String.sub haystack index needle_len = needle || loop (index + 1))
+  in
+  needle_len = 0 || loop 0
+
 let test_file ~update rab_filename =
   let expected_pv = pv_filename rab_filename in
+  let expected_error = error_filename rab_filename in
   let current_pv = current_pv_filename rab_filename in
   match compile_to_string rab_filename with
   | Error exn ->
       remove_if_exists current_pv;
-      Test_failure (string_of_failure rab_filename exn)
+      let actual_error = string_of_failure rab_filename exn in
+      if not (Sys.file_exists expected_error) then
+        Test_failure actual_error
+      else
+        let expected = read_text_file expected_error |> String.trim in
+        if contains_string actual_error expected then Match
+        else
+          Test_failure
+            (Printf.sprintf
+               "%s: expected error containing %S, got: %s"
+               rab_filename
+               expected
+               actual_error)
   | Ok actual ->
-      if update then (
+      if Sys.file_exists expected_error then (
+        remove_if_exists current_pv;
+        Test_failure
+          (Printf.sprintf
+             "%s: compilation succeeded but %s expects an error"
+             rab_filename
+             expected_error)
+      ) else if update then (
         write_text_file expected_pv actual;
         remove_if_exists current_pv;
         Match

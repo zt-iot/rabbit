@@ -1,0 +1,1 @@
+Plain lemma "exists-trace \"Ex #i #j . AliceClose () @ #i & BobClose() @ #j\"" is not supported in ProVerif query lowering

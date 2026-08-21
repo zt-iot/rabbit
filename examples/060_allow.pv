@@ -1,0 +1,46 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Channel fact declaration send(..) *)
+fun send__chan(bitstring): bitstring[data].
+(* syscall send_one(..) *)
+const send_one__0__syscall: syscall_t.
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Integer constant 1 *)
+const int__pos_1: bitstring.
+(* Body *)
+(* type person_t : process *)
+const person_t__0: proc_t.
+(* type chan_t : channel *)
+const chan_t__0: acc_data_t.
+(* process alice(..): person_t *)
+let alice__0(ptype:proc_t, ch__767:channel) =
+  (* Channel ch__767 : chan_t *)
+  insert channel_table(chan_t__0, ch__767);
+  get channel_table(ch_type__768:acc_data_t, =ch__767) in
+  get access_control_table(=ptype, =ch_type__768, =send_one__0__syscall) in
+  out(ch__767, send__chan(int__pos_1)) | event Valid__event_global.
+(* channel chan : chan_t *)
+free chan__0: channel[private].
+(* Requires *)
+(* lemma Reachable *)
+query event(Valid__event_global()).
+(* System *)
+process
+  (* allow person_t chan_t [send_one] *)
+  insert access_control_table(person_t__0, chan_t__0, send_one__0__syscall);
+  alice__0(person_t__0, chan__0)

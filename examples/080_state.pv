@@ -14,22 +14,15 @@ const none__syscall: syscall_t.
 (* Booleans *)
 const true__bool: bitstring.
 const false__bool: bitstring.
-(* Event declaration ::Seen(..) *)
-event Seen__event_global(bitstring).
+(* Event declaration ::Dummy(..) *)
+event Dummy__event_global.
 (* Body *)
 (* type proc_t : process *)
 const proc_t__0: proc_t.
-(* const fresh secret *)
-const secret__0: bitstring[private].
-(* const alias = .. *)
-const alias__0: bitstring.
-equation alias__0 = secret__0.
-(* process speaker(..): proc_t *)
-let speaker__0(ptype:proc_t) =
-  event Seen__event_global(secret__0);
-  event Seen__event_global(alias__0).
+(* process p(..): proc_t *)
+let p__0(ptype:proc_t) = 0.
 (* Requires *)
-(* lemma ReachableAlias *)
-query event(Seen__event_global(alias__0)).
+(* lemma Reachable *)
+query event(Dummy__event_global()).
 (* System *)
-process speaker__0(proc_t__0)
+process p__0(proc_t__0)

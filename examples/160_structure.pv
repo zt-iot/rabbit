@@ -1,0 +1,91 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Structure declaration S(_,_,_) *)
+fun S__struct(bitstring, bitstring, bitstring, bitstring): bitstring[data].
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_addr(S__struct(x_0, x_1, x_2, x_3)) = x_0.
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_par_1(S__struct(x_0, x_1, x_2, x_3)) = x_1.
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_par_2(S__struct(x_0, x_1, x_2, x_3)) = x_2.
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_par_3(S__struct(x_0, x_1, x_2, x_3)) = x_3.
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Event declaration ::Invalid(..) *)
+event Invalid__event_global.
+(* Integer constant 1 *)
+const int__pos_1: bitstring.
+(* Integer constant 2 *)
+const int__pos_2: bitstring.
+(* Integer constant 3 *)
+const int__pos_3: bitstring.
+(* Integer constant 4 *)
+const int__pos_4: bitstring.
+(* Integer constant 5 *)
+const int__pos_5: bitstring.
+(* Integer constant 6 *)
+const int__pos_6: bitstring.
+(* Body *)
+(* type proc_t : process *)
+const proc_t__0: proc_t.
+(* process proc(..): proc_t *)
+let proc__0(ptype:proc_t) =
+  new x__894:bitstring;
+  new y__895:bitstring;
+  get deleted_address_table(=S__struct_addr(S__struct(x__894, int__pos_1, int__pos_2, int__pos_3)))
+  else
+    new case_ch__899:channel;
+    ((out(case_ch__899, (false__bool, (), S__struct(x__894, int__pos_1, int__pos_2, int__pos_3), S__struct(y__895, int__pos_4, int__pos_5, int__pos_6), S__struct_par_1(S__struct(x__894, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_2(S__struct(x__894, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_3(S__struct(x__894, int__pos_1, int__pos_2, int__pos_3)))) |
+      in(case_ch__899, (=false__bool, case_result__906:bitstring, case_state_0__907:bitstring, case_state_1__908:bitstring, case_state_2__909:bitstring, case_state_3__910:bitstring, case_state_4__911:bitstring))[precise];
+      if case_state_2__909 = int__pos_1
+      then
+        if case_state_3__910 = int__pos_2
+        then
+          if case_state_4__911 = int__pos_3
+          then
+            event Valid__event_global;
+            out(case_ch__899, (true__bool, (), case_state_0__907, case_state_1__908, case_state_2__909, case_state_3__910, case_state_4__911))
+          else
+            out(case_ch__899, (false__bool, case_result__906, case_state_0__907, case_state_1__908, case_state_2__909, case_state_3__910, case_state_4__911))
+        else
+          out(case_ch__899, (false__bool, case_result__906, case_state_0__907, case_state_1__908, case_state_2__909, case_state_3__910, case_state_4__911))
+      else
+        out(case_ch__899, (false__bool, case_result__906, case_state_0__907, case_state_1__908, case_state_2__909, case_state_3__910, case_state_4__911))) |
+     in(case_ch__899, (=false__bool, case_result__912:bitstring, case_state_0__913:bitstring, case_state_1__914:bitstring, case_state_2__915:bitstring, case_state_3__916:bitstring, case_state_4__917:bitstring))[precise];
+     if case_state_2__915 = int__pos_4
+     then
+       if case_state_3__916 = int__pos_5
+       then
+         if case_state_4__917 = int__pos_6
+         then
+           event Invalid__event_global;
+           out(case_ch__899, (true__bool, (), case_state_0__913, case_state_1__914, case_state_2__915, case_state_3__916, case_state_4__917))
+         else
+           out(case_ch__899, (false__bool, case_result__912, case_state_0__913, case_state_1__914, case_state_2__915, case_state_3__916, case_state_4__917))
+       else
+         out(case_ch__899, (false__bool, case_result__912, case_state_0__913, case_state_1__914, case_state_2__915, case_state_3__916, case_state_4__917))
+     else
+       out(case_ch__899, (false__bool, case_result__912, case_state_0__913, case_state_1__914, case_state_2__915, case_state_3__916, case_state_4__917))) |
+    in(case_ch__899, (=true__bool, case_done_result__900:bitstring, case_done_state_0__901:bitstring, case_done_state_1__902:bitstring, case_done_state_2__903:bitstring, case_done_state_3__904:bitstring, case_done_state_4__905:bitstring))[precise].
+(* Requires *)
+(* lemma Reachable *)
+query event(Valid__event_global()).
+(* lemma Uneachable *)
+query event(Invalid__event_global()).
+(* System *)
+process proc__0(proc_t__0)

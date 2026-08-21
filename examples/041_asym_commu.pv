@@ -1,0 +1,116 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Channel fact declaration store(..) *)
+fun store__chan(bitstring): bitstring[data].
+(* Event declaration ::Valid(..) *)
+event Valid__event_global(bitstring).
+(* Event declaration ::Invalid(..) *)
+event Invalid__event_global(bitstring).
+(* Event declaration ::Sent(..) *)
+event Sent__event_global(bitstring).
+(* Body *)
+(* function fst:1 *)
+fun fst__0(bitstring): bitstring.
+(* function snd:1 *)
+fun snd__0(bitstring): bitstring.
+(* equation fst((x__605, y__606)) = x__605 *)
+equation forall x__605:bitstring, y__606:bitstring; fst__0((x__605, y__606)) = x__605.
+(* equation snd((x__607, y__608)) = y__608 *)
+equation forall x__607:bitstring, y__608:bitstring; snd__0((x__607, y__608)) = y__608.
+(* function true:0 *)
+fun true__0(): bitstring.
+(* function false:0 *)
+fun false__0(): bitstring.
+(* function pk:1 *)
+fun pk__0(bitstring): bitstring.
+(* function sign:2 *)
+fun sign__0(bitstring, bitstring): bitstring.
+(* function verify:3 *)
+fun verify__0(bitstring, bitstring, bitstring): bitstring.
+(* equation verify(sign(d__609, k__610), d__609, pk(k__610)) = true *)
+equation forall d__609:bitstring, k__610:bitstring; verify__0(sign__0(d__609, k__610), d__609, pk__0(k__610)) = true__0.
+(* type process_t : process *)
+const process_t__0: proc_t.
+(* type client_t : process *)
+const client_t__0: proc_t.
+(* type chan_t : channel *)
+const chan_t__0: acc_data_t.
+(* const fresh privkey *)
+const privkey__0: bitstring[private].
+(* const pubkey = .. *)
+const pubkey__0: bitstring.
+equation pubkey__0 = pk__0(privkey__0).
+(* process server(..): process_t *)
+let server__0(ptype:proc_t, ch__611:channel) =
+  (* Channel ch__611 : chan_t *)
+  insert channel_table(chan_t__0, ch__611);
+  new loop_ch__623:channel;
+  (out(loop_ch__623, (false__bool, ())) |
+   !((in(loop_ch__623, (=false__bool, loop_result__626:bitstring))[precise];
+      get channel_table(ch_type__644:acc_data_t, =ch__611) in
+      get access_control_table(=ptype, =ch_type__644, =none__syscall) in
+      in(ch__611, store__chan(case_arg_0__627:bitstring));
+      new case_ch__628:channel;
+      ((out(case_ch__628, (false__bool, (), case_arg_0__627, fst__0(case_arg_0__627), snd__0(case_arg_0__627), verify__0(fst__0(case_arg_0__627), snd__0(case_arg_0__627), pubkey__0))) |
+        in(case_ch__628, (=false__bool, case_result__634:bitstring, case_state_0__635:bitstring, case_state_1__636:bitstring, case_state_2__637:bitstring, case_state_3__638:bitstring))[precise];
+        if case_state_3__638 = true__0
+        then
+          event Valid__event_global(case_state_2__637);
+          out(case_ch__628, (true__bool, (), case_state_0__635, case_state_1__636, case_state_2__637, case_state_3__638))
+        else
+          out(case_ch__628, (false__bool, case_result__634, case_state_0__635, case_state_1__636, case_state_2__637, case_state_3__638))) |
+       in(case_ch__628, (=false__bool, case_result__639:bitstring, case_state_0__640:bitstring, case_state_1__641:bitstring, case_state_2__642:bitstring, case_state_3__643:bitstring))[precise];
+       if case_state_3__643 = false__0
+       then
+         event Invalid__event_global(case_state_2__642);
+         out(case_ch__628, (true__bool, (), case_state_0__640, case_state_1__641, case_state_2__642, case_state_3__643))
+       else
+         out(case_ch__628, (false__bool, case_result__639, case_state_0__640, case_state_1__641, case_state_2__642, case_state_3__643))) |
+      in(case_ch__628, (=true__bool, case_done_result__629:bitstring, case_done_state_0__630:bitstring, case_done_state_1__631:bitstring, case_done_state_2__632:bitstring, case_done_state_3__633:bitstring))[precise];
+      out(loop_ch__623, (false__bool, case_done_result__629))
+      else out(loop_ch__623, (false__bool, loop_result__626))
+      else out(loop_ch__623, (false__bool, loop_result__626))) |
+     in(loop_ch__623, (=false__bool, loop_result__625:bitstring))[precise];
+     out(loop_ch__623, (false__bool, loop_result__625)))) |
+  in(loop_ch__623, (=true__bool, loop_done_result__624:bitstring))[precise].
+(* process client(..): process_t *)
+let client__0(ptype:proc_t, ch__616:channel) =
+  (* Channel ch__616 : chan_t *)
+  insert channel_table(chan_t__0, ch__616);
+  new msg__617:bitstring;
+  event Sent__event_global(msg__617);
+  get channel_table(ch_type__645:acc_data_t, =ch__616) in
+  get access_control_table(=ptype, =ch_type__645, =none__syscall) in
+  out(ch__616, store__chan((sign__0(msg__617, privkey__0), msg__617))) | 0.
+(* channel chan : chan_t *)
+free chan__0: channel[private].
+(* Requires *)
+(* lemma Reachable *)
+query msg__619:bitstring; event(Valid__event_global(msg__619)).
+(* lemma NotReachable *)
+query msg__620:bitstring; event(Invalid__event_global(msg__620)).
+(* lemma Corresponds *)
+query msg__621:bitstring; 
+  event(Valid__event_global(msg__621)) ==> event(Sent__event_global(msg__621)).
+(* lemma NotCorresponds *)
+query msg__622:bitstring; 
+  event(Invalid__event_global(msg__622)) ==> event(Sent__event_global(msg__622)).
+(* System *)
+process
+  (* allow process_t chan_t [.] *)
+  insert access_control_table(process_t__0, chan_t__0, none__syscall);
+  server__0(process_t__0, chan__0) | client__0(process_t__0, chan__0)

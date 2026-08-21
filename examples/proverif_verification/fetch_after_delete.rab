@@ -1,0 +1,24 @@
+type proc_t : process
+
+process p() : proc_t
+{
+  main
+  {
+    new x = S(1) in
+    delete x.S;
+    let value = x.S in
+    event [::FetchedAfterDelete()]
+  }
+}
+
+system
+  p()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Rabbit deadlocks on dereference after delete, but ProVerif cannot prove it.
+  unknown
+  *)
+  lemma FetchAfterDelete : (* falsified *)
+    reachable ::FetchedAfterDelete()
+]

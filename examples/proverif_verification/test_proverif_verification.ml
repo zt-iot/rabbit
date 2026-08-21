@@ -10,7 +10,7 @@ let replace_suffix filename ~suffix ~replacement =
 let read_lines filename =
   In_channel.with_open_text filename In_channel.input_lines
 
-let expected_results rab_filename =
+let expected_block_results rab_filename =
   let rec find_blocks rev_blocks = function
     | [] -> List.concat (List.rev rev_blocks)
     | line :: lines ->
@@ -40,6 +40,21 @@ let expected_results rab_filename =
   blocks
   |> List.map String.trim
   |> List.filter (fun line -> line <> "" && line.[0] <> '#')
+
+let expected_marker_results rab_filename =
+  let marker_re =
+    Re.Pcre.regexp
+      {|^\s*lemma\s+\w+\s*:\s*\(\*\s*(verified|falsified)\s*\*\)|}
+  in
+  read_lines rab_filename
+  |> List.filter_map (fun line ->
+      match Re.exec_opt marker_re line with
+      | None -> None
+      | Some groups ->
+          match Re.Group.get groups 1 with
+          | "verified" -> Some "true"
+          | "falsified" -> Some "false"
+          | _ -> assert false)
 
 let contains_string haystack needle =
   let haystack_len = String.length haystack in
@@ -132,7 +147,7 @@ let string_of_exception = function
   | exn -> Printexc.to_string exn
 
 let test_file proverif rab_filename =
-  let expected = expected_results rab_filename in
+  let expected = expected_block_results rab_filename in
   let pv_filename = Filename.temp_file "rabbit-proverif-verification-" ".pv" in
   Fun.protect
     ~finally:(fun () -> Sys.remove pv_filename)
@@ -149,6 +164,24 @@ let test_file proverif rab_filename =
               rab_filename
               (String.concat "; " expected)
               (String.concat "; " actual)))
+
+let test_snapshot_file proverif rab_filename =
+  let expected = expected_marker_results rab_filename in
+  let decls = snd @@ Typer.load (Env.empty ()) rab_filename in
+  let reachability_flags = reachability_flags decls in
+  let pv_filename = replace_suffix rab_filename ~suffix:".rab" ~replacement:".pv" in
+  let actual =
+    run_proverif proverif pv_filename
+    |> normalize_results reachability_flags
+  in
+  if actual <> expected then
+    failwith
+      (Printf.sprintf
+         "%s: expected [%s], got [%s] from %s"
+         rab_filename
+         (String.concat "; " expected)
+         (String.concat "; " actual)
+         pv_filename)
 
 let test_unsupported_file proverif rab_filename =
   let error_filename =
@@ -193,33 +226,65 @@ let collect_unsupported_files dir =
   |> List.sort String.compare
   |> List.map (Filename.concat dir)
 
+let collect_snapshot_files dir =
+  Sys.readdir dir
+  |> Array.to_list
+  |> List.filter (fun filename -> has_suffix filename ".pv")
+  |> List.sort String.compare
+  |> List.map (fun filename ->
+      replace_suffix filename ~suffix:".pv" ~replacement:".rab")
+  |> List.map (Filename.concat dir)
+
 let () =
-  if Array.length Sys.argv <> 3 then (
-    Format.eprintf "Usage: %s PROVERIF EXAMPLES_DIR@." Sys.argv.(0);
-    exit 2
-  );
-  let proverif =
-    if Filename.is_relative Sys.argv.(1) then
-      Filename.concat (Sys.getcwd ()) Sys.argv.(1)
-    else
-      Sys.argv.(1)
+  let use_markers = ref false in
+  let rev_args = ref [] in
+  Arg.parse
+    [ "--expect-markers", Arg.Set use_markers,
+      "Read (* verified *) and (* falsified *) lemma expectations and verify sibling .pv files"
+    ]
+    (fun arg -> rev_args := arg :: !rev_args)
+    "test_proverif_verification.exe [--expect-markers] PROVERIF EXAMPLES_DIR";
+  let proverif_arg, examples_dir =
+    match List.rev !rev_args with
+    | [proverif; examples_dir] -> proverif, examples_dir
+    | _ ->
+        Format.eprintf
+          "Usage: %s [--expect-markers] PROVERIF EXAMPLES_DIR@."
+          Sys.argv.(0);
+        exit 2
   in
-  let examples_dir = Sys.argv.(2) in
+  let proverif =
+    if Filename.is_relative proverif_arg then
+      Filename.concat (Sys.getcwd ()) proverif_arg
+    else
+      proverif_arg
+  in
   let failures = ref [] in
-  collect_rab_files examples_dir
-  |> List.iter (fun rab_filename ->
-      try
-        test_file proverif rab_filename;
-        Format.printf "PASS %s@." rab_filename
-      with exn ->
-        failures := (rab_filename, Printexc.to_string exn) :: !failures;
-        Format.printf "FAIL %s: %s@." rab_filename (Printexc.to_string exn));
-  collect_unsupported_files examples_dir
-  |> List.iter (fun rab_filename ->
-      try
-        test_unsupported_file proverif rab_filename;
-        Format.printf "PASS (unsupported) %s@." rab_filename
-      with exn ->
-        failures := (rab_filename, Printexc.to_string exn) :: !failures;
-        Format.printf "FAIL %s: %s@." rab_filename (Printexc.to_string exn));
+  if !use_markers then
+    collect_snapshot_files examples_dir
+    |> List.iter (fun rab_filename ->
+        try
+          test_snapshot_file proverif rab_filename;
+          Format.printf "PASS (ProVerif) %s@." rab_filename
+        with exn ->
+          failures := (rab_filename, Printexc.to_string exn) :: !failures;
+          Format.printf "FAIL %s: %s@." rab_filename (Printexc.to_string exn))
+  else (
+    collect_rab_files examples_dir
+    |> List.iter (fun rab_filename ->
+        try
+          test_file proverif rab_filename;
+          Format.printf "PASS %s@." rab_filename
+        with exn ->
+          failures := (rab_filename, Printexc.to_string exn) :: !failures;
+          Format.printf "FAIL %s: %s@." rab_filename (Printexc.to_string exn));
+    collect_unsupported_files examples_dir
+    |> List.iter (fun rab_filename ->
+        try
+          test_unsupported_file proverif rab_filename;
+          Format.printf "PASS (unsupported) %s@." rab_filename
+        with exn ->
+          failures := (rab_filename, Printexc.to_string exn) :: !failures;
+          Format.printf "FAIL %s: %s@." rab_filename (Printexc.to_string exn))
+  );
   exit (if !failures = [] then 0 else 1)
