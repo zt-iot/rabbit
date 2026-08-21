@@ -1,0 +1,42 @@
+(* Verification feature: an assumption enables its body only when all of its
+   equational facts hold.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process satisfied() : proc_t
+{
+  main {
+    assume [1 = 1] in
+    event [::AssumptionSatisfied()]
+  }
+}
+
+process unsatisfied() : proc_t
+{
+  main {
+    assume [1 != 1] in
+    event [::AssumptionUnsatisfied()]
+  }
+}
+
+system
+  satisfied() | unsatisfied()
+requires
+[
+  (* PROVERIF EXPECTED
+  # A true assumption permits execution of its body.
+  true
+  *)
+  lemma SatisfiedBodyIsReachable :
+    reachable ::AssumptionSatisfied() ;
+
+  (* PROVERIF EXPECTED
+  # A false assumption blocks execution of its body.
+  false
+  *)
+  lemma UnsatisfiedBodyIsUnreachable :
+    reachable ::AssumptionUnsatisfied()
+]
