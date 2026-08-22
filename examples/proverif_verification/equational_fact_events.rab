@@ -1,0 +1,98 @@
+(* Verification feature: equation and inequality facts become observable
+   internal events, and a false comparison blocks the continuation. *)
+
+const fresh left
+const fresh right
+
+type proc_t : process
+
+process true_comparisons() : proc_t
+{
+  main {
+    event [left = left];
+    event [::AfterTrueEquality()];
+    event [left != right];
+    event [::AfterTrueInequality()]
+  }
+}
+
+process false_equality() : proc_t
+{
+  main {
+    event [::InsideFalseEquality(), left = right];
+    event [::AfterFalseEquality()]
+  }
+}
+
+process false_inequality() : proc_t
+{
+  main {
+    event [::InsideFalseInequality(), left != left];
+    event [::AfterFalseInequality()]
+  }
+}
+
+system
+  true_comparisons() | false_equality() | false_inequality()
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma TrueEqualityIsReachable :
+    reachable left = left ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma TrueEqualityContinues :
+    reachable ::AfterTrueEquality() ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma TrueInequalityIsReachable :
+    reachable left != right ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma TrueInequalityContinues :
+    reachable ::AfterTrueInequality() ;
+
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseEqualityIsUnreachable :
+    reachable left = right ;
+
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseEqualitySuppressesWholeEvent :
+    reachable ::InsideFalseEquality() ;
+
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseEqualityBlocks :
+    reachable ::AfterFalseEquality() ;
+
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseInequalityIsUnreachable :
+    reachable left != left ;
+
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseInequalitySuppressesWholeEvent :
+    reachable ::InsideFalseInequality() ;
+
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseInequalityBlocks :
+    reachable ::AfterFalseInequality()
+]

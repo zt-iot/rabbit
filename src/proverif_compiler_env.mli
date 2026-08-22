@@ -31,6 +31,12 @@ type event_kind =
 
 val compile_event_name : T.name -> event_kind -> ident
 
+type comparison_event_kind =
+  | Equality
+  | Inequality
+
+val compile_comparison_event_name : comparison_event_kind -> ident
+
 module GEnv : sig
   type t
 
@@ -86,6 +92,9 @@ module GEnv : sig
 
   val events : t -> (T.name * (event_kind * int)) list
   val add_event : loc:Location.t -> t -> T.name -> event_kind -> int -> unit
+
+  val comparison_events : t -> comparison_event_kind list
+  val add_comparison_event : t -> comparison_event_kind -> unit
 
   val top_process : t -> tprocess_e option
   val set_top_process : t -> tprocess_e -> unit

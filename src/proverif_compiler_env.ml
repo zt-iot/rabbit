@@ -32,6 +32,14 @@ let compile_event_name (name : T.name) = function
   | Global -> compile_name name "event_global"
   | Plain -> compile_name name "event_plain"
 
+type comparison_event_kind =
+  | Equality
+  | Inequality
+
+let compile_comparison_event_name = function
+  | Equality -> pv_ident "eq__fact_event"
+  | Inequality -> pv_ident "neq__fact_event"
+
 module GEnv = struct
 
   type t =
@@ -49,6 +57,7 @@ module GEnv = struct
     ; mutable structure_facts : (Name.t * int) list (** structure fact constructor and arity *)
     ; mutable channel_facts   : (Name.t * int) list (** channel fact constructor and arity *)
     ; mutable events        : (Name.t * (event_kind * int)) list (** event name, kind and arity *)
+    ; mutable comparison_events : comparison_event_kind list
     ; mutable top_process   : tprocess_e option
     }
 
@@ -66,6 +75,7 @@ module GEnv = struct
     ; structure_facts    = []
     ; channel_facts      = []
     ; events             = []
+    ; comparison_events  = []
     ; top_process        = None
     }
 
@@ -383,6 +393,12 @@ module GEnv = struct
         Error.invalid_input ~loc
           "Event %s is used with inconsistent arities (%d and %d)"
           name arity' arity
+
+  let comparison_events genv = genv.comparison_events
+
+  let add_comparison_event genv kind =
+    if not (List.mem kind genv.comparison_events) then
+      genv.comparison_events <- genv.comparison_events @ [kind]
 
   (* top process ********************************************)
 

@@ -1,0 +1,38 @@
+(* Verification feature: an inequality fact can be used in reachability and
+   on either side of a correspondence. *)
+
+const fresh left
+const fresh right
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::BeforeInequality(left, right)];
+    event [left != right];
+    event [::AfterInequality(left, right)]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma InequalityIsReachable :
+    reachable left != right ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma InequalityHasPredecessor :
+    corresponds left != right ~> ::BeforeInequality(left, right) ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma InequalityPrecedesContinuation :
+    corresponds ::AfterInequality(left, right) ~> left != right
+]

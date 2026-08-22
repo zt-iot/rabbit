@@ -334,6 +334,9 @@ let bind_lock_state
          (pterm_e @@ PPIdent (compile_ident pattern_id)))
     penv state_ids state_pattern_ids
 
+let eq_pterm (lhs : pterm_e) (rhs : pterm_e) : pterm_e =
+  pterm_e @@ PPFunApp (pv_ident "=", [lhs; rhs])
+
 let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
   : tprocess_e =
   (*
@@ -367,9 +370,45 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , List.map (compile_expr_to_pterm genv penv) args
         , None
         , body )
-  | _ ->
+  | Eq (lhs, rhs) ->
+      (*
+         ```
+         event [lhs = rhs]
+
+         if lhs = rhs then
+           event eq__fact_event(lhs, rhs)
+         ```
+      *)
+      GEnv.add_comparison_event genv Equality;
+      let lhs = compile_expr_to_pterm genv penv lhs in
+      let rhs = compile_expr_to_pterm genv penv rhs in
+      process_e @@
+      PEvent
+        ( compile_comparison_event_name Equality
+        , [lhs; rhs]
+        , None
+        , body )
+  | Neq (lhs, rhs) ->
+      (*
+         ```
+         event [lhs != rhs]
+
+         if lhs = rhs then 0 else
+           event neq__fact_event(lhs, rhs)
+         ```
+      *)
+      GEnv.add_comparison_event genv Inequality;
+      let lhs = compile_expr_to_pterm genv penv lhs in
+      let rhs = compile_expr_to_pterm genv penv rhs in
+      process_e @@
+      PEvent
+        ( compile_comparison_event_name Inequality
+        , [lhs; rhs]
+        , None
+        , body )
+  | Channel _ | File _ ->
       Error.unsupported ~loc
-        "Only plain/global event facts are supported in ProVerif event lowering"
+        "Channel/file event facts are not supported in ProVerif event lowering"
 
 let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
   : tprocess_e =
@@ -435,10 +474,24 @@ let compile_put_facts genv penv (facts : T.fact list) (body : tprocess_e)
 
 let compile_event_facts genv penv (facts : T.fact list) (body : tprocess_e)
   : tprocess_e =
-  List.fold_right (compile_event_fact genv penv) facts body
-
-let eq_pterm (lhs : pterm_e) (rhs : pterm_e) : pterm_e =
-  pterm_e @@ PPFunApp (pv_ident "=", [lhs; rhs])
+  let events = List.fold_right (compile_event_fact genv penv) facts body in
+  (* Rabbit emits every fact in one event command atomically. Check all
+     comparisons before emitting any ProVerif event, so a false comparison
+     suppresses the entire command regardless of its position in the list. *)
+  List.fold_right
+    (fun (fact : T.fact) body ->
+       match fact.desc with
+       | Eq (lhs, rhs) ->
+           let lhs = compile_expr_to_pterm genv penv lhs in
+           let rhs = compile_expr_to_pterm genv penv rhs in
+           process_e @@ PTest (eq_pterm lhs rhs, body, process_e PNil)
+       | Neq (lhs, rhs) ->
+           let lhs = compile_expr_to_pterm genv penv lhs in
+           let rhs = compile_expr_to_pterm genv penv rhs in
+           process_e @@ PTest (eq_pterm lhs rhs, process_e PNil, body)
+       | Global _ | Plain _ | Channel _ | File _ -> body)
+    facts
+    events
 
 let rec compile_guard_tests
     genv

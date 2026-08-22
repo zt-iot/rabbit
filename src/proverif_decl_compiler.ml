@@ -514,16 +514,19 @@ let rec gterm_binary_mult ~loc op = function
   | g :: gs ->
       gterm_binary op g (gterm_binary_mult ~loc op gs)
 
+let gterm_event_ident (event_ident : ident) (args : gterm_e list) : gterm_e =
+  gterm_e @@
+  PGFunApp
+    ( pv_ident "event"
+    , [gterm_e @@ PGFunApp (event_ident, args, None)]
+    , None )
+
 let gterm_event
     (name : T.name)
     (kind : event_kind)
     (args : gterm_e list)
   : gterm_e =
-  gterm_e @@
-  PGFunApp
-    ( pv_ident "event"
-    , [gterm_e @@ PGFunApp (compile_event_name name kind, args, None)]
-    , None )
+  gterm_event_ident (compile_event_name name kind) args
 
 let compile_lemma_fact genv (fact : T.fact) : gterm_e =
   let loc = fact.loc in
@@ -535,13 +538,19 @@ let compile_lemma_fact genv (fact : T.fact) : gterm_e =
       GEnv.add_event ~loc genv name Plain (List.length args);
       gterm_event name Plain (List.map (compile_expr_to_gterm genv) args)
   | Eq (lhs, rhs) ->
-      gterm_binary "="
-        (compile_expr_to_gterm genv lhs)
-        (compile_expr_to_gterm genv rhs)
+      GEnv.add_comparison_event genv Equality;
+      gterm_event_ident
+        (compile_comparison_event_name Equality)
+        [ compile_expr_to_gterm genv lhs
+        ; compile_expr_to_gterm genv rhs
+        ]
   | Neq (lhs, rhs) ->
-      gterm_binary "<>"
-        (compile_expr_to_gterm genv lhs)
-        (compile_expr_to_gterm genv rhs)
+      GEnv.add_comparison_event genv Inequality;
+      gterm_event_ident
+        (compile_comparison_event_name Inequality)
+        [ compile_expr_to_gterm genv lhs
+        ; compile_expr_to_gterm genv rhs
+        ]
   | Channel _ | File _ ->
       (* Section 3.12 does not specify how to translate Channel and File facts *)
       Error.unsupported ~loc
@@ -749,15 +758,33 @@ let compile_event_decls (genv : GEnv.t) : tdecl list =
      query image:bitstring; event(ImgSend(image)).
      ```
   *)
-  List.concat_map (fun (name, (kind, arity)) ->
-      let source_name =
-        match kind with
-        | Global -> "::" ^ name
-        | Plain -> name
-      in
-      [ TComment (Printf.sprintf "Event declaration %s(..)" source_name)
-      ; TEventDecl (compile_event_name name kind, List.init arity (fun _ -> bitstring_ident))
-      ]) (GEnv.events genv)
+  let named_events =
+    List.concat_map (fun (name, (kind, arity)) ->
+        let source_name =
+          match kind with
+          | Global -> "::" ^ name
+          | Plain -> name
+        in
+        [ TComment (Printf.sprintf "Event declaration %s(..)" source_name)
+        ; TEventDecl (compile_event_name name kind, List.init arity (fun _ -> bitstring_ident))
+        ]) (GEnv.events genv)
+  in
+  let comparison_events =
+    List.concat_map
+      (fun kind ->
+         let source_name =
+           match kind with
+           | Equality -> "equation fact"
+           | Inequality -> "inequality fact"
+         in
+         [ TComment (Printf.sprintf "Event declaration for %s" source_name)
+         ; TEventDecl
+             ( compile_comparison_event_name kind
+             , [bitstring_ident; bitstring_ident] )
+         ])
+      (GEnv.comparison_events genv)
+  in
+  named_events @ comparison_events
 
 let compile_fact_decls (genv : GEnv.t) : tdecl list =
   List.concat_map

@@ -1,0 +1,37 @@
+(* Verification feature: an equation fact can be used in reachability and on
+   either side of a correspondence. *)
+
+const fresh value
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::BeforeEquality(value)];
+    event [value = value];
+    event [::AfterEquality(value)]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma EqualityIsReachable :
+    reachable value = value ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma EqualityHasPredecessor :
+    corresponds value = value ~> ::BeforeEquality(value) ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma EqualityPrecedesContinuation :
+    corresponds ::AfterEquality(value) ~> value = value
+]
