@@ -410,7 +410,7 @@ end
 module PEnv = struct
 
   type t =
-    { bindings : (T.ident * pterm_e) list (** variales and their values in Proverif *)
+    { bindings : (T.ident * pterm_e) list (** variables and their values in ProVerif *)
     ; local_func_defs : (T.ident * (T.ident list * T.cmd)) list
     ; process_typ_id : T.ident
     ; proc_type : pterm_e
@@ -449,20 +449,25 @@ module PEnv = struct
         Error.internal ~loc "Loop-carried variable %s is not available"
           (Ident.to_string id)
 
-  let bind_process_var (penv : t) (id : T.ident) (value : pterm_e) =
-    { penv with bindings = (id, value) :: List.remove_assoc id penv.bindings }
+  let define_process_var (penv : t) (id : T.ident) (value : pterm_e) =
+    { penv with bindings = (id, value) :: penv.bindings }
 
-  let restore_process_vars
-      penv
-      (saved : (T.ident * pterm_e option) list)
-    : t =
-    List.fold_left
-      (fun penv (id, old_value) ->
-         match old_value with
-         | Some value -> bind_process_var penv id value
-         | None -> { penv with bindings = List.remove_assoc id penv.bindings })
-      penv
-      saved
+  let assign_process_var (penv : t) (id : T.ident) (value : pterm_e) =
+    let rec assign = function
+      | [] -> assert false
+      | (id', _) :: bindings when id = id' -> (id, value) :: bindings
+      | binding :: bindings -> binding :: assign bindings
+    in
+    { penv with bindings = assign penv.bindings }
+
+  let remove_process_vars (penv : t) (ids : T.ident list) =
+    { penv with
+      bindings =
+        List.fold_left
+          (fun bindings id -> List.remove_assoc id bindings)
+          penv.bindings
+          ids
+    }
 
   (* local func defs ****************************************)
 

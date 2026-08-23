@@ -114,12 +114,9 @@ module PEnv : sig
   val bindings : t -> (T.ident * pterm_e) list
   val find_process_var : t -> T.ident -> pterm_e option
   val find_process_var_exn : loc:Location.t -> t -> T.ident -> pterm_e
-  val bind_process_var : t -> T.ident -> pterm_e -> t
-
-  val restore_process_vars :
-    t ->
-    (T.ident * pterm_e option) list ->
-    t
+  val define_process_var : t -> T.ident -> pterm_e -> t
+  val assign_process_var : t -> T.ident -> pterm_e -> t
+  val remove_process_vars : t -> T.ident list -> t
 
   val find_local_func_def : t -> T.ident -> (T.ident list * T.cmd) option
 

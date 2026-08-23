@@ -330,7 +330,7 @@ let bind_lock_state
   in
   List.fold_left2
     (fun penv state_id pattern_id ->
-       PEnv.bind_process_var penv state_id
+       PEnv.assign_process_var penv state_id
          (pterm_e @@ PPIdent (compile_ident pattern_id)))
     penv state_ids state_pattern_ids
 
@@ -568,7 +568,7 @@ let rec compile_guard_tests
            let branch_env, then_proc =
              match contents.desc with
              | T.Ident { id; _ } when List.mem id fresh ->
-                 let branch_env = PEnv.bind_process_var penv id payload_term in
+                 let branch_env = PEnv.define_process_var penv id payload_term in
                  branch_env, compile_guard_tests genv branch_env fresh facts then_proc else_proc
              | _ ->
                  let eq_then =
@@ -594,7 +594,7 @@ let rec compile_guard_tests
            let then_proc =
              match arg.desc with
              | T.Ident { id; _ } when List.mem id fresh ->
-                 let branch_env = PEnv.bind_process_var penv id payload_term in
+                 let branch_env = PEnv.define_process_var penv id payload_term in
                  compile_guard_tests genv branch_env fresh facts then_proc else_proc
              | _ ->
                  let eq_then =
@@ -724,7 +724,7 @@ let rec compile_channel_guard_case
       (fun penv (arg : T.expr) payload_term ->
          match arg.desc with
          | T.Ident { id; _ } when is_fresh_case_var case id ->
-             PEnv.bind_process_var penv id payload_term
+             PEnv.define_process_var penv id payload_term
          | _ -> penv)
       penv
       args
@@ -770,11 +770,8 @@ and compile_case_branch_body
     penv
     (case : T.case)
   : PEnv.t * process_fragment =
-  let saved =
-    List.map (fun id -> id, PEnv.find_process_var penv id) case.fresh
-  in
   let body_env, body_fragment = compile_cmd genv penv case.cmd in
-  PEnv.restore_process_vars body_env saved, body_fragment
+  PEnv.remove_process_vars body_env case.fresh, body_fragment
 
 and compile_case_no_channel
     genv
@@ -960,7 +957,7 @@ and compile_case_channelized
             (fun penv (arg : T.expr) payload_term ->
                match arg.desc with
                | T.Ident { id; _ } when is_fresh_case_var case id ->
-                   PEnv.bind_process_var penv id payload_term
+                   PEnv.define_process_var penv id payload_term
                | _ -> penv)
             base_env
             args
@@ -1121,12 +1118,9 @@ and compile_syscall_call
   | Some def ->
       let arg_values = List.map (compile_expr_to_pterm genv penv) args in
       let compile_branch arg_ids cmd =
-        let saved =
-          List.map (fun id -> id, PEnv.find_process_var penv id) arg_ids
-        in
         let call_env =
           List.fold_left2
-            PEnv.bind_process_var
+            PEnv.define_process_var
             (unit_result @@
              PEnv.with_curr_syscall penv (pterm_e @@ PPIdent def.pv_id))
             arg_ids
@@ -1134,7 +1128,7 @@ and compile_syscall_call
         in
         let body_env, body_fragment = compile_cmd genv call_env cmd in
         let completed_env =
-          PEnv.restore_process_vars body_env saved
+          PEnv.remove_process_vars body_env arg_ids
           |> fun env -> PEnv.with_curr_syscall env (PEnv.curr_syscall penv)
         in
         completed_env, body_fragment
@@ -1181,18 +1175,15 @@ and compile_local_function_call
         (Ident.to_string id)
   | Some (arg_ids, cmd) ->
       let arg_values = List.map (compile_expr_to_pterm genv penv) args in
-      let saved =
-        List.map (fun id -> id, PEnv.find_process_var penv id) arg_ids
-      in
       let call_env =
         List.fold_left2
-          PEnv.bind_process_var
+          PEnv.define_process_var
           (unit_result penv)
           arg_ids
           arg_values
       in
       let body_env, body_fragment = compile_cmd genv call_env cmd in
-      PEnv.restore_process_vars body_env saved, body_fragment
+      PEnv.remove_process_vars body_env arg_ids, body_fragment
 
 and join_call_branches
     penv
@@ -1282,12 +1273,11 @@ and compile_let_binding
         PEnv.with_result penv value, empty_fragment
   in
   let value = PEnv.result value_env in
-  let old_value = PEnv.find_process_var value_env id in
   let body_start_env =
-    PEnv.bind_process_var (unit_result value_env) id value
+    PEnv.define_process_var (unit_result value_env) id value
   in
   let body_env, body_fragment = compile_cmd genv body_start_env body in
-  let completed_env = PEnv.restore_process_vars body_env [id, old_value] in
+  let completed_env = PEnv.remove_process_vars body_env [id] in
   completed_env, compose_fragments value_fragment body_fragment
 
 and compile_assignment
@@ -1326,7 +1316,7 @@ and compile_assignment
   let value = PEnv.result value_env in
   let assigned_env =
     match id_opt with
-    | Some id -> PEnv.bind_process_var value_env id value
+    | Some id -> PEnv.assign_process_var value_env id value
     | None -> value_env
   in
   unit_result assigned_env, value_fragment
@@ -1520,13 +1510,12 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       *)
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
-      let old_value = PEnv.find_process_var penv id in
       let body_start_env =
-        PEnv.bind_process_var (unit_result penv) id fresh_term
+        PEnv.define_process_var (unit_result penv) id fresh_term
       in
       let body_env, body_fragment = compile_cmd genv body_start_env body in
       let completed_env =
-        PEnv.restore_process_vars body_env [id, old_value]
+        PEnv.remove_process_vars body_env [id]
       in
       completed_env,
       fun rest ->
@@ -1549,7 +1538,6 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       GEnv.add_structure_fact ~loc:cmd.loc genv name (List.length args);
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
-      let old_value = PEnv.find_process_var penv id in
       let struct_term =
         (* `S(a, e1, ..., en)` *)
         pterm_e @@
@@ -1558,11 +1546,11 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
           , fresh_term :: List.map (compile_expr_to_pterm genv penv) args )
       in
       let body_start_env =
-        PEnv.bind_process_var (unit_result penv) id struct_term
+        PEnv.define_process_var (unit_result penv) id struct_term
       in
       let body_env, body_fragment = compile_cmd genv body_start_env body in
       let completed_env =
-        PEnv.restore_process_vars body_env [id, old_value]
+        PEnv.remove_process_vars body_env [id]
       in
       completed_env,
       fun rest ->
@@ -1585,21 +1573,17 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       GEnv.add_structure_fact ~loc:cmd.loc genv name (List.length ids);
       let struct_term = compile_expr_to_pterm genv penv expr in
       let addr_term = structure_addr_term name struct_term in
-      let saved =
-        (* the values of x1, ..., xn before let *)
-        List.map (fun id -> id, PEnv.find_process_var penv id) ids
-      in
       let body_env =
         (* xi => S__struct_par_i(e) *)
         List.mapi
           (fun index id -> id, structure_arg_term name (index + 1) struct_term)
           ids
         |> List.fold_left
-             (fun penv (id, value) -> PEnv.bind_process_var penv id value)
+             (fun penv (id, value) -> PEnv.define_process_var penv id value)
              (unit_result penv)
       in
       let body_env, body_fragment = compile_cmd genv body_env body in
-      let completed_env = PEnv.restore_process_vars body_env saved in
+      let completed_env = PEnv.remove_process_vars body_env ids in
       completed_env,
       fun rest ->
         process_e @@

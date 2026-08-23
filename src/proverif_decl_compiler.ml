@@ -431,7 +431,7 @@ let compile_process
       let penv =
         List.fold_left (fun penv (var, expr) ->
             let value = compile_expr_to_pterm genv penv expr in
-            PEnv.bind_process_var penv var value)
+            PEnv.define_process_var penv var value)
           base_penv vars
       in
       let process =

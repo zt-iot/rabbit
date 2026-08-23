@@ -1,0 +1,56 @@
+(* Verification feature: assignments update the nearest binding while leaving
+   function-local bindings scoped to the call. *)
+
+const fresh before
+const fresh after
+const fresh local_before
+const fresh local_after
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  var state = before
+
+  function update_outer(argument) {
+    state := after;
+    argument
+  }
+
+  function update_local(state) {
+    state := local_after;
+    state
+  }
+
+  main {
+    _ := update_outer(local_before);
+    var local_result = update_local(local_before) in
+    event [::OuterState(state), ::LocalResult(local_result)]
+  }
+}
+
+system
+  worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # Assignment through a function call updates the process variable.
+  true
+  *)
+  lemma OuterAssignmentPersists :
+    reachable ::OuterState(after) ;
+
+  (* PROVERIF EXPECTED
+  # Assignment to the shadowing function argument produces the local result.
+  true
+  *)
+  lemma LocalAssignmentIsUsed :
+    reachable ::LocalResult(local_after) ;
+
+  (* PROVERIF EXPECTED
+  # The shadowing function argument does not replace the process variable.
+  false
+  *)
+  lemma LocalAssignmentDoesNotEscape :
+    reachable ::OuterState(local_after)
+]
