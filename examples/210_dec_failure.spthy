@@ -42,12 +42,18 @@ rule Init_system[role="system"]
 // Model:  Worker
 
 
-rule Worker_let_intro_event____0___3_4[role="Worker"]
+rule Worker_let_intro_event___0___2_5[role="Worker"]
   : [ State_Worker(<'rab___0', param, %v_>, return_var_0, 'rab_empty', 'rab_empty', 'rab_empty'),
       !Const_('rab_decryption_key', decryption_key_0) ]
     --[ Transition_(<'rab_Worker', param>, 'rab___0', %v_),
-        Continued(dec('rab_not a ciphertext', decryption_key_0)) ]->
-    [ State_Worker(<'rab___3', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
+        DecryptionResult(dec('rab_not a ciphertext', decryption_key_0)) ]->
+    [ State_Worker(<'rab___2', param, %v_>, 'rab_unit', 'rab_empty', dec('rab_not a ciphertext', decryption_key_0), 'rab_empty') ]
+
+rule Worker_event_let_out___2___4_4[role="Worker"]
+  : [ State_Worker(<'rab___2', param, %v_>, return_var_2, 'rab_empty', l_0_2, 'rab_empty') ]
+    --[ Transition_(<'rab_Worker', param>, 'rab___2', %v_),
+        Continued() ]->
+    [ State_Worker(<'rab___4', param, %v_>, 'rab_unit', 'rab_empty', 'rab_empty', 'rab_empty') ]
 
 restriction Init_ : " All x #i #j . Init_(x) @ #i & Init_(x) @ #j ==> #i = #j "
 restriction Equality_rule: "All x y #i. Eq_(x,y) @ #i ==> x = y"
@@ -64,6 +70,7 @@ lemma TransitionOnce_[reuse,use_induction]:
         Transition_(x, p, %i) @ #k ==> #j = #k"
 
 
-lemma UnreducedDecryptionContinues : exists-trace "Ex decryption_key #time_0 #label_time_0 . !Const_('rab_decryption_key', decryption_key)@#label_time_0 & Continued(dec('rab_not a ciphertext', decryption_key))@#time_0 "
+lemma UnreducedDecryptionContinues : exists-trace "Ex  #time_0 . Continued()@#time_0 "
+lemma DecryptionResultIsReachable : exists-trace "Ex new_0 #time_0 . DecryptionResult(new_0)@#time_0 "
 end
 

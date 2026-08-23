@@ -14,7 +14,8 @@ process worker() : proc_t
 {
   main {
     var result = dec("not a ciphertext", decryption_key) in
-    event [::Continued(result)]
+    event [::DecryptionResult(result)];
+    event [::Continued()]
   }
 }
 
@@ -22,6 +23,9 @@ system
   worker()
 requires
 [
+  lemma DecryptionResultIsReachable : (* verified *)
+    reachable ::DecryptionResult(result) ;
+
   lemma UnreducedDecryptionContinues : (* verified *)
-    reachable ::Continued(dec("not a ciphertext", decryption_key))
+    reachable ::Continued()
 ]
