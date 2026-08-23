@@ -1,0 +1,45 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Event declaration ::Continued(..) *)
+event Continued__event_global.
+(* Event declaration ::DecryptionResult(..) *)
+event DecryptionResult__event_global(bitstring).
+(* String constant "not a ciphertext" *)
+const not_a_ciphertext__str: bitstring.
+(* Body *)
+(* function enc:2 *)
+fun enc__0(bitstring, bitstring): bitstring.
+(* function dec:2 *)
+fun dec__0(bitstring, bitstring): bitstring.
+(* equation dec(enc(message__950, key__949), key__949) = message__950 *)
+equation forall key__949:bitstring, message__950:bitstring; dec__0(enc__0(message__950, key__949), key__949) = message__950.
+(* const fresh decryption_key *)
+const decryption_key__0: bitstring[private].
+(* type proc_t : process *)
+const proc_t__0: proc_t.
+(* process worker(..): proc_t *)
+let worker__0(ptype:proc_t) =
+  event DecryptionResult__event_global(dec__0(not_a_ciphertext__str, decryption_key__0));
+  event Continued__event_global.
+(* Requires *)
+(* lemma DecryptionResultIsReachable *)
+query result__952:bitstring; 
+  event(DecryptionResult__event_global(result__952)).
+(* lemma UnreducedDecryptionContinues *)
+query event(Continued__event_global()).
+(* System *)
+process worker__0(proc_t__0)
