@@ -14,24 +14,20 @@ const none__syscall: syscall_t.
 (* Booleans *)
 const true__bool: bitstring.
 const false__bool: bitstring.
-(* Event declaration ::Valid(..) *)
-event Valid__event_global.
+(* Event declaration ::Selected(..) *)
+event Selected__event_global(bitstring).
+(* Integer constant 0 *)
+const int__pos_0: bitstring.
 (* Integer constant 1 *)
 const int__pos_1: bitstring.
 (* Body *)
-(* function true:0 *)
-fun true__0(): bitstring.
-(* function eq:2 *)
-fun eq__0(bitstring, bitstring): bitstring.
-(* equation eq(x__807, x__807) = true *)
-equation forall x__807:bitstring; eq__0(x__807, x__807) = true__0.
 (* type proc_t : process *)
 const proc_t__0: proc_t.
-(* process proc(..): proc_t *)
-let proc__0(ptype:proc_t) =
-  if eq__0(int__pos_1, int__pos_1) = true__0 then event Valid__event_global.
+(* process chooser(..): proc_t *)
+let chooser__0(ptype:proc_t) =
+  if int__pos_1 = int__pos_1 then event Selected__event_global(int__pos_1).
 (* Requires *)
-(* lemma Reachable *)
-query event(Valid__event_global()).
+(* lemma UpdatedStateReachesContinuation *)
+query event(Selected__event_global(int__pos_1)).
 (* System *)
-process proc__0(proc_t__0)
+process chooser__0(proc_t__0)

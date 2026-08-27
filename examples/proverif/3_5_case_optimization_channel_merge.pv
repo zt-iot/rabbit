@@ -30,30 +30,30 @@ const proc_t__0: proc_t.
 (* type chan_t : channel *)
 const chan_t__0: acc_data_t.
 (* process chooser(..): proc_t *)
-let chooser__0(ptype:proc_t, ch__50:channel) =
-  (* Channel ch__50 : chan_t *)
-  insert channel_table(chan_t__0, ch__50);
-  get channel_table(ch_type__57:acc_data_t, =ch__50) in
-  get access_control_table(=ptype, =ch_type__57, =none__syscall) in
-  out(ch__50, store__chan(int__pos_1)) |
-  (get channel_table(ch_type__56:acc_data_t, =ch__50) in
-   get access_control_table(=ptype, =ch_type__56, =none__syscall) in
-   in(ch__50, store__chan(case_arg_0__51:bitstring));
-   new channel_case_ch__52:channel;
-   ((out(channel_case_ch__52, (false__bool, ())) |
-     in(channel_case_ch__52, (=false__bool, channel_case_result__54:bitstring))[precise];
-     if case_arg_0__51 = int__pos_1
+let chooser__0(ptype:proc_t, ch__39:channel) =
+  (* Channel ch__39 : chan_t *)
+  insert channel_table(chan_t__0, ch__39);
+  get channel_table(ch_type__46:acc_data_t, =ch__39) in
+  get access_control_table(=ptype, =ch_type__46, =none__syscall) in
+  out(ch__39, store__chan(int__pos_1)) |
+  (get channel_table(ch_type__45:acc_data_t, =ch__39) in
+   get access_control_table(=ptype, =ch_type__45, =none__syscall) in
+   in(ch__39, store__chan(case_arg_0__40:bitstring));
+   new channel_case_ch__41:channel;
+   ((out(channel_case_ch__41, (false__bool, ())) |
+     in(channel_case_ch__41, (=false__bool, channel_case_result__43:bitstring))[precise];
+     if case_arg_0__40 = int__pos_1
      then
        event Valid__event_global;
-       out(channel_case_ch__52, (true__bool, ()))
-     else out(channel_case_ch__52, (false__bool, channel_case_result__54))) |
-    in(channel_case_ch__52, (=false__bool, channel_case_result__55:bitstring))[precise];
-    if case_arg_0__51 = int__pos_2
+       out(channel_case_ch__41, (true__bool, ()))
+     else out(channel_case_ch__41, (false__bool, channel_case_result__43))) |
+    in(channel_case_ch__41, (=false__bool, channel_case_result__44:bitstring))[precise];
+    if case_arg_0__40 = int__pos_2
     then
       event Invalid__event_global;
-      out(channel_case_ch__52, (true__bool, ()))
-    else out(channel_case_ch__52, (false__bool, channel_case_result__55))) |
-   in(channel_case_ch__52, (=true__bool, channel_case_done_result__53:bitstring))[precise]).
+      out(channel_case_ch__41, (true__bool, ()))
+    else out(channel_case_ch__41, (false__bool, channel_case_result__44))) |
+   in(channel_case_ch__41, (=true__bool, channel_case_done_result__42:bitstring))[precise]).
 (* channel ch : chan_t *)
 free ch__0: channel[private].
 (* Requires *)

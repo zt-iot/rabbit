@@ -34,17 +34,17 @@ const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
 let worker__0(ptype:proc_t) =
   event Sent__event_global(int__pos_0);
-  new call_join_ch__128:channel;
+  new call_join_ch__113:channel;
   (new attack_choice_ch:channel;
    (out(attack_choice_ch, true__bool) |
     in(attack_choice_ch, _:bitstring);
     event Syscall__event_global(int__pos_0);
-    out(call_join_ch__128, (true__bool, int__pos_0))) |
+    out(call_join_ch__113, (true__bool, int__pos_0))) |
    in(attack_choice_ch, _:bitstring);
    event Attack__event_global(int__pos_0);
-   out(call_join_ch__128, (true__bool, succ__0(int__pos_0)))) |
-  in(call_join_ch__128, (=true__bool, call_result__129:bitstring))[precise];
-  event Observed__event_global(call_result__129).
+   out(call_join_ch__113, (true__bool, succ__0(int__pos_0)))) |
+  in(call_join_ch__113, (=true__bool, call_result__114:bitstring))[precise];
+  event Observed__event_global(call_result__114).
 (* Requires *)
 (* lemma ReachableSyscall *)
 query event(Syscall__event_global(int__pos_0)).

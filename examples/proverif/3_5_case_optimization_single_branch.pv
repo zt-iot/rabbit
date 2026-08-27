@@ -26,24 +26,24 @@ const proc_t__0: proc_t.
 (* type chan_t : channel *)
 const chan_t__0: acc_data_t.
 (* process chooser(..): proc_t *)
-let chooser__0(ptype:proc_t, ch__66:channel) =
-  (* Channel ch__66 : chan_t *)
-  insert channel_table(chan_t__0, ch__66);
-  get channel_table(ch_type__72:acc_data_t, =ch__66) in
-  get access_control_table(=ptype, =ch_type__72, =none__syscall) in
-  out(ch__66, store__chan(int__pos_1)) |
-  (get channel_table(ch_type__71:acc_data_t, =ch__66) in
-   get access_control_table(=ptype, =ch_type__71, =none__syscall) in
-   in(ch__66, store__chan(case_arg_0__67:bitstring));
-   new channel_case_ch__68:channel;
-   (out(channel_case_ch__68, (false__bool, ())) |
-    in(channel_case_ch__68, (=false__bool, channel_case_result__70:bitstring))[precise];
-    if case_arg_0__67 = int__pos_1
+let chooser__0(ptype:proc_t, ch__55:channel) =
+  (* Channel ch__55 : chan_t *)
+  insert channel_table(chan_t__0, ch__55);
+  get channel_table(ch_type__61:acc_data_t, =ch__55) in
+  get access_control_table(=ptype, =ch_type__61, =none__syscall) in
+  out(ch__55, store__chan(int__pos_1)) |
+  (get channel_table(ch_type__60:acc_data_t, =ch__55) in
+   get access_control_table(=ptype, =ch_type__60, =none__syscall) in
+   in(ch__55, store__chan(case_arg_0__56:bitstring));
+   new channel_case_ch__57:channel;
+   (out(channel_case_ch__57, (false__bool, ())) |
+    in(channel_case_ch__57, (=false__bool, channel_case_result__59:bitstring))[precise];
+    if case_arg_0__56 = int__pos_1
     then
       event Valid__event_global;
-      out(channel_case_ch__68, (true__bool, ()))
-    else out(channel_case_ch__68, (false__bool, channel_case_result__70))) |
-   in(channel_case_ch__68, (=true__bool, channel_case_done_result__69:bitstring))[precise]).
+      out(channel_case_ch__57, (true__bool, ()))
+    else out(channel_case_ch__57, (false__bool, channel_case_result__59))) |
+   in(channel_case_ch__57, (=true__bool, channel_case_done_result__58:bitstring))[precise]).
 (* channel ch : chan_t *)
 free ch__0: channel[private].
 (* Requires *)

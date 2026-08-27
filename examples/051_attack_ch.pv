@@ -32,64 +32,64 @@ const person_t__0: proc_t.
 (* type chan_t : channel *)
 const chan_t__0: acc_data_t.
 (* process alice(..): person_t *)
-let alice__0(ptype:proc_t, ch__728:channel) =
-  (* Channel ch__728 : chan_t *)
-  insert channel_table(chan_t__0, ch__728);
-  new n__729:bitstring;
-  event Send__event_global(n__729);
-  get channel_table(ch_type__765:acc_data_t, =ch__728) in
-  get access_control_table(=ptype, =ch_type__765, =send__0__syscall) in
-  out(ch__728, store__chan(n__729)) |
-  new call_join_ch__743:channel;
+let alice__0(ptype:proc_t, ch__718:channel) =
+  (* Channel ch__718 : chan_t *)
+  insert channel_table(chan_t__0, ch__718);
+  new n__719:bitstring;
+  event Send__event_global(n__719);
+  get channel_table(ch_type__755:acc_data_t, =ch__718) in
+  get access_control_table(=ptype, =ch_type__755, =send__0__syscall) in
+  out(ch__718, store__chan(n__719)) |
+  new call_join_ch__733:channel;
   (new attack_choice_ch:channel;
    (out(attack_choice_ch, true__bool) |
     in(attack_choice_ch, _:bitstring);
-    get channel_table(ch_type__747:acc_data_t, =ch__728) in
-    get access_control_table(=ptype, =ch_type__747, =recv__0__syscall) in
-    in(ch__728, store__chan(case_arg_0__733:bitstring));
-    new channel_case_ch__734:channel;
-    (out(channel_case_ch__734, (false__bool, (), n__729, ch__728)) |
-     in(channel_case_ch__734, (=false__bool, channel_case_result__744:bitstring, channel_case_state_0__745:bitstring, channel_case_state_1__746:bitstring))[precise];
-     out(channel_case_ch__734, (true__bool, case_arg_0__733, channel_case_state_0__745, channel_case_state_1__746))) |
-    in(channel_case_ch__734, (=true__bool, channel_case_done_result__735:bitstring, channel_case_done_state_0__736:bitstring, channel_case_done_state_1__737:bitstring))[precise];
-    out(call_join_ch__743, (true__bool, channel_case_done_result__735, channel_case_done_state_0__736))) |
+    get channel_table(ch_type__737:acc_data_t, =ch__718) in
+    get access_control_table(=ptype, =ch_type__737, =recv__0__syscall) in
+    in(ch__718, store__chan(case_arg_0__723:bitstring));
+    new channel_case_ch__724:channel;
+    (out(channel_case_ch__724, (false__bool, (), n__719, ch__718)) |
+     in(channel_case_ch__724, (=false__bool, channel_case_result__734:bitstring, channel_case_state_0__735:bitstring, channel_case_state_1__736:bitstring))[precise];
+     out(channel_case_ch__724, (true__bool, case_arg_0__723, channel_case_state_0__735, channel_case_state_1__736))) |
+    in(channel_case_ch__724, (=true__bool, channel_case_done_result__725:bitstring, channel_case_done_state_0__726:bitstring, channel_case_done_state_1__727:bitstring))[precise];
+    out(call_join_ch__733, (true__bool, channel_case_done_result__725, channel_case_done_state_0__726))) |
    in(attack_choice_ch, _:bitstring);
-   get channel_table(ch_type__752:acc_data_t, =ch__728) in
-   get access_control_table(=ptype, =ch_type__752, =recv__0__syscall) in
-   in(ch__728, store__chan(case_arg_0__738:bitstring));
-   new channel_case_ch__739:channel;
-   (out(channel_case_ch__739, (false__bool, (), n__729, ch__728)) |
-    in(channel_case_ch__739, (=false__bool, channel_case_result__748:bitstring, channel_case_state_0__749:bitstring, channel_case_state_1__750:bitstring))[precise];
-    in(attacker_ch, attacker_input__751:bitstring);
-    out(channel_case_ch__739, (true__bool, attacker_input__751, channel_case_state_0__749, channel_case_state_1__750))) |
-   in(channel_case_ch__739, (=true__bool, channel_case_done_result__740:bitstring, channel_case_done_state_0__741:bitstring, channel_case_done_state_1__742:bitstring))[precise];
-   out(call_join_ch__743, (true__bool, channel_case_done_result__740, channel_case_done_state_0__741))) |
-  in(call_join_ch__743, (=true__bool, call_result__753:bitstring, call_state_0__754:bitstring))[precise];
-  new case_ch__755:channel;
-  ((out(case_ch__755, (false__bool, (), call_state_0__754, call_result__753)) |
-    in(case_ch__755, (=false__bool, case_result__759:bitstring, case_state_0__760:bitstring, case_state_1__761:bitstring))[precise];
-    if case_state_0__760 = case_state_1__761
+   get channel_table(ch_type__742:acc_data_t, =ch__718) in
+   get access_control_table(=ptype, =ch_type__742, =recv__0__syscall) in
+   in(ch__718, store__chan(case_arg_0__728:bitstring));
+   new channel_case_ch__729:channel;
+   (out(channel_case_ch__729, (false__bool, (), n__719, ch__718)) |
+    in(channel_case_ch__729, (=false__bool, channel_case_result__738:bitstring, channel_case_state_0__739:bitstring, channel_case_state_1__740:bitstring))[precise];
+    in(attacker_ch, attacker_input__741:bitstring);
+    out(channel_case_ch__729, (true__bool, attacker_input__741, channel_case_state_0__739, channel_case_state_1__740))) |
+   in(channel_case_ch__729, (=true__bool, channel_case_done_result__730:bitstring, channel_case_done_state_0__731:bitstring, channel_case_done_state_1__732:bitstring))[precise];
+   out(call_join_ch__733, (true__bool, channel_case_done_result__730, channel_case_done_state_0__731))) |
+  in(call_join_ch__733, (=true__bool, call_result__743:bitstring, call_state_0__744:bitstring))[precise];
+  new case_ch__745:channel;
+  ((out(case_ch__745, (false__bool, (), call_state_0__744, call_result__743)) |
+    in(case_ch__745, (=false__bool, case_result__749:bitstring, case_state_0__750:bitstring, case_state_1__751:bitstring))[precise];
+    if case_state_0__750 = case_state_1__751
     then
-      event Valid__event_global(case_state_0__760);
-      out(case_ch__755, (true__bool, (), case_state_0__760, case_state_1__761))
+      event Valid__event_global(case_state_0__750);
+      out(case_ch__745, (true__bool, (), case_state_0__750, case_state_1__751))
     else
-      out(case_ch__755, (false__bool, case_result__759, case_state_0__760, case_state_1__761))) |
-   in(case_ch__755, (=false__bool, case_result__762:bitstring, case_state_0__763:bitstring, case_state_1__764:bitstring))[precise];
-   if case_state_0__763 = case_state_1__764
+      out(case_ch__745, (false__bool, case_result__749, case_state_0__750, case_state_1__751))) |
+   in(case_ch__745, (=false__bool, case_result__752:bitstring, case_state_0__753:bitstring, case_state_1__754:bitstring))[precise];
+   if case_state_0__753 = case_state_1__754
    then
-     out(case_ch__755, (false__bool, case_result__762, case_state_0__763, case_state_1__764))
+     out(case_ch__745, (false__bool, case_result__752, case_state_0__753, case_state_1__754))
    else
      event Invalid__event_global;
-     out(case_ch__755, (true__bool, (), case_state_0__763, case_state_1__764))) |
-  in(case_ch__755, (=true__bool, case_done_result__756:bitstring, case_done_state_0__757:bitstring, case_done_state_1__758:bitstring))[precise].
+     out(case_ch__745, (true__bool, (), case_state_0__753, case_state_1__754))) |
+  in(case_ch__745, (=true__bool, case_done_result__746:bitstring, case_done_state_0__747:bitstring, case_done_state_1__748:bitstring))[precise].
 (* channel ch : chan_t *)
 free ch__0: channel[private].
 (* Requires *)
 (* lemma Reachable *)
-query n__731:bitstring; event(Valid__event_global(n__731)).
+query n__721:bitstring; event(Valid__event_global(n__721)).
 (* lemma Corresponds *)
-query n__732:bitstring; 
-  event(Valid__event_global(n__732)) ==> event(Send__event_global(n__732)).
+query n__722:bitstring; 
+  event(Valid__event_global(n__722)) ==> event(Send__event_global(n__722)).
 (* lemma Tampered *)
 query event(Invalid__event_global()).
 (* System *)

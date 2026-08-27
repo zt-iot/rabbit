@@ -27,22 +27,22 @@ const person_t__0: proc_t.
 const chan_t__0: acc_data_t.
 (* process alice(..): person_t *)
 let alice__0(ptype:proc_t) =
-  new case_ch__830:channel;
-  ((out(case_ch__830, (false__bool, (), int__pos_1)) |
-    in(case_ch__830, (=false__bool, case_result__833:bitstring, case_state_0__834:bitstring))[precise];
-    if case_state_0__834 = int__pos_1
+  new case_ch__812:channel;
+  ((out(case_ch__812, (false__bool, (), int__pos_1)) |
+    in(case_ch__812, (=false__bool, case_result__815:bitstring, case_state_0__816:bitstring))[precise];
+    if case_state_0__816 = int__pos_1
     then
       event Valid__event_global;
-      out(case_ch__830, (true__bool, (), case_state_0__834))
+      out(case_ch__812, (true__bool, (), case_state_0__816))
     else
-      out(case_ch__830, (false__bool, case_result__833, case_state_0__834))) |
-   in(case_ch__830, (=false__bool, case_result__835:bitstring, case_state_0__836:bitstring))[precise];
-   if case_state_0__836 = int__pos_1
-   then out(case_ch__830, (false__bool, case_result__835, case_state_0__836))
+      out(case_ch__812, (false__bool, case_result__815, case_state_0__816))) |
+   in(case_ch__812, (=false__bool, case_result__817:bitstring, case_state_0__818:bitstring))[precise];
+   if case_state_0__818 = int__pos_1
+   then out(case_ch__812, (false__bool, case_result__817, case_state_0__818))
    else
      event Invalid__event_global;
-     out(case_ch__830, (true__bool, (), case_state_0__836))) |
-  in(case_ch__830, (=true__bool, case_done_result__831:bitstring, case_done_state_0__832:bitstring))[precise].
+     out(case_ch__812, (true__bool, (), case_state_0__818))) |
+  in(case_ch__812, (=true__bool, case_done_result__813:bitstring, case_done_state_0__814:bitstring))[precise].
 (* Requires *)
 (* lemma Reachable *)
 query event(Valid__event_global()).

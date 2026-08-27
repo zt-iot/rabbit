@@ -22,13 +22,13 @@ const person_t__0: proc_t.
 (* process alice(..): person_t *)
 let alice__0(ptype:proc_t) =
   event Valid__event_global;
-  new loop_ch__548:channel;
-  (out(loop_ch__548, (false__bool, ())) |
-   !((in(loop_ch__548, (=false__bool, loop_result__551:bitstring))[precise];
-      out(loop_ch__548, (false__bool, ()))) |
-     in(loop_ch__548, (=false__bool, loop_result__550:bitstring))[precise];
-     out(loop_ch__548, (false__bool, loop_result__550)))) |
-  in(loop_ch__548, (=true__bool, loop_done_result__549:bitstring))[precise].
+  new loop_ch__538:channel;
+  (out(loop_ch__538, (false__bool, ())) |
+   !((in(loop_ch__538, (=false__bool, loop_result__541:bitstring))[precise];
+      out(loop_ch__538, (false__bool, ()))) |
+     in(loop_ch__538, (=false__bool, loop_result__540:bitstring))[precise];
+     out(loop_ch__538, (false__bool, loop_result__540)))) |
+  in(loop_ch__538, (=true__bool, loop_done_result__539:bitstring))[precise].
 (* Requires *)
 (* lemma Valid *)
 query event(Valid__event_global()).

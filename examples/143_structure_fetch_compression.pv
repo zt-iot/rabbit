@@ -42,30 +42,22 @@ const proc_t__0: proc_t.
 (* process p(..): proc_t *)
 let p__0(ptype:proc_t) =
   event Allocating__event_global;
-  new x__876:bitstring;
-  get deleted_address_table(=S__struct_addr(S__struct(x__876, int__pos_1, int__pos_2, int__pos_3)))
+  new x__831:bitstring;
+  get deleted_address_table(=S__struct_addr(S__struct(x__831, int__pos_1, int__pos_2, int__pos_3)))
   else
-    new case_ch__880:channel;
-    (out(case_ch__880, (false__bool, (), S__struct(x__876, int__pos_1, int__pos_2, int__pos_3), S__struct_par_1(S__struct(x__876, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_2(S__struct(x__876, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_3(S__struct(x__876, int__pos_1, int__pos_2, int__pos_3)))) |
-     in(case_ch__880, (=false__bool, case_result__886:bitstring, case_state_0__887:bitstring, case_state_1__888:bitstring, case_state_2__889:bitstring, case_state_3__890:bitstring))[precise];
-     if case_state_1__888 = int__pos_1
+    (if
+       S__struct_par_1(S__struct(x__831, int__pos_1, int__pos_2, int__pos_3)) = int__pos_1
      then
-       if case_state_2__889 = int__pos_2
+       if
+         S__struct_par_2(S__struct(x__831, int__pos_1, int__pos_2, int__pos_3)) = int__pos_2
        then
-         if case_state_3__890 = int__pos_3
+         if
+           S__struct_par_3(S__struct(x__831, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
          then
            event Valid__event_global;
-           out(case_ch__880, (true__bool, (), case_state_0__887, case_state_1__888, case_state_2__889, case_state_3__890))
-         else
-           out(case_ch__880, (false__bool, case_result__886, case_state_0__887, case_state_1__888, case_state_2__889, case_state_3__890))
-       else
-         out(case_ch__880, (false__bool, case_result__886, case_state_0__887, case_state_1__888, case_state_2__889, case_state_3__890))
-     else
-       out(case_ch__880, (false__bool, case_result__886, case_state_0__887, case_state_1__888, case_state_2__889, case_state_3__890))) |
-    in(case_ch__880, (=true__bool, case_done_result__881:bitstring, case_done_state_0__882:bitstring, case_done_state_1__883:bitstring, case_done_state_2__884:bitstring, case_done_state_3__885:bitstring))[precise];
-    (* delete _.S *)
-    insert deleted_address_table(S__struct_addr(case_done_state_0__882));
-    event Deleted__event_global.
+           (* delete _.S *)
+           insert deleted_address_table(S__struct_addr(S__struct(x__831, int__pos_1, int__pos_2, int__pos_3)));
+           event Deleted__event_global).
 (* Requires *)
 (* lemma Reachable *)
 query event(Deleted__event_global()).

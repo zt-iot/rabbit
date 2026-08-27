@@ -35,39 +35,39 @@ const int__pos_3: bitstring.
 const proc_t__0: proc_t.
 (* process chooser(..): proc_t *)
 let chooser__0(ptype:proc_t) =
-  new case_ch__33:channel;
-  (((out(case_ch__33, (false__bool, (), int__pos_0, int__pos_1, int__pos_2)) |
-     in(case_ch__33, (=false__bool, case_result__38:bitstring, case_state_0__39:bitstring, case_state_1__40:bitstring, case_state_2__41:bitstring))[precise];
-     if case_state_1__40 = int__pos_1
+  new case_ch__22:channel;
+  (((out(case_ch__22, (false__bool, (), int__pos_0, int__pos_1, int__pos_2)) |
+     in(case_ch__22, (=false__bool, case_result__27:bitstring, case_state_0__28:bitstring, case_state_1__29:bitstring, case_state_2__30:bitstring))[precise];
+     if case_state_1__29 = int__pos_1
      then
-       if case_state_2__41 = int__pos_2
+       if case_state_2__30 = int__pos_2
        then
          event Valid__event_global;
-         out(case_ch__33, (true__bool, (), int__pos_1, case_state_1__40, case_state_2__41))
+         out(case_ch__22, (true__bool, (), int__pos_1, case_state_1__29, case_state_2__30))
        else
-         out(case_ch__33, (false__bool, case_result__38, case_state_0__39, case_state_1__40, case_state_2__41))
+         out(case_ch__22, (false__bool, case_result__27, case_state_0__28, case_state_1__29, case_state_2__30))
      else
-       out(case_ch__33, (false__bool, case_result__38, case_state_0__39, case_state_1__40, case_state_2__41))) |
-    in(case_ch__33, (=false__bool, case_result__42:bitstring, case_state_0__43:bitstring, case_state_1__44:bitstring, case_state_2__45:bitstring))[precise];
-    if case_state_1__44 = int__pos_1
+       out(case_ch__22, (false__bool, case_result__27, case_state_0__28, case_state_1__29, case_state_2__30))) |
+    in(case_ch__22, (=false__bool, case_result__31:bitstring, case_state_0__32:bitstring, case_state_1__33:bitstring, case_state_2__34:bitstring))[precise];
+    if case_state_1__33 = int__pos_1
     then
-      if case_state_2__45 = int__pos_2
+      if case_state_2__34 = int__pos_2
       then
-        out(case_ch__33, (false__bool, case_result__42, case_state_0__43, case_state_1__44, case_state_2__45))
+        out(case_ch__22, (false__bool, case_result__31, case_state_0__32, case_state_1__33, case_state_2__34))
       else
         event Unexpected__event_global;
-        out(case_ch__33, (true__bool, (), int__pos_2, case_state_1__44, case_state_2__45))
+        out(case_ch__22, (true__bool, (), int__pos_2, case_state_1__33, case_state_2__34))
     else
-      out(case_ch__33, (false__bool, case_result__42, case_state_0__43, case_state_1__44, case_state_2__45))) |
-   in(case_ch__33, (=false__bool, case_result__46:bitstring, case_state_0__47:bitstring, case_state_1__48:bitstring, case_state_2__49:bitstring))[precise];
-   if case_state_1__48 = int__pos_1
+      out(case_ch__22, (false__bool, case_result__31, case_state_0__32, case_state_1__33, case_state_2__34))) |
+   in(case_ch__22, (=false__bool, case_result__35:bitstring, case_state_0__36:bitstring, case_state_1__37:bitstring, case_state_2__38:bitstring))[precise];
+   if case_state_1__37 = int__pos_1
    then
-     out(case_ch__33, (false__bool, case_result__46, case_state_0__47, case_state_1__48, case_state_2__49))
+     out(case_ch__22, (false__bool, case_result__35, case_state_0__36, case_state_1__37, case_state_2__38))
    else
      event Invalid__event_global;
-     out(case_ch__33, (true__bool, (), int__pos_3, case_state_1__48, case_state_2__49))) |
-  in(case_ch__33, (=true__bool, case_done_result__34:bitstring, case_done_state_0__35:bitstring, case_done_state_1__36:bitstring, case_done_state_2__37:bitstring))[precise];
-  event Joined__event_global(case_done_state_0__35).
+     out(case_ch__22, (true__bool, (), int__pos_3, case_state_1__37, case_state_2__38))) |
+  in(case_ch__22, (=true__bool, case_done_result__23:bitstring, case_done_state_0__24:bitstring, case_done_state_1__25:bitstring, case_done_state_2__26:bitstring))[precise];
+  event Joined__event_global(case_done_state_0__24).
 (* Requires *)
 (* lemma ReachableValid *)
 query event(Valid__event_global()).

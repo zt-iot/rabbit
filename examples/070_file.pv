@@ -43,27 +43,20 @@ let server__0(ptype:proc_t) =
   insert file_type_table(ptype, readonly_t__0, secret_pub__str);
   new file_ch:channel;
   out(file_ch, (secret_pub__str, hello__str)) |
-  new case_ch__805:channel;
-  (out(case_ch__805, (false__bool, (), secret_pub__str)) |
-   in(case_ch__805, (=false__bool, case_result__808:bitstring, case_state_0__809:bitstring))[precise];
-   get file_type_table(=ptype, file_type__812:acc_data_t, =case_state_0__809)
+  (get file_type_table(=ptype, file_type__797:acc_data_t, =secret_pub__str)
    in
-   get access_control_table(=ptype, =file_type__812, =fopen__0__syscall) in
-   in(file_ch, (=case_state_0__809, file_contents__810:bitstring))[precise];
-   new y__799:bitstring;
-   (get file_type_table(=ptype, file_type__811:acc_data_t, =case_state_0__809)
-    in
-    get access_control_table(=ptype, =file_type__811, =fopen__0__syscall) in
-    out(file_ch, (case_state_0__809, file_contents__810)) |
-    out(case_ch__805, (true__bool, Fd__struct(y__799, file_contents__810), case_state_0__809)))
-   else out(case_ch__805, (false__bool, case_result__808, case_state_0__809))
-   else out(case_ch__805, (false__bool, case_result__808, case_state_0__809))) |
-  in(case_ch__805, (=true__bool, case_done_result__806:bitstring, case_done_state_0__807:bitstring))[precise];
-  get deleted_address_table(=Fd__struct_addr(case_done_result__806))
-  else
-    (* delete _.Fd *)
-    insert deleted_address_table(Fd__struct_addr(case_done_result__806));
-    event Valid__event_global.
+   get access_control_table(=ptype, =file_type__797, =fopen__0__syscall) in
+   in(file_ch, (=secret_pub__str, file_contents__795:bitstring))[precise];
+   new y__789:bitstring;
+   get file_type_table(=ptype, file_type__796:acc_data_t, =secret_pub__str)
+   in
+   get access_control_table(=ptype, =file_type__796, =fopen__0__syscall) in
+   out(file_ch, (secret_pub__str, file_contents__795)) |
+   (get deleted_address_table(=Fd__struct_addr(Fd__struct(y__789, file_contents__795)))
+    else
+      (* delete _.Fd *)
+      insert deleted_address_table(Fd__struct_addr(Fd__struct(y__789, file_contents__795)));
+      event Valid__event_global)).
 (* Requires *)
 (* lemma Reachable *)
 query event(Valid__event_global()).

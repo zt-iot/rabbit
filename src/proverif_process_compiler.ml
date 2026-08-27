@@ -495,14 +495,14 @@ let compile_event_facts genv penv (facts : T.fact list) (body : tprocess_e)
     facts
     events
 
-let rec compile_guard_tests
+let rec compile_guard_fragment
     genv
     penv
     (fresh : T.ident list)
     (facts : T.fact list)
-    (then_proc : PEnv.t -> tprocess_e)
-    (else_proc : tprocess_e)
-  : tprocess_e =
+    ~(on_success : PEnv.t -> PEnv.t * (tprocess_e -> tprocess_e))
+    ~(else_proc : tprocess_e)
+  : PEnv.t * (tprocess_e -> tprocess_e) =
   (*
      3.5 Case Encoding
 
@@ -522,31 +522,33 @@ let rec compile_guard_tests
      ```
   *)
   match facts with
-  | [] -> then_proc penv
+  | [] -> on_success penv
   | fact :: facts ->
       (match fact.desc with
        | Eq (lhs, rhs) ->
+           let final_env, fragment =
+             compile_guard_fragment genv penv fresh facts ~on_success ~else_proc
+           in
            let cond =
              eq_pterm
                (compile_expr_to_pterm genv penv lhs)
                (compile_expr_to_pterm genv penv rhs)
            in
-           process_e @@
-           PTest
-             ( cond
-             , compile_guard_tests genv penv fresh facts then_proc else_proc
-             , else_proc )
+           final_env,
+           fun rest ->
+             process_e @@ PTest (cond, fragment rest, else_proc)
        | Neq (lhs, rhs) ->
+           let final_env, fragment =
+             compile_guard_fragment genv penv fresh facts ~on_success ~else_proc
+           in
            let cond =
              eq_pterm
                (compile_expr_to_pterm genv penv lhs)
                (compile_expr_to_pterm genv penv rhs)
            in
-           process_e @@
-           PTest
-             ( cond
-             , else_proc
-             , compile_guard_tests genv penv fresh facts then_proc else_proc )
+           final_env,
+           fun rest ->
+             process_e @@ PTest (cond, else_proc, fragment rest)
        | Channel _ ->
            Error.unsupported ~loc:fact.loc
              "Nested channel guard lowering is not supported here"
@@ -567,24 +569,34 @@ let rec compile_guard_tests
                ; PPatVar (compile_ident payload_id, Some bitstring_ident)
                ]
            in
-           let branch_env, then_proc =
+           let branch_env, match_contents =
              match contents.desc with
              | T.Ident { id; _ } when List.mem id fresh ->
-                 let branch_env = PEnv.define_process_var penv id payload_term in
-                 branch_env, compile_guard_tests genv branch_env fresh facts then_proc else_proc
+                 PEnv.define_process_var penv id payload_term, Fun.id
              | _ ->
-                 let eq_then =
+                 penv,
+                 fun then_proc ->
                    process_e @@
                    PTest
-                     ( eq_pterm payload_term (compile_expr_to_pterm genv penv contents)
-                     , compile_guard_tests genv penv fresh facts then_proc else_proc
+                     ( eq_pterm payload_term
+                         (compile_expr_to_pterm genv penv contents)
+                     , then_proc
                      , else_proc )
-                 in
-                 penv, eq_then
            in
-           wrap_with_file_access_get path_term branch_env
-             (process_e @@ PInput (file_channel, payload_pattern, then_proc, [precise_ident, None]))
-             else_proc
+           let final_env, fragment =
+             compile_guard_fragment genv branch_env fresh facts ~on_success ~else_proc
+           in
+           final_env,
+           fun rest ->
+             let then_proc = match_contents (fragment rest) in
+             wrap_with_file_access_get path_term branch_env
+               (process_e @@
+                PInput
+                  ( file_channel
+                  , payload_pattern
+                  , then_proc
+                  , [precise_ident, None] ))
+               else_proc
        | Global ("In", [_arg]) ->
            let arg =
              match fact.desc with
@@ -593,34 +605,51 @@ let rec compile_guard_tests
            in
            let payload_id = Ident.local "attacker_input" in
            let payload_term = pterm_e @@ PPIdent (compile_ident payload_id) in
-           let then_proc =
+           let branch_env, match_arg =
              match arg.desc with
              | T.Ident { id; _ } when List.mem id fresh ->
-                 let branch_env = PEnv.define_process_var penv id payload_term in
-                 compile_guard_tests genv branch_env fresh facts then_proc else_proc
+                 PEnv.define_process_var penv id payload_term, Fun.id
              | _ ->
-                 let eq_then =
+                 penv,
+                 fun then_proc ->
                    process_e @@
                    PTest
                      ( eq_pterm payload_term (compile_expr_to_pterm genv penv arg)
-                     , compile_guard_tests genv penv fresh facts then_proc else_proc
+                     , then_proc
                      , else_proc )
-                 in
-                 eq_then
            in
-           process_e @@
-           PInput
-             ( pterm_e @@ PPIdent attacker_channel_ident
-             , PPatVar (compile_ident payload_id, Some bitstring_ident)
-             , then_proc
-             , [] )
-       | Global ("False", []) ->
-           else_proc
+           let final_env, fragment =
+             compile_guard_fragment genv branch_env fresh facts ~on_success ~else_proc
+           in
+           final_env,
+           fun rest ->
+             process_e @@
+             PInput
+               ( pterm_e @@ PPIdent attacker_channel_ident
+               , PPatVar (compile_ident payload_id, Some bitstring_ident)
+               , match_arg (fragment rest)
+               , [] )
+       | Global ("False", []) -> penv, fun _rest -> else_proc
        | Global ("True", []) ->
-           compile_guard_tests genv penv fresh facts then_proc else_proc
+           compile_guard_fragment genv penv fresh facts ~on_success ~else_proc
        | Global _ | Plain _ ->
            Error.unsupported ~loc:fact.loc
              "Only equality/inequality/file guards are supported in ProVerif case lowering")
+
+let compile_guard_tests
+    genv
+    penv
+    (fresh : T.ident list)
+    (facts : T.fact list)
+    (then_proc : PEnv.t -> tprocess_e)
+    (else_proc : tprocess_e)
+  : tprocess_e =
+  let _final_env, fragment =
+    compile_guard_fragment genv penv fresh facts
+      ~on_success:(fun final_env -> final_env, fun _rest -> then_proc final_env)
+      ~else_proc
+  in
+  fragment (process_e PNil)
 
 let compile_pterm_eq_tests
     (tests : (pterm_e * pterm_e) list)
@@ -777,6 +806,32 @@ and compile_case_branch_body
   let body_env, body_fragment = compile_cmd genv penv case.cmd in
   PEnv.remove_process_vars body_env case.fresh, body_fragment
 
+and compile_single_case_no_channel
+    genv
+    penv
+    (case : T.case)
+  : PEnv.t * process_fragment =
+  (*
+     3.5 Single-branch Case Optimization
+
+     ```
+     case [x = y] -> c end;
+     rest
+     ```
+
+     ```
+     if x = y then c; rest else 0
+     ```
+
+     With no competing branch, the private lock and state-passing join are
+     unnecessary. Guard failure terminates this path, while guard success can
+     pass the branch environment directly to the following command.
+  *)
+  compile_guard_fragment genv penv case.fresh case.facts
+    ~on_success:(fun final_env ->
+      compile_case_branch_body genv final_env case)
+    ~else_proc:(process_e PNil)
+
 and compile_case_no_channel
     genv
     penv
@@ -803,6 +858,7 @@ and compile_case_no_channel
   *)
   match cases with
   | [] -> penv, closed_fragment (process_e PNil)
+  | [case] -> compile_single_case_no_channel genv penv case
   | _ ->
       let loc = (List.hd cases).cmd.loc in
       let case_env = unit_result penv in

@@ -1,0 +1,45 @@
+(* Verification feature: a non-channel case with one branch passes its updated
+   process state directly to the continuation and needs no competing branch. *)
+
+type proc_t : process
+
+process chooser() : proc_t
+{
+  main {
+    var selected = 0 in
+    case
+    | [1 = 1] -> selected := 1
+    end;
+    event [::Selected(selected)];
+
+    case
+    | [1 != 1] -> event [::ImpossibleBranch()]
+    end;
+    event [::ContinuedAfterFailedCase()]
+  }
+}
+
+system chooser()
+requires
+[
+  (* PROVERIF EXPECTED
+  # The successful branch updates the value observed by its continuation.
+  true
+  *)
+  lemma UpdatedStateReachesContinuation :
+    reachable ::Selected(1) ;
+
+  (* PROVERIF EXPECTED
+  # The original value is not retained after the successful assignment.
+  false
+  *)
+  lemma OldStateDoesNotReachContinuation :
+    reachable ::Selected(0) ;
+
+  (* PROVERIF EXPECTED
+  # A false single-branch guard executes neither its body nor its continuation.
+  false
+  *)
+  lemma FailedCaseStopsThisPath :
+    reachable ::ContinuedAfterFailedCase()
+]

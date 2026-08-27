@@ -25,8 +25,8 @@ const not_a_ciphertext__str: bitstring.
 fun enc__0(bitstring, bitstring): bitstring.
 (* function dec:2 *)
 fun dec__0(bitstring, bitstring): bitstring.
-(* equation dec(enc(message__950, key__949), key__949) = message__950 *)
-equation forall key__949:bitstring, message__950:bitstring; dec__0(enc__0(message__950, key__949), key__949) = message__950.
+(* equation dec(enc(message__894, key__893), key__893) = message__894 *)
+equation forall key__893:bitstring, message__894:bitstring; dec__0(enc__0(message__894, key__893), key__893) = message__894.
 (* const fresh decryption_key *)
 const decryption_key__0: bitstring[private].
 (* type proc_t : process *)
@@ -37,8 +37,8 @@ let worker__0(ptype:proc_t) =
   event Continued__event_global.
 (* Requires *)
 (* lemma DecryptionResultIsReachable *)
-query result__952:bitstring; 
-  event(DecryptionResult__event_global(result__952)).
+query result__896:bitstring; 
+  event(DecryptionResult__event_global(result__896)).
 (* lemma UnreducedDecryptionContinues *)
 query event(Continued__event_global()).
 (* System *)

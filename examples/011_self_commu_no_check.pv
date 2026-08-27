@@ -34,21 +34,21 @@ const person_t__0: proc_t.
 (* type chan_t : channel *)
 const chan_t__0: acc_data_t.
 (* process alice(..): person_t *)
-let alice__0(ptype:proc_t, ch__24:channel) =
-  (* Channel ch__24 : chan_t *)
-  insert channel_table(chan_t__0, ch__24);
-  get channel_table(ch_type__33:acc_data_t, =ch__24) in
-  get access_control_table(=ptype, =ch_type__33, =send__0__syscall) in
-  out(ch__24, store__chan(int__pos_1)) |
+let alice__0(ptype:proc_t, ch__19:channel) =
+  (* Channel ch__19 : chan_t *)
+  insert channel_table(chan_t__0, ch__19);
+  get channel_table(ch_type__28:acc_data_t, =ch__19) in
+  get access_control_table(=ptype, =ch_type__28, =send__0__syscall) in
+  out(ch__19, store__chan(int__pos_1)) |
   event Sent__event_global;
-  get channel_table(ch_type__32:acc_data_t, =ch__24) in
-  get access_control_table(=ptype, =ch_type__32, =recv__0__syscall) in
-  in(ch__24, store__chan(case_arg_0__26:bitstring));
-  new channel_case_ch__27:channel;
-  (out(channel_case_ch__27, (false__bool, (), ch__24)) |
-   in(channel_case_ch__27, (=false__bool, channel_case_result__30:bitstring, channel_case_state_0__31:bitstring))[precise];
-   out(channel_case_ch__27, (true__bool, case_arg_0__26, channel_case_state_0__31))) |
-  in(channel_case_ch__27, (=true__bool, channel_case_done_result__28:bitstring, channel_case_done_state_0__29:bitstring))[precise];
+  get channel_table(ch_type__27:acc_data_t, =ch__19) in
+  get access_control_table(=ptype, =ch_type__27, =recv__0__syscall) in
+  in(ch__19, store__chan(case_arg_0__21:bitstring));
+  new channel_case_ch__22:channel;
+  (out(channel_case_ch__22, (false__bool, (), ch__19)) |
+   in(channel_case_ch__22, (=false__bool, channel_case_result__25:bitstring, channel_case_state_0__26:bitstring))[precise];
+   out(channel_case_ch__22, (true__bool, case_arg_0__21, channel_case_state_0__26))) |
+  in(channel_case_ch__22, (=true__bool, channel_case_done_result__23:bitstring, channel_case_done_state_0__24:bitstring))[precise];
   event Received__event_global;
   event Valid__event_global.
 (* channel chan : chan_t *)

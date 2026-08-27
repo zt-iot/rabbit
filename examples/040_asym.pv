@@ -23,10 +23,10 @@ event Invalid__event_global.
 fun fst__0(bitstring): bitstring.
 (* function snd:1 *)
 fun snd__0(bitstring): bitstring.
-(* equation fst((x__583, y__584)) = x__583 *)
-equation forall x__583:bitstring, y__584:bitstring; fst__0((x__583, y__584)) = x__583.
-(* equation snd((x__585, y__586)) = y__586 *)
-equation forall x__585:bitstring, y__586:bitstring; snd__0((x__585, y__586)) = y__586.
+(* equation fst((x__573, y__574)) = x__573 *)
+equation forall x__573:bitstring, y__574:bitstring; fst__0((x__573, y__574)) = x__573.
+(* equation snd((x__575, y__576)) = y__576 *)
+equation forall x__575:bitstring, y__576:bitstring; snd__0((x__575, y__576)) = y__576.
 (* function true:0 *)
 fun true__0(): bitstring.
 (* function false:0 *)
@@ -37,8 +37,8 @@ fun pk__0(bitstring): bitstring.
 fun sign__0(bitstring, bitstring): bitstring.
 (* function verify:3 *)
 fun verify__0(bitstring, bitstring, bitstring): bitstring.
-(* equation verify(sign(d__587, k__588), d__587, pk(k__588)) = true *)
-equation forall d__587:bitstring, k__588:bitstring; verify__0(sign__0(d__587, k__588), d__587, pk__0(k__588)) = true__0.
+(* equation verify(sign(d__577, k__578), d__577, pk(k__578)) = true *)
+equation forall d__577:bitstring, k__578:bitstring; verify__0(sign__0(d__577, k__578), d__577, pk__0(k__578)) = true__0.
 (* type process_t : process *)
 const process_t__0: proc_t.
 (* const fresh privkey *)
@@ -48,24 +48,24 @@ const pubkey__0: bitstring.
 equation pubkey__0 = pk__0(privkey__0).
 (* process client(..): process_t *)
 let client__0(ptype:proc_t) =
-  new msg__589:bitstring;
-  new case_ch__592:channel;
-  ((out(case_ch__592, (false__bool, (), msg__589, sign__0(msg__589, privkey__0), verify__0(sign__0(msg__589, privkey__0), msg__589, pubkey__0))) |
-    in(case_ch__592, (=false__bool, case_result__597:bitstring, case_state_0__598:bitstring, case_state_1__599:bitstring, case_state_2__600:bitstring))[precise];
-    if case_state_2__600 = true__0
+  new msg__579:bitstring;
+  new case_ch__582:channel;
+  ((out(case_ch__582, (false__bool, (), msg__579, sign__0(msg__579, privkey__0), verify__0(sign__0(msg__579, privkey__0), msg__579, pubkey__0))) |
+    in(case_ch__582, (=false__bool, case_result__587:bitstring, case_state_0__588:bitstring, case_state_1__589:bitstring, case_state_2__590:bitstring))[precise];
+    if case_state_2__590 = true__0
     then
       event Valid__event_global;
-      out(case_ch__592, (true__bool, (), case_state_0__598, case_state_1__599, case_state_2__600))
+      out(case_ch__582, (true__bool, (), case_state_0__588, case_state_1__589, case_state_2__590))
     else
-      out(case_ch__592, (false__bool, case_result__597, case_state_0__598, case_state_1__599, case_state_2__600))) |
-   in(case_ch__592, (=false__bool, case_result__601:bitstring, case_state_0__602:bitstring, case_state_1__603:bitstring, case_state_2__604:bitstring))[precise];
-   if case_state_2__604 = false__0
+      out(case_ch__582, (false__bool, case_result__587, case_state_0__588, case_state_1__589, case_state_2__590))) |
+   in(case_ch__582, (=false__bool, case_result__591:bitstring, case_state_0__592:bitstring, case_state_1__593:bitstring, case_state_2__594:bitstring))[precise];
+   if case_state_2__594 = false__0
    then
      event Invalid__event_global;
-     out(case_ch__592, (true__bool, (), case_state_0__602, case_state_1__603, case_state_2__604))
+     out(case_ch__582, (true__bool, (), case_state_0__592, case_state_1__593, case_state_2__594))
    else
-     out(case_ch__592, (false__bool, case_result__601, case_state_0__602, case_state_1__603, case_state_2__604))) |
-  in(case_ch__592, (=true__bool, case_done_result__593:bitstring, case_done_state_0__594:bitstring, case_done_state_1__595:bitstring, case_done_state_2__596:bitstring))[precise].
+     out(case_ch__582, (false__bool, case_result__591, case_state_0__592, case_state_1__593, case_state_2__594))) |
+  in(case_ch__582, (=true__bool, case_done_result__583:bitstring, case_done_state_0__584:bitstring, case_done_state_1__585:bitstring, case_done_state_2__586:bitstring))[precise].
 (* Requires *)
 (* lemma Reachable *)
 query event(Valid__event_global()).

@@ -1,0 +1,22 @@
+(* Spec 3.5 single-branch optimization: an equational case without a channel
+   guard is lowered directly, without a private lock-channel join. *)
+
+type proc_t : process
+
+process chooser() : proc_t
+{
+  main {
+    var selected = 0 in
+    case
+    | [1 = 1] -> selected := 1
+    end;
+    event [::Selected(selected)]
+  }
+}
+
+system chooser()
+requires
+[
+  lemma UpdatedStateReachesContinuation :
+    reachable ::Selected(1)
+]

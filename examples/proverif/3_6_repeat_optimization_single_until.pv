@@ -25,19 +25,17 @@ const int__pos_1: bitstring.
 const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
 let worker__0(ptype:proc_t) =
-  new loop_ch__98:channel;
-  (out(loop_ch__98, (false__bool, (), int__pos_0)) |
-   !((in(loop_ch__98, (=false__bool, loop_result__103:bitstring, loop_state_0__104:bitstring))[precise];
-      if loop_state_0__104 = int__pos_0
-      then out(loop_ch__98, (false__bool, (), int__pos_1))
-      else
-        out(loop_ch__98, (false__bool, loop_result__103, loop_state_0__104))) |
-     in(loop_ch__98, (=false__bool, loop_result__101:bitstring, loop_state_0__102:bitstring))[precise];
-     if loop_state_0__102 = int__pos_1
-     then out(loop_ch__98, (true__bool, (), loop_state_0__102))
-     else
-       out(loop_ch__98, (false__bool, loop_result__101, loop_state_0__102)))) |
-  in(loop_ch__98, (=true__bool, loop_done_result__99:bitstring, loop_done_state_0__100:bitstring))[precise];
+  new loop_ch__88:channel;
+  (out(loop_ch__88, (false__bool, (), int__pos_0)) |
+   !((in(loop_ch__88, (=false__bool, loop_result__93:bitstring, loop_state_0__94:bitstring))[precise];
+      if loop_state_0__94 = int__pos_0
+      then out(loop_ch__88, (false__bool, (), int__pos_1))
+      else out(loop_ch__88, (false__bool, loop_result__93, loop_state_0__94))) |
+     in(loop_ch__88, (=false__bool, loop_result__91:bitstring, loop_state_0__92:bitstring))[precise];
+     if loop_state_0__92 = int__pos_1
+     then out(loop_ch__88, (true__bool, (), loop_state_0__92))
+     else out(loop_ch__88, (false__bool, loop_result__91, loop_state_0__92)))) |
+  in(loop_ch__88, (=true__bool, loop_done_result__89:bitstring, loop_done_state_0__90:bitstring))[precise];
   event Valid__event_global.
 (* Requires *)
 (* lemma ReachableValid *)

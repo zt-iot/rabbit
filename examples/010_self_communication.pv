@@ -37,28 +37,20 @@ const chan_t__0: acc_data_t.
 let alice__0(ptype:proc_t, ch__5:channel) =
   (* Channel ch__5 : chan_t *)
   insert channel_table(chan_t__0, ch__5);
-  get channel_table(ch_type__19:acc_data_t, =ch__5) in
-  get access_control_table(=ptype, =ch_type__19, =send__0__syscall) in
+  get channel_table(ch_type__14:acc_data_t, =ch__5) in
+  get access_control_table(=ptype, =ch_type__14, =send__0__syscall) in
   out(ch__5, store__chan(int__pos_1)) |
   event Sent__event_global;
-  get channel_table(ch_type__18:acc_data_t, =ch__5) in
-  get access_control_table(=ptype, =ch_type__18, =recv__0__syscall) in
+  get channel_table(ch_type__13:acc_data_t, =ch__5) in
+  get access_control_table(=ptype, =ch_type__13, =recv__0__syscall) in
   in(ch__5, store__chan(case_arg_0__7:bitstring));
   new channel_case_ch__8:channel;
   (out(channel_case_ch__8, (false__bool, (), ch__5)) |
-   in(channel_case_ch__8, (=false__bool, channel_case_result__16:bitstring, channel_case_state_0__17:bitstring))[precise];
-   out(channel_case_ch__8, (true__bool, case_arg_0__7, channel_case_state_0__17))) |
+   in(channel_case_ch__8, (=false__bool, channel_case_result__11:bitstring, channel_case_state_0__12:bitstring))[precise];
+   out(channel_case_ch__8, (true__bool, case_arg_0__7, channel_case_state_0__12))) |
   in(channel_case_ch__8, (=true__bool, channel_case_done_result__9:bitstring, channel_case_done_state_0__10:bitstring))[precise];
   event Received__event_global;
-  new case_ch__11:channel;
-  (out(case_ch__11, (false__bool, (), channel_case_done_result__9)) |
-   in(case_ch__11, (=false__bool, case_result__14:bitstring, case_state_0__15:bitstring))[precise];
-   if case_state_0__15 = int__pos_1
-   then
-     event Valid__event_global;
-     out(case_ch__11, (true__bool, (), case_state_0__15))
-   else out(case_ch__11, (false__bool, case_result__14, case_state_0__15))) |
-  in(case_ch__11, (=true__bool, case_done_result__12:bitstring, case_done_state_0__13:bitstring))[precise].
+  if channel_case_done_result__9 = int__pos_1 then event Valid__event_global.
 (* channel chan : chan_t *)
 free chan__0: channel[private].
 (* Requires *)
