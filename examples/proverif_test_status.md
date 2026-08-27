@@ -2,7 +2,7 @@
 
 Checked on: 2026-08-27
 
-Tested commit: `f399b094d0a012071668dd181775035721a59a56`
+Tested commit: `ebdfdebfe76b676c0df824c4a3621500adfbd16c`
 
 ## Evaluation method
 
@@ -20,8 +20,8 @@ unexecuted verification is `Fail`.
 
 | Suite | Inputs | Pass | Fail |
 |---|---:|---:|---:|
-| `examples/*.rab` | 58 | 35 | 23 |
-| `examples/proverif_verification/*.rab` | 84 | 54 | 30 |
+| `examples/*.rab` | 58 | 41 | 17 |
+| `examples/proverif_verification/*.rab` | 85 | 56 | 29 |
 
 ## `examples/*.rab`
 
@@ -53,15 +53,15 @@ unexecuted verification is `Fail`.
 | `061_allow_no_syscall.rab` | Pass | `verified` | `true` | Pass | — |
 | `062_allow_param.rab` | Rejected (expected) | `verified` | Not run | **Fail** | ProVerif verification was not run. |
 | `063_allow.rab` | Pass | `verified` | `true` | Pass | — |
-| `064_allow_with_param.rab` | Rejected (expected) | `verified` | Not run | **Fail** | ProVerif verification was not run. |
-| `065_allow_bounded.rab` | Rejected (expected) | `verified` | Not run | **Fail** | ProVerif verification was not run. |
+| `064_allow_with_param.rab` | Pass | `verified` | `true` | Pass | — |
+| `065_allow_bounded.rab` | Pass | `verified` | `true` | Pass | — |
 | `066_allow_bounded_multi_chans.rab` | Rejected (expected) | `verified` | Not run | **Fail** | ProVerif verification was not run. |
 | `070_file.rab` | Pass | `verified` | `true` | Pass | — |
 | `080_state.rab` | Pass | `falsified` | `false` | Pass | — |
-| `081_state_param.rab` | Rejected (expected) | `falsified` | Not run | **Fail** | ProVerif verification was not run. |
-| `082_state_param_return.rab` | Rejected (expected) | `falsified` | Not run | **Fail** | ProVerif verification was not run. |
-| `090_const.rab` | Rejected (expected) | `verified` | Not run | **Fail** | ProVerif verification was not run. |
-| `091_param.rab` | Rejected (expected) | `verified` | Not run | **Fail** | ProVerif verification was not run. |
+| `081_state_param.rab` | Pass | `falsified` | `false` | Pass | — |
+| `082_state_param_return.rab` | Pass | `falsified` | `false` | Pass | — |
+| `090_const.rab` | Pass | `verified` | `true` | Pass | Tamarin reports wellformedness warnings for parametrized constants. |
+| `091_param.rab` | Pass | `verified` | `true` | Pass | Tamarin reports wellformedness warnings for parametrized constants. |
 | `092_nullary.rab` | Pass | `verified` | `true` | Pass | — |
 | `100_syscall.rab` | Pass | `verified` | `true` | Pass | — |
 | `110_case.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
@@ -73,8 +73,8 @@ unexecuted verification is `Fail`.
 | `143_structure_fetch_compression.rab` | Pass | `verified`, `verified` | `true`, `true` | Pass | — |
 | `150_loop.rab` | Rejected (expected) | Error | Not run | **Fail** | ProVerif verification was not run. No Tamarin result is available. |
 | `160_structure.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
-| `161_structure_param.rab` | Rejected (expected) | `verified`, `falsified` | Not run | **Fail** | ProVerif verification was not run. |
-| `162_structure_param.rab` | Rejected (expected) | `verified`, `falsified` | Not run | **Fail** | ProVerif verification was not run. |
+| `161_structure_param.rab` | Pass | `verified`, `falsified` | Error | **Fail** | ProVerif rejects a `param_data` value passed to a `bitstring` structure field. |
+| `162_structure_param.rab` | Pass | `verified`, `falsified` | Error | **Fail** | ProVerif rejects a `param_data` value passed to a `bitstring` structure field. |
 | `200_camserver_param.rab` | Rejected (expected) | Error | Not run | **Fail** | ProVerif verification was not run. No Tamarin result is available. |
 | `210_dec_failure.rab` | Pass | `verified`, `verified` | `true`, `true` | Pass | — |
 | `camserver.rab` | Pass | `verified`, `falsified` | Error | **Fail** | ProVerif rejects a bitstring pattern where a channel is required. |
@@ -101,7 +101,7 @@ unexecuted verification is `Fail`.
 | `attack_target_filtering.rab` | Pass | `verified`, `verified` | `true`, `true` | Pass | — |
 | `attacker_io.rab` | Pass | `verified` | `true` | Pass | — |
 | `boolean.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
-| `bounded_replication_unsupported.rab` | Rejected (expected) | `verified`, `verified` | Not run | **Fail** | ProVerif verification was not run. |
+| `bounded_replication.rab` | Pass | `verified`, `verified` | `true`, `true` | Pass | — |
 | `case.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
 | `case_nondeterministic.rab` | Pass | `verified`, `verified`, `verified`, `verified` | `true`, `true`, `true`, `true` | Pass | — |
 | `case_single_branch.rab` | Pass | `verified`, `falsified`, `falsified` | `true`, `false`, `false` | Pass | — |
@@ -150,7 +150,8 @@ unexecuted verification is `Fail`.
 | `operator_unsupported.rab` | Rejected (expected) | Error | Not run | **Fail** | Rabbit rejects the undeclared `+` operator before Tamarin generation. ProVerif verification was not run. |
 | `parameterized_channel_unsupported.rab` | Rejected (expected) | `verified` | Not run | **Fail** | ProVerif verification was not run. |
 | `parameterized_constant.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | Tamarin results were checked with the legacy backend. |
-| `parameterized_process_unsupported.rab` | Rejected (expected) | `verified` | Not run | **Fail** | ProVerif verification was not run. |
+| `parameterized_process.rab` | Pass | `verified` | `true` | Pass | — |
+| `parameterized_process_expression_unsupported.rab` | Rejected (expected) | `verified` | Not run | **Fail** | Compound process parameter expressions have no `param_data` encoding. |
 | `passive_attack.rab` | Pass | `verified` | `true` | Pass | — |
 | `plain_event.rab` | Pass | Error | `true`, `true` | **Fail** | The Tamarin backend does not support plain facts in lemmas. The verification results differ. |
 | `plain_guard_unsupported.rab` | Rejected (expected) | `falsified` | Not run | **Fail** | ProVerif verification was not run. |
