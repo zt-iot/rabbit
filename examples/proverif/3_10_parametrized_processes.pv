@@ -17,18 +17,14 @@ const false__bool: bitstring.
 (* Event declaration ::Valid(..) *)
 event Valid__event_global.
 (* Body *)
-(* function enc:2 *)
-fun enc__0(bitstring, bitstring): bitstring.
-(* function dec:2 *)
-fun dec__0(bitstring, bitstring): bitstring.
-(* equation dec(enc(x__5, y__6), y__6) = x__5 *)
-equation forall x__5:bitstring, y__6:bitstring; dec__0(enc__0(x__5, y__6), y__6) = x__5.
 (* type proc_t : process *)
 const proc_t__0: proc_t.
-(* process sender(..): proc_t *)
-let sender__0(ptype:proc_t) = event Valid__event_global.
+(* process server(..): proc_t *)
+let server__0(ptype:proc_t, p__3:param_data) =
+  if p__3 = p__3 then event Valid__event_global.
 (* Requires *)
 (* lemma ReachableValid *)
 query event(Valid__event_global()).
 (* System *)
-process sender__0(proc_t__0)
+process !(new p__4:param_data;
+          server__0(proc_t__0, p__4))

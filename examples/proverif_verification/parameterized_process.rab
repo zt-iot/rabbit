@@ -1,0 +1,32 @@
+(* Verification feature: a parameter binder supplies the same fresh
+   [param_data] value to each process in its replicated group. *)
+
+type proc_t : process
+
+process worker<p>() : proc_t
+{
+  main {
+    case
+    | [p = p] -> event [::Ready()]
+    end
+  }
+}
+
+process peer<p>() : proc_t
+{
+  main {
+    case
+    | [p = p] -> event [::PeerReady()]
+    end
+  }
+}
+
+system !p.(worker<p>() | peer<p>())
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma BoundParameterIsUsable : (* verified *)
+    reachable ::Ready(), ::PeerReady()
+]

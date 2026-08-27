@@ -1,0 +1,67 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Structure declaration S(_,_,_) *)
+fun S__struct(bitstring, bitstring, bitstring, bitstring): bitstring[data].
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_addr(S__struct(x_0, x_1, x_2, x_3)) = x_0.
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_par_1(S__struct(x_0, x_1, x_2, x_3)) = x_1.
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_par_2(S__struct(x_0, x_1, x_2, x_3)) = x_2.
+reduc
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_par_3(S__struct(x_0, x_1, x_2, x_3)) = x_3.
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Event declaration ::Invalid(..) *)
+event Invalid__event_global.
+(* Integer constant 1 *)
+const int__pos_1: bitstring.
+(* Integer constant 2 *)
+const int__pos_2: bitstring.
+(* Body *)
+(* type proc_t : process *)
+const proc_t__0: proc_t.
+(* process proc(..): proc_t *)
+let proc__0(ptype:proc_t, p__871:param_data) =
+  new x__872:bitstring;
+  get deleted_address_table(=S__struct_addr(S__struct(x__872, int__pos_1, int__pos_2, p__871)))
+  else
+    new case_ch__877:channel;
+    ((out(case_ch__877, (false__bool, (), p__871, S__struct(x__872, int__pos_1, int__pos_2, p__871), S__struct_par_1(S__struct(x__872, int__pos_1, int__pos_2, p__871)), S__struct_par_2(S__struct(x__872, int__pos_1, int__pos_2, p__871)), S__struct_par_3(S__struct(x__872, int__pos_1, int__pos_2, p__871)))) |
+      in(case_ch__877, (=false__bool, case_result__884:bitstring, case_state_0__885:bitstring, case_state_1__886:bitstring, case_state_2__887:bitstring, case_state_3__888:bitstring, case_state_4__889:bitstring))[precise];
+      if case_state_4__889 = case_state_0__885
+      then
+        event Valid__event_global;
+        out(case_ch__877, (true__bool, (), case_state_0__885, case_state_1__886, case_state_2__887, case_state_3__888, case_state_4__889))
+      else
+        out(case_ch__877, (false__bool, case_result__884, case_state_0__885, case_state_1__886, case_state_2__887, case_state_3__888, case_state_4__889))) |
+     in(case_ch__877, (=false__bool, case_result__890:bitstring, case_state_0__891:bitstring, case_state_1__892:bitstring, case_state_2__893:bitstring, case_state_3__894:bitstring, case_state_4__895:bitstring))[precise];
+     if case_state_4__895 = case_state_0__891
+     then
+       out(case_ch__877, (false__bool, case_result__890, case_state_0__891, case_state_1__892, case_state_2__893, case_state_3__894, case_state_4__895))
+     else
+       event Invalid__event_global;
+       out(case_ch__877, (true__bool, (), case_state_0__891, case_state_1__892, case_state_2__893, case_state_3__894, case_state_4__895))) |
+    in(case_ch__877, (=true__bool, case_done_result__878:bitstring, case_done_state_0__879:bitstring, case_done_state_1__880:bitstring, case_done_state_2__881:bitstring, case_done_state_3__882:bitstring, case_done_state_4__883:bitstring))[precise].
+(* Requires *)
+(* lemma Reachable *)
+query event(Valid__event_global()).
+(* lemma Uneachable *)
+query event(Invalid__event_global()).
+(* System *)
+process !(new p__876:param_data;
+          proc__0(proc_t__0, p__876))

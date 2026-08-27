@@ -37,17 +37,17 @@ const int__pos_3: bitstring.
 const proc_t__0: proc_t.
 (* process maker(..): proc_t *)
 let maker__0(ptype:proc_t) =
-  new x__15:bitstring;
-  get deleted_address_table(=S__struct_addr(S__struct(x__15, int__pos_1, int__pos_2, int__pos_3)))
+  new x__17:bitstring;
+  get deleted_address_table(=S__struct_addr(S__struct(x__17, int__pos_1, int__pos_2, int__pos_3)))
   else
     (if
-       S__struct_par_1(S__struct(x__15, int__pos_1, int__pos_2, int__pos_3)) = int__pos_1
+       S__struct_par_1(S__struct(x__17, int__pos_1, int__pos_2, int__pos_3)) = int__pos_1
      then
        if
-         S__struct_par_2(S__struct(x__15, int__pos_1, int__pos_2, int__pos_3)) = int__pos_2
+         S__struct_par_2(S__struct(x__17, int__pos_1, int__pos_2, int__pos_3)) = int__pos_2
        then
          if
-           S__struct_par_3(S__struct(x__15, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
+           S__struct_par_3(S__struct(x__17, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
          then event Valid__event_global).
 (* Requires *)
 (* lemma ReachableValid *)

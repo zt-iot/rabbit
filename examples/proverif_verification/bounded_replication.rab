@@ -1,0 +1,37 @@
+(* Verification feature: a parameter binder replicates a group of processes
+   that share the same fresh [param_data] value. *)
+
+type proc_t : process
+
+process left<instance>() : proc_t
+{
+  main {
+    case
+    | [instance = instance] -> event [::Left()]
+    end
+  }
+}
+
+process right<instance>() : proc_t
+{
+  main {
+    case
+    | [instance = instance] -> event [::Right()]
+    end
+  }
+}
+
+system
+  !instance.(left<instance>() | right<instance>())
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma LeftIsReachable : (* verified *) reachable ::Left() ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma RightIsReachable : (* verified *) reachable ::Right()
+]

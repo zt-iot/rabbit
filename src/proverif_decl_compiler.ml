@@ -397,53 +397,68 @@ let compile_process
   let funcs =
     List.map (fun (id, args, cmd) -> id, (args, cmd)) funcs
   in
-  match param with
-  | Some _ ->
-      Error.unsupported ~loc
-        "Parameterized process declarations are not supported yet"
-  | None ->
-      let proc_args =
-        (* List of (identifier, type, may_fail) *)
-        (ptype_arg_ident, proc_t_ident, false)
-        ::
-        List.map
-          (fun ({ channel; param; _ } : T.chan_param) ->
-             match param with
-             | Some () ->
-                 Error.unsupported ~loc
-                   "Parameterized process channel arguments are not supported yet"
-             | None -> compile_ident channel, channel_ident, false)
-          args
-      in
-      let base_penv =
-        let file_channel =
-          match files with
-          | [] -> None
-          | _ -> Some (pterm_e @@ PPIdent process_file_channel_ident)
-        in
-        PEnv.create_process_env
-          ~local_func_defs:funcs
-          ~process_typ_id:typ
-          ~proc_type:(pterm_e @@ PPIdent ptype_arg_ident)
-          ~curr_syscall:(pterm_e @@ PPIdent none_syscall_ident)
-          ~file_channel
-      in
-      let penv =
-        List.fold_left (fun penv (var, expr) ->
-            let value = compile_expr_to_pterm genv penv expr in
-            PEnv.define_process_var penv var value)
-          base_penv vars
-      in
-      let process =
-        wrap_with_channel_init ~loc args
-        @@ wrap_with_file_init ~loc genv penv files
-        @@ compile_process_body genv penv main
-      in
-      [ TComment (Printf.sprintf "process %s(..): %s" (Ident.to_string id) (Ident.to_string typ))
-      ; TPDef (compile_ident id, proc_args, process)
-      ]
+  let proc_args =
+    (*
+       3.10 Parametrized Feature Encoding
 
-let compile_proc_call genv (proc : T.proc) : tprocess_e =
+       ```
+       process worker<p>() : proc_t { ... }
+       ```
+
+       ```
+       let worker(ptype:proc_t, p:param_data) = ...
+       ```
+    *)
+    (ptype_arg_ident, proc_t_ident, false)
+    ::
+    Option.to_list
+      (Option.map (fun param -> compile_ident param, param_data_ident, false) param)
+    @
+    List.map
+      (fun ({ channel; param; _ } : T.chan_param) ->
+         match param with
+         | Some () ->
+             Error.unsupported ~loc
+               "Parameterized process channel arguments are not supported yet"
+         | None -> compile_ident channel, channel_ident, false)
+      args
+  in
+  let base_penv =
+    let file_channel =
+      match files with
+      | [] -> None
+      | _ -> Some (pterm_e @@ PPIdent process_file_channel_ident)
+    in
+    PEnv.create_process_env
+      ~local_func_defs:funcs
+      ~process_typ_id:typ
+      ~proc_type:(pterm_e @@ PPIdent ptype_arg_ident)
+      ~curr_syscall:(pterm_e @@ PPIdent none_syscall_ident)
+      ~file_channel
+  in
+  let base_penv =
+    match param with
+    | None -> base_penv
+    | Some param ->
+        PEnv.define_process_var base_penv param
+          (pterm_e @@ PPIdent (compile_ident param))
+  in
+  let penv =
+    List.fold_left (fun penv (var, expr) ->
+        let value = compile_expr_to_pterm genv penv expr in
+        PEnv.define_process_var penv var value)
+      base_penv vars
+  in
+  let process =
+    wrap_with_channel_init ~loc args
+    @@ wrap_with_file_init ~loc genv penv files
+    @@ compile_process_body genv penv main
+  in
+  [ TComment (Printf.sprintf "process %s(..): %s" (Ident.to_string id) (Ident.to_string typ))
+  ; TPDef (compile_ident id, proc_args, process)
+  ]
+
+let compile_proc_call genv parameter_bindings (proc : T.proc) : tprocess_e =
   (*
      3.3 Encoding of process and channels declarations
 
@@ -462,9 +477,16 @@ let compile_proc_call genv (proc : T.proc) : tprocess_e =
     ::
     (match proc_desc.parameter with
      | None -> []
+     | Some { desc= Ident { id; desc= Env.Param; param= None }; _ } ->
+         (match List.assoc_opt id parameter_bindings with
+          | Some parameter -> [parameter]
+          | None ->
+              Error.internal ~loc:proc.loc
+                "process parameter %s is not bound"
+                (Ident.to_string id))
      | Some _ ->
          Error.unsupported ~loc:proc.loc
-           "Parameterized process instantiation is not supported yet")
+           "Only a directly bound process parameter is supported in ProVerif process instantiation")
     @
     List.map
       (fun ({ channel; parameter; _ } : T.chan_arg) ->
@@ -499,9 +521,25 @@ let compile_proc_group_desc genv (proc_group : T.proc_group_desc) : tprocess_e =
      ```
   *)
   match proc_group with
-  | Unbounded proc -> compile_proc_call genv proc
-  | Bounded (_id, procs) ->
-      process_e @@ PRepl (parallel_proc (List.map (compile_proc_call genv) procs))
+  | Unbounded proc -> compile_proc_call genv [] proc
+  | Bounded (id, procs) ->
+      (*
+         3.10 Parameter Instantiation
+
+         ```
+         !p.(worker<p>() | peer<p>())
+         ```
+
+         ```
+         !(new p:param_data; (worker(proc_t, p) | peer(proc_t, p)))
+         ```
+      *)
+      let pv_id = compile_ident id in
+      let parameter = pterm_e @@ PPIdent pv_id in
+      let body =
+        parallel_proc (List.map (compile_proc_call genv [id, parameter]) procs)
+      in
+      process_e @@ PRepl (process_e @@ PRestr (pv_id, None, param_data_ident, body))
 
 let gterm_binary (op : string) (lhs : gterm_e) (rhs : gterm_e) : gterm_e =
   gterm_e @@ PGFunApp (pv_ident op, [lhs; rhs], None)

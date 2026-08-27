@@ -20,12 +20,12 @@ event Other__event_global(bitstring).
 event Valid__event_global(bitstring).
 (* Parameter value 1 *)
 const value_1__param: param_data.
-(* Parameter value k__1 *)
-const k_1__param: param_data.
 (* Parameter value 0 *)
 const value_0__param: param_data.
 (* Parameter value k__2 *)
 const k_2__param: param_data.
+(* Parameter value k__1 *)
+const k_1__param: param_data.
 (* Body *)
 (* function pk:1 *)
 fun pk__0(bitstring): bitstring.

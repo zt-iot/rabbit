@@ -21,10 +21,10 @@ event ImgSend__event_global(bitstring).
 const proc_t__0: proc_t.
 (* process sender(..): proc_t *)
 let sender__0(ptype:proc_t) =
-  new image__5:bitstring;
-  event ImgSend__event_global(image__5).
+  new image__7:bitstring;
+  event ImgSend__event_global(image__7).
 (* Requires *)
 (* lemma ReachableImgSend *)
-query image__6:bitstring; event(ImgSend__event_global(image__6)).
+query image__8:bitstring; event(ImgSend__event_global(image__8)).
 (* System *)
 process sender__0(proc_t__0)

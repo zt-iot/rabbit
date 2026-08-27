@@ -22,9 +22,9 @@ const client_t__0: proc_t.
 (* type udp_t : channel *)
 const udp_t__0: acc_data_t.
 (* process client(..): client_t *)
-let client__0(ptype:proc_t, ch__9:channel) =
-  (* Channel ch__9 : udp_t *)
-  insert channel_table(udp_t__0, ch__9);
+let client__0(ptype:proc_t, ch__11:channel) =
+  (* Channel ch__11 : udp_t *)
+  insert channel_table(udp_t__0, ch__11);
   event Valid__event_global.
 (* channel udp : udp_t *)
 free udp__0: channel[private].

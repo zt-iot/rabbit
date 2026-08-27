@@ -16,22 +16,30 @@ const true__bool: bitstring.
 const false__bool: bitstring.
 (* Event declaration ::Valid(..) *)
 event Valid__event_global.
-(* Integer constant 1 *)
-const int__pos_1: bitstring.
+(* Parameter value (p__811, p__811) *)
+const p_811_p_811__param: param_data.
+(* Parameter value p__812 *)
+const p_812__param: param_data.
+(* Parameter value (p__812, p__812) *)
+const p_812_p_812__param: param_data.
 (* Body *)
-(* function true:0 *)
-fun true__0(): bitstring.
-(* function eq:2 *)
-fun eq__0(bitstring, bitstring): bitstring.
-(* equation eq(x__816, x__816) = true *)
-equation forall x__816:bitstring; eq__0(x__816, x__816) = true__0.
+(* const fresh c *)
+const c__0: bitstring[private].
+(* const c2 = .. *)
+const c2__0: bitstring.
+equation c2__0 = (c__0, c__0).
+(* const fresh cp<> *)
+fun cp__0(param_data): bitstring[private].
+(* const cp2<p__811> = .. *)
+letfun cp2__0(p__811:param_data) =
+  (cp__0(p__811), cp__0(p_811_p_811__param)).
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)
-let proc__0(ptype:proc_t) =
-  if eq__0(int__pos_1, int__pos_1) = true__0 then event Valid__event_global.
+let proc__0(ptype:proc_t, p__812:param_data) = event Valid__event_global.
 (* Requires *)
 (* lemma Reachable *)
 query event(Valid__event_global()).
 (* System *)
-process proc__0(proc_t__0)
+process !(new p__813:param_data;
+          proc__0(proc_t__0, p__813))

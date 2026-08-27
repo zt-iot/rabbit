@@ -26,14 +26,14 @@ const server_t__0: proc_t.
 (* type udp_t : channel *)
 const udp_t__0: acc_data_t.
 (* process client(..): client_t *)
-let client__0(ptype:proc_t, ch__12:channel) =
-  (* Channel ch__12 : udp_t *)
-  insert channel_table(udp_t__0, ch__12);
+let client__0(ptype:proc_t, ch__14:channel) =
+  (* Channel ch__14 : udp_t *)
+  insert channel_table(udp_t__0, ch__14);
   event Valid__event_global.
 (* process server(..): server_t *)
-let server__0(ptype:proc_t, ch__13:channel) =
-  (* Channel ch__13 : udp_t *)
-  insert channel_table(udp_t__0, ch__13);
+let server__0(ptype:proc_t, ch__15:channel) =
+  (* Channel ch__15 : udp_t *)
+  insert channel_table(udp_t__0, ch__15);
   event Served__event_global.
 (* channel udp : udp_t *)
 free udp__0: channel[private].

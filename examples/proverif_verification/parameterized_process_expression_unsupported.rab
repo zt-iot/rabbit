@@ -1,0 +1,17 @@
+(* ProVerif currently represents a process parameter as one [param_data]
+   argument. Rabbit also permits compound parameter expressions such as
+   `(p, p)`, but the specification does not define an encoding from such
+   expressions back into [param_data]. *)
+
+type proc_t : process
+
+process worker<p>() : proc_t
+{
+  main { event [::Ready()] }
+}
+
+system !p.worker<(p, p)>()
+requires
+[
+  lemma ReadyIsReachable : (* verified *) reachable ::Ready()
+]

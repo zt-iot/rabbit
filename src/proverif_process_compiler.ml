@@ -100,9 +100,12 @@ let compile_expr_to_pterm genv penv expr =
       match parameter.desc with
       | Ident { id; param = None; _ } ->
           reject_wildcard ~loc:parameter.loc id;
-          Option.value
-            (List.assoc_opt id bindings)
-            ~default:(pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv parameter))
+          (match List.assoc_opt id bindings with
+           | Some parameter -> parameter
+           | None ->
+               Option.value
+                 (PEnv.find_process_var penv id)
+                 ~default:(pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv parameter)))
       | _ -> pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv parameter)
     in
     pterm_e @@ match expr.desc with

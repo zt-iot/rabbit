@@ -1,0 +1,21 @@
+(* Spec 3.10: process parameters become ordinary [param_data] arguments, and
+   a parameter binder becomes replicated fresh parameter generation. *)
+
+type proc_t : process
+
+process server<p>() : proc_t
+{
+  main {
+    case
+    | [p = p] -> event [::Valid()]
+    end
+  }
+}
+
+system
+  !p.server<p>()
+requires
+[
+  lemma ReachableValid :
+    reachable ::Valid()
+]
