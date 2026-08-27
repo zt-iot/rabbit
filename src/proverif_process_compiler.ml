@@ -13,131 +13,132 @@ let reject_wildcard ~loc ((name, _) : T.ident) =
     Error.unsupported ~loc
       "Wildcard patterns are not supported in ProVerif translation"
 
-let rec compile_expr_to_term_with genv bindings expanding (expr : T.expr) : term_e =
-  let compile = compile_expr_to_term_with genv bindings expanding in
-  let compile_parameter (parameter : T.expr) =
-    match parameter.desc with
-    | Ident { id; param = None; _ } ->
-        Option.value
-          (List.assoc_opt id bindings)
-          ~default:(term_e @@ PIdent (GEnv.fresh_parameter_ident genv parameter))
-    | _ -> term_e @@ PIdent (GEnv.fresh_parameter_ident genv parameter)
-  in
-  term_e @@ match expr.desc with
-  | T.Ident { id; param = Some param; _ } ->
-      let parameter = compile_parameter param in
-      (match GEnv.find_param_init genv id with
-       | None -> PFunApp (compile_ident id, [parameter])
-       | Some (formal, body) ->
-           check_param_cycle expanding id expr.loc;
-           let body, _, _ =
-             compile_expr_to_term_with genv
-               ((formal, parameter) :: bindings) (id :: expanding) body
-           in
-           body)
-  | T.Ident { id; _ } ->
-      (match List.assoc_opt id bindings with
-       | Some (term, _, _) -> term
-       | None -> PIdent (compile_ident id))
-  | Apply (id, args) -> PFunApp (compile_ident id, List.map compile args)
-  | Tuple exprs -> PTuple (List.map compile exprs)
-  | Unit -> PTuple []
-  | String s -> PIdent (GEnv.fresh_string_ident genv s)
-  | Boolean true -> PIdent true_ident
-  | Boolean false -> PIdent false_ident
-  | Integer n -> PIdent (GEnv.fresh_integer_ident genv n)
-  | Float _ ->
-      Error.unsupported ~loc:expr.loc
-        "Float terms are not supported in ProVerif term translation"
-
 let compile_expr_to_term genv expr =
+  let rec compile_expr_to_term_with genv bindings expanding (expr : T.expr) : term_e =
+    let compile = compile_expr_to_term_with genv bindings expanding in
+    let compile_parameter (parameter : T.expr) =
+      match parameter.desc with
+      | Ident { id; param = None; _ } ->
+          Option.value
+            (List.assoc_opt id bindings)
+            ~default:(term_e @@ PIdent (GEnv.fresh_parameter_ident genv parameter))
+      | _ -> term_e @@ PIdent (GEnv.fresh_parameter_ident genv parameter)
+    in
+    term_e @@ match expr.desc with
+    | T.Ident { id; param = Some param; _ } ->
+        let parameter = compile_parameter param in
+        (match GEnv.find_param_init genv id with
+         | None -> PFunApp (compile_ident id, [parameter])
+         | Some (formal, body) ->
+             check_param_cycle expanding id expr.loc;
+             let body, _, _ =
+               compile_expr_to_term_with genv
+                 ((formal, parameter) :: bindings) (id :: expanding) body
+             in
+             body)
+    | T.Ident { id; _ } ->
+        (match List.assoc_opt id bindings with
+         | Some (term, _, _) -> term
+         | None -> PIdent (compile_ident id))
+    | Apply (id, args) -> PFunApp (compile_ident id, List.map compile args)
+    | Tuple exprs -> PTuple (List.map compile exprs)
+    | Unit -> PTuple []
+    | String s -> PIdent (GEnv.fresh_string_ident genv s)
+    | Boolean true -> PIdent true_ident
+    | Boolean false -> PIdent false_ident
+    | Integer n -> PIdent (GEnv.fresh_integer_ident genv n)
+    | Float _ ->
+        Error.unsupported ~loc:expr.loc
+          "Float terms are not supported in ProVerif term translation"
+  in
   compile_expr_to_term_with genv [] [] expr
 
-let rec compile_expr_to_gterm_with genv bindings expanding (expr : T.expr) : gterm_e =
-  let compile = compile_expr_to_gterm_with genv bindings expanding in
-  let compile_parameter (parameter : T.expr) =
-    match parameter.desc with
-    | Ident { id; param = None; _ } ->
-        Option.value
-          (List.assoc_opt id bindings)
-          ~default:(gterm_e @@ PGIdent (GEnv.fresh_parameter_ident genv parameter))
-    | _ -> gterm_e @@ PGIdent (GEnv.fresh_parameter_ident genv parameter)
-  in
-  gterm_e @@ match expr.desc with
-  | T.Ident { id; param = Some param; _ } ->
-      let parameter = compile_parameter param in
-      (match GEnv.find_param_init genv id with
-       | None -> PGFunApp (compile_ident id, [parameter], None)
-       | Some (formal, body) ->
-           check_param_cycle expanding id expr.loc;
-           let body, _, _ =
-             compile_expr_to_gterm_with genv
-               ((formal, parameter) :: bindings) (id :: expanding) body
-           in
-           body)
-  | Ident { id; param = None; _ } ->
-      (match List.assoc_opt id bindings with
-       | Some (term, _, _) -> term
-       | None -> PGIdent (compile_ident id))
-  | Apply (id, args) -> PGFunApp (compile_ident id, List.map compile args, None)
-  | Tuple exprs -> PGTuple (List.map compile exprs)
-  | Unit -> PGTuple []
-  | String s -> PGIdent (GEnv.fresh_string_ident genv s)
-  | Boolean true -> PGIdent true_ident
-  | Boolean false -> PGIdent false_ident
-  | Integer n -> PGIdent (GEnv.fresh_integer_ident genv n)
-  | Float _ ->
-      Error.unsupported ~loc:expr.loc
-        "Float terms are not supported in ProVerif query translation"
-
 let compile_expr_to_gterm genv expr =
+  let rec compile_expr_to_gterm_with genv bindings expanding (expr : T.expr) : gterm_e =
+    let compile = compile_expr_to_gterm_with genv bindings expanding in
+    let compile_parameter (parameter : T.expr) =
+      match parameter.desc with
+      | Ident { id; param = None; _ } ->
+          Option.value
+            (List.assoc_opt id bindings)
+            ~default:(gterm_e @@ PGIdent (GEnv.fresh_parameter_ident genv parameter))
+      | _ -> gterm_e @@ PGIdent (GEnv.fresh_parameter_ident genv parameter)
+    in
+    gterm_e @@ match expr.desc with
+    | T.Ident { id; param = Some param; _ } ->
+        let parameter = compile_parameter param in
+        (match GEnv.find_param_init genv id with
+         | None -> PGFunApp (compile_ident id, [parameter], None)
+         | Some (formal, body) ->
+             check_param_cycle expanding id expr.loc;
+             let body, _, _ =
+               compile_expr_to_gterm_with genv
+                 ((formal, parameter) :: bindings) (id :: expanding) body
+             in
+             body)
+    | Ident { id; param = None; _ } ->
+        (match List.assoc_opt id bindings with
+         | Some (term, _, _) -> term
+         | None -> PGIdent (compile_ident id))
+    | Apply (id, args) -> PGFunApp (compile_ident id, List.map compile args, None)
+    | Tuple exprs -> PGTuple (List.map compile exprs)
+    | Unit -> PGTuple []
+    | String s -> PGIdent (GEnv.fresh_string_ident genv s)
+    | Boolean true -> PGIdent true_ident
+    | Boolean false -> PGIdent false_ident
+    | Integer n -> PGIdent (GEnv.fresh_integer_ident genv n)
+    | Float _ ->
+        Error.unsupported ~loc:expr.loc
+          "Float terms are not supported in ProVerif query translation"
+  in
   compile_expr_to_gterm_with genv [] [] expr
 
-let rec compile_expr_to_pterm_with genv penv bindings expanding (expr : T.expr) : pterm_e =
-  let compile = compile_expr_to_pterm_with genv penv bindings expanding in
-  let compile_parameter (parameter : T.expr) =
-    match parameter.desc with
-    | Ident { id; param = None; _ } ->
-        reject_wildcard ~loc:parameter.loc id;
-        Option.value
-          (List.assoc_opt id bindings)
-          ~default:(pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv parameter))
-    | _ -> pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv parameter)
-  in
-  pterm_e @@ match expr.desc with
-  | T.Ident { id; param = Some param; _ } ->
-      let parameter = compile_parameter param in
-      (match GEnv.find_param_init genv id with
-       | None -> PPFunApp (compile_ident id, [parameter])
-       | Some (formal, body) ->
-           check_param_cycle expanding id expr.loc;
-           let body, _, _ =
-             compile_expr_to_pterm_with genv penv
-               ((formal, parameter) :: bindings) (id :: expanding) body
-           in
-           body)
-  | Ident { id; param = None; _ } ->
-      reject_wildcard ~loc:expr.loc id;
-      (match List.assoc_opt id bindings with
-       | Some (term, _, _) -> term
-       | None ->
-           match PEnv.find_process_var penv id with
-           | Some value ->
-               let term, _, _ = value in
-               term
-           | None -> PPIdent (compile_ident id))
-  | Apply (id, args) -> PPFunApp (compile_ident id, List.map compile args)
-  | Tuple exprs -> PPTuple (List.map compile exprs)
-  | Unit -> PPTuple []
-  | String s -> PPIdent (GEnv.fresh_string_ident genv s)
-  | Boolean true -> PPIdent true_ident
-  | Boolean false -> PPIdent false_ident
-  | Integer n -> PPIdent (GEnv.fresh_integer_ident genv n)
-  | Float _ ->
-      Error.unsupported ~loc:expr.loc
-        "Float process terms are not supported in ProVerif process translation"
-
 let compile_expr_to_pterm genv penv expr =
+  let rec compile_expr_to_pterm_with genv penv bindings expanding (expr : T.expr) : pterm_e =
+    let compile = compile_expr_to_pterm_with genv penv bindings expanding in
+    let compile_parameter (parameter : T.expr) =
+      match parameter.desc with
+      | Ident { id; param = None; _ } ->
+          reject_wildcard ~loc:parameter.loc id;
+          Option.value
+            (List.assoc_opt id bindings)
+            ~default:(pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv parameter))
+      | _ -> pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv parameter)
+    in
+    pterm_e @@ match expr.desc with
+    | T.Ident { id; param = Some param; _ } ->
+        let parameter = compile_parameter param in
+        (match GEnv.find_param_init genv id with
+         | None -> PPFunApp (compile_ident id, [parameter])
+         | Some (formal, body) ->
+             check_param_cycle expanding id expr.loc;
+             let body, _, _ =
+               compile_expr_to_pterm_with genv penv
+                 ((formal, parameter) :: bindings) (id :: expanding) body
+             in
+             body)
+    | Ident { id; param = None; _ } ->
+        reject_wildcard ~loc:expr.loc id;
+        (match List.assoc_opt id bindings with
+         | Some (term, _, _) -> term
+         | None ->
+             match PEnv.find_process_var penv id with
+             | Some value ->
+                 let term, _, _ = value in
+                 term
+             | None -> PPIdent (compile_ident id))
+    | Apply (id, args) -> PPFunApp (compile_ident id, List.map compile args)
+    | Tuple exprs -> PPTuple (List.map compile exprs)
+    | Unit -> PPTuple []
+    | String s -> PPIdent (GEnv.fresh_string_ident genv s)
+    | Boolean true -> PPIdent true_ident
+    | Boolean false -> PPIdent false_ident
+    | Integer n -> PPIdent (GEnv.fresh_integer_ident genv n)
+    | Float _ ->
+        Error.unsupported ~loc:expr.loc
+          "Float process terms are not supported in ProVerif process translation"
+
+  in
   compile_expr_to_pterm_with genv penv [] [] expr
 
 let ppar
@@ -334,6 +335,7 @@ let bind_lock_state
          (pterm_e @@ PPIdent (compile_ident pattern_id)))
     penv state_ids state_pattern_ids
 
+(* lhs = rhs *)
 let eq_pterm (lhs : pterm_e) (rhs : pterm_e) : pterm_e =
   pterm_e @@ PPFunApp (pv_ident "=", [lhs; rhs])
 
@@ -646,12 +648,14 @@ let extract_channel_guard (facts : T.fact list) =
 let is_fresh_case_var (case : T.case) (id : T.ident) =
   List.mem id case.fresh
 
+let unit_result penv = PEnv.with_result penv (pterm_e @@ PPTuple [])
+
 type process_fragment = tprocess_e -> tprocess_e
+(* ProVerif AST has no constructor for sequence `A; B`.
+   Here we use a function type for t_process_e with a hole: `A; _`.
+*)
 
 let empty_fragment : process_fragment = Fun.id
-
-let unit_result penv =
-  PEnv.with_result penv (pterm_e @@ PPTuple [])
 
 let compose_fragments
     (first : process_fragment)
@@ -803,8 +807,7 @@ and compile_case_no_channel
       let loc = (List.hd cases).cmd.loc in
       let case_env = unit_result penv in
       let state_ids = List.map fst (lock_state_bindings case_env) in
-      let lock_id = Ident.local "case_ch" in
-      let lock_ident = compile_ident lock_id in
+      let lock_ident = compile_ident @@ Ident.local "case_ch" in
       let lock_term = pterm_e @@ PPIdent lock_ident in
       let compile_branch (case : T.case) =
         let result_pattern_id = Ident.local "case_result" in
@@ -990,8 +993,7 @@ and compile_case_channelized
   in
   let case_env = unit_result penv in
   let state_ids = List.map fst (lock_state_bindings case_env) in
-  let choice_id = Ident.local "channel_case_ch" in
-  let choice_ident = compile_ident choice_id in
+  let choice_ident = compile_ident @@ Ident.local "channel_case_ch" in
   let choice_term = pterm_e @@ PPIdent choice_ident in
   let compile_choice channel_guard =
     let result_pattern_id = Ident.local "channel_case_result" in
@@ -1128,8 +1130,8 @@ and compile_syscall_call
         in
         let body_env, body_fragment = compile_cmd genv call_env cmd in
         let completed_env =
-          PEnv.remove_process_vars body_env arg_ids
-          |> fun env -> PEnv.with_curr_syscall env (PEnv.curr_syscall penv)
+          let env = PEnv.remove_process_vars body_env arg_ids in
+          PEnv.with_curr_syscall env (PEnv.curr_syscall penv)
         in
         completed_env, body_fragment
       in
@@ -1163,9 +1165,7 @@ and compile_local_function_call
      ```
 
      ```
-     let x = (
-       body_of_helper
-     ) in
+     let x = body_of_helper in
      body
      ```
   *)
@@ -1194,9 +1194,43 @@ and join_call_branches
   | [] -> penv, closed_fragment (process_e PNil)
   | [branch] -> branch
   | _ ->
+      (*
+         3.9 Syscall and Attack Encoding
+
+         ```
+         syscall f(a) { normal_body; normal_result }
+         attack tamper_f on f(a) { attack_body; attack_result }
+         allow attack proc_t [tamper_f]
+
+         x := f(v); (* `tamper_f` can be called *)
+         rest
+         ```
+
+         ```
+         new call_join_ch: channel;
+         (
+           new attack_choice_ch: channel;
+           (
+             out(attack_choice_ch, true)
+           | in(attack_choice_ch, _);
+             normal_body;
+             out(call_join_ch, (true, normal_result, s0, ..., sk))
+           | in(attack_choice_ch, _);
+             attack_body;
+             out(call_join_ch, (true, attack_result, s0', ..., sk'))
+           )
+         |
+           in(call_join_ch, (=true, result, s0, ..., sk)) [precise];
+           rest[result/x]
+         )
+         ```
+
+         The private choice channel lets exactly one normal/attack branch run.
+         The selected branch sends its result and process state over the private
+         join channel, where the shared caller continuation receives them.
+      *)
       let state_ids = List.map fst (lock_state_bindings penv) in
-      let join_id = Ident.local "call_join_ch" in
-      let join_ident = compile_ident join_id in
+      let join_ident = compile_ident @@ Ident.local "call_join_ch" in
       let join_term = pterm_e @@ PPIdent join_ident in
       let branch_processes =
         List.map
@@ -1219,6 +1253,7 @@ and join_call_branches
       completed_env,
       fun rest ->
         let continuation =
+          (* in(call_join_ch, (=true, result, s0, ..., sk)) [precise]; rest[result/x] *)
           process_e @@
           PInput
             ( join_term
@@ -1227,6 +1262,12 @@ and join_call_branches
             , rest
             , [precise_ident, None] )
         in
+        (* new call_join_ch: channel;
+           ( (new attack_choice_ch: channel;
+              (out(attack_choice_ch, true) | branch_processes)
+           | continuation
+           )
+        *)
         process_e @@
         PRestr
           ( join_ident
@@ -1329,14 +1370,15 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       let env2, fragment2 = compile_cmd genv env1 cmd2 in
       env2, compose_fragments fragment1 fragment2
   | Put facts ->
-      unit_result penv, fun rest -> compile_put_facts genv penv facts rest
+      unit_result penv, compile_put_facts genv penv facts
   | Event facts ->
-      unit_result penv, fun rest -> compile_event_facts genv penv facts rest
+      unit_result penv, compile_event_facts genv penv facts
   | Let (id, expr, body) ->
       compile_let_binding genv penv id expr body
   | Assign (id_opt, expr) ->
       compile_assignment genv penv id_opt expr
   | Return expr ->
+      (* Return is NOT non-local exit. It simply sets the result. *)
       let value = compile_expr_to_pterm genv penv expr in
       PEnv.with_result penv value, empty_fragment
   | Case cases ->
@@ -1391,8 +1433,7 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       let loop_env = unit_result penv in
       let state_ids = List.map fst (lock_state_bindings loop_env) in
       (* `lock_ch` *)
-      let lock_id = Ident.local "loop_ch" in
-      let lock_ident = compile_ident lock_id in
+      let lock_ident = compile_ident @@ Ident.local "loop_ch" in
       let lock_term = pterm_e @@ PPIdent lock_ident in
       let branch is_until (case : T.case) =
         let result_pattern_id = Ident.local "loop_result" in
@@ -1466,11 +1507,11 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       in
       let init_proc =
         (* `out(lock_ch, (0, s0, ..., sk))` *)
-        process_e
-          (POutput
-             ( lock_term
-             , lock_state_message ~done_flag:false ~loc:cmd.loc loop_env state_ids
-             , process_e PNil ))
+        process_e @@
+        POutput
+          ( lock_term
+          , lock_state_message ~done_flag:false ~loc:cmd.loc loop_env state_ids
+          , process_e PNil )
       in
       let workers =
         match
@@ -1484,20 +1525,20 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       fun rest ->
         let continuation =
           (* `in(lock_ch, (=1, s0:bitstring, ..., sk:bitstring)) [precise];` *)
-          process_e
-            (PInput
-               ( lock_term
-               , lock_state_pattern ~done_flag:true cont_result_pattern_id
-                   cont_state_pattern_ids
-               , rest
-               , [precise_ident, None] ))
+          process_e @@
+          PInput
+            ( lock_term
+            , lock_state_pattern ~done_flag:true cont_result_pattern_id
+                cont_state_pattern_ids
+            , rest
+            , [precise_ident, None] )
         in
-        process_e
-          (PRestr
-             ( lock_ident
-             , None
-             , channel_ident
-             , parallelize [init_proc; workers; continuation] ))
+        process_e @@
+        PRestr
+          ( lock_ident
+          , None
+          , channel_ident
+          , parallelize [init_proc; workers; continuation] )
 
   | New (id, None, body) ->
       (* ```
@@ -1615,8 +1656,8 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       unit_result penv,
       fun rest ->
         add_comment (Printf.sprintf "delete _.%s" name) @@
-        process_e
-          (PInsert (deleted_address_table_ident, [addr_term], rest))
+        process_e @@
+        PInsert (deleted_address_table_ident, [addr_term], rest)
 
 let compile_process_body genv penv cmd =
   let _env, fragment = compile_cmd genv penv cmd in
