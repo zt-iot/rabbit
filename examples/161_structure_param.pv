@@ -15,15 +15,15 @@ const none__syscall: syscall_t.
 const true__bool: bitstring.
 const false__bool: bitstring.
 (* Structure declaration S(_,_,_) *)
-fun S__struct(bitstring, bitstring, bitstring, bitstring): bitstring[data].
+fun S__struct(bitstring, bitstring, bitstring, param_data): bitstring[data].
 reduc
-  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_addr(S__struct(x_0, x_1, x_2, x_3)) = x_0.
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:param_data; S__struct_addr(S__struct(x_0, x_1, x_2, x_3)) = x_0.
 reduc
-  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_par_1(S__struct(x_0, x_1, x_2, x_3)) = x_1.
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:param_data; S__struct_par_1(S__struct(x_0, x_1, x_2, x_3)) = x_1.
 reduc
-  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_par_2(S__struct(x_0, x_1, x_2, x_3)) = x_2.
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:param_data; S__struct_par_2(S__struct(x_0, x_1, x_2, x_3)) = x_2.
 reduc
-  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:bitstring; S__struct_par_3(S__struct(x_0, x_1, x_2, x_3)) = x_3.
+  forall x_0:bitstring, x_1:bitstring, x_2:bitstring, x_3:param_data; S__struct_par_3(S__struct(x_0, x_1, x_2, x_3)) = x_3.
 (* Event declaration ::Valid(..) *)
 event Valid__event_global.
 (* Event declaration ::Invalid(..) *)
@@ -33,6 +33,7 @@ const int__pos_1: bitstring.
 (* Integer constant 2 *)
 const int__pos_2: bitstring.
 (* Body *)
+(* structure S(_,_,parameter) *)
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)

@@ -1,6 +1,6 @@
 type named_fact_desc =
   | Channel
-  | Structure
+  | Structure of Input.field_type list
   | Plain
   | Global
 
@@ -24,9 +24,9 @@ type desc =
 val print_desc : desc -> Format.formatter -> unit
 
 (** Name checking environment *)
-type t = {
-  vars : (Ident.t * desc) list;
-  facts : (Name.ident * (named_fact_desc * int option)) list ref
+type t =
+  { vars : (Ident.t * desc) list
+  ; facts : (Name.ident * (named_fact_desc * int option)) list ref
   (** Fact names with descriptions and arities. Arities can be unknown
       if [delete e.S] first appear than [new x := S(args) in c]
       and [let xi := e.S in c].
@@ -34,7 +34,7 @@ type t = {
       The fact environment is a global singleton and shared,
       therefore implemented as a reference.
   *)
-}
+  }
 
 val empty : unit -> t
 

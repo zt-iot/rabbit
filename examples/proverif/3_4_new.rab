@@ -8,6 +8,8 @@
    also reads [x.S] so the generated ProVerif process has to keep using that
    structure value. *)
 
+structure S(_, _, _)
+
 type proc_t : process
 
 process maker() : proc_t

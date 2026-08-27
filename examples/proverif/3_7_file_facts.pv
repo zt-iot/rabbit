@@ -29,6 +29,7 @@ const secret_pub__str: bitstring.
 (* String constant "hello" *)
 const hello__str: bitstring.
 (* Body *)
+(* structure Fd(_) *)
 (* type server_t : process *)
 const server_t__0: proc_t.
 (* type readonly_t : filesys *)

@@ -1,3 +1,5 @@
+structure chid(channel)
+
 (** asynchronous channels *)
 syscall send(c, v) {
   put [c::store(v)]
@@ -35,4 +37,3 @@ syscall close_rpc (cid){
 syscall accept_rpc (c){
   case [c::req()] → put [c::ack()] end
 }
-

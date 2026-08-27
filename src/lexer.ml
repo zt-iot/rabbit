@@ -44,7 +44,9 @@ let reserved = [
   ("get", GET) ;
   ("by", BY) ;
   ("on", ON) ;
-  ("assume", ASSUME)
+  ("assume", ASSUME) ;
+  ("structure", STRUCTURE) ;
+  ("parameter", PARAMETER) ;
   ]
 
 let name =

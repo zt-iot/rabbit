@@ -54,7 +54,7 @@ module GEnv = struct
     ; generated_names       : (string, unit) Hashtbl.t (** Generated ProVerif identifiers in use *)
     ; mutable allow_entries : allow_entry list
     ; mutable process_types : (Ident.t * ident) list (** process types in Rabbit and Proverif *)
-    ; mutable structure_facts : (Name.t * int) list (** structure fact constructor and arity *)
+    ; mutable structure_facts : (Name.t * Input.field_type list) list (** structure fact constructor and arity *)
     ; mutable channel_facts   : (Name.t * int) list (** channel fact constructor and arity *)
     ; mutable events        : (Name.t * (event_kind * int)) list (** event name, kind and arity *)
     ; mutable comparison_events : comparison_event_kind list
@@ -269,7 +269,8 @@ module GEnv = struct
         List.iter (add_lemma_strings genv) lemmas
     | Load (_filename, decls) -> List.iter (add_decl_strings genv) decls
     | Function _ | Type _ | Allow _ | AllowAttack _
-    | Init { desc = Fresh | Fresh_with_param; _ } | Channel _ -> ()
+    | Init { desc = Fresh | Fresh_with_param; _ } | Channel _ | Structure _ -> ()
+
 
   (* syscalls ***********************************************)
 
@@ -360,11 +361,16 @@ module GEnv = struct
 
   let structure_facts genv = genv.structure_facts
 
-  let add_structure_fact =
-    add_with_arity
-      "Structure"
-      (fun genv -> genv.structure_facts)
-      (fun genv structure_facts -> genv.structure_facts <- structure_facts)
+  let find_structure_fact ~loc genv name =
+    match List.assoc_opt name genv.structure_facts with
+    | None -> Error.internal ~loc "structure fact %s is not declared" name
+    | Some ftys -> ftys
+
+  (* called when predeclared using `structure s(_, channel, parameter)` declaration *)
+  let add_structure_fact ~loc genv name ftys =
+    match List.assoc_opt name genv.structure_facts with
+    | None -> genv.structure_facts <- genv.structure_facts @ [name, ftys]
+    | Some _ -> Error.internal ~loc "structure fact %s is already defined" name
 
   (* channel facts *****************************************)
 

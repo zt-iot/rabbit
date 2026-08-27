@@ -1,3 +1,5 @@
+structure S(_, _, parameter)
+
 type proc_t : process
 
 process proc<p>() : proc_t

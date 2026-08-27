@@ -1,3 +1,5 @@
+structure Fd(_)
+
 (* security primitives *)
 function pk:1
 function enc:2
@@ -222,4 +224,3 @@ requires
   lemma Correspondence : (* falsified *)
     corresponds ::ImgRecvValid(x) ~> ::ImgSend (x)
 ]
-

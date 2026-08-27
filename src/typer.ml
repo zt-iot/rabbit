@@ -25,6 +25,7 @@ type error =
   | InvalidAnonymousAssignment
   | GlobalChannelInExpr of Ident.t
   | WildcardNotAllowed
+  | StructureFactMustBePredeclared
 
 exception Error of error Location.located
 
@@ -104,6 +105,8 @@ let print_error err ppf =
       Format.fprintf ppf "Global channel %t cannot be used in an expression" (Ident.print id)
   | WildcardNotAllowed ->
       Format.pp_print_string ppf "Wildcard '_' is only allowed in case/while guards"
+  | StructureFactMustBePredeclared ->
+      Format.pp_print_string ppf "Structure fact must be predeclared"
 ;;
 
 module Env : sig
@@ -300,7 +303,17 @@ let type_facts ?(allow_wildcard = false) env facts =
 let type_structure_fact ~loc env name es =
   (* [str] must be a structure fact *)
   let nes = List.length es in
-  Env.add_fact ~loc env name (Structure, Some nes)
+  match Env.find_fact_opt env name with
+  | None -> error ~loc StructureFactMustBePredeclared
+  | Some (Structure ftys, _) ->
+      if nes = List.length ftys then ()
+      else
+        error ~loc @@
+        ArityMismatch { arity= List.length ftys; use= nes }
+  | Some (desc', _) ->
+      (* Not a structure *)
+      error ~loc @@
+      InvalidFact { name; def = desc'; use = Structure (List.map (fun _ -> Input.Value) es) }
 ;;
 
 let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
@@ -373,9 +386,9 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         (* deletion, [delete e.S] *)
         let e = type_expr env e in
         (match Env.find_fact_opt env str with
-         | Some (Structure, _arity) -> ()
+         | Some (Structure _, _arity) -> ()
          | Some (desc, _) ->
-             error ~loc @@ InvalidFact { name = str; def = desc; use = Structure }
+             error ~loc @@ InvalidFact { name = str; def = desc; use = Structure [] (* dummy *) }
          | None -> error ~loc @@ UnboundFact str);
         Del (e, str)
   in
@@ -738,6 +751,9 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       in
       let lemmas = List.rev rev_lemmas in
       env, [{ env; loc; desc = System (procs, lemmas) }]
+  | DeclStructure(n, ftys) ->
+      Env.add_fact ~loc env n (Structure ftys, Some (List.length ftys));
+      env, [{ env; loc; desc= Structure (n, ftys)} ]
 
 and load env fn : Env.t * Typed.decl list =
   let decls, (_used_idents, _used_strings) = Lexer.read_file Parser.file fn in

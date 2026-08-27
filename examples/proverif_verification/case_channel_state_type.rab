@@ -1,0 +1,44 @@
+(* BUG: the general case encoding carries every process binding through its
+   private lock channel, but currently receives every state field as a
+   bitstring. The process argument [c] is a channel, so using it after that
+   round trip as the channel field of [Holder] makes ProVerif reject the
+   generated model.
+*)
+
+structure Holder(channel)
+
+type proc_t : process
+type chan_t : channel
+
+channel ch : chan_t
+
+syscall construct(c) {
+  case
+  | ["selected" = "selected"] ->
+      new value = Holder(c) in
+      event [::Constructed(value)];
+      value
+  | ["selected" != "selected"] ->
+      new unused in
+      unused
+  end
+}
+
+process worker(c : chan_t) : proc_t
+{
+  main {
+    _ := construct(c)
+  }
+}
+
+system
+  worker(ch)
+requires
+[
+  (* PROVERIF EXPECTED
+  # A channel remains a channel after crossing the case lock state.
+  true
+  *)
+  lemma ChannelStateKeepsItsType : (* verified *)
+    reachable ::Constructed(some_value)
+]

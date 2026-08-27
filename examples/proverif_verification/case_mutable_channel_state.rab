@@ -1,0 +1,38 @@
+(* BUG: [current] is a genuinely mutable channel-valued variable. The case
+   encoding must carry its updated value to the continuation, but currently
+   receives every lock state field as a bitstring. ProVerif therefore rejects
+   the continuation when it uses [current] as a channel.
+*)
+
+type proc_t : process
+type chan_t : channel
+
+channel left : chan_t
+channel right : chan_t
+
+allow proc_t chan_t [.]
+
+process worker(a : chan_t, b : chan_t) : proc_t
+{
+  main {
+    var current = a in
+    case
+    | ["select-right" = "select-right"] -> current := b
+    | ["select-right" != "select-right"] -> skip
+    end;
+    put [current::Selected()];
+    event [::Switched()]
+  }
+}
+
+system
+  worker(left, right)
+requires
+[
+  (* PROVERIF EXPECTED
+  # The selected channel remains a channel after crossing the case join.
+  true
+  *)
+  lemma SwitchIsReachable : (* verified *)
+    reachable ::Switched()
+]

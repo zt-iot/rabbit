@@ -1,3 +1,5 @@
+structure Fd(_)
+
 (* filesys *)
 syscall fopen (p) {
   case [p.x] ->

@@ -1,8 +1,8 @@
 # ProVerif compiler test status
 
-Checked on: 2026-08-27
+Checked on: 2026-08-28
 
-Tested commit: `ebdfdebfe76b676c0df824c4a3621500adfbd16c`
+Tested commit: `cde2360b9da2568d03cac6f51e33d878f27e6800` plus the current tracked working-tree changes
 
 ## Evaluation method
 
@@ -20,8 +20,8 @@ unexecuted verification is `Fail`.
 
 | Suite | Inputs | Pass | Fail |
 |---|---:|---:|---:|
-| `examples/*.rab` | 58 | 41 | 17 |
-| `examples/proverif_verification/*.rab` | 85 | 56 | 29 |
+| `examples/*.rab` | 58 | 43 | 15 |
+| `examples/proverif_verification/*.rab` | 87 | 56 | 31 |
 
 ## `examples/*.rab`
 
@@ -73,8 +73,8 @@ unexecuted verification is `Fail`.
 | `143_structure_fetch_compression.rab` | Pass | `verified`, `verified` | `true`, `true` | Pass | — |
 | `150_loop.rab` | Rejected (expected) | Error | Not run | **Fail** | ProVerif verification was not run. No Tamarin result is available. |
 | `160_structure.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
-| `161_structure_param.rab` | Pass | `verified`, `falsified` | Error | **Fail** | ProVerif rejects a `param_data` value passed to a `bitstring` structure field. |
-| `162_structure_param.rab` | Pass | `verified`, `falsified` | Error | **Fail** | ProVerif rejects a `param_data` value passed to a `bitstring` structure field. |
+| `161_structure_param.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
+| `162_structure_param.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
 | `200_camserver_param.rab` | Rejected (expected) | Error | Not run | **Fail** | ProVerif verification was not run. No Tamarin result is available. |
 | `210_dec_failure.rab` | Pass | `verified`, `verified` | `true`, `true` | Pass | — |
 | `camserver.rab` | Pass | `verified`, `falsified` | Error | **Fail** | ProVerif rejects a bitstring pattern where a channel is required. |
@@ -103,6 +103,8 @@ unexecuted verification is `Fail`.
 | `boolean.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
 | `bounded_replication.rab` | Pass | `verified`, `verified` | `true`, `true` | Pass | — |
 | `case.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
+| `case_channel_state_type.rab` | Pass | `verified` | Error | **Fail** | ProVerif receives a channel-valued case state as `bitstring`. |
+| `case_mutable_channel_state.rab` | Pass | `verified` | Error | **Fail** | ProVerif receives an updated channel-valued case state as `bitstring`. |
 | `case_nondeterministic.rab` | Pass | `verified`, `verified`, `verified`, `verified` | `true`, `true`, `true`, `true` | Pass | — |
 | `case_single_branch.rab` | Pass | `verified`, `falsified`, `falsified` | `true`, `false`, `false` | Pass | — |
 | `channel.rab` | Pass | `verified`, `falsified` | `true`, `unknown` | **Fail** | The verification results differ. |

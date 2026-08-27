@@ -392,7 +392,7 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
         in
         if not (Context.ctx_check_inj_fact ctx fid)
         then error ~loc (UnknownIdentifier ("structure fact", fid));
-        
+
         (let i = Context.ctx_get_inj_fact_arity ~loc ctx fid in
          let j = List.length vl in
          if not (i = j) then error ~loc (ArgNumMismatch (fid, i, j)) else ());
@@ -628,7 +628,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       (* [load "xxx.rab"] *)
       let fn' = Filename.dirname fn ^ "/" ^ fn' in
       load fn' env
-  | Input.DeclExtFun (f, arity) ->
+  | DeclExtFun (f, arity) ->
       (* [function f:2] *)
       if Context.check_used env.context f then error ~loc (AlreadyDefined f);
       let ctx' =
@@ -638,7 +638,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         else Context.ctx_add_ext_func env.context (f, arity)
       in
       { env with context = ctx' }
-  | Input.DeclExtEq (e1, e2) ->
+  | DeclExtEq (e1, e2) ->
       (* [equation e1 = e2] *)
       let rec collect_vars e lctx =
         try
@@ -658,7 +658,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         definition =
           Context.def_add_ext_eq env.definition (lctx.Context.lctx_loc_var, e1', e2')
       }
-  | Input.DeclExtSyscall (f, args, c, _attack) ->
+  | DeclExtSyscall (f, args, c, _attack) ->
       (* [syscall f(a1,..,an) { c }] or [passive attack f(a1,..,an) { c }] *)
       if Context.check_used env.context f then error ~loc (AlreadyDefined f);
       let lctx = local_context_of_arguments ~loc args in
@@ -667,7 +667,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         context = Context.ctx_add_ext_syscall ctx (f, args)
       ; definition = Context.def_add_ext_syscall env.definition (f, args, c)
       }
-  | Input.DeclExtAttack (f, t, args, c) ->
+  | DeclExtAttack (f, t, args, c) ->
       (* [attack f on name (typ x,..) { c }] *)
       if Context.check_used env.context f then error ~loc (AlreadyDefined f);
       (* [t] must be a syscall *)
@@ -682,11 +682,11 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         context = Context.ctx_add_ext_attack ctx (f, t, args)
       ; definition = Context.def_add_ext_attack env.definition (f, t, args, c)
       }
-  | Input.DeclType (id, tc) ->
+  | DeclType (id, tc) ->
       (* [type t : tyclass] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       { env with context = Context.ctx_add_ty env.context (id, tc) }
-  | Input.DeclAccess (s, tys, Some syscalls) ->
+  | DeclAccess (s, tys, Some syscalls) ->
       (* [allow s t1 .. tn [f1, .., fm]] *)
       let tc = Context.ctx_get_ty ~loc env.context s in
       let tycs = List.map (Context.ctx_get_ty ~loc env.context) tys in
@@ -700,7 +700,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         Context.pol_add_access pol (s, tys, syscall)
       in
       { env with access_policy = List.fold_left f env.access_policy syscalls }
-  | Input.DeclAccess (s, tys, None) ->
+  | DeclAccess (s, tys, None) ->
       (* [allow s t1 .. tn [.]] *)
       let tc = Context.ctx_get_ty ~loc env.context s in
       let tycs = List.map (Context.ctx_get_ty ~loc env.context) tys in
@@ -709,7 +709,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
        | _ -> error ~loc WrongInputType);
       let pol = Context.pol_add_access_all env.access_policy (s, tys) in
       { env with access_policy = pol }
-  | Input.DeclAttack (tl, al) ->
+  | DeclAttack (tl, al) ->
       (* [allow attack t1 .. tn [f1, .., fm]] *)
       List.iter
         (fun t ->
@@ -728,14 +728,14 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           tl
       in
       { env with access_policy = p }
-  | Input.DeclInit (id, Fresh) ->
+  | DeclInit (id, Fresh) ->
       (* [const fresh n] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       { env with
         context = Context.ctx_add_const env.context id
       ; definition = Context.def_add_const env.definition (id, None)
       }
-  | Input.DeclInit (id, Value e) ->
+  | DeclInit (id, Value e) ->
       (* [const n = e] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       let e' = process_expr env.context Context.lctx_init e in
@@ -743,14 +743,14 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         context = Context.ctx_add_const env.context id
       ; definition = Context.def_add_const env.definition (id, Some e')
       }
-  | Input.DeclInit (id, Fresh_with_param) ->
+  | DeclInit (id, Fresh_with_param) ->
       (* [const fresh n<>] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       { env with
         context = Context.ctx_add_param_const env.context id
       ; definition = Context.def_add_param_const env.definition (id, None)
       }
-  | Input.DeclInit (id, Value_with_param (e, p)) ->
+  | DeclInit (id, Value_with_param (e, p)) ->
       (* [const n<p> = e] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       let e' = process_expr ~param:p env.context Context.lctx_init e in
@@ -758,16 +758,16 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         context = Context.ctx_add_param_const env.context id
       ; definition = Context.def_add_param_const env.definition (id, Some (p, e'))
       }
-  | Input.DeclChan (ChanParam {id; typ= ty; param= Some ()}) ->
+  | DeclChan (ChanParam {id; typ= ty; param= Some ()}) ->
       (* [channel n<> : ty] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       { env with context = Context.ctx_add_param_ch env.context (id, ty) }
-  | Input.DeclChan (ChanParam {id; typ= ty; param= None}) ->
+  | DeclChan (ChanParam {id; typ= ty; param= None}) ->
       (* [channel n : ty] *)
       if Context.check_used env.context id then error ~loc (AlreadyDefined id);
       (* xxx No need to check [c] ? *)
       { env with context = Context.ctx_add_ch env.context (id, ty) }
-  | Input.DeclProc
+  | DeclProc
       { id = pid
       ; param = Some p
       ; args = chanargs
@@ -845,7 +845,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
               }
       ; definition = Context.def_add_proctmpl env.definition pid files ldef m'
       }
-  | Input.DeclProc
+  | DeclProc
       { id = pid
       ; param = None
       ; args = chanargs
@@ -923,7 +923,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
               }
       ; definition = Context.def_add_proctmpl env.definition pid files ldef m'
       }
-  | Input.DeclSys (procs, lemmas) ->
+  | DeclSys (procs, lemmas) ->
       (* [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
       let processed_procs, processed_param_procs =
         List.fold_left
@@ -1001,6 +1001,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           }
           :: env.system
       }
+  | DeclStructure _ -> env (* No op in the legacy compiler *)
 
 and load fn env =
   let decls, (used_idents, used_strings) = Lexer.read_file Parser.file fn in

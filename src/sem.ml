@@ -937,7 +937,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
       let i_1 = Index.add i 1 in
       let arity =
         match Env.find_fact_opt env s with
-        | Some (Structure, Some arity) -> arity
+        | Some (Structure _, Some arity) -> arity
         | _ -> assert false
       in
       let xs =

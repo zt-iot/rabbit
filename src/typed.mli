@@ -227,3 +227,5 @@ and decl' =
   | System of proc_group_desc list * (Ident.t * lemma) list
     (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
   | Load of string * decl list (** [load "fn"] *)
+  | Structure of name * Input.field_type list
+    (** [structure s(_, channel, parameter)] *)

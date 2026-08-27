@@ -3,6 +3,8 @@
    Reviewed.
 *)
 
+structure Box(_)
+
 const fresh payload
 
 type proc_t : process

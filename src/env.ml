@@ -1,12 +1,12 @@
 type named_fact_desc =
   | Channel
-  | Structure
+  | Structure of Input.field_type list
   | Plain
   | Global
 
 let string_of_named_fact_desc = function
   | Channel -> "channel"
-  | Structure -> "struture"
+  | Structure _ -> "struture"
   | Plain -> "plain"
   | Global -> "global"
 
@@ -42,11 +42,11 @@ let print_desc desc ppf =
   | Process -> f ppf "Process"
   | Rho -> f ppf "Rho"
 
-type t = {
-  vars : (Ident.t * desc) list;
-  facts : (Name.ident * (named_fact_desc * int option)) list ref
-  (* The fact environment is global therefore implemented as mutable *)
-}
+type t =
+  { vars : (Ident.t * desc) list
+  ; facts : (Name.ident * (named_fact_desc * int option)) list ref
+    (* The fact environment is global therefore implemented as mutable *)
+  }
 
 let empty () = { vars= []; facts= ref [] }
 

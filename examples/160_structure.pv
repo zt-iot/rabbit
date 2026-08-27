@@ -41,6 +41,7 @@ const int__pos_5: bitstring.
 (* Integer constant 6 *)
 const int__pos_6: bitstring.
 (* Body *)
+(* structure S(_,_,_) *)
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)

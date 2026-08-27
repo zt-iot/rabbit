@@ -23,6 +23,8 @@ let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
       GEnv.add_param_init genv id param expr
   | Load (_filename, decls) ->
       List.iter (collect_decl genv) decls
+  | Structure (name, ftys) ->
+      GEnv.add_structure_fact ~loc genv name ftys
   | _ -> ()
 
 (*
@@ -862,9 +864,16 @@ let compile_structure_decls (genv : GEnv.t) : tdecl list =
      made more explicit. *)
   let mk_var index = pv_ident (Printf.sprintf "x_%d" index) in
   GEnv.structure_facts genv
-  |> List.concat_map @@ fun (name, arity) ->
+  |> List.concat_map @@ fun (name, ftys) ->
+      let arity = List.length ftys in
+      let field_type_ident = function
+        | Input.Value -> bitstring_ident
+        | Channel -> channel_ident
+        | Parameter -> param_data_ident
+      in
       let envdecl =
-        List.init (arity + 1) (fun index -> mk_var index, bitstring_ident)
+        (mk_var 0, bitstring_ident) ::
+        List.mapi (fun i fty -> mk_var (i+1), field_type_ident fty) ftys
       in
       let vars =
         List.map (fun (id, _ty) -> term_e @@ PIdent id) envdecl
@@ -877,7 +886,7 @@ let compile_structure_decls (genv : GEnv.t) : tdecl list =
         (* fun Struct (bitstring, ..., bitstring) : bitstring[data]. *)
         TFunDecl
           ( structure_ctor_ident name
-          , List.init (arity + 1) (fun _ -> bitstring_ident)
+          , bitstring_ident :: List.map field_type_ident ftys
           , bitstring_ident
           , [pv_ident "data", None] )
       in
@@ -957,6 +966,19 @@ let add_allow_inits (genv : GEnv.t) (body : tprocess_e) : tprocess_e =
     (List.rev (GEnv.allow_entries genv))
     body
 
+let compile_structure_decl name ftys : tdecl list =
+  [ TComment (Format.asprintf "structure %s(%a)"
+                name
+                (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf ",")
+                   (fun ppf ft ->
+                      Format.pp_print_string ppf
+                        (match ft with
+                         | Input.Value -> "_"
+                         | Channel -> "channel"
+                         | Parameter -> "parameter")))
+                ftys
+             ) ]
+
 let rec compile_decl genv (decl : T.decl) : tdecl list =
   let loc = decl.loc in
   match decl.desc with
@@ -981,6 +1003,8 @@ let rec compile_decl genv (decl : T.decl) : tdecl list =
       compile_system ~loc genv procs lemmas
   | Load (filename, decls) ->
       compile_load genv filename decls
+  | Structure (name, ftys) ->
+      compile_structure_decl name ftys
 
 (* `load` simply expands its declaration. *)
 and compile_load genv (filename : string) (decls : T.decl list) : tdecl list =

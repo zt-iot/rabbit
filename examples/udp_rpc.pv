@@ -14,6 +14,12 @@ const none__syscall: syscall_t.
 (* Booleans *)
 const true__bool: bitstring.
 const false__bool: bitstring.
+(* Structure declaration chid(_) *)
+fun chid__struct(bitstring, channel): bitstring[data].
+reduc
+  forall x_0:bitstring, x_1:channel; chid__struct_addr(chid__struct(x_0, x_1)) = x_0.
+reduc
+  forall x_0:bitstring, x_1:channel; chid__struct_par_1(chid__struct(x_0, x_1)) = x_1.
 (* syscall accept_rpc(..) *)
 const accept_rpc__0__syscall: syscall_t.
 (* syscall close_rpc(..) *)
@@ -27,5 +33,6 @@ const recv__0__syscall: syscall_t.
 (* syscall send(..) *)
 const send__0__syscall: syscall_t.
 (* Body *)
+(* structure chid(channel) *)
 (* System *)
 process 0

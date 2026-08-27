@@ -1635,7 +1635,7 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
          ```
       *)
       (* `compile_generated_structure_decls` handle the declarations *)
-      GEnv.add_structure_fact ~loc:cmd.loc genv name (List.length args);
+      let _ftys = GEnv.find_structure_fact ~loc:cmd.loc genv name in
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
       let struct_term =
@@ -1670,7 +1670,11 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
          else c[S__struct_par_1(e)/x1, ..., S__struct_par_n(e)/xn]
          ```
       *)
-      GEnv.add_structure_fact ~loc:cmd.loc genv name (List.length ids);
+      let ftys = GEnv.find_structure_fact ~loc:cmd.loc genv name in
+      if List.length ftys <> List.length ids then
+        Error.internal ~loc:cmd.loc
+          "structure fact is declared with arity %d but here used with %d"
+          (List.length ftys) (List.length ids);
       let struct_term = compile_expr_to_pterm genv penv expr in
       let addr_term = structure_addr_term name struct_term in
       let body_env =

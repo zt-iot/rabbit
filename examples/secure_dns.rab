@@ -1,3 +1,5 @@
+structure Fd(_)
+
 (* security primitives *)
 function pk:1
 function enc:2 

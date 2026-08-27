@@ -298,3 +298,4 @@ and decl' =
       }
   | System of proc_group_desc list * (Ident.t * lemma) list
   | Load of string * decl list
+  | Structure of name * Input.field_type list

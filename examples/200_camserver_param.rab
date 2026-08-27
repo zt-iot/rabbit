@@ -1,3 +1,5 @@
+structure chid(channel)
+
 (** synchronous rpc channel *)
 syscall connect_rpc (c) {
   put [c::req()];
@@ -80,4 +82,3 @@ requires
   lemma ClientTAClose:
     reachable ::ClientTAClose()
 ]
-

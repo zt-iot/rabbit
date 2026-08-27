@@ -1,6 +1,8 @@
 (* Spec 3.7: file facts are encoded using a private file channel together with
    file_type_table and access_control_table checks before reading or writing. *)
 
+structure Fd(_)
+
 syscall fopen(p) {
   case
   | [p.x] ->

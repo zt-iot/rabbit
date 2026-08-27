@@ -1,3 +1,6 @@
+structure chid(channel)
+structure Fd(_)
+
 (* security primitives *)
 function pk:1
 function sign:2

@@ -1,3 +1,5 @@
+structure chid(channel)
+
 (** asynchronous channels *)
 syscall send(c, v) {
   put [c::store(v)]

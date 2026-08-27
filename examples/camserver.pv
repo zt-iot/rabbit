@@ -14,18 +14,18 @@ const none__syscall: syscall_t.
 (* Booleans *)
 const true__bool: bitstring.
 const false__bool: bitstring.
-(* Structure declaration chid(_) *)
-fun chid__struct(bitstring, bitstring): bitstring[data].
-reduc
-  forall x_0:bitstring, x_1:bitstring; chid__struct_addr(chid__struct(x_0, x_1)) = x_0.
-reduc
-  forall x_0:bitstring, x_1:bitstring; chid__struct_par_1(chid__struct(x_0, x_1)) = x_1.
 (* Structure declaration Fd(_) *)
 fun Fd__struct(bitstring, bitstring): bitstring[data].
 reduc
   forall x_0:bitstring, x_1:bitstring; Fd__struct_addr(Fd__struct(x_0, x_1)) = x_0.
 reduc
   forall x_0:bitstring, x_1:bitstring; Fd__struct_par_1(Fd__struct(x_0, x_1)) = x_1.
+(* Structure declaration chid(_) *)
+fun chid__struct(bitstring, channel): bitstring[data].
+reduc
+  forall x_0:bitstring, x_1:channel; chid__struct_addr(chid__struct(x_0, x_1)) = x_0.
+reduc
+  forall x_0:bitstring, x_1:channel; chid__struct_par_1(chid__struct(x_0, x_1)) = x_1.
 (* Channel fact declaration ack(..) *)
 fun ack__chan(): bitstring[data].
 (* Channel fact declaration Returned(..) *)
@@ -83,6 +83,7 @@ const sign_image__str: bitstring.
 (* String constant "/secret/pub" *)
 const secret_pub__str: bitstring.
 (* Body *)
+(* structure Fd(_) *)
 (* function pk:1 *)
 fun pk__0(bitstring): bitstring.
 (* function enc:2 *)
@@ -107,6 +108,7 @@ fun verify__0(bitstring, bitstring, bitstring): bitstring.
 equation forall x__960:bitstring, y__961:bitstring; dec__0(enc__0(x__960, y__961), y__961) = x__960.
 (* equation verify(sign(d__962, k__963), d__962, pk(k__963)) = true *)
 equation forall d__962:bitstring, k__963:bitstring; verify__0(sign__0(d__962, k__963), d__962, pk__0(k__963)) = true__0.
+(* structure chid(channel) *)
 (* function h:1 *)
 fun h__0(bitstring): bitstring.
 (* type readonly_t : filesys *)
