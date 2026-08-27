@@ -17,20 +17,20 @@ requires
   # The single trace emits both `First` and `Second`, satisfying the query conjunction.
   true
   *)
-  lemma BothAreReachable :
+  lemma BothAreReachable : (* verified *)
     reachable ::First(), ::Second() ;
 
   (* PROVERIF EXPECTED
   # First then Second
   true
   *)
-  lemma FirstThenSecond :
+  lemma FirstThenSecond : (* verified *)
     corresponds ::Second() ~> ::First() ;
 
   (* PROVERIF EXPECTED
   # No command emits `Missing`, so the conjunction cannot be satisfied.
   false
   *)
-  lemma MissingConjunctMakesQueryUnreachable :
+  lemma MissingConjunctMakesQueryUnreachable : (* falsified *)
     reachable ::First(), ::Missing()
 ]

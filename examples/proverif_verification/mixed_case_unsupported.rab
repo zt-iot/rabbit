@@ -19,5 +19,5 @@ channel transport : transport_t
 system worker(transport)
 requires
 [
-  lemma EquationBranchIsReachable : reachable ::EquationBranch()
+  lemma EquationBranchIsReachable : (* verified *) reachable ::EquationBranch()
 ]

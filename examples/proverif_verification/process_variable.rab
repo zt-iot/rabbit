@@ -24,6 +24,6 @@ requires
   # The process-level initializer binds `state` before `main` emits it.
   true
   *)
-  lemma InitialValueIsVisible :
+  lemma InitialValueIsVisible : (* verified *)
     reachable ::Initialized(initial_value)
 ]

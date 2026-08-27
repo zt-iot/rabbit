@@ -19,13 +19,13 @@ requires
   # First then Second
   true
   *)
-  lemma FirstPrecedesSecond :
+  lemma FirstPrecedesSecond : (* falsified *)
     corresponds ::Second() ~> ::First() ;
 
   (* PROVERIF EXPECTED
   # not, Second then First
   false
   *)
-  lemma SecondDoesNotPrecedeFirst :
+  lemma SecondDoesNotPrecedeFirst : (* falsified *)
     corresponds ::First() ~> ::Second()
 ]

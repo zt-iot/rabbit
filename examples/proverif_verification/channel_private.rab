@@ -27,6 +27,6 @@ requires
   # No process outputs on the private Rabbit channel, and the attacker cannot access it.
   false
   *)
-  lemma AttackerCannotSupplyPrivateChannel :
+  lemma AttackerCannotSupplyPrivateChannel : (* falsified *)
     reachable ::Received(value)
 ]

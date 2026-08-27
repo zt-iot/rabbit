@@ -32,5 +32,5 @@ requires
   # The two calls select opposite branches and return `left` and `right` into their respective bindings.
   true
   *)
-  lemma BranchValuesReachCaller : reachable ::Returned(left, right)
+  lemma BranchValuesReachCaller : (* verified *) reachable ::Returned(left, right)
 ]

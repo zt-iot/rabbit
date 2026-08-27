@@ -33,11 +33,11 @@ requires
   # The permitted syscall body returns `normal_result` to the caller.
   true
   *)
-  lemma NormalResultIsReachable : reachable ::Result(normal_result) ;
+  lemma NormalResultIsReachable : (* verified *) reachable ::Result(normal_result) ;
 
   (* PROVERIF EXPECTED
   # No `allow attack` entry enables the attack body, so `tampered_result` cannot reach the caller.
   false
   *)
-  lemma AttackResultIsUnreachable : reachable ::Result(tampered_result)
+  lemma AttackResultIsUnreachable : (* falsified *) reachable ::Result(tampered_result)
 ]

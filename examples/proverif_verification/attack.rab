@@ -35,13 +35,13 @@ requires
   # Normal execution
   true
   *)
-  lemma NormalIsReachable :
+  lemma NormalIsReachable : (* verified *)
     reachable ::Normal() ;
 
   (* PROVERIF EXPECTED
   # The attack is allowed
   true
   *)
-  lemma TamperedIsReachable :
+  lemma TamperedIsReachable : (* verified *)
     reachable ::Tampered()
 ]

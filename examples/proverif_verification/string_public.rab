@@ -25,5 +25,5 @@ requires
   # String literals are public, so the attacker can supply `"public"` without a preceding `::Out`.
   true
   *)
-  lemma AttackerKnowsStringLiteral : reachable ::PublicStringReturned()
+  lemma AttackerKnowsStringLiteral : (* verified *) reachable ::PublicStringReturned()
 ]

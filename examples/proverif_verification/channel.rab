@@ -41,13 +41,13 @@ requires
   # The first channel case can consume the fact emitted by the sender.
   true
   *)
-  lemma PayloadIsReceived :
+  lemma PayloadIsReceived : (* verified *)
     reachable ::Received(payload) ;
 
   (* PROVERIF EXPECTED
-  # Rabbit has only one linear message, but ProVerif's approximation cannot prove that a second receive is impossible.
-  unknown
+  # Rabbit has only one linear message, so a second receive is impossible.
+  false
   *)
-  lemma PayloadIsReceivedTwice :
+  lemma PayloadIsReceivedTwice : (* falsified *)
     reachable ::ReceivedAgain(payload)
 ]

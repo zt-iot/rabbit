@@ -28,13 +28,13 @@ requires
   # Discarding the syscall result still executes the syscall's `Marked` event.
   true
   *)
-  lemma SyscallEffectIsReachable :
+  lemma SyscallEffectIsReachable : (* verified *)
     reachable ::Marked() ;
 
   (* PROVERIF EXPECTED
   # After the discarded syscall completes, control returns to the caller's next event.
   true
   *)
-  lemma CallerContinues :
+  lemma CallerContinues : (* verified *)
     reachable ::Continued()
 ]

@@ -10,5 +10,5 @@ process worker() : proc_t
 system worker()
 requires
 [
-  lemma TraceProperty : exists-trace "Ex #i . Ready() @ #i"
+  lemma TraceProperty : (* verified *) exists-trace "Ex #i . Ready() @ #i"
 ]

@@ -12,5 +12,5 @@ process worker() : proc_t
 system worker()
 requires
 [
-  lemma FileIsReachable : reachable "/data".value
+  lemma FileIsReachable : (* verified *) reachable "/data".value
 ]

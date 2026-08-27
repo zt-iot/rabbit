@@ -35,11 +35,11 @@ requires
   # Normal execution
   true
   *)
-  lemma NormalResultReachesCaller : reachable ::Result(normal_result) ;
+  lemma NormalResultReachesCaller : (* verified *) reachable ::Result(normal_result) ;
 
   (* PROVERIF EXPECTED
   # The allowed attack alternative returns `tampered_result` through the same binding.
   true
   *)
-  lemma AttackResultReachesCaller : reachable ::Result(tampered_result)
+  lemma AttackResultReachesCaller : (* verified *) reachable ::Result(tampered_result)
 ]

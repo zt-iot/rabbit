@@ -32,13 +32,13 @@ requires
   # The first always matches.
   true
   *)
-  lemma ExactPatternMatches :
+  lemma ExactPatternMatches : (* verified *)
     reachable ::Matched() ;
 
   (* PROVERIF EXPECTED
   # The second never matches.
   false
   *)
-  lemma DifferentPatternDoesNotMatch :
+  lemma DifferentPatternDoesNotMatch : (* falsified *)
     reachable ::Mismatched()
 ]

@@ -23,13 +23,13 @@ requires
   # The special guard `::True()` always enables its branch.
   true
   *)
-  lemma TrueBranchIsReachable :
+  lemma TrueBranchIsReachable : (* falsified *)
     reachable ::Selected() ;
 
   (* PROVERIF EXPECTED
   # The special guard `::False()` always disables its branch.
   false
   *)
-  lemma FalseBranchIsUnreachable :
+  lemma FalseBranchIsUnreachable : (* falsified *)
     reachable ::Rejected()
 ]

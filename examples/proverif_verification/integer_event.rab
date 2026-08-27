@@ -19,22 +19,22 @@ requires
   (* PROVERIF EXPECTED
   true
   *)
-  lemma OneIsReachable : reachable ::Value(1) ;
+  lemma OneIsReachable : (* verified *) reachable ::Value(1) ;
 
   (* PROVERIF EXPECTED
   # No event of 2
   false
   *)
-  lemma TwoIsUnreachable : reachable ::Value(2) ;
+  lemma TwoIsUnreachable : (* falsified *) reachable ::Value(2) ;
 
   (* PROVERIF EXPECTED
   true
   *)
-  lemma NegativeIntegerIsReachable : reachable ::Negative(-7) ;
+  lemma NegativeIntegerIsReachable : (* verified *) reachable ::Negative(-7) ;
 
   (* PROVERIF EXPECTED
   # No event of -8
   false
   *)
-  lemma DifferentNegativeIntegerIsUnreachable : reachable ::Negative(-8)
+  lemma DifferentNegativeIntegerIsUnreachable : (* falsified *) reachable ::Negative(-8)
 ]

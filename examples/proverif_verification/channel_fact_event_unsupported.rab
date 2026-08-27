@@ -17,5 +17,5 @@ channel transport : transport_t
 system worker(transport)
 requires
 [
-  lemma ModelRuns : reachable ::Never()
+  lemma ModelRuns : (* falsified *) reachable ::Never()
 ]

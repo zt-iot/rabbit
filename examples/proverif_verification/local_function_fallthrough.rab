@@ -28,11 +28,11 @@ requires
   # notify(payload) is called
   true
   *)
-  lemma LocalFunctionRuns : reachable ::Notified(payload) ;
+  lemma LocalFunctionRuns : (* verified *) reachable ::Notified(payload) ;
 
   (* PROVERIF EXPECTED
   # Discarding the return value does not affect the continuaiton.
   true
   *)
-  lemma FallthroughContinues : reachable ::Continued()
+  lemma FallthroughContinues : (* verified *) reachable ::Continued()
 ]

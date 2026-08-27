@@ -27,6 +27,6 @@ requires
   # After `::Out` discloses the value, the attacker can supply it to `::In`.
   true
   *)
-  lemma DisclosedValueCanReturn :
+  lemma DisclosedValueCanReturn : (* verified *)
     reachable ::AttackerReturned(disclosed_value)
 ]

@@ -32,20 +32,20 @@ requires
   # identity(after) is called
   true
   *)
-  lemma FunctionCalled :
+  lemma FunctionCalled : (* verified *)
     reachable ::Called(after) ;
 
   (* PROVERIF EXPECTED
   # result is assigned
   true
   *)
-  lemma AssignmentUsesReturn :
+  lemma AssignmentUsesReturn : (* verified *)
     reachable ::Assigned(after) ;
 
   (* PROVERIF EXPECTED
   # call is executed properly even when the result is discarded
   true
   *)
-  lemma DiscardedCallExecutes :
+  lemma DiscardedCallExecutes : (* verified *)
     reachable ::Called(discarded_argument)
 ]

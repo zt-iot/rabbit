@@ -28,6 +28,6 @@ requires
   # The direct-access entry permits the channel put, so execution reaches the following event.
   true
   *)
-  lemma ContinuationIsReachable :
+  lemma ContinuationIsReachable : (* verified *)
     reachable ::AfterGrantedPut()
 ]

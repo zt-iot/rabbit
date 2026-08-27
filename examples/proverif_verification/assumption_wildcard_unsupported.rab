@@ -18,5 +18,5 @@ process worker() : proc_t
 system worker()
 requires
 [
-  lemma MatchedIsReachable : reachable ::Matched()
+  lemma MatchedIsReachable : (* verified *) reachable ::Matched()
 ]

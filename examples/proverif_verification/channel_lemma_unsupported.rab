@@ -14,5 +14,5 @@ channel transport : transport_t
 system worker(transport)
 requires
 [
-  lemma MessageIsReachable : reachable transport::Message(value)
+  lemma MessageIsReachable : (* verified *) reachable transport::Message(value)
 ]

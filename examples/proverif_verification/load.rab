@@ -21,6 +21,6 @@ requires
   (* PROVERIF EXPECTED
   true
   *)
-  lemma LoadedDeclarationIsUsable :
+  lemma LoadedDeclarationIsUsable : (* verified *)
     reachable ::Loaded(loaded_value)
 ]

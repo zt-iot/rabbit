@@ -23,13 +23,13 @@ requires
   # `1 = 1` is selected.
   true
   *)
-  lemma SelectedIsReachable :
+  lemma SelectedIsReachable : (* verified *)
     reachable ::Selected() ;
 
   (* PROVERIF EXPECTED
   # `1 != 1` is never selected.
   false
   *)
-  lemma RejectedIsUnreachable :
+  lemma RejectedIsUnreachable : (* falsified *)
     reachable ::Rejected()
 ]

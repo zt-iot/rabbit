@@ -31,5 +31,5 @@ requires
   # The passive attack exposes `observed_value`, so the attacker can return it.
   true
   *)
-  lemma ObservationIsReachable : reachable ::Observed(observed_value)
+  lemma ObservationIsReachable : (* verified *) reachable ::Observed(observed_value)
 ]

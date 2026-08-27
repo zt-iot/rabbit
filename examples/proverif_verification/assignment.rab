@@ -25,13 +25,13 @@ requires
   # The assignment replaces `before` with `after` before emitting `Assigned`.
   true
   *)
-  lemma NewValueIsReachable :
+  lemma NewValueIsReachable : (* verified *)
     reachable ::Assigned(after) ;
 
   (* PROVERIF EXPECTED
   # The old value is overwritten before `Assigned` is emitted.
   false
   *)
-  lemma OldValueIsUnreachable :
+  lemma OldValueIsUnreachable : (* falsified *)
     reachable ::Assigned(before)
 ]

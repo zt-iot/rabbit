@@ -40,11 +40,11 @@ requires
   # `tamper_target` targets `target`, so it must not block the preceding `unrelated` call.
   true
   *)
-  lemma UnrelatedCallIsReachable : reachable ::UnrelatedCalled() ;
+  lemma UnrelatedCallIsReachable : (* verified *) reachable ::UnrelatedCalled() ;
 
   (* PROVERIF EXPECTED
   # The attack remains available when its actual target syscall is called.
   true
   *)
-  lemma TargetAttackIsReachable : reachable ::TargetTampered()
+  lemma TargetAttackIsReachable : (* verified *) reachable ::TargetTampered()
 ]

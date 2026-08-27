@@ -20,12 +20,12 @@ requires
   (* PROVERIF EXPECTED
   true
   *)
-  lemma PlainIsReachable :
+  lemma PlainIsReachable : (* verified *)
     reachable PlainEvent() ;
 
   (* PROVERIF EXPECTED
   true
   *)
-  lemma GlobalIsReachable :
+  lemma GlobalIsReachable : (* verified *)
     reachable ::GlobalEvent()
 ]

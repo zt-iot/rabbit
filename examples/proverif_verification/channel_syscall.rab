@@ -42,6 +42,6 @@ requires
   # During the inlined syscall, the access check uses `send_message` and matches its allow entry.
   true
   *)
-  lemma SyscallPolicyAllowsCommunication :
+  lemma SyscallPolicyAllowsCommunication : (* verified *)
     reachable ::Received(payload)
 ]

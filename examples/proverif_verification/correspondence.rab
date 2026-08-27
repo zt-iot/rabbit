@@ -21,13 +21,13 @@ requires
   # Started, then Finished.
   true
   *)
-  lemma StartedBeforeFinished :
+  lemma StartedBeforeFinished : (* verified *)
     corresponds ::Finished() ~> ::Started() ;
 
   (* PROVERIF EXPECTED
   # Not the opposite: Finished then Started
   false
   *)
-  lemma FinishedBeforeStarted :
+  lemma FinishedBeforeStarted : (* falsified *)
     corresponds ::Started() ~> ::Finished()
 ]

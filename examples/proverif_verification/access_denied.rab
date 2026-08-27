@@ -26,6 +26,6 @@ requires
   # No access-control entry permits the channel put, so execution cannot reach the following event.
   false
   *)
-  lemma ContinuationIsUnreachable :
+  lemma ContinuationIsUnreachable : (* falsified *)
     reachable ::AfterDeniedPut()
 ]

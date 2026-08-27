@@ -27,13 +27,13 @@ requires
   # Calling `notify` executes its body even though it has no explicit return.
   true
   *)
-  lemma SyscallBodyRuns :
+  lemma SyscallBodyRuns : (* verified *)
     reachable ::Notified() ;
 
   (* PROVERIF EXPECTED
   # Reaching the end of the syscall body resumes the caller continuation.
   true
   *)
-  lemma FallthroughContinues :
+  lemma FallthroughContinues : (* verified *)
     reachable ::Continued()
 ]

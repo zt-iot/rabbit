@@ -19,5 +19,5 @@ channel right : transport_t
 system worker(left, right)
 requires
 [
-  lemma BothAreReachable : reachable ::Both(x, y)
+  lemma BothAreReachable : (* falsified *) reachable ::Both(x, y)
 ]

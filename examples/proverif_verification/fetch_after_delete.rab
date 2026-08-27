@@ -16,8 +16,8 @@ system
 requires
 [
   (* PROVERIF EXPECTED
-  # Rabbit deadlocks on dereference after delete, but ProVerif cannot prove it.
-  unknown
+  # Rabbit deadlocks on dereference after delete.
+  false
   *)
   lemma FetchAfterDelete : (* falsified *)
     reachable ::FetchedAfterDelete()

@@ -20,13 +20,13 @@ requires
   # The emitted string literal and the queried literal map to the same symbolic constant.
   true
   *)
-  lemma HelloIsReachable :
+  lemma HelloIsReachable : (* verified *)
     reachable ::Seen("hello") ;
 
   (* PROVERIF EXPECTED
   # A different string literal maps to a distinct symbolic constant that is never emitted.
   false
   *)
-  lemma OtherStringIsUnreachable :
+  lemma OtherStringIsUnreachable : (* falsified *)
     reachable ::Seen("other")
 ]

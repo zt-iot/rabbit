@@ -13,5 +13,5 @@ process worker() : proc_t
 system worker()
 requires
 [
-  lemma ValueIsReachable : reachable ::Value(1 + 2)
+  lemma ValueIsReachable : (* verified *) reachable ::Value(1 + 2)
 ]

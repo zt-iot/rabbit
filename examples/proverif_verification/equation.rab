@@ -27,6 +27,6 @@ requires
   # The declared equation reduces `dec(enc(plaintext, key), key)` to `plaintext`.
   true
   *)
-  lemma EquationReducesTerm :
+  lemma EquationReducesTerm : (* verified *)
     reachable ::Decoded(plaintext)
 ]

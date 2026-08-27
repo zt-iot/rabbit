@@ -15,5 +15,5 @@ process worker() : proc_t
 system worker()
 requires
 [
-  lemma ModelRuns : reachable ::Never()
+  lemma ModelRuns : (* falsified *) reachable ::Never()
 ]

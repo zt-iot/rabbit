@@ -26,20 +26,20 @@ requires
   # The successful branch updates the value observed by its continuation.
   true
   *)
-  lemma UpdatedStateReachesContinuation :
+  lemma UpdatedStateReachesContinuation : (* verified *)
     reachable ::Selected(1) ;
 
   (* PROVERIF EXPECTED
   # The original value is not retained after the successful assignment.
   false
   *)
-  lemma OldStateDoesNotReachContinuation :
+  lemma OldStateDoesNotReachContinuation : (* falsified *)
     reachable ::Selected(0) ;
 
   (* PROVERIF EXPECTED
   # A false single-branch guard executes neither its body nor its continuation.
   false
   *)
-  lemma FailedCaseStopsThisPath :
+  lemma FailedCaseStopsThisPath : (* falsified *)
     reachable ::ContinuedAfterFailedCase()
 ]

@@ -21,18 +21,18 @@ requires
   (* PROVERIF EXPECTED
   true
   *)
-  lemma InequalityIsReachable :
+  lemma InequalityIsReachable : (* verified *)
     reachable left != right ;
 
   (* PROVERIF EXPECTED
   true
   *)
-  lemma InequalityHasPredecessor :
+  lemma InequalityHasPredecessor : (* verified *)
     corresponds left != right ~> ::BeforeInequality(left, right) ;
 
   (* PROVERIF EXPECTED
   true
   *)
-  lemma InequalityPrecedesContinuation :
+  lemma InequalityPrecedesContinuation : (* verified *)
     corresponds ::AfterInequality(left, right) ~> left != right
 ]

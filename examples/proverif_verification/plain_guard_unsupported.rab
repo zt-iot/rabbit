@@ -14,5 +14,5 @@ process worker() : proc_t
 system worker()
 requires
 [
-  lemma SelectedIsReachable : reachable ::Selected()
+  lemma SelectedIsReachable : (* falsified *) reachable ::Selected()
 ]

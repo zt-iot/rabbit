@@ -22,10 +22,10 @@ requires
   (* PROVERIF EXPECTED
   true
   *)
-  lemma TrueIsReachable : reachable ::Value(true) ;
+  lemma TrueIsReachable : (* verified *) reachable ::Value(true) ;
 
   (* PROVERIF EXPECTED
   false
   *)
-  lemma FalseIsUnreachable : reachable ::Value(false)
+  lemma FalseIsUnreachable : (* falsified *) reachable ::Value(false)
 ]

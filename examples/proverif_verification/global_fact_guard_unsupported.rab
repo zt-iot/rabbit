@@ -17,5 +17,5 @@ process worker() : proc_t
 system worker()
 requires
 [
-  lemma ConsumedIsReachable : reachable ::Consumed()
+  lemma ConsumedIsReachable : (* falsified *) reachable ::Consumed()
 ]

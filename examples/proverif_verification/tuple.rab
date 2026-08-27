@@ -22,13 +22,13 @@ requires
   # The tuple emitted by the process exactly matches the queried tuple.
   true
   *)
-  lemma CompositeValueIsReachable :
+  lemma CompositeValueIsReachable : (* verified *)
     reachable ::Value((item, "selected")) ;
 
   (* PROVERIF EXPECTED
   # Changing the tuple's string component produces a distinct term that is never emitted.
   false
   *)
-  lemma DifferentTupleIsUnreachable :
+  lemma DifferentTupleIsUnreachable : (* falsified *)
     reachable ::Value((item, "rejected"))
 ]

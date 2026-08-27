@@ -20,18 +20,18 @@ requires
   (* PROVERIF EXPECTED
   true
   *)
-  lemma EqualityIsReachable :
+  lemma EqualityIsReachable : (* verified *)
     reachable value = value ;
 
   (* PROVERIF EXPECTED
   true
   *)
-  lemma EqualityHasPredecessor :
+  lemma EqualityHasPredecessor : (* verified *)
     corresponds value = value ~> ::BeforeEquality(value) ;
 
   (* PROVERIF EXPECTED
   true
   *)
-  lemma EqualityPrecedesContinuation :
+  lemma EqualityPrecedesContinuation : (* verified *)
     corresponds ::AfterEquality(value) ~> value = value
 ]

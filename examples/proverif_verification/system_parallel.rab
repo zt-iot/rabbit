@@ -28,6 +28,6 @@ requires
   # Parallel system composition executes both component processes in the same trace.
   true
   *)
-  lemma BothComponentsRun :
+  lemma BothComponentsRun : (* verified *)
     reachable ::Left(), ::Right()
 ]

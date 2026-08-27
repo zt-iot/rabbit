@@ -27,6 +27,6 @@ requires
   # The alias preserves the structure address, and `get` projects its `payload` field.
   true
   *)
-  lemma FieldIsReachable :
+  lemma FieldIsReachable : (* verified *)
     reachable ::Read(payload)
 ]

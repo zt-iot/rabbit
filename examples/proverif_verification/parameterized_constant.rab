@@ -23,12 +23,12 @@ requires
   (* PROVERIF EXPECTED
   true
   *)
-  lemma ModelIsWellTypedAndRuns :
+  lemma ModelIsWellTypedAndRuns : (* verified *)
     reachable ::Ready(wrap(indexed_value<0>)) ;
 
   (* PROVERIF EXPECTED
   false
   *)
-  lemma DifferentParametersRemainDistinct :
+  lemma DifferentParametersRemainDistinct : (* falsified *)
     reachable ::Ready(wrap(indexed_value<1>))
 ]

@@ -37,41 +37,41 @@ requires
   # LeftRepeat then LeftUntil
   true
   *)
-  lemma LeftUntilFollowsLeftRepeat :
+  lemma LeftUntilFollowsLeftRepeat : (* verified *)
     corresponds ::LeftUntil() ~> ::LeftRepeat() ;
 
   (* PROVERIF EXPECTED
   # RightRepeat then RightUntil
   true
   *)
-  lemma RightUntilFollowsRightRepeat :
+  lemma RightUntilFollowsRightRepeat : (* verified *)
     corresponds ::RightUntil() ~> ::RightRepeat() ;
 
   (* PROVERIF EXPECTED
   # LeftUntil then left_state is set.
   true
   *)
-  lemma LeftContinuationFollowsLeftUntil :
+  lemma LeftContinuationFollowsLeftUntil : (* verified *)
     corresponds ::Finished(left_state) ~> ::LeftUntil() ;
 
   (* PROVERIF EXPECTED
   # RightUntil then right_state is set.
   true
   *)
-  lemma RightContinuationFollowsRightUntil :
+  lemma RightContinuationFollowsRightUntil : (* verified *)
     corresponds ::Finished(right_state) ~> ::RightUntil() ;
 
   (* PROVERIF EXPECTED
   # Not, RightRepeat then LeftUntil
   false
   *)
-  lemma LeftUntilDoesNotFollowRightRepeat :
+  lemma LeftUntilDoesNotFollowRightRepeat : (* falsified *)
     corresponds ::LeftUntil() ~> ::RightRepeat() ;
 
   (* PROVERIF EXPECTED
   # Not LeftRepeat then RightUntil
   false
   *)
-  lemma RightUntilDoesNotFollowLeftRepeat :
+  lemma RightUntilDoesNotFollowLeftRepeat : (* falsified *)
     corresponds ::RightUntil() ~> ::LeftRepeat()
 ]

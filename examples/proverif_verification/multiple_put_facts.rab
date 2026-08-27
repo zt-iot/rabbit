@@ -54,13 +54,13 @@ requires
   # The left receiver receives the left.
   true
   *)
-  lemma LeftPayloadIsReceived :
+  lemma LeftPayloadIsReceived : (* verified *)
     reachable ::LeftReceived(left_payload) ;
 
   (* PROVERIF EXPECTED
   # and vice-versa.
   true
   *)
-  lemma RightPayloadIsReceived :
+  lemma RightPayloadIsReceived : (* verified *)
     reachable ::RightReceived(right_payload)
 ]

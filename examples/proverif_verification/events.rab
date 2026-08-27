@@ -19,12 +19,12 @@ requires
   (* PROVERIF EXPECTED
   true
   *)
-  lemma SentIsReachable :
+  lemma SentIsReachable : (* verified *)
     reachable ::Sent() ;
 
   (* PROVERIF EXPECTED
   false
   *)
-  lemma OtherIsUnreachable :
+  lemma OtherIsUnreachable : (* falsified *)
     reachable ::Other()
 ]

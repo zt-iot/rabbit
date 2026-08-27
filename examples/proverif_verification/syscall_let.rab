@@ -29,6 +29,6 @@ requires
   # The syscall returns its argument, which the `var ... in` binding exposes to the event.
   true
   *)
-  lemma ReturnValueIsBound :
+  lemma ReturnValueIsBound : (* verified *)
     reachable ::Returned(argument)
 ]

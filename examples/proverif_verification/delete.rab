@@ -27,14 +27,13 @@ requires
   # The delete command completes before the guarded dereference is attempted.
   true
   *)
-  lemma DeleteCompletes :
+  lemma DeleteCompletes : (* verified *)
     reachable ::Deleted() ;
 
   (* PROVERIF EXPECTED
-  # The deleted-address check should block dereferencing the alias,
-  # but ProVerif cannot prove that it always does.
-  unknown
+  # The deleted-address check blocks dereferencing the alias.
+  false
   *)
-  lemma DereferenceDeadlocks :
+  lemma DereferenceDeadlocks : (* falsified *)
     reachable ::Dereferenced(payload)
 ]

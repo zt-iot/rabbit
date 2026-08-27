@@ -19,10 +19,10 @@ requires
   # Both equalities in the first guard hold, so their conjunction enables the branch.
   true
   *)
-  lemma AllFactsMatch : reachable ::AllMatched() ;
+  lemma AllFactsMatch : (* verified *) reachable ::AllMatched() ;
   (* PROVERIF EXPECTED
   # The false inequality in the second guard makes the entire conjunction fail.
   false
   *)
-  lemma OneFailedFactDisablesBranch : reachable ::OneFailed()
+  lemma OneFailedFactDisablesBranch : (* falsified *) reachable ::OneFailed()
 ]

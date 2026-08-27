@@ -33,6 +33,6 @@ requires
   # Contents are read properly
   true
   *)
-  lemma InitialContentsAreReadable :
+  lemma InitialContentsAreReadable : (* verified *)
     reachable ::Read("initial")
 ]

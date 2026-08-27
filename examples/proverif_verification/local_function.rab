@@ -28,13 +28,13 @@ requires
   # The local function is called
   true
   *)
-  lemma HelperRuns :
+  lemma HelperRuns : (* verified *)
     reachable ::HelperCalled(value) ;
 
   (* PROVERIF EXPECTED
   # The local function return is correct
   true
   *)
-  lemma ReturnValueFlowsToCaller :
+  lemma ReturnValueFlowsToCaller : (* verified *)
     reachable ::Returned(argument)
 ]

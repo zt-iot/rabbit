@@ -18,6 +18,6 @@ system
   !instance.(left<instance>() | right<instance>())
 requires
 [
-  lemma LeftIsReachable : reachable ::Left() ;
-  lemma RightIsReachable : reachable ::Right()
+  lemma LeftIsReachable : (* verified *) reachable ::Left() ;
+  lemma RightIsReachable : (* verified *) reachable ::Right()
 ]

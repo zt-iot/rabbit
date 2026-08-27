@@ -34,5 +34,5 @@ requires
   # Both calls continue after the case and return `joined` into their respective bindings.
   true
   *)
-  lemma BranchValuesReachCaller : reachable ::Returned(joined, joined)
+  lemma BranchValuesReachCaller : (* verified *) reachable ::Returned(joined, joined)
 ]

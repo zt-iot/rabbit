@@ -27,13 +27,13 @@ requires
   # Separate `new` allocations produce distinct fresh addresses, so their equality guard fails.
   false
   *)
-  lemma EqualBranchIsUnreachable :
+  lemma EqualBranchIsUnreachable : (* falsified *)
     reachable ::SameAddress() ;
 
   (* PROVERIF EXPECTED
   # The inequality guard succeeds because the two structures have distinct fresh addresses.
   true
   *)
-  lemma DistinctBranchIsReachable :
+  lemma DistinctBranchIsReachable : (* verified *)
     reachable ::DifferentAddresses()
 ]

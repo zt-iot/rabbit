@@ -21,6 +21,6 @@ requires
   # Discarding the standalone expression in `main` does not terminate the following sequence.
   true
   *)
-  lemma MainContinuationRuns :
+  lemma MainContinuationRuns : (* verified *)
     reachable ::Continued()
 ]

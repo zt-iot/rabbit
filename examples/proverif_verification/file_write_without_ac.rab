@@ -1,0 +1,51 @@
+(* Verification feature: put writes a process-local file fact.
+
+   Reviewed.
+*)
+
+type server_t : process
+type writable_t : filesys
+
+allow server_t writable_t [.]
+
+process server() : server_t
+{
+  file "/data" : writable_t = "initial"
+
+  main {
+    put ["/data"."updated"];
+    case
+    | ["/data".contents] -> event [::ReadBack(contents)]
+    end;
+    case
+    | ["/data".contents] -> event [::ReadBackAgain(contents)]
+    end
+  }
+}
+
+system
+  server()
+requires
+[
+  (* PROVERIF EXPECTED
+  # `put` does NOT overwrite the initial contents. Therefore "initial" can be read back.
+  true
+  *)
+  lemma InitialContentsAreReadable : (* falsified *)
+    reachable ::ReadBack("initial") ;
+
+  (* PROVERIF EXPECTED
+  # "updated" can also be read back.
+  true
+  *)
+  lemma UpdatedContentsAreReadable : (* falsified *)
+    reachable ::ReadBack("updated") ;
+
+  (* PROVERIF EXPECTED
+  # If the second read gets `"updated"`, Rabbit semantics require the first
+  # read to have consumed `"initial"`.
+  true
+  *)
+  lemma ContentsAreReadableAgain : (* verified *)
+    corresponds ::ReadBackAgain("updated") ~> ::ReadBack("initial")
+]

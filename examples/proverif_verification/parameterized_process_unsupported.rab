@@ -15,5 +15,5 @@ process peer<p>() : proc_t
 system !p.(worker<p>() | peer<p>())
 requires
 [
-  lemma ReadyIsReachable : reachable ::Ready(), ::PeerReady()
+  lemma ReadyIsReachable : (* verified *) reachable ::Ready(), ::PeerReady()
 ]

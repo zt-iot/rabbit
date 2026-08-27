@@ -36,27 +36,27 @@ requires
   # Either overlapping channel guard may consume the available message, including the first one.
   true
   *)
-  lemma FirstBranchIsReachable :
+  lemma FirstBranchIsReachable : (* verified *)
     reachable ::First() ;
 
   (* PROVERIF EXPECTED
   # Either overlapping channel guard may consume the available message, including the second one.
   true
   *)
-  lemma SecondBranchIsReachable :
+  lemma SecondBranchIsReachable : (* verified *)
     reachable ::Second() ;
 
   (* PROVERIF EXPECTED
   # Reaching Merged(1) records that the first channel branch was taken.
   true
   *)
-  lemma FirstBranchIsMerged :
+  lemma FirstBranchIsMerged : (* verified *)
     corresponds ::Merged(1) ~> ::First() ;
 
   (* PROVERIF EXPECTED
   # Reaching Merged(2) records that the second channel branch was taken.
   true
   *)
-  lemma SecondBranchIsMerged :
+  lemma SecondBranchIsMerged : (* verified *)
     corresponds ::Merged(2) ~> ::Second()
 ]

@@ -39,60 +39,60 @@ requires
   (* PROVERIF EXPECTED
   true
   *)
-  lemma TrueEqualityIsReachable :
+  lemma TrueEqualityIsReachable : (* verified *)
     reachable left = left ;
 
   (* PROVERIF EXPECTED
   true
   *)
-  lemma TrueEqualityContinues :
+  lemma TrueEqualityContinues : (* verified *)
     reachable ::AfterTrueEquality() ;
 
   (* PROVERIF EXPECTED
   true
   *)
-  lemma TrueInequalityIsReachable :
+  lemma TrueInequalityIsReachable : (* verified *)
     reachable left != right ;
 
   (* PROVERIF EXPECTED
   true
   *)
-  lemma TrueInequalityContinues :
+  lemma TrueInequalityContinues : (* verified *)
     reachable ::AfterTrueInequality() ;
 
   (* PROVERIF EXPECTED
   false
   *)
-  lemma FalseEqualityIsUnreachable :
+  lemma FalseEqualityIsUnreachable : (* falsified *)
     reachable left = right ;
 
   (* PROVERIF EXPECTED
   false
   *)
-  lemma FalseEqualitySuppressesWholeEvent :
+  lemma FalseEqualitySuppressesWholeEvent : (* falsified *)
     reachable ::InsideFalseEquality() ;
 
   (* PROVERIF EXPECTED
   false
   *)
-  lemma FalseEqualityBlocks :
+  lemma FalseEqualityBlocks : (* falsified *)
     reachable ::AfterFalseEquality() ;
 
   (* PROVERIF EXPECTED
   false
   *)
-  lemma FalseInequalityIsUnreachable :
+  lemma FalseInequalityIsUnreachable : (* falsified *)
     reachable left != left ;
 
   (* PROVERIF EXPECTED
   false
   *)
-  lemma FalseInequalitySuppressesWholeEvent :
+  lemma FalseInequalitySuppressesWholeEvent : (* falsified *)
     reachable ::InsideFalseInequality() ;
 
   (* PROVERIF EXPECTED
   false
   *)
-  lemma FalseInequalityBlocks :
+  lemma FalseInequalityBlocks : (* falsified *)
     reachable ::AfterFalseInequality()
 ]

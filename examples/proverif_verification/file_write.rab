@@ -1,25 +1,34 @@
-(* Verification feature: put writes a process-local file fact.
+(* Verification feature: syscalls write and consume process-local file facts
+   under explicit access-control entries. *)
 
-   Reviewed.
-*)
+syscall write_file(p, contents) {
+  put [p.contents]
+}
+
+syscall read_file(p) {
+  case
+  | [p.contents] -> contents
+  end
+}
 
 type server_t : process
 type writable_t : filesys
 
-allow server_t writable_t [.]
+allow server_t writable_t [write_file, read_file]
 
 process server() : server_t
 {
   file "/data" : writable_t = "initial"
 
   main {
-    put ["/data"."updated"];
-    case
-    | ["/data".contents] -> event [::ReadBack(contents)]
-    end;
-    case
-    | ["/data".contents] -> event [::ReadBackAgain(contents)]
-    end
+    (* Keep process initialization separate from the first filesystem syscall,
+       so its access-control entries exist before that access is checked. *)
+    event [::Initialized()];
+    _ := write_file("/data", "updated");
+    var first = read_file("/data") in
+    event [::ReadBack(first)];
+    var second = read_file("/data") in
+    event [::ReadBackAgain(second)]
   }
 }
 
@@ -28,24 +37,25 @@ system
 requires
 [
   (* PROVERIF EXPECTED
-  # `put` does NOT overwrite the initial contents. Therefore "initial" can be read back.
+  # Writing adds `"updated"` without removing the initial file fact, so the
+  # first read may consume `"initial"`.
   true
   *)
-  lemma InitialContentsAreReadable :
+  lemma InitialContentsAreReadable : (* verified *)
     reachable ::ReadBack("initial") ;
 
   (* PROVERIF EXPECTED
-  # "updated" can also be read back.
+  # The first read may instead consume the newly written contents.
   true
   *)
-  lemma UpdatedContentsAreReadable :
+  lemma UpdatedContentsAreReadable : (* verified *)
     reachable ::ReadBack("updated") ;
 
   (* PROVERIF EXPECTED
-  # If the second read gets `"updated"`, Rabbit semantics require the first
-  # read to have consumed `"initial"`, but ProVerif cannot prove this linearity.
-  unknown
+  # If the second read consumes `"updated"`, the first read must have consumed
+  # the only other file fact, `"initial"`.
+  true
   *)
-  lemma ContentsAreReadableAgain :
+  lemma ContentsAreReadableAgain : (* verified *)
     corresponds ::ReadBackAgain("updated") ~> ::ReadBack("initial")
 ]

@@ -14,5 +14,5 @@ process worker() : proc_t
 system worker()
 requires
 [
-  lemma ReadyIsReachable : reachable ::Ready()
+  lemma ReadyIsReachable : (* verified *) reachable ::Ready()
 ]

@@ -30,13 +30,13 @@ requires
   # A true assumption permits execution of its body.
   true
   *)
-  lemma SatisfiedBodyIsReachable :
+  lemma SatisfiedBodyIsReachable : (* verified *)
     reachable ::AssumptionSatisfied() ;
 
   (* PROVERIF EXPECTED
   # A false assumption blocks execution of its body.
   false
   *)
-  lemma UnsatisfiedBodyIsUnreachable :
+  lemma UnsatisfiedBodyIsUnreachable : (* falsified *)
     reachable ::AssumptionUnsatisfied()
 ]

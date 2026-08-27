@@ -42,14 +42,14 @@ requires
   # The channel branch stores both `finished_phase` and `payload`, which the continuation receives.
   true
   *)
-  lemma FinalStateIsReachable :
+  lemma FinalStateIsReachable : (* verified *)
     reachable ::LoopFinished(finished_phase, payload) ;
 
   (* PROVERIF EXPECTED
   # The until guard observes the state written only after `StepConsumed` handles the channel fact.
   true
   *)
-  lemma UntilFollowsConsumption :
+  lemma UntilFollowsConsumption : (* verified *)
     corresponds ::UntilMatched(finished_phase, payload)
       ~> ::StepConsumed(payload) ;
 
@@ -57,7 +57,7 @@ requires
   # The continuation receives the done-state token emitted after `UntilMatched`.
   true
   *)
-  lemma ContinuationFollowsUntil :
+  lemma ContinuationFollowsUntil : (* verified *)
     corresponds ::LoopFinished(finished_phase, payload)
       ~> ::UntilMatched(finished_phase, payload)
 ]

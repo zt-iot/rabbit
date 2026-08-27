@@ -19,5 +19,5 @@ requires
   # The arity-zero external symbol `marker` is the argument of the emitted event.
   true
   *)
-  lemma MarkerIsReachable : reachable ::Marked(marker)
+  lemma MarkerIsReachable : (* verified *) reachable ::Marked(marker)
 ]

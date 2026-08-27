@@ -31,13 +31,13 @@ requires
   # The syscall returns `after`, and assignment stores it in the existing variable.
   true
   *)
-  lemma AssignedReturnIsReachable :
+  lemma AssignedReturnIsReachable : (* verified *)
     reachable ::Assigned(after) ;
 
   (* PROVERIF EXPECTED
   # The assignment overwrites `before` before the event reads the variable.
   false
   *)
-  lemma PreviousValueIsUnreachable :
+  lemma PreviousValueIsUnreachable : (* falsified *)
     reachable ::Assigned(before)
 ]

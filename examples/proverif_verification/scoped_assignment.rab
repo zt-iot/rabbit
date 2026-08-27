@@ -37,20 +37,20 @@ requires
   # Assignment through a function call updates the process variable.
   true
   *)
-  lemma OuterAssignmentPersists :
+  lemma OuterAssignmentPersists : (* verified *)
     reachable ::OuterState(after) ;
 
   (* PROVERIF EXPECTED
   # Assignment to the shadowing function argument produces the local result.
   true
   *)
-  lemma LocalAssignmentIsUsed :
+  lemma LocalAssignmentIsUsed : (* verified *)
     reachable ::LocalResult(local_after) ;
 
   (* PROVERIF EXPECTED
   # The shadowing function argument does not replace the process variable.
   false
   *)
-  lemma LocalAssignmentDoesNotEscape :
+  lemma LocalAssignmentDoesNotEscape : (* falsified *)
     reachable ::OuterState(local_after)
 ]
