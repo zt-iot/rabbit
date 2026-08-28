@@ -1,0 +1,33 @@
+(* Verification feature: monomorphic inference preserves a channel returned by
+   an inlined syscall and used by its caller.
+*)
+
+type proc_t : process
+type chan_t : channel
+
+channel ch : chan_t
+
+syscall identity_channel(c) {
+  c
+}
+
+allow proc_t [identity_channel]
+
+process worker(c : chan_t) : proc_t
+{
+  main {
+    var selected = identity_channel(c) in
+    event [::Selected(selected)]
+  }
+}
+
+system worker(ch)
+requires
+[
+  (* PROVERIF EXPECTED
+  # The syscall result and event argument retain the source channel type.
+  true
+  *)
+  lemma SelectedChannelIsReachable : (* verified *)
+    reachable ::Selected(selected)
+]

@@ -32,25 +32,25 @@ const person_t__0: proc_t.
 (* type chan_t : channel *)
 const chan_t__0: acc_data_t.
 (* process alice(..): person_t *)
-let alice__0(ptype:proc_t, p__780:param_data, ch__781:channel) =
-  (* Channel ch__781 : chan_t *)
-  insert channel_table(chan_t__0, ch__781);
-  get channel_table(ch_type__786:acc_data_t, =ch__781) in
-  get access_control_table(=ptype, =ch_type__786, =send_one__0__syscall) in
-  out(ch__781, send__chan(int__pos_1)) |
-  (get channel_table(ch_type__785:acc_data_t, =ch__781) in
-   get access_control_table(=ptype, =ch_type__785, =send_two__0__syscall) in
-   out(ch__781, send__chan(int__pos_2)) | event Valid__event_global).
+let alice__0(ptype:proc_t, p__773:param_data, ch__774:channel) =
+  (* Channel ch__774 : chan_t *)
+  insert channel_table(chan_t__0, ch__774);
+  get channel_table(ch_type__779:acc_data_t, =ch__774) in
+  get access_control_table(=ptype, =ch_type__779, =send_one__0__syscall) in
+  out(ch__774, send__chan(int__pos_1)) |
+  (get channel_table(ch_type__778:acc_data_t, =ch__774) in
+   get access_control_table(=ptype, =ch_type__778, =send_two__0__syscall) in
+   out(ch__774, send__chan(int__pos_2)) | event Valid__event_global).
 (* process bob(..): person_t *)
-let bob__0(ptype:proc_t, p__782:param_data, ch__783:channel) =
-  (* Channel ch__783 : chan_t *)
-  insert channel_table(chan_t__0, ch__783);
-  get channel_table(ch_type__788:acc_data_t, =ch__783) in
-  get access_control_table(=ptype, =ch_type__788, =send_two__0__syscall) in
-  out(ch__783, send__chan(int__pos_2)) |
-  (get channel_table(ch_type__787:acc_data_t, =ch__783) in
-   get access_control_table(=ptype, =ch_type__787, =send_one__0__syscall) in
-   out(ch__783, send__chan(int__pos_1)) | event Valid__event_global).
+let bob__0(ptype:proc_t, p__775:param_data, ch__776:channel) =
+  (* Channel ch__776 : chan_t *)
+  insert channel_table(chan_t__0, ch__776);
+  get channel_table(ch_type__781:acc_data_t, =ch__776) in
+  get access_control_table(=ptype, =ch_type__781, =send_two__0__syscall) in
+  out(ch__776, send__chan(int__pos_2)) |
+  (get channel_table(ch_type__780:acc_data_t, =ch__776) in
+   get access_control_table(=ptype, =ch_type__780, =send_one__0__syscall) in
+   out(ch__776, send__chan(int__pos_1)) | event Valid__event_global).
 (* channel chan : chan_t *)
 free chan__0: channel[private].
 (* Requires *)
@@ -62,6 +62,6 @@ process
   insert access_control_table(person_t__0, chan_t__0, send_one__0__syscall);
   (* allow person_t chan_t [send_two] *)
   insert access_control_table(person_t__0, chan_t__0, send_two__0__syscall);
-  !(new p__784:param_data;
-    alice__0(person_t__0, p__784, chan__0) |
-    bob__0(person_t__0, p__784, chan__0))
+  !(new p__777:param_data;
+    alice__0(person_t__0, p__777, chan__0) |
+    bob__0(person_t__0, p__777, chan__0))

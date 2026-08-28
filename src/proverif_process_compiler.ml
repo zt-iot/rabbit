@@ -308,7 +308,11 @@ let lock_state_message
 
 let lock_state_pattern
     ~done_flag
+    ~loc
+    ~result_type
+    ~state_env
     (result_pattern_id : T.ident)
+    (state_ids : T.ident list)
     (state_pattern_ids : T.ident list)
   : tpattern =
   let flag_pattern =
@@ -317,19 +321,24 @@ let lock_state_pattern
   in
   PPatTuple
     (flag_pattern
-     :: PPatVar (compile_ident result_pattern_id, Some bitstring_ident)
-     :: List.map
-          (fun id -> PPatVar (compile_ident id, Some bitstring_ident))
+     :: PPatVar (compile_ident result_pattern_id, Some (compile_value_type result_type))
+     :: List.map2
+          (fun state_id pattern_id ->
+             PPatVar
+               ( compile_ident pattern_id
+               , Some (compile_value_type (PEnv.binding_type_exn ~loc state_env state_id)) ))
+          state_ids
           state_pattern_ids)
 
 let bind_lock_state
+    ~result_type
     penv
     (result_pattern_id : T.ident)
     (state_ids : T.ident list)
     (state_pattern_ids : T.ident list)
   : PEnv.t =
   let penv =
-    PEnv.with_result penv
+    PEnv.with_result penv result_type
       (pterm_e @@ PPIdent (compile_ident result_pattern_id))
   in
   List.fold_left2
@@ -360,7 +369,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
   let loc = fact.loc in
   match fact.desc with
   | Global (name, args) ->
-      GEnv.add_event ~loc genv name Global (List.length args);
+      GEnv.add_event ~loc genv name Global (List.map T.type_of_expr args);
       process_e @@
       PEvent
         ( compile_event_name name Global
@@ -368,7 +377,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , None
         , body )
   | Plain (name, args) ->
-      GEnv.add_event ~loc genv name Plain (List.length args);
+      GEnv.add_event ~loc genv name Plain (List.map T.type_of_expr args);
       process_e
       @@ PEvent
         ( compile_event_name name Plain
@@ -384,7 +393,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
            event eq__fact_event(lhs, rhs)
          ```
       *)
-      GEnv.add_comparison_event genv Equality;
+      GEnv.add_comparison_event ~loc genv Equality (T.type_of_expr lhs);
       let lhs = compile_expr_to_pterm genv penv lhs in
       let rhs = compile_expr_to_pterm genv penv rhs in
       process_e @@
@@ -402,7 +411,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
            event neq__fact_event(lhs, rhs)
          ```
       *)
-      GEnv.add_comparison_event genv Inequality;
+      GEnv.add_comparison_event ~loc genv Inequality (T.type_of_expr lhs);
       let lhs = compile_expr_to_pterm genv penv lhs in
       let rhs = compile_expr_to_pterm genv penv rhs in
       process_e @@
@@ -439,7 +448,7 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
   let loc = fact.loc in
   match fact.desc with
   | Channel { channel; name; args } ->
-      GEnv.add_channel_fact ~loc genv name (List.length args);
+      GEnv.add_channel_fact ~loc genv name (List.map T.type_of_expr args);
       let channel_term = compile_expr_to_pterm genv penv channel in
       let payload =
         pterm_e @@
@@ -575,7 +584,7 @@ let rec compile_guard_fragment
            let branch_env, match_contents =
              match contents.desc with
              | T.Ident { id; _ } when List.mem id fresh ->
-                 PEnv.define_process_var penv id payload_term, Fun.id
+                 PEnv.define_process_var penv id Env.TValue payload_term, Fun.id
              | _ ->
                  penv,
                  fun then_proc ->
@@ -611,7 +620,7 @@ let rec compile_guard_fragment
            let branch_env, match_arg =
              match arg.desc with
              | T.Ident { id; _ } when List.mem id fresh ->
-                 PEnv.define_process_var penv id payload_term, Fun.id
+                 PEnv.define_process_var penv id (T.type_of_expr arg) payload_term, Fun.id
              | _ ->
                  penv,
                  fun then_proc ->
@@ -629,7 +638,9 @@ let rec compile_guard_fragment
              process_e @@
              PInput
                ( pterm_e @@ PPIdent attacker_channel_ident
-               , PPatVar (compile_ident payload_id, Some bitstring_ident)
+               , PPatVar
+                   ( compile_ident payload_id
+                   , Some (compile_value_type (T.type_of_expr arg)) )
                , match_arg (fragment rest)
                , [] )
        | Global ("False", []) -> penv, fun _rest -> else_proc
@@ -680,7 +691,11 @@ let extract_channel_guard (facts : T.fact list) =
 let is_fresh_case_var (case : T.case) (id : T.ident) =
   List.mem id case.fresh
 
-let unit_result penv = PEnv.with_result penv (pterm_e @@ PPTuple [])
+let case_result_type = function
+  | [] -> Env.TValue
+  | (case : T.case) :: _ -> T.type_of_cmd case.cmd
+
+let unit_result penv = PEnv.with_result penv Env.TValue (pterm_e @@ PPTuple [])
 
 type process_fragment = tprocess_e -> tprocess_e
 (* ProVerif AST has no constructor for sequence `A; B`.
@@ -736,7 +751,7 @@ let rec compile_channel_guard_case
     ~(on_success : PEnv.t -> tprocess_e)
     ~(else_proc : tprocess_e)
   : tprocess_e =
-  GEnv.add_channel_fact ~loc:case.cmd.loc genv name (List.length args);
+  GEnv.add_channel_fact ~loc:case.cmd.loc genv name (List.map T.type_of_expr args);
   let payload_vars =
     List.init (List.length args) (fun i -> Ident.local (Printf.sprintf "case_arg_%d" i))
   in
@@ -747,9 +762,11 @@ let rec compile_channel_guard_case
        ultimately fails. Non-fresh arguments should at least use exact input
        patterns; preserving atomicity with the remaining facts requires a more
        general fix. *)
-    List.map
-      (fun id -> PPatVar (compile_ident id, Some bitstring_ident))
+    List.map2
+      (fun id arg ->
+         PPatVar (compile_ident id, Some (compile_value_type (T.type_of_expr arg))))
       payload_vars
+      args
   in
   let input_pattern = PPatFunApp (compile_name name "chan", payload_patterns) in
   let payload_terms =
@@ -760,7 +777,7 @@ let rec compile_channel_guard_case
       (fun penv (arg : T.expr) payload_term ->
          match arg.desc with
          | T.Ident { id; _ } when is_fresh_case_var case id ->
-             PEnv.define_process_var penv id payload_term
+             PEnv.define_process_var penv id (T.type_of_expr arg) payload_term
          | _ -> penv)
       penv
       args
@@ -865,6 +882,7 @@ and compile_case_no_channel
   | _ ->
       let loc = (List.hd cases).cmd.loc in
       let case_env = unit_result penv in
+      let result_type = case_result_type cases in
       let state_ids = List.map fst (lock_state_bindings case_env) in
       let lock_ident = compile_ident @@ Ident.local "case_ch" in
       let lock_term = pterm_e @@ PPIdent lock_ident in
@@ -876,7 +894,8 @@ and compile_case_no_channel
             state_ids
         in
         let branch_env =
-          bind_lock_state case_env result_pattern_id state_ids state_pattern_ids
+          bind_lock_state ~result_type:(PEnv.result_type case_env)
+            case_env result_pattern_id state_ids state_pattern_ids
         in
         let retry =
           process_e @@
@@ -899,8 +918,9 @@ and compile_case_no_channel
         process_e @@
         PInput
           ( lock_term
-          , lock_state_pattern ~done_flag:false result_pattern_id
-              state_pattern_ids
+          , lock_state_pattern ~done_flag:false ~loc
+              ~result_type:(PEnv.result_type case_env) ~state_env:case_env
+              result_pattern_id state_ids state_pattern_ids
           , guard_proc
           , [precise_ident, None] )
       in
@@ -911,7 +931,8 @@ and compile_case_no_channel
           state_ids
       in
       let cont_env =
-        bind_lock_state case_env cont_result_pattern_id state_ids
+        bind_lock_state ~result_type
+          case_env cont_result_pattern_id state_ids
           cont_state_pattern_ids
       in
       let init_proc =
@@ -927,8 +948,9 @@ and compile_case_no_channel
           process_e @@
           PInput
             ( lock_term
-            , lock_state_pattern ~done_flag:true cont_result_pattern_id
-                cont_state_pattern_ids
+            , lock_state_pattern ~done_flag:true ~loc
+                ~result_type ~state_env:case_env
+                cont_result_pattern_id state_ids cont_state_pattern_ids
             , rest
             , [precise_ident, None] )
         in
@@ -978,7 +1000,7 @@ and compile_case_channelized
   in
   List.iter
     (fun (_case, _channel, name, args, _other_facts, loc) ->
-       GEnv.add_channel_fact ~loc genv name (List.length args))
+       GEnv.add_channel_fact ~loc genv name (List.map T.type_of_expr args))
     channel_guards;
   let first_channel, first_name, first_args =
     match channel_guards with
@@ -1006,7 +1028,11 @@ and compile_case_channelized
     List.init arity (fun i -> Ident.local (Printf.sprintf "case_arg_%d" i))
   in
   let payload_patterns =
-    List.map (fun id -> PPatVar (compile_ident id, Some bitstring_ident)) payload_vars
+    List.map2
+      (fun id arg ->
+         PPatVar (compile_ident id, Some (compile_value_type (T.type_of_expr arg))))
+      payload_vars
+      first_args
   in
   let input_pattern = PPatFunApp (compile_name first_name "chan", payload_patterns) in
   let payload_terms =
@@ -1019,7 +1045,7 @@ and compile_case_channelized
             (fun penv (arg : T.expr) payload_term ->
                match arg.desc with
                | T.Ident { id; _ } when is_fresh_case_var case id ->
-                   PEnv.define_process_var penv id payload_term
+                   PEnv.define_process_var penv id (T.type_of_expr arg) payload_term
                | _ -> penv)
             base_env
             args
@@ -1051,6 +1077,7 @@ and compile_case_channelized
     | [] -> assert false
   in
   let case_env = unit_result penv in
+  let result_type = case_result_type cases in
   let state_ids = List.map fst (lock_state_bindings case_env) in
   let choice_ident = compile_ident @@ Ident.local "channel_case_ch" in
   let choice_term = pterm_e @@ PPIdent choice_ident in
@@ -1063,7 +1090,8 @@ and compile_case_channelized
         state_ids
     in
     let choice_env =
-      bind_lock_state case_env result_pattern_id state_ids state_pattern_ids
+      bind_lock_state ~result_type:(PEnv.result_type case_env)
+        case_env result_pattern_id state_ids state_pattern_ids
     in
     let retry =
       process_e @@
@@ -1079,7 +1107,9 @@ and compile_case_channelized
     process_e @@
     PInput
       ( choice_term
-      , lock_state_pattern ~done_flag:false result_pattern_id state_pattern_ids
+      , lock_state_pattern ~done_flag:false ~loc
+          ~result_type:(PEnv.result_type case_env) ~state_env:case_env
+          result_pattern_id state_ids state_pattern_ids
       , compile_branch choice_env ~on_success:success ~else_proc:retry
           channel_guard
       , [precise_ident, None] )
@@ -1092,7 +1122,8 @@ and compile_case_channelized
       state_ids
   in
   let cont_env =
-    bind_lock_state case_env cont_result_pattern_id state_ids
+    bind_lock_state ~result_type
+      case_env cont_result_pattern_id state_ids
       cont_state_pattern_ids
   in
   let init_proc =
@@ -1109,8 +1140,9 @@ and compile_case_channelized
       process_e @@
       PInput
         ( choice_term
-        , lock_state_pattern ~done_flag:true cont_result_pattern_id
-            cont_state_pattern_ids
+        , lock_state_pattern ~done_flag:true ~loc
+            ~result_type ~state_env:case_env
+            cont_result_pattern_id state_ids cont_state_pattern_ids
         , rest
         , [precise_ident, None] )
     in
@@ -1181,11 +1213,12 @@ and compile_syscall_call
       let compile_branch arg_ids cmd =
         let call_env =
           List.fold_left2
-            PEnv.define_process_var
+            (fun penv arg_id ((arg : T.expr), value) ->
+               PEnv.define_process_var penv arg_id (T.type_of_expr arg) value)
             (unit_result @@
              PEnv.with_curr_syscall penv (pterm_e @@ PPIdent def.pv_id))
             arg_ids
-            arg_values
+            (List.combine args arg_values)
         in
         let body_env, body_fragment = compile_cmd genv call_env cmd in
         let completed_env =
@@ -1236,10 +1269,11 @@ and compile_local_function_call
       let arg_values = List.map (compile_expr_to_pterm genv penv) args in
       let call_env =
         List.fold_left2
-          PEnv.define_process_var
+          (fun penv arg_id ((arg : T.expr), value) ->
+             PEnv.define_process_var penv arg_id (T.type_of_expr arg) value)
           (unit_result penv)
           arg_ids
-          arg_values
+          (List.combine args arg_values)
       in
       let body_env, body_fragment = compile_cmd genv call_env cmd in
       PEnv.remove_process_vars body_env arg_ids, body_fragment
@@ -1300,6 +1334,11 @@ and join_call_branches
           branches
       in
       let result_pattern_id = Ident.local "call_result" in
+      let result_type =
+        match branches with
+        | (branch_env, _) :: _ -> PEnv.result_type branch_env
+        | [] -> assert false
+      in
       let state_pattern_ids =
         List.mapi
           (fun index _id ->
@@ -1307,7 +1346,7 @@ and join_call_branches
           state_ids
       in
       let completed_env =
-        bind_lock_state penv result_pattern_id state_ids state_pattern_ids
+        bind_lock_state ~result_type penv result_pattern_id state_ids state_pattern_ids
       in
       completed_env,
       fun rest ->
@@ -1316,8 +1355,8 @@ and join_call_branches
           process_e @@
           PInput
             ( join_term
-            , lock_state_pattern ~done_flag:true result_pattern_id
-                state_pattern_ids
+            , lock_state_pattern ~done_flag:true ~loc ~result_type ~state_env:penv
+                result_pattern_id state_ids state_pattern_ids
             , rest
             , [precise_ident, None] )
         in
@@ -1370,11 +1409,12 @@ and compile_let_binding
         compile_local_function_call genv penv func_id args ~loc:expr.loc
     | _ ->
         let value = compile_expr_to_pterm genv penv expr in
-        PEnv.with_result penv value, empty_fragment
+        PEnv.with_result penv (T.type_of_expr expr) value, empty_fragment
   in
   let value = PEnv.result value_env in
   let body_start_env =
-    PEnv.define_process_var (unit_result value_env) id value
+    PEnv.define_process_var (unit_result value_env) id
+      (PEnv.result_type value_env) value
   in
   let body_env, body_fragment = compile_cmd genv body_start_env body in
   let completed_env = PEnv.remove_process_vars body_env [id] in
@@ -1411,7 +1451,7 @@ and compile_assignment
         compile_local_function_call genv penv func_id args ~loc:expr.loc
     | _ ->
         let value = compile_expr_to_pterm genv penv expr in
-        PEnv.with_result penv value, empty_fragment
+        PEnv.with_result penv (T.type_of_expr expr) value, empty_fragment
   in
   let value = PEnv.result value_env in
   let assigned_env =
@@ -1436,10 +1476,10 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       compile_let_binding genv penv id expr body
   | Assign (id_opt, expr) ->
       compile_assignment genv penv id_opt expr
-  | Return expr ->
-      (* Return is NOT non-local exit. It simply sets the result. *)
+  | Expr expr ->
+      (* A bare expression sets the command result; it does not exit non-locally. *)
       let value = compile_expr_to_pterm genv penv expr in
-      PEnv.with_result penv value, empty_fragment
+      PEnv.with_result penv (T.type_of_expr expr) value, empty_fragment
   | Case cases ->
       if List.exists (fun (case : T.case) ->
           Option.is_some (extract_channel_guard case.facts)) cases
@@ -1502,7 +1542,8 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
             state_ids
         in
         let branch_env =
-          bind_lock_state loop_env result_pattern_id state_ids
+          bind_lock_state ~result_type:(PEnv.result_type loop_env)
+            loop_env result_pattern_id state_ids
             state_pattern_ids
         in
         let else_proc =
@@ -1547,8 +1588,9 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
         process_e @@
         PInput
           ( lock_term
-          , lock_state_pattern ~done_flag:false result_pattern_id
-              state_pattern_ids
+          , lock_state_pattern ~done_flag:false ~loc:cmd.loc
+              ~result_type:(PEnv.result_type loop_env) ~state_env:loop_env
+              result_pattern_id state_ids state_pattern_ids
           , guard_proc
           , [precise_ident, None] )
       in
@@ -1561,7 +1603,8 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
           state_ids
       in
       let cont_env =
-        bind_lock_state loop_env cont_result_pattern_id state_ids
+        bind_lock_state ~result_type:(PEnv.result_type loop_env)
+          loop_env cont_result_pattern_id state_ids
           cont_state_pattern_ids
       in
       let init_proc =
@@ -1587,8 +1630,9 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
           process_e @@
           PInput
             ( lock_term
-            , lock_state_pattern ~done_flag:true cont_result_pattern_id
-                cont_state_pattern_ids
+            , lock_state_pattern ~done_flag:true ~loc:cmd.loc
+                ~result_type:(PEnv.result_type loop_env) ~state_env:loop_env
+                cont_result_pattern_id state_ids cont_state_pattern_ids
             , rest
             , [precise_ident, None] )
         in
@@ -1611,7 +1655,7 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
       let body_start_env =
-        PEnv.define_process_var (unit_result penv) id fresh_term
+        PEnv.define_process_var (unit_result penv) id Env.TValue fresh_term
       in
       let body_env, body_fragment = compile_cmd genv body_start_env body in
       let completed_env =
@@ -1646,7 +1690,7 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
           , fresh_term :: List.map (compile_expr_to_pterm genv penv) args )
       in
       let body_start_env =
-        PEnv.define_process_var (unit_result penv) id struct_term
+        PEnv.define_process_var (unit_result penv) id Env.TValue struct_term
       in
       let body_env, body_fragment = compile_cmd genv body_start_env body in
       let completed_env =
@@ -1680,10 +1724,13 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       let body_env =
         (* xi => S__struct_par_i(e) *)
         List.mapi
-          (fun index id -> id, structure_arg_term name (index + 1) struct_term)
+          (fun index id ->
+             id,
+             Env.type_of_field_type (List.nth ftys index),
+             structure_arg_term name (index + 1) struct_term)
           ids
         |> List.fold_left
-             (fun penv (id, value) -> PEnv.define_process_var penv id value)
+             (fun penv (id, typ, value) -> PEnv.define_process_var penv id typ value)
              (unit_result penv)
       in
       let body_env, body_fragment = compile_cmd genv body_env body in

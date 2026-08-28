@@ -20,10 +20,10 @@ event Dummy__event_global.
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process server(..): proc_t *)
-let server__0(ptype:proc_t, p__809:param_data) = 0.
+let server__0(ptype:proc_t, p__802:param_data) = 0.
 (* Requires *)
 (* lemma Reachable *)
 query event(Dummy__event_global()).
 (* System *)
-process !(new p__810:param_data;
-          server__0(proc_t__0, p__810))
+process !(new p__803:param_data;
+          server__0(proc_t__0, p__803))

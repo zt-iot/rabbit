@@ -1,0 +1,20 @@
+(* A mutable variable has one monomorphic type throughout its scope. *)
+
+type proc_t : process
+type chan_t : channel
+
+channel ch : chan_t
+
+process worker(c : chan_t) : proc_t
+{
+  main {
+    var value = "ordinary value" in
+    value := c
+  }
+}
+
+system worker(ch)
+requires
+[
+  lemma Dummy : reachable ::Done()
+]

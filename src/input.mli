@@ -52,7 +52,7 @@ and cmd' =
       until [x',..] => c1 | .. | [z',..] => cn'
       end] *)
   | Event of fact list (** tag, [event[T]] *)
-  | Return of expr (** return *)
+  | Expr of expr (** A bare expression command. *)
   | New of Name.ident * (Name.ident * expr list) option * cmd
   (** allocation, [new x := S(e1,..,en) in c] *)
   | Get of Name.ident list * expr * Name.ident * cmd

@@ -50,9 +50,9 @@ let bob__0(ptype:proc_t, ch__34:channel) =
   in(ch__34, store__chan(case_arg_0__37:bitstring));
   new channel_case_ch__38:channel;
   (out(channel_case_ch__38, (false__bool, (), ch__34)) |
-   in(channel_case_ch__38, (=false__bool, channel_case_result__41:bitstring, channel_case_state_0__42:bitstring))[precise];
+   in(channel_case_ch__38, (=false__bool, channel_case_result__41:bitstring, channel_case_state_0__42:channel))[precise];
    out(channel_case_ch__38, (true__bool, case_arg_0__37, channel_case_state_0__42))) |
-  in(channel_case_ch__38, (=true__bool, channel_case_done_result__39:bitstring, channel_case_done_state_0__40:bitstring))[precise];
+  in(channel_case_ch__38, (=true__bool, channel_case_done_result__39:bitstring, channel_case_done_state_0__40:channel))[precise];
   event Received__event_global;
   if channel_case_done_result__39 = int__pos_1 then event Valid__event_global.
 (* channel chan : chan_t *)

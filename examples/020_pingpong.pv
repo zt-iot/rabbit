@@ -80,9 +80,9 @@ let bob__0(ptype:proc_t, ch__46:channel) =
 free chan__0: channel[private].
 (* Requires *)
 (* lemma Reachable *)
-query n__49:bitstring; event(Valid__event_global(n__49)).
+query n__49:bitstring;event(Valid__event_global(n__49)).
 (* lemma Corresponds *)
-query n__50:bitstring; 
+query n__50:bitstring;
   event(Pong__event_global(n__50)) ==> event(Ping__event_global(n__50)).
 (* System *)
 process

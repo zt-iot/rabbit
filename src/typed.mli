@@ -34,6 +34,7 @@ and expr' =
 type subst = (ident * expr) list
 
 val string_of_expr : expr -> string
+val type_of_expr : expr -> Env.type_
 
 val vars_of_expr : expr -> Ident.t list
 (** Extract the mutable variables of an expression *)
@@ -95,16 +96,18 @@ and cmd' =
         end
     *)
   | Event of fact list (** tag, event[T] *)
-  | Return of expr
-    (** A bare expression command, represented internally as [Return expr].
-        This is not a non-local return: execution continues with any following
-        commands. It sets the command result register to [expr], which remains
+  | Expr of expr
+    (** A bare expression command. This is not a non-local return: execution
+        continues with any following commands. It sets the command result
+        register to [expr], which remains
         the result unless a later command overwrites that register.
     *)
   | New of ident * (name * expr list) option * cmd
     (** allocation, new x := S(e1,..en) in c *)
   | Get of ident list * expr * name * cmd (** fetch, let x1,..,xn := e.S in c *)
   | Del of expr * name (** deletion , delete e.S *)
+
+val type_of_cmd : cmd -> Env.type_
 
 (** Parameter in process declarations [ch<p> : typ] *)
 type chan_param =
@@ -165,7 +168,7 @@ type decl = decl' loc_env
 and decl' =
   | Function of
       { id : ident
-      ; arity : int
+      ; typ : Env.callable_type
       }
      (** external function, [function id : arity] *)
   | Equation of expr * expr (** external equation, [equation e1 = e2] *)

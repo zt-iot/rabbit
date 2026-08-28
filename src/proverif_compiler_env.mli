@@ -88,14 +88,14 @@ module GEnv : sig
   val find_structure_fact : loc:Location.t -> t -> Name.t -> Input.field_type list
   val add_structure_fact : loc:Location.t -> t -> T.name -> Input.field_type list -> unit
 
-  val channel_facts : t -> (T.name * int) list
-  val add_channel_fact : loc:Location.t -> t -> T.name -> int -> unit
+  val channel_facts : t -> (T.name * Env.type_ list) list
+  val add_channel_fact : loc:Location.t -> t -> T.name -> Env.type_ list -> unit
 
-  val events : t -> (T.name * (event_kind * int)) list
-  val add_event : loc:Location.t -> t -> T.name -> event_kind -> int -> unit
+  val events : t -> (T.name * (event_kind * Env.type_ list)) list
+  val add_event : loc:Location.t -> t -> T.name -> event_kind -> Env.type_ list -> unit
 
-  val comparison_events : t -> comparison_event_kind list
-  val add_comparison_event : t -> comparison_event_kind -> unit
+  val comparison_events : t -> (comparison_event_kind * Env.type_) list
+  val add_comparison_event : loc:Location.t -> t -> comparison_event_kind -> Env.type_ -> unit
 
   val top_process : t -> tprocess_e option
   val set_top_process : t -> tprocess_e -> unit
@@ -113,9 +113,10 @@ module PEnv : sig
     t
 
   val bindings : t -> (T.ident * pterm_e) list
+  val binding_type_exn : loc:Location.t -> t -> T.ident -> Env.type_
   val find_process_var : t -> T.ident -> pterm_e option
   val find_process_var_exn : loc:Location.t -> t -> T.ident -> pterm_e
-  val define_process_var : t -> T.ident -> pterm_e -> t
+  val define_process_var : t -> T.ident -> Env.type_ -> pterm_e -> t
   val assign_process_var : t -> T.ident -> pterm_e -> t
   val remove_process_vars : t -> T.ident list -> t
 
@@ -130,5 +131,6 @@ module PEnv : sig
   val file_channel : t -> pterm_e option
 
   val result : t -> pterm_e
-  val with_result : t -> pterm_e -> t
+  val result_type : t -> Env.type_
+  val with_result : t -> Env.type_ -> pterm_e -> t
 end

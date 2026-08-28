@@ -40,10 +40,10 @@ const int__pos_3: bitstring.
 const proc_t__0: proc_t.
 (* process p(..): proc_t *)
 let p__0(ptype:proc_t) =
-  new x__831:bitstring;
+  new x__824:bitstring;
   event Allocated__event_global;
   (* delete _.S *)
-  insert deleted_address_table(S__struct_addr(S__struct(x__831, int__pos_1, int__pos_2, int__pos_3)));
+  insert deleted_address_table(S__struct_addr(S__struct(x__824, int__pos_1, int__pos_2, int__pos_3)));
   event Deleted__event_global.
 (* Requires *)
 (* lemma Reachable *)

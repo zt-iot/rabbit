@@ -76,12 +76,12 @@ let pp_forall_mayfail fmt xs =
 let pp_env fmt xs =
   match xs with
   | [] -> ()
-  | _ -> fprintf fmt "%a; " pp_typed_ident_list xs
+  | _ -> fprintf fmt "%a;" pp_typed_ident_list xs
 
 let pp_env_mayfail fmt xs =
   match xs with
   | [] -> ()
-  | _ -> fprintf fmt "%a; " pp_mayfail_typed_ident_list xs
+  | _ -> fprintf fmt "%a;" pp_mayfail_typed_ident_list xs
 
 let always_with_parens = ref false
 

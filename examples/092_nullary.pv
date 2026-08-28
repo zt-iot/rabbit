@@ -23,8 +23,8 @@ const int__pos_1: bitstring.
 fun true__0(): bitstring.
 (* function eq:2 *)
 fun eq__0(bitstring, bitstring): bitstring.
-(* equation eq(x__816, x__816) = true *)
-equation forall x__816:bitstring; eq__0(x__816, x__816) = true__0.
+(* equation eq(x__809, x__809) = true *)
+equation forall x__809:bitstring; eq__0(x__809, x__809) = true__0.
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)

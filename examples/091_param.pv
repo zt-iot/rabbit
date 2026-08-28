@@ -16,18 +16,18 @@ const true__bool: bitstring.
 const false__bool: bitstring.
 (* Event declaration ::Valid(..) *)
 event Valid__event_global.
-(* Parameter value p__814 *)
-const p_814__param: param_data.
+(* Parameter value p__807 *)
+const p_807__param: param_data.
 (* Body *)
 (* const fresh c<> *)
 fun c__0(param_data): bitstring[private].
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process server(..): proc_t *)
-let server__0(ptype:proc_t, p__814:param_data) = event Valid__event_global.
+let server__0(ptype:proc_t, p__807:param_data) = event Valid__event_global.
 (* Requires *)
 (* lemma Reachable *)
 query event(Valid__event_global()).
 (* System *)
-process !(new p__815:param_data;
-          server__0(proc_t__0, p__815))
+process !(new p__808:param_data;
+          server__0(proc_t__0, p__808))

@@ -45,9 +45,9 @@ let alice__0(ptype:proc_t, ch__546:channel) =
        in(ch__546, store__chan(case_arg_0__553:bitstring));
        new channel_case_ch__554:channel;
        (out(channel_case_ch__554, (false__bool, (), n__547, ch__546)) |
-        in(channel_case_ch__554, (=false__bool, channel_case_result__568:bitstring, channel_case_state_0__569:bitstring, channel_case_state_1__570:bitstring))[precise];
+        in(channel_case_ch__554, (=false__bool, channel_case_result__568:bitstring, channel_case_state_0__569:bitstring, channel_case_state_1__570:channel))[precise];
         out(channel_case_ch__554, (true__bool, case_arg_0__553, channel_case_state_0__569, channel_case_state_1__570))) |
-       in(channel_case_ch__554, (=true__bool, channel_case_done_result__555:bitstring, channel_case_done_state_0__556:bitstring, channel_case_done_state_1__557:bitstring))[precise];
+       in(channel_case_ch__554, (=true__bool, channel_case_done_result__555:bitstring, channel_case_done_state_0__556:bitstring, channel_case_done_state_1__557:channel))[precise];
        new case_ch__558:channel;
        ((out(case_ch__558, (false__bool, (), channel_case_done_state_0__556, channel_case_done_result__555)) |
          in(case_ch__558, (=false__bool, case_result__562:bitstring, case_state_0__563:bitstring, case_state_1__564:bitstring))[precise];

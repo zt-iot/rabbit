@@ -60,7 +60,7 @@ let rec cmd s (c : cmd) : cmd =
     | Case cases -> Case (List.map (case s) cases)
     | While (cases, cases') -> While (List.map (case s) cases, List.map (case s) cases')
     | Event fs -> Event (List.map (fact s) fs)
-    | Return e -> Return (expr s e)
+    | Expr e -> Expr (expr s e)
     | New (id, neso, c) -> New (id, Option.map (fun (n, es) -> n, List.map (expr s) es) neso, cmd s c)
     | Get (ids, e, n, c) -> Get (ids, expr s e, n, cmd s c)
     | Del (e, n) -> Del (expr s e, n)

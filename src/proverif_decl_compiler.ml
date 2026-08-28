@@ -36,11 +36,15 @@ let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
   fun enc__0 ( bitstring, bitstring ): bitstring.
   ```
 *)
-let compile_function ~loc:_loc (id : T.ident) (arity : int) : tdecl list =
+let compile_function ~loc:_loc (id : T.ident) (typ : Env.callable_type) : tdecl list =
   let name = compile_ident id in
-  let arg_tys = List.init arity (fun _ -> bitstring_ident) in
+  let arity = List.length typ.argument_types in
   [ TComment (Printf.sprintf "function %s:%d" (Ident.to_string id) arity)
-  ; TFunDecl (name, arg_tys, bitstring_ident, [])
+  ; TFunDecl
+      ( name
+      , List.map compile_value_type typ.argument_types
+      , compile_value_type typ.result_type
+      , [] )
   ]
 
 (*
@@ -65,7 +69,15 @@ let compile_function ~loc:_loc (id : T.ident) (arity : int) : tdecl list =
 let compile_equation ~loc:_loc genv (lhs : T.expr) (rhs : T.expr) : tdecl list =
   let envdecl =
     List.sort_uniq compare (T.vars_of_expr lhs @ T.vars_of_expr rhs)
-    |> List.map (fun id -> compile_ident id, bitstring_ident)
+    |> List.map (fun id ->
+         let typ =
+           match Env.find_opt_by_id lhs.env id with
+           | Some desc -> Option.get (Env.type_of_desc desc)
+           | None ->
+               let desc = Option.get (Env.find_opt_by_id rhs.env id) in
+               Option.get (Env.type_of_desc desc)
+         in
+         compile_ident id, compile_value_type typ)
   in
   let lhs_term = compile_expr_to_term genv lhs in
   let rhs_term = compile_expr_to_term genv rhs in
@@ -442,13 +454,13 @@ let compile_process
     match param with
     | None -> base_penv
     | Some param ->
-        PEnv.define_process_var base_penv param
+        PEnv.define_process_var base_penv param Env.TParameter
           (pterm_e @@ PPIdent (compile_ident param))
   in
   let penv =
     List.fold_left (fun penv (var, expr) ->
         let value = compile_expr_to_pterm genv penv expr in
-        PEnv.define_process_var penv var value)
+        PEnv.define_process_var penv var (T.type_of_expr expr) value)
       base_penv vars
   in
   let process =
@@ -572,20 +584,20 @@ let compile_lemma_fact genv (fact : T.fact) : gterm_e =
   let loc = fact.loc in
   match fact.desc with
   | Global (name, args) ->
-      GEnv.add_event ~loc genv name Global (List.length args);
+      GEnv.add_event ~loc genv name Global (List.map T.type_of_expr args);
       gterm_event name Global (List.map (compile_expr_to_gterm genv) args)
   | Plain (name, args) ->
-      GEnv.add_event ~loc genv name Plain (List.length args);
+      GEnv.add_event ~loc genv name Plain (List.map T.type_of_expr args);
       gterm_event name Plain (List.map (compile_expr_to_gterm genv) args)
   | Eq (lhs, rhs) ->
-      GEnv.add_comparison_event genv Equality;
+      GEnv.add_comparison_event ~loc genv Equality (T.type_of_expr lhs);
       gterm_event_ident
         (compile_comparison_event_name Equality)
         [ compile_expr_to_gterm genv lhs
         ; compile_expr_to_gterm genv rhs
         ]
   | Neq (lhs, rhs) ->
-      GEnv.add_comparison_event genv Inequality;
+      GEnv.add_comparison_event ~loc genv Inequality (T.type_of_expr lhs);
       gterm_event_ident
         (compile_comparison_event_name Inequality)
         [ compile_expr_to_gterm genv lhs
@@ -624,13 +636,22 @@ let compile_lemma_fact genv (fact : T.fact) : gterm_e =
 let compile_lemma
     genv
     ((lemma_id, lemma) : T.ident * T.lemma) : tdecl list =
+  let fresh, facts =
+    match lemma.desc with
+    | T.Plain _ -> [], []
+    | Reachability { fresh; facts } -> fresh, facts
+    | Correspondence { fresh; premise; conclusion } ->
+        fresh, [premise; conclusion]
+  in
   let envdecl =
     List.map
-      (fun id -> compile_ident id, bitstring_ident)
-      (match lemma.desc with
-       | T.Plain _ -> []
-       | Reachability { fresh; _ } -> fresh
-       | Correspondence { fresh; _ } -> fresh)
+      (fun id ->
+         let desc =
+           List.find_map (fun (fact : T.fact) -> Env.find_opt_by_id fact.env id) facts
+           |> Option.get
+         in
+         compile_ident id, compile_value_type (Option.get (Env.type_of_desc desc)))
+      fresh
   in
   let query =
     match lemma.desc with
@@ -799,19 +820,19 @@ let compile_event_decls (genv : GEnv.t) : tdecl list =
      ```
   *)
   let named_events =
-    List.concat_map (fun (name, (kind, arity)) ->
+    List.concat_map (fun (name, (kind, types)) ->
         let source_name =
           match kind with
           | Global -> "::" ^ name
           | Plain -> name
         in
         [ TComment (Printf.sprintf "Event declaration %s(..)" source_name)
-        ; TEventDecl (compile_event_name name kind, List.init arity (fun _ -> bitstring_ident))
+        ; TEventDecl (compile_event_name name kind, List.map compile_value_type types)
         ]) (GEnv.events genv)
   in
   let comparison_events =
     List.concat_map
-      (fun kind ->
+      (fun (kind, typ) ->
          let source_name =
            match kind with
            | Equality -> "equation fact"
@@ -820,7 +841,7 @@ let compile_event_decls (genv : GEnv.t) : tdecl list =
          [ TComment (Printf.sprintf "Event declaration for %s" source_name)
          ; TEventDecl
              ( compile_comparison_event_name kind
-             , [bitstring_ident; bitstring_ident] )
+             , [compile_value_type typ; compile_value_type typ] )
          ])
       (GEnv.comparison_events genv)
   in
@@ -828,11 +849,11 @@ let compile_event_decls (genv : GEnv.t) : tdecl list =
 
 let compile_fact_decls (genv : GEnv.t) : tdecl list =
   List.concat_map
-    (fun (name, arity) ->
+    (fun (name, types) ->
        [ TComment (Printf.sprintf "Channel fact declaration %s(..)" name)
        ; TFunDecl
            ( compile_name name "chan"
-           , List.init arity (fun _ -> bitstring_ident)
+           , List.map compile_value_type types
            , bitstring_ident
            , [pv_ident "data", None] )
        ])
@@ -985,8 +1006,8 @@ let rec compile_decl genv (decl : T.decl) : tdecl list =
   | Syscall _ | Attack _ | AllowAttack _ ->
       (* They are handled by `collect_decl` *)
       []
-  | Function { id; arity } ->
-      compile_function ~loc id arity
+  | Function { id; typ } ->
+      compile_function ~loc id typ
   | Equation (lhs, rhs) ->
       compile_equation ~loc genv lhs rhs
   | Type { id; typclass } ->

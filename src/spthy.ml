@@ -319,7 +319,7 @@ let rec compile_expr (e : Typed.expr) : expr compiled =
       return ~deps:[Const { id; param= Some p; value= Ident id' }] @@ Ident id'
   | Ident { id; param= None; desc= ExtConst } ->
       return @@ Apply (id, [])
-  | Ident { id; param= None; desc= Var | Param | Rho } ->
+  | Ident { id; param= None; desc= Var _ | Param | Rho } ->
       return @@ Ident id
   | Ident { id; param= None; desc= Channel (false, _cty) } ->
       return @@ expr_of_channel id

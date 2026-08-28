@@ -22,9 +22,9 @@ let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 let unit = { env= Env.empty (); loc= Location.nowhere; desc= Unit }
 
 let evar id =
-    { env = { vars= [id, Var]; facts = ref [] }
+    { env = { vars= [id, Var TValue]; facts = ref [] }
     ; loc = Location.nowhere
-    ; desc = Ident { id; desc = Var; param = None }
+    ; desc = Ident { id; desc = Var TValue; param = None }
     }
 ;;
 
@@ -219,7 +219,7 @@ let fact_symbol_and_args (f : fact) =
   | Neq (e1, e2) -> Some (`NEq, [e1; e2])
   | File { pid; path; contents } -> Some (`File, pid_args pid @ [path; contents])
   | Global (name, args) -> Some (`Global name, args)
-  | Fresh id -> Some (`Fresh, [ident id Var])
+  | Fresh id -> Some (`Fresh, [ident id (Var TValue)])
   | Structure { pid; name; address; args } ->
       Some (`Structure, pid_args pid @ string name :: address :: args)
   | Loop { pid; mode; index } ->
@@ -337,7 +337,7 @@ module Update = struct
     | Ident { id=_; param= None; desc= Rho } ->
         (* [id] and [u.rho] are usually different, but we do not care *)
         u.register
-    | Ident { id; param= None; desc= Var } ->
+    | Ident { id; param= None; desc= Var _ } ->
         (match List.assoc_opt id u.items with
          | None -> evar id (* no binding *)
          | Some Drop ->
@@ -480,7 +480,7 @@ let check_edge_invariants (e : edge) =
   let print_edge () = Format.eprintf "edge @[%a@]@." print_edge_summary e in
   let mutable_vars_of_env (env : Env.t) =
     List.filter_map (function
-        | (id, Env.Var) -> Some id
+        | (id, Env.Var _) -> Some id
         | _ -> None) env.vars
   in
   (* The mutable variables of [x_env] are in [x_vars].
@@ -811,7 +811,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
           }
         ]
       , i_1, env )
-  | Return e ->
+  | Expr e ->
       (* i =return=> i+1 *)
       let i_1 = Index.add i 1 in
       ( [ { id = Ident.local "return"
@@ -937,7 +937,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
       let i_1 = Index.add i 1 in
       let arity =
         match Env.find_fact_opt env s with
-        | Some (Structure _, Some arity) -> arity
+        | Some (Structure _, Some types) -> List.length types
         | _ -> assert false
       in
       let xs =
@@ -947,7 +947,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
 
         { env (* XXX id is not defined in env, which may cause problems later invariant check... *)
         ; loc = Location.nowhere
-        ; desc = Ident { id; desc = Var; param = None }
+        ; desc = Ident { id; desc = Var (Env.fresh_type ()); param = None }
         }
       in
       ( [ { id = Ident.local "del"
@@ -1446,7 +1446,7 @@ type signature =
 let functions_of_decls (decls : decl list) =
   List.filter_map (fun (d : decl) ->
       match d.desc with
-      | Function { id; arity } -> Some (id,arity)
+      | Function { id; typ } -> Some (id, List.length typ.argument_types)
       | _ -> None) decls
 
 let equations_of_decls (decls : decl list) =

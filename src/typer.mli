@@ -1,8 +1,8 @@
 include Sig.ERROR
 
 val load : Env.t -> string -> Env.t * Typed.decl list
-(** [load env fn] loads a Rabbit code of file [fn] and checks the names
-    occur in the code.
+(** [load env fn] loads a Rabbit source file [fn], resolves names, and performs
+    monomorphic type inference.
 
     If successful, it returns an updated environment and the list of
     declaraitons found in the code.

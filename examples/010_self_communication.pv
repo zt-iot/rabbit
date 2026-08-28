@@ -46,9 +46,9 @@ let alice__0(ptype:proc_t, ch__5:channel) =
   in(ch__5, store__chan(case_arg_0__7:bitstring));
   new channel_case_ch__8:channel;
   (out(channel_case_ch__8, (false__bool, (), ch__5)) |
-   in(channel_case_ch__8, (=false__bool, channel_case_result__11:bitstring, channel_case_state_0__12:bitstring))[precise];
+   in(channel_case_ch__8, (=false__bool, channel_case_result__11:bitstring, channel_case_state_0__12:channel))[precise];
    out(channel_case_ch__8, (true__bool, case_arg_0__7, channel_case_state_0__12))) |
-  in(channel_case_ch__8, (=true__bool, channel_case_done_result__9:bitstring, channel_case_done_state_0__10:bitstring))[precise];
+  in(channel_case_ch__8, (=true__bool, channel_case_done_result__9:bitstring, channel_case_done_state_0__10:channel))[precise];
   event Received__event_global;
   if channel_case_done_result__9 = int__pos_1 then event Valid__event_global.
 (* channel chan : chan_t *)

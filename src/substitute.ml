@@ -67,7 +67,7 @@ let rec cmd_chan_sub c f t  =
     | Syntax.Event (fl) -> Syntax.Event (facts_chan_sub fl f t )
     | Syntax.Skip -> Syntax.Skip
     | Syntax.Put (fl) -> Syntax.Put (facts_chan_sub fl f t )
-    | Syntax.Return e -> Syntax.Return (expr_chan_sub e f t )
+    | Syntax.Expr e -> Syntax.Expr (expr_chan_sub e f t )
     | Syntax.New (v, fid_el_opt, c) ->
         Syntax.New (v, Option.map (fun (fid, el) ->
             fid, List.map (fun e -> expr_chan_sub e f t ) el) fid_el_opt, cmd_chan_sub c f t )
@@ -133,7 +133,7 @@ let rec expr_param_chan_sub e f t =
      | Syntax.Event (fl) -> Syntax.Event (facts_param_chan_sub fl f t )
      | Syntax.Skip -> Syntax.Skip
      | Syntax.Put (fl) -> Syntax.Put (facts_param_chan_sub fl f t )
-     | Syntax.Return e -> Syntax.Return (expr_param_chan_sub e f t )
+     | Syntax.Expr e -> Syntax.Expr (expr_param_chan_sub e f t )
      | Syntax.New (v, fid_el_opt, c) ->
          Syntax.New (v,
                      Option.map (fun (fid, el) ->
@@ -196,7 +196,7 @@ let rec cmd_param c t  =
     | Syntax.Event (fl) -> Syntax.Event (facts_param fl t )
     | Syntax.Skip -> Syntax.Skip
     | Syntax.Put (fl) -> Syntax.Put (facts_param fl t )
-    | Syntax.Return e -> Syntax.Return (expr_param e t )
+    | Syntax.Expr e -> Syntax.Expr (expr_param e t )
     | Syntax.New (v, fid_el_opt, c) ->
         Syntax.New (v, Option.map (fun (fid, el) -> fid, List.map (fun e -> expr_param e t ) el) fid_el_opt, cmd_param c t )
     | Syntax.Get (vl, id, fid, c) -> Syntax.Get (vl, expr_param id t , fid, cmd_param c t )

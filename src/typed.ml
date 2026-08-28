@@ -64,7 +64,7 @@ let rec equal_expr (e1 : expr) (e2 : expr) =
 
 let rec apply_subst (s : subst) (e : expr) : expr =
   match e.desc with
-  | Ident { id; desc= Var; param= None } ->
+  | Ident { id; desc= Var _; param= None } ->
       Option.value ~default:e (List.assoc_opt id s)
   | Ident { id; desc; param= Some p } ->
       { e with desc= Ident { id; desc; param= Some (apply_subst s p) } }
@@ -75,15 +75,15 @@ let rec apply_subst (s : subst) (e : expr) : expr =
 
 let rec occurs (id : ident) (e : expr) =
   match e.desc with
-  | Ident { id= id'; desc= Var; param= None } -> id = id'
+  | Ident { id= id'; desc= Var _; param= None } -> id = id'
   | Ident { param= Some p; _ } -> occurs id p
   | Ident _ -> false
   | Apply (_, es) | Tuple es -> List.exists (occurs id) es
   | Boolean _ | String _ | Integer _ | Float _ | Unit -> false
 
-let bind_var (s : subst) (id : ident) (e : expr) : subst option =
+let bind_var (s : subst) (id : ident) typ (e : expr) : subst option =
   let e = apply_subst s e in
-  let self = { e with desc= Ident { id; desc= Var; param= None } } in
+  let self = { e with desc= Ident { id; desc= Var typ; param= None } } in
   if equal_expr self e then Some s
   else if occurs id e then None
   else
@@ -99,15 +99,15 @@ let unify_expr (e1 : expr) (e2 : expr) : subst option =
         if equal_expr e1 e2 then aux s rest
         else
           match e1.desc, e2.desc with
-          | Ident { id; desc= Var; param= None }, _ ->
+          | Ident { id; desc= Var typ; param= None }, _ ->
               begin
-                match bind_var s id e2 with
+                match bind_var s id typ e2 with
                 | None -> None
                 | Some s -> aux s rest
               end
-          | _, Ident { id; desc= Var; param= None } ->
+          | _, Ident { id; desc= Var typ; param= None } ->
               begin
-                match bind_var s id e1 with
+                match bind_var s id typ e1 with
                 | None -> None
                 | Some s -> aux s rest
               end
@@ -134,11 +134,18 @@ let unify_expr (e1 : expr) (e2 : expr) : subst option =
   in
   aux [] [e1, e2]
 
+let type_of_expr (expr : expr) =
+  match expr.desc with
+  | Ident { desc; _ } -> Option.get (Env.type_of_desc desc)
+  | Apply (id, _) ->
+      let desc = Option.get @@ Env.find_opt_by_id expr.env id in
+      (Option.get (Env.callable_type_of_desc desc)).result_type
+  | Boolean _ | String _ | Integer _ | Float _ | Tuple _ | Unit -> Env.TValue
 let vars_of_expr e =
   let rec aux e =
     match e.desc with
-    | Ident { id; param= None; desc= Var } -> [id]
-    | Ident { id; param= Some p; desc= Var } -> id :: aux p
+    | Ident { id; param= None; desc= Var _ } -> [id]
+    | Ident { id; param= Some p; desc= Var _ } -> id :: aux p
     | Ident { id=_; param= Some p; desc= _ } -> aux p
     | Ident _ -> []
     | Apply (_, es) | Tuple es -> List.concat_map aux es
@@ -199,10 +206,18 @@ and cmd' =
   | Case of case list
   | While of case list * case list
   | Event of fact list
-  | Return of expr
+  | Expr of expr
   | New of ident * (name * expr list) option * cmd
   | Get of ident list * expr * name * cmd
   | Del of expr * name
+
+let rec type_of_cmd (cmd : cmd) =
+  match cmd.desc with
+  | Expr expr -> type_of_expr expr
+  | Sequence (_, cmd2) -> type_of_cmd cmd2
+  | Let (_, _, body) | New (_, _, body) | Get (_, _, _, body) -> type_of_cmd body
+  | Case ({ cmd; _ } :: _) -> type_of_cmd cmd
+  | Case [] | While _ | Skip | Put _ | Assign _ | Event _ | Del _ -> Env.TValue
 
 type chan_param = { channel : ident; param : unit option; typ : ident }
 
@@ -249,7 +264,7 @@ type decl = decl' loc_env
 and decl' =
   | Function of
       { id : ident
-      ; arity : int
+      ; typ : Env.callable_type
       }
   | Equation of expr * expr
   | Syscall of

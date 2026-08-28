@@ -32,15 +32,15 @@ const person_t__0: proc_t.
 (* type chan_t : channel *)
 const chan_t__0: acc_data_t.
 (* process alice(..): person_t *)
-let alice__0(ptype:proc_t, ch__768:channel) =
-  (* Channel ch__768 : chan_t *)
-  insert channel_table(chan_t__0, ch__768);
-  get channel_table(ch_type__770:acc_data_t, =ch__768) in
-  get access_control_table(=ptype, =ch_type__770, =send_one__0__syscall) in
-  out(ch__768, send__chan(int__pos_1)) |
-  (get channel_table(ch_type__769:acc_data_t, =ch__768) in
-   get access_control_table(=ptype, =ch_type__769, =send_two__0__syscall) in
-   out(ch__768, send__chan(int__pos_2)) | event Valid__event_global).
+let alice__0(ptype:proc_t, ch__761:channel) =
+  (* Channel ch__761 : chan_t *)
+  insert channel_table(chan_t__0, ch__761);
+  get channel_table(ch_type__763:acc_data_t, =ch__761) in
+  get access_control_table(=ptype, =ch_type__763, =send_one__0__syscall) in
+  out(ch__761, send__chan(int__pos_1)) |
+  (get channel_table(ch_type__762:acc_data_t, =ch__761) in
+   get access_control_table(=ptype, =ch_type__762, =send_two__0__syscall) in
+   out(ch__761, send__chan(int__pos_2)) | event Valid__event_global).
 (* channel chan : chan_t *)
 free chan__0: channel[private].
 (* Requires *)

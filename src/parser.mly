@@ -264,7 +264,7 @@ plain_cmd:
   | NEW id=NAME IN c=cmd { New (id, None, c) }
   | DEL e=expr DOT fid=NAME { Del (e, fid) }
 
-  | e=expr { Return e }
+  | e=expr { Expr e }
 
 
 uname:

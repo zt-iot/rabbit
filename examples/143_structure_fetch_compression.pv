@@ -43,21 +43,21 @@ const proc_t__0: proc_t.
 (* process p(..): proc_t *)
 let p__0(ptype:proc_t) =
   event Allocating__event_global;
-  new x__840:bitstring;
-  get deleted_address_table(=S__struct_addr(S__struct(x__840, int__pos_1, int__pos_2, int__pos_3)))
+  new x__833:bitstring;
+  get deleted_address_table(=S__struct_addr(S__struct(x__833, int__pos_1, int__pos_2, int__pos_3)))
   else
     (if
-       S__struct_par_1(S__struct(x__840, int__pos_1, int__pos_2, int__pos_3)) = int__pos_1
+       S__struct_par_1(S__struct(x__833, int__pos_1, int__pos_2, int__pos_3)) = int__pos_1
      then
        if
-         S__struct_par_2(S__struct(x__840, int__pos_1, int__pos_2, int__pos_3)) = int__pos_2
+         S__struct_par_2(S__struct(x__833, int__pos_1, int__pos_2, int__pos_3)) = int__pos_2
        then
          if
-           S__struct_par_3(S__struct(x__840, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
+           S__struct_par_3(S__struct(x__833, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
          then
            event Valid__event_global;
            (* delete _.S *)
-           insert deleted_address_table(S__struct_addr(S__struct(x__840, int__pos_1, int__pos_2, int__pos_3)));
+           insert deleted_address_table(S__struct_addr(S__struct(x__833, int__pos_1, int__pos_2, int__pos_3)));
            event Deleted__event_global).
 (* Requires *)
 (* lemma Reachable *)

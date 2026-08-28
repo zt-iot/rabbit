@@ -170,7 +170,7 @@ let _fact_shift_meta shift f =
 let rec translate_cmd mo (st : state) funs syscalls attacks scope ~syscall pol c =
   let return_var = get_return_var () in
   match c.Location.data with
-  | Syntax.Return e ->
+  | Syntax.Expr e ->
       let e, pre, _ = translate_expr2 e in
       let (st_f : state) = next_state st scope in
       let mo = add_state mo st_f in

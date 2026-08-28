@@ -44,19 +44,19 @@ let server__0(ptype:proc_t) =
   insert file_type_table(ptype, readonly_t__0, secret_pub__str);
   new file_ch:channel;
   out(file_ch, (secret_pub__str, hello__str)) |
-  (get file_type_table(=ptype, file_type__806:acc_data_t, =secret_pub__str)
+  (get file_type_table(=ptype, file_type__799:acc_data_t, =secret_pub__str)
    in
-   get access_control_table(=ptype, =file_type__806, =fopen__0__syscall) in
-   in(file_ch, (=secret_pub__str, file_contents__804:bitstring))[precise];
-   new y__798:bitstring;
-   get file_type_table(=ptype, file_type__805:acc_data_t, =secret_pub__str)
+   get access_control_table(=ptype, =file_type__799, =fopen__0__syscall) in
+   in(file_ch, (=secret_pub__str, file_contents__797:bitstring))[precise];
+   new y__791:bitstring;
+   get file_type_table(=ptype, file_type__798:acc_data_t, =secret_pub__str)
    in
-   get access_control_table(=ptype, =file_type__805, =fopen__0__syscall) in
-   out(file_ch, (secret_pub__str, file_contents__804)) |
-   (get deleted_address_table(=Fd__struct_addr(Fd__struct(y__798, file_contents__804)))
+   get access_control_table(=ptype, =file_type__798, =fopen__0__syscall) in
+   out(file_ch, (secret_pub__str, file_contents__797)) |
+   (get deleted_address_table(=Fd__struct_addr(Fd__struct(y__791, file_contents__797)))
     else
       (* delete _.Fd *)
-      insert deleted_address_table(Fd__struct_addr(Fd__struct(y__798, file_contents__804)));
+      insert deleted_address_table(Fd__struct_addr(Fd__struct(y__791, file_contents__797)));
       event Valid__event_global)).
 (* Requires *)
 (* lemma Reachable *)

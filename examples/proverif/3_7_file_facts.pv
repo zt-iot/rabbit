@@ -52,7 +52,7 @@ let server__0(ptype:proc_t) =
    event Valid__event_global(Fd__struct(y__99, file_contents__102))).
 (* Requires *)
 (* lemma ReachableValid *)
-query fd__101:bitstring; event(Valid__event_global(fd__101)).
+query fd__101:bitstring;event(Valid__event_global(fd__101)).
 (* System *)
 process
   (* allow server_t readonly_t [fopen] *)

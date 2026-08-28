@@ -61,9 +61,9 @@ let alice__0(ptype:proc_t, ch__171:channel, ch2__172:channel) =
       in(ch__171, store__chan(case_arg_0__190:bitstring));
       new channel_case_ch__191:channel;
       (out(channel_case_ch__191, (false__bool, (), ch__171)) |
-       in(channel_case_ch__191, (=false__bool, channel_case_result__195:bitstring, channel_case_state_0__196:bitstring))[precise];
+       in(channel_case_ch__191, (=false__bool, channel_case_result__195:bitstring, channel_case_state_0__196:channel))[precise];
        out(channel_case_ch__191, (true__bool, case_arg_0__190, channel_case_state_0__196))) |
-      in(channel_case_ch__191, (=true__bool, channel_case_done_result__192:bitstring, channel_case_done_state_0__193:bitstring))[precise];
+      in(channel_case_ch__191, (=true__bool, channel_case_done_result__192:bitstring, channel_case_done_state_0__193:channel))[precise];
       new msg__174:bitstring;
       event Sent__event_global(msg__174, channel_case_done_result__192);
       get channel_table(ch_type__194:acc_data_t, =ch2__172) in
@@ -91,9 +91,9 @@ let bob__0(ptype:proc_t, ch__175:channel, ch2__176:channel) =
        in(ch2__176, store__chan(case_arg_0__202:bitstring));
        new channel_case_ch__203:channel;
        (out(channel_case_ch__203, (false__bool, (), n__177, ch2__176)) |
-        in(channel_case_ch__203, (=false__bool, channel_case_result__226:bitstring, channel_case_state_0__227:bitstring, channel_case_state_1__228:bitstring))[precise];
+        in(channel_case_ch__203, (=false__bool, channel_case_result__226:bitstring, channel_case_state_0__227:bitstring, channel_case_state_1__228:channel))[precise];
         out(channel_case_ch__203, (true__bool, case_arg_0__202, channel_case_state_0__227, channel_case_state_1__228))) |
-       in(channel_case_ch__203, (=true__bool, channel_case_done_result__204:bitstring, channel_case_done_state_0__205:bitstring, channel_case_done_state_1__206:bitstring))[precise];
+       in(channel_case_ch__203, (=true__bool, channel_case_done_result__204:bitstring, channel_case_done_state_0__205:bitstring, channel_case_done_state_1__206:channel))[precise];
        new case_ch__207:channel;
        ((out(case_ch__207, (false__bool, (), channel_case_done_state_0__205, channel_case_done_result__204, dec__0(channel_case_done_result__204, sym_k__0), fst__0(dec__0(channel_case_done_result__204, sym_k__0)), snd__0(dec__0(channel_case_done_result__204, sym_k__0)))) |
          in(case_ch__207, (=false__bool, case_result__214:bitstring, case_state_0__215:bitstring, case_state_1__216:bitstring, case_state_2__217:bitstring, case_state_3__218:bitstring, case_state_4__219:bitstring))[precise];
@@ -121,10 +121,10 @@ free chan__0: channel[private].
 free chan2__0: channel[private].
 (* Requires *)
 (* lemma Valid *)
-query n__183:bitstring, msg__182:bitstring; 
+query n__183:bitstring, msg__182:bitstring;
   event(Valid__event_global(msg__182, n__183)).
 (* lemma Correspondence *)
-query n__185:bitstring, msg__184:bitstring; 
+query n__185:bitstring, msg__184:bitstring;
   event(Valid__event_global(msg__184, n__185)) ==> event(Sent__event_global(msg__184, n__185)).
 (* System *)
 process

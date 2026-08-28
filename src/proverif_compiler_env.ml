@@ -55,9 +55,9 @@ module GEnv = struct
     ; mutable allow_entries : allow_entry list
     ; mutable process_types : (Ident.t * ident) list (** process types in Rabbit and Proverif *)
     ; mutable structure_facts : (Name.t * Input.field_type list) list (** structure fact constructor and arity *)
-    ; mutable channel_facts   : (Name.t * int) list (** channel fact constructor and arity *)
-    ; mutable events        : (Name.t * (event_kind * int)) list (** event name, kind and arity *)
-    ; mutable comparison_events : comparison_event_kind list
+    ; mutable channel_facts   : (Name.t * Env.type_ list) list
+    ; mutable events        : (Name.t * (event_kind * Env.type_ list)) list
+    ; mutable comparison_events : (comparison_event_kind * Env.type_) list
     ; mutable top_process   : tprocess_e option
     }
 
@@ -79,15 +79,20 @@ module GEnv = struct
     ; top_process        = None
     }
 
-  let add_with_arity kind get_entries set_entries ~loc genv (name : T.name) (arity : int) =
+  let add_with_types kind get_entries set_entries ~loc genv (name : T.name) types =
     let entries = get_entries genv in
     match List.assoc_opt name entries with
-    | None -> set_entries genv (entries @ [name, arity])
-    | Some arity' when arity' = arity -> ()
-    | Some arity' ->
-        Error.invalid_input ~loc
-          "%s %s is used with inconsistent arities (%d and %d)"
-          kind name arity' arity
+    | None -> set_entries genv (entries @ [name, types])
+    | Some types' ->
+        if List.length types <> List.length types' then
+          Error.invalid_input ~loc
+            "%s %s is used with inconsistent arities (%d and %d)"
+            kind name (List.length types') (List.length types);
+        (try List.iter2 Env.unify types types' with
+         | Env.Cannot_unify _ ->
+             Error.invalid_input ~loc
+               "%s %s is used with inconsistent argument types"
+               kind name)
 
   (* strings **********************************************)
 
@@ -207,7 +212,7 @@ module GEnv = struct
     | Let (_id, expr, body) ->
         add_expr_strings genv expr;
         add_cmd_strings genv body
-    | Assign (_, expr) | Return expr | Del (expr, _) ->
+    | Assign (_, expr) | Expr expr | Del (expr, _) ->
         add_expr_strings genv expr
     | Case cases -> List.iter (add_case_strings genv) cases
     | While (repeat_cases, until_cases) ->
@@ -377,7 +382,7 @@ module GEnv = struct
   let channel_facts genv = genv.channel_facts
 
   let add_channel_fact =
-    add_with_arity
+    add_with_types
       "Channel fact"
       (fun genv -> genv.channel_facts)
       (fun genv channel_facts -> genv.channel_facts <- channel_facts)
@@ -386,25 +391,34 @@ module GEnv = struct
 
   let events genv = genv.events
 
-  let add_event ~loc genv (name : T.name) kind arity =
+  let add_event ~loc genv (name : T.name) kind types =
     match List.assoc_opt name genv.events with
     | None ->
-        genv.events <- genv.events @ [name, (kind, arity)]
-    | Some (kind', arity') when kind = kind' && arity = arity' -> ()
+        genv.events <- genv.events @ [name, (kind, types)]
     | Some (kind', _) when kind <> kind' ->
         Error.invalid_input ~loc
           "Event %s is used as both a global and a plain fact"
           name
-    | Some (_, arity') ->
-        Error.invalid_input ~loc
-          "Event %s is used with inconsistent arities (%d and %d)"
-          name arity' arity
+    | Some (_, types') ->
+        if List.length types <> List.length types' then
+          Error.invalid_input ~loc
+            "Event %s is used with inconsistent arities (%d and %d)"
+            name (List.length types') (List.length types);
+        (try List.iter2 Env.unify types types' with
+         | Env.Cannot_unify _ ->
+             Error.invalid_input ~loc
+               "Event %s is used with inconsistent argument types" name)
 
   let comparison_events genv = genv.comparison_events
 
-  let add_comparison_event genv kind =
-    if not (List.mem kind genv.comparison_events) then
-      genv.comparison_events <- genv.comparison_events @ [kind]
+  let add_comparison_event ~loc genv kind typ =
+    match List.assoc_opt kind genv.comparison_events with
+    | None -> genv.comparison_events <- genv.comparison_events @ [kind, typ]
+    | Some typ' ->
+        (try Env.unify typ typ' with
+         | Env.Cannot_unify _ ->
+             Error.invalid_input ~loc
+               "Comparison events of one kind have inconsistent argument types")
 
   (* top process ********************************************)
 
@@ -415,14 +429,20 @@ end
 
 module PEnv = struct
 
+  type binding =
+    { value : pterm_e
+    ; typ : Env.type_
+    }
+
   type t =
-    { bindings : (T.ident * pterm_e) list (** variables and their values in ProVerif *)
+    { bindings : (T.ident * binding) list
     ; local_func_defs : (T.ident * (T.ident list * T.cmd)) list
     ; process_typ_id : T.ident
     ; proc_type : pterm_e
     ; curr_syscall : pterm_e
     ; file_channel : pterm_e option
     ; result : pterm_e
+    ; result_type : Env.type_
     }
 
   let create_process_env
@@ -439,14 +459,23 @@ module PEnv = struct
     ; curr_syscall
     ; file_channel
     ; result = pterm_e @@ PPTuple []
+    ; result_type = Env.TValue
     }
 
   (* bindings **********************************************)
 
-  let bindings penv = penv.bindings
+  let bindings penv =
+    List.map (fun (id, binding) -> id, binding.value) penv.bindings
+
+  let binding_type_exn ~loc penv id =
+    match List.assoc_opt id penv.bindings with
+    | Some binding -> binding.typ
+    | None ->
+        Error.internal ~loc "Type of process variable %s is not available"
+          (Ident.to_string id)
 
   let find_process_var penv (id : T.ident) : pterm_e option =
-    List.assoc_opt id penv.bindings
+    Option.map (fun binding -> binding.value) (List.assoc_opt id penv.bindings)
 
   let find_process_var_exn ~loc penv (id : T.ident) : pterm_e =
     match find_process_var penv id with
@@ -455,13 +484,14 @@ module PEnv = struct
         Error.internal ~loc "Loop-carried variable %s is not available"
           (Ident.to_string id)
 
-  let define_process_var (penv : t) (id : T.ident) (value : pterm_e) =
-    { penv with bindings = (id, value) :: penv.bindings }
+  let define_process_var (penv : t) (id : T.ident) (typ : Env.type_) (value : pterm_e) =
+    { penv with bindings = (id, { value; typ }) :: penv.bindings }
 
   let assign_process_var (penv : t) (id : T.ident) (value : pterm_e) =
     let rec assign = function
       | [] -> assert false
-      | (id', _) :: bindings when id = id' -> (id, value) :: bindings
+      | (id', binding) :: bindings when id = id' ->
+          (id, { binding with value }) :: bindings
       | binding :: bindings -> binding :: assign bindings
     in
     { penv with bindings = assign penv.bindings }
@@ -503,6 +533,8 @@ module PEnv = struct
 
   let result penv = penv.result
 
-  let with_result penv result = { penv with result }
+  let result_type penv = penv.result_type
+
+  let with_result penv result_type result = { penv with result; result_type }
 
 end

@@ -26,6 +26,7 @@ type error =
   | GlobalChannelInExpr of Ident.t
   | WildcardNotAllowed
   | StructureFactMustBePredeclared
+  | TypeMismatch of Env.type_ * Env.type_
 
 exception Error of error Location.located
 
@@ -35,7 +36,7 @@ let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 let misc_errorf ~loc fmt = Format.kasprintf (fun s -> error ~loc (Misc s)) fmt
 
 let kind_of_desc = function
-  | Env.Var -> "mutable variable"
+  | Env.Var _ -> "mutable variable"
   | Param -> "parameter"
   | ExtFun _ -> "external function"
   | ExtConst -> "external constant"
@@ -107,6 +108,31 @@ let print_error err ppf =
       Format.pp_print_string ppf "Wildcard '_' is only allowed in case/while guards"
   | StructureFactMustBePredeclared ->
       Format.pp_print_string ppf "Structure fact must be predeclared"
+  | TypeMismatch (expected, actual) ->
+      Format.fprintf
+        ppf
+        "Expected a value of type %a but found %a"
+        (fun ppf typ -> Env.print_type typ ppf) expected
+        (fun ppf typ -> Env.print_type typ ppf) actual
+;;
+
+let unify ~loc expected actual =
+  try Env.unify expected actual with
+  | Env.Cannot_unify (expected, actual) -> error ~loc @@ TypeMismatch (expected, actual)
+;;
+
+let fresh_callable arity =
+  Env.
+    { argument_types = List.init arity (fun _ -> fresh_type ())
+    ; result_type = fresh_type ()
+    }
+;;
+
+let type_of_field_type = Env.type_of_field_type
+
+let type_of_value_desc = Env.type_of_desc
+
+let type_of_expr = Typed.type_of_expr
 ;;
 
 module Env : sig
@@ -120,7 +146,7 @@ module Env : sig
   (** Fails if the name is bound in the environment *)
   val add_global : loc:Location.t -> t -> Name.ident -> Env.desc -> t * Ident.t
 
-  val add_fact : loc:Location.t -> t -> Name.ident -> named_fact_desc * int option -> unit
+  val add_fact : loc:Location.t -> t -> Name.ident -> named_fact_desc * type_ list option -> unit
 end = struct
   include Env
 
@@ -147,19 +173,24 @@ end = struct
     add env id desc, id
   ;;
 
-  let add_fact ~loc env name (desc, arity) =
+  let add_fact ~loc env name (desc, argument_types) =
     match find_fact_opt env name with
-    | Some (desc', arity') ->
+    | Some (desc', argument_types') ->
         if desc <> desc'
         then error ~loc @@ InvalidFact { name; def = desc'; use = desc }
         else (
-          match arity, arity' with
-          | Some a, Some a' ->
-              if a = a' then () else error ~loc @@ ArityMismatch { arity = a; use = a' }
-          | None, Some _ -> update_fact env name (desc, arity)
-          | Some _, None -> ()
+          match argument_types, argument_types' with
+          | Some types, Some types' ->
+              if List.length types <> List.length types' then
+                error ~loc @@
+                ArityMismatch { arity= List.length types; use= List.length types' };
+              (try List.iter2 Env.unify types types' with
+               | Env.Cannot_unify (expected, actual) ->
+                   error ~loc @@ TypeMismatch (expected, actual))
+          | None, Some _ -> ()
+          | Some _, None -> update_fact env name (desc, argument_types)
           | None, None -> ())
-    | None -> update_fact env name (desc, arity)
+    | None -> update_fact env name (desc, argument_types)
   ;;
 end
 
@@ -175,7 +206,7 @@ let rec type_expr ?(allow_wildcard = false) env (e : Input.expr) : Typed.expr =
         if allow_wildcard
         then (
           let id = Ident.local "_" in
-          Typed.Ident { id; desc = Var; param = None })
+          Typed.Ident { id; desc = Var (Env.fresh_type ()); param = None })
         else error ~loc WildcardNotAllowed
     | Boolean b -> Typed.Boolean b
     | String s -> String s
@@ -197,8 +228,13 @@ let rec type_expr ?(allow_wildcard = false) env (e : Input.expr) : Typed.expr =
         let es = List.map (type_expr ~allow_wildcard env) es in
         let use = List.length es in
         (match Env.find ~loc env f with
-         | id, (ExtFun arity | ExtSyscall arity | Function arity) ->
-             check_arity ~loc ~arity ~use;
+         | id, (ExtFun typ | ExtSyscall typ | Function typ) ->
+             check_arity ~loc ~arity:(List.length typ.argument_types) ~use;
+             List.iter2
+               (fun expected (expr : Typed.expr) ->
+                  unify ~loc:expr.loc expected (type_of_expr expr))
+               typ.argument_types
+               es;
              Apply (id, es)
          | id, desc ->
              error ~loc @@ NonCallableIdentifier (id, desc))
@@ -247,38 +283,45 @@ let type_fact ?(allow_wildcard = false) env (fact : Input.fact) : Typed.fact =
     | Fact (name, es) ->
         (* Which fact? For strucure? *)
         let nes = List.length es in
+        let es = List.map (type_expr ~allow_wildcard env) es in
+        let argument_types = List.map type_of_expr es in
         (match Env.find_fact_opt env name with
          | None ->
-             Env.add_fact ~loc env name (Plain, Some nes);
-             Typed.Plain (name, List.map (type_expr ~allow_wildcard env) es)
-         | Some (Plain, Some arity) ->
-             check_arity ~loc ~arity ~use:nes;
-             Plain (name, List.map (type_expr ~allow_wildcard env) es)
+             Env.add_fact ~loc env name (Plain, Some argument_types);
+             Typed.Plain (name, es)
+         | Some (Plain, Some types) ->
+             check_arity ~loc ~arity:(List.length types) ~use:nes;
+             List.iter2 (unify ~loc) types argument_types;
+             Plain (name, es)
          | Some (Plain, None) -> assert false
          | Some (desc, _) ->
              error ~loc @@ InvalidFact { name; def= desc; use= Plain }
         )
     | GlobalFact (name, es) ->
-        let nes = List.length es in
-        Env.add_fact ~loc env name (Global, Some nes);
-        Global (name, List.map (type_expr ~allow_wildcard env) es)
+        let es = List.map (type_expr ~allow_wildcard env) es in
+        Env.add_fact ~loc env name (Global, Some (List.map type_of_expr es));
+        Global (name, es)
     | ChannelFact (e, name, es) ->
         let e = type_expr ~allow_wildcard env e in
+        unify ~loc:e.loc TChannel (type_of_expr e);
         let es = List.map (type_expr ~allow_wildcard env) es in
-        let nes = List.length es in
-        Env.add_fact ~loc env name (Channel, Some nes);
+        Env.add_fact ~loc env name (Channel, Some (List.map type_of_expr es));
         Channel { channel = e; name; args = es }
     | EqFact (e1, e2) ->
         let e1 = type_expr ~allow_wildcard env e1 in
         let e2 = type_expr ~allow_wildcard env e2 in
+        unify ~loc (type_of_expr e1) (type_of_expr e2);
         Eq (e1, e2)
     | NeqFact (e1, e2) ->
         let e1 = type_expr ~allow_wildcard env e1 in
         let e2 = type_expr ~allow_wildcard env e2 in
+        unify ~loc (type_of_expr e1) (type_of_expr e2);
         Neq (e1, e2)
     | FileFact (e1, e2) ->
         let e1 = type_expr ~allow_wildcard env e1 in
         let e2 = type_expr ~allow_wildcard env e2 in
+        unify ~loc:e1.loc TValue (type_of_expr e1);
+        unify ~loc:e2.loc TValue (type_of_expr e2);
         File { path = e1; contents = e2 }
   in
   { env; loc; desc }
@@ -300,16 +343,42 @@ let type_facts ?(allow_wildcard = false) env facts =
   List.map (type_fact ~allow_wildcard env) facts
 ;;
 
+let rec infer_cmd_result_type (cmd : Typed.cmd) =
+  match cmd.desc with
+  | Expr expr -> type_of_expr expr
+  | Sequence (cmd1, cmd2) ->
+      ignore (infer_cmd_result_type cmd1);
+      infer_cmd_result_type cmd2
+  | Let (_, _, body) | New (_, _, body) | Get (_, _, _, body) ->
+      infer_cmd_result_type body
+  | Case [] -> TValue
+  | Case (case :: cases) ->
+      let typ = infer_cmd_result_type case.cmd in
+      List.iter
+        (fun (case : Typed.case) ->
+           unify ~loc:case.cmd.loc typ (infer_cmd_result_type case.cmd))
+        cases;
+      typ
+  | While (repeat_cases, until_cases) ->
+      List.iter
+        (fun (case : Typed.case) ->
+           unify ~loc:case.cmd.loc TValue (infer_cmd_result_type case.cmd))
+        (repeat_cases @ until_cases);
+      TValue
+  | Skip | Put _ | Assign _ | Event _ | Del _ -> TValue
+;;
+
 let type_structure_fact ~loc env name es =
   (* [str] must be a structure fact *)
   let nes = List.length es in
   match Env.find_fact_opt env name with
   | None -> error ~loc StructureFactMustBePredeclared
-  | Some (Structure ftys, _) ->
-      if nes = List.length ftys then ()
+  | Some (Structure ftys, Some types) ->
+      if nes = List.length ftys then types
       else
         error ~loc @@
         ArityMismatch { arity= List.length ftys; use= nes }
+  | Some (Structure _, None) -> assert false
   | Some (desc', _) ->
       (* Not a structure *)
       error ~loc @@
@@ -331,7 +400,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
     | Let (name, e, cmd) ->
         let e = type_expr ~at_assignment:true env e in
         let id = Ident.local name in
-        let env' = Env.add env id Var in
+        let env' = Env.add env id (Var (type_of_expr e)) in
         let cmd = type_cmd env' cmd in
         Let (id, e, cmd)
     | Assign (None, e) ->
@@ -345,9 +414,11 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
     | Assign (Some name, e) ->
         let id, vdesc = Env.find ~loc env name in
         (match vdesc with
-         | Var -> ()
+         | Var _ -> ()
          | desc -> error ~loc @@ InvalidVariableAtAssign (id, desc));
         let e = type_expr env ~at_assignment:true e in
+        let variable_type = Option.get (type_of_value_desc vdesc) in
+        unify ~loc:e.loc variable_type (type_of_expr e);
         Assign (Some id, e)
     | Case cases -> Case (type_cases env cases)
     | While (cases1, cases2) ->
@@ -357,28 +428,41 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
     | Event facts ->
         let facts = type_facts env facts in
         Event facts
-    | Return e -> Return (type_expr env e)
+    | Expr e ->
+        let e = type_expr env e in
+        Expr e
     | New (name, str_es_opt, cmd) ->
         (* allocation, [new x := S(e1,..,en) in c] or [new x in c] *)
         let str_es_opt =
           Option.map
             (fun (str, es) ->
                (* [str] must be a structure fact *)
-               type_structure_fact ~loc env str es;
-               str, List.map (type_expr env) es)
+               let expected_types = type_structure_fact ~loc env str es in
+               let es = List.map (type_expr env) es in
+               List.iter2
+                 (fun expected (expr : Typed.expr) ->
+                    unify ~loc:expr.loc expected (type_of_expr expr))
+                 expected_types
+                 es;
+               str, es)
             str_es_opt
         in
         let id = Ident.local name in
-        let env' = Env.add env id Var in
+        let env' = Env.add env id (Var TValue) in
         let cmd = type_cmd env' cmd in
         New (id, str_es_opt, cmd)
     | Get (names, e, str, cmd) ->
         (* fetch, [let x1,...,xn := e.S in c] *)
         let e = type_expr env e in
-        type_structure_fact ~loc env str names;
+        let field_types = type_structure_fact ~loc env str names in
+        unify ~loc:e.loc TValue (type_of_expr e);
         let ids = List.map Ident.local names in
         let env' =
-          List.fold_left (fun env' id -> Env.add env' id Var) env ids
+          List.fold_left2
+            (fun env' id typ -> Env.add env' id (Var typ))
+            env
+            ids
+            field_types
         in
         let cmd = type_cmd env' cmd in
         Get (ids, e, str, cmd)
@@ -386,10 +470,11 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         (* deletion, [delete e.S] *)
         let e = type_expr env e in
         (match Env.find_fact_opt env str with
-         | Some (Structure _, _arity) -> ()
+         | Some (Structure _, _types) -> ()
          | Some (desc, _) ->
              error ~loc @@ InvalidFact { name = str; def = desc; use = Structure [] (* dummy *) }
          | None -> error ~loc @@ UnboundFact str);
+        unify ~loc:e.loc TValue (type_of_expr e);
         Del (e, str)
   in
   { loc; env; desc }
@@ -407,7 +492,7 @@ and type_case env (facts, cmd) : Typed.case =
   let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
   let fresh_ids = Name.Set.fold (fun name ids -> Ident.local name :: ids) fresh [] in
   let env' =
-    List.fold_left (fun env id -> Env.add env id Var) env fresh_ids
+    List.fold_left (fun env id -> Env.add env id (Var (Env.fresh_type ()))) env fresh_ids
   in
   let facts = type_facts ~allow_wildcard:true env' facts in
   let cmd = type_cmd env' cmd in
@@ -464,8 +549,10 @@ let type_process
       List.map
         (fun (path, filety, contents) ->
            let path = type_expr env' path in
+           unify ~loc:path.loc TValue (type_of_expr path);
            let filety = Env.find_desc ~loc env' filety (Type CFsys) in
            let contents = type_expr env' contents in
+           unify ~loc:contents.loc TValue (type_of_expr contents);
            path, filety, contents)
         files
     in
@@ -474,7 +561,7 @@ let type_process
         (fun (env, rev_vars) (name, e) ->
            let e = type_expr env e in
            let id = Ident.local name in
-           let env' = Env.add env id Var in
+           let env' = Env.add env id (Var (type_of_expr e)) in
            env', (id, e) :: rev_vars)
         (env', [])
         vars
@@ -483,15 +570,27 @@ let type_process
     let env', rev_funcs =
       List.fold_left
         (fun (env', rev_funcs) (fname, args, c) ->
-           let env'', args = extend_with_args env' args @@ fun _id -> Var in
-           let c = type_cmd env'' c in
            let fid = Ident.local fname in
-           Env.add env' fid (Function (List.length args)), (fid, args, c) :: rev_funcs)
+           let typ = fresh_callable (List.length args) in
+           let env_with_function = Env.add env' fid (Function typ) in
+           let env'', args =
+             let argument_types = ref typ.argument_types in
+             extend_with_args env_with_function args @@ fun _id ->
+             match !argument_types with
+             | argument_type :: rest ->
+                 argument_types := rest;
+                 Var argument_type
+             | [] -> assert false
+           in
+           let c = type_cmd env'' c in
+           unify ~loc:c.loc typ.result_type (infer_cmd_result_type c);
+           env_with_function, (fid, args, c) :: rev_funcs)
         (env', [])
         funcs
     in
     let funcs = List.rev rev_funcs in
     let main = type_cmd env' main in
+    ignore (infer_cmd_result_type main);
     param_opt, args, proc_ty, files, vars, funcs, main
   in
   let env', id = Env.add_global ~loc env name Process in
@@ -519,7 +618,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         in
         let env' =
           List.fold_left
-            (fun env id -> Env.add env id Var)
+            (fun env id -> Env.add env id (Var (Env.fresh_type ())))
             env
             fresh_ids
         in
@@ -533,7 +632,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         in
         let env' =
           List.fold_left
-            (fun env id -> Env.add env id Var)
+            (fun env id -> Env.add env id (Var (Env.fresh_type ())))
             env
             fresh_ids
         in
@@ -553,23 +652,26 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   | DeclLoad fn ->
       (* [load "xxx.rab"] *)
       let fn = Filename.dirname base_fn ^ "/" ^ fn in
-      load env fn
+      load_decls env fn
   | DeclExtFun (name, 0) ->
       let env', id = Env.add_global ~loc env name ExtConst in
-      env', [{ env; loc; desc = Function { id; arity= 0 } }]
+      let typ = Env.{ argument_types = []; result_type = TValue } in
+      env', [{ env; loc; desc = Function { id; typ } }]
   | DeclExtFun (name, arity) ->
-      let env', id = Env.add_global ~loc env name (ExtFun arity) in
-      env', [{ env; loc; desc = Function { id; arity } }]
+      let typ = fresh_callable arity in
+      let env', id = Env.add_global ~loc env name (ExtFun typ) in
+      env', [{ env; loc; desc = Function { id; typ } }]
   | DeclExtEq (e1, e2) ->
       let vars = Name.Set.union (Input.vars_of_expr e1) (Input.vars_of_expr e2) in
       let fresh =
         Name.Set.elements (Name.Set.filter (fun v -> not (Env.mem env v)) vars)
       in
       let env', _fresh_ids =
-        extend_with_args env fresh @@ fun _id -> Var
+        extend_with_args env fresh @@ fun _id -> Var (Env.fresh_type ())
       in
       let e1 = type_expr env' e1 in
       let e2 = type_expr env' e2 in
+      unify ~loc (type_of_expr e1) (type_of_expr e2);
       ( env
       , [{ env = env'
          ; loc
@@ -579,28 +681,48 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
              Equation (e1, e2)
          }] )
   | DeclExtSyscall (name, args, c, attack) ->
+      let typ = fresh_callable (List.length args) in
       let args, cmd =
-        let env', args = extend_with_args env args @@ fun _id -> Var in
+        let argument_types = ref typ.argument_types in
+        let env', args =
+          extend_with_args env args @@ fun _id ->
+          match !argument_types with
+          | argument_type :: rest ->
+              argument_types := rest;
+              Var argument_type
+          | [] -> assert false
+        in
         let c = type_cmd env' c in
+        unify ~loc:c.loc typ.result_type (infer_cmd_result_type c);
         args, c
       in
-      let env', id = Env.add_global ~loc env name (ExtSyscall (List.length args)) in
+      let env', id = Env.add_global ~loc env name (ExtSyscall typ) in
       env', [{ env; loc; desc = Syscall { id; args; cmd; attack } }]
   | DeclExtAttack (name, syscall, args, c) ->
       (* [attack id on syscall (a1,..,an) { c }] *)
-      let syscall, arity =
+      let syscall, syscall_type =
         match Env.find ~loc env syscall with
-        | syscall, ExtSyscall arity -> syscall, arity
+        | syscall, ExtSyscall typ -> syscall, typ
         | id, desc ->
             error ~loc
             @@ InvalidVariable
-                 { ident = id; def = desc; use = ExtSyscall (List.length args) }
+                 { ident = id; def = desc; use = ExtSyscall (fresh_callable (List.length args)) }
       in
+      let arity = List.length syscall_type.argument_types in
       if List.length args <> arity then
         error ~loc @@ ArityMismatch { arity; use = List.length args };
       let args, cmd =
-        let env', args = extend_with_args env args @@ fun _id -> Var in
+        let argument_types = ref syscall_type.argument_types in
+        let env', args =
+          extend_with_args env args @@ fun _id ->
+          match !argument_types with
+          | argument_type :: rest ->
+              argument_types := rest;
+              Var argument_type
+          | [] -> assert false
+        in
         let c = type_cmd env' c in
+        unify ~loc:c.loc syscall_type.result_type (infer_cmd_result_type c);
         args, c
       in
       let env', id = Env.add_global ~loc env name Attack in
@@ -630,7 +752,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
                   | id, ExtSyscall _ -> id
                   | id, desc ->
                       error ~loc
-                      @@ InvalidVariable { ident = id; def = desc; use = ExtSyscall (-1) })
+                      @@ InvalidVariable { ident = id; def = desc; use = ExtSyscall (fresh_callable 0) })
                syscalls)
           syscalls_opt
       in
@@ -656,6 +778,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   | DeclInit (name, Value e) ->
       (* [const n = e] *)
       let e = type_expr env e in
+      unify ~loc:e.loc TValue (type_of_expr e);
       let env', id = Env.add_global ~loc env name (Const false) in
       env', [{ env; loc; desc = Init { id; desc = Value e } }]
   | DeclInit (name, Fresh_with_param) ->
@@ -665,8 +788,9 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   | DeclInit (name, Value_with_param (e, p)) ->
       (* [const n<p> = e] *)
       let p = Ident.local p in
-      let env' = Env.add env p Var in
+      let env' = Env.add env p (Var TParameter) in
       let e = type_expr env' e in
+      unify ~loc:e.loc TValue (type_of_expr e);
       let env', id =
         Env.add_global ~loc env name (Const true)
         (* no info of param? *)
@@ -752,10 +876,10 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let lemmas = List.rev rev_lemmas in
       env, [{ env; loc; desc = System (procs, lemmas) }]
   | DeclStructure(n, ftys) ->
-      Env.add_fact ~loc env n (Structure ftys, Some (List.length ftys));
+      Env.add_fact ~loc env n (Structure ftys, Some (List.map type_of_field_type ftys));
       env, [{ env; loc; desc= Structure (n, ftys)} ]
 
-and load env fn : Env.t * Typed.decl list =
+and load_decls env fn : Env.t * Typed.decl list =
   let decls, (_used_idents, _used_strings) = Lexer.read_file Parser.file fn in
   let env, rev_decls =
     List.fold_left
@@ -766,4 +890,15 @@ and load env fn : Env.t * Typed.decl list =
       decls
   in
   env, List.rev rev_decls
+;;
+
+let load env fn =
+  let mark = Env.type_variable_mark () in
+  match load_decls env fn with
+  | result ->
+      Env.default_types_since mark;
+      result
+  | exception exn ->
+      Env.discard_types_since mark;
+      raise exn
 ;;

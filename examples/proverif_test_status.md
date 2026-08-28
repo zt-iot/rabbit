@@ -2,7 +2,7 @@
 
 Checked on: 2026-08-28
 
-Tested commit: `cde2360b9da2568d03cac6f51e33d878f27e6800` plus the current tracked working-tree changes
+Tested commit: `116d516` plus the current tracked working-tree changes
 
 ## Evaluation method
 
@@ -21,7 +21,7 @@ unexecuted verification is `Fail`.
 | Suite | Inputs | Pass | Fail |
 |---|---:|---:|---:|
 | `examples/*.rab` | 58 | 43 | 15 |
-| `examples/proverif_verification/*.rab` | 87 | 56 | 31 |
+| `examples/proverif_verification/*.rab` | 89 | 59 | 30 |
 
 ## `examples/*.rab`
 
@@ -45,7 +45,7 @@ unexecuted verification is `Fail`.
 | `040_asym.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
 | `041_asym_commu.rab` | Pass | `verified`, `falsified`, `verified`, `verified` | `true`, `false`, `true`, `true` | Pass | — |
 | `042_asym_commu_param.rab` | Rejected (expected) | `verified`, `falsified`, `verified`, `verified` | Not run | **Fail** | ProVerif verification was not run. |
-| `043_asym_commu_param2.rab` | Rejected (expected) | `verified`, `falsified`, `verified`, `verified` | Not run | **Fail** | ProVerif verification was not run. |
+| `043_asym_commu_param2.rab` | Rejected (expected) | Not run | Not run | **Fail** | Monomorphic typing rejects applying the value function `fst` to a process parameter. |
 | `044_asym_commu_param_simpler.rab` | Rejected (expected) | `verified`, `falsified`, `verified`, `verified` | Not run | **Fail** | ProVerif verification was not run. |
 | `050_attack.rab` | Pass | `verified`, `verified`, `verified` | `true`, `true`, `true` | Pass | — |
 | `051_attack_ch.rab` | Pass | `verified`, `verified`, `verified` | `true`, `true`, `true` | Pass | — |
@@ -77,7 +77,7 @@ unexecuted verification is `Fail`.
 | `162_structure_param.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
 | `200_camserver_param.rab` | Rejected (expected) | Error | Not run | **Fail** | ProVerif verification was not run. No Tamarin result is available. |
 | `210_dec_failure.rab` | Pass | `verified`, `verified` | `true`, `true` | Pass | — |
-| `camserver.rab` | Pass | `verified`, `falsified` | Error | **Fail** | ProVerif rejects a bitstring pattern where a channel is required. |
+| `camserver.rab` | Pass | `verified`, `falsified` | `unknown`, `unknown` | **Fail** | Channel typing succeeds, but ProVerif cannot decide either property. |
 | `camserver_assume.rab` | Rejected (expected) | `verified`, `falsified` | Not run | **Fail** | ProVerif verification was not run. |
 | `camserver_param.rab` | Rejected (expected) | Error | Not run | **Fail** | ProVerif verification was not run. No Tamarin result is available. |
 | `camserver_param_assume.rab` | Rejected (expected) | Error | Not run | **Fail** | ProVerif verification was not run. No Tamarin result is available. |
@@ -103,8 +103,8 @@ unexecuted verification is `Fail`.
 | `boolean.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
 | `bounded_replication.rab` | Pass | `verified`, `verified` | `true`, `true` | Pass | — |
 | `case.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
-| `case_channel_state_type.rab` | Pass | `verified` | Error | **Fail** | ProVerif receives a channel-valued case state as `bitstring`. |
-| `case_mutable_channel_state.rab` | Pass | `verified` | Error | **Fail** | ProVerif receives an updated channel-valued case state as `bitstring`. |
+| `case_channel_state_type.rab` | Pass | `verified` | `true` | Pass | — |
+| `case_mutable_channel_state.rab` | Pass | `verified` | `true` | Pass | — |
 | `case_nondeterministic.rab` | Pass | `verified`, `verified`, `verified`, `verified` | `true`, `true`, `true`, `true` | Pass | — |
 | `case_single_branch.rab` | Pass | `verified`, `falsified`, `falsified` | `true`, `false`, `false` | Pass | — |
 | `channel.rab` | Pass | `verified`, `falsified` | `true`, `unknown` | **Fail** | The verification results differ. |
@@ -113,6 +113,7 @@ unexecuted verification is `Fail`.
 | `channel_nondeterministic.rab` | Pass | `verified`, `verified`, `verified`, `verified` | `true`, `true`, `true`, `true` | Pass | — |
 | `channel_pattern.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
 | `channel_private.rab` | Pass | `falsified` | `false` | Pass | — |
+| `channel_return.rab` | Pass | `verified` | `true` | Pass | — |
 | `channel_syscall.rab` | Pass | `verified` | `true` | Pass | — |
 | `constants.rab` | Pass | `verified` | `true` | Pass | — |
 | `correspondence.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
@@ -176,4 +177,5 @@ unexecuted verification is `Fail`.
 | `syscall_let.rab` | Pass | `verified` | `true` | Pass | — |
 | `system_parallel.rab` | Pass | `verified` | `true` | Pass | — |
 | `tuple.rab` | Pass | `verified`, `falsified` | `true`, `false` | Pass | — |
+| `type_mismatch_unsupported.rab` | Rejected (expected) | Not run | Not run | **Fail** | Monomorphic typing rejects assignment of a channel to a value variable. |
 | `unit_unsupported.rab` | Rejected (expected) | `verified` | Not run | **Fail** | The Tamarin result was checked with the legacy backend. ProVerif verification was not run. |

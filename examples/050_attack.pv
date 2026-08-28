@@ -29,39 +29,39 @@ fun succ__0(bitstring): bitstring.
 const proc_t__0: proc_t.
 (* process alice(..): proc_t *)
 let alice__0(ptype:proc_t) =
-  new n__694:bitstring;
-  event Send__event_global(n__694);
-  new call_join_ch__698:channel;
+  new n__687:bitstring;
+  event Send__event_global(n__687);
+  new call_join_ch__691:channel;
   (new attack_choice_ch:channel;
    (out(attack_choice_ch, true__bool) |
     in(attack_choice_ch, _:bitstring);
-    out(call_join_ch__698, (true__bool, n__694, n__694))) |
+    out(call_join_ch__691, (true__bool, n__687, n__687))) |
    in(attack_choice_ch, _:bitstring);
-   out(call_join_ch__698, (true__bool, succ__0(n__694), n__694))) |
-  in(call_join_ch__698, (=true__bool, call_result__699:bitstring, call_state_0__700:bitstring))[precise];
-  new case_ch__701:channel;
-  ((out(case_ch__701, (false__bool, (), call_state_0__700, call_result__699)) |
-    in(case_ch__701, (=false__bool, case_result__705:bitstring, case_state_0__706:bitstring, case_state_1__707:bitstring))[precise];
-    if case_state_0__706 = case_state_1__707
+   out(call_join_ch__691, (true__bool, succ__0(n__687), n__687))) |
+  in(call_join_ch__691, (=true__bool, call_result__692:bitstring, call_state_0__693:bitstring))[precise];
+  new case_ch__694:channel;
+  ((out(case_ch__694, (false__bool, (), call_state_0__693, call_result__692)) |
+    in(case_ch__694, (=false__bool, case_result__698:bitstring, case_state_0__699:bitstring, case_state_1__700:bitstring))[precise];
+    if case_state_0__699 = case_state_1__700
     then
-      event Valid__event_global(case_state_0__706);
-      out(case_ch__701, (true__bool, (), case_state_0__706, case_state_1__707))
+      event Valid__event_global(case_state_0__699);
+      out(case_ch__694, (true__bool, (), case_state_0__699, case_state_1__700))
     else
-      out(case_ch__701, (false__bool, case_result__705, case_state_0__706, case_state_1__707))) |
-   in(case_ch__701, (=false__bool, case_result__708:bitstring, case_state_0__709:bitstring, case_state_1__710:bitstring))[precise];
-   if case_state_0__709 = case_state_1__710
+      out(case_ch__694, (false__bool, case_result__698, case_state_0__699, case_state_1__700))) |
+   in(case_ch__694, (=false__bool, case_result__701:bitstring, case_state_0__702:bitstring, case_state_1__703:bitstring))[precise];
+   if case_state_0__702 = case_state_1__703
    then
-     out(case_ch__701, (false__bool, case_result__708, case_state_0__709, case_state_1__710))
+     out(case_ch__694, (false__bool, case_result__701, case_state_0__702, case_state_1__703))
    else
      event Invalid__event_global;
-     out(case_ch__701, (true__bool, (), case_state_0__709, case_state_1__710))) |
-  in(case_ch__701, (=true__bool, case_done_result__702:bitstring, case_done_state_0__703:bitstring, case_done_state_1__704:bitstring))[precise].
+     out(case_ch__694, (true__bool, (), case_state_0__702, case_state_1__703))) |
+  in(case_ch__694, (=true__bool, case_done_result__695:bitstring, case_done_state_0__696:bitstring, case_done_state_1__697:bitstring))[precise].
 (* Requires *)
 (* lemma Reachable *)
-query n__696:bitstring; event(Valid__event_global(n__696)).
+query n__689:bitstring;event(Valid__event_global(n__689)).
 (* lemma Corresponds *)
-query n__697:bitstring; 
-  event(Valid__event_global(n__697)) ==> event(Send__event_global(n__697)).
+query n__690:bitstring;
+  event(Valid__event_global(n__690)) ==> event(Send__event_global(n__690)).
 (* lemma Tampered *)
 query event(Invalid__event_global()).
 (* System *)
