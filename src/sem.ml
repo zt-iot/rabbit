@@ -1705,6 +1705,9 @@ let compressable edges e1 e2 =
         | Structure _, Structure _ ->
             (* Structure pairs are checked in the above `structure` *)
             false
+        | _ when is_persistent_fact f1 && eq_fact f1 f2 ->
+            (* Exact persistent facts can be forwarded by [compress]. *)
+            false
         | _ -> unifiable_fact f1 f2)
       (List.concat_map (fun e1post ->
            List.map (fun e2pre ->
@@ -1776,6 +1779,18 @@ let compress_unchecked (e1 : edge) (e2 : edge) =
   let e2_pre = Update.update_facts u e2_pre in
   let e2_tag = Update.update_facts u e2_tag in
   let e2_post =Update.update_facts u e2_post in
+  (* A persistent fact produced by [e1] can satisfy the same precondition of
+     [e2].  It is therefore internal to the sequential composition: keep the
+     fact in [e1]'s postcondition, but do not require it before the compressed
+     edge. *)
+  let e2_pre =
+    List.filter
+      (fun required ->
+         not
+           (is_persistent_fact required
+            && List.exists (eq_fact required) e1_post))
+      e2_pre
+  in
   let pre = e1.pre @ e2_pre in
   let tag = e1.tag @ e2_tag in
   let post = e1_post (* not [e1.post] *) @ e2_post in
