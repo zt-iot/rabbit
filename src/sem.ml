@@ -1545,6 +1545,86 @@ let rec eq_expr e1 e2 =
        | _ -> false)
   | _ -> false
 
+let eq_fact (f1 : fact) (f2 : fact) =
+  match f1.desc, f2.desc with
+  | Channel { channel= channel1; name= name1; args= args1 },
+    Channel { channel= channel2; name= name2; args= args2 } ->
+      name1 = name2
+      && eq_expr channel1 channel2
+      && List.length args1 = List.length args2
+      && List.for_all2 eq_expr args1 args2
+  | Plain { pid= pid1; name= name1; args= args1 },
+    Plain { pid= pid2; name= name2; args= args2 } ->
+      pid1 = pid2
+      && name1 = name2
+      && List.length args1 = List.length args2
+      && List.for_all2 eq_expr args1 args2
+  | Eq (lhs1, rhs1), Eq (lhs2, rhs2)
+  | Neq (lhs1, rhs1), Neq (lhs2, rhs2) ->
+      eq_expr lhs1 lhs2 && eq_expr rhs1 rhs2
+  | File { pid= pid1; path= path1; contents= contents1 },
+    File { pid= pid2; path= path2; contents= contents2 } ->
+      pid1 = pid2 && eq_expr path1 path2 && eq_expr contents1 contents2
+  | Global (name1, args1), Global (name2, args2) ->
+      name1 = name2
+      && List.length args1 = List.length args2
+      && List.for_all2 eq_expr args1 args2
+  | Fresh id1, Fresh id2 -> id1 = id2
+  | Structure { pid= pid1; name= name1; address= address1; args= args1 },
+    Structure { pid= pid2; name= name2; address= address2; args= args2 } ->
+      pid1 = pid2
+      && name1 = name2
+      && eq_expr address1 address2
+      && List.length args1 = List.length args2
+      && List.for_all2 eq_expr args1 args2
+  | Loop { pid= pid1; mode= mode1; index= index1 },
+    Loop { pid= pid2; mode= mode2; index= index2 } ->
+      pid1 = pid2 && mode1 = mode2 && index1 = index2
+  | Access { pid= pid1; channel= channel1; syscall= syscall1 },
+    Access { pid= pid2; channel= channel2; syscall= syscall2 } ->
+      pid1 = pid2 && syscall1 = syscall2 && eq_expr channel1 channel2
+  | _ -> false
+
+let is_persistent_fact (fact : fact) =
+  match fact.desc with
+  | Access _ -> true
+  | Channel _ | Plain _ | Eq _ | Neq _ | File _ | Global _ | Fresh _
+  | Structure _ | Loop _ -> false
+
+let rec remove_first_fact fact rev_prefix = function
+  | [] -> None
+  | candidate :: facts when eq_fact fact candidate ->
+      Some (List.rev_append rev_prefix facts)
+  | candidate :: facts ->
+      remove_first_fact fact (candidate :: rev_prefix) facts
+
+let fact_multiset_equal facts1 facts2 =
+  let rec consume remaining = function
+    | [] -> remaining = []
+    | fact :: facts ->
+        (match remove_first_fact fact [] remaining with
+         | None -> false
+         | Some remaining -> consume remaining facts)
+  in
+  consume facts2 facts1
+
+let eq_update_desc desc1 desc2 =
+  match desc1, desc2 with
+  | Update.Drop, Update.Drop -> true
+  | New expr1, New expr2 | Update expr1, Update expr2 -> eq_expr expr1 expr2
+  | _ -> false
+
+let eq_update (update1 : Update.t) (update2 : Update.t) =
+  update1.rho = update2.rho
+  && eq_expr update1.register update2.register
+  && List.length update1.items = List.length update2.items
+  && List.for_all
+       (fun (id, desc1) ->
+          match List.assoc_opt id update2.items with
+          | None -> false
+          | Some desc2 -> eq_update_desc desc1 desc2)
+       update1.items
+
 (* Explained Rabbit2.0.pdf, C. Graph Compression *)
 let compressable edges e1 e2 =
   (* Consecutive *)
@@ -1625,6 +1705,9 @@ let compressable edges e1 e2 =
         | Structure _, Structure _ ->
             (* Structure pairs are checked in the above `structure` *)
             false
+        | _ when is_persistent_fact f1 && eq_fact f1 f2 ->
+            (* Exact persistent facts can be forwarded by [compress]. *)
+            false
         | _ -> unifiable_fact f1 f2)
       (List.concat_map (fun e1post ->
            List.map (fun e2pre ->
@@ -1640,7 +1723,14 @@ let compressable edges e1 e2 =
    dangerous_pairs = [])
 
 
-let compress (e1 : edge) (e2 : edge) =
+let enforcement_update (update : Update.t) enforces =
+  Update.
+    { rho= update.rho
+    ; register= rho update.rho
+    ; items= List.map (fun (id, expr) -> id, Update expr) enforces
+    }
+
+let compress_unchecked (e1 : edge) (e2 : edge) =
   (* facts in [e2] must be substituted by [e1.update] *)
   (* Here we apply [e1.update] to the [e2]'s facts first for easier Structure squahshing *)
   let e2_pre = Update.update_facts e1.update e2.pre in
@@ -1685,12 +1775,22 @@ let compress (e1 : edge) (e2 : edge) =
 
   (* Apply enforces e2 facts *)
   (* Or, adds Eq facts instead? *)
-  let u = Update.{ rho= update.rho
-                 ; register= rho update.rho
-                 ; items= List.map (fun (id, e) -> id, Update e) enforces } in
+  let u = enforcement_update update enforces in
   let e2_pre = Update.update_facts u e2_pre in
   let e2_tag = Update.update_facts u e2_tag in
   let e2_post =Update.update_facts u e2_post in
+  (* A persistent fact produced by [e1] can satisfy the same precondition of
+     [e2].  It is therefore internal to the sequential composition: keep the
+     fact in [e1]'s postcondition, but do not require it before the compressed
+     edge. *)
+  let e2_pre =
+    List.filter
+      (fun required ->
+         not
+           (is_persistent_fact required
+            && List.exists (eq_fact required) e1_post))
+      e2_pre
+  in
   let pre = e1.pre @ e2_pre in
   let tag = e1.tag @ e2_tag in
   let post = e1_post (* not [e1.post] *) @ e2_post in
@@ -1708,10 +1808,72 @@ let compress (e1 : edge) (e2 : edge) =
   ; loop_back = e2.loop_back
   ; attack = e1.attack || e2.attack
   ; param = (assert (e1.param = e2.param); e1.param)
-  }, enforces <> []
+  }, enforces
+
+let expected_compression_effect (e1 : edge) (e2 : edge) enforces =
+  let e2_pre = Update.update_facts e1.update e2.pre in
+  let e2_tag = Update.update_facts e1.update e2.tag in
+  let e2_post = Update.update_facts e1.update e2.post in
+  let update = Update.override_enforces enforces (Update.compress e1.update e2.update) in
+  let enforce = enforcement_update update enforces in
+  let e2_pre = Update.update_facts enforce e2_pre in
+  let e2_tag = Update.update_facts enforce e2_tag in
+  let e2_post = Update.update_facts enforce e2_post in
+  let rec discharge available rev_required = function
+    | [] -> List.rev rev_required, available
+    | required :: requireds ->
+        (match remove_first_fact required [] available with
+         | None -> discharge available (required :: rev_required) requireds
+         | Some remaining ->
+             let available =
+               if is_persistent_fact required then available else remaining
+             in
+             discharge available rev_required requireds)
+  in
+  let residual_pre, residual_post = discharge e1.post [] e2_pre in
+  { id= Ident.local "expected_compression"
+  ; source= e1.source
+  ; source_env= e1.source_env
+  ; source_vars= e1.source_vars
+  ; pre= e1.pre @ residual_pre
+  ; update
+  ; tag= e1.tag @ e2_tag
+  ; post= residual_post @ e2_post
+  ; target= e2.target
+  ; target_env= e2.target_env
+  ; target_vars= e2.target_vars
+  ; loop_back= e2.loop_back
+  ; attack= e1.attack || e2.attack
+  ; param= e1.param
+  }
+
+let compression_effect_equal (expected : edge) (actual : edge) =
+  expected.source = actual.source
+  && expected.source_vars = actual.source_vars
+  && fact_multiset_equal expected.pre actual.pre
+  && eq_update expected.update actual.update
+  && fact_multiset_equal expected.tag actual.tag
+  && fact_multiset_equal expected.post actual.post
+  && expected.target = actual.target
+  && expected.target_vars = actual.target_vars
+  && expected.loop_back = actual.loop_back
+  && expected.attack = actual.attack
+  && expected.param = actual.param
+
+let warn_invalid_compression e1 e2 expected actual =
+  Format.eprintf
+    "@[<v>Warning: Sem.compress changed the sequential edge effect.@ \
+     First: %a@ Second: %a@ Expected: %a@ Actual: %a@]@."
+    print_edge_summary e1
+    print_edge_summary e2
+    print_edge_summary expected
+    print_edge_summary actual
 
 let compress e1 e2 =
-  let e12, _with_enforces = compress e1 e2 in
+  let e12, enforces = compress_unchecked e1 e2 in
+  let expected = expected_compression_effect e1 e2 enforces in
+  if not (compression_effect_equal expected e12) then
+    warn_invalid_compression e1 e2 expected e12;
   if !Config.debug then (
     Format.eprintf "@[<v2>Compress@ %a@ %a@]@."
       print_edge_summary e1

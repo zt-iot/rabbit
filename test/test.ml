@@ -21,13 +21,10 @@ module Test = struct
     | Success (** Syntax check passes *)
     | Fail of Re.re (** Syntax check fails and the output matches with rex *)
     | Verified (** Verified *)
+    | NewCompilerVerified (** Verified with the new compiler *)
     | Falsified (** Falsified *)
     | TyperSuccess (** Typer success *)
     | TyperFail of Re.re (** Typer fails and the output matches with rex *)
-
-  let verification_required = function
-    | Verified | Falsified -> true
-    | _ -> false
 
   let parse s =
     let re_head = Re.compile @@ Re.Pcre.re {|^\(\*\*\*(.*)\*\)|} in
@@ -42,6 +39,8 @@ module Test = struct
           | Pexp_construct ({txt= Lident "Success"; _}, None) -> [Success]
           | Pexp_construct ({txt= Lident "TyperSuccess"; _}, None) -> [TyperSuccess]
           | Pexp_construct ({txt= Lident "Verified"; _}, None) -> [Verified]
+          | Pexp_construct ({txt= Lident "NewCompilerVerified"; _}, None) ->
+              [NewCompilerVerified]
           | Pexp_construct ({txt= Lident "Falsified"; _}, None) -> [Falsified]
           | Pexp_construct ({txt= Lident "Fail"; _},
                             Some {pexp_desc= Pexp_constant (Pconst_string (s, _, _)); _}
@@ -67,8 +66,9 @@ let run_check_syntax fn =
   in
   res, outputs
 
-let run_verify fn =
-  let ic = Unix.open_process_in (Printf.sprintf "tamarin-prover %s.spthy --prove=" fn) in
+let run_verify ?(new_compiler=false) fn =
+  let suffix = if new_compiler then ".spthy.2" else ".spthy" in
+  let ic = Unix.open_process_in (Printf.sprintf "tamarin-prover %s%s --prove=" fn suffix) in
   let outputs = In_channel.input_lines ic in
   let res =
     match Unix.close_process_in ic with
@@ -82,8 +82,14 @@ let run_verify fn =
 let test specs fn =
   let success_syntax, outputs_syntax = run_check_syntax fn in
   let res_verify, outputs_verify =
-    if List.exists Test.verification_required specs then
+    if List.exists (function Test.Verified | Falsified -> true | _ -> false) specs then
       run_verify fn
+    else
+      `None, []
+  in
+  let res_new_verify, outputs_new_verify =
+    if List.mem Test.NewCompilerVerified specs then
+      run_verify ~new_compiler:true fn
     else
       `None, []
   in
@@ -94,6 +100,7 @@ let test specs fn =
     if
       (* Verified and Falsified imply Success *)
       (List.mem Test.Verified specs
+       || List.mem Test.NewCompilerVerified specs
        || List.mem Test.Falsified specs)
       && (not @@ List.mem Test.Success specs)
     then
@@ -132,6 +139,18 @@ let test specs fn =
            | `Crashed ->
                prerr_endline "Verification crashed";
                List.iter prerr_endline outputs_verify;
+               exit 2
+           | `None -> assert false)
+      | NewCompilerVerified ->
+          (match res_new_verify with
+           | `Verified -> prerr_endline "Verified with the new compiler"
+           | `Falsified ->
+               prerr_endline "Unexpectedly falsified with the new compiler";
+               List.iter prerr_endline outputs_new_verify;
+               exit 2
+           | `Crashed ->
+               prerr_endline "New compiler verification crashed";
+               List.iter prerr_endline outputs_new_verify;
                exit 2
            | `None -> assert false)
       | Falsified ->

@@ -259,3 +259,39 @@ requires
   lemma Valid: (* verified *)
     reachable ::Valid()
 ]
+
+(*** NewCompilerVerified *)
+(* Issue #23: compression must forward the persistent access-control fact
+   produced by process initialization to the first filesystem syscall. *)
+syscall write_file(p, contents) {
+  put [p.contents]
+}
+
+syscall read_file(p) {
+  case
+  | [p.contents] -> contents
+  end
+}
+
+type server_t : process
+type writable_t : filesys
+
+allow server_t writable_t [write_file, read_file]
+
+process server() : server_t {
+  file "/data" : writable_t = "initial"
+
+  main {
+    _ := write_file("/data", "updated");
+    var contents = read_file("/data") in
+    event [::ReadBack(contents)]
+  }
+}
+
+system server()
+requires [
+  lemma InitialContentsAreReadable :
+    reachable ::ReadBack("initial");
+  lemma UpdatedContentsAreReadable :
+    reachable ::ReadBack("updated")
+]
