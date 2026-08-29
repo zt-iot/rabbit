@@ -13,6 +13,7 @@ type error =
   | WrongInputType
   | NoBindingVariable
   | WrongChannelType of string * string
+  | UnsupportedFact of string
 
 exception Error of error Location.located
 
@@ -37,6 +38,7 @@ let print_error err ppf =
   | WrongInputType -> Format.fprintf ppf "wrong input type"
   | NoBindingVariable -> Format.fprintf ppf "no binding variable"
   | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given" x y
+  | UnsupportedFact s -> Format.fprintf ppf "unsupported fact form: %s" s
 
 let find_index f lst =
   let rec aux i = function
@@ -180,7 +182,7 @@ let process_fact_closed new_meta_vars ctx lctx f =
           ~loc:f.Location.loc
           (Syntax.FileFact (process_expr2 new_meta_vars ctx lctx e1,
                           process_expr2 new_meta_vars ctx lctx e2)))
-  | Input.ProcessFact _ -> assert false (* Unused *)
+  | Input.ProcessFact _ -> error ~loc (UnsupportedFact "process fact")
 ;;
 
 let process_facts_closed new_meta_vars ctx lctx fl =

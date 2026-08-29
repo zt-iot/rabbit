@@ -229,7 +229,7 @@ let type_fact env (fact : Input.fact) : Typed.fact =
   let loc = fact.loc in
   let desc : Typed.fact' =
     match fact.data with
-    | ProcessFact _ -> assert false (* Unused *)
+    | ProcessFact _ -> misc_errorf ~loc "process facts are not supported here"
     | Fact (name, es) ->
         (* Which fact? For strucure? *)
         let nes = List.length es in
@@ -240,7 +240,8 @@ let type_fact env (fact : Input.fact) : Typed.fact =
          | Some (Plain, Some arity) ->
              check_arity ~loc ~arity ~use:nes;
              Plain (name, List.map (type_expr env) es)
-         | Some (Plain, None) -> assert false
+         | Some (Plain, None) ->
+             misc_errorf ~loc "inconsistent arity information for fact %s" name
          | Some (desc, _) ->
              error ~loc @@ InvalidFact { name; def= desc; use= Plain }
         )
