@@ -1,0 +1,43 @@
+(* Regression: conjunction is semantically commutative, but after repeat
+   lowering ProVerif reconstructs the A-then-B order and returns unknown for
+   the equivalent B-then-A query.
+
+   Reviewed.
+*)
+
+type proc_t : process
+type channel_t : channel
+
+process worker(ch : channel_t) : proc_t
+{
+  main {
+    repeat
+    | [] ->
+        event [::A()];
+        put [ch::Exit()]
+    until
+    | [ch::Exit()] -> skip
+    end;
+    event [::B()]
+  }
+}
+
+allow proc_t channel_t [.]
+
+channel loopback : channel_t
+
+system worker(loopback)
+requires
+[
+  (* PROVERIF EXPECTED
+  unknown
+  *)
+  lemma ReverseOrderIsReachable : (* verified *)
+    reachable ::B(), ::A() ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma ExecutionOrderIsReachable : (* verified *)
+    reachable ::A(), ::B()
+]

@@ -1,0 +1,25 @@
+(* Verification feature: a conjunctive reachability query can collect events
+   emitted sequentially by one process.
+
+   Reviewed.
+*)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::A()];
+    event [::B()]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma BothAreReachable : (* verified *)
+    reachable ::A(), ::B()
+]

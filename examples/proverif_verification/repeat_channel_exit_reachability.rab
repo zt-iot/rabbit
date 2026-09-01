@@ -1,0 +1,54 @@
+(* Regression: each event is individually reachable after lowering the repeat
+   to replicated workers and a private state-token channel. Combining them in
+   one reachability lemma currently makes ProVerif return unknown.
+*)
+
+type proc_t : process
+type channel_t : channel
+
+process client(ch : channel_t) : proc_t
+{
+  main {
+    put [ch::Request()];
+    case
+    | [ch::Reply()] ->
+        put [ch::Packet()];
+        put [ch::Exit()]
+    end
+  }
+}
+
+process service(ch : channel_t) : proc_t
+{
+  main {
+    repeat
+    | [ch::Request()] -> put [ch::Reply()]
+    | [ch::Packet()] -> event [::Accepted()]
+    until
+    | [ch::Exit()] -> skip
+    end;
+    event [::Closed()]
+  }
+}
+
+allow proc_t channel_t [.]
+
+channel rpc : channel_t
+
+system
+  client(rpc)
+  | service(rpc)
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma ClosedIsReachable : (* verified *)
+    reachable ::Closed() ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma AcceptedIsReachable : (* verified *)
+    reachable ::Accepted()
+]

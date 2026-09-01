@@ -1,0 +1,134 @@
+(* Regression: a two-iteration active attack falsifies correspondence, but the
+   generated replicated loop currently yields a Horn derivation whose concrete
+   trace ProVerif cannot reconstruct.
+
+   Reviewed.
+*)
+
+structure handle(channel)
+
+function seal:1
+function first:1
+function second:1
+function check:2
+function accepted:0
+
+equation first((x, y)) = x
+equation second((x, y)) = y
+equation check(seal(x), x) = accepted
+
+syscall send(ch, value) {
+  put [ch::Packet(value)]
+}
+
+syscall receive(ch) {
+  case
+  | [ch::Packet(value)] -> value
+  end
+}
+
+syscall connect(ch) {
+  new connection = handle(ch) in
+  connection
+}
+
+syscall invoke(connection, value) {
+  let ch = connection.handle in
+  put [ch::Sign(value)];
+  case
+  | [ch::Signed(result)] -> result
+  end
+}
+
+syscall close(connection) {
+  let ch = connection.handle in
+  delete connection.handle;
+  put [ch::Exit()]
+}
+
+attack substitute on receive(ch) {
+  case
+  | [ch::Packet(ignored), ::In(injected)] -> injected
+  end
+}
+
+passive attack disclose(value) {
+  put [::Out(value)]
+}
+
+type producer_t : process
+type receiver_t : process
+type signer_t : process
+type transport_t : channel
+type rpc_t : channel
+
+allow producer_t transport_t [send]
+allow producer_t rpc_t [connect, invoke, close]
+allow producer_t [disclose]
+allow receiver_t transport_t [receive]
+allow signer_t rpc_t [.]
+allow attack receiver_t [substitute]
+
+channel transport : transport_t
+channel rpc : rpc_t
+
+process producer(transport_ch : transport_t, rpc_ch : rpc_t) : producer_t
+{
+  main {
+    var connection = connect(rpc_ch) in
+    repeat
+    | [] ->
+        new value in
+        _ := disclose(value);
+        var proof = invoke(connection, value) in
+        _ := disclose(proof);
+        event [::Published(value)];
+        _ := send(transport_ch, (proof, value))
+    until
+    | [] -> skip
+    end;
+    _ := close(connection)
+  }
+}
+
+process signer(rpc_ch : rpc_t) : signer_t
+{
+  main {
+    repeat
+    | [rpc_ch::Sign(value)] -> put [rpc_ch::Signed(seal(value))]
+    until
+    | [rpc_ch::Exit()] -> skip
+    end
+  }
+}
+
+process receiver(transport_ch : transport_t) : receiver_t
+{
+  main {
+    repeat
+    | [] ->
+        var packet = receive(transport_ch) in
+        var result = check(first(packet), second(packet)) in
+        case
+        | [result = accepted] -> event [::Accepted(second(packet))]
+        end
+    until
+    | [::False()] -> skip
+    end
+  }
+}
+
+system
+  producer(transport, rpc)
+  | signer(rpc)
+  | receiver(transport)
+requires
+[
+  (* PROVERIF EXPECTED
+  # Iteration one supplies the packet consumed by `substitute`; iteration two
+  # discloses a fresh sealed value that can be accepted before `Published`.
+  unknown
+  *)
+  lemma AcceptedValuesWerePublished : (* falsified *)
+    corresponds ::Accepted(value) ~> ::Published(value)
+]
