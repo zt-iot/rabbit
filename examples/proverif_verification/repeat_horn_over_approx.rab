@@ -1,0 +1,42 @@
+type client_t : process
+type server_t : process
+type rpc_t : channel
+
+allow client_t rpc_t [.]
+allow server_t rpc_t [.]
+channel rpc : rpc_t
+
+process client(ch : rpc_t) : client_t {
+  main {
+    repeat
+    | [] ->
+      new value in
+      put [ch::Request(value)];
+      case
+      | [ch::Reply(result)] ->
+        event [::Published(value)];
+        event [::Accepted(result)]
+      end
+    until
+    | [::False()] -> skip
+    end
+  }
+}
+
+process server(ch : rpc_t) : server_t {
+  main {
+    (* Reply the received value only once *)
+    case
+    | [ch::Request(value)] -> put [ch::Reply(value)]
+    end
+  }
+}
+
+system client(rpc) | server(rpc)
+requires [
+  (* PROVERIF EXPECTED
+  unknown
+  *)
+  lemma ResultWasPublished : (* verified *)
+    corresponds ::Accepted(value) ~> ::Published(value)
+]
