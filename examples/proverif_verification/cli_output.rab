@@ -1,0 +1,18 @@
+(* Regression: rabbit_proverif -o writes the generated ProVerif program. *)
+
+type proc_t : process
+
+process worker() : proc_t {
+  main {
+    event [::Started()]
+  }
+}
+
+system worker()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma StartedIsReachable : (* verified *)
+    reachable ::Started()
+]
