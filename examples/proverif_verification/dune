@@ -26,3 +26,14 @@
    %{exe:test_proverif_verification.exe}
    %{dep:proverif_under_test.exe}
    .)))
+
+(rule
+ (alias runtest)
+ (target cli_output.pv)
+ (deps cli_output.rab)
+ (action
+  (run
+   %{exe:../../src/rabbit_proverif.exe}
+   %{dep:cli_output.rab}
+   -o
+   %{target})))

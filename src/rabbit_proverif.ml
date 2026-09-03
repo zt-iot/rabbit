@@ -41,23 +41,32 @@ let load_file fn =
       Error exn
 
 let compile_files files =
-  List.iter
+  List.map
     (fun fn ->
        match load_file fn with
        | Ok decls ->
-           ignore (Proverif_compiler.compile_program decls)
+           Proverif_compiler.compile_program decls
        | Error exn -> raise exn)
     files
 
+let write_programs filename programs =
+  Out_channel.with_open_text filename @@ fun oc ->
+  let ppf = Format.formatter_of_out_channel oc in
+  List.iter
+    (fun program ->
+       Format.fprintf ppf "%a@." Rabbit_proverif_pv.Pv_pp.pp_program program)
+    programs
+
 let run () =
   let files = List.rev !files in
-  compile_files files;
+  let programs = compile_files files in
   match !ofile with
   | None ->
       Print.message ~loc:Location.Nowhere "Warning:" "%s"
         "output file not specified"
   | Some ofile ->
-      Print.message ~loc:Location.Nowhere "Target output" "%s" ofile
+      write_programs ofile programs;
+      Print.message ~loc:Location.Nowhere "Translated into" "%s" ofile
 
 let () =
   Sys.catch_break true;
