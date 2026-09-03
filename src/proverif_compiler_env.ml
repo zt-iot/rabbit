@@ -274,7 +274,7 @@ module GEnv = struct
         List.iter (add_lemma_strings genv) lemmas
     | Load (_filename, decls) -> List.iter (add_decl_strings genv) decls
     | Function _ | Type _ | Allow _ | AllowAttack _
-    | Init { desc = Fresh | Fresh_with_param; _ } | Channel _ | Structure _ -> ()
+    | Init { desc = Fresh | Fresh_with_param; _ } | Channel _ -> ()
 
 
   (* syscalls ***********************************************)

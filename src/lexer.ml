@@ -45,7 +45,6 @@ let reserved = [
   ("by", BY) ;
   ("on", ON) ;
   ("assume", ASSUME) ;
-  ("structure", STRUCTURE) ;
   ("parameter", PARAMETER) ;
   ]
 

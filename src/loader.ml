@@ -1001,7 +1001,6 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           }
           :: env.system
       }
-  | DeclStructure _ -> env (* No op in the legacy compiler *)
 
 and load fn env =
   let decls, (used_idents, used_strings) = Lexer.read_file Parser.file fn in

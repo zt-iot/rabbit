@@ -128,8 +128,6 @@ let fresh_callable arity =
     }
 ;;
 
-let type_of_field_type = Env.type_of_field_type
-
 let type_of_value_desc = Env.type_of_desc
 
 let type_of_expr = Typed.type_of_expr
@@ -875,9 +873,6 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       in
       let lemmas = List.rev rev_lemmas in
       env, [{ env; loc; desc = System (procs, lemmas) }]
-  | DeclStructure(n, ftys) ->
-      Env.add_fact ~loc env n (Structure ftys, Some (List.map type_of_field_type ftys));
-      env, [{ env; loc; desc= Structure (n, ftys)} ]
 
 and load_decls env fn : Env.t * Typed.decl list =
   let decls, (_used_idents, _used_strings) = Lexer.read_file Parser.file fn in

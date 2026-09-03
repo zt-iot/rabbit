@@ -146,4 +146,3 @@ and decl' =
       }
   | DeclSys of proc list * lemma list
   | DeclLoad of string
-  | DeclStructure of Name.ident * field_type list

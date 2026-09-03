@@ -23,8 +23,6 @@ let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
       GEnv.add_param_init genv id param expr
   | Load (_filename, decls) ->
       List.iter (collect_decl genv) decls
-  | Structure (name, ftys) ->
-      GEnv.add_structure_fact ~loc genv name ftys
   | _ -> ()
 
 (*
@@ -987,19 +985,6 @@ let add_allow_inits (genv : GEnv.t) (body : tprocess_e) : tprocess_e =
     (List.rev (GEnv.allow_entries genv))
     body
 
-let compile_structure_decl name ftys : tdecl list =
-  [ TComment (Format.asprintf "structure %s(%a)"
-                name
-                (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf ",")
-                   (fun ppf ft ->
-                      Format.pp_print_string ppf
-                        (match ft with
-                         | Input.Value -> "_"
-                         | Channel -> "channel"
-                         | Parameter -> "parameter")))
-                ftys
-             ) ]
-
 let rec compile_decl genv (decl : T.decl) : tdecl list =
   let loc = decl.loc in
   match decl.desc with
@@ -1024,8 +1009,6 @@ let rec compile_decl genv (decl : T.decl) : tdecl list =
       compile_system ~loc genv procs lemmas
   | Load (filename, decls) ->
       compile_load genv filename decls
-  | Structure (name, ftys) ->
-      compile_structure_decl name ftys
 
 (* `load` simply expands its declaration. *)
 and compile_load genv (filename : string) (decls : T.decl list) : tdecl list =

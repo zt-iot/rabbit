@@ -148,8 +148,6 @@ and decl' =
   | DeclSys of proc list * lemma list
   (** [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
   | DeclLoad of string (** [load "fn"] *)
-  | DeclStructure of Name.ident * field_type list
-  (** [structure n(_, channel, parameter, ...)] *)
 
 val vars_of_expr : expr -> Name.Set.t
 val vars_of_fact : fact -> Name.Set.t
