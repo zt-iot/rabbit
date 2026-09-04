@@ -42,9 +42,9 @@ let kind_of_desc = function
 ;;
 
 (* XXX Make a functor
-   Fixed: use [Error.Make] to define the exception, raiser, and printer. *)
+   Fixed: extend the shared [Error.error] type and register a printer. *)
 (** Conversion errors *)
-type error =
+type Error.error +=
   | IdentifierAlreadyBound of Name.ident
   | UnknownName of Name.ident
   | InvalidVariable of
@@ -75,41 +75,37 @@ type error =
   | StructureFactMustBePredeclared
 *)
 
-(* let misc_errorf ~loc fmt = Format.kasprintf (fun s -> error ~loc (Misc s)) fmt *)
+(* let misc_errorf ~loc fmt = Format.kasprintf (fun s -> Error.raise ~loc (Misc s)) fmt *)
 
-include Error.Make (struct
-    type nonrec error = error
-
-    (** Print error description. *)
-    let print_error err ppf =
-      match err with
-      | IdentifierAlreadyBound id -> Format.fprintf ppf "Identifier %s is already bound" id
-      | UnknownName name -> Format.fprintf ppf "Unknown identifier %s" name
-      | ArityMismatch { arity; use } ->
-          Format.fprintf ppf "Object of arity %d takes %d arguments" arity use
-      | InvalidFact { name; def; use } ->
-          Format.fprintf
-            ppf
-            "%s is %s fact but used as %s"
-            name
-            (string_of_named_fact_desc def)
-            (string_of_named_fact_desc use)
-      | InvalidVariable { ident; def; use } ->
-          Format.fprintf
-            ppf
-            "%t is %s but used as %s"
-            (Ident.print ident)
-            (kind_of_desc def)
-            (kind_of_desc use)
-      | TypeMismatch (expected, actual) ->
-          Format.fprintf
-            ppf
-            "Expected a value of type %a but found %a"
-            (fun ppf typ -> Type.print_type typ ppf)
-            expected
-            (fun ppf typ -> Type.print_type typ ppf)
-            actual
-  end)
+let () = Error.add_printer @@ fun err ppf ->
+  match err with
+  | IdentifierAlreadyBound id -> Format.fprintf ppf "Identifier %s is already bound" id
+  | UnknownName name -> Format.fprintf ppf "Unknown identifier %s" name
+  | ArityMismatch { arity; use } ->
+      Format.fprintf ppf "Object of arity %d takes %d arguments" arity use
+  | InvalidFact { name; def; use } ->
+      Format.fprintf
+        ppf
+        "%s is %s fact but used as %s"
+        name
+        (string_of_named_fact_desc def)
+        (string_of_named_fact_desc use)
+  | InvalidVariable { ident; def; use } ->
+      Format.fprintf
+        ppf
+        "%t is %s but used as %s"
+        (Ident.print ident)
+        (kind_of_desc def)
+        (kind_of_desc use)
+  | TypeMismatch (expected, actual) ->
+      Format.fprintf
+        ppf
+        "Expected a value of type %a but found %a"
+        (fun ppf typ -> Type.print_type typ ppf)
+        expected
+        (fun ppf typ -> Type.print_type typ ppf)
+        actual
+  | _ -> Error.use_other_printers ()
 
 let callable_type_of_desc = function
   | ExtFun typ | ExtSyscall typ | Function typ -> Some typ
@@ -177,19 +173,19 @@ let find_fact_opt env name = List.assoc_opt name env.facts
 
 
 let must_be_fresh ~loc env name =
-  if mem env name then error ~loc (IdentifierAlreadyBound name)
+  if mem env name then Error.raise ~loc (IdentifierAlreadyBound name)
 ;;
 
 let find ~loc env name =
   match find_opt env name with
-  | None -> error ~loc (UnknownName name)
+  | None -> Error.raise ~loc (UnknownName name)
   | Some id_desc -> id_desc
 ;;
 
 let find_desc ~loc env name desc =
   let id, desc' = find ~loc env name in
   if desc <> desc'
-  then error ~loc @@ InvalidVariable { ident = id; def = desc'; use = desc }
+  then Error.raise ~loc @@ InvalidVariable { ident = id; def = desc'; use = desc }
   else id
 ;;
 
@@ -203,16 +199,16 @@ let add_fact ~loc env name (desc, argument_types) =
   match find_fact_opt env name with
   | Some (desc', argument_types') ->
       if desc <> desc'
-      then error ~loc @@ InvalidFact { name; def = desc'; use = desc }
+      then Error.raise ~loc @@ InvalidFact { name; def = desc'; use = desc }
       else (
         match argument_types, argument_types' with
         | Some types, Some types' ->
             if List.length types <> List.length types' then
-              error ~loc @@
+              Error.raise ~loc @@
               ArityMismatch { arity= List.length types; use= List.length types' };
             (try List.iter2 Type.unify types types' with
              | Type.Cannot_unify (expected, actual) ->
-                 error ~loc @@ TypeMismatch (expected, actual))
+                 Error.raise ~loc @@ TypeMismatch (expected, actual))
         | None, Some _ -> ()
         | Some _, None -> update_fact env name (desc, argument_types)
         | None, None -> ())

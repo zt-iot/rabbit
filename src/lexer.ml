@@ -91,7 +91,7 @@ let safe_int_of_string lexbuf =
     int_of_string s
     (* Mpz.of_string s *)
   with
-    Invalid_argument _ -> Ulexbuf.error ~loc:(loc_of lexbuf) (Ulexbuf.BadNumeral s)
+    Invalid_argument _ -> Error.raise ~loc:(loc_of lexbuf) (Ulexbuf.BadNumeral s)
 
 let rec token ({ Ulexbuf.end_of_input;_ } as lexbuf) =
   if end_of_input then EOF else token_aux lexbuf
@@ -162,7 +162,7 @@ and token_aux ({ Ulexbuf.stream;_ } as lexbuf) =
   | any -> f ();
      let w = Ulexbuf.lexeme lexbuf in
      let loc = loc_of lexbuf in
-     Ulexbuf.error ~loc (Ulexbuf.Unexpected w)
+     Error.raise ~loc (Ulexbuf.Unexpected w)
   | _ -> assert false
 
 and comments level ({ Ulexbuf.stream;_ } as lexbuf) =
@@ -175,7 +175,7 @@ and comments level ({ Ulexbuf.stream;_ } as lexbuf) =
 
   | start_longcomment -> comments (level+1) lexbuf
   | '\n'        -> Ulexbuf.new_line lexbuf; comments level lexbuf
-  | eof         -> Ulexbuf.error ~loc:(loc_of lexbuf) Ulexbuf.UnclosedComment
+  | eof         -> Error.raise ~loc:(loc_of lexbuf) Ulexbuf.UnclosedComment
   | any         -> comments level lexbuf
   | _           -> assert false
 
@@ -197,10 +197,10 @@ let run
   | Parser.Error ->
      let w = Ulexbuf.lexeme lexbuf in
      let loc = loc_of lexbuf in
-     Ulexbuf.error ~loc (Ulexbuf.Unexpected w)
+     Error.raise ~loc (Ulexbuf.Unexpected w)
   | Sedlexing.MalFormed ->
      let loc = loc_of lexbuf in
-     Ulexbuf.error ~loc Ulexbuf.MalformedUTF8
+     Error.raise ~loc Ulexbuf.MalformedUTF8
   (* | Sedlexing.InvalidCodepoint _ -> *)
   (*    assert false (\* Shouldn't happen with UTF8 *\) *)
 
@@ -222,10 +222,10 @@ let read_file parse fn =
       terms
     with
     (* Close the file in case of any parsing errors. *)
-      Ulexbuf.Error err -> close_in fh; raise (Ulexbuf.Error err)
+      Error.Error err -> close_in fh; raise (Error.Error err)
   with
   (* Any errors when opening or closing a file are fatal. *)
-    Sys_error msg -> raise (Ulexbuf.error ~loc:Location.Nowhere (Ulexbuf.SysError msg))
+    Sys_error msg -> Error.raise ~loc:Location.Nowhere (Ulexbuf.SysError msg)
  *)
 (* xxx unused *)
 let _read_toplevel parse () =

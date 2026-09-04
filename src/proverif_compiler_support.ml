@@ -2,30 +2,27 @@ module T = Typed
 open Rabbit_proverif_pv_parse
 open Pitptree
 
+module Shared_error = Error
+
+type Shared_error.error +=
+  | Unsupported of string
+  | Invalid_input of string
+  | Internal_error of string
+
+let () = Shared_error.add_printer @@ fun err ppf ->
+  match err with
+  | Unsupported s -> Format.pp_print_string ppf s
+  | Invalid_input s -> Format.pp_print_string ppf s
+  | Internal_error s -> Format.pp_print_string ppf s
+  | _ -> Shared_error.use_other_printers ()
+
 module Error = struct
-  type error =
-    | Unsupported of string
-    | Invalid_input of string
-    | Internal_error of string
-
-  include Error.Make (struct
-      type nonrec error = error
-
-      let print_error err ppf =
-        match err with
-        | Unsupported s -> Format.pp_print_string ppf s
-        | Invalid_input s -> Format.pp_print_string ppf s
-        | Internal_error s -> Format.pp_print_string ppf s
-    end)
-
-  let _error_ex ex ~loc fmt = Printf.ksprintf (fun s -> error ~loc (ex s)) fmt
+  let _error_ex ex ~loc fmt = Printf.ksprintf (fun s -> Shared_error.raise ~loc (ex s)) fmt
 
   let unsupported ~loc fmt = _error_ex (fun s -> Unsupported s) ~loc fmt
   let invalid_input ~loc fmt = _error_ex (fun s -> Invalid_input s) ~loc fmt
   let internal ~loc fmt = _error_ex (fun s -> Internal_error s) ~loc fmt
 end
-
-include Error
 
 let with_dummy_ident_ext x = x, Parsing_helper.dummy_ext
 

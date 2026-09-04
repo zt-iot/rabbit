@@ -31,10 +31,7 @@ let load_file fn =
   try
     Ok (snd @@ Typer.load (Env.empty ()) fn)
   with
-  | Ulexbuf.Error _ as exn -> Error exn
-  | Env.Error _ as exn -> Error exn
-  | Typer.Error _ as exn -> Error exn
-  | Proverif_compiler_support.Error _ as exn -> Error exn
+  | Error.Error _ as exn -> Error exn
   | exn ->
       Format.eprintf "Unexpected exception while loading %s: %s@." fn (Printexc.to_string exn);
       Error exn
@@ -61,21 +58,8 @@ let write_text_file filename contents =
 let remove_if_exists filename =
   if Sys.file_exists filename then Unix.unlink filename
 
-let string_of_loc loc =
-  match loc with
-  | Location.Nowhere -> ""
-  | Location.Location _ -> Format.asprintf " at %t" (Location.print loc)
-
 let string_of_failure rab_filename = function
-  | Ulexbuf.Error {Location.data = err; Location.loc} ->
-      Format.asprintf "Parsing error%s:@ %t" (string_of_loc loc) (Ulexbuf.print_error err)
-  | Env.Error err ->
-      Format.asprintf "Typer error%s:@ %t" (string_of_loc err.loc) (Env.print_error err.data)
-  | Typer.Error err ->
-      Format.asprintf "Typer error%s:@ %t" (string_of_loc err.loc) (Typer.print_error err.data)
-  | Proverif_compiler_support.Error err ->
-      Format.asprintf "ProVerif compiler error%s:@ %t"
-        (string_of_loc err.loc) (Proverif_compiler_support.print_error err.data)
+  | Error.Error err -> Format.asprintf "%t" (Error.print err)
   | exn ->
       Printf.sprintf "%s: %s" rab_filename (Printexc.to_string exn)
 

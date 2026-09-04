@@ -12,7 +12,7 @@ let load_file fn =
   try
     Ok (snd @@ Typer.load (Env.empty ()) fn)
   with
-  | (Ulexbuf.Error _ | Env.Error _ | Typer.Error _) as exn -> Error exn
+  | Error.Error _ as exn -> Error exn
   | exn ->
       Format.eprintf "Typer unexpected exception: %s@." (Printexc.to_string exn);
       Error exn
@@ -42,16 +42,6 @@ let () =
   try
     List.iter compile_file files
   with
-  | Ulexbuf.Error {Location.data = err; Location.loc} ->
-      Print.message ~loc "Parsing error" "%t" (Ulexbuf.print_error err);
-      exit 1
-  | Env.Error err ->
-      Print.message ~loc:err.loc "Typer error" "%t" (Env.print_error err.data);
-      exit 1
-  | Typer.Error err ->
-      Print.message ~loc:err.loc "Typer error" "%t" (Typer.print_error err.data);
-      exit 1
-  | Proverif_compiler_support.Error err ->
-      Print.message ~loc:err.loc "ProVerif compiler error" "%t"
-        (Proverif_compiler_support.print_error err.data);
+  | Error.Error err ->
+      Format.eprintf "Error: %t@." (Error.print err);
       exit 1

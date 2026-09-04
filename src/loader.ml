@@ -3,7 +3,7 @@
     optimal but is systematic. *)
 
 (** Conversion errors *)
-type error =
+type Error.error +=
   | UnknownVariable of [ `MetaVar ] * string
   | UnknownIdentifier of string * string
   | AlreadyDefined of string
@@ -15,30 +15,26 @@ type error =
   | WrongChannelType of string * string
   | WildcardNotAllowed
 
-include Error.Make (struct
-    type nonrec error = error
-
-    (** Print error description. *)
-    let print_error err ppf =
-      match err with
-      | UnknownVariable (`MetaVar, x) -> Format.fprintf ppf "unknown meta variable %s" x
-      | UnknownIdentifier (kind, x) -> Format.fprintf ppf "unknown %s %s" kind x
-      | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
-      | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
-      | ArgNumMismatch (x, i, j) ->
-          Format.fprintf
-            ppf
-            "%s arguments provided while %s requires %s"
-            (string_of_int i)
-            x
-            (string_of_int j)
-      | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
-      | WrongInputType -> Format.fprintf ppf "wrong input type"
-      | NoBindingVariable -> Format.fprintf ppf "no binding variable"
-      | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given" x y
-      | WildcardNotAllowed ->
-          Format.fprintf ppf "wildcard '_' is not supported in legacy compiler"
-  end)
+let () = Error.add_printer @@ fun err ppf ->
+  match err with
+  | UnknownVariable (`MetaVar, x) -> Format.fprintf ppf "unknown meta variable %s" x
+  | UnknownIdentifier (kind, x) -> Format.fprintf ppf "unknown %s %s" kind x
+  | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
+  | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
+  | ArgNumMismatch (x, i, j) ->
+      Format.fprintf
+        ppf
+        "%s arguments provided while %s requires %s"
+        (string_of_int i)
+        x
+        (string_of_int j)
+  | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
+  | WrongInputType -> Format.fprintf ppf "wrong input type"
+  | NoBindingVariable -> Format.fprintf ppf "no binding variable"
+  | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given" x y
+  | WildcardNotAllowed ->
+      Format.fprintf ppf "wildcard '_' is not supported in legacy compiler"
+  | _ -> Error.use_other_printers ()
 
 let find_index f lst =
   let rec aux i = function
@@ -71,16 +67,16 @@ let rec process_expr ?(param = "") ctx lctx { Location.data = c; Location.loc } 
                | None ->
                    (match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
                     | Some i -> Syntax.Variable (id, (Meta i))
-                    | None -> error ~loc (UnknownIdentifier ("metavar", id)))))
-    | Input.Wildcard -> error ~loc WildcardNotAllowed
+                    | None -> Error.raise ~loc (UnknownIdentifier ("metavar", id)))))
+    | Input.Wildcard -> Error.raise ~loc WildcardNotAllowed
     | Input.Boolean b -> Syntax.Boolean b
     | Input.String s -> Syntax.String s
     | Input.Integer z -> Syntax.Integer z
     | Input.Float f -> Syntax.Float f
     | Input.Apply (o, el) ->
-        if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o);
+        if Context.ctx_check_ext_syscall ctx o then Error.raise ~loc (ForbiddenIdentifier o);
         if not @@ Context.ctx_check_ext_func_and_arity ctx (o, List.length el)
-        then error ~loc (UnknownIdentifier ("function", o));
+        then Error.raise ~loc (UnknownIdentifier ("function", o));
         Syntax.Apply (o, List.map (fun a -> process_expr ~param ctx lctx a) el)
     | Input.Tuple el ->
         Syntax.Tuple (List.map (fun a -> process_expr ~param ctx lctx a) el)
@@ -91,7 +87,7 @@ let rec process_expr ?(param = "") ctx lctx { Location.data = c; Location.loc } 
         then Syntax.Const (pid, Some (process_expr ~param ctx lctx p))
         else if Context.lctx_check_param_chan lctx pid
         then Syntax.Channel (pid, Some (process_expr ~param ctx lctx p))
-        else error ~loc (UnknownIdentifier ("parameter", pid))
+        else Error.raise ~loc (UnknownIdentifier ("parameter", pid))
   in
   Location.locate ~loc c
 ;;
@@ -121,16 +117,16 @@ let rec process_expr2 new_meta_vars ctx lctx { Location.data = c; Location.loc }
                     | None ->
                         (match find_index (fun v -> v = id) new_meta_vars with
                          | Some i -> Syntax.Variable (id, (MetaNew i))
-                         | None -> error ~loc (UnknownVariable (`MetaVar, id))))))
-    | Input.Wildcard -> error ~loc WildcardNotAllowed
+                         | None -> Error.raise ~loc (UnknownVariable (`MetaVar, id))))))
+    | Input.Wildcard -> Error.raise ~loc WildcardNotAllowed
     | Input.Boolean b -> Syntax.Boolean b
     | Input.String s -> Syntax.String s
     | Input.Integer z -> Syntax.Integer z
     | Input.Float f -> Syntax.Float f
     | Input.Apply (o, el) ->
-        if Context.ctx_check_ext_syscall ctx o then error ~loc (ForbiddenIdentifier o);
+        if Context.ctx_check_ext_syscall ctx o then Error.raise ~loc (ForbiddenIdentifier o);
         if not @@ Context.ctx_check_ext_func_and_arity ctx (o, List.length el)
-        then error ~loc (UnknownIdentifier ("function", o));
+        then Error.raise ~loc (UnknownIdentifier ("function", o));
         Syntax.Apply (o, List.map (fun a -> process_expr2 new_meta_vars ctx lctx a) el)
     | Input.Tuple el ->
         Syntax.Tuple (List.map (fun a -> process_expr2 new_meta_vars ctx lctx a) el)
@@ -139,7 +135,7 @@ let rec process_expr2 new_meta_vars ctx lctx { Location.data = c; Location.loc }
         then Syntax.Const (pid, Some (process_expr2 new_meta_vars ctx lctx p))
         else if Context.lctx_check_param_chan lctx pid
         then Syntax.Channel (pid, Some (process_expr2 new_meta_vars ctx lctx p))
-        else error ~loc (UnknownIdentifier ("parameter", pid))
+        else Error.raise ~loc (UnknownIdentifier ("parameter", pid))
   in
   Location.locate ~loc c
 ;;
@@ -201,12 +197,12 @@ let rec collect_meta_fact new_meta_vars ctx lctx f =
     let ctx, f = process_fact_closed new_meta_vars ctx lctx f in
     (ctx, lctx, f), []
   with
-  | Error { Location.data = err; Location.loc = locc } ->
+  | Error.Error { Location.data = err; Location.loc = locc } ->
       (match err with
        | UnknownVariable (_k, v) ->
            let r, l = collect_meta_fact (v :: new_meta_vars) ctx lctx f in
            r, l @ [ v ]
-       | _ -> error ~loc:locc err)
+       | _ -> Error.raise ~loc:locc err)
 ;;
 
 let collect_meta_facts ctx lctx fl =
@@ -259,12 +255,12 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
                in
                ctx, lctx, c.Location.data)
              else (
-               if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v);
+               if Context.lctx_check_var lctx v then Error.raise ~loc (AlreadyDefined v);
                let lctx' = Context.lctx_add_new_var ~loc lctx v in
                let ctx, _, c = process_cmd ctx lctx' c in
                ctx, lctx, Syntax.Let (v, process_expr ctx lctx e, c))
          | _ ->
-             if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ();
+             if Context.lctx_check_var lctx v then Error.raise ~loc (AlreadyDefined v) else ();
              let lctx' = Context.lctx_add_new_var ~loc lctx v in
              let ctx, _, c = process_cmd ctx lctx' c in
              ctx, lctx, Syntax.Let (v, process_expr ctx lctx e, c))
@@ -278,11 +274,11 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
                | None ->
                    (match find_index (fun v -> v = id) lctx.Context.lctx_loc_var with
                     | Some i -> Some (id, Loc i)
-                    | None -> error ~loc (UnknownIdentifier ("local variable", id))))
+                    | None -> Error.raise ~loc (UnknownIdentifier ("local variable", id))))
               (* [Meta] is not mutable somehow *)
               (* match find_index (fun v -> v = id) lctx.Context.lctx_meta_var with
                  | Some i -> Syntax.MetaVariable (id, i)
-                 | None -> error ~loc (UnknownIdentifier id)
+                 | None -> Error.raise ~loc (UnknownIdentifier id)
               *)
           | None -> None
         in
@@ -294,7 +290,7 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
                let args' = Context.ctx_get_ext_syscall_arity ~loc ctx o in
                if List.length args = List.length args'
                then ()
-               else error ~loc (ArgNumMismatch (o, List.length args, List.length args'));
+               else Error.raise ~loc (ArgNumMismatch (o, List.length args, List.length args'));
                ( ctx
                , lctx
                , Syntax.SCall
@@ -308,7 +304,7 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
                if List.length args = Context.lctx_get_func_arity lctx o
                then ()
                else
-                 error
+                 Error.raise
                    ~loc
                    (ArgNumMismatch
                       (o, List.length args, Context.lctx_get_func_arity lctx o));
@@ -317,11 +313,11 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
                (* when o is a term *)
                match ov with
                | Some v -> ctx, lctx, Syntax.Assign (v, process_expr ctx lctx e)
-               | _ -> error ~loc NoBindingVariable)
+               | _ -> Error.raise ~loc NoBindingVariable)
          | _ ->
              (match ov with
               | Some v -> ctx, lctx, Syntax.Assign (v, process_expr ctx lctx e)
-              | _ -> error ~loc NoBindingVariable))
+              | _ -> Error.raise ~loc NoBindingVariable))
     | Input.Case cs ->
         let ctx, cs =
           List.fold_left
@@ -374,12 +370,12 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
     | Input.Expr e -> ctx, lctx, Syntax.Expr (process_expr ctx lctx e)
     | Input.New (v, fid_el_opt, c) ->
         (* [new x := S(e1,..,en) in c] *)
-        if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ();
+        if Context.lctx_check_var lctx v then Error.raise ~loc (AlreadyDefined v) else ();
         let ctx =
           let fid, el = Option.value fid_el_opt ~default:("", []) in
           Context.ctx_add_or_check_inj_fact ~loc ctx (fid, List.length el)
         in
-        (* (if Context.ctx_check_inj_fact ctx fid then error ~loc (AlreadyDefined v) else ()); *)
+        (* (if Context.ctx_check_inj_fact ctx fid then Error.raise ~loc (AlreadyDefined v) else ()); *)
         let lctx' = Context.lctx_add_new_meta ~loc lctx v in
         let ctx, _, c = process_cmd ctx lctx' c in
         ctx, lctx, Syntax.New (v, Option.map (fun (fid, el) -> fid, List.map (process_expr ctx lctx) el) fid_el_opt, c)
@@ -389,15 +385,15 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
           Context.ctx_add_or_check_inj_fact ~loc ctx (fid, List.length vl)
         in
         if not (Context.ctx_check_inj_fact ctx fid)
-        then error ~loc (UnknownIdentifier ("structure fact", fid));
+        then Error.raise ~loc (UnknownIdentifier ("structure fact", fid));
 
         (let i = Context.ctx_get_inj_fact_arity ~loc ctx fid in
          let j = List.length vl in
-         if not (i = j) then error ~loc (ArgNumMismatch (fid, i, j)) else ());
+         if not (i = j) then Error.raise ~loc (ArgNumMismatch (fid, i, j)) else ());
         let lctx' =
           List.fold_left
             (fun lctx' v ->
-               if Context.lctx_check_var lctx v then error ~loc (AlreadyDefined v) else ();
+               if Context.lctx_check_var lctx v then Error.raise ~loc (AlreadyDefined v) else ();
                Context.lctx_add_new_meta ~loc lctx' v)
             lctx
             (List.rev vl)
@@ -406,7 +402,7 @@ let rec process_cmd ctx lctx { Location.data = c; Location.loc } =
         ctx, lctx, Syntax.Get (vl, process_expr ctx lctx id, fid, c)
     | Input.Del (id, fid) ->
         (* if not (Context.ctx_check_inj_fact ctx fid)
-        then error ~loc (UnknownIdentifier ("structure fact", fid)); *)
+        then Error.raise ~loc (UnknownIdentifier ("structure fact", fid)); *)
         ctx, lctx, Syntax.Del (process_expr ctx lctx id, fid)
   in
   ctx, lctx, Location.locate ~loc c
@@ -437,7 +433,7 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
     | Input.ParamProc (pid, param', chans) ->
         (* pid<param'>(chan,..,chan) *)
         if not (Context.ctx_check_proctmpl ctx pid)
-        then error ~loc (UnknownIdentifier ("process", pid));
+        then Error.raise ~loc (UnknownIdentifier ("process", pid));
         let Context.
               { ctx_proctmpl_param = param''
               ; ctx_proctmpl_ch = cargs
@@ -451,7 +447,7 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
          | Some _ -> ()
          | None ->
              (* XXX another error required *)
-             error ~loc (UnknownIdentifier ("parameter", "")));
+             Error.raise ~loc (UnknownIdentifier ("parameter", "")));
         let cargs = List.rev cargs in
         let Context.
               { def_proctmpl_files = files
@@ -480,7 +476,7 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
         (* pid(chan,..,chan) *)
         (* XXX Dupe with ParamProc *)
         if not (Context.ctx_check_proctmpl ctx pid)
-        then error ~loc (UnknownIdentifier ("process", pid));
+        then Error.raise ~loc (UnknownIdentifier ("process", pid));
         let Context.
               { ctx_proctmpl_param = param'
               ; ctx_proctmpl_ch = cargs
@@ -493,7 +489,7 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
         (match param' with
          | Some _ ->
              (* XXX another error required *)
-             error ~loc (UnknownIdentifier ("parameter", ""))
+             Error.raise ~loc (UnknownIdentifier ("parameter", ""))
          | None -> ());
         let cargs = List.rev cargs in
         let Context.
@@ -510,19 +506,19 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
   in
   (* substitute channels *)
   if List.length cargs != List.length chans
-  then error ~loc (ArgNumMismatch (pid, List.length chans, List.length cargs));
+  then Error.raise ~loc (ArgNumMismatch (pid, List.length chans, List.length cargs));
   let files, vl, fl, m, installed_channels =
     List.fold_left2
       (fun (files, vl, fl, m, installed_channels) (Syntax.ChanParam {id=ch_f; param=is_param; typ=ty_f}) ch_t ->
          let is_param = is_param <> None in
          match ch_t with
          | Input.ChanArgPlain ch_t ->
-             if is_param then error ~loc (WrongChannelType ("", ""));
+             if is_param then Error.raise ~loc (WrongChannelType ("", ""));
              if not (Context.ctx_check_ch ctx ch_t)
-             then error ~loc (UnknownIdentifier ("channel type", ch_t));
+             then Error.raise ~loc (UnknownIdentifier ("channel type", ch_t));
              let _, chan_ty = List.find (fun (s, _) -> s = ch_t) ctx.Context.ctx_ch in
              if chan_ty <> ty_f
-             then error ~loc (WrongChannelType (ch_f ^ ":" ^ ty_f, ch_t ^ ":" ^ chan_ty));
+             then Error.raise ~loc (WrongChannelType (ch_f ^ ":" ^ ty_f, ch_t ^ ":" ^ chan_ty));
              (* replace channel variables and check access policies! *)
              let new_chan =
                Location.locate ~loc:Location.Nowhere (Syntax.Channel (ch_t, None))
@@ -540,15 +536,15 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
              , Substitute.cmd_chan_sub m ch_f new_chan
              , Syntax.ChanArg { id= ch_t; typ= ty_f; param= None } :: installed_channels )
          | Input.ChanArgParam ch_t ->
-             if not is_param then error ~loc (WrongChannelType ("", ""));
+             if not is_param then Error.raise ~loc (WrongChannelType ("", ""));
              if not (Context.ctx_check_param_ch ctx ch_t)
-             then error ~loc (UnknownIdentifier ("channel type", ch_t));
+             then Error.raise ~loc (UnknownIdentifier ("channel type", ch_t));
              (* *)
              let _, chan_ty =
                List.find (fun (s, _) -> s = ch_t) ctx.Context.ctx_param_ch
              in
              if chan_ty <> ty_f
-             then error ~loc (WrongChannelType (ch_f ^ ":" ^ ty_f, ch_t ^ ":" ^ chan_ty));
+             then Error.raise ~loc (WrongChannelType (ch_f ^ ":" ^ ty_f, ch_t ^ ":" ^ chan_ty));
              (* replace channel variables and check access policies! *)
              ( List.map
                  (fun (p, ty, e) ->
@@ -564,14 +560,14 @@ let process_pproc ?(param = "") loc ctx def _pol (proc : Input.pproc) =
              , Substitute.cmd_param_chan_sub m ch_f ch_t
              , Syntax.ChanArg { id= ch_t; typ= ty_f; param= Some None } :: installed_channels )
          | Input.ChanArgParamInst (cid, e) ->
-             if is_param then error ~loc (WrongChannelType ("", ""));
+             if is_param then Error.raise ~loc (WrongChannelType ("", ""));
              if not (Context.ctx_check_param_ch ctx cid)
-             then error ~loc (UnknownIdentifier ("channel type", cid));
+             then Error.raise ~loc (UnknownIdentifier ("channel type", cid));
              let _, chan_ty =
                List.find (fun (s, _) -> s = cid) ctx.Context.ctx_param_ch
              in
              if chan_ty <> ty_f
-             then error ~loc (WrongChannelType (ch_f ^ ":" ^ ty_f, cid ^ ":" ^ chan_ty));
+             then Error.raise ~loc (WrongChannelType (ch_f ^ ":" ^ ty_f, cid ^ ":" ^ chan_ty));
              (* replace channel variables and check access policies! *)
              let e = process_expr ~param ctx Context.lctx_init e in
              let new_chan =
@@ -628,9 +624,9 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       load fn' env
   | DeclExtFun (f, arity) ->
       (* [function f:2] *)
-      if Context.check_used env.context f then error ~loc (AlreadyDefined f);
+      if Context.check_used env.context f then Error.raise ~loc (AlreadyDefined f);
       let ctx' =
-        if arity < 0 then error ~loc (NegativeArity arity);
+        if arity < 0 then Error.raise ~loc (NegativeArity arity);
         if arity = 0
         then Context.ctx_add_ext_const env.context f
         else Context.ctx_add_ext_func env.context (f, arity)
@@ -643,11 +639,11 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           let e = process_expr env.context lctx e in
           e, lctx
         with
-        | Error { Location.data = err; Location.loc = locc } ->
+        | Error.Error { Location.data = err; Location.loc = locc } ->
             (match err with
              | UnknownIdentifier (_k, id) ->
                  collect_vars e (Context.lctx_add_new_var ~loc lctx id)
-             | _ -> error ~loc:locc err)
+             | _ -> Error.raise ~loc:locc err)
       in
       (* is this really correct??? check with x = y next time!! *)
       let e1', lctx = collect_vars e1 Context.lctx_init in
@@ -658,7 +654,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       }
   | DeclExtSyscall (f, args, c, _attack) ->
       (* [syscall f(a1,..,an) { c }] or [passive attack f(a1,..,an) { c }] *)
-      if Context.check_used env.context f then error ~loc (AlreadyDefined f);
+      if Context.check_used env.context f then Error.raise ~loc (AlreadyDefined f);
       let lctx = local_context_of_arguments ~loc args in
       let ctx, _lctx, c = process_cmd env.context lctx c in
       { env with
@@ -667,13 +663,13 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       }
   | DeclExtAttack (f, t, args, c) ->
       (* [attack f on name (typ x,..) { c }] *)
-      if Context.check_used env.context f then error ~loc (AlreadyDefined f);
+      if Context.check_used env.context f then Error.raise ~loc (AlreadyDefined f);
       (* [t] must be a syscall *)
       if not (Context.ctx_check_ext_syscall env.context t)
-      then error ~loc (UnknownIdentifier ("system call", t));
+      then Error.raise ~loc (UnknownIdentifier ("system call", t));
       let args' = Context.ctx_get_ext_syscall_arity ~loc env.context t in
       if List.length args <> List.length args'
-      then error ~loc (ArgNumMismatch (t, List.length args, List.length args'));
+      then Error.raise ~loc (ArgNumMismatch (t, List.length args, List.length args'));
       let lctx = local_context_of_arguments ~loc args in
       let ctx, _lctx, c = process_cmd env.context lctx c in
       { env with
@@ -682,7 +678,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       }
   | DeclType (id, tc) ->
       (* [type t : tyclass] *)
-      if Context.check_used env.context id then error ~loc (AlreadyDefined id);
+      if Context.check_used env.context id then Error.raise ~loc (AlreadyDefined id);
       { env with context = Context.ctx_add_ty env.context (id, tc) }
   | DeclAccess (s, tys, Some syscalls) ->
       (* [allow s t1 .. tn [f1, .., fm]] *)
@@ -690,11 +686,11 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       let tycs = List.map (Context.ctx_get_ty ~loc env.context) tys in
       let f pol syscall =
         if not @@ Context.ctx_check_ext_syscall env.context syscall
-        then error ~loc (UnknownIdentifier ("system call", syscall));
+        then Error.raise ~loc (UnknownIdentifier ("system call", syscall));
         (match tc, tycs with
          | Input.CProc, [ Input.CChan ] | Input.CProc, [ Input.CFsys ] | Input.CProc, []
            -> ()
-         | _ -> error ~loc WrongInputType);
+         | _ -> Error.raise ~loc WrongInputType);
         Context.pol_add_access pol (s, tys, syscall)
       in
       { env with access_policy = List.fold_left f env.access_policy syscalls }
@@ -704,7 +700,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       let tycs = List.map (Context.ctx_get_ty ~loc env.context) tys in
       (match tc, tycs with
        | Input.CProc, [ Input.CChan ] | Input.CProc, [ Input.CFsys ] -> ()
-       | _ -> error ~loc WrongInputType);
+       | _ -> Error.raise ~loc WrongInputType);
       let pol = Context.pol_add_access_all env.access_policy (s, tys) in
       { env with access_policy = pol }
   | DeclAttack (tl, al) ->
@@ -712,12 +708,12 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       List.iter
         (fun t ->
            if not @@ Context.ctx_check_ty env.context t
-           then error ~loc (UnknownIdentifier ("type", t)))
+           then Error.raise ~loc (UnknownIdentifier ("type", t)))
         tl;
       List.iter
         (fun a ->
            if not @@ Context.ctx_check_ext_attack env.context a
-           then error ~loc (UnknownIdentifier ("attack", a)))
+           then Error.raise ~loc (UnknownIdentifier ("attack", a)))
         al;
       let p =
         List.fold_left
@@ -728,14 +724,14 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       { env with access_policy = p }
   | DeclInit (id, Fresh) ->
       (* [const fresh n] *)
-      if Context.check_used env.context id then error ~loc (AlreadyDefined id);
+      if Context.check_used env.context id then Error.raise ~loc (AlreadyDefined id);
       { env with
         context = Context.ctx_add_const env.context id
       ; definition = Context.def_add_const env.definition (id, None)
       }
   | DeclInit (id, Value e) ->
       (* [const n = e] *)
-      if Context.check_used env.context id then error ~loc (AlreadyDefined id);
+      if Context.check_used env.context id then Error.raise ~loc (AlreadyDefined id);
       let e' = process_expr env.context Context.lctx_init e in
       { env with
         context = Context.ctx_add_const env.context id
@@ -743,14 +739,14 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       }
   | DeclInit (id, Fresh_with_param) ->
       (* [const fresh n<>] *)
-      if Context.check_used env.context id then error ~loc (AlreadyDefined id);
+      if Context.check_used env.context id then Error.raise ~loc (AlreadyDefined id);
       { env with
         context = Context.ctx_add_param_const env.context id
       ; definition = Context.def_add_param_const env.definition (id, None)
       }
   | DeclInit (id, Value_with_param (e, p)) ->
       (* [const n<p> = e] *)
-      if Context.check_used env.context id then error ~loc (AlreadyDefined id);
+      if Context.check_used env.context id then Error.raise ~loc (AlreadyDefined id);
       let e' = process_expr ~param:p env.context Context.lctx_init e in
       { env with
         context = Context.ctx_add_param_const env.context id
@@ -758,11 +754,11 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       }
   | DeclChan (ChanParam {id; typ= ty; param= Some ()}) ->
       (* [channel n<> : ty] *)
-      if Context.check_used env.context id then error ~loc (AlreadyDefined id);
+      if Context.check_used env.context id then Error.raise ~loc (AlreadyDefined id);
       { env with context = Context.ctx_add_param_ch env.context (id, ty) }
   | DeclChan (ChanParam {id; typ= ty; param= None}) ->
       (* [channel n : ty] *)
-      if Context.check_used env.context id then error ~loc (AlreadyDefined id);
+      if Context.check_used env.context id then Error.raise ~loc (AlreadyDefined id);
       (* xxx No need to check [c] ? *)
       { env with context = Context.ctx_add_ch env.context (id, ty) }
   | DeclProc
@@ -777,14 +773,14 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       } ->
       (* [process id<p>(ch1 : ty1, .., chn : tyn) : ty { file ... var ... function ... main ... }] *)
       let ctx = env.context in
-      if Context.check_used ctx pid then error ~loc (AlreadyDefined pid);
-      if Context.ctx_get_ty ~loc ctx ty <> Input.CProc then error ~loc WrongInputType;
+      if Context.check_used ctx pid then Error.raise ~loc (AlreadyDefined pid);
+      if Context.ctx_get_ty ~loc ctx ty <> Input.CProc then Error.raise ~loc WrongInputType;
       (* load channel parameters [p] and [chanargs] *)
       let lctx =
         List.fold_left
           (fun lctx' (Input.ChanParam {id=cid; param; typ= cty}) ->
              if not @@ Context.ctx_check_ty_ch ctx cty
-             then error ~loc (UnknownIdentifier ("channel type", cty));
+             then Error.raise ~loc (UnknownIdentifier ("channel type", cty));
              if param <> None
              then Context.lctx_add_new_param_chan ~loc lctx' cid
              else Context.lctx_add_new_chan ~loc lctx' cid)
@@ -796,7 +792,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         List.map
           (fun (path, ty, data) ->
              if Context.ctx_get_ty ~loc ctx ty <> Input.CFsys
-             then error ~loc WrongInputType;
+             then Error.raise ~loc WrongInputType;
              process_expr ctx lctx path, ty, process_expr ctx lctx data)
           fls
       in
@@ -813,7 +809,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       let ctx, lctx, ldef =
         List.fold_left
           (fun (ctx'', lctx'', ldef'') (fid, args, cs) ->
-             if Context.lctx_check_func lctx'' fid then error ~loc (AlreadyDefined fid);
+             if Context.lctx_check_func lctx'' fid then Error.raise ~loc (AlreadyDefined fid);
              let lctx =
                List.fold_left
                  (fun lctx' vid -> Context.lctx_add_new_var ~loc lctx' vid)
@@ -855,14 +851,14 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       } ->
       (* [process id(x1 : ty1, .., xn : tyn) : ty { file ...  var ... function ... main ... }] *)
       let ctx = env.context in
-      if Context.check_used ctx pid then error ~loc (AlreadyDefined pid);
-      if Context.ctx_get_ty ~loc ctx ty <> Input.CProc then error ~loc WrongInputType;
+      if Context.check_used ctx pid then Error.raise ~loc (AlreadyDefined pid);
+      if Context.ctx_get_ty ~loc ctx ty <> Input.CProc then Error.raise ~loc WrongInputType;
       (* load channel parameters *)
       let lctx =
         List.fold_left
           (fun lctx' (Syntax.ChanParam {id=cid; param=p; typ= cty}) ->
              if not @@ Context.ctx_check_ty_ch ctx cty
-             then error ~loc (UnknownIdentifier ("channel type", cty));
+             then Error.raise ~loc (UnknownIdentifier ("channel type", cty));
              if p <> None
              then Context.lctx_add_new_param_chan ~loc lctx' cid
              else Context.lctx_add_new_chan ~loc lctx' cid)
@@ -874,7 +870,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
         List.map
           (fun (path, ty, data) ->
              if Context.ctx_get_ty ~loc ctx ty <> Input.CFsys
-             then error ~loc WrongInputType;
+             then Error.raise ~loc WrongInputType;
              process_expr ctx lctx path, ty, process_expr ctx lctx data)
           fls
       in
@@ -891,7 +887,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
       let ctx, lctx, ldef =
         List.fold_left
           (fun (ctx'', lctx'', ldef'') (fid, args, cs) ->
-             if Context.lctx_check_func lctx'' fid then error ~loc (AlreadyDefined fid);
+             if Context.lctx_check_func lctx'' fid then Error.raise ~loc (AlreadyDefined fid);
              let lctx =
                List.fold_left
                  (fun lctx' vid -> Context.lctx_add_new_var ~loc lctx' vid)

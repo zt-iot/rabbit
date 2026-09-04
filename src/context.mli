@@ -1,5 +1,3 @@
-include Error.S
-
 type ctx_process_template =
   { ctx_proctmpl_id : Name.ident (** name *)
   ; ctx_proctmpl_param : Name.ident option (** channel parameter [<p>] *)

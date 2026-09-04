@@ -1,17 +1,11 @@
-module type E = sig
-  (** Type of error *)
-  type error
+type error = ..
 
-  (** Error printer *)
-  val print_error : error Sig.printer
-end
+val add_printer : error Sig.printer -> unit
 
-module type S = sig
-  include E
+exception Error of error Location.located
 
-  exception Error of error Location.located
+val raise : loc:Location.t -> error -> 'exn
 
-  val error : loc:Location.t -> error -> 'exn
-end
+val use_other_printers : unit -> 'a
 
-module Make (E : E) : S with type error := E.error
+val print : error Location.located Sig.printer

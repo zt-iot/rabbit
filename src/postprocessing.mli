@@ -2,8 +2,6 @@
     This module provides functions to optimize and transform Rabbit models before
     they are processed by the verification backends (Tamarin and ProVerif). *)
 
-include Error.S
-
 (** Optimize a Rabbit model by:
     - Unifying variables where possible
     - Removing redundant transitions

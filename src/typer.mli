@@ -1,5 +1,3 @@
-include Error.S
-
 val load : Env.t -> string -> Env.t * Typed.decl list
 (** [load env fn] loads a Rabbit source file [fn], resolves names, and performs
     monomorphic type inference.

@@ -2,21 +2,17 @@
 open Typed
 
 (** Conversion errors *)
-type error =
+type Error.error +=
   | NoSystem
   | MultipleSystems
   | LocalFactNotAllowed
 
-include Error.Make(struct
-    type nonrec error = error
-
-    (** Print error description. *)
-    let print_error err ppf =
-      match err with
-      | NoSystem -> Format.fprintf ppf "No system to compile"
-      | MultipleSystems -> Format.fprintf ppf "Only 1 system can exist"
-      | LocalFactNotAllowed -> Format.fprintf ppf "Local fact is not allowed in this context"
-end)
+let () = Error.add_printer @@ fun err ppf ->
+  match err with
+  | NoSystem -> Format.fprintf ppf "No system to compile"
+  | MultipleSystems -> Format.fprintf ppf "Only 1 system can exist"
+  | LocalFactNotAllowed -> Format.fprintf ppf "Local fact is not allowed in this context"
+  | _ -> Error.use_other_printers ()
 
 let unit = { env= Env.empty (); loc= Location.nowhere; desc= Unit }
 
@@ -271,7 +267,7 @@ let fact_of_typed pido (f : Typed.fact) : fact =
   let get_pid () =
     match pido with
     | Some pid -> pid
-    | None -> error ~loc:f.loc LocalFactNotAllowed
+    | None -> Error.raise ~loc:f.loc LocalFactNotAllowed
   in
   let desc : fact' =
     match f.desc with
@@ -1512,8 +1508,8 @@ let compile (decls : decl list) =
           | _ -> false) decls
     with
     | [sys] -> sys
-    | [] -> error ~loc:Location.nowhere NoSystem
-    | _ -> error ~loc:Location.nowhere MultipleSystems
+    | [] -> Error.raise ~loc:Location.nowhere NoSystem
+    | _ -> Error.raise ~loc:Location.nowhere MultipleSystems
   in
   let signature = signature_of_decls decls in
   let proc_groups : Subst.proc_group list= instantiate_proc_groups decls sys in

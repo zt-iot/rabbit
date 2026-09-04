@@ -1,24 +1,23 @@
-module type E = sig
-  (** Type of error *)
-  type error
+type error = ..
 
-  (** Error printer *)
-  val print_error : error Sig.printer
-end
+let printers : error Sig.printer list ref = ref []
 
-module type S = sig
-  include E
+let add_printer p = printers := p :: !printers
 
-  exception Error of error Location.located
+exception Error of error Location.located
 
-  val error : loc:Location.t -> error -> 'exn
-end
+exception Use_other_printers
 
-module Make(E : E) : S with type error := E.error = struct
-  include E
+let raise ~loc err = Stdlib.raise @@ Error (Location.locate ~loc err)
 
-  exception Error of E.error Location.located
+let use_other_printers () = Stdlib.raise Use_other_printers
 
-  (** [error ~loc err] raises the given runtime error. *)
-  let error ~loc err = Stdlib.raise @@ Error (Location.locate ~loc err)
-end
+let print : error Location.located Sig.printer = fun e ppf->
+  Format.fprintf ppf "%a: %a"
+    (fun ppf x -> Location.print x ppf) e.loc
+    (fun ppf x ->
+       (let rec loop = function
+           | [] -> failwith "No printer for this error"
+           | (p : error Sig.printer)::ps -> try p x ppf with Use_other_printers -> loop ps
+        in
+        loop !printers)) e.data

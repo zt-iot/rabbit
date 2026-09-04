@@ -10,14 +10,12 @@ type t = private {
   mutable used_strings : string list;
 }
 
-type error =
+type Error.error +=
   | SysError of string
   | Unexpected of string
   | MalformedUTF8
   | BadNumeral of string
   | UnclosedComment
-
-include Error.S with type error := error
 
 (** Update the start and end positions from the stream. *)
 val update_pos : t -> unit

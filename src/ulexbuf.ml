@@ -8,23 +8,21 @@ type t = {
   mutable used_strings : string list;
 }
 
-type error =
+type Error.error +=
   | SysError of string
   | Unexpected of string
   | MalformedUTF8
   | BadNumeral of string
   | UnclosedComment
 
-include Error.Make(struct
-    type nonrec error = error
-
-    let print_error err ppf = match err with
-      | SysError s -> Format.fprintf ppf "System error: %s" s
-      | Unexpected s -> Format.fprintf ppf "Unexpected %s" s
-      | MalformedUTF8 -> Format.fprintf ppf "Malformed UTF8"
-      | BadNumeral s -> Format.fprintf ppf "Bad numeral %s" s
-      | UnclosedComment -> Format.fprintf ppf "Input ended inside unclosed comment"
-  end)
+let () = Error.add_printer @@ fun err ppf ->
+  match err with
+  | SysError s -> Format.fprintf ppf "System error: %s" s
+  | Unexpected s -> Format.fprintf ppf "Unexpected %s" s
+  | MalformedUTF8 -> Format.fprintf ppf "Malformed UTF8"
+  | BadNumeral s -> Format.fprintf ppf "Bad numeral %s" s
+  | UnclosedComment -> Format.fprintf ppf "Input ended inside unclosed comment"
+  | _ -> Error.use_other_printers ()
 
 let create_lexbuf ?(fn="?") stream =
   let pos_end =

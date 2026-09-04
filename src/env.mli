@@ -28,8 +28,6 @@ val type_of_desc : desc -> Type.type_ option
 
 val print_desc : desc -> Format.formatter -> unit
 
-include Error.S
-
 (** Name checking environment *)
 type t
 

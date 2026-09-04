@@ -3,8 +3,6 @@ module T = Typed
 open Rabbit_proverif_pv_parse
 open Pitptree
 
-include Error.S
-
 module Error : sig
   val unsupported : loc:Location.t -> ('a, unit, string, 'b) format4 -> 'a
   val invalid_input : loc:Location.t -> ('a, unit, string, 'b) format4 -> 'a

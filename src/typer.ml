@@ -1,5 +1,5 @@
 (** Conversion errors *)
-type error =
+type Error.error +=
   | Misc of string
   | ArityMismatch of
       { arity : int
@@ -26,78 +26,74 @@ type error =
   | StructureFactMustBePredeclared
   | TypeMismatch of Type.type_ * Type.type_
 
-include Error.Make (struct
-    type nonrec error = error
+let () = Error.add_printer @@ fun err ppf ->
+  match err with
+  | Misc s -> Format.fprintf ppf "%s" s
+  | ArityMismatch { arity; use } ->
+      Format.fprintf ppf "Object of arity %d takes %d arguments" arity use
+  | NonCallableIdentifier (id, desc) ->
+      Format.fprintf
+        ppf
+        "%s %t cannot be called"
+        (String.capitalize_ascii (Env.kind_of_desc desc))
+        (Ident.print id)
+  | NonCallableInExpression (id, desc) ->
+      Format.fprintf
+        ppf
+        "%s %t can be called only at command x := %t(..)"
+        (String.capitalize_ascii (Env.kind_of_desc desc))
+        (Ident.print id)
+        (Ident.print id)
+  | NonParameterizableIdentifier (id, desc) ->
+      Format.fprintf
+        ppf
+        "%s variable %t cannot be parameterized"
+        (String.capitalize_ascii (Env.kind_of_desc desc))
+        (Ident.print id)
+  | InvalidFact { name; def; use } ->
+      Format.fprintf
+        ppf
+        "%s is %s fact but used as %s"
+        name
+        (Env.string_of_named_fact_desc def)
+        (Env.string_of_named_fact_desc use)
+  | InvalidVariable { ident; def; use } ->
+      Format.fprintf
+        ppf
+        "%t is %s but used as %s"
+        (Ident.print ident)
+        (Env.kind_of_desc def)
+        (Env.kind_of_desc use)
+  | InvalidVariableAtAssign (id, desc) ->
+      Format.fprintf
+        ppf
+        "%s variable %t cannot be assigned"
+        (String.capitalize_ascii (Env.kind_of_desc desc))
+        (Ident.print id)
+  | UnboundFact id -> Format.fprintf ppf "Unbound fact %s" id
+  | InvalidAnonymousAssignment ->
+      Format.pp_print_string ppf "Pure expression is used at _ := e, which has no effect"
+  | GlobalChannelInExpr id ->
+      Format.fprintf ppf "Global channel %t cannot be used in an expression" (Ident.print id)
+  | WildcardNotAllowed ->
+      Format.pp_print_string ppf "Wildcard '_' is only allowed in case/while guards"
+  | StructureFactMustBePredeclared ->
+      Format.pp_print_string ppf "Structure fact must be predeclared"
+  | TypeMismatch (expected, actual) ->
+      Format.fprintf
+        ppf
+        "Expected a value of type %a but found %a"
+        (fun ppf typ -> Type.print_type typ ppf)
+        expected
+        (fun ppf typ -> Type.print_type typ ppf)
+        actual
+  | _ -> Error.use_other_printers ()
 
-    (** Print error description. *)
-    let print_error err ppf =
-      match err with
-      | Misc s -> Format.fprintf ppf "%s" s
-      | ArityMismatch { arity; use } ->
-          Format.fprintf ppf "Object of arity %d takes %d arguments" arity use
-      | NonCallableIdentifier (id, desc) ->
-          Format.fprintf
-            ppf
-            "%s %t cannot be called"
-            (String.capitalize_ascii (Env.kind_of_desc desc))
-            (Ident.print id)
-      | NonCallableInExpression (id, desc) ->
-          Format.fprintf
-            ppf
-            "%s %t can be called only at command x := %t(..)"
-            (String.capitalize_ascii (Env.kind_of_desc desc))
-            (Ident.print id)
-            (Ident.print id)
-      | NonParameterizableIdentifier (id, desc) ->
-          Format.fprintf
-            ppf
-            "%s variable %t cannot be parameterized"
-            (String.capitalize_ascii (Env.kind_of_desc desc))
-            (Ident.print id)
-      | InvalidFact { name; def; use } ->
-          Format.fprintf
-            ppf
-            "%s is %s fact but used as %s"
-            name
-            (Env.string_of_named_fact_desc def)
-            (Env.string_of_named_fact_desc use)
-      | InvalidVariable { ident; def; use } ->
-          Format.fprintf
-            ppf
-            "%t is %s but used as %s"
-            (Ident.print ident)
-            (Env.kind_of_desc def)
-            (Env.kind_of_desc use)
-      | InvalidVariableAtAssign (id, desc) ->
-          Format.fprintf
-            ppf
-            "%s variable %t cannot be assigned"
-            (String.capitalize_ascii (Env.kind_of_desc desc))
-            (Ident.print id)
-      | UnboundFact id -> Format.fprintf ppf "Unbound fact %s" id
-      | InvalidAnonymousAssignment ->
-          Format.pp_print_string ppf "Pure expression is used at _ := e, which has no effect"
-      | GlobalChannelInExpr id ->
-          Format.fprintf ppf "Global channel %t cannot be used in an expression" (Ident.print id)
-      | WildcardNotAllowed ->
-          Format.pp_print_string ppf "Wildcard '_' is only allowed in case/while guards"
-      | StructureFactMustBePredeclared ->
-          Format.pp_print_string ppf "Structure fact must be predeclared"
-      | TypeMismatch (expected, actual) ->
-          Format.fprintf
-            ppf
-            "Expected a value of type %a but found %a"
-            (fun ppf typ -> Type.print_type typ ppf)
-            expected
-            (fun ppf typ -> Type.print_type typ ppf)
-            actual
-  end)
-
-let misc_errorf ~loc fmt = Format.kasprintf (fun s -> error ~loc (Misc s)) fmt
+let misc_errorf ~loc fmt = Format.kasprintf (fun s -> Error.raise ~loc (Misc s)) fmt
 
 let unify ~loc expected actual =
   try Type.unify expected actual with
-  | Type.Cannot_unify (expected, actual) -> error ~loc @@ TypeMismatch (expected, actual)
+  | Type.Cannot_unify (expected, actual) -> Error.raise ~loc @@ TypeMismatch (expected, actual)
 ;;
 
 let fresh_callable arity =
@@ -112,7 +108,7 @@ let type_of_expr = Typed.type_of_expr
 ;;
 
 let check_arity ~loc ~arity ~use =
-  if arity <> use then error ~loc @@ ArityMismatch { arity; use }
+  if arity <> use then Error.raise ~loc @@ ArityMismatch { arity; use }
 ;;
 
 let rec type_expr ?(allow_wildcard = false) env (e : Input.expr) : Typed.expr =
@@ -124,7 +120,7 @@ let rec type_expr ?(allow_wildcard = false) env (e : Input.expr) : Typed.expr =
         then (
           let id = Ident.local "_" in
           Typed.Ident { id; desc = Var (Type.fresh_type ()); param = None })
-        else error ~loc WildcardNotAllowed
+        else Error.raise ~loc WildcardNotAllowed
     | Boolean b -> Typed.Boolean b
     | String s -> String s
     | Integer i -> Integer i
@@ -134,7 +130,7 @@ let rec type_expr ?(allow_wildcard = false) env (e : Input.expr) : Typed.expr =
         (* Global channels cannot be used in exprs.
            Channels must be given as [chan_arg]s *)
         (match desc  with
-         | Channel _ when Ident.is_global id -> error ~loc @@ GlobalChannelInExpr id
+         | Channel _ when Ident.is_global id -> Error.raise ~loc @@ GlobalChannelInExpr id
          | _ -> ()
         );
         Ident { id; desc; param = None }
@@ -154,13 +150,13 @@ let rec type_expr ?(allow_wildcard = false) env (e : Input.expr) : Typed.expr =
                es;
              Apply (id, es)
          | id, desc ->
-             error ~loc @@ NonCallableIdentifier (id, desc))
+             Error.raise ~loc @@ NonCallableIdentifier (id, desc))
     | Param (f, e) (* [f<e>] *) ->
         (match Env.find ~loc env f with
          | id, ((Const _ | Channel _) as desc) ->
              let e = type_expr ~allow_wildcard env e in
              Ident { id; desc; param= Some e }
-         | id, desc -> error ~loc @@ NonParameterizableIdentifier (id, desc))
+         | id, desc -> Error.raise ~loc @@ NonParameterizableIdentifier (id, desc))
   in
   { loc; env; desc }
 ;;
@@ -178,7 +174,7 @@ let check_apps e =
         let desc = Option.get @@ Env.find_opt_by_id e.env id in
         (match desc with
          | ExtFun _ -> ()
-         | ExtSyscall _ | Function _ -> error ~loc:e.loc @@ NonCallableInExpression (id, desc)
+         | ExtSyscall _ | Function _ -> Error.raise ~loc:e.loc @@ NonCallableInExpression (id, desc)
          | _ -> assert false);
         List.iter aux es
     | Tuple es -> List.iter aux es
@@ -212,7 +208,7 @@ let type_fact ?(allow_wildcard = false) env (fact : Input.fact) : Typed.fact =
              Plain (name, es)
          | Some (Plain, None) -> assert false
          | Some (desc, _) ->
-             error ~loc @@ InvalidFact { name; def= desc; use= Plain }
+             Error.raise ~loc @@ InvalidFact { name; def= desc; use= Plain }
         )
     | GlobalFact (name, es) ->
         let es = List.map (type_expr ~allow_wildcard env) es in
@@ -289,16 +285,16 @@ let type_structure_fact ~loc env name es =
   (* [str] must be a structure fact *)
   let nes = List.length es in
   match Env.find_fact_opt env name with
-  | None -> error ~loc StructureFactMustBePredeclared
+  | None -> Error.raise ~loc StructureFactMustBePredeclared
   | Some (Structure, Some ftys) ->
       if nes = List.length ftys then ftys
       else
-        error ~loc @@
+        Error.raise ~loc @@
         ArityMismatch { arity= List.length ftys; use= nes }
   | Some (Structure, None) -> assert false
   | Some (desc', _) ->
       (* Not a structure *)
-      error ~loc @@
+      Error.raise ~loc @@
       InvalidFact { name; def = desc'; use = Structure }
 ;;
 
@@ -326,13 +322,13 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
          | Apply _ -> Assign (None, e)
          | _ ->
              (* _ := e  where e is not an application *)
-             error ~loc @@ InvalidAnonymousAssignment
+             Error.raise ~loc @@ InvalidAnonymousAssignment
         )
     | Assign (Some name, e) ->
         let id, vdesc = Env.find ~loc env name in
         (match vdesc with
          | Var _ -> ()
-         | desc -> error ~loc @@ InvalidVariableAtAssign (id, desc));
+         | desc -> Error.raise ~loc @@ InvalidVariableAtAssign (id, desc));
         let e = type_expr env ~at_assignment:true e in
         let variable_type = Option.get (type_of_value_desc vdesc) in
         unify ~loc:e.loc variable_type (type_of_expr e);
@@ -389,8 +385,8 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         (match Env.find_fact_opt env str with
          | Some (Structure, _types) -> ()
          | Some (desc, _) ->
-             error ~loc @@ InvalidFact { name = str; def = desc; use = Structure }
-         | None -> error ~loc @@ UnboundFact str);
+             Error.raise ~loc @@ InvalidFact { name = str; def = desc; use = Structure }
+         | None -> Error.raise ~loc @@ UnboundFact str);
         unify ~loc:e.loc TValue (type_of_expr e);
         Del (e, str)
   in
@@ -460,7 +456,7 @@ let type_process
       match Env.find ~loc env proc_ty with
       | proc_ty, Type CProc -> proc_ty
       | id, desc ->
-          error ~loc @@ InvalidVariable { ident = id; def = desc; use = Type CProc }
+          Error.raise ~loc @@ InvalidVariable { ident = id; def = desc; use = Type CProc }
     in
     let files =
       List.map
@@ -621,13 +617,13 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         match Env.find ~loc env syscall with
         | syscall, ExtSyscall typ -> syscall, typ
         | id, desc ->
-            error ~loc
+            Error.raise ~loc
             @@ InvalidVariable
                  { ident = id; def = desc; use = ExtSyscall (fresh_callable (List.length args)) }
       in
       let arity = List.length syscall_type.argument_types in
       if List.length args <> arity then
-        error ~loc @@ ArityMismatch { arity; use = List.length args };
+        Error.raise ~loc @@ ArityMismatch { arity; use = List.length args };
       let args, cmd =
         let argument_types = ref syscall_type.argument_types in
         let env', args =
@@ -659,7 +655,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       in
       (match tys with
        | [] | [ _ ] -> ()
-       | _ -> error ~loc (Misc "At most 1 channel or filesys type is allowed"));
+       | _ -> Error.raise ~loc (Misc "At most 1 channel or filesys type is allowed"));
       let syscalls_opt =
         Option.map
           (fun syscalls ->
@@ -668,7 +664,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
                   match Env.find ~loc env syscall with
                   | id, ExtSyscall _ -> id
                   | id, desc ->
-                      error ~loc
+                      Error.raise ~loc
                       @@ InvalidVariable { ident = id; def = desc; use = ExtSyscall (fresh_callable 0) })
                syscalls)
           syscalls_opt

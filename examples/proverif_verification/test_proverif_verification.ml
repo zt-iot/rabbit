@@ -143,15 +143,7 @@ let normalize_results reachability_flags results =
     results
 
 let string_of_exception = function
-  | Ulexbuf.Error {Location.data = err; _} ->
-      Format.asprintf "Parsing error: %t" (Ulexbuf.print_error err)
-  | Env.Error err ->
-      Format.asprintf "Typer error: %t" (Env.print_error err.data)
-  | Typer.Error err ->
-      Format.asprintf "Typer error: %t" (Typer.print_error err.data)
-  | Proverif_compiler_support.Error err ->
-      Format.asprintf "ProVerif compiler error: %t"
-        (Proverif_compiler_support.print_error err.data)
+  | Error.Error err -> Format.asprintf "%t" (Error.print err)
   | exn -> Printexc.to_string exn
 
 let test_file proverif rab_filename =

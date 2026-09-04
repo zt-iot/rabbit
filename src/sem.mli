@@ -1,7 +1,5 @@
 (** The semantics *)
 
-include Error.S
-
 module Index : sig
   (** Transition graph node index, it is reversed! *)
   type t = private (int * int) list
