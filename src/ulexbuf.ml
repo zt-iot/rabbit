@@ -15,16 +15,16 @@ type error =
   | BadNumeral of string
   | UnclosedComment
 
-let print_error err ppf = match err with
-  | SysError s -> Format.fprintf ppf "System error: %s" s
-  | Unexpected s -> Format.fprintf ppf "Unexpected %s" s
-  | MalformedUTF8 -> Format.fprintf ppf "Malformed UTF8"
-  | BadNumeral s -> Format.fprintf ppf "Bad numeral %s" s
-  | UnclosedComment -> Format.fprintf ppf "Input ended inside unclosed comment"
+include Error.Make(struct
+    type nonrec error = error
 
-exception Error of error Location.located
-
-let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
+    let print_error err ppf = match err with
+      | SysError s -> Format.fprintf ppf "System error: %s" s
+      | Unexpected s -> Format.fprintf ppf "Unexpected %s" s
+      | MalformedUTF8 -> Format.fprintf ppf "Malformed UTF8"
+      | BadNumeral s -> Format.fprintf ppf "Bad numeral %s" s
+      | UnclosedComment -> Format.fprintf ppf "Input ended inside unclosed comment"
+  end)
 
 let create_lexbuf ?(fn="?") stream =
   let pos_end =

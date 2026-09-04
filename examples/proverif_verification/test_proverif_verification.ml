@@ -145,6 +145,8 @@ let normalize_results reachability_flags results =
 let string_of_exception = function
   | Ulexbuf.Error {Location.data = err; _} ->
       Format.asprintf "Parsing error: %t" (Ulexbuf.print_error err)
+  | Env.Error err ->
+      Format.asprintf "Typer error: %t" (Env.print_error err.data)
   | Typer.Error err ->
       Format.asprintf "Typer error: %t" (Typer.print_error err.data)
   | Proverif_compiler.Error.Error err ->
@@ -273,8 +275,9 @@ let () =
           test_snapshot_file proverif rab_filename;
           Format.printf "PASS (ProVerif) %s@." rab_filename
         with exn ->
-          failures := (rab_filename, Printexc.to_string exn) :: !failures;
-          Format.printf "FAIL %s: %s@." rab_filename (Printexc.to_string exn))
+          let message = string_of_exception exn in
+          failures := (rab_filename, message) :: !failures;
+          Format.printf "FAIL %s: %s@." rab_filename message)
   else (
     collect_rab_files examples_dir
     |> List.iter (fun rab_filename ->
@@ -282,15 +285,17 @@ let () =
           test_file proverif rab_filename;
           Format.printf "PASS %s@." rab_filename
         with exn ->
-          failures := (rab_filename, Printexc.to_string exn) :: !failures;
-          Format.printf "FAIL %s: %s@." rab_filename (Printexc.to_string exn));
+          let message = string_of_exception exn in
+          failures := (rab_filename, message) :: !failures;
+          Format.printf "FAIL %s: %s@." rab_filename message);
     collect_unsupported_files examples_dir
     |> List.iter (fun rab_filename ->
         try
           test_unsupported_file proverif rab_filename;
           Format.printf "PASS (unsupported) %s@." rab_filename
         with exn ->
-          failures := (rab_filename, Printexc.to_string exn) :: !failures;
-          Format.printf "FAIL %s: %s@." rab_filename (Printexc.to_string exn))
+          let message = string_of_exception exn in
+          failures := (rab_filename, message) :: !failures;
+          Format.printf "FAIL %s: %s@." rab_filename message)
   );
   exit (if !failures = [] then 0 else 1)

@@ -1,29 +1,26 @@
-(** Conversion errors *)
+(** conversion error *)
 type error =
   | UnknownIdentifier of string
   | AlreadyDefined of string
   | ArgNumMismatch of string * int * int
   | WrongInputType
 
-exception Error of error Location.located
+include Error.Make(struct
+    type nonrec error = error
 
-(** [error ~loc err] raises the given runtime error. *)
-let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
-
-(** Print error description. *)
-let print_error err ppf =
-  match err with
-  | UnknownIdentifier x -> Format.fprintf ppf "unknown identifier %s" x
-  | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
-  | ArgNumMismatch (x, i, j) ->
-      Format.fprintf
-        ppf
-        "%s arguments provided while %s requires %s"
-        (string_of_int i)
-        x
-        (string_of_int j)
-  | WrongInputType -> Format.fprintf ppf "wrong input type"
-;;
+    let print_error err ppf =
+    match err with
+    | UnknownIdentifier x -> Format.fprintf ppf "unknown identifier %s" x
+    | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
+    | ArgNumMismatch (x, i, j) ->
+        Format.fprintf
+          ppf
+          "%s arguments provided while %s requires %s"
+          (string_of_int i)
+          x
+          (string_of_int j)
+    | WrongInputType -> Format.fprintf ppf "wrong input type"
+  end)
 
 (* process tempates spec and definition *)
 type ctx_process_template =
@@ -152,7 +149,7 @@ let ctx_get_ext_syscall_arity ~loc ctx eid =
   then (
     let _, k = List.find (fun (s, _) -> s = eid) ctx.ctx_ext_syscall in
     k)
-  else error ~loc (UnknownIdentifier eid)
+  else error ~loc @@ UnknownIdentifier eid
 ;;
 
 let ctx_get_inj_fact_arity ~loc ctx fid =
@@ -160,7 +157,7 @@ let ctx_get_inj_fact_arity ~loc ctx fid =
   then (
     let _, k = List.find (fun (s, _) -> s = fid) ctx.ctx_inj_fact in
     k)
-  else error ~loc (UnknownIdentifier fid)
+  else error ~loc @@ UnknownIdentifier fid
 ;;
 
 let ctx_get_proctmpl ctx o = List.find (fun x -> x.ctx_proctmpl_id = o) ctx.ctx_proctmpl
@@ -170,7 +167,7 @@ let ctx_get_ty ~loc ctx s =
     let _id, ty = List.find (fun (id, _) -> id = s) ctx.ctx_ty in
     ty
   with
-  | Not_found -> error ~loc (UnknownIdentifier s)
+  | Not_found -> error ~loc @@ UnknownIdentifier s
 ;;
 
 (* check *)
@@ -236,9 +233,9 @@ let ctx_add_or_check_fact ~loc ctx (id, k) =
     then error ~loc WrongInputType
     else if k = k'
     then ctx
-    else error ~loc (ArgNumMismatch (id, k, k')))
+    else error ~loc @@ ArgNumMismatch (id, k, k'))
   else if check_used ctx id
-  then error ~loc (AlreadyDefined id)
+  then error ~loc @@ AlreadyDefined id
   else ctx_add_fact ctx (id, k)
 ;;
 
@@ -250,9 +247,9 @@ let ctx_add_or_check_lfact ~loc ctx (id, k) =
     then error ~loc WrongInputType
     else if k = k'
     then ctx
-    else error ~loc (ArgNumMismatch (id, k, k')))
+    else error ~loc @@ ArgNumMismatch (id, k, k'))
   else if check_used ctx id
-  then error ~loc (AlreadyDefined id)
+  then error ~loc @@ AlreadyDefined id
   else ctx_add_lfact ctx (id, k)
 ;;
 
@@ -260,9 +257,9 @@ let ctx_add_or_check_inj_fact ~loc ctx (id, k) =
   if ctx_check_inj_fact ctx id
   then (
     let _, k' = List.find (fun (s, _) -> s = id) ctx.ctx_inj_fact in
-    if k = k' then ctx else error ~loc (ArgNumMismatch (id, k, k')))
+    if k = k' then ctx else error ~loc @@ ArgNumMismatch (id, k, k'))
   else if check_used ctx id
-  then error ~loc (AlreadyDefined id)
+  then error ~loc @@ AlreadyDefined id
   else ctx_add_inj_fact ctx (id, k)
 ;;
 

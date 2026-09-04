@@ -1,5 +1,3 @@
-include Sig.ERROR
-
 (** Substitute channels inside expr *)
 val expr_chan_sub : Syntax.expr -> string -> Syntax.expr -> Syntax.expr
 

@@ -15,32 +15,30 @@ type error =
   | WrongChannelType of string * string
   | WildcardNotAllowed
 
-exception Error of error Location.located
+include Error.Make (struct
+    type nonrec error = error
 
-(** [error ~loc err] raises the given runtime error. *)
-let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
-
-(** Print error description. *)
-let print_error err ppf =
-  match err with
-  | UnknownVariable (`MetaVar, x) -> Format.fprintf ppf "unknown meta variable %s" x
-  | UnknownIdentifier (kind, x) -> Format.fprintf ppf "unknown %s %s" kind x
-  | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
-  | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
-  | ArgNumMismatch (x, i, j) ->
-      Format.fprintf
-        ppf
-        "%s arguments provided while %s requires %s"
-        (string_of_int i)
-        x
-        (string_of_int j)
-  | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
-  | WrongInputType -> Format.fprintf ppf "wrong input type"
-  | NoBindingVariable -> Format.fprintf ppf "no binding variable"
-  | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given" x y
-  | WildcardNotAllowed ->
-      Format.fprintf ppf "wildcard '_' is not supported in legacy compiler"
-;;
+    (** Print error description. *)
+    let print_error err ppf =
+      match err with
+      | UnknownVariable (`MetaVar, x) -> Format.fprintf ppf "unknown meta variable %s" x
+      | UnknownIdentifier (kind, x) -> Format.fprintf ppf "unknown %s %s" kind x
+      | AlreadyDefined x -> Format.fprintf ppf "identifier already defined %s" x
+      | ForbiddenIdentifier x -> Format.fprintf ppf "forbidden identifier %s" x
+      | ArgNumMismatch (x, i, j) ->
+          Format.fprintf
+            ppf
+            "%s arguments provided while %s requires %s"
+            (string_of_int i)
+            x
+            (string_of_int j)
+      | NegativeArity k -> Format.fprintf ppf "negative arity is given: %s" (string_of_int k)
+      | WrongInputType -> Format.fprintf ppf "wrong input type"
+      | NoBindingVariable -> Format.fprintf ppf "no binding variable"
+      | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given" x y
+      | WildcardNotAllowed ->
+          Format.fprintf ppf "wildcard '_' is not supported in legacy compiler"
+  end)
 
 let find_index f lst =
   let rec aux i = function

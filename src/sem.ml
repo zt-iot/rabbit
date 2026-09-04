@@ -7,17 +7,16 @@ type error =
   | MultipleSystems
   | LocalFactNotAllowed
 
-(** Print error description. *)
-let print_error err ppf =
-  match err with
-  | NoSystem -> Format.fprintf ppf "No system to compile"
-  | MultipleSystems -> Format.fprintf ppf "Only 1 system can exist"
-  | LocalFactNotAllowed -> Format.fprintf ppf "Local fact is not allowed in this context"
+include Error.Make(struct
+    type nonrec error = error
 
-exception Error of error Location.located
-
-(** [error ~loc err] raises the given runtime error. *)
-let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
+    (** Print error description. *)
+    let print_error err ppf =
+      match err with
+      | NoSystem -> Format.fprintf ppf "No system to compile"
+      | MultipleSystems -> Format.fprintf ppf "Only 1 system can exist"
+      | LocalFactNotAllowed -> Format.fprintf ppf "Local fact is not allowed in this context"
+end)
 
 let unit = { env= Env.empty (); loc= Location.nowhere; desc= Unit }
 

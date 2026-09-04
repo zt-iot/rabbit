@@ -17,7 +17,7 @@ type error =
   | BadNumeral of string
   | UnclosedComment
 
-include Sig.ERROR with type error := error
+include Error.S with type error := error
 
 (** Update the start and end positions from the stream. *)
 val update_pos : t -> unit

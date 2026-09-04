@@ -5,13 +5,7 @@
 (** Type representing errors that can occur during post-processing *)
 type error
 
-(** Exception raised when a post-processing error occurs *)
-exception Error of error
-
-(** Print a human-readable description of a post-processing error
-    @param err The error to print
-    @param ppf The formatter to print to *)
-val print_error : error Sig.printer
+include Error.S with type error := error
 
 (** Optimize a Rabbit model by:
     - Unifying variables where possible

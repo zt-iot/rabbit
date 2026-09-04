@@ -35,7 +35,7 @@ let load_file fn =
   try
     Ok (snd @@ Typer.load (Env.empty ()) fn)
   with
-  | (Typer.Error _ as exn) -> Error exn
+  | (Ulexbuf.Error _ | Env.Error _ | Typer.Error _) as exn -> Error exn
   | exn ->
       Format.eprintf "Typer unexpected exception: %s@." (Printexc.to_string exn);
       Error exn
@@ -79,6 +79,9 @@ let () =
   with
   | Ulexbuf.Error {Location.data = err; Location.loc} ->
       Print.message ~loc "Parsing error" "%t" (Ulexbuf.print_error err);
+      exit 1
+  | Env.Error err ->
+      Print.message ~loc:err.loc "Typer error" "%t" (Env.print_error err.data);
       exit 1
   | Typer.Error err ->
       Print.message ~loc:err.loc "Typer error" "%t" (Typer.print_error err.data);

@@ -82,7 +82,7 @@ let new_load_file fn =
     (* The new compiler loads each file with the empty env *)
     Ok (snd @@ Typer.load (Env.empty ()) fn)
   with
-  | (Typer.Error _ as exn) -> Error exn
+  | (Ulexbuf.Error _ | Env.Error _ | Typer.Error _) as exn -> Error exn
   | exn ->
       Format.eprintf "Typer unexpected exception: %s@." (Printexc.to_string exn);
       Error exn
@@ -92,12 +92,22 @@ let compare_load_results res new_res =
   match res, new_res with
   | Ok _, Ok _ ->
       prerr_endline "TyperSuccess"
+  | Error _exn, Error (Ulexbuf.Error e) ->
+      Format.eprintf "TyperFail: %t: %t@." (Location.print e.loc) (Ulexbuf.print_error e.data);
   | Error _exn, Error (Typer.Error e) ->
       Format.eprintf "TyperFail: %t: %t@." (Location.print e.loc) (Typer.print_error e.data);
+  | Error _exn, Error (Env.Error e) ->
+      Format.eprintf "TyperFail: %t: %t@." (Location.print e.loc) (Env.print_error e.data);
   | Error _exn, Error exn' ->
       Format.eprintf "TyperFail: %s@." (Printexc.to_string exn');
+  | Ok _, Error (Ulexbuf.Error e) ->
+      Format.eprintf "Unexpected TyperFail: %t: %t@."
+        (Location.print e.loc)
+        (Ulexbuf.print_error e.data)
   | Ok _, Error (Typer.Error e) ->
       Format.eprintf "Unexpected TyperFail: %t: %t@." (Location.print e.loc) (Typer.print_error e.data)
+  | Ok _, Error (Env.Error e) ->
+      Format.eprintf "Unexpected TyperFail: %t: %t@." (Location.print e.loc) (Env.print_error e.data)
   | Ok _, Error exn ->
       Format.eprintf "Unexpected TyperFail: %s@." (Printexc.to_string exn)
   | Error _, Ok _ ->
@@ -228,13 +238,11 @@ let () =
   | Context.Error {Location.data=err; Location.loc} ->
       Print.message ~loc "Context error" "%t" (Context.print_error err);
       exit 1
-  (* | Toxml.Error {Location.data=err; Location.loc} ->
-    Print.message ~loc "ToXml error" "%t" (Toxml.print_error err) *)
-  | Substitute.Error {Location.data=err; Location.loc} ->
-      Print.message ~loc "Substitute error" "%t" (Substitute.print_error err);
+  | Env.Error err ->
+      Print.message ~loc:err.loc "Typer error" "%t" (Env.print_error err.data);
       exit 1
   | Postprocessing.Error err ->
-      Print.message ~loc:Location.Nowhere "Translate error" "%t" (Postprocessing.print_error err);
+      Print.message ~loc:err.loc "Translate error" "%t" (Postprocessing.print_error err.data);
       exit 1
   | Typer.Error err ->
       Print.message ~loc:err.loc "Typer error" "%t" (Typer.print_error err.data);

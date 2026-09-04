@@ -1,6 +1,6 @@
 (** The semantics *)
 
-include Sig.ERROR
+include Error.S
 
 module Index : sig
   (** Transition graph node index, it is reversed! *)

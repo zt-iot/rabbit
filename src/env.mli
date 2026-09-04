@@ -21,10 +21,14 @@ type desc =
   | Process
   | Rho (** $\rho$, only used in [Sem] and later stages *)
 
+val kind_of_desc : desc -> string
+
 val callable_type_of_desc : desc -> Type.callable_type option
 val type_of_desc : desc -> Type.type_ option
 
 val print_desc : desc -> Format.formatter -> unit
+
+include Error.S
 
 (** Name checking environment *)
 type t
@@ -47,3 +51,11 @@ val update_fact : t -> Name.ident -> named_fact_desc * Type.type_ list option ->
 (** If the binding already exists, it is overridden *)
 
 val find_fact_opt : t -> Name.ident -> (named_fact_desc * Type.type_ list option) option
+
+val find : loc:Location.t -> t -> Name.ident -> Ident.t * desc
+val find_desc : loc:Location.t -> t -> Name.ident -> desc -> Ident.t
+
+(** Fails if the name is bound in the environment *)
+val add_global : loc:Location.t -> t -> Name.ident -> desc -> t * Ident.t
+
+val add_fact : loc:Location.t -> t -> Name.ident -> named_fact_desc * Type.type_ list option -> unit

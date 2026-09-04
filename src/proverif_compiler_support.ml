@@ -8,21 +8,22 @@ module Error = struct
     | Invalid_input of string
     | Internal_error of string
 
-  exception Error of error Location.located
+  include Error.Make (struct
+      type nonrec error = error
 
-  let _error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
+      let print_error err ppf =
+        match err with
+        | Unsupported s -> Format.pp_print_string ppf s
+        | Invalid_input s -> Format.pp_print_string ppf s
+        | Internal_error s -> Format.pp_print_string ppf s
+    end)
 
-  let _error_ex ex ~loc fmt = Printf.ksprintf (fun s -> _error ~loc (ex s)) fmt
+  let _error_ex ex ~loc fmt = Printf.ksprintf (fun s -> error ~loc (ex s)) fmt
 
   let unsupported ~loc fmt = _error_ex (fun s -> Unsupported s) ~loc fmt
   let invalid_input ~loc fmt = _error_ex (fun s -> Invalid_input s) ~loc fmt
   let internal ~loc fmt = _error_ex (fun s -> Internal_error s) ~loc fmt
 
-  let print_error err ppf =
-    match err with
-    | Unsupported s -> Format.pp_print_string ppf s
-    | Invalid_input s -> Format.pp_print_string ppf s
-    | Internal_error s -> Format.pp_print_string ppf s
 end
 
 let with_dummy_ident_ext x = x, Parsing_helper.dummy_ext

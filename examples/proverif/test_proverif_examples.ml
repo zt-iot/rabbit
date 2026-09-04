@@ -32,6 +32,7 @@ let load_file fn =
     Ok (snd @@ Typer.load (Env.empty ()) fn)
   with
   | Ulexbuf.Error _ as exn -> Error exn
+  | Env.Error _ as exn -> Error exn
   | Typer.Error _ as exn -> Error exn
   | Proverif_compiler.Error.Error _ as exn -> Error exn
   | exn ->
@@ -68,6 +69,8 @@ let string_of_loc loc =
 let string_of_failure rab_filename = function
   | Ulexbuf.Error {Location.data = err; Location.loc} ->
       Format.asprintf "Parsing error%s:@ %t" (string_of_loc loc) (Ulexbuf.print_error err)
+  | Env.Error err ->
+      Format.asprintf "Typer error%s:@ %t" (string_of_loc err.loc) (Env.print_error err.data)
   | Typer.Error err ->
       Format.asprintf "Typer error%s:@ %t" (string_of_loc err.loc) (Typer.print_error err.data)
   | Proverif_compiler.Error.Error err ->

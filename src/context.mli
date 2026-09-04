@@ -1,4 +1,4 @@
-include Sig.ERROR
+include Error.S
 
 type ctx_process_template =
   { ctx_proctmpl_id : Name.ident (** name *)

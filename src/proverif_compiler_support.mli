@@ -9,12 +9,11 @@ module Error : sig
     | Invalid_input of string
     | Internal_error of string
 
-  exception Error of error Location.located
+  include Error.S with type error := error
 
   val unsupported : loc:Location.t -> ('a, unit, string, 'b) format4 -> 'a
   val invalid_input : loc:Location.t -> ('a, unit, string, 'b) format4 -> 'a
   val internal : loc:Location.t -> ('a, unit, string, 'b) format4 -> 'a
-  val print_error : error -> Format.formatter -> unit
 end
 
 val pv_ident : string -> ident

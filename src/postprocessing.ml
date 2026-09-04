@@ -3,15 +3,17 @@ open Tamarin
 type error =
   | ConflictingCondition'
 
-exception Error of error
+include Error.Make (struct
+    type nonrec error = error
 
-(** [error err] raises the given runtime error. *)
-let error' err = Stdlib.raise (Error err)
+    (** Print error description. *)
+    let print_error err ppf =
+      match err with
+      | ConflictingCondition' -> Format.fprintf ppf "ConflictingCondition'"
+  end)
 
-(** Print error description. *)
-let print_error err ppf =
-  match err with
-  | ConflictingCondition' ->   Format.fprintf ppf "ConflictingCondition'"
+(** [error' err] raises the given runtime error without source location. *)
+let error' err = error ~loc:Location.nowhere err
 
 
 (* optimize models.contents
@@ -217,7 +219,7 @@ let reduce_conditions post pre' =
         | _ -> true end) post in
       Some (post, pre)
   with
-  | Error ConflictingCondition' -> None
+  | Error { data = ConflictingCondition'; _ } -> None
   end
 
 (* let has_non_while_label (tr : transition) =

@@ -1,15 +1,3 @@
-type error = ..
-
-exception Error of error Location.located
-
-(** [error ~loc err] raises the given runtime error. *)
-let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
-
-(** Print error description. *)
-let print_error err _ppf =
-  match err with
-  | _ -> assert false
-
 let rec expr_chan_sub e f t  =
   let loc = e.Location.loc in
   match e.Location.data with

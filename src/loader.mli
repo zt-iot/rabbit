@@ -2,7 +2,7 @@
     This module handles the loading and desugaring of Rabbit programs.
     It converts input syntax into abstract syntax while maintaining context and type information. *)
 
-include Sig.ERROR
+include Error.S
 
 type env =
   { context : Context.context

@@ -6,9 +6,7 @@ module Error : sig
     | Invalid_input of string
     | Internal_error of string
 
-  exception Error of error Location.located
-
-  val print_error : error -> Format.formatter -> unit
+  include Error.S with type error := error
 end
 
 val compile_program : Typed.decl list -> Pv_parser.program
