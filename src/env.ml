@@ -141,7 +141,11 @@ type t =
     (* The fact environment is global therefore implemented as mutable *)
   }
 
+let bindings x = x.vars
+
 let empty () = { vars= []; facts= [] }
+
+let singleton id desc = { vars= [(id, desc)]; facts= [] }
 
 let find_opt env name =
   List.find_opt (fun (id, _desc) -> name = fst id) env.vars

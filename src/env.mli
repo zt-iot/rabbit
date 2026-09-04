@@ -54,19 +54,13 @@ val type_of_desc : desc -> type_ option
 val print_desc : desc -> Format.formatter -> unit
 
 (** Name checking environment *)
-type t =
-  { vars : (Ident.t * desc) list
-  ; mutable facts : (Name.ident * (named_fact_desc * type_ list option)) list
-  (** Fact names with descriptions and argument types. Types can be unknown
-      if [delete e.S] first appear than [new x := S(args) in c]
-      and [let xi := e.S in c].
+type t
 
-      The fact environment is a global singleton and shared,
-      therefore mutable.
-  *)
-  }
+val bindings : t -> (Ident.t * desc) list
 
 val empty : unit -> t
+
+val singleton : Ident.t -> desc -> t
 
 val mem : t -> Name.ident -> bool
 

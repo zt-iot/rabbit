@@ -22,14 +22,14 @@ let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 let unit = { env= Env.empty (); loc= Location.nowhere; desc= Unit }
 
 let evar id =
-    { env = { vars= [id, Var TValue]; facts = [] }
+    { env = Env.singleton id (Var TValue)
     ; loc = Location.nowhere
     ; desc = Ident { id; desc = Var TValue; param = None }
     }
 ;;
 
 let rho id =
-  { env = { vars= [id, Env.Rho]; facts = [] }
+  { env = Env.singleton id Env.Rho
   ; loc = Location.nowhere
   ; desc = Ident { id; desc = Rho; param = None }
   }
@@ -481,7 +481,7 @@ let check_edge_invariants (e : edge) =
   let mutable_vars_of_env (env : Env.t) =
     List.filter_map (function
         | (id, Env.Var _) -> Some id
-        | _ -> None) env.vars
+        | _ -> None) @@ Env.bindings env
   in
   (* The mutable variables of [x_env] are in [x_vars].
      The opposite may not be true: in function calls variables of outer scopes are in [x_vars].
@@ -536,7 +536,7 @@ let check_edge_invariants (e : edge) =
   let vars_post = vars_of_facts e.post in
 
   (* The exprs in [update] are well-defined under [source_vars] + [source_env] + vars in [pre] *)
-  let vars_for_update = e.source_vars @ vars_pre @ List.map fst e.source_env.vars in
+  let vars_for_update = e.source_vars @ vars_pre @ List.map fst @@ Env.bindings e.source_env in
   List.iter (fun v ->
       if not @@ List.mem v vars_for_update then (
         print_edge ();
