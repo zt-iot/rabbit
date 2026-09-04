@@ -26,7 +26,7 @@ type error =
   | GlobalChannelInExpr of Ident.t
   | WildcardNotAllowed
   | StructureFactMustBePredeclared
-  | TypeMismatch of Env.type_ * Env.type_
+  | TypeMismatch of Type.type_ * Type.type_
 
 exception Error of error Location.located
 
@@ -112,20 +112,19 @@ let print_error err ppf =
       Format.fprintf
         ppf
         "Expected a value of type %a but found %a"
-        (fun ppf typ -> Env.print_type typ ppf) expected
-        (fun ppf typ -> Env.print_type typ ppf) actual
+        (fun ppf typ -> Type.print_type typ ppf) expected
+        (fun ppf typ -> Type.print_type typ ppf) actual
 ;;
 
 let unify ~loc expected actual =
-  try Env.unify expected actual with
-  | Env.Cannot_unify (expected, actual) -> error ~loc @@ TypeMismatch (expected, actual)
+  try Type.unify expected actual with
+  | Type.Cannot_unify (expected, actual) -> error ~loc @@ TypeMismatch (expected, actual)
 ;;
 
 let fresh_callable arity =
-  Env.
-    { argument_types = List.init arity (fun _ -> fresh_type ())
-    ; result_type = fresh_type ()
-    }
+  Type.{ argument_types = List.init arity (fun _ -> fresh_type ())
+       ; result_type = fresh_type ()
+       }
 ;;
 
 let type_of_value_desc = Env.type_of_desc
@@ -144,7 +143,7 @@ module Env : sig
   (** Fails if the name is bound in the environment *)
   val add_global : loc:Location.t -> t -> Name.ident -> Env.desc -> t * Ident.t
 
-  val add_fact : loc:Location.t -> t -> Name.ident -> named_fact_desc * type_ list option -> unit
+  val add_fact : loc:Location.t -> t -> Name.ident -> named_fact_desc * Type.type_ list option -> unit
 end = struct
   include Env
 
@@ -182,8 +181,8 @@ end = struct
               if List.length types <> List.length types' then
                 error ~loc @@
                 ArityMismatch { arity= List.length types; use= List.length types' };
-              (try List.iter2 Env.unify types types' with
-               | Env.Cannot_unify (expected, actual) ->
+              (try List.iter2 Type.unify types types' with
+               | Type.Cannot_unify (expected, actual) ->
                    error ~loc @@ TypeMismatch (expected, actual))
           | None, Some _ -> ()
           | Some _, None -> update_fact env name (desc, argument_types)
@@ -204,7 +203,7 @@ let rec type_expr ?(allow_wildcard = false) env (e : Input.expr) : Typed.expr =
         if allow_wildcard
         then (
           let id = Ident.local "_" in
-          Typed.Ident { id; desc = Var (Env.fresh_type ()); param = None })
+          Typed.Ident { id; desc = Var (Type.fresh_type ()); param = None })
         else error ~loc WildcardNotAllowed
     | Boolean b -> Typed.Boolean b
     | String s -> String s
@@ -490,7 +489,7 @@ and type_case env (facts, cmd) : Typed.case =
   let fresh = Name.Set.filter (fun v -> not (Env.mem env v)) vs in
   let fresh_ids = Name.Set.fold (fun name ids -> Ident.local name :: ids) fresh [] in
   let env' =
-    List.fold_left (fun env id -> Env.add env id (Var (Env.fresh_type ()))) env fresh_ids
+    List.fold_left (fun env id -> Env.add env id (Var (Type.fresh_type ()))) env fresh_ids
   in
   let facts = type_facts ~allow_wildcard:true env' facts in
   let cmd = type_cmd env' cmd in
@@ -616,7 +615,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         in
         let env' =
           List.fold_left
-            (fun env id -> Env.add env id (Var (Env.fresh_type ())))
+            (fun env id -> Env.add env id (Var (Type.fresh_type ())))
             env
             fresh_ids
         in
@@ -630,7 +629,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
         in
         let env' =
           List.fold_left
-            (fun env id -> Env.add env id (Var (Env.fresh_type ())))
+            (fun env id -> Env.add env id (Var (Type.fresh_type ())))
             env
             fresh_ids
         in
@@ -653,7 +652,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       load_decls env fn
   | DeclExtFun (name, 0) ->
       let env', id = Env.add_global ~loc env name ExtConst in
-      let typ = Env.{ argument_types = []; result_type = TValue } in
+      let typ = Type.{ argument_types = []; result_type = TValue } in
       env', [{ env; loc; desc = Function { id; typ } }]
   | DeclExtFun (name, arity) ->
       let typ = fresh_callable arity in
@@ -665,7 +664,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         Name.Set.elements (Name.Set.filter (fun v -> not (Env.mem env v)) vars)
       in
       let env', _fresh_ids =
-        extend_with_args env fresh @@ fun _id -> Var (Env.fresh_type ())
+        extend_with_args env fresh @@ fun _id -> Var (Type.fresh_type ())
       in
       let e1 = type_expr env' e1 in
       let e2 = type_expr env' e2 in
@@ -887,13 +886,5 @@ and load_decls env fn : Env.t * Typed.decl list =
   env, List.rev rev_decls
 ;;
 
-let load env fn =
-  let mark = Env.type_variable_mark () in
-  match load_decls env fn with
-  | result ->
-      Env.default_types_since mark;
-      result
-  | exception exn ->
-      Env.discard_types_since mark;
-      raise exn
+let load env fn = load_decls env fn
 ;;

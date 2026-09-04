@@ -34,7 +34,7 @@ let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
   fun enc__0 ( bitstring, bitstring ): bitstring.
   ```
 *)
-let compile_function ~loc:_loc (id : T.ident) (typ : Env.callable_type) : tdecl list =
+let compile_function ~loc:_loc (id : T.ident) (typ : Type.callable_type) : tdecl list =
   let name = compile_ident id in
   let arity = List.length typ.argument_types in
   [ TComment (Printf.sprintf "function %s:%d" (Ident.to_string id) arity)
@@ -452,7 +452,7 @@ let compile_process
     match param with
     | None -> base_penv
     | Some param ->
-        PEnv.define_process_var base_penv param Env.TParameter
+        PEnv.define_process_var base_penv param Type.TParameter
           (pterm_e @@ PPIdent (compile_ident param))
   in
   let penv =
@@ -885,10 +885,12 @@ let compile_structure_decls (genv : GEnv.t) : tdecl list =
   GEnv.structure_facts genv
   |> List.concat_map @@ fun (name, ftys) ->
       let arity = List.length ftys in
-      let field_type_ident = function
-        | Input.Value -> bitstring_ident
-        | Channel -> channel_ident
-        | Parameter -> param_data_ident
+      (* XXX dupe? *)
+      let field_type_ident ty =
+        match Type.repr ty with
+        | TValue | TVar _ -> bitstring_ident
+        | TChannel -> channel_ident
+        | TParameter -> param_data_ident
       in
       let envdecl =
         (mk_var 0, bitstring_ident) ::

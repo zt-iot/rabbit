@@ -584,7 +584,7 @@ let rec compile_guard_fragment
            let branch_env, match_contents =
              match contents.desc with
              | T.Ident { id; _ } when List.mem id fresh ->
-                 PEnv.define_process_var penv id Env.TValue payload_term, Fun.id
+                 PEnv.define_process_var penv id Type.TValue payload_term, Fun.id
              | _ ->
                  penv,
                  fun then_proc ->
@@ -692,10 +692,10 @@ let is_fresh_case_var (case : T.case) (id : T.ident) =
   List.mem id case.fresh
 
 let case_result_type = function
-  | [] -> Env.TValue
+  | [] -> Type.TValue
   | (case : T.case) :: _ -> T.type_of_cmd case.cmd
 
-let unit_result penv = PEnv.with_result penv Env.TValue (pterm_e @@ PPTuple [])
+let unit_result penv = PEnv.with_result penv Type.TValue (pterm_e @@ PPTuple [])
 
 type process_fragment = tprocess_e -> tprocess_e
 (* ProVerif AST has no constructor for sequence `A; B`.
@@ -1655,7 +1655,7 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
       let body_start_env =
-        PEnv.define_process_var (unit_result penv) id Env.TValue fresh_term
+        PEnv.define_process_var (unit_result penv) id Type.TValue fresh_term
       in
       let body_env, body_fragment = compile_cmd genv body_start_env body in
       let completed_env =
@@ -1690,7 +1690,7 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
           , fresh_term :: List.map (compile_expr_to_pterm genv penv) args )
       in
       let body_start_env =
-        PEnv.define_process_var (unit_result penv) id Env.TValue struct_term
+        PEnv.define_process_var (unit_result penv) id Type.TValue struct_term
       in
       let body_env, body_fragment = compile_cmd genv body_start_env body in
       let completed_env =
@@ -1726,7 +1726,7 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
         List.mapi
           (fun index id ->
              id,
-             Env.type_of_field_type (List.nth ftys index),
+             List.nth ftys index,
              structure_arg_term name (index + 1) struct_term)
           ids
         |> List.fold_left

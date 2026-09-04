@@ -54,10 +54,10 @@ module GEnv = struct
     ; generated_names       : (string, unit) Hashtbl.t (** Generated ProVerif identifiers in use *)
     ; mutable allow_entries : allow_entry list
     ; mutable process_types : (Ident.t * ident) list (** process types in Rabbit and Proverif *)
-    ; mutable structure_facts : (Name.t * Input.field_type list) list (** structure fact constructor and arity *)
-    ; mutable channel_facts   : (Name.t * Env.type_ list) list
-    ; mutable events        : (Name.t * (event_kind * Env.type_ list)) list
-    ; mutable comparison_events : (comparison_event_kind * Env.type_) list
+    ; mutable structure_facts : (Name.t * Type.type_ list) list (** structure fact constructor and arity *)
+    ; mutable channel_facts   : (Name.t * Type.type_ list) list
+    ; mutable events        : (Name.t * (event_kind * Type.type_ list)) list
+    ; mutable comparison_events : (comparison_event_kind * Type.type_) list
     ; mutable top_process   : tprocess_e option
     }
 
@@ -88,8 +88,8 @@ module GEnv = struct
           Error.invalid_input ~loc
             "%s %s is used with inconsistent arities (%d and %d)"
             kind name (List.length types') (List.length types);
-        (try List.iter2 Env.unify types types' with
-         | Env.Cannot_unify _ ->
+        (try List.iter2 Type.unify types types' with
+         | Type.Cannot_unify _ ->
              Error.invalid_input ~loc
                "%s %s is used with inconsistent argument types"
                kind name)
@@ -404,8 +404,8 @@ module GEnv = struct
           Error.invalid_input ~loc
             "Event %s is used with inconsistent arities (%d and %d)"
             name (List.length types') (List.length types);
-        (try List.iter2 Env.unify types types' with
-         | Env.Cannot_unify _ ->
+        (try List.iter2 Type.unify types types' with
+         | Type.Cannot_unify _ ->
              Error.invalid_input ~loc
                "Event %s is used with inconsistent argument types" name)
 
@@ -415,8 +415,8 @@ module GEnv = struct
     match List.assoc_opt kind genv.comparison_events with
     | None -> genv.comparison_events <- genv.comparison_events @ [kind, typ]
     | Some typ' ->
-        (try Env.unify typ typ' with
-         | Env.Cannot_unify _ ->
+        (try Type.unify typ typ' with
+         | Type.Cannot_unify _ ->
              Error.invalid_input ~loc
                "Comparison events of one kind have inconsistent argument types")
 
@@ -431,7 +431,7 @@ module PEnv = struct
 
   type binding =
     { value : pterm_e
-    ; typ : Env.type_
+    ; typ : Type.type_
     }
 
   type t =
@@ -442,7 +442,7 @@ module PEnv = struct
     ; curr_syscall : pterm_e
     ; file_channel : pterm_e option
     ; result : pterm_e
-    ; result_type : Env.type_
+    ; result_type : Type.type_
     }
 
   let create_process_env
@@ -459,7 +459,7 @@ module PEnv = struct
     ; curr_syscall
     ; file_channel
     ; result = pterm_e @@ PPTuple []
-    ; result_type = Env.TValue
+    ; result_type = Type.TValue
     }
 
   (* bindings **********************************************)
@@ -484,7 +484,7 @@ module PEnv = struct
         Error.internal ~loc "Loop-carried variable %s is not available"
           (Ident.to_string id)
 
-  let define_process_var (penv : t) (id : T.ident) (typ : Env.type_) (value : pterm_e) =
+  let define_process_var (penv : t) (id : T.ident) (typ : Type.type_) (value : pterm_e) =
     { penv with bindings = (id, { value; typ }) :: penv.bindings }
 
   let assign_process_var (penv : t) (id : T.ident) (value : pterm_e) =

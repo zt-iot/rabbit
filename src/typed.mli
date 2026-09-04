@@ -34,7 +34,7 @@ and expr' =
 type subst = (ident * expr) list
 
 val string_of_expr : expr -> string
-val type_of_expr : expr -> Env.type_
+val type_of_expr : expr -> Type.type_
 
 val vars_of_expr : expr -> Ident.t list
 (** Extract the mutable variables of an expression *)
@@ -107,7 +107,7 @@ and cmd' =
   | Get of ident list * expr * name * cmd (** fetch, let x1,..,xn := e.S in c *)
   | Del of expr * name (** deletion , delete e.S *)
 
-val type_of_cmd : cmd -> Env.type_
+val type_of_cmd : cmd -> Type.type_
 
 (** Parameter in process declarations [ch<p> : typ] *)
 type chan_param =
@@ -168,7 +168,7 @@ type decl = decl' loc_env
 and decl' =
   | Function of
       { id : ident
-      ; typ : Env.callable_type
+      ; typ : Type.callable_type
       }
      (** external function, [function id : arity] *)
   | Equation of expr * expr (** external equation, [equation e1 = e2] *)

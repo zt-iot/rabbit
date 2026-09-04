@@ -77,11 +77,11 @@ let none_syscall_ident          = pv_ident "none__syscall"
 let precise_ident               = pv_ident "precise"
 
 let compile_value_type typ =
-  match Env.default_type typ with
-  | Env.TValue -> bitstring_ident
+  match Type.default_type typ with
+  | TValue | TVar _ -> bitstring_ident
   | TChannel -> channel_ident
   | TParameter -> param_data_ident
-  | TVar _ -> assert false
+
 let term_e    (t : term)     : term_e     = with_dummy_node_ext t
 let pterm_e   (t : pterm)    : pterm_e    = with_dummy_node_ext t
 let gterm_e   (t : gterm)    : gterm_e    = with_dummy_node_ext t

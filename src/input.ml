@@ -117,11 +117,6 @@ type init_desc =
   | Value_with_param of expr * Name.ident
   | Fresh_with_param
 
-type field_type =
-  | Value
-  | Channel
-  | Parameter
-
 type decl = decl' Location.located
 
 and decl' =

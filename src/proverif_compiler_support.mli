@@ -37,7 +37,7 @@ val false_ident : ident
 val ptype_arg_ident : ident
 val none_syscall_ident : ident
 val precise_ident : ident
-val compile_value_type : Env.type_ -> ident
+val compile_value_type : Type.type_ -> ident
 
 val term_e : term -> term_e
 val pterm_e : pterm -> pterm_e

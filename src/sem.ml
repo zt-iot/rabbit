@@ -947,7 +947,7 @@ let rec graph_cmd ~vars ~proc:(proc : Subst.proc) ~syscaller find_def decls i (c
 
         { env (* XXX id is not defined in env, which may cause problems later invariant check... *)
         ; loc = Location.nowhere
-        ; desc = Ident { id; desc = Var (Env.fresh_type ()); param = None }
+        ; desc = Ident { id; desc = Var (Type.fresh_type ()); param = None }
         }
       in
       ( [ { id = Ident.local "del"

@@ -140,7 +140,7 @@ let type_of_expr (expr : expr) =
   | Apply (id, _) ->
       let desc = Option.get @@ Env.find_opt_by_id expr.env id in
       (Option.get (Env.callable_type_of_desc desc)).result_type
-  | Boolean _ | String _ | Integer _ | Float _ | Tuple _ | Unit -> Env.TValue
+  | Boolean _ | String _ | Integer _ | Float _ | Tuple _ | Unit -> Type.TValue
 let vars_of_expr e =
   let rec aux e =
     match e.desc with
@@ -217,7 +217,7 @@ let rec type_of_cmd (cmd : cmd) =
   | Sequence (_, cmd2) -> type_of_cmd cmd2
   | Let (_, _, body) | New (_, _, body) | Get (_, _, _, body) -> type_of_cmd body
   | Case ({ cmd; _ } :: _) -> type_of_cmd cmd
-  | Case [] | While _ | Skip | Put _ | Assign _ | Event _ | Del _ -> Env.TValue
+  | Case [] | While _ | Skip | Put _ | Assign _ | Event _ | Del _ -> Type.TValue
 
 type chan_param = { channel : ident; param : unit option; typ : ident }
 
@@ -264,7 +264,7 @@ type decl = decl' loc_env
 and decl' =
   | Function of
       { id : ident
-      ; typ : Env.callable_type
+      ; typ : Type.callable_type
       }
   | Equation of expr * expr
   | Syscall of
