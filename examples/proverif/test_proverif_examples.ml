@@ -34,7 +34,7 @@ let load_file fn =
   | Ulexbuf.Error _ as exn -> Error exn
   | Env.Error _ as exn -> Error exn
   | Typer.Error _ as exn -> Error exn
-  | Proverif_compiler.Error.Error _ as exn -> Error exn
+  | Proverif_compiler_support.Error _ as exn -> Error exn
   | exn ->
       Format.eprintf "Unexpected exception while loading %s: %s@." fn (Printexc.to_string exn);
       Error exn
@@ -73,9 +73,9 @@ let string_of_failure rab_filename = function
       Format.asprintf "Typer error%s:@ %t" (string_of_loc err.loc) (Env.print_error err.data)
   | Typer.Error err ->
       Format.asprintf "Typer error%s:@ %t" (string_of_loc err.loc) (Typer.print_error err.data)
-  | Proverif_compiler.Error.Error err ->
+  | Proverif_compiler_support.Error err ->
       Format.asprintf "ProVerif compiler error%s:@ %t"
-        (string_of_loc err.loc) (Proverif_compiler.Error.print_error err.data)
+        (string_of_loc err.loc) (Proverif_compiler_support.print_error err.data)
   | exn ->
       Printf.sprintf "%s: %s" rab_filename (Printexc.to_string exn)
 

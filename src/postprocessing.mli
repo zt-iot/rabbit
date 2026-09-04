@@ -2,10 +2,7 @@
     This module provides functions to optimize and transform Rabbit models before
     they are processed by the verification backends (Tamarin and ProVerif). *)
 
-(** Type representing errors that can occur during post-processing *)
-type error
-
-include Error.S with type error := error
+include Error.S
 
 (** Optimize a Rabbit model by:
     - Unifying variables where possible

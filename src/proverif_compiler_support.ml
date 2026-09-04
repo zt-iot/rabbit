@@ -23,8 +23,9 @@ module Error = struct
   let unsupported ~loc fmt = _error_ex (fun s -> Unsupported s) ~loc fmt
   let invalid_input ~loc fmt = _error_ex (fun s -> Invalid_input s) ~loc fmt
   let internal ~loc fmt = _error_ex (fun s -> Internal_error s) ~loc fmt
-
 end
+
+include Error
 
 let with_dummy_ident_ext x = x, Parsing_helper.dummy_ext
 

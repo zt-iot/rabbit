@@ -3,14 +3,9 @@ module T = Typed
 open Rabbit_proverif_pv_parse
 open Pitptree
 
+include Error.S
+
 module Error : sig
-  type error =
-    | Unsupported of string
-    | Invalid_input of string
-    | Internal_error of string
-
-  include Error.S with type error := error
-
   val unsupported : loc:Location.t -> ('a, unit, string, 'b) format4 -> 'a
   val invalid_input : loc:Location.t -> ('a, unit, string, 'b) format4 -> 'a
   val internal : loc:Location.t -> ('a, unit, string, 'b) format4 -> 'a

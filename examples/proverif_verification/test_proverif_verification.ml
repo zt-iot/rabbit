@@ -149,9 +149,9 @@ let string_of_exception = function
       Format.asprintf "Typer error: %t" (Env.print_error err.data)
   | Typer.Error err ->
       Format.asprintf "Typer error: %t" (Typer.print_error err.data)
-  | Proverif_compiler.Error.Error err ->
+  | Proverif_compiler_support.Error err ->
       Format.asprintf "ProVerif compiler error: %t"
-        (Proverif_compiler.Error.print_error err.data)
+        (Proverif_compiler_support.print_error err.data)
   | exn -> Printexc.to_string exn
 
 let test_file proverif rab_filename =
