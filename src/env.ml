@@ -1,6 +1,6 @@
 type named_fact_desc =
   | Channel
-  | Structure of Input.field_type list
+  | Structure
   | Plain
   | Global
 
@@ -87,7 +87,7 @@ let print_type typ ppf =
 
 let string_of_named_fact_desc = function
   | Channel -> "channel"
-  | Structure _ -> "struture"
+  | Structure -> "struture"
   | Plain -> "plain"
   | Global -> "global"
 

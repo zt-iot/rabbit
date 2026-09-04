@@ -1,6 +1,6 @@
 type named_fact_desc =
   | Channel
-  | Structure of Input.field_type list
+  | Structure
   | Plain
   | Global
 

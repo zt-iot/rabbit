@@ -371,16 +371,16 @@ let type_structure_fact ~loc env name es =
   let nes = List.length es in
   match Env.find_fact_opt env name with
   | None -> error ~loc StructureFactMustBePredeclared
-  | Some (Structure ftys, Some types) ->
-      if nes = List.length ftys then types
+  | Some (Structure, Some ftys) ->
+      if nes = List.length ftys then ftys
       else
         error ~loc @@
         ArityMismatch { arity= List.length ftys; use= nes }
-  | Some (Structure _, None) -> assert false
+  | Some (Structure, None) -> assert false
   | Some (desc', _) ->
       (* Not a structure *)
       error ~loc @@
-      InvalidFact { name; def = desc'; use = Structure (List.map (fun _ -> Input.Value) es) }
+      InvalidFact { name; def = desc'; use = Structure }
 ;;
 
 let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
@@ -468,9 +468,9 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         (* deletion, [delete e.S] *)
         let e = type_expr env e in
         (match Env.find_fact_opt env str with
-         | Some (Structure _, _types) -> ()
+         | Some (Structure, _types) -> ()
          | Some (desc, _) ->
-             error ~loc @@ InvalidFact { name = str; def = desc; use = Structure [] (* dummy *) }
+             error ~loc @@ InvalidFact { name = str; def = desc; use = Structure }
          | None -> error ~loc @@ UnboundFact str);
         unify ~loc:e.loc TValue (type_of_expr e);
         Del (e, str)
