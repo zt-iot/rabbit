@@ -1068,7 +1068,7 @@ let rec pp_decl fmt = function
           (pp_list ~sep:";@ " pp_tquery_e) queries
           pp_options options
       else
-        fprintf fmt "@[<2>query %a@,%a%a.@]"
+        fprintf fmt "@[<2>query %a@ %a%a.@]"
           pp_env env
           (pp_list ~sep:";@ " pp_tquery_e) queries
           pp_options options
