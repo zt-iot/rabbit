@@ -22,14 +22,14 @@ let error ~loc err = Stdlib.raise (Error (Location.locate ~loc err))
 let unit = { env= Env.empty (); loc= Location.nowhere; desc= Unit }
 
 let evar id =
-    { env = { vars= [id, Var TValue]; facts = ref [] }
+    { env = { vars= [id, Var TValue]; facts = [] }
     ; loc = Location.nowhere
     ; desc = Ident { id; desc = Var TValue; param = None }
     }
 ;;
 
 let rho id =
-  { env = { vars= [id, Env.Rho]; facts = ref [] }
+  { env = { vars= [id, Env.Rho]; facts = [] }
   ; loc = Location.nowhere
   ; desc = Ident { id; desc = Rho; param = None }
   }

@@ -137,11 +137,11 @@ let print_desc desc ppf =
 
 type t =
   { vars : (Ident.t * desc) list
-  ; facts : (Name.ident * (named_fact_desc * type_ list option)) list ref
+  ; mutable facts : (Name.ident * (named_fact_desc * type_ list option)) list
     (* The fact environment is global therefore implemented as mutable *)
   }
 
-let empty () = { vars= []; facts= ref [] }
+let empty () = { vars= []; facts= [] }
 
 let find_opt env name =
   List.find_opt (fun (id, _desc) -> name = fst id) env.vars
@@ -159,6 +159,6 @@ let update_fact env name v =
         List.rev_append rev_facts ((name, v) :: facts)
     | f :: facts -> update (f :: rev_facts) facts
   in
-  env.facts := update [] !(env.facts)
+  env.facts <- update [] env.facts
 
-let find_fact_opt env name = List.assoc_opt name !(env.facts)
+let find_fact_opt env name = List.assoc_opt name env.facts
