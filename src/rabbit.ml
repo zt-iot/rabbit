@@ -7,6 +7,8 @@ let usage = "Usage: Rabbit [option] ... [file] ..."
     be loaded in interactive mode. *)
 let files = ref []
 
+let input_files = ref []
+
 let ofile = ref None
 
 let svg_file = ref false
@@ -19,7 +21,13 @@ let new_compiler = ref (Some `Main) (* default is using the new compiler by Jun 
 (** Add a file to the list of files to be loaded, and record whether it should
     be processed in interactive mode. *)
 let add_file filename = files := filename :: !files
+let add_input_file filename =
+  add_file filename;
+  input_files := filename :: !input_files
+
 let add_ofile filename = ofile := Some filename
+
+let default_output_file filename = Filename.remove_extension filename ^ ".spthy"
 
 (** Command-line options *)
 let options = Arg.align [
@@ -206,10 +214,13 @@ let () =
   (* Parse the arguments. *)
   Arg.parse
     options
-    (fun str -> add_file str)
+    add_input_file
     usage ;
   (* Files were accumulated in the wrong order, so we reverse them *)
   files := List.rev !files ;
+  (match !ofile, !input_files with
+   | None, filename :: _ -> ofile := Some (default_output_file filename)
+   | Some _, _ | None, [] -> ());
 
   (* Set the maximum depth of pretty-printing, after which it prints ellipsis. *)
   Format.set_max_boxes !Config.max_boxes ;

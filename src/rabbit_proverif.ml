@@ -4,11 +4,19 @@ let usage = "Usage: rabbit-proverif [option] ... [file] ..."
 
 let files = ref []
 
+let input_files = ref []
+
 let ofile = ref None
 
 let add_file filename = files := filename :: !files
 
+let add_input_file filename =
+  add_file filename;
+  input_files := filename :: !input_files
+
 let add_ofile filename = ofile := Some filename
+
+let default_output_file filename = Filename.remove_extension filename ^ ".pv"
 
 let options =
   Arg.align
@@ -70,7 +78,10 @@ let run () =
 
 let () =
   Sys.catch_break true;
-  Arg.parse options add_file usage;
+  Arg.parse options add_input_file usage;
+  (match !ofile, !input_files with
+   | None, filename :: _ -> ofile := Some (default_output_file filename)
+   | Some _, _ | None, [] -> ());
   Format.set_max_boxes !Config.max_boxes;
   Format.set_margin !Config.columns;
   Format.set_ellipsis_text "...";
