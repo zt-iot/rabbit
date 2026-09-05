@@ -62,18 +62,6 @@ type Error.error +=
       ; use : int
       }
   | TypeMismatch of Type.type_ * Type.type_
-(*
-  | Misc of string
-  | NonCallableIdentifier of Ident.t * desc
-  | NonParameterizableIdentifier of Ident.t * desc
-  | InvalidVariableAtAssign of Ident.t * desc
-  | UnboundFact of Name.ident
-  | NonCallableInExpression of Ident.t * desc
-  | InvalidAnonymousAssignment
-  | GlobalChannelInExpr of Ident.t
-  | WildcardNotAllowed
-  | StructureFactMustBePredeclared
-*)
 
 (* let misc_errorf ~loc fmt = Format.kasprintf (fun s -> Error.raise ~loc (Misc s)) fmt *)
 
@@ -139,15 +127,19 @@ let print_desc desc ppf =
 
 type t =
   { vars : (Ident.t * desc) list
-  ; mutable facts : (Name.ident * (named_fact_desc * Type.type_ list option)) list
-    (* The fact environment is global therefore implemented as mutable *)
+  ; facts : (Name.ident * (named_fact_desc * Type.type_ list option)) list ref
+    (* The fact environment is global and must be shared by environments made
+       with record copies.  A mutable record field would be copied into an
+       independent mutable field, so this must be a shared [ref]. *)
   }
 
 let bindings x = x.vars
 
-let empty () = { vars= []; facts= [] }
+let facts x = !(x.facts)
 
-let singleton id desc = { vars= [(id, desc)]; facts= [] }
+let empty () = { vars= []; facts= ref [] }
+
+let singleton id desc = { vars= [(id, desc)]; facts= ref [] }
 
 let find_opt env name =
   List.find_opt (fun (id, _desc) -> name = fst id) env.vars
@@ -165,12 +157,9 @@ let update_fact env name v =
         List.rev_append rev_facts ((name, v) :: facts)
     | f :: facts -> update (f :: rev_facts) facts
   in
-  env.facts <- update [] env.facts
+  env.facts := update [] !(env.facts)
 
-let find_fact_opt env name = List.assoc_opt name env.facts
-
-
-
+let find_fact_opt env name = List.assoc_opt name !(env.facts)
 
 let must_be_fresh ~loc env name =
   if mem env name then Error.raise ~loc (IdentifierAlreadyBound name)

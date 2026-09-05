@@ -18,12 +18,10 @@ type Error.error +=
       ; use : Env.desc
       }
   | InvalidVariableAtAssign of Ident.t * Env.desc
-  | UnboundFact of Name.ident
   | NonCallableInExpression of Ident.t * Env.desc
   | InvalidAnonymousAssignment
   | GlobalChannelInExpr of Ident.t
   | WildcardNotAllowed
-  | StructureFactMustBePredeclared
   | TypeMismatch of Type.type_ * Type.type_
 
 let () = Error.add_printer @@ fun err ppf ->
@@ -70,15 +68,12 @@ let () = Error.add_printer @@ fun err ppf ->
         "%s variable %t cannot be assigned"
         (String.capitalize_ascii (Env.kind_of_desc desc))
         (Ident.print id)
-  | UnboundFact id -> Format.fprintf ppf "Unbound fact %s" id
   | InvalidAnonymousAssignment ->
       Format.pp_print_string ppf "Pure expression is used at _ := e, which has no effect"
   | GlobalChannelInExpr id ->
       Format.fprintf ppf "Global channel %t cannot be used in an expression" (Ident.print id)
   | WildcardNotAllowed ->
       Format.pp_print_string ppf "Wildcard '_' is only allowed in case/while guards"
-  | StructureFactMustBePredeclared ->
-      Format.pp_print_string ppf "Structure fact must be predeclared"
   | TypeMismatch (expected, actual) ->
       Format.fprintf
         ppf
@@ -281,22 +276,27 @@ let rec infer_cmd_result_type (cmd : Typed.cmd) =
   | Skip | Put _ | Assign _ | Event _ | Del _ -> TValue
 ;;
 
-let type_structure_fact ~loc env name es =
+(* Assign type variables for arguments if not yet *)
+let type_structure_fact ~loc env name (arity : int option) =
   (* [str] must be a structure fact *)
-  let nes = List.length es in
-  match Env.find_fact_opt env name with
-  | None -> Error.raise ~loc StructureFactMustBePredeclared
-  | Some (Structure, Some ftys) ->
-      if nes = List.length ftys then ftys
-      else
-        Error.raise ~loc @@
-        ArityMismatch { arity= List.length ftys; use= nes }
-  | Some (Structure, None) -> assert false
-  | Some (desc', _) ->
-      (* Not a structure *)
-      Error.raise ~loc @@
-      InvalidFact { name; def = desc'; use = Structure }
-;;
+  match Env.find_fact_opt env name, arity with
+  | None, None ->
+      Env.add_fact ~loc env name (Structure, None);
+      None
+  | Some (Structure, None), None ->
+      None
+  | (None | Some (Structure, None)), Some arity ->
+      let ftys = List.init arity (fun _ -> Type.fresh_type ()) in
+      Env.add_fact ~loc env name (Structure, Some ftys);
+      Some ftys
+  | Some (Structure, Some ftys), None ->
+      Some ftys
+  | Some (Structure, Some ftys), Some arity ->
+      if List.length ftys <> arity then
+        Error.raise ~loc @@ ArityMismatch { arity= List.length ftys; use= arity };
+      Some ftys
+  | Some (desc, _), _ ->
+      Error.raise ~loc @@ InvalidFact { name; def= desc; use= Structure }
 
 let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
   let loc = cmd.loc in
@@ -350,13 +350,13 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
           Option.map
             (fun (str, es) ->
                (* [str] must be a structure fact *)
-               let expected_types = type_structure_fact ~loc env str es in
+               let ftys =
+                 match type_structure_fact ~loc env str (Some (List.length es)) with
+                 | Some ftys -> ftys
+                 | None -> assert false
+               in
                let es = List.map (type_expr env) es in
-               List.iter2
-                 (fun expected (expr : Typed.expr) ->
-                    unify ~loc:expr.loc expected (type_of_expr expr))
-                 expected_types
-                 es;
+               List.iter2 (fun fty e -> unify ~loc:e.Typed.loc fty (type_of_expr e)) ftys es;
                str, es)
             str_es_opt
         in
@@ -367,7 +367,11 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
     | Get (names, e, str, cmd) ->
         (* fetch, [let x1,...,xn := e.S in c] *)
         let e = type_expr env e in
-        let field_types = type_structure_fact ~loc env str names in
+        let field_types =
+          match type_structure_fact ~loc env str (Some (List.length names)) with
+          | Some fty -> fty
+          | None -> assert false
+        in
         unify ~loc:e.loc TValue (type_of_expr e);
         let ids = List.map Ident.local names in
         let env' =
@@ -379,16 +383,12 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         in
         let cmd = type_cmd env' cmd in
         Get (ids, e, str, cmd)
-    | Del (e, str) ->
+    | Del (e, name) ->
         (* deletion, [delete e.S] *)
         let e = type_expr env e in
-        (match Env.find_fact_opt env str with
-         | Some (Structure, _types) -> ()
-         | Some (desc, _) ->
-             Error.raise ~loc @@ InvalidFact { name = str; def = desc; use = Structure }
-         | None -> Error.raise ~loc @@ UnboundFact str);
+        let _ = type_structure_fact ~loc env name None in
         unify ~loc:e.loc TValue (type_of_expr e);
-        Del (e, str)
+        Del (e, name)
   in
   { loc; env; desc }
 

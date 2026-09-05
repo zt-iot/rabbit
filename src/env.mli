@@ -23,15 +23,18 @@ type desc =
 
 val kind_of_desc : desc -> string
 
-val callable_type_of_desc : desc -> Type.callable_type option
-val type_of_desc : desc -> Type.type_ option
-
 val print_desc : desc -> Format.formatter -> unit
+
+val callable_type_of_desc : desc -> Type.callable_type option
+
+val type_of_desc : desc -> Type.type_ option
 
 (** Name checking environment *)
 type t
 
 val bindings : t -> (Ident.t * desc) list
+
+val facts : t -> (Name.ident * (named_fact_desc * Type.type_ list option)) list
 
 val empty : unit -> t
 
@@ -45,15 +48,13 @@ val find_opt_by_id : t -> Ident.t -> desc option
 
 val add : t -> Ident.t -> desc -> t
 
-val update_fact : t -> Name.ident -> named_fact_desc * Type.type_ list option -> unit
-(** If the binding already exists, it is overridden *)
-
-val find_fact_opt : t -> Name.ident -> (named_fact_desc * Type.type_ list option) option
-
 val find : loc:Location.t -> t -> Name.ident -> Ident.t * desc
+
 val find_desc : loc:Location.t -> t -> Name.ident -> desc -> Ident.t
 
 (** Fails if the name is bound in the environment *)
 val add_global : loc:Location.t -> t -> Name.ident -> desc -> t * Ident.t
+
+val find_fact_opt : t -> Name.ident -> (named_fact_desc * Type.type_ list option) option
 
 val add_fact : loc:Location.t -> t -> Name.ident -> named_fact_desc * Type.type_ list option -> unit
