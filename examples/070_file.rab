@@ -1,4 +1,3 @@
-structure Fd(_)
 
 syscall fopen (p) {
   case [p.x] ->

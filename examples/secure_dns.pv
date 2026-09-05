@@ -47,7 +47,6 @@ const data_record__str: bitstring.
 (* String constant "192.0.2.1" *)
 const value_192_0_2_1__str: bitstring.
 (* Body *)
-(* structure Fd(_) *)
 (* function pk:1 *)
 fun pk__0(bitstring): bitstring.
 (* function enc:2 *)
@@ -60,18 +59,18 @@ fun dec__0(bitstring, bitstring): bitstring.
 fun fst__0(bitstring): bitstring.
 (* function snd:1 *)
 fun snd__0(bitstring): bitstring.
-(* equation fst((x__1687, y__1688)) = x__1687 *)
-equation forall x__1687:bitstring, y__1688:bitstring; fst__0((x__1687, y__1688)) = x__1687.
-(* equation snd((x__1689, y__1690)) = y__1690 *)
-equation forall x__1689:bitstring, y__1690:bitstring; snd__0((x__1689, y__1690)) = y__1690.
+(* equation fst((x__1689, y__1690)) = x__1689 *)
+equation forall x__1689:bitstring, y__1690:bitstring; fst__0((x__1689, y__1690)) = x__1689.
+(* equation snd((x__1691, y__1692)) = y__1692 *)
+equation forall x__1691:bitstring, y__1692:bitstring; snd__0((x__1691, y__1692)) = y__1692.
 (* function true:0 *)
 fun true__0(): bitstring.
 (* function verify:3 *)
 fun verify__0(bitstring, bitstring, bitstring): bitstring.
-(* equation dec(enc(x__1691, y__1692), y__1692) = x__1691 *)
-equation forall x__1691:bitstring, y__1692:bitstring; dec__0(enc__0(x__1691, y__1692), y__1692) = x__1691.
-(* equation verify(sign(d__1693, k__1694), d__1693, pk(k__1694)) = true *)
-equation forall d__1693:bitstring, k__1694:bitstring; verify__0(sign__0(d__1693, k__1694), d__1693, pk__0(k__1694)) = true__0.
+(* equation dec(enc(x__1693, y__1694), y__1694) = x__1693 *)
+equation forall x__1693:bitstring, y__1694:bitstring; dec__0(enc__0(x__1693, y__1694), y__1694) = x__1693.
+(* equation verify(sign(d__1695, k__1696), d__1695, pk(k__1696)) = true *)
+equation forall d__1695:bitstring, k__1696:bitstring; verify__0(sign__0(d__1695, k__1696), d__1695, pk__0(k__1696)) = true__0.
 (* function hash:1 *)
 fun hash__0(bitstring): bitstring.
 (* type client : process *)
@@ -103,172 +102,172 @@ const auth_privk__0: bitstring[private].
 (* const fresh tls_symk *)
 const tls_symk__0: bitstring[private].
 (* process Client(..): client *)
-let Client__0(ptype:proc_t, ch_cache_in__1710:channel, ch_cache_out__1711:channel) =
-  (* Channel ch_cache_in__1710 : udp *)
-  insert channel_table(udp__0, ch_cache_in__1710);
-  (* Channel ch_cache_out__1711 : udp *)
-  insert channel_table(udp__0, ch_cache_out__1711);
+let Client__0(ptype:proc_t, ch_cache_in__1712:channel, ch_cache_out__1713:channel) =
+  (* Channel ch_cache_in__1712 : udp *)
+  insert channel_table(udp__0, ch_cache_in__1712);
+  (* Channel ch_cache_out__1713 : udp *)
+  insert channel_table(udp__0, ch_cache_out__1713);
   event ClientSendQuery__event_global(example_com__str);
-  get channel_table(ch_type__1764:acc_data_t, =ch_cache_out__1711) in
-  get access_control_table(=ptype, =ch_type__1764, =send__0__syscall) in
-  out(ch_cache_out__1711, store__chan(enc__0((example_com__str, hash__0(example_com__str)), tls_symk__0))) |
-  (get channel_table(ch_type__1763:acc_data_t, =ch_cache_in__1710) in
-   get access_control_table(=ptype, =ch_type__1763, =recv__0__syscall) in
-   in(ch_cache_in__1710, store__chan(case_arg_0__1751:bitstring));
-   new channel_case_ch__1752:channel;
-   (out(channel_case_ch__1752, (false__bool, (), example_com__str, hash__0(example_com__str), enc__0((example_com__str, hash__0(example_com__str)), tls_symk__0), ch_cache_in__1710)) |
-    in(channel_case_ch__1752, (=false__bool, channel_case_result__1758:bitstring, channel_case_state_0__1759:bitstring, channel_case_state_1__1760:bitstring, channel_case_state_2__1761:bitstring, channel_case_state_3__1762:channel))[precise];
-    out(channel_case_ch__1752, (true__bool, case_arg_0__1751, channel_case_state_0__1759, channel_case_state_1__1760, channel_case_state_2__1761, channel_case_state_3__1762))) |
-   in(channel_case_ch__1752, (=true__bool, channel_case_done_result__1753:bitstring, channel_case_done_state_0__1754:bitstring, channel_case_done_state_1__1755:bitstring, channel_case_done_state_2__1756:bitstring, channel_case_done_state_3__1757:channel))[precise];
+  get channel_table(ch_type__1766:acc_data_t, =ch_cache_out__1713) in
+  get access_control_table(=ptype, =ch_type__1766, =send__0__syscall) in
+  out(ch_cache_out__1713, store__chan(enc__0((example_com__str, hash__0(example_com__str)), tls_symk__0))) |
+  (get channel_table(ch_type__1765:acc_data_t, =ch_cache_in__1712) in
+   get access_control_table(=ptype, =ch_type__1765, =recv__0__syscall) in
+   in(ch_cache_in__1712, store__chan(case_arg_0__1753:bitstring));
+   new channel_case_ch__1754:channel;
+   (out(channel_case_ch__1754, (false__bool, (), example_com__str, hash__0(example_com__str), enc__0((example_com__str, hash__0(example_com__str)), tls_symk__0), ch_cache_in__1712)) |
+    in(channel_case_ch__1754, (=false__bool, channel_case_result__1760:bitstring, channel_case_state_0__1761:bitstring, channel_case_state_1__1762:bitstring, channel_case_state_2__1763:bitstring, channel_case_state_3__1764:channel))[precise];
+    out(channel_case_ch__1754, (true__bool, case_arg_0__1753, channel_case_state_0__1761, channel_case_state_1__1762, channel_case_state_2__1763, channel_case_state_3__1764))) |
+   in(channel_case_ch__1754, (=true__bool, channel_case_done_result__1755:bitstring, channel_case_done_state_0__1756:bitstring, channel_case_done_state_1__1757:bitstring, channel_case_done_state_2__1758:bitstring, channel_case_done_state_3__1759:channel))[precise];
    if
-     snd__0(dec__0(channel_case_done_result__1753, tls_symk__0)) = hash__0(fst__0(dec__0(channel_case_done_result__1753, tls_symk__0)))
+     snd__0(dec__0(channel_case_done_result__1755, tls_symk__0)) = hash__0(fst__0(dec__0(channel_case_done_result__1755, tls_symk__0)))
    then
-     event ClientRecvResponse__event_global(fst__0(fst__0(dec__0(channel_case_done_result__1753, tls_symk__0))), snd__0(fst__0(dec__0(channel_case_done_result__1753, tls_symk__0))))).
+     event ClientRecvResponse__event_global(fst__0(fst__0(dec__0(channel_case_done_result__1755, tls_symk__0))), snd__0(fst__0(dec__0(channel_case_done_result__1755, tls_symk__0))))).
 (* process DNScache(..): dnscache *)
-let DNScache__0(ptype:proc_t, ch_client_in__1721:channel, ch_client_out__1722:channel, ch_auth_out__1723:channel, ch_auth_in__1724:channel) =
-  (* Channel ch_client_in__1721 : udp *)
-  insert channel_table(udp__0, ch_client_in__1721);
-  (* Channel ch_client_out__1722 : udp *)
-  insert channel_table(udp__0, ch_client_out__1722);
-  (* Channel ch_auth_out__1723 : udp *)
-  insert channel_table(udp__0, ch_auth_out__1723);
-  (* Channel ch_auth_in__1724 : udp *)
-  insert channel_table(udp__0, ch_auth_in__1724);
-  new call_join_ch__1773:channel;
+let DNScache__0(ptype:proc_t, ch_client_in__1723:channel, ch_client_out__1724:channel, ch_auth_out__1725:channel, ch_auth_in__1726:channel) =
+  (* Channel ch_client_in__1723 : udp *)
+  insert channel_table(udp__0, ch_client_in__1723);
+  (* Channel ch_client_out__1724 : udp *)
+  insert channel_table(udp__0, ch_client_out__1724);
+  (* Channel ch_auth_out__1725 : udp *)
+  insert channel_table(udp__0, ch_auth_out__1725);
+  (* Channel ch_auth_in__1726 : udp *)
+  insert channel_table(udp__0, ch_auth_in__1726);
+  new call_join_ch__1775:channel;
   (new attack_choice_ch:channel;
    (out(attack_choice_ch, true__bool) |
     in(attack_choice_ch, _:bitstring);
-    get channel_table(ch_type__1776:acc_data_t, =ch_client_in__1721) in
-    get access_control_table(=ptype, =ch_type__1776, =recv__0__syscall) in
-    in(ch_client_in__1721, store__chan(case_arg_0__1765:bitstring));
-    new channel_case_ch__1766:channel;
-    (out(channel_case_ch__1766, (false__bool, (), ch_client_in__1721)) |
-     in(channel_case_ch__1766, (=false__bool, channel_case_result__1774:bitstring, channel_case_state_0__1775:channel))[precise];
-     out(channel_case_ch__1766, (true__bool, case_arg_0__1765, channel_case_state_0__1775))) |
-    in(channel_case_ch__1766, (=true__bool, channel_case_done_result__1767:bitstring, channel_case_done_state_0__1768:channel))[precise];
-    out(call_join_ch__1773, (true__bool, channel_case_done_result__1767))) |
+    get channel_table(ch_type__1778:acc_data_t, =ch_client_in__1723) in
+    get access_control_table(=ptype, =ch_type__1778, =recv__0__syscall) in
+    in(ch_client_in__1723, store__chan(case_arg_0__1767:bitstring));
+    new channel_case_ch__1768:channel;
+    (out(channel_case_ch__1768, (false__bool, (), ch_client_in__1723)) |
+     in(channel_case_ch__1768, (=false__bool, channel_case_result__1776:bitstring, channel_case_state_0__1777:channel))[precise];
+     out(channel_case_ch__1768, (true__bool, case_arg_0__1767, channel_case_state_0__1777))) |
+    in(channel_case_ch__1768, (=true__bool, channel_case_done_result__1769:bitstring, channel_case_done_state_0__1770:channel))[precise];
+    out(call_join_ch__1775, (true__bool, channel_case_done_result__1769))) |
    in(attack_choice_ch, _:bitstring);
-   get channel_table(ch_type__1780:acc_data_t, =ch_client_in__1721) in
-   get access_control_table(=ptype, =ch_type__1780, =recv__0__syscall) in
-   in(ch_client_in__1721, store__chan(case_arg_0__1769:bitstring));
-   new channel_case_ch__1770:channel;
-   (out(channel_case_ch__1770, (false__bool, (), ch_client_in__1721)) |
-    in(channel_case_ch__1770, (=false__bool, channel_case_result__1777:bitstring, channel_case_state_0__1778:channel))[precise];
-    in(attacker_ch, attacker_input__1779:bitstring);
-    out(channel_case_ch__1770, (true__bool, attacker_input__1779, channel_case_state_0__1778))) |
-   in(channel_case_ch__1770, (=true__bool, channel_case_done_result__1771:bitstring, channel_case_done_state_0__1772:channel))[precise];
-   out(call_join_ch__1773, (true__bool, channel_case_done_result__1771))) |
-  in(call_join_ch__1773, (=true__bool, call_result__1781:bitstring))[precise];
+   get channel_table(ch_type__1782:acc_data_t, =ch_client_in__1723) in
+   get access_control_table(=ptype, =ch_type__1782, =recv__0__syscall) in
+   in(ch_client_in__1723, store__chan(case_arg_0__1771:bitstring));
+   new channel_case_ch__1772:channel;
+   (out(channel_case_ch__1772, (false__bool, (), ch_client_in__1723)) |
+    in(channel_case_ch__1772, (=false__bool, channel_case_result__1779:bitstring, channel_case_state_0__1780:channel))[precise];
+    in(attacker_ch, attacker_input__1781:bitstring);
+    out(channel_case_ch__1772, (true__bool, attacker_input__1781, channel_case_state_0__1780))) |
+   in(channel_case_ch__1772, (=true__bool, channel_case_done_result__1773:bitstring, channel_case_done_state_0__1774:channel))[precise];
+   out(call_join_ch__1775, (true__bool, channel_case_done_result__1773))) |
+  in(call_join_ch__1775, (=true__bool, call_result__1783:bitstring))[precise];
   if
-    snd__0(dec__0(call_result__1781, tls_symk__0)) = hash__0(fst__0(dec__0(call_result__1781, tls_symk__0)))
+    snd__0(dec__0(call_result__1783, tls_symk__0)) = hash__0(fst__0(dec__0(call_result__1783, tls_symk__0)))
   then
-    new call_join_ch__1782:channel;
+    new call_join_ch__1784:channel;
     (new attack_choice_ch:channel;
      (out(attack_choice_ch, true__bool) |
       in(attack_choice_ch, _:bitstring);
-      get channel_table(ch_type__1783:acc_data_t, =ch_auth_out__1723) in
-      get access_control_table(=ptype, =ch_type__1783, =send__0__syscall) in
-      out(ch_auth_out__1723, store__chan(fst__0(dec__0(call_result__1781, tls_symk__0)))) |
-      out(call_join_ch__1782, (true__bool, (), call_result__1781, dec__0(call_result__1781, tls_symk__0), snd__0(dec__0(call_result__1781, tls_symk__0)), fst__0(dec__0(call_result__1781, tls_symk__0))))) |
+      get channel_table(ch_type__1785:acc_data_t, =ch_auth_out__1725) in
+      get access_control_table(=ptype, =ch_type__1785, =send__0__syscall) in
+      out(ch_auth_out__1725, store__chan(fst__0(dec__0(call_result__1783, tls_symk__0)))) |
+      out(call_join_ch__1784, (true__bool, (), call_result__1783, dec__0(call_result__1783, tls_symk__0), snd__0(dec__0(call_result__1783, tls_symk__0)), fst__0(dec__0(call_result__1783, tls_symk__0))))) |
      in(attack_choice_ch, _:bitstring);
-     get channel_table(ch_type__1784:acc_data_t, =ch_auth_out__1723) in
-     get access_control_table(=ptype, =ch_type__1784, =send__0__syscall) in
-     out(ch_auth_out__1723, store__chan(fst__0(dec__0(call_result__1781, tls_symk__0)))) |
-     out(attacker_ch, fst__0(dec__0(call_result__1781, tls_symk__0)));
-     out(call_join_ch__1782, (true__bool, (), call_result__1781, dec__0(call_result__1781, tls_symk__0), snd__0(dec__0(call_result__1781, tls_symk__0)), fst__0(dec__0(call_result__1781, tls_symk__0))))) |
-    in(call_join_ch__1782, (=true__bool, call_result__1785:bitstring, call_state_0__1786:bitstring, call_state_1__1787:bitstring, call_state_2__1788:bitstring, call_state_3__1789:bitstring))[precise];
-    new call_join_ch__1806:channel;
+     get channel_table(ch_type__1786:acc_data_t, =ch_auth_out__1725) in
+     get access_control_table(=ptype, =ch_type__1786, =send__0__syscall) in
+     out(ch_auth_out__1725, store__chan(fst__0(dec__0(call_result__1783, tls_symk__0)))) |
+     out(attacker_ch, fst__0(dec__0(call_result__1783, tls_symk__0)));
+     out(call_join_ch__1784, (true__bool, (), call_result__1783, dec__0(call_result__1783, tls_symk__0), snd__0(dec__0(call_result__1783, tls_symk__0)), fst__0(dec__0(call_result__1783, tls_symk__0))))) |
+    in(call_join_ch__1784, (=true__bool, call_result__1787:bitstring, call_state_0__1788:bitstring, call_state_1__1789:bitstring, call_state_2__1790:bitstring, call_state_3__1791:bitstring))[precise];
+    new call_join_ch__1808:channel;
     (new attack_choice_ch:channel;
      (out(attack_choice_ch, true__bool) |
       in(attack_choice_ch, _:bitstring);
-      get channel_table(ch_type__1813:acc_data_t, =ch_auth_in__1724) in
-      get access_control_table(=ptype, =ch_type__1813, =recv__0__syscall) in
-      in(ch_auth_in__1724, store__chan(case_arg_0__1790:bitstring));
-      new channel_case_ch__1791:channel;
-      (out(channel_case_ch__1791, (false__bool, (), call_state_0__1786, call_state_1__1787, call_state_2__1788, call_state_3__1789, ch_auth_in__1724)) |
-       in(channel_case_ch__1791, (=false__bool, channel_case_result__1807:bitstring, channel_case_state_0__1808:bitstring, channel_case_state_1__1809:bitstring, channel_case_state_2__1810:bitstring, channel_case_state_3__1811:bitstring, channel_case_state_4__1812:channel))[precise];
-       out(channel_case_ch__1791, (true__bool, case_arg_0__1790, channel_case_state_0__1808, channel_case_state_1__1809, channel_case_state_2__1810, channel_case_state_3__1811, channel_case_state_4__1812))) |
-      in(channel_case_ch__1791, (=true__bool, channel_case_done_result__1792:bitstring, channel_case_done_state_0__1793:bitstring, channel_case_done_state_1__1794:bitstring, channel_case_done_state_2__1795:bitstring, channel_case_done_state_3__1796:bitstring, channel_case_done_state_4__1797:channel))[precise];
-      out(call_join_ch__1806, (true__bool, channel_case_done_result__1792, channel_case_done_state_0__1793, channel_case_done_state_1__1794, channel_case_done_state_2__1795, channel_case_done_state_3__1796))) |
+      get channel_table(ch_type__1815:acc_data_t, =ch_auth_in__1726) in
+      get access_control_table(=ptype, =ch_type__1815, =recv__0__syscall) in
+      in(ch_auth_in__1726, store__chan(case_arg_0__1792:bitstring));
+      new channel_case_ch__1793:channel;
+      (out(channel_case_ch__1793, (false__bool, (), call_state_0__1788, call_state_1__1789, call_state_2__1790, call_state_3__1791, ch_auth_in__1726)) |
+       in(channel_case_ch__1793, (=false__bool, channel_case_result__1809:bitstring, channel_case_state_0__1810:bitstring, channel_case_state_1__1811:bitstring, channel_case_state_2__1812:bitstring, channel_case_state_3__1813:bitstring, channel_case_state_4__1814:channel))[precise];
+       out(channel_case_ch__1793, (true__bool, case_arg_0__1792, channel_case_state_0__1810, channel_case_state_1__1811, channel_case_state_2__1812, channel_case_state_3__1813, channel_case_state_4__1814))) |
+      in(channel_case_ch__1793, (=true__bool, channel_case_done_result__1794:bitstring, channel_case_done_state_0__1795:bitstring, channel_case_done_state_1__1796:bitstring, channel_case_done_state_2__1797:bitstring, channel_case_done_state_3__1798:bitstring, channel_case_done_state_4__1799:channel))[precise];
+      out(call_join_ch__1808, (true__bool, channel_case_done_result__1794, channel_case_done_state_0__1795, channel_case_done_state_1__1796, channel_case_done_state_2__1797, channel_case_done_state_3__1798))) |
      in(attack_choice_ch, _:bitstring);
-     get channel_table(ch_type__1821:acc_data_t, =ch_auth_in__1724) in
-     get access_control_table(=ptype, =ch_type__1821, =recv__0__syscall) in
-     in(ch_auth_in__1724, store__chan(case_arg_0__1798:bitstring));
-     new channel_case_ch__1799:channel;
-     (out(channel_case_ch__1799, (false__bool, (), call_state_0__1786, call_state_1__1787, call_state_2__1788, call_state_3__1789, ch_auth_in__1724)) |
-      in(channel_case_ch__1799, (=false__bool, channel_case_result__1814:bitstring, channel_case_state_0__1815:bitstring, channel_case_state_1__1816:bitstring, channel_case_state_2__1817:bitstring, channel_case_state_3__1818:bitstring, channel_case_state_4__1819:channel))[precise];
-      in(attacker_ch, attacker_input__1820:bitstring);
-      out(channel_case_ch__1799, (true__bool, attacker_input__1820, channel_case_state_0__1815, channel_case_state_1__1816, channel_case_state_2__1817, channel_case_state_3__1818, channel_case_state_4__1819))) |
-     in(channel_case_ch__1799, (=true__bool, channel_case_done_result__1800:bitstring, channel_case_done_state_0__1801:bitstring, channel_case_done_state_1__1802:bitstring, channel_case_done_state_2__1803:bitstring, channel_case_done_state_3__1804:bitstring, channel_case_done_state_4__1805:channel))[precise];
-     out(call_join_ch__1806, (true__bool, channel_case_done_result__1800, channel_case_done_state_0__1801, channel_case_done_state_1__1802, channel_case_done_state_2__1803, channel_case_done_state_3__1804))) |
-    in(call_join_ch__1806, (=true__bool, call_result__1822:bitstring, call_state_0__1823:bitstring, call_state_1__1824:bitstring, call_state_2__1825:bitstring, call_state_3__1826:bitstring))[precise];
+     get channel_table(ch_type__1823:acc_data_t, =ch_auth_in__1726) in
+     get access_control_table(=ptype, =ch_type__1823, =recv__0__syscall) in
+     in(ch_auth_in__1726, store__chan(case_arg_0__1800:bitstring));
+     new channel_case_ch__1801:channel;
+     (out(channel_case_ch__1801, (false__bool, (), call_state_0__1788, call_state_1__1789, call_state_2__1790, call_state_3__1791, ch_auth_in__1726)) |
+      in(channel_case_ch__1801, (=false__bool, channel_case_result__1816:bitstring, channel_case_state_0__1817:bitstring, channel_case_state_1__1818:bitstring, channel_case_state_2__1819:bitstring, channel_case_state_3__1820:bitstring, channel_case_state_4__1821:channel))[precise];
+      in(attacker_ch, attacker_input__1822:bitstring);
+      out(channel_case_ch__1801, (true__bool, attacker_input__1822, channel_case_state_0__1817, channel_case_state_1__1818, channel_case_state_2__1819, channel_case_state_3__1820, channel_case_state_4__1821))) |
+     in(channel_case_ch__1801, (=true__bool, channel_case_done_result__1802:bitstring, channel_case_done_state_0__1803:bitstring, channel_case_done_state_1__1804:bitstring, channel_case_done_state_2__1805:bitstring, channel_case_done_state_3__1806:bitstring, channel_case_done_state_4__1807:channel))[precise];
+     out(call_join_ch__1808, (true__bool, channel_case_done_result__1802, channel_case_done_state_0__1803, channel_case_done_state_1__1804, channel_case_done_state_2__1805, channel_case_done_state_3__1806))) |
+    in(call_join_ch__1808, (=true__bool, call_result__1824:bitstring, call_state_0__1825:bitstring, call_state_1__1826:bitstring, call_state_2__1827:bitstring, call_state_3__1828:bitstring))[precise];
     if
-      verify__0(snd__0(call_result__1822), fst__0(call_result__1822), auth_pubk__0) = true__0
+      verify__0(snd__0(call_result__1824), fst__0(call_result__1824), auth_pubk__0) = true__0
     then
-      event Cached__event_global(call_state_3__1826, fst__0(call_result__1822));
-      new call_join_ch__1827:channel;
+      event Cached__event_global(call_state_3__1828, fst__0(call_result__1824));
+      new call_join_ch__1829:channel;
       (new attack_choice_ch:channel;
        (out(attack_choice_ch, true__bool) |
         in(attack_choice_ch, _:bitstring);
-        get channel_table(ch_type__1828:acc_data_t, =ch_client_out__1722) in
-        get access_control_table(=ptype, =ch_type__1828, =send__0__syscall)
+        get channel_table(ch_type__1830:acc_data_t, =ch_client_out__1724) in
+        get access_control_table(=ptype, =ch_type__1830, =send__0__syscall)
         in
-        out(ch_client_out__1722, store__chan(enc__0(((call_state_3__1826, fst__0(call_result__1822)), hash__0((call_state_3__1826, fst__0(call_result__1822)))), tls_symk__0))) |
-        out(call_join_ch__1827, (true__bool, (), call_state_0__1823, call_state_1__1824, call_state_2__1825, call_state_3__1826, call_result__1822, fst__0(call_result__1822), snd__0(call_result__1822), verify__0(snd__0(call_result__1822), fst__0(call_result__1822), auth_pubk__0), (call_state_3__1826, fst__0(call_result__1822)), hash__0((call_state_3__1826, fst__0(call_result__1822))), enc__0(((call_state_3__1826, fst__0(call_result__1822)), hash__0((call_state_3__1826, fst__0(call_result__1822)))), tls_symk__0)))) |
+        out(ch_client_out__1724, store__chan(enc__0(((call_state_3__1828, fst__0(call_result__1824)), hash__0((call_state_3__1828, fst__0(call_result__1824)))), tls_symk__0))) |
+        out(call_join_ch__1829, (true__bool, (), call_state_0__1825, call_state_1__1826, call_state_2__1827, call_state_3__1828, call_result__1824, fst__0(call_result__1824), snd__0(call_result__1824), verify__0(snd__0(call_result__1824), fst__0(call_result__1824), auth_pubk__0), (call_state_3__1828, fst__0(call_result__1824)), hash__0((call_state_3__1828, fst__0(call_result__1824))), enc__0(((call_state_3__1828, fst__0(call_result__1824)), hash__0((call_state_3__1828, fst__0(call_result__1824)))), tls_symk__0)))) |
        in(attack_choice_ch, _:bitstring);
-       get channel_table(ch_type__1829:acc_data_t, =ch_client_out__1722) in
-       get access_control_table(=ptype, =ch_type__1829, =send__0__syscall) in
-       out(ch_client_out__1722, store__chan(enc__0(((call_state_3__1826, fst__0(call_result__1822)), hash__0((call_state_3__1826, fst__0(call_result__1822)))), tls_symk__0))) |
-       out(attacker_ch, enc__0(((call_state_3__1826, fst__0(call_result__1822)), hash__0((call_state_3__1826, fst__0(call_result__1822)))), tls_symk__0));
-       out(call_join_ch__1827, (true__bool, (), call_state_0__1823, call_state_1__1824, call_state_2__1825, call_state_3__1826, call_result__1822, fst__0(call_result__1822), snd__0(call_result__1822), verify__0(snd__0(call_result__1822), fst__0(call_result__1822), auth_pubk__0), (call_state_3__1826, fst__0(call_result__1822)), hash__0((call_state_3__1826, fst__0(call_result__1822))), enc__0(((call_state_3__1826, fst__0(call_result__1822)), hash__0((call_state_3__1826, fst__0(call_result__1822)))), tls_symk__0)))) |
-      in(call_join_ch__1827, (=true__bool, call_result__1830:bitstring, call_state_0__1831:bitstring, call_state_1__1832:bitstring, call_state_2__1833:bitstring, call_state_3__1834:bitstring, call_state_4__1835:bitstring, call_state_5__1836:bitstring, call_state_6__1837:bitstring, call_state_7__1838:bitstring, call_state_8__1839:bitstring, call_state_9__1840:bitstring, call_state_10__1841:bitstring))[precise].
+       get channel_table(ch_type__1831:acc_data_t, =ch_client_out__1724) in
+       get access_control_table(=ptype, =ch_type__1831, =send__0__syscall) in
+       out(ch_client_out__1724, store__chan(enc__0(((call_state_3__1828, fst__0(call_result__1824)), hash__0((call_state_3__1828, fst__0(call_result__1824)))), tls_symk__0))) |
+       out(attacker_ch, enc__0(((call_state_3__1828, fst__0(call_result__1824)), hash__0((call_state_3__1828, fst__0(call_result__1824)))), tls_symk__0));
+       out(call_join_ch__1829, (true__bool, (), call_state_0__1825, call_state_1__1826, call_state_2__1827, call_state_3__1828, call_result__1824, fst__0(call_result__1824), snd__0(call_result__1824), verify__0(snd__0(call_result__1824), fst__0(call_result__1824), auth_pubk__0), (call_state_3__1828, fst__0(call_result__1824)), hash__0((call_state_3__1828, fst__0(call_result__1824))), enc__0(((call_state_3__1828, fst__0(call_result__1824)), hash__0((call_state_3__1828, fst__0(call_result__1824)))), tls_symk__0)))) |
+      in(call_join_ch__1829, (=true__bool, call_result__1832:bitstring, call_state_0__1833:bitstring, call_state_1__1834:bitstring, call_state_2__1835:bitstring, call_state_3__1836:bitstring, call_state_4__1837:bitstring, call_state_5__1838:bitstring, call_state_6__1839:bitstring, call_state_7__1840:bitstring, call_state_8__1841:bitstring, call_state_9__1842:bitstring, call_state_10__1843:bitstring))[precise].
 (* process DNSauth(..): dnsauth *)
-let DNSauth__0(ptype:proc_t, ch_cache_in__1736:channel, ch_cache_out__1737:channel) =
-  (* Channel ch_cache_in__1736 : udp *)
-  insert channel_table(udp__0, ch_cache_in__1736);
-  (* Channel ch_cache_out__1737 : udp *)
-  insert channel_table(udp__0, ch_cache_out__1737);
+let DNSauth__0(ptype:proc_t, ch_cache_in__1738:channel, ch_cache_out__1739:channel) =
+  (* Channel ch_cache_in__1738 : udp *)
+  insert channel_table(udp__0, ch_cache_in__1738);
+  (* Channel ch_cache_out__1739 : udp *)
+  insert channel_table(udp__0, ch_cache_out__1739);
   (* file "/data/record" : dns_records = .. *)
   insert file_type_table(ptype, dns_records__0, data_record__str);
   new file_ch:channel;
   out(file_ch, (data_record__str, (example_com__str, value_192_0_2_1__str))) |
-  (get file_type_table(=ptype, file_type__1862:acc_data_t, =data_record__str)
+  (get file_type_table(=ptype, file_type__1864:acc_data_t, =data_record__str)
    in
-   get access_control_table(=ptype, =file_type__1862, =fopen__0__syscall) in
-   in(file_ch, (=data_record__str, file_contents__1842:bitstring))[precise];
-   new y__1701:bitstring;
-   get file_type_table(=ptype, file_type__1861:acc_data_t, =data_record__str)
+   get access_control_table(=ptype, =file_type__1864, =fopen__0__syscall) in
+   in(file_ch, (=data_record__str, file_contents__1844:bitstring))[precise];
+   new y__1703:bitstring;
+   get file_type_table(=ptype, file_type__1863:acc_data_t, =data_record__str)
    in
-   get access_control_table(=ptype, =file_type__1861, =fopen__0__syscall) in
-   out(file_ch, (data_record__str, file_contents__1842)) |
-   (get deleted_address_table(=Fd__struct_addr(Fd__struct(y__1701, file_contents__1842)))
+   get access_control_table(=ptype, =file_type__1863, =fopen__0__syscall) in
+   out(file_ch, (data_record__str, file_contents__1844)) |
+   (get deleted_address_table(=Fd__struct_addr(Fd__struct(y__1703, file_contents__1844)))
     else
-      event Record__event_global(fst__0(Fd__struct_par_1(Fd__struct(y__1701, file_contents__1842))), snd__0(Fd__struct_par_1(Fd__struct(y__1701, file_contents__1842))));
-      (get channel_table(ch_type__1860:acc_data_t, =ch_cache_in__1736) in
-       get access_control_table(=ptype, =ch_type__1860, =recv__0__syscall) in
-       in(ch_cache_in__1736, store__chan(case_arg_0__1843:bitstring));
-       new channel_case_ch__1844:channel;
-       (out(channel_case_ch__1844, (false__bool, (), data_record__str, Fd__struct(y__1701, file_contents__1842), Fd__struct_par_1(Fd__struct(y__1701, file_contents__1842)), fst__0(Fd__struct_par_1(Fd__struct(y__1701, file_contents__1842))), snd__0(Fd__struct_par_1(Fd__struct(y__1701, file_contents__1842))), ch_cache_in__1736)) |
-        in(channel_case_ch__1844, (=false__bool, channel_case_result__1853:bitstring, channel_case_state_0__1854:bitstring, channel_case_state_1__1855:bitstring, channel_case_state_2__1856:bitstring, channel_case_state_3__1857:bitstring, channel_case_state_4__1858:bitstring, channel_case_state_5__1859:channel))[precise];
-        out(channel_case_ch__1844, (true__bool, case_arg_0__1843, channel_case_state_0__1854, channel_case_state_1__1855, channel_case_state_2__1856, channel_case_state_3__1857, channel_case_state_4__1858, channel_case_state_5__1859))) |
-       in(channel_case_ch__1844, (=true__bool, channel_case_done_result__1845:bitstring, channel_case_done_state_0__1846:bitstring, channel_case_done_state_1__1847:bitstring, channel_case_done_state_2__1848:bitstring, channel_case_done_state_3__1849:bitstring, channel_case_done_state_4__1850:bitstring, channel_case_done_state_5__1851:channel))[precise];
-       if channel_case_done_result__1845 = channel_case_done_state_3__1849
+      event Record__event_global(fst__0(Fd__struct_par_1(Fd__struct(y__1703, file_contents__1844))), snd__0(Fd__struct_par_1(Fd__struct(y__1703, file_contents__1844))));
+      (get channel_table(ch_type__1862:acc_data_t, =ch_cache_in__1738) in
+       get access_control_table(=ptype, =ch_type__1862, =recv__0__syscall) in
+       in(ch_cache_in__1738, store__chan(case_arg_0__1845:bitstring));
+       new channel_case_ch__1846:channel;
+       (out(channel_case_ch__1846, (false__bool, (), data_record__str, Fd__struct(y__1703, file_contents__1844), Fd__struct_par_1(Fd__struct(y__1703, file_contents__1844)), fst__0(Fd__struct_par_1(Fd__struct(y__1703, file_contents__1844))), snd__0(Fd__struct_par_1(Fd__struct(y__1703, file_contents__1844))), ch_cache_in__1738)) |
+        in(channel_case_ch__1846, (=false__bool, channel_case_result__1855:bitstring, channel_case_state_0__1856:bitstring, channel_case_state_1__1857:bitstring, channel_case_state_2__1858:bitstring, channel_case_state_3__1859:bitstring, channel_case_state_4__1860:bitstring, channel_case_state_5__1861:channel))[precise];
+        out(channel_case_ch__1846, (true__bool, case_arg_0__1845, channel_case_state_0__1856, channel_case_state_1__1857, channel_case_state_2__1858, channel_case_state_3__1859, channel_case_state_4__1860, channel_case_state_5__1861))) |
+       in(channel_case_ch__1846, (=true__bool, channel_case_done_result__1847:bitstring, channel_case_done_state_0__1848:bitstring, channel_case_done_state_1__1849:bitstring, channel_case_done_state_2__1850:bitstring, channel_case_done_state_3__1851:bitstring, channel_case_done_state_4__1852:bitstring, channel_case_done_state_5__1853:channel))[precise];
+       if channel_case_done_result__1847 = channel_case_done_state_3__1851
        then
-         get channel_table(ch_type__1852:acc_data_t, =ch_cache_out__1737) in
-         get access_control_table(=ptype, =ch_type__1852, =send__0__syscall)
+         get channel_table(ch_type__1854:acc_data_t, =ch_cache_out__1739) in
+         get access_control_table(=ptype, =ch_type__1854, =send__0__syscall)
          in
-         out(ch_cache_out__1737, store__chan((channel_case_done_state_4__1850, sign__0(channel_case_done_state_4__1850, auth_privk__0)))) |
+         out(ch_cache_out__1739, store__chan((channel_case_done_state_4__1852, sign__0(channel_case_done_state_4__1852, auth_privk__0)))) |
          0))).
 (* Requires *)
 (* lemma x *)
-query y__1746:bitstring, x__1745:bitstring;
-  event(Cached__event_global(x__1745, y__1746)) ==> event(Record__event_global(x__1745, y__1746)).
-(* lemma y *)
 query y__1748:bitstring, x__1747:bitstring;
-  event(ClientRecvResponse__event_global(x__1747, y__1748)) ==> event(Cached__event_global(x__1747, y__1748)).
-(* lemma z *)
+  event(Cached__event_global(x__1747, y__1748)) ==> event(Record__event_global(x__1747, y__1748)).
+(* lemma y *)
 query y__1750:bitstring, x__1749:bitstring;
-  event(ClientRecvResponse__event_global(x__1749, y__1750)) ==> event(Record__event_global(x__1749, y__1750)).
+  event(ClientRecvResponse__event_global(x__1749, y__1750)) ==> event(Cached__event_global(x__1749, y__1750)).
+(* lemma z *)
+query y__1752:bitstring, x__1751:bitstring;
+  event(ClientRecvResponse__event_global(x__1751, y__1752)) ==> event(Record__event_global(x__1751, y__1752)).
 (* System *)
 process
   (* allow client udp [send] *)

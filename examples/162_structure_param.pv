@@ -33,7 +33,6 @@ const int__pos_1: bitstring.
 (* Integer constant 2 *)
 const int__pos_2: bitstring.
 (* Body *)
-(* structure S(_,_,parameter) *)
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)

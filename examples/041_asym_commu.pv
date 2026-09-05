@@ -100,9 +100,9 @@ let client__0(ptype:proc_t, ch__606:channel) =
 free chan__0: channel[private].
 (* Requires *)
 (* lemma Reachable *)
-query msg__609:bitstring;event(Valid__event_global(msg__609)).
+query msg__609:bitstring; event(Valid__event_global(msg__609)).
 (* lemma NotReachable *)
-query msg__610:bitstring;event(Invalid__event_global(msg__610)).
+query msg__610:bitstring; event(Invalid__event_global(msg__610)).
 (* lemma Corresponds *)
 query msg__611:bitstring;
   event(Valid__event_global(msg__611)) ==> event(Sent__event_global(msg__611)).

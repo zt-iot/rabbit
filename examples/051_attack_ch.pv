@@ -86,7 +86,7 @@ let alice__0(ptype:proc_t, ch__711:channel) =
 free ch__0: channel[private].
 (* Requires *)
 (* lemma Reachable *)
-query n__714:bitstring;event(Valid__event_global(n__714)).
+query n__714:bitstring; event(Valid__event_global(n__714)).
 (* lemma Corresponds *)
 query n__715:bitstring;
   event(Valid__event_global(n__715)) ==> event(Send__event_global(n__715)).

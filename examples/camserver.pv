@@ -26,20 +26,20 @@ reduc
   forall x_0:bitstring, x_1:channel; chid__struct_addr(chid__struct(x_0, x_1)) = x_0.
 reduc
   forall x_0:bitstring, x_1:channel; chid__struct_par_1(chid__struct(x_0, x_1)) = x_1.
-(* Channel fact declaration ack(..) *)
-fun ack__chan(): bitstring[data].
-(* Channel fact declaration Returned(..) *)
-fun Returned__chan(bitstring): bitstring[data].
-(* Channel fact declaration store(..) *)
-fun store__chan(bitstring): bitstring[data].
-(* Channel fact declaration invoke(..) *)
-fun invoke__chan(bitstring, bitstring, bitstring): bitstring[data].
 (* Channel fact declaration exit(..) *)
 fun exit__chan(): bitstring[data].
+(* Channel fact declaration Returned(..) *)
+fun Returned__chan(bitstring): bitstring[data].
+(* Channel fact declaration invoke(..) *)
+fun invoke__chan(bitstring, bitstring, bitstring): bitstring[data].
 (* Channel fact declaration conn(..) *)
 fun conn__chan(): bitstring[data].
+(* Channel fact declaration ack(..) *)
+fun ack__chan(): bitstring[data].
 (* Channel fact declaration req(..) *)
 fun req__chan(): bitstring[data].
+(* Channel fact declaration store(..) *)
+fun store__chan(bitstring): bitstring[data].
 (* passive attack eaves_mem(..) *)
 const eaves_mem__0__syscall: syscall_t.
 (* syscall fclose(..) *)
@@ -83,7 +83,6 @@ const sign_image__str: bitstring.
 (* String constant "/secret/pub" *)
 const secret_pub__str: bitstring.
 (* Body *)
-(* structure Fd(_) *)
 (* function pk:1 *)
 fun pk__0(bitstring): bitstring.
 (* function enc:2 *)
@@ -108,7 +107,6 @@ fun verify__0(bitstring, bitstring, bitstring): bitstring.
 equation forall x__953:bitstring, y__954:bitstring; dec__0(enc__0(x__953, y__954), y__954) = x__953.
 (* equation verify(sign(d__955, k__956), d__955, pk(k__956)) = true *)
 equation forall d__955:bitstring, k__956:bitstring; verify__0(sign__0(d__955, k__956), d__955, pk__0(k__956)) = true__0.
-(* structure chid(channel) *)
 (* function h:1 *)
 fun h__0(bitstring): bitstring.
 (* type readonly_t : filesys *)

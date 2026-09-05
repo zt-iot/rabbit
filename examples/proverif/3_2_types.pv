@@ -14,6 +14,8 @@ const none__syscall: syscall_t.
 (* Booleans *)
 const true__bool: bitstring.
 const false__bool: bitstring.
+(* Channel fact declaration store(..) *)
+fun store__chan(bitstring): bitstring[data].
 (* syscall send(..) *)
 const send__0__syscall: syscall_t.
 (* Event declaration ::Valid(..) *)

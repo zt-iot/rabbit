@@ -29,7 +29,6 @@ const secret_pub__str: bitstring.
 (* String constant "hello" *)
 const hello__str: bitstring.
 (* Body *)
-(* structure Fd(_) *)
 (* type server_t : process *)
 const server_t__0: proc_t.
 (* type readonly_t : filesys *)
@@ -52,7 +51,7 @@ let server__0(ptype:proc_t) =
    event Valid__event_global(Fd__struct(y__99, file_contents__102))).
 (* Requires *)
 (* lemma ReachableValid *)
-query fd__101:bitstring;event(Valid__event_global(fd__101)).
+query fd__101:bitstring; event(Valid__event_global(fd__101)).
 (* System *)
 process
   (* allow server_t readonly_t [fopen] *)

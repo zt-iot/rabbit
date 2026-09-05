@@ -5,7 +5,6 @@
    the ProVerif translation should record the deleted address by inserting
    [SAddr(x_struct)] into [deleted_address_table]. *)
 
-structure S(_, _, _)
 
 type proc_t : process
 

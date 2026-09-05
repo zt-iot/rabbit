@@ -1,4 +1,3 @@
-structure chid(channel)
 
 (** synchronous rpc channel *)
 syscall connect_rpc (c) {

@@ -58,7 +58,7 @@ let alice__0(ptype:proc_t) =
   in(case_ch__694, (=true__bool, case_done_result__695:bitstring, case_done_state_0__696:bitstring, case_done_state_1__697:bitstring))[precise].
 (* Requires *)
 (* lemma Reachable *)
-query n__689:bitstring;event(Valid__event_global(n__689)).
+query n__689:bitstring; event(Valid__event_global(n__689)).
 (* lemma Corresponds *)
 query n__690:bitstring;
   event(Valid__event_global(n__690)) ==> event(Send__event_global(n__690)).

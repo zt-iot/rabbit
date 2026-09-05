@@ -5,7 +5,6 @@
    Reviewed.
 *)
 
-structure handle(channel)
 
 function seal:1
 function first:1

@@ -1,4 +1,3 @@
-structure S(_)
 
 type proc_t : process
 

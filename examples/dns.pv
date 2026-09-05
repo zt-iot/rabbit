@@ -47,7 +47,6 @@ const data_record__str: bitstring.
 (* String constant "192.0.2.1" *)
 const value_192_0_2_1__str: bitstring.
 (* Body *)
-(* structure Fd(_) *)
 (* function pk:1 *)
 fun pk__0(bitstring): bitstring.
 (* function enc:2 *)

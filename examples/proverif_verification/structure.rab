@@ -3,7 +3,6 @@
    Reviewed.
 *)
 
-structure Box(_)
 
 const fresh payload
 

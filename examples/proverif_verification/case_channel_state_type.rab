@@ -5,7 +5,6 @@
    generated model.
 *)
 
-structure Holder(channel)
 
 type proc_t : process
 type chan_t : channel

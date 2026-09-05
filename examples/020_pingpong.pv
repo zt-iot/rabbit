@@ -14,10 +14,10 @@ const none__syscall: syscall_t.
 (* Booleans *)
 const true__bool: bitstring.
 const false__bool: bitstring.
-(* Channel fact declaration ping(..) *)
-fun ping__chan(bitstring): bitstring[data].
 (* Channel fact declaration pong(..) *)
 fun pong__chan(bitstring): bitstring[data].
+(* Channel fact declaration ping(..) *)
+fun ping__chan(bitstring): bitstring[data].
 (* Event declaration ::Pong(..) *)
 event Pong__event_global(bitstring).
 (* Event declaration ::Valid(..) *)
@@ -80,7 +80,7 @@ let bob__0(ptype:proc_t, ch__46:channel) =
 free chan__0: channel[private].
 (* Requires *)
 (* lemma Reachable *)
-query n__49:bitstring;event(Valid__event_global(n__49)).
+query n__49:bitstring; event(Valid__event_global(n__49)).
 (* lemma Corresponds *)
 query n__50:bitstring;
   event(Pong__event_global(n__50)) ==> event(Ping__event_global(n__50)).

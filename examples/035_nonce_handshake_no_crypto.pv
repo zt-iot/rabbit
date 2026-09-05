@@ -91,7 +91,7 @@ free chan__0: channel[private].
 free chan2__0: channel[private].
 (* Requires *)
 (* lemma Valid *)
-query n__451:bitstring;event(Valid__event_global(n__451)).
+query n__451:bitstring; event(Valid__event_global(n__451)).
 (* lemma Invalid *)
 query event(Invalid__event_global()).
 (* lemma Correspondence *)
