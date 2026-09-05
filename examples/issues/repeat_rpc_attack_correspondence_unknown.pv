@@ -1,0 +1,182 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Channel fact declaration Signed(..) *)
+fun Signed__chan(bitstring): bitstring[data].
+(* Channel fact declaration Sign(..) *)
+fun Sign__chan(bitstring): bitstring[data].
+(* Channel fact declaration M(..) *)
+fun M__chan(bitstring): bitstring[data].
+(* syscall invoke(..) *)
+const invoke__0__syscall: syscall_t.
+(* syscall receive(..) *)
+const receive__0__syscall: syscall_t.
+(* syscall send(..) *)
+const send__0__syscall: syscall_t.
+(* Event declaration ::P(..) *)
+event P__event_global(bitstring).
+(* Event declaration ::A(..) *)
+event A__event_global(bitstring).
+(* Body *)
+(* type p : process *)
+const p__0: proc_t.
+(* type signer_p : process *)
+const signer_p__0: proc_t.
+(* type transport_c : channel *)
+const transport_c__0: acc_data_t.
+(* type rpc_c : channel *)
+const rpc_c__0: acc_data_t.
+(* channel transport : transport_c *)
+free transport__0: channel[private].
+(* channel rpc : rpc_c *)
+free rpc__0: channel[private].
+(* process producer(..): p *)
+let producer__0(ptype:proc_t, transport__11:channel, rpc__12:channel) =
+  (* Channel transport__11 : transport_c *)
+  insert channel_table(transport_c__0, transport__11);
+  (* Channel rpc__12 : rpc_c *)
+  insert channel_table(rpc_c__0, rpc__12);
+  (* repeat-until at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 23, charaters 4-159 *)
+  new loop_ch__19:channel;
+  (out(loop_ch__19, (false__bool, ())) |
+   !(((* repeat case [  ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 25, charaters 8-101 *)
+      in(loop_ch__19, (=false__bool, loop_result__22:bitstring))[precise];
+      (* new x__13 in .. at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 25, charaters 8-101 *)
+      new x__13:bitstring;
+      (* _ := .. at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 26, charaters 8-27 *)
+      (* put [ ch__5::Sign(x__6) ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 4, charaters 2-19 *)
+      get channel_table(ch_type__35:acc_data_t, =rpc__12) in
+      get access_control_table(=ptype, =ch_type__35, =invoke__0__syscall) in
+      out(rpc__12, Sign__chan(x__13)) |
+      ((* case at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 5, charaters 32-37 *)
+       get channel_table(ch_type__34:acc_data_t, =rpc__12) in
+       get access_control_table(=ptype, =ch_type__34, =invoke__0__syscall) in
+       in(rpc__12, Signed__chan(case_arg_0__23:bitstring));
+       new channel_case_ch__24:channel;
+       (out(channel_case_ch__24, (false__bool, (), x__13, rpc__12, x__13)) |
+        in(channel_case_ch__24, (=false__bool, channel_case_result__30:bitstring, channel_case_state_0__31:bitstring, channel_case_state_1__32:channel, channel_case_state_2__33:bitstring))[precise];
+        (* case [ ch__5::Signed(proof__7) ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 5, charaters 32-37 *)
+        out(channel_case_ch__24, (true__bool, (* expr at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 5, charaters 32-37 *)
+                                              case_arg_0__23, channel_case_state_0__31, channel_case_state_1__32, channel_case_state_2__33))) |
+       (* end of case at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 5, charaters 32-37 *)
+       in(channel_case_ch__24, (=true__bool, channel_case_done_result__25:bitstring, channel_case_done_state_0__26:bitstring, channel_case_done_state_1__27:channel, channel_case_done_state_2__28:bitstring))[precise];
+       (* event [ ::P(x__13) ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 27, charaters 8-22 *)
+       event P__event_global(channel_case_done_state_0__26);
+       (* _ := .. at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 28, charaters 8-31 *)
+       (* put [ ch__1::M(x__2) ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 1, charaters 22-36 *)
+       get channel_table(ch_type__29:acc_data_t, =transport__11) in
+       get access_control_table(=ptype, =ch_type__29, =send__0__syscall) in
+       out(transport__11, M__chan(channel_case_done_state_0__26)) |
+       out(loop_ch__19, (false__bool, ())))) |
+     (* until case [  ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 30, charaters 12-16 *)
+     in(loop_ch__19, (=false__bool, loop_result__21:bitstring))[precise];
+     out(loop_ch__19, (true__bool, ())))) |
+  (* end of repeat-until at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 23, charaters 4-159 *)
+  in(loop_ch__19, (=true__bool, loop_done_result__20:bitstring))[precise].
+(* process signer(..): signer_p *)
+let signer__0(ptype:proc_t, rpc__14:channel) =
+  (* Channel rpc__14 : rpc_c *)
+  insert channel_table(rpc_c__0, rpc__14);
+  (* repeat-until at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 37, charaters 4-90 *)
+  new loop_ch__36:channel;
+  (out(loop_ch__36, (false__bool, ())) |
+   !(((* repeat case [ rpc__14::Sign(x__15) ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 38, charaters 24-44 *)
+      in(loop_ch__36, (=false__bool, loop_result__39:bitstring))[precise];
+      get channel_table(ch_type__42:acc_data_t, =rpc__14) in
+      get access_control_table(=ptype, =ch_type__42, =none__syscall) in
+      in(rpc__14, Sign__chan(case_arg_0__40:bitstring));
+      ((* put [ rpc__14::Signed(x__15) ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 38, charaters 24-44 *)
+       get channel_table(ch_type__41:acc_data_t, =rpc__14) in
+       get access_control_table(=ptype, =ch_type__41, =none__syscall) in
+       out(rpc__14, Signed__chan(case_arg_0__40)) |
+       out(loop_ch__36, (false__bool, ())))
+      else out(loop_ch__36, (false__bool, loop_result__39))
+      else out(loop_ch__36, (false__bool, loop_result__39))) |
+     (* until case [  ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 40, charaters 12-16 *)
+     in(loop_ch__36, (=false__bool, loop_result__38:bitstring))[precise];
+     out(loop_ch__36, (true__bool, ())))) |
+  (* end of repeat-until at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 37, charaters 4-90 *)
+  in(loop_ch__36, (=true__bool, loop_done_result__37:bitstring))[precise].
+(* process receiver(..): p *)
+let receiver__0(ptype:proc_t, transport__16:channel) =
+  (* Channel transport__16 : transport_c *)
+  insert channel_table(transport_c__0, transport__16);
+  (* repeat-until at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 47, charaters 4-118 *)
+  new loop_ch__43:channel;
+  (out(loop_ch__43, (false__bool, ())) |
+   !(((* repeat case [  ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 49, charaters 8-60 *)
+      in(loop_ch__43, (=false__bool, loop_result__46:bitstring))[precise];
+      (* let x__17 = .. in .. at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 49, charaters 8-60 *)
+      new call_join_ch__55:channel;
+      (new attack_choice_ch:channel;
+       (out(attack_choice_ch, true__bool) |
+        in(attack_choice_ch, _:bitstring);
+        (* case at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 2, charaters 43-44 *)
+        get channel_table(ch_type__58:acc_data_t, =transport__16) in
+        get access_control_table(=ptype, =ch_type__58, =receive__0__syscall)
+        in
+        in(transport__16, M__chan(case_arg_0__47:bitstring));
+        new channel_case_ch__48:channel;
+        (out(channel_case_ch__48, (false__bool, (), transport__16)) |
+         in(channel_case_ch__48, (=false__bool, channel_case_result__56:bitstring, channel_case_state_0__57:channel))[precise];
+         (* case [ ch__3::M(x__4) ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 2, charaters 43-44 *)
+         out(channel_case_ch__48, (true__bool, (* expr at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 2, charaters 43-44 *)
+                                               case_arg_0__47, channel_case_state_0__57))) |
+        (* end of case at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 2, charaters 43-44 *)
+        in(channel_case_ch__48, (=true__bool, channel_case_done_result__49:bitstring, channel_case_done_state_0__50:channel))[precise];
+        out(call_join_ch__55, (true__bool, channel_case_done_result__49))) |
+       in(attack_choice_ch, _:bitstring);
+       (* case at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 8, charaters 38-39 *)
+       get channel_table(ch_type__62:acc_data_t, =transport__16) in
+       get access_control_table(=ptype, =ch_type__62, =receive__0__syscall)
+       in
+       in(transport__16, M__chan(case_arg_0__51:bitstring));
+       new channel_case_ch__52:channel;
+       (out(channel_case_ch__52, (false__bool, (), transport__16)) |
+        in(channel_case_ch__52, (=false__bool, channel_case_result__59:bitstring, channel_case_state_0__60:channel))[precise];
+        (* case [ ch__8::M(ignored__9), ::In(x__10) ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 8, charaters 38-39 *)
+        in(attacker_ch, attacker_input__61:bitstring);
+        out(channel_case_ch__52, (true__bool, (* expr at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 8, charaters 38-39 *)
+                                              attacker_input__61, channel_case_state_0__60))) |
+       (* end of case at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 8, charaters 38-39 *)
+       in(channel_case_ch__52, (=true__bool, channel_case_done_result__53:bitstring, channel_case_done_state_0__54:channel))[precise];
+       out(call_join_ch__55, (true__bool, channel_case_done_result__53))) |
+      in(call_join_ch__55, (=true__bool, call_result__63:bitstring))[precise];
+      (* event [ ::A(x__17) ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 50, charaters 8-22 *)
+      event A__event_global(call_result__63);
+      out(loop_ch__43, (false__bool, ()))) |
+     (* until case [  ] at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 52, charaters 12-16 *)
+     in(loop_ch__43, (=false__bool, loop_result__45:bitstring))[precise];
+     out(loop_ch__43, (true__bool, ())))) |
+  (* end of repeat-until at file "examples/issues/repeat_rpc_attack_correspondence_unknown.rab", line 47, charaters 4-118 *)
+  in(loop_ch__43, (=true__bool, loop_done_result__44:bitstring))[precise].
+(* Requires *)
+(* lemma C *)
+query x__18:bitstring;
+  event(A__event_global(x__18)) ==> event(P__event_global(x__18)).
+(* System *)
+process
+  (* allow p transport_c [send] *)
+  insert access_control_table(p__0, transport_c__0, send__0__syscall);
+  (* allow p transport_c [receive] *)
+  insert access_control_table(p__0, transport_c__0, receive__0__syscall);
+  (* allow p rpc_c [invoke] *)
+  insert access_control_table(p__0, rpc_c__0, invoke__0__syscall);
+  (* allow signer_p rpc_c [.] *)
+  insert access_control_table(signer_p__0, rpc_c__0, none__syscall);
+  (producer__0(p__0, transport__0, rpc__0) | signer__0(signer_p__0, rpc__0)) |
+  receiver__0(p__0, transport__0)
+

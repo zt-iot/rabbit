@@ -1,0 +1,436 @@
+Process 0 (that is, the initial process):
+{1}insert access_control_table(p__0,c__0,none__syscall);
+(
+    {2}let ptype: proc_t = p__0 in
+    {3}let ch__1: channel = ch__0 in
+    {4}insert channel_table(c__0,ch__1);
+    {5}new loop_ch__7: channel;
+    (
+        {6}out(loop_ch__7, (false__bool,()))
+    ) | (
+        {7}!
+        (
+            {8}in(loop_ch__7, (=false__bool,loop_result__10: bitstring));
+            {9}new x__2: bitstring;
+            {23}get channel_table(ch_type__18: acc_data_t,=ch__1) in
+            {22}get access_control_table(=ptype,=ch_type__18,=none__syscall) in
+            (
+                {10}out(ch__1, Req__chan(x__2))
+            ) | (
+                {21}get channel_table(ch_type__17: acc_data_t,=ch__1) in
+                {20}get access_control_table(=ptype,=ch_type__17,=none__syscall) in
+                {11}in(ch__1, Rep__chan(case_arg_0__11: bitstring));
+                {12}new channel_case_ch__12: channel;
+                (
+                    {13}out(channel_case_ch__12, (false__bool,(),x__2))
+                ) | (
+                    {14}in(channel_case_ch__12, (=false__bool,channel_case_result__15: bitstring,channel_case_state_0__16: bitstring));
+                    {15}event P__event_global(channel_case_state_0__16);
+                    {16}event A__event_global(case_arg_0__11);
+                    {17}out(channel_case_ch__12, (true__bool,(),channel_case_state_0__16))
+                ) | (
+                    {18}in(channel_case_ch__12, (=true__bool,channel_case_done_result__13: bitstring,channel_case_done_state_0__14: bitstring));
+                    {19}out(loop_ch__7, (false__bool,channel_case_done_result__13))
+                )
+            )
+        ) | (
+            {24}in(loop_ch__7, (=false__bool,loop_result__9: bitstring));
+            {25}out(loop_ch__7, (true__bool,()))
+        )
+    ) | (
+        {26}in(loop_ch__7, (=true__bool,loop_done_result__8: bitstring))
+    )
+) | (
+    {27}let ptype_1: proc_t = p__0 in
+    {28}let ch__4: channel = ch__0 in
+    {29}insert channel_table(c__0,ch__4);
+    {40}get channel_table(ch_type__24: acc_data_t,=ch__4) in
+    {39}get access_control_table(=ptype_1,=ch_type__24,=none__syscall) in
+    {30}in(ch__4, Req__chan(case_arg_0__19: bitstring));
+    {31}new channel_case_ch__20: channel;
+    (
+        {32}out(channel_case_ch__20, (false__bool,()))
+    ) | (
+        {33}in(channel_case_ch__20, (=false__bool,channel_case_result__22: bitstring));
+        {37}get channel_table(ch_type__23: acc_data_t,=ch__4) in
+        {36}get access_control_table(=ptype_1,=ch_type__23,=none__syscall) in
+        (
+            {34}out(ch__4, Rep__chan(case_arg_0__19))
+        ) | (
+            {35}out(channel_case_ch__20, (true__bool,()))
+        )
+    ) | (
+        {38}in(channel_case_ch__20, (=true__bool,channel_case_done_result__21: bitstring))
+    )
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}insert access_control_table(p__0,c__0,none__syscall);
+(
+    {3}let ch__1: channel = ch__0 in
+    {4}insert channel_table(c__0,ch__1);
+    {5}new loop_ch__7: channel;
+    (
+        {6}out(loop_ch__7, (false__bool,()))
+    ) | (
+        {7}!
+        (
+            {8}in(loop_ch__7, (=false__bool,loop_result__10: bitstring));
+            {9}new x__2: bitstring;
+            {23}get channel_table(ch_type__18: acc_data_t,=ch__1) in
+            {2}let ptype: proc_t = p__0 in
+            {22}get access_control_table(=ptype,=ch_type__18,=none__syscall) in
+            (
+                {10}out(ch__1, Req__chan(x__2))
+            ) | (
+                {21}get channel_table(ch_type__17: acc_data_t,=ch__1) in
+                {20}get access_control_table(=ptype,=ch_type__17,=none__syscall) in
+                {11}in(ch__1, Rep__chan(case_arg_0__11: bitstring));
+                {12}new channel_case_ch__12: channel;
+                (
+                    {13}out(channel_case_ch__12, (false__bool,(),x__2))
+                ) | (
+                    {14}in(channel_case_ch__12, (=false__bool,channel_case_result__15: bitstring,channel_case_state_0__16: bitstring));
+                    {15}event P__event_global(channel_case_state_0__16);
+                    {16}event A__event_global(case_arg_0__11);
+                    {17}out(channel_case_ch__12, (true__bool,(),channel_case_state_0__16))
+                ) | (
+                    {18}in(channel_case_ch__12, (=true__bool,channel_case_done_result__13: bitstring,channel_case_done_state_0__14: bitstring));
+                    {19}out(loop_ch__7, (false__bool,channel_case_done_result__13))
+                )
+            )
+        ) | (
+            {24}in(loop_ch__7, (=false__bool,loop_result__9: bitstring));
+            {25}out(loop_ch__7, (true__bool,()))
+        )
+    ) | (
+        {26}in(loop_ch__7, (=true__bool,loop_done_result__8: bitstring))
+    )
+) | (
+    {28}let ch__4: channel = ch__0 in
+    {29}insert channel_table(c__0,ch__4);
+    {40}get channel_table(ch_type__24: acc_data_t,=ch__4) in
+    {27}let ptype_1: proc_t = p__0 in
+    {39}get access_control_table(=ptype_1,=ch_type__24,=none__syscall) in
+    {30}in(ch__4, Req__chan(case_arg_0__19: bitstring));
+    {31}new channel_case_ch__20: channel;
+    (
+        {32}out(channel_case_ch__20, (false__bool,()))
+    ) | (
+        {33}in(channel_case_ch__20, (=false__bool,channel_case_result__22: bitstring));
+        {37}get channel_table(ch_type__23: acc_data_t,=ch__4) in
+        {36}get access_control_table(=ptype_1,=ch_type__23,=none__syscall) in
+        (
+            {34}out(ch__4, Rep__chan(case_arg_0__19))
+        ) | (
+            {35}out(channel_case_ch__20, (true__bool,()))
+        )
+    ) | (
+        {38}in(channel_case_ch__20, (=true__bool,channel_case_done_result__21: bitstring))
+    )
+)
+
+-- Query event(A__event_global(x__6)) ==> event(P__event_global(x__6)) in process 1.
+Translating the process into Horn clauses...
+Initial clauses:
+Clause 0: attacker(true__bool)
+(The attacker applies function true__bool.)
+
+Clause 1: attacker(true)
+(The attacker applies function true.)
+
+Clause 2: attacker(p__0)
+(The attacker applies function p__0.)
+
+Clause 3: attacker(none__syscall)
+(The attacker applies function none__syscall.)
+
+Clause 4: attacker(false__bool)
+(The attacker applies function false__bool.)
+
+Clause 5: attacker(false)
+(The attacker applies function false.)
+
+Clause 6: attacker(c__0)
+(The attacker applies function c__0.)
+
+Clause 7: attacker(v) -> attacker(Req__chan(v))
+(The attacker applies function Req__chan.)
+
+Clause 8: attacker(Req__chan(v)) -> attacker(v)
+(The attacker applies function 1-proj-Req__chan.)
+
+Clause 9: attacker(v) -> attacker(Rep__chan(v))
+(The attacker applies function Rep__chan.)
+
+Clause 10: attacker(Rep__chan(v)) -> attacker(v)
+(The attacker applies function 1-proj-Rep__chan.)
+
+Clause 11: attacker(0)
+(The attacker applies function 0.)
+
+Clause 12: attacker(v) -> attacker(v + 1)
+(The attacker applies function +.)
+
+Clause 13: attacker(v + 1) -> attacker(v)
+(The attacker applies function - 1.)
+
+Clause 14: attacker(v) && attacker(v_1) && attacker(v_2) -> attacker((v,v_1,v_2))
+(The attacker applies function 3-tuple.)
+
+Clause 15: attacker((v,v_1,v_2)) -> attacker(v)
+(The attacker applies function 1-proj-3-tuple.)
+
+Clause 16: attacker((v,v_1,v_2)) -> attacker(v_1)
+(The attacker applies function 2-proj-3-tuple.)
+
+Clause 17: attacker((v,v_1,v_2)) -> attacker(v_2)
+(The attacker applies function 3-proj-3-tuple.)
+
+Clause 18: attacker(v) && attacker(v_1) -> attacker((v,v_1))
+(The attacker applies function 2-tuple.)
+
+Clause 19: attacker((v,v_1)) -> attacker(v)
+(The attacker applies function 1-proj-2-tuple.)
+
+Clause 20: attacker((v,v_1)) -> attacker(v_1)
+(The attacker applies function 2-proj-2-tuple.)
+
+Clause 21: attacker(())
+(The attacker applies function 0-tuple.)
+
+Clause 22: mess(v,v_1) && attacker(v) -> attacker(v_1)
+(The attacker can listen on all channels it has.)
+
+Clause 23: attacker(v) && attacker(v_1) -> mess(v,v_1)
+(The attacker can send messages it has on all channels it has.)
+
+Clause 24: attacker(fail-any_type)
+(Initial knowledge of the attacker.)
+
+Clause 25: attacker(attacker_ch[])
+(Initial knowledge of the attacker.)
+
+Clause 26: equal(v,v)
+(Definition of equal.)
+
+Clause 27: attacker(new-name_1)
+(The attacker can create new names.)
+Abbreviations:
+new-name_1 = new-name[!att = v]
+
+Clause 28: table(access_control_table(p__0,c__0,none__syscall))
+(The entry access_control_table(p__0,c__0,none__syscall) may be inserted in a table at insert {1}.)
+
+Clause 29: table(channel_table(c__0,ch__0[]))
+(The entry channel_table(c__0,ch__0[]) may be inserted in a table at insert {4}.)
+
+Clause 30: mess(loop_ch__7[],(false__bool,()))
+(The message (false__bool,()) may be sent on channel loop_ch__7[] at output {6}.)
+
+Clause 31: table(access_control_table(p__0,ch_type_,none__syscall)) && table(channel_table(ch_type_,ch__0[])) && mess(loop_ch__7[],(false__bool,loop_result_)) && b-event(@p_act(@occ8_1,(false__bool,loop_result_))) -> mess(ch__0[],Req__chan(x_))
+(If event @p_act(@occ8_1,(false__bool,loop_result_)) records how variables are instantiated at {8},
+the message (false__bool,loop_result_) is received on channel loop_ch__7[] at input {8},
+the entry channel_table(ch_type_,ch__0[]) is in a table at get {23},
+the entry access_control_table(p__0,ch_type_,none__syscall) is in a table at get {22},
+then the message Req__chan(x_) may be sent on channel ch__0[] at output {10}.)
+Abbreviations:
+x_ = x__2[loop_result__10 = loop_result_,!1 = @sid]
+@occ8_1 = @occ8[!1 = @sid]
+
+Clause 32: mess(ch__0[],Rep__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,none__syscall)) && table(channel_table(ch_type_,ch__0[])) && table(access_control_table(p__0,ch_type__1,none__syscall)) && table(channel_table(ch_type__1,ch__0[])) && mess(loop_ch__7[],(false__bool,loop_result_)) && b-event(@p_act(@occ8_1,(false__bool,loop_result_))) -> mess(channel_case_ch_,(false__bool,(),x_))
+(If event @p_act(@occ8_1,(false__bool,loop_result_)) records how variables are instantiated at {8},
+the message (false__bool,loop_result_) is received on channel loop_ch__7[] at input {8},
+the entry channel_table(ch_type__1,ch__0[]) is in a table at get {23},
+the entry access_control_table(p__0,ch_type__1,none__syscall) is in a table at get {22},
+the entry channel_table(ch_type_,ch__0[]) is in a table at get {21},
+the entry access_control_table(p__0,ch_type_,none__syscall) is in a table at get {20},
+the message Rep__chan(case_arg_0_) is received on channel ch__0[] at input {11},
+then the message (false__bool,(),x_) may be sent on channel channel_case_ch_ at output {13}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__12[case_arg_0__11 = case_arg_0_,ch_type__17 = ch_type_,ch_type__18 = ch_type__1,loop_result__10 = loop_result_,!1 = @sid]
+x_ = x__2[loop_result__10 = loop_result_,!1 = @sid]
+@occ8_1 = @occ8[!1 = @sid]
+
+Clause 33: b-event(P__event_global(channel_case_state_0_)) && mess(channel_case_ch_,(false__bool,channel_case_result_,channel_case_state_0_)) && b-event(@p_act(@occ14_1,(false__bool,channel_case_result_,channel_case_state_0_))) && mess(ch__0[],Rep__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,none__syscall)) && table(channel_table(ch_type_,ch__0[])) && table(access_control_table(p__0,ch_type__1,none__syscall)) && table(channel_table(ch_type__1,ch__0[])) && mess(loop_ch__7[],(false__bool,loop_result_)) && b-event(@p_act(@occ8_1,(false__bool,loop_result_))) -> event(A__event_global(case_arg_0_))
+(If event @p_act(@occ8_1,(false__bool,loop_result_)) records how variables are instantiated at {8},
+the message (false__bool,loop_result_) is received on channel loop_ch__7[] at input {8},
+the entry channel_table(ch_type__1,ch__0[]) is in a table at get {23},
+the entry access_control_table(p__0,ch_type__1,none__syscall) is in a table at get {22},
+the entry channel_table(ch_type_,ch__0[]) is in a table at get {21},
+the entry access_control_table(p__0,ch_type_,none__syscall) is in a table at get {20},
+the message Rep__chan(case_arg_0_) is received on channel ch__0[] at input {11},
+event @p_act(@occ14_1,(false__bool,channel_case_result_,channel_case_state_0_)) records how variables are instantiated at {14},
+the message (false__bool,channel_case_result_,channel_case_state_0_) is received on channel channel_case_ch_ at input {14},
+event P__event_global(channel_case_state_0_) is executed at {15},
+then event A__event_global(case_arg_0_) may be executed at {16}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__12[case_arg_0__11 = case_arg_0_,ch_type__17 = ch_type_,ch_type__18 = ch_type__1,loop_result__10 = loop_result_,!1 = @sid]
+@occ14_1 = @occ14[!1 = @sid]
+@occ8_1 = @occ8[!1 = @sid]
+
+Clause 34: b-event(P__event_global(channel_case_state_0_)) && mess(channel_case_ch_,(false__bool,channel_case_result_,channel_case_state_0_)) && b-event(@p_act(@occ14_1,(false__bool,channel_case_result_,channel_case_state_0_))) && mess(ch__0[],Rep__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,none__syscall)) && table(channel_table(ch_type_,ch__0[])) && table(access_control_table(p__0,ch_type__1,none__syscall)) && table(channel_table(ch_type__1,ch__0[])) && mess(loop_ch__7[],(false__bool,loop_result_)) && b-event(@p_act(@occ8_1,(false__bool,loop_result_))) -> mess(channel_case_ch_,(true__bool,(),channel_case_state_0_))
+(If event @p_act(@occ8_1,(false__bool,loop_result_)) records how variables are instantiated at {8},
+the message (false__bool,loop_result_) is received on channel loop_ch__7[] at input {8},
+the entry channel_table(ch_type__1,ch__0[]) is in a table at get {23},
+the entry access_control_table(p__0,ch_type__1,none__syscall) is in a table at get {22},
+the entry channel_table(ch_type_,ch__0[]) is in a table at get {21},
+the entry access_control_table(p__0,ch_type_,none__syscall) is in a table at get {20},
+the message Rep__chan(case_arg_0_) is received on channel ch__0[] at input {11},
+event @p_act(@occ14_1,(false__bool,channel_case_result_,channel_case_state_0_)) records how variables are instantiated at {14},
+the message (false__bool,channel_case_result_,channel_case_state_0_) is received on channel channel_case_ch_ at input {14},
+event P__event_global(channel_case_state_0_) is executed at {15},
+then the message (true__bool,(),channel_case_state_0_) may be sent on channel channel_case_ch_ at output {17}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__12[case_arg_0__11 = case_arg_0_,ch_type__17 = ch_type_,ch_type__18 = ch_type__1,loop_result__10 = loop_result_,!1 = @sid]
+@occ14_1 = @occ14[!1 = @sid]
+@occ8_1 = @occ8[!1 = @sid]
+
+Clause 35: mess(channel_case_ch_,(true__bool,channel_case_done_result_,channel_case_done_state_0_)) && b-event(@p_act(@occ18_1,(true__bool,channel_case_done_result_,channel_case_done_state_0_))) && mess(ch__0[],Rep__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,none__syscall)) && table(channel_table(ch_type_,ch__0[])) && table(access_control_table(p__0,ch_type__1,none__syscall)) && table(channel_table(ch_type__1,ch__0[])) && mess(loop_ch__7[],(false__bool,loop_result_)) && b-event(@p_act(@occ8_1,(false__bool,loop_result_))) -> mess(loop_ch__7[],(false__bool,channel_case_done_result_))
+(If event @p_act(@occ8_1,(false__bool,loop_result_)) records how variables are instantiated at {8},
+the message (false__bool,loop_result_) is received on channel loop_ch__7[] at input {8},
+the entry channel_table(ch_type__1,ch__0[]) is in a table at get {23},
+the entry access_control_table(p__0,ch_type__1,none__syscall) is in a table at get {22},
+the entry channel_table(ch_type_,ch__0[]) is in a table at get {21},
+the entry access_control_table(p__0,ch_type_,none__syscall) is in a table at get {20},
+the message Rep__chan(case_arg_0_) is received on channel ch__0[] at input {11},
+event @p_act(@occ18_1,(true__bool,channel_case_done_result_,channel_case_done_state_0_)) records how variables are instantiated at {18},
+the message (true__bool,channel_case_done_result_,channel_case_done_state_0_) is received on channel channel_case_ch_ at input {18},
+then the message (false__bool,channel_case_done_result_) may be sent on channel loop_ch__7[] at output {19}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__12[case_arg_0__11 = case_arg_0_,ch_type__17 = ch_type_,ch_type__18 = ch_type__1,loop_result__10 = loop_result_,!1 = @sid]
+@occ18_1 = @occ18[!1 = @sid]
+@occ8_1 = @occ8[!1 = @sid]
+
+Clause 36: mess(loop_ch__7[],(false__bool,loop_result_)) && b-event(@p_act(@occ24_1,(false__bool,loop_result_))) -> mess(loop_ch__7[],(true__bool,()))
+(If event @p_act(@occ24_1,(false__bool,loop_result_)) records how variables are instantiated at {24},
+the message (false__bool,loop_result_) is received on channel loop_ch__7[] at input {24},
+then the message (true__bool,()) may be sent on channel loop_ch__7[] at output {25}.)
+Abbreviations:
+@occ24_1 = @occ24[!1 = @sid]
+
+Clause 37: table(channel_table(c__0,ch__0[]))
+(The entry channel_table(c__0,ch__0[]) may be inserted in a table at insert {29}.)
+
+Clause 38: mess(ch__0[],Req__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,none__syscall)) && table(channel_table(ch_type_,ch__0[])) -> mess(channel_case_ch_,(false__bool,()))
+(If the entry channel_table(ch_type_,ch__0[]) is in a table at get {40},
+the entry access_control_table(p__0,ch_type_,none__syscall) is in a table at get {39},
+the message Req__chan(case_arg_0_) is received on channel ch__0[] at input {30},
+then the message (false__bool,()) may be sent on channel channel_case_ch_ at output {32}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__20[case_arg_0__19 = case_arg_0_,ch_type__24 = ch_type_]
+
+Clause 39: table(access_control_table(p__0,ch_type_,none__syscall)) && table(channel_table(ch_type_,ch__0[])) && mess(channel_case_ch_,(false__bool,channel_case_result_)) && b-event(@p_act(@occ33[],(false__bool,channel_case_result_))) && mess(ch__0[],Req__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type__1,none__syscall)) && table(channel_table(ch_type__1,ch__0[])) -> mess(ch__0[],Rep__chan(case_arg_0_))
+(If the entry channel_table(ch_type__1,ch__0[]) is in a table at get {40},
+the entry access_control_table(p__0,ch_type__1,none__syscall) is in a table at get {39},
+the message Req__chan(case_arg_0_) is received on channel ch__0[] at input {30},
+event @p_act(@occ33[],(false__bool,channel_case_result_)) records how variables are instantiated at {33},
+the message (false__bool,channel_case_result_) is received on channel channel_case_ch_ at input {33},
+the entry channel_table(ch_type_,ch__0[]) is in a table at get {37},
+the entry access_control_table(p__0,ch_type_,none__syscall) is in a table at get {36},
+then the message Rep__chan(case_arg_0_) may be sent on channel ch__0[] at output {34}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__20[case_arg_0__19 = case_arg_0_,ch_type__24 = ch_type__1]
+
+Clause 40: table(access_control_table(p__0,ch_type_,none__syscall)) && table(channel_table(ch_type_,ch__0[])) && mess(channel_case_ch_,(false__bool,channel_case_result_)) && b-event(@p_act(@occ33[],(false__bool,channel_case_result_))) && mess(ch__0[],Req__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type__1,none__syscall)) && table(channel_table(ch_type__1,ch__0[])) -> mess(channel_case_ch_,(true__bool,()))
+(If the entry channel_table(ch_type__1,ch__0[]) is in a table at get {40},
+the entry access_control_table(p__0,ch_type__1,none__syscall) is in a table at get {39},
+the message Req__chan(case_arg_0_) is received on channel ch__0[] at input {30},
+event @p_act(@occ33[],(false__bool,channel_case_result_)) records how variables are instantiated at {33},
+the message (false__bool,channel_case_result_) is received on channel channel_case_ch_ at input {33},
+the entry channel_table(ch_type_,ch__0[]) is in a table at get {37},
+the entry access_control_table(p__0,ch_type_,none__syscall) is in a table at get {36},
+then the message (true__bool,()) may be sent on channel channel_case_ch_ at output {35}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__20[case_arg_0__19 = case_arg_0_,ch_type__24 = ch_type__1]
+
+Completing...
+Starting query event(A__event_global(x__6)) ==> event(P__event_global(x__6))
+goal reachable: b-event(P__event_global(x_)) && b-event(@p_act(@occ14_1,(false__bool,(),x_))) && b-event(@p_act(@occ33[],(false__bool,()))) && b-event(@p_act(@occ8_1,(false__bool,()))) && b-event(@p_act(@occ8_2,(false__bool,()))) -> event(A__event_global(x__1))
+Abbreviations:
+x__1 = x__2[loop_result__10 = (),!1 = @sid]
+x_ = x__2[loop_result__10 = (),!1 = @sid_1]
+@occ14_1 = @occ14[!1 = @sid_1]
+@occ8_1 = @occ8[!1 = @sid]
+@occ8_2 = @occ8[!1 = @sid_1]
+
+Derivation:
+Abbreviations:
+x_ = x__2[loop_result__10 = (),!1 = @sid]
+x__1 = x__2[loop_result__10 = (),!1 = @sid_1]
+channel_case_ch_ = channel_case_ch__12[case_arg_0__11 = x_,ch_type__17 = c__0,ch_type__18 = c__0,loop_result__10 = (),!1 = @sid_1]
+@occ8_1 = @occ8[!1 = @sid_1]
+@occ14_1 = @occ14[!1 = @sid_1]
+channel_case_ch__1 = channel_case_ch__20[case_arg_0__19 = x_,ch_type__24 = c__0]
+@occ8_2 = @occ8[!1 = @sid]
+
+1. The message (false__bool,()) may be sent on channel loop_ch__7[] at output {6}.
+mess(loop_ch__7[],(false__bool,())).
+
+2. The entry channel_table(c__0,ch__0[]) may be inserted in a table at insert {4}.
+table(channel_table(c__0,ch__0[])).
+
+3. The entry access_control_table(p__0,c__0,none__syscall) may be inserted in a table at insert {1}.
+table(access_control_table(p__0,c__0,none__syscall)).
+
+4. The event @p_act(@occ8_2,(false__bool,())) records how variables are instantiated at {8}.
+The message (false__bool,()) that may be sent on channel loop_ch__7[] by 1 may be received at input {8}.
+The entry channel_table(c__0,ch__0[]) that may be in a table by 2 may be read at get {23}.
+The entry access_control_table(p__0,c__0,none__syscall) that may be in a table by 3 may be read at get {22}.
+So the message Req__chan(x_) may be sent on channel ch__0[] at output {10}.
+mess(ch__0[],Req__chan(x_)).
+
+5. The entry channel_table(c__0,ch__0[]) that may be in a table by 2 may be read at get {40}.
+The entry access_control_table(p__0,c__0,none__syscall) that may be in a table by 3 may be read at get {39}.
+The message Req__chan(x_) that may be sent on channel ch__0[] by 4 may be received at input {30}.
+So the message (false__bool,()) may be sent on channel channel_case_ch__1 at output {32}.
+mess(channel_case_ch__1,(false__bool,())).
+
+6. The entry channel_table(c__0,ch__0[]) that may be in a table by 2 may be read at get {40}.
+The entry access_control_table(p__0,c__0,none__syscall) that may be in a table by 3 may be read at get {39}.
+The message Req__chan(x_) that may be sent on channel ch__0[] by 4 may be received at input {30}.
+The event @p_act(@occ33[],(false__bool,())) records how variables are instantiated at {33}.
+The message (false__bool,()) that may be sent on channel channel_case_ch__1 by 5 may be received at input {33}.
+The entry channel_table(c__0,ch__0[]) that may be in a table by 2 may be read at get {37}.
+The entry access_control_table(p__0,c__0,none__syscall) that may be in a table by 3 may be read at get {36}.
+So the message Rep__chan(x_) may be sent on channel ch__0[] at output {34}.
+mess(ch__0[],Rep__chan(x_)).
+
+7. The event @p_act(@occ8_1,(false__bool,())) records how variables are instantiated at {8}.
+The message (false__bool,()) that may be sent on channel loop_ch__7[] by 1 may be received at input {8}.
+The entry channel_table(c__0,ch__0[]) that may be in a table by 2 may be read at get {23}.
+The entry access_control_table(p__0,c__0,none__syscall) that may be in a table by 3 may be read at get {22}.
+The entry channel_table(c__0,ch__0[]) that may be in a table by 2 may be read at get {21}.
+The entry access_control_table(p__0,c__0,none__syscall) that may be in a table by 3 may be read at get {20}.
+The message Rep__chan(x_) that may be sent on channel ch__0[] by 6 may be received at input {11}.
+So the message (false__bool,(),x__1) may be sent on channel channel_case_ch_ at output {13}.
+mess(channel_case_ch_,(false__bool,(),x__1)).
+
+8. The event @p_act(@occ8_1,(false__bool,())) records how variables are instantiated at {8}.
+The message (false__bool,()) that may be sent on channel loop_ch__7[] by 1 may be received at input {8}.
+The entry channel_table(c__0,ch__0[]) that may be in a table by 2 may be read at get {23}.
+The entry access_control_table(p__0,c__0,none__syscall) that may be in a table by 3 may be read at get {22}.
+The entry channel_table(c__0,ch__0[]) that may be in a table by 2 may be read at get {21}.
+The entry access_control_table(p__0,c__0,none__syscall) that may be in a table by 3 may be read at get {20}.
+The message Rep__chan(x_) that may be sent on channel ch__0[] by 6 may be received at input {11}.
+The event @p_act(@occ14_1,(false__bool,(),x__1)) records how variables are instantiated at {14}.
+The message (false__bool,(),x__1) that may be sent on channel channel_case_ch_ by 7 may be received at input {14}.
+The event P__event_global(x__1) may be executed at {15}.
+So event A__event_global(x_) may be executed at {16}.
+event(A__event_global(x_)).
+
+9. By 8, event(A__event_global(x_)).
+The goal is reached, represented in the following fact:
+event(A__event_global(x_)).
+
+
+Could not find a trace corresponding to this derivation.
+RESULT event(A__event_global(x__6)) ==> event(P__event_global(x__6)) cannot be proved.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query event(A__event_global(x__6)) ==> event(P__event_global(x__6)) cannot be proved.
+
+--------------------------------------------------------------
+

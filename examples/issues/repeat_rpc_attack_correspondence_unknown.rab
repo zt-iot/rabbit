@@ -1,0 +1,63 @@
+syscall send(ch, x) { put [ch::M(x)] }
+syscall receive(ch) { case | [ch::M(x)] -> x end }
+syscall invoke(ch, x) {
+  put [ch::Sign(x)];
+  case | [ch::Signed(proof)] -> proof end
+}
+attack substitute on receive(ch) {
+  case | [ch::M(ignored), ::In(x)] -> x end
+}
+type p : process
+type signer_p : process
+type transport_c : channel
+type rpc_c : channel
+allow p transport_c [send, receive]
+allow p rpc_c [invoke]
+allow signer_p rpc_c [.]
+allow attack p [substitute]
+channel transport : transport_c
+channel rpc : rpc_c
+
+process producer(transport : transport_c, rpc : rpc_c) : p {
+  main {
+    repeat
+    | [] ->
+        new x in
+        _ := invoke(rpc, x);
+        event [::P(x)];
+        _ := send(transport, x)
+    until
+    | [] -> skip
+    end
+  }
+}
+
+process signer(rpc : rpc_c) : signer_p {
+  main {
+    repeat
+    | [rpc::Sign(x)] -> put [rpc::Signed(x)]
+    until
+    | [] -> skip
+    end
+  }
+}
+
+process receiver(transport : transport_c) : p {
+  main {
+    repeat
+    | [] ->
+        var x = receive(transport) in
+        event [::A(x)]
+    until
+    | [] -> skip
+    end
+  }
+}
+
+system producer(transport, rpc) | signer(rpc) | receiver(transport)
+requires [
+  (* PROVERIF EXPECTED
+  unknown
+  *)
+  lemma C : (* falsified *) corresponds ::A(x) ~> ::P(x)
+]

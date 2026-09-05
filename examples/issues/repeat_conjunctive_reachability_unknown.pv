@@ -1,0 +1,65 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Channel fact declaration Exit(..) *)
+fun Exit__chan(): bitstring[data].
+(* Event declaration ::A(..) *)
+event A__event_global.
+(* Event declaration ::B(..) *)
+event B__event_global.
+(* Body *)
+(* type p : process *)
+const p__0: proc_t.
+(* type c : channel *)
+const c__0: acc_data_t.
+(* channel ch : c *)
+free ch__0: channel[private].
+(* process worker(..): p *)
+let worker__0(ptype:proc_t, ch__1:channel) =
+  (* Channel ch__1 : c *)
+  insert channel_table(c__0, ch__1);
+  (* repeat-until at file "examples/issues/repeat_conjunctive_reachability_unknown.rab", line 8, charaters 4-99 *)
+  new loop_ch__2:channel;
+  (out(loop_ch__2, (false__bool, ())) |
+   !(((* repeat case [  ] at file "examples/issues/repeat_conjunctive_reachability_unknown.rab", line 9, charaters 12-43 *)
+      in(loop_ch__2, (=false__bool, loop_result__6:bitstring))[precise];
+      (* event [ ::A() ] at file "examples/issues/repeat_conjunctive_reachability_unknown.rab", line 9, charaters 12-25 *)
+      event A__event_global;
+      (* put [ ch__1::Exit() ] at file "examples/issues/repeat_conjunctive_reachability_unknown.rab", line 9, charaters 27-43 *)
+      get channel_table(ch_type__7:acc_data_t, =ch__1) in
+      get access_control_table(=ptype, =ch_type__7, =none__syscall) in
+      out(ch__1, Exit__chan()) | out(loop_ch__2, (false__bool, ()))) |
+     (* until case [ ch__1::Exit() ] at file "examples/issues/repeat_conjunctive_reachability_unknown.rab", line 11, charaters 22-26 *)
+     in(loop_ch__2, (=false__bool, loop_result__4:bitstring))[precise];
+     get channel_table(ch_type__5:acc_data_t, =ch__1) in
+     get access_control_table(=ptype, =ch_type__5, =none__syscall) in
+     in(ch__1, Exit__chan());
+     out(loop_ch__2, (true__bool, ()))
+     else out(loop_ch__2, (false__bool, loop_result__4))
+     else out(loop_ch__2, (false__bool, loop_result__4)))) |
+  (* end of repeat-until at file "examples/issues/repeat_conjunctive_reachability_unknown.rab", line 8, charaters 4-99 *)
+  in(loop_ch__2, (=true__bool, loop_done_result__3:bitstring))[precise];
+  (* event [ ::B() ] at file "examples/issues/repeat_conjunctive_reachability_unknown.rab", line 13, charaters 4-17 *)
+  event B__event_global.
+(* Requires *)
+(* lemma Reverse *)
+query event(B__event_global()) && event(A__event_global()).
+(* System *)
+process
+  (* allow p c [.] *)
+  insert access_control_table(p__0, c__0, none__syscall);
+  worker__0(p__0, ch__0)
+

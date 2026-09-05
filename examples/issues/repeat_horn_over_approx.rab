@@ -1,0 +1,31 @@
+type p : process
+type c : channel
+allow p c [.]
+channel ch : c
+
+process client(ch : c) : p {
+  main {
+    repeat
+    | [] ->
+        new x in
+        put [ch::Req(x)];
+        case
+        | [ch::Rep(y)] -> event [::P(x)]; event [::A(y)]
+        end
+    until
+    | [] -> skip
+    end
+  }
+}
+
+process server(ch : c) : p {
+  main { case | [ch::Req(x)] -> put [ch::Rep(x)] end }
+}
+
+system client(ch) | server(ch)
+requires [
+  (* PROVERIF EXPECTED
+  unknown
+  *)
+  lemma C : (* verified *) corresponds ::A(x) ~> ::P(x)
+]

@@ -1,0 +1,23 @@
+type p : process
+type c : channel
+allow p c [.]
+channel ch : c
+
+process worker(ch : c) : p {
+  main {
+    repeat
+    | [] -> event [::A()]; put [ch::Exit()]
+    until
+    | [ch::Exit()] -> skip
+    end;
+    event [::B()]
+  }
+}
+
+system worker(ch)
+requires [
+  (* PROVERIF EXPECTED
+  unknown
+  *)
+  lemma Reverse : (* verified *) reachable ::B(), ::A()
+]

@@ -1,0 +1,96 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Channel fact declaration Rep(..) *)
+fun Rep__chan(bitstring): bitstring[data].
+(* Channel fact declaration Req(..) *)
+fun Req__chan(bitstring): bitstring[data].
+(* Event declaration ::A(..) *)
+event A__event_global(bitstring).
+(* Event declaration ::P(..) *)
+event P__event_global(bitstring).
+(* Body *)
+(* type p : process *)
+const p__0: proc_t.
+(* type c : channel *)
+const c__0: acc_data_t.
+(* channel ch : c *)
+free ch__0: channel[private].
+(* process client(..): p *)
+let client__0(ptype:proc_t, ch__1:channel) =
+  (* Channel ch__1 : c *)
+  insert channel_table(c__0, ch__1);
+  (* repeat-until at file "examples/issues/repeat_horn_over_approx.rab", line 8, charaters 4-182 *)
+  new loop_ch__7:channel;
+  (out(loop_ch__7, (false__bool, ())) |
+   !(((* repeat case [  ] at file "examples/issues/repeat_horn_over_approx.rab", line 10, charaters 8-124 *)
+      in(loop_ch__7, (=false__bool, loop_result__10:bitstring))[precise];
+      (* new x__2 in .. at file "examples/issues/repeat_horn_over_approx.rab", line 10, charaters 8-124 *)
+      new x__2:bitstring;
+      (* put [ ch__1::Req(x__2) ] at file "examples/issues/repeat_horn_over_approx.rab", line 11, charaters 8-24 *)
+      get channel_table(ch_type__18:acc_data_t, =ch__1) in
+      get access_control_table(=ptype, =ch_type__18, =none__syscall) in
+      out(ch__1, Req__chan(x__2)) |
+      ((* case at file "examples/issues/repeat_horn_over_approx.rab", line 13, charaters 26-56 *)
+       get channel_table(ch_type__17:acc_data_t, =ch__1) in
+       get access_control_table(=ptype, =ch_type__17, =none__syscall) in
+       in(ch__1, Rep__chan(case_arg_0__11:bitstring));
+       new channel_case_ch__12:channel;
+       (out(channel_case_ch__12, (false__bool, (), x__2)) |
+        in(channel_case_ch__12, (=false__bool, channel_case_result__15:bitstring, channel_case_state_0__16:bitstring))[precise];
+        (* case [ ch__1::Rep(y__3) ] at file "examples/issues/repeat_horn_over_approx.rab", line 13, charaters 26-56 *)
+        (* event [ ::P(x__2) ] at file "examples/issues/repeat_horn_over_approx.rab", line 13, charaters 26-40 *)
+        event P__event_global(channel_case_state_0__16);
+        (* event [ ::A(y__3) ] at file "examples/issues/repeat_horn_over_approx.rab", line 13, charaters 42-56 *)
+        event A__event_global(case_arg_0__11);
+        out(channel_case_ch__12, (true__bool, (), channel_case_state_0__16))) |
+       (* end of case at file "examples/issues/repeat_horn_over_approx.rab", line 13, charaters 26-56 *)
+       in(channel_case_ch__12, (=true__bool, channel_case_done_result__13:bitstring, channel_case_done_state_0__14:bitstring))[precise];
+       out(loop_ch__7, (false__bool, channel_case_done_result__13)))) |
+     (* until case [  ] at file "examples/issues/repeat_horn_over_approx.rab", line 16, charaters 12-16 *)
+     in(loop_ch__7, (=false__bool, loop_result__9:bitstring))[precise];
+     out(loop_ch__7, (true__bool, ())))) |
+  (* end of repeat-until at file "examples/issues/repeat_horn_over_approx.rab", line 8, charaters 4-182 *)
+  in(loop_ch__7, (=true__bool, loop_done_result__8:bitstring))[precise].
+(* process server(..): p *)
+let server__0(ptype:proc_t, ch__4:channel) =
+  (* Channel ch__4 : c *)
+  insert channel_table(c__0, ch__4);
+  (* case at file "examples/issues/repeat_horn_over_approx.rab", line 22, charaters 32-48 *)
+  get channel_table(ch_type__24:acc_data_t, =ch__4) in
+  get access_control_table(=ptype, =ch_type__24, =none__syscall) in
+  in(ch__4, Req__chan(case_arg_0__19:bitstring));
+  new channel_case_ch__20:channel;
+  (out(channel_case_ch__20, (false__bool, ())) |
+   in(channel_case_ch__20, (=false__bool, channel_case_result__22:bitstring))[precise];
+   (* case [ ch__4::Req(x__5) ] at file "examples/issues/repeat_horn_over_approx.rab", line 22, charaters 32-48 *)
+   (* put [ ch__4::Rep(x__5) ] at file "examples/issues/repeat_horn_over_approx.rab", line 22, charaters 32-48 *)
+   get channel_table(ch_type__23:acc_data_t, =ch__4) in
+   get access_control_table(=ptype, =ch_type__23, =none__syscall) in
+   out(ch__4, Rep__chan(case_arg_0__19)) |
+   out(channel_case_ch__20, (true__bool, ()))) |
+  (* end of case at file "examples/issues/repeat_horn_over_approx.rab", line 22, charaters 32-48 *)
+  in(channel_case_ch__20, (=true__bool, channel_case_done_result__21:bitstring))[precise].
+(* Requires *)
+(* lemma C *)
+query x__6:bitstring;
+  event(A__event_global(x__6)) ==> event(P__event_global(x__6)).
+(* System *)
+process
+  (* allow p c [.] *)
+  insert access_control_table(p__0, c__0, none__syscall);
+  client__0(p__0, ch__0) | server__0(p__0, ch__0)
+

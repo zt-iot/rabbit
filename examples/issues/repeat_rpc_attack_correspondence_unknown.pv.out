@@ -1,0 +1,900 @@
+Process 0 (that is, the initial process):
+{1}insert access_control_table(p__0,transport_c__0,send__0__syscall);
+{2}insert access_control_table(p__0,transport_c__0,receive__0__syscall);
+{3}insert access_control_table(p__0,rpc_c__0,invoke__0__syscall);
+{4}insert access_control_table(signer_p__0,rpc_c__0,none__syscall);
+(
+    {5}let ptype: proc_t = p__0 in
+    {6}let transport__11: channel = transport__0 in
+    {7}let rpc__12: channel = rpc__0 in
+    {8}insert channel_table(transport_c__0,transport__11);
+    {9}insert channel_table(rpc_c__0,rpc__12);
+    {10}new loop_ch__19: channel;
+    (
+        {11}out(loop_ch__19, (false__bool,()))
+    ) | (
+        {12}!
+        (
+            {13}in(loop_ch__19, (=false__bool,loop_result__22: bitstring));
+            {14}new x__13: bitstring;
+            {30}get channel_table(ch_type__35: acc_data_t,=rpc__12) in
+            {29}get access_control_table(=ptype,=ch_type__35,=invoke__0__syscall) in
+            (
+                {15}out(rpc__12, Sign__chan(x__13))
+            ) | (
+                {28}get channel_table(ch_type__34: acc_data_t,=rpc__12) in
+                {27}get access_control_table(=ptype,=ch_type__34,=invoke__0__syscall) in
+                {16}in(rpc__12, Signed__chan(case_arg_0__23: bitstring));
+                {17}new channel_case_ch__24: channel;
+                (
+                    {18}out(channel_case_ch__24, (false__bool,(),x__13,rpc__12,x__13))
+                ) | (
+                    {19}in(channel_case_ch__24, (=false__bool,channel_case_result__30: bitstring,channel_case_state_0__31: bitstring,channel_case_state_1__32: channel,channel_case_state_2__33: bitstring));
+                    {20}out(channel_case_ch__24, (true__bool,case_arg_0__23,channel_case_state_0__31,channel_case_state_1__32,channel_case_state_2__33))
+                ) | (
+                    {21}in(channel_case_ch__24, (=true__bool,channel_case_done_result__25: bitstring,channel_case_done_state_0__26: bitstring,channel_case_done_state_1__27: channel,channel_case_done_state_2__28: bitstring));
+                    {22}event P__event_global(channel_case_done_state_0__26);
+                    {26}get channel_table(ch_type__29: acc_data_t,=transport__11) in
+                    {25}get access_control_table(=ptype,=ch_type__29,=send__0__syscall) in
+                    (
+                        {23}out(transport__11, M__chan(channel_case_done_state_0__26))
+                    ) | (
+                        {24}out(loop_ch__19, (false__bool,()))
+                    )
+                )
+            )
+        ) | (
+            {31}in(loop_ch__19, (=false__bool,loop_result__21: bitstring));
+            {32}out(loop_ch__19, (true__bool,()))
+        )
+    ) | (
+        {33}in(loop_ch__19, (=true__bool,loop_done_result__20: bitstring))
+    )
+) | (
+    {34}let ptype_1: proc_t = signer_p__0 in
+    {35}let rpc__14: channel = rpc__0 in
+    {36}insert channel_table(rpc_c__0,rpc__14);
+    {37}new loop_ch__36: channel;
+    (
+        {38}out(loop_ch__36, (false__bool,()))
+    ) | (
+        {39}!
+        (
+            {40}in(loop_ch__36, (=false__bool,loop_result__39: bitstring));
+            {49}get channel_table(ch_type__42: acc_data_t,=rpc__14) in
+            (
+                {47}get access_control_table(=ptype_1,=ch_type__42,=none__syscall) in
+                (
+                    {41}in(rpc__14, Sign__chan(case_arg_0__40: bitstring));
+                    {45}get channel_table(ch_type__41: acc_data_t,=rpc__14) in
+                    {44}get access_control_table(=ptype_1,=ch_type__41,=none__syscall) in
+                    (
+                        {42}out(rpc__14, Signed__chan(case_arg_0__40))
+                    ) | (
+                        {43}out(loop_ch__36, (false__bool,()))
+                    )
+                )
+                else
+                    {46}out(loop_ch__36, (false__bool,loop_result__39))
+            )
+            else
+                {48}out(loop_ch__36, (false__bool,loop_result__39))
+        ) | (
+            {50}in(loop_ch__36, (=false__bool,loop_result__38: bitstring));
+            {51}out(loop_ch__36, (true__bool,()))
+        )
+    ) | (
+        {52}in(loop_ch__36, (=true__bool,loop_done_result__37: bitstring))
+    )
+) | (
+    {53}let ptype_2: proc_t = p__0 in
+    {54}let transport__16: channel = transport__0 in
+    {55}insert channel_table(transport_c__0,transport__16);
+    {56}new loop_ch__43: channel;
+    (
+        {57}out(loop_ch__43, (false__bool,()))
+    ) | (
+        {58}!
+        (
+            {59}in(loop_ch__43, (=false__bool,loop_result__46: bitstring));
+            {60}new call_join_ch__55: channel;
+            (
+                {61}new attack_choice_ch: channel;
+                (
+                    {62}out(attack_choice_ch, true__bool)
+                ) | (
+                    {63}in(attack_choice_ch, ignored_v: bitstring);
+                    {72}get channel_table(ch_type__58: acc_data_t,=transport__16) in
+                    {71}get access_control_table(=ptype_2,=ch_type__58,=receive__0__syscall) in
+                    {64}in(transport__16, M__chan(case_arg_0__47: bitstring));
+                    {65}new channel_case_ch__48: channel;
+                    (
+                        {66}out(channel_case_ch__48, (false__bool,(),transport__16))
+                    ) | (
+                        {67}in(channel_case_ch__48, (=false__bool,channel_case_result__56: bitstring,channel_case_state_0__57: channel));
+                        {68}out(channel_case_ch__48, (true__bool,case_arg_0__47,channel_case_state_0__57))
+                    ) | (
+                        {69}in(channel_case_ch__48, (=true__bool,channel_case_done_result__49: bitstring,channel_case_done_state_0__50: channel));
+                        {70}out(call_join_ch__55, (true__bool,channel_case_done_result__49))
+                    )
+                ) | (
+                    {73}in(attack_choice_ch, ignored_v_1: bitstring);
+                    {83}get channel_table(ch_type__62: acc_data_t,=transport__16) in
+                    {82}get access_control_table(=ptype_2,=ch_type__62,=receive__0__syscall) in
+                    {74}in(transport__16, M__chan(case_arg_0__51: bitstring));
+                    {75}new channel_case_ch__52: channel;
+                    (
+                        {76}out(channel_case_ch__52, (false__bool,(),transport__16))
+                    ) | (
+                        {77}in(channel_case_ch__52, (=false__bool,channel_case_result__59: bitstring,channel_case_state_0__60: channel));
+                        {78}in(attacker_ch, attacker_input__61: bitstring);
+                        {79}out(channel_case_ch__52, (true__bool,attacker_input__61,channel_case_state_0__60))
+                    ) | (
+                        {80}in(channel_case_ch__52, (=true__bool,channel_case_done_result__53: bitstring,channel_case_done_state_0__54: channel));
+                        {81}out(call_join_ch__55, (true__bool,channel_case_done_result__53))
+                    )
+                )
+            ) | (
+                {84}in(call_join_ch__55, (=true__bool,call_result__63: bitstring));
+                {85}event A__event_global(call_result__63);
+                {86}out(loop_ch__43, (false__bool,()))
+            )
+        ) | (
+            {87}in(loop_ch__43, (=false__bool,loop_result__45: bitstring));
+            {88}out(loop_ch__43, (true__bool,()))
+        )
+    ) | (
+        {89}in(loop_ch__43, (=true__bool,loop_done_result__44: bitstring))
+    )
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}insert access_control_table(p__0,transport_c__0,send__0__syscall);
+{2}insert access_control_table(p__0,transport_c__0,receive__0__syscall);
+{3}insert access_control_table(p__0,rpc_c__0,invoke__0__syscall);
+{4}insert access_control_table(signer_p__0,rpc_c__0,none__syscall);
+(
+    {6}let transport__11: channel = transport__0 in
+    {8}insert channel_table(transport_c__0,transport__11);
+    {7}let rpc__12: channel = rpc__0 in
+    {9}insert channel_table(rpc_c__0,rpc__12);
+    {10}new loop_ch__19: channel;
+    (
+        {11}out(loop_ch__19, (false__bool,()))
+    ) | (
+        {12}!
+        (
+            {13}in(loop_ch__19, (=false__bool,loop_result__22: bitstring));
+            {14}new x__13: bitstring;
+            {30}get channel_table(ch_type__35: acc_data_t,=rpc__12) in
+            {5}let ptype: proc_t = p__0 in
+            {29}get access_control_table(=ptype,=ch_type__35,=invoke__0__syscall) in
+            (
+                {15}out(rpc__12, Sign__chan(x__13))
+            ) | (
+                {28}get channel_table(ch_type__34: acc_data_t,=rpc__12) in
+                {27}get access_control_table(=ptype,=ch_type__34,=invoke__0__syscall) in
+                {16}in(rpc__12, Signed__chan(case_arg_0__23: bitstring));
+                {17}new channel_case_ch__24: channel;
+                (
+                    {18}out(channel_case_ch__24, (false__bool,(),x__13,rpc__12,x__13))
+                ) | (
+                    {19}in(channel_case_ch__24, (=false__bool,channel_case_result__30: bitstring,channel_case_state_0__31: bitstring,channel_case_state_1__32: channel,channel_case_state_2__33: bitstring));
+                    {20}out(channel_case_ch__24, (true__bool,case_arg_0__23,channel_case_state_0__31,channel_case_state_1__32,channel_case_state_2__33))
+                ) | (
+                    {21}in(channel_case_ch__24, (=true__bool,channel_case_done_result__25: bitstring,channel_case_done_state_0__26: bitstring,channel_case_done_state_1__27: channel,channel_case_done_state_2__28: bitstring));
+                    {22}event P__event_global(channel_case_done_state_0__26);
+                    {26}get channel_table(ch_type__29: acc_data_t,=transport__11) in
+                    {25}get access_control_table(=ptype,=ch_type__29,=send__0__syscall) in
+                    (
+                        {23}out(transport__11, M__chan(channel_case_done_state_0__26))
+                    ) | (
+                        {24}out(loop_ch__19, (false__bool,()))
+                    )
+                )
+            )
+        ) | (
+            {31}in(loop_ch__19, (=false__bool,loop_result__21: bitstring));
+            {32}out(loop_ch__19, (true__bool,()))
+        )
+    ) | (
+        {33}in(loop_ch__19, (=true__bool,loop_done_result__20: bitstring))
+    )
+) | (
+    {35}let rpc__14: channel = rpc__0 in
+    {36}insert channel_table(rpc_c__0,rpc__14);
+    {37}new loop_ch__36: channel;
+    (
+        {38}out(loop_ch__36, (false__bool,()))
+    ) | (
+        {39}!
+        (
+            {40}in(loop_ch__36, (=false__bool,loop_result__39: bitstring));
+            {49}get channel_table(ch_type__42: acc_data_t,=rpc__14) in
+            (
+                {34}let ptype_1: proc_t = signer_p__0 in
+                {47}get access_control_table(=ptype_1,=ch_type__42,=none__syscall) in
+                (
+                    {41}in(rpc__14, Sign__chan(case_arg_0__40: bitstring));
+                    {45}get channel_table(ch_type__41: acc_data_t,=rpc__14) in
+                    {44}get access_control_table(=ptype_1,=ch_type__41,=none__syscall) in
+                    (
+                        {42}out(rpc__14, Signed__chan(case_arg_0__40))
+                    ) | (
+                        {43}out(loop_ch__36, (false__bool,()))
+                    )
+                )
+                else
+                    {46}out(loop_ch__36, (false__bool,loop_result__39))
+            )
+            else
+                {48}out(loop_ch__36, (false__bool,loop_result__39))
+        ) | (
+            {50}in(loop_ch__36, (=false__bool,loop_result__38: bitstring));
+            {51}out(loop_ch__36, (true__bool,()))
+        )
+    ) | (
+        {52}in(loop_ch__36, (=true__bool,loop_done_result__37: bitstring))
+    )
+) | (
+    {54}let transport__16: channel = transport__0 in
+    {55}insert channel_table(transport_c__0,transport__16);
+    {56}new loop_ch__43: channel;
+    (
+        {57}out(loop_ch__43, (false__bool,()))
+    ) | (
+        {58}!
+        (
+            {59}in(loop_ch__43, (=false__bool,loop_result__46: bitstring));
+            {60}new call_join_ch__55: channel;
+            (
+                {61}new attack_choice_ch: channel;
+                {53}let ptype_2: proc_t = p__0 in
+                (
+                    {62}out(attack_choice_ch, true__bool)
+                ) | (
+                    {63}in(attack_choice_ch, ignored_v: bitstring);
+                    {72}get channel_table(ch_type__58: acc_data_t,=transport__16) in
+                    {71}get access_control_table(=ptype_2,=ch_type__58,=receive__0__syscall) in
+                    {64}in(transport__16, M__chan(case_arg_0__47: bitstring));
+                    {65}new channel_case_ch__48: channel;
+                    (
+                        {66}out(channel_case_ch__48, (false__bool,(),transport__16))
+                    ) | (
+                        {67}in(channel_case_ch__48, (=false__bool,channel_case_result__56: bitstring,channel_case_state_0__57: channel));
+                        {68}out(channel_case_ch__48, (true__bool,case_arg_0__47,channel_case_state_0__57))
+                    ) | (
+                        {69}in(channel_case_ch__48, (=true__bool,channel_case_done_result__49: bitstring,channel_case_done_state_0__50: channel));
+                        {70}out(call_join_ch__55, (true__bool,channel_case_done_result__49))
+                    )
+                ) | (
+                    {73}in(attack_choice_ch, ignored_v_1: bitstring);
+                    {83}get channel_table(ch_type__62: acc_data_t,=transport__16) in
+                    {82}get access_control_table(=ptype_2,=ch_type__62,=receive__0__syscall) in
+                    {74}in(transport__16, M__chan(case_arg_0__51: bitstring));
+                    {75}new channel_case_ch__52: channel;
+                    (
+                        {76}out(channel_case_ch__52, (false__bool,(),transport__16))
+                    ) | (
+                        {77}in(channel_case_ch__52, (=false__bool,channel_case_result__59: bitstring,channel_case_state_0__60: channel));
+                        {78}in(attacker_ch, attacker_input__61: bitstring);
+                        {79}out(channel_case_ch__52, (true__bool,attacker_input__61,channel_case_state_0__60))
+                    ) | (
+                        {80}in(channel_case_ch__52, (=true__bool,channel_case_done_result__53: bitstring,channel_case_done_state_0__54: channel));
+                        {81}out(call_join_ch__55, (true__bool,channel_case_done_result__53))
+                    )
+                )
+            ) | (
+                {84}in(call_join_ch__55, (=true__bool,call_result__63: bitstring));
+                {85}event A__event_global(call_result__63);
+                {86}out(loop_ch__43, (false__bool,()))
+            )
+        ) | (
+            {87}in(loop_ch__43, (=false__bool,loop_result__45: bitstring));
+            {88}out(loop_ch__43, (true__bool,()))
+        )
+    ) | (
+        {89}in(loop_ch__43, (=true__bool,loop_done_result__44: bitstring))
+    )
+)
+
+-- Query event(A__event_global(x__18)) ==> event(P__event_global(x__18)) in process 1.
+Translating the process into Horn clauses...
+Initial clauses:
+Clause 0: attacker(true__bool)
+(The attacker applies function true__bool.)
+
+Clause 1: attacker(true)
+(The attacker applies function true.)
+
+Clause 2: attacker(transport_c__0)
+(The attacker applies function transport_c__0.)
+
+Clause 3: attacker(signer_p__0)
+(The attacker applies function signer_p__0.)
+
+Clause 4: attacker(send__0__syscall)
+(The attacker applies function send__0__syscall.)
+
+Clause 5: attacker(rpc_c__0)
+(The attacker applies function rpc_c__0.)
+
+Clause 6: attacker(receive__0__syscall)
+(The attacker applies function receive__0__syscall.)
+
+Clause 7: attacker(p__0)
+(The attacker applies function p__0.)
+
+Clause 8: attacker(none__syscall)
+(The attacker applies function none__syscall.)
+
+Clause 9: attacker(invoke__0__syscall)
+(The attacker applies function invoke__0__syscall.)
+
+Clause 10: attacker(false__bool)
+(The attacker applies function false__bool.)
+
+Clause 11: attacker(false)
+(The attacker applies function false.)
+
+Clause 12: attacker(v) -> attacker(Signed__chan(v))
+(The attacker applies function Signed__chan.)
+
+Clause 13: attacker(Signed__chan(v)) -> attacker(v)
+(The attacker applies function 1-proj-Signed__chan.)
+
+Clause 14: attacker(v) -> attacker(Sign__chan(v))
+(The attacker applies function Sign__chan.)
+
+Clause 15: attacker(Sign__chan(v)) -> attacker(v)
+(The attacker applies function 1-proj-Sign__chan.)
+
+Clause 16: attacker(v) -> attacker(M__chan(v))
+(The attacker applies function M__chan.)
+
+Clause 17: attacker(M__chan(v)) -> attacker(v)
+(The attacker applies function 1-proj-M__chan.)
+
+Clause 18: attacker(0)
+(The attacker applies function 0.)
+
+Clause 19: attacker(v) -> attacker(v + 1)
+(The attacker applies function +.)
+
+Clause 20: attacker(v + 1) -> attacker(v)
+(The attacker applies function - 1.)
+
+Clause 21: attacker(v) && attacker(v_1) && attacker(v_2) && attacker(v_3) && attacker(v_4) -> attacker((v,v_1,v_2,v_3,v_4))
+(The attacker applies function 5-tuple.)
+
+Clause 22: attacker((v,v_1,v_2,v_3,v_4)) -> attacker(v)
+(The attacker applies function 1-proj-5-tuple.)
+
+Clause 23: attacker((v,v_1,v_2,v_3,v_4)) -> attacker(v_1)
+(The attacker applies function 2-proj-5-tuple.)
+
+Clause 24: attacker((v,v_1,v_2,v_3,v_4)) -> attacker(v_2)
+(The attacker applies function 3-proj-5-tuple.)
+
+Clause 25: attacker((v,v_1,v_2,v_3,v_4)) -> attacker(v_3)
+(The attacker applies function 4-proj-5-tuple.)
+
+Clause 26: attacker((v,v_1,v_2,v_3,v_4)) -> attacker(v_4)
+(The attacker applies function 5-proj-5-tuple.)
+
+Clause 27: attacker(v) && attacker(v_1) && attacker(v_2) -> attacker((v,v_1,v_2))
+(The attacker applies function 3-tuple.)
+
+Clause 28: attacker((v,v_1,v_2)) -> attacker(v)
+(The attacker applies function 1-proj-3-tuple.)
+
+Clause 29: attacker((v,v_1,v_2)) -> attacker(v_1)
+(The attacker applies function 2-proj-3-tuple.)
+
+Clause 30: attacker((v,v_1,v_2)) -> attacker(v_2)
+(The attacker applies function 3-proj-3-tuple.)
+
+Clause 31: attacker(v) && attacker(v_1) -> attacker((v,v_1))
+(The attacker applies function 2-tuple.)
+
+Clause 32: attacker((v,v_1)) -> attacker(v)
+(The attacker applies function 1-proj-2-tuple.)
+
+Clause 33: attacker((v,v_1)) -> attacker(v_1)
+(The attacker applies function 2-proj-2-tuple.)
+
+Clause 34: attacker(())
+(The attacker applies function 0-tuple.)
+
+Clause 35: mess(v,v_1) && attacker(v) -> attacker(v_1)
+(The attacker can listen on all channels it has.)
+
+Clause 36: attacker(v) && attacker(v_1) -> mess(v,v_1)
+(The attacker can send messages it has on all channels it has.)
+
+Clause 37: attacker(fail-any_type)
+(Initial knowledge of the attacker.)
+
+Clause 38: attacker(attacker_ch[])
+(Initial knowledge of the attacker.)
+
+Clause 39: equal(v,v)
+(Definition of equal.)
+
+Clause 40: attacker(new-name_1)
+(The attacker can create new names.)
+Abbreviations:
+new-name_1 = new-name[!att = v]
+
+Clause 41: table(access_control_table(p__0,transport_c__0,send__0__syscall))
+(The entry access_control_table(p__0,transport_c__0,send__0__syscall) may be inserted in a table at insert {1}.)
+
+Clause 42: table(access_control_table(p__0,transport_c__0,receive__0__syscall))
+(The entry access_control_table(p__0,transport_c__0,receive__0__syscall) may be inserted in a table at insert {2}.)
+
+Clause 43: table(access_control_table(p__0,rpc_c__0,invoke__0__syscall))
+(The entry access_control_table(p__0,rpc_c__0,invoke__0__syscall) may be inserted in a table at insert {3}.)
+
+Clause 44: table(access_control_table(signer_p__0,rpc_c__0,none__syscall))
+(The entry access_control_table(signer_p__0,rpc_c__0,none__syscall) may be inserted in a table at insert {4}.)
+
+Clause 45: table(channel_table(transport_c__0,transport__0[]))
+(The entry channel_table(transport_c__0,transport__0[]) may be inserted in a table at insert {8}.)
+
+Clause 46: table(channel_table(rpc_c__0,rpc__0[]))
+(The entry channel_table(rpc_c__0,rpc__0[]) may be inserted in a table at insert {9}.)
+
+Clause 47: mess(loop_ch__19[],(false__bool,()))
+(The message (false__bool,()) may be sent on channel loop_ch__19[] at output {11}.)
+
+Clause 48: table(access_control_table(p__0,ch_type_,invoke__0__syscall)) && table(channel_table(ch_type_,rpc__0[])) && mess(loop_ch__19[],(false__bool,loop_result_)) && b-event(@p_act(@occ13_1,(false__bool,loop_result_))) -> mess(rpc__0[],Sign__chan(x_))
+(If event @p_act(@occ13_1,(false__bool,loop_result_)) records how variables are instantiated at {13},
+the message (false__bool,loop_result_) is received on channel loop_ch__19[] at input {13},
+the entry channel_table(ch_type_,rpc__0[]) is in a table at get {30},
+the entry access_control_table(p__0,ch_type_,invoke__0__syscall) is in a table at get {29},
+then the message Sign__chan(x_) may be sent on channel rpc__0[] at output {15}.)
+Abbreviations:
+x_ = x__13[loop_result__22 = loop_result_,!1 = @sid]
+@occ13_1 = @occ13[!1 = @sid]
+
+Clause 49: mess(rpc__0[],Signed__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,invoke__0__syscall)) && table(channel_table(ch_type_,rpc__0[])) && table(access_control_table(p__0,ch_type__1,invoke__0__syscall)) && table(channel_table(ch_type__1,rpc__0[])) && mess(loop_ch__19[],(false__bool,loop_result_)) && b-event(@p_act(@occ13_1,(false__bool,loop_result_))) -> mess(channel_case_ch_,(false__bool,(),x_,rpc__0[],x_))
+(If event @p_act(@occ13_1,(false__bool,loop_result_)) records how variables are instantiated at {13},
+the message (false__bool,loop_result_) is received on channel loop_ch__19[] at input {13},
+the entry channel_table(ch_type__1,rpc__0[]) is in a table at get {30},
+the entry access_control_table(p__0,ch_type__1,invoke__0__syscall) is in a table at get {29},
+the entry channel_table(ch_type_,rpc__0[]) is in a table at get {28},
+the entry access_control_table(p__0,ch_type_,invoke__0__syscall) is in a table at get {27},
+the message Signed__chan(case_arg_0_) is received on channel rpc__0[] at input {16},
+then the message (false__bool,(),x_,rpc__0[],x_) may be sent on channel channel_case_ch_ at output {18}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__24[case_arg_0__23 = case_arg_0_,ch_type__34 = ch_type_,ch_type__35 = ch_type__1,loop_result__22 = loop_result_,!1 = @sid]
+x_ = x__13[loop_result__22 = loop_result_,!1 = @sid]
+@occ13_1 = @occ13[!1 = @sid]
+
+Clause 50: mess(channel_case_ch_,(false__bool,channel_case_result_,channel_case_state_0_,channel_case_state_1_,channel_case_state_2_)) && b-event(@p_act(@occ19_1,(false__bool,channel_case_result_,channel_case_state_0_,channel_case_state_1_,channel_case_state_2_))) && mess(rpc__0[],Signed__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,invoke__0__syscall)) && table(channel_table(ch_type_,rpc__0[])) && table(access_control_table(p__0,ch_type__1,invoke__0__syscall)) && table(channel_table(ch_type__1,rpc__0[])) && mess(loop_ch__19[],(false__bool,loop_result_)) && b-event(@p_act(@occ13_1,(false__bool,loop_result_))) -> mess(channel_case_ch_,(true__bool,case_arg_0_,channel_case_state_0_,channel_case_state_1_,channel_case_state_2_))
+(If event @p_act(@occ13_1,(false__bool,loop_result_)) records how variables are instantiated at {13},
+the message (false__bool,loop_result_) is received on channel loop_ch__19[] at input {13},
+the entry channel_table(ch_type__1,rpc__0[]) is in a table at get {30},
+the entry access_control_table(p__0,ch_type__1,invoke__0__syscall) is in a table at get {29},
+the entry channel_table(ch_type_,rpc__0[]) is in a table at get {28},
+the entry access_control_table(p__0,ch_type_,invoke__0__syscall) is in a table at get {27},
+the message Signed__chan(case_arg_0_) is received on channel rpc__0[] at input {16},
+event @p_act(@occ19_1,(false__bool,channel_case_result_,channel_case_state_0_,channel_case_state_1_,channel_case_state_2_)) records how variables are instantiated at {19},
+the message (false__bool,channel_case_result_,channel_case_state_0_,channel_case_state_1_,channel_case_state_2_) is received on channel channel_case_ch_ at input {19},
+then the message (true__bool,case_arg_0_,channel_case_state_0_,channel_case_state_1_,channel_case_state_2_) may be sent on channel channel_case_ch_ at output {20}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__24[case_arg_0__23 = case_arg_0_,ch_type__34 = ch_type_,ch_type__35 = ch_type__1,loop_result__22 = loop_result_,!1 = @sid]
+@occ19_1 = @occ19[!1 = @sid]
+@occ13_1 = @occ13[!1 = @sid]
+
+Clause 51: table(access_control_table(p__0,ch_type_,send__0__syscall)) && table(channel_table(ch_type_,transport__0[])) && b-event(P__event_global(channel_case_done_state_0_)) && mess(channel_case_ch_,(true__bool,channel_case_done_result_,channel_case_done_state_0_,channel_case_done_state_1_,channel_case_done_state_2_)) && b-event(@p_act(@occ21_1,(true__bool,channel_case_done_result_,channel_case_done_state_0_,channel_case_done_state_1_,channel_case_done_state_2_))) && mess(rpc__0[],Signed__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type__1,invoke__0__syscall)) && table(channel_table(ch_type__1,rpc__0[])) && table(access_control_table(p__0,ch_type__2,invoke__0__syscall)) && table(channel_table(ch_type__2,rpc__0[])) && mess(loop_ch__19[],(false__bool,loop_result_)) && b-event(@p_act(@occ13_1,(false__bool,loop_result_))) -> mess(transport__0[],M__chan(channel_case_done_state_0_))
+(If event @p_act(@occ13_1,(false__bool,loop_result_)) records how variables are instantiated at {13},
+the message (false__bool,loop_result_) is received on channel loop_ch__19[] at input {13},
+the entry channel_table(ch_type__2,rpc__0[]) is in a table at get {30},
+the entry access_control_table(p__0,ch_type__2,invoke__0__syscall) is in a table at get {29},
+the entry channel_table(ch_type__1,rpc__0[]) is in a table at get {28},
+the entry access_control_table(p__0,ch_type__1,invoke__0__syscall) is in a table at get {27},
+the message Signed__chan(case_arg_0_) is received on channel rpc__0[] at input {16},
+event @p_act(@occ21_1,(true__bool,channel_case_done_result_,channel_case_done_state_0_,channel_case_done_state_1_,channel_case_done_state_2_)) records how variables are instantiated at {21},
+the message (true__bool,channel_case_done_result_,channel_case_done_state_0_,channel_case_done_state_1_,channel_case_done_state_2_) is received on channel channel_case_ch_ at input {21},
+event P__event_global(channel_case_done_state_0_) is executed at {22},
+the entry channel_table(ch_type_,transport__0[]) is in a table at get {26},
+the entry access_control_table(p__0,ch_type_,send__0__syscall) is in a table at get {25},
+then the message M__chan(channel_case_done_state_0_) may be sent on channel transport__0[] at output {23}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__24[case_arg_0__23 = case_arg_0_,ch_type__34 = ch_type__1,ch_type__35 = ch_type__2,loop_result__22 = loop_result_,!1 = @sid]
+@occ21_1 = @occ21[!1 = @sid]
+@occ13_1 = @occ13[!1 = @sid]
+
+Clause 52: table(access_control_table(p__0,ch_type_,send__0__syscall)) && table(channel_table(ch_type_,transport__0[])) && b-event(P__event_global(channel_case_done_state_0_)) && mess(channel_case_ch_,(true__bool,channel_case_done_result_,channel_case_done_state_0_,channel_case_done_state_1_,channel_case_done_state_2_)) && b-event(@p_act(@occ21_1,(true__bool,channel_case_done_result_,channel_case_done_state_0_,channel_case_done_state_1_,channel_case_done_state_2_))) && mess(rpc__0[],Signed__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type__1,invoke__0__syscall)) && table(channel_table(ch_type__1,rpc__0[])) && table(access_control_table(p__0,ch_type__2,invoke__0__syscall)) && table(channel_table(ch_type__2,rpc__0[])) && mess(loop_ch__19[],(false__bool,loop_result_)) && b-event(@p_act(@occ13_1,(false__bool,loop_result_))) -> mess(loop_ch__19[],(false__bool,()))
+(If event @p_act(@occ13_1,(false__bool,loop_result_)) records how variables are instantiated at {13},
+the message (false__bool,loop_result_) is received on channel loop_ch__19[] at input {13},
+the entry channel_table(ch_type__2,rpc__0[]) is in a table at get {30},
+the entry access_control_table(p__0,ch_type__2,invoke__0__syscall) is in a table at get {29},
+the entry channel_table(ch_type__1,rpc__0[]) is in a table at get {28},
+the entry access_control_table(p__0,ch_type__1,invoke__0__syscall) is in a table at get {27},
+the message Signed__chan(case_arg_0_) is received on channel rpc__0[] at input {16},
+event @p_act(@occ21_1,(true__bool,channel_case_done_result_,channel_case_done_state_0_,channel_case_done_state_1_,channel_case_done_state_2_)) records how variables are instantiated at {21},
+the message (true__bool,channel_case_done_result_,channel_case_done_state_0_,channel_case_done_state_1_,channel_case_done_state_2_) is received on channel channel_case_ch_ at input {21},
+event P__event_global(channel_case_done_state_0_) is executed at {22},
+the entry channel_table(ch_type_,transport__0[]) is in a table at get {26},
+the entry access_control_table(p__0,ch_type_,send__0__syscall) is in a table at get {25},
+then the message (false__bool,()) may be sent on channel loop_ch__19[] at output {24}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__24[case_arg_0__23 = case_arg_0_,ch_type__34 = ch_type__1,ch_type__35 = ch_type__2,loop_result__22 = loop_result_,!1 = @sid]
+@occ21_1 = @occ21[!1 = @sid]
+@occ13_1 = @occ13[!1 = @sid]
+
+Clause 53: mess(loop_ch__19[],(false__bool,loop_result_)) && b-event(@p_act(@occ31_1,(false__bool,loop_result_))) -> mess(loop_ch__19[],(true__bool,()))
+(If event @p_act(@occ31_1,(false__bool,loop_result_)) records how variables are instantiated at {31},
+the message (false__bool,loop_result_) is received on channel loop_ch__19[] at input {31},
+then the message (true__bool,()) may be sent on channel loop_ch__19[] at output {32}.)
+Abbreviations:
+@occ31_1 = @occ31[!1 = @sid]
+
+Clause 54: table(channel_table(rpc_c__0,rpc__0[]))
+(The entry channel_table(rpc_c__0,rpc__0[]) may be inserted in a table at insert {36}.)
+
+Clause 55: mess(loop_ch__36[],(false__bool,()))
+(The message (false__bool,()) may be sent on channel loop_ch__36[] at output {38}.)
+
+Clause 56: table(access_control_table(signer_p__0,ch_type_,none__syscall)) && table(channel_table(ch_type_,rpc__0[])) && mess(rpc__0[],Sign__chan(case_arg_0_)) && table(access_control_table(signer_p__0,ch_type__1,none__syscall)) && table(channel_table(ch_type__1,rpc__0[])) && mess(loop_ch__36[],(false__bool,loop_result_)) && b-event(@p_act(@occ40_1,(false__bool,loop_result_))) -> mess(rpc__0[],Signed__chan(case_arg_0_))
+(If event @p_act(@occ40_1,(false__bool,loop_result_)) records how variables are instantiated at {40},
+the message (false__bool,loop_result_) is received on channel loop_ch__36[] at input {40},
+the entry channel_table(ch_type__1,rpc__0[]) is in a table at get {49},
+the entry access_control_table(signer_p__0,ch_type__1,none__syscall) is in a table at get {47},
+the message Sign__chan(case_arg_0_) is received on channel rpc__0[] at input {41},
+the entry channel_table(ch_type_,rpc__0[]) is in a table at get {45},
+the entry access_control_table(signer_p__0,ch_type_,none__syscall) is in a table at get {44},
+then the message Signed__chan(case_arg_0_) may be sent on channel rpc__0[] at output {42}.)
+Abbreviations:
+@occ40_1 = @occ40[!1 = @sid]
+
+Clause 57: table(access_control_table(signer_p__0,ch_type_,none__syscall)) && table(channel_table(ch_type_,rpc__0[])) && mess(rpc__0[],Sign__chan(case_arg_0_)) && table(access_control_table(signer_p__0,ch_type__1,none__syscall)) && table(channel_table(ch_type__1,rpc__0[])) && mess(loop_ch__36[],(false__bool,loop_result_)) && b-event(@p_act(@occ40_1,(false__bool,loop_result_))) -> mess(loop_ch__36[],(false__bool,()))
+(If event @p_act(@occ40_1,(false__bool,loop_result_)) records how variables are instantiated at {40},
+the message (false__bool,loop_result_) is received on channel loop_ch__36[] at input {40},
+the entry channel_table(ch_type__1,rpc__0[]) is in a table at get {49},
+the entry access_control_table(signer_p__0,ch_type__1,none__syscall) is in a table at get {47},
+the message Sign__chan(case_arg_0_) is received on channel rpc__0[] at input {41},
+the entry channel_table(ch_type_,rpc__0[]) is in a table at get {45},
+the entry access_control_table(signer_p__0,ch_type_,none__syscall) is in a table at get {44},
+then the message (false__bool,()) may be sent on channel loop_ch__36[] at output {43}.)
+Abbreviations:
+@occ40_1 = @occ40[!1 = @sid]
+
+Clause 58: table(channel_table(ch_type_,rpc__0[])) && mess(loop_ch__36[],(false__bool,loop_result_)) && b-event(@p_act(@occ40_1,(false__bool,loop_result_))) -> mess(loop_ch__36[],(false__bool,loop_result_))
+(If event @p_act(@occ40_1,(false__bool,loop_result_)) records how variables are instantiated at {40},
+the message (false__bool,loop_result_) is received on channel loop_ch__36[] at input {40},
+the entry channel_table(ch_type_,rpc__0[]) is in a table at get {49},
+then the message (false__bool,loop_result_) may be sent on channel loop_ch__36[] at output {46}.)
+Abbreviations:
+@occ40_1 = @occ40[!1 = @sid]
+
+Clause 59: mess(loop_ch__36[],(false__bool,loop_result_)) && b-event(@p_act(@occ40_1,(false__bool,loop_result_))) -> mess(loop_ch__36[],(false__bool,loop_result_))
+(If event @p_act(@occ40_1,(false__bool,loop_result_)) records how variables are instantiated at {40},
+the message (false__bool,loop_result_) is received on channel loop_ch__36[] at input {40},
+then the message (false__bool,loop_result_) may be sent on channel loop_ch__36[] at output {48}.)
+Abbreviations:
+@occ40_1 = @occ40[!1 = @sid]
+
+Clause 60: mess(loop_ch__36[],(false__bool,loop_result_)) && b-event(@p_act(@occ50_1,(false__bool,loop_result_))) -> mess(loop_ch__36[],(true__bool,()))
+(If event @p_act(@occ50_1,(false__bool,loop_result_)) records how variables are instantiated at {50},
+the message (false__bool,loop_result_) is received on channel loop_ch__36[] at input {50},
+then the message (true__bool,()) may be sent on channel loop_ch__36[] at output {51}.)
+Abbreviations:
+@occ50_1 = @occ50[!1 = @sid]
+
+Clause 61: table(channel_table(transport_c__0,transport__0[]))
+(The entry channel_table(transport_c__0,transport__0[]) may be inserted in a table at insert {55}.)
+
+Clause 62: mess(loop_ch__43[],(false__bool,()))
+(The message (false__bool,()) may be sent on channel loop_ch__43[] at output {57}.)
+
+Clause 63: mess(loop_ch__43[],(false__bool,loop_result_)) && b-event(@p_act(@occ59_1,(false__bool,loop_result_))) -> mess(attack_choice_ch_1,true__bool)
+(If event @p_act(@occ59_1,(false__bool,loop_result_)) records how variables are instantiated at {59},
+the message (false__bool,loop_result_) is received on channel loop_ch__43[] at input {59},
+then the message true__bool may be sent on channel attack_choice_ch_1 at output {62}.)
+Abbreviations:
+attack_choice_ch_1 = attack_choice_ch[loop_result__46 = loop_result_,!1 = @sid]
+@occ59_1 = @occ59[!1 = @sid]
+
+Clause 64: mess(transport__0[],M__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,receive__0__syscall)) && table(channel_table(ch_type_,transport__0[])) && mess(attack_choice_ch_1,ignored_v_2) && mess(loop_ch__43[],(false__bool,loop_result_)) && b-event(@p_act(@occ59_1,(false__bool,loop_result_))) -> mess(channel_case_ch_,(false__bool,(),transport__0[]))
+(If event @p_act(@occ59_1,(false__bool,loop_result_)) records how variables are instantiated at {59},
+the message (false__bool,loop_result_) is received on channel loop_ch__43[] at input {59},
+the message ignored_v_2 is received on channel attack_choice_ch_1 at input {63},
+the entry channel_table(ch_type_,transport__0[]) is in a table at get {72},
+the entry access_control_table(p__0,ch_type_,receive__0__syscall) is in a table at get {71},
+the message M__chan(case_arg_0_) is received on channel transport__0[] at input {64},
+then the message (false__bool,(),transport__0[]) may be sent on channel channel_case_ch_ at output {66}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__48[case_arg_0__47 = case_arg_0_,ch_type__58 = ch_type_,ignored_v = ignored_v_2,loop_result__46 = loop_result_,!1 = @sid]
+attack_choice_ch_1 = attack_choice_ch[loop_result__46 = loop_result_,!1 = @sid]
+@occ59_1 = @occ59[!1 = @sid]
+
+Clause 65: mess(channel_case_ch_,(false__bool,channel_case_result_,channel_case_state_0_)) && b-event(@p_act(@occ67_1,(false__bool,channel_case_result_,channel_case_state_0_))) && mess(transport__0[],M__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,receive__0__syscall)) && table(channel_table(ch_type_,transport__0[])) && mess(attack_choice_ch_1,ignored_v_2) && mess(loop_ch__43[],(false__bool,loop_result_)) && b-event(@p_act(@occ59_1,(false__bool,loop_result_))) -> mess(channel_case_ch_,(true__bool,case_arg_0_,channel_case_state_0_))
+(If event @p_act(@occ59_1,(false__bool,loop_result_)) records how variables are instantiated at {59},
+the message (false__bool,loop_result_) is received on channel loop_ch__43[] at input {59},
+the message ignored_v_2 is received on channel attack_choice_ch_1 at input {63},
+the entry channel_table(ch_type_,transport__0[]) is in a table at get {72},
+the entry access_control_table(p__0,ch_type_,receive__0__syscall) is in a table at get {71},
+the message M__chan(case_arg_0_) is received on channel transport__0[] at input {64},
+event @p_act(@occ67_1,(false__bool,channel_case_result_,channel_case_state_0_)) records how variables are instantiated at {67},
+the message (false__bool,channel_case_result_,channel_case_state_0_) is received on channel channel_case_ch_ at input {67},
+then the message (true__bool,case_arg_0_,channel_case_state_0_) may be sent on channel channel_case_ch_ at output {68}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__48[case_arg_0__47 = case_arg_0_,ch_type__58 = ch_type_,ignored_v = ignored_v_2,loop_result__46 = loop_result_,!1 = @sid]
+@occ67_1 = @occ67[!1 = @sid]
+attack_choice_ch_1 = attack_choice_ch[loop_result__46 = loop_result_,!1 = @sid]
+@occ59_1 = @occ59[!1 = @sid]
+
+Clause 66: mess(channel_case_ch_,(true__bool,channel_case_done_result_,channel_case_done_state_0_)) && b-event(@p_act(@occ69_1,(true__bool,channel_case_done_result_,channel_case_done_state_0_))) && mess(transport__0[],M__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,receive__0__syscall)) && table(channel_table(ch_type_,transport__0[])) && mess(attack_choice_ch_1,ignored_v_2) && mess(loop_ch__43[],(false__bool,loop_result_)) && b-event(@p_act(@occ59_1,(false__bool,loop_result_))) -> mess(call_join_ch_,(true__bool,channel_case_done_result_))
+(If event @p_act(@occ59_1,(false__bool,loop_result_)) records how variables are instantiated at {59},
+the message (false__bool,loop_result_) is received on channel loop_ch__43[] at input {59},
+the message ignored_v_2 is received on channel attack_choice_ch_1 at input {63},
+the entry channel_table(ch_type_,transport__0[]) is in a table at get {72},
+the entry access_control_table(p__0,ch_type_,receive__0__syscall) is in a table at get {71},
+the message M__chan(case_arg_0_) is received on channel transport__0[] at input {64},
+event @p_act(@occ69_1,(true__bool,channel_case_done_result_,channel_case_done_state_0_)) records how variables are instantiated at {69},
+the message (true__bool,channel_case_done_result_,channel_case_done_state_0_) is received on channel channel_case_ch_ at input {69},
+then the message (true__bool,channel_case_done_result_) may be sent on channel call_join_ch_ at output {70}.)
+Abbreviations:
+call_join_ch_ = call_join_ch__55[loop_result__46 = loop_result_,!1 = @sid]
+channel_case_ch_ = channel_case_ch__48[case_arg_0__47 = case_arg_0_,ch_type__58 = ch_type_,ignored_v = ignored_v_2,loop_result__46 = loop_result_,!1 = @sid]
+@occ69_1 = @occ69[!1 = @sid]
+attack_choice_ch_1 = attack_choice_ch[loop_result__46 = loop_result_,!1 = @sid]
+@occ59_1 = @occ59[!1 = @sid]
+
+Clause 67: mess(transport__0[],M__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,receive__0__syscall)) && table(channel_table(ch_type_,transport__0[])) && mess(attack_choice_ch_1,ignored_v_2) && mess(loop_ch__43[],(false__bool,loop_result_)) && b-event(@p_act(@occ59_1,(false__bool,loop_result_))) -> mess(channel_case_ch_,(false__bool,(),transport__0[]))
+(If event @p_act(@occ59_1,(false__bool,loop_result_)) records how variables are instantiated at {59},
+the message (false__bool,loop_result_) is received on channel loop_ch__43[] at input {59},
+the message ignored_v_2 is received on channel attack_choice_ch_1 at input {73},
+the entry channel_table(ch_type_,transport__0[]) is in a table at get {83},
+the entry access_control_table(p__0,ch_type_,receive__0__syscall) is in a table at get {82},
+the message M__chan(case_arg_0_) is received on channel transport__0[] at input {74},
+then the message (false__bool,(),transport__0[]) may be sent on channel channel_case_ch_ at output {76}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__52[case_arg_0__51 = case_arg_0_,ch_type__62 = ch_type_,ignored_v_1 = ignored_v_2,loop_result__46 = loop_result_,!1 = @sid]
+attack_choice_ch_1 = attack_choice_ch[loop_result__46 = loop_result_,!1 = @sid]
+@occ59_1 = @occ59[!1 = @sid]
+
+Clause 68: attacker(attacker_input_) && mess(channel_case_ch_,(false__bool,channel_case_result_,channel_case_state_0_)) && b-event(@p_act(@occ77_1,(false__bool,channel_case_result_,channel_case_state_0_))) && mess(transport__0[],M__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,receive__0__syscall)) && table(channel_table(ch_type_,transport__0[])) && mess(attack_choice_ch_1,ignored_v_2) && mess(loop_ch__43[],(false__bool,loop_result_)) && b-event(@p_act(@occ59_1,(false__bool,loop_result_))) -> mess(channel_case_ch_,(true__bool,attacker_input_,channel_case_state_0_))
+(If event @p_act(@occ59_1,(false__bool,loop_result_)) records how variables are instantiated at {59},
+the message (false__bool,loop_result_) is received on channel loop_ch__43[] at input {59},
+the message ignored_v_2 is received on channel attack_choice_ch_1 at input {73},
+the entry channel_table(ch_type_,transport__0[]) is in a table at get {83},
+the entry access_control_table(p__0,ch_type_,receive__0__syscall) is in a table at get {82},
+the message M__chan(case_arg_0_) is received on channel transport__0[] at input {74},
+event @p_act(@occ77_1,(false__bool,channel_case_result_,channel_case_state_0_)) records how variables are instantiated at {77},
+the message (false__bool,channel_case_result_,channel_case_state_0_) is received on channel channel_case_ch_ at input {77},
+the message attacker_input_ is received from the attacker at input {78},
+then the message (true__bool,attacker_input_,channel_case_state_0_) may be sent on channel channel_case_ch_ at output {79}.)
+Abbreviations:
+channel_case_ch_ = channel_case_ch__52[case_arg_0__51 = case_arg_0_,ch_type__62 = ch_type_,ignored_v_1 = ignored_v_2,loop_result__46 = loop_result_,!1 = @sid]
+@occ77_1 = @occ77[!1 = @sid]
+attack_choice_ch_1 = attack_choice_ch[loop_result__46 = loop_result_,!1 = @sid]
+@occ59_1 = @occ59[!1 = @sid]
+
+Clause 69: mess(channel_case_ch_,(true__bool,channel_case_done_result_,channel_case_done_state_0_)) && b-event(@p_act(@occ80_1,(true__bool,channel_case_done_result_,channel_case_done_state_0_))) && mess(transport__0[],M__chan(case_arg_0_)) && table(access_control_table(p__0,ch_type_,receive__0__syscall)) && table(channel_table(ch_type_,transport__0[])) && mess(attack_choice_ch_1,ignored_v_2) && mess(loop_ch__43[],(false__bool,loop_result_)) && b-event(@p_act(@occ59_1,(false__bool,loop_result_))) -> mess(call_join_ch_,(true__bool,channel_case_done_result_))
+(If event @p_act(@occ59_1,(false__bool,loop_result_)) records how variables are instantiated at {59},
+the message (false__bool,loop_result_) is received on channel loop_ch__43[] at input {59},
+the message ignored_v_2 is received on channel attack_choice_ch_1 at input {73},
+the entry channel_table(ch_type_,transport__0[]) is in a table at get {83},
+the entry access_control_table(p__0,ch_type_,receive__0__syscall) is in a table at get {82},
+the message M__chan(case_arg_0_) is received on channel transport__0[] at input {74},
+event @p_act(@occ80_1,(true__bool,channel_case_done_result_,channel_case_done_state_0_)) records how variables are instantiated at {80},
+the message (true__bool,channel_case_done_result_,channel_case_done_state_0_) is received on channel channel_case_ch_ at input {80},
+then the message (true__bool,channel_case_done_result_) may be sent on channel call_join_ch_ at output {81}.)
+Abbreviations:
+call_join_ch_ = call_join_ch__55[loop_result__46 = loop_result_,!1 = @sid]
+channel_case_ch_ = channel_case_ch__52[case_arg_0__51 = case_arg_0_,ch_type__62 = ch_type_,ignored_v_1 = ignored_v_2,loop_result__46 = loop_result_,!1 = @sid]
+@occ80_1 = @occ80[!1 = @sid]
+attack_choice_ch_1 = attack_choice_ch[loop_result__46 = loop_result_,!1 = @sid]
+@occ59_1 = @occ59[!1 = @sid]
+
+Clause 70: mess(call_join_ch_,(true__bool,call_result_)) && b-event(@p_act(@occ84_1,(true__bool,call_result_))) && mess(loop_ch__43[],(false__bool,loop_result_)) && b-event(@p_act(@occ59_1,(false__bool,loop_result_))) -> event(A__event_global(call_result_))
+(If event @p_act(@occ59_1,(false__bool,loop_result_)) records how variables are instantiated at {59},
+the message (false__bool,loop_result_) is received on channel loop_ch__43[] at input {59},
+event @p_act(@occ84_1,(true__bool,call_result_)) records how variables are instantiated at {84},
+the message (true__bool,call_result_) is received on channel call_join_ch_ at input {84},
+then event A__event_global(call_result_) may be executed at {85}.)
+Abbreviations:
+call_join_ch_ = call_join_ch__55[loop_result__46 = loop_result_,!1 = @sid]
+@occ84_1 = @occ84[!1 = @sid]
+@occ59_1 = @occ59[!1 = @sid]
+
+Clause 71: mess(call_join_ch_,(true__bool,call_result_)) && b-event(@p_act(@occ84_1,(true__bool,call_result_))) && mess(loop_ch__43[],(false__bool,loop_result_)) && b-event(@p_act(@occ59_1,(false__bool,loop_result_))) -> mess(loop_ch__43[],(false__bool,()))
+(If event @p_act(@occ59_1,(false__bool,loop_result_)) records how variables are instantiated at {59},
+the message (false__bool,loop_result_) is received on channel loop_ch__43[] at input {59},
+event @p_act(@occ84_1,(true__bool,call_result_)) records how variables are instantiated at {84},
+the message (true__bool,call_result_) is received on channel call_join_ch_ at input {84},
+then the message (false__bool,()) may be sent on channel loop_ch__43[] at output {86}.)
+Abbreviations:
+call_join_ch_ = call_join_ch__55[loop_result__46 = loop_result_,!1 = @sid]
+@occ84_1 = @occ84[!1 = @sid]
+@occ59_1 = @occ59[!1 = @sid]
+
+Clause 72: mess(loop_ch__43[],(false__bool,loop_result_)) && b-event(@p_act(@occ87_1,(false__bool,loop_result_))) -> mess(loop_ch__43[],(true__bool,()))
+(If event @p_act(@occ87_1,(false__bool,loop_result_)) records how variables are instantiated at {87},
+the message (false__bool,loop_result_) is received on channel loop_ch__43[] at input {87},
+then the message (true__bool,()) may be sent on channel loop_ch__43[] at output {88}.)
+Abbreviations:
+@occ87_1 = @occ87[!1 = @sid]
+
+Completing...
+200 rules inserted. Base: 154 rules (50 with conclusion selected). Queue: 2 rules.
+Starting query event(A__event_global(x__18)) ==> event(P__event_global(x__18))
+goal reachable: attacker(x__18) && b-event(@p_act(@occ77_1,(false__bool,(),transport__0[]))) && b-event(@p_act(@occ80_1,(true__bool,x__18,transport__0[]))) && b-event(P__event_global(x_)) && b-event(@p_act(@occ19_1,(false__bool,(),x_,rpc__0[],x_))) && b-event(@p_act(@occ21_1,(true__bool,x__1,x_,rpc__0[],x_))) && b-event(@p_act(@occ13_1,(false__bool,()))) && b-event(@p_act(@occ40_1,(false__bool,()))) && b-event(@p_act(@occ13_2,(false__bool,()))) && b-event(@p_act(@occ84_1,(true__bool,x__18))) && b-event(@p_act(@occ59_1,(false__bool,()))) -> event(A__event_global(x__18))
+Abbreviations:
+@occ77_1 = @occ77[!1 = @sid]
+@occ80_1 = @occ80[!1 = @sid]
+x_ = x__13[loop_result__22 = (),!1 = @sid_1]
+@occ19_1 = @occ19[!1 = @sid_1]
+@occ21_1 = @occ21[!1 = @sid_1]
+x__1 = x__13[loop_result__22 = (),!1 = @sid_2]
+@occ13_1 = @occ13[!1 = @sid_2]
+@occ40_1 = @occ40[!1 = @sid_3]
+@occ13_2 = @occ13[!1 = @sid_1]
+@occ84_1 = @occ84[!1 = @sid]
+@occ59_1 = @occ59[!1 = @sid]
+
+Derivation:
+Abbreviations:
+call_join_ch_ = call_join_ch__55[loop_result__46 = (),!1 = @sid]
+x_ = x__13[loop_result__22 = (),!1 = @sid_1]
+channel_case_ch_ = channel_case_ch__52[case_arg_0__51 = x_,ch_type__62 = transport_c__0,ignored_v_1 = true__bool,loop_result__46 = (),!1 = @sid]
+attack_choice_ch_1 = attack_choice_ch[loop_result__46 = (),!1 = @sid]
+@occ59_1 = @occ59[!1 = @sid]
+@occ77_1 = @occ77[!1 = @sid]
+@occ80_1 = @occ80[!1 = @sid]
+x__1 = x__13[loop_result__22 = (),!1 = @sid_2]
+channel_case_ch__1 = channel_case_ch__24[case_arg_0__23 = x__1,ch_type__34 = rpc_c__0,ch_type__35 = rpc_c__0,loop_result__22 = (),!1 = @sid_1]
+@occ13_1 = @occ13[!1 = @sid_1]
+@occ19_1 = @occ19[!1 = @sid_1]
+@occ21_1 = @occ21[!1 = @sid_1]
+@occ13_2 = @occ13[!1 = @sid_2]
+@occ40_1 = @occ40[!1 = @sid_3]
+@occ84_1 = @occ84[!1 = @sid]
+
+1. The message (false__bool,()) may be sent on channel loop_ch__43[] at output {57}.
+mess(loop_ch__43[],(false__bool,())).
+
+2. The event @p_act(@occ59_1,(false__bool,())) records how variables are instantiated at {59}.
+The message (false__bool,()) that may be sent on channel loop_ch__43[] by 1 may be received at input {59}.
+So the message true__bool may be sent on channel attack_choice_ch_1 at output {62}.
+mess(attack_choice_ch_1,true__bool).
+
+3. The entry channel_table(transport_c__0,transport__0[]) may be inserted in a table at insert {8}.
+table(channel_table(transport_c__0,transport__0[])).
+
+4. The entry access_control_table(p__0,transport_c__0,receive__0__syscall) may be inserted in a table at insert {2}.
+table(access_control_table(p__0,transport_c__0,receive__0__syscall)).
+
+5. The message (false__bool,()) may be sent on channel loop_ch__19[] at output {11}.
+mess(loop_ch__19[],(false__bool,())).
+
+6. The entry channel_table(rpc_c__0,rpc__0[]) may be inserted in a table at insert {9}.
+table(channel_table(rpc_c__0,rpc__0[])).
+
+7. The entry access_control_table(p__0,rpc_c__0,invoke__0__syscall) may be inserted in a table at insert {3}.
+table(access_control_table(p__0,rpc_c__0,invoke__0__syscall)).
+
+8. The message (false__bool,()) may be sent on channel loop_ch__36[] at output {38}.
+mess(loop_ch__36[],(false__bool,())).
+
+9. The entry access_control_table(signer_p__0,rpc_c__0,none__syscall) may be inserted in a table at insert {4}.
+table(access_control_table(signer_p__0,rpc_c__0,none__syscall)).
+
+10. The event @p_act(@occ13_2,(false__bool,())) records how variables are instantiated at {13}.
+The message (false__bool,()) that may be sent on channel loop_ch__19[] by 5 may be received at input {13}.
+The entry channel_table(rpc_c__0,rpc__0[]) that may be in a table by 6 may be read at get {30}.
+The entry access_control_table(p__0,rpc_c__0,invoke__0__syscall) that may be in a table by 7 may be read at get {29}.
+So the message Sign__chan(x__1) may be sent on channel rpc__0[] at output {15}.
+mess(rpc__0[],Sign__chan(x__1)).
+
+11. The event @p_act(@occ40_1,(false__bool,())) records how variables are instantiated at {40}.
+The message (false__bool,()) that may be sent on channel loop_ch__36[] by 8 may be received at input {40}.
+The entry channel_table(rpc_c__0,rpc__0[]) that may be in a table by 6 may be read at get {49}.
+The entry access_control_table(signer_p__0,rpc_c__0,none__syscall) that may be in a table by 9 may be read at get {47}.
+The message Sign__chan(x__1) that may be sent on channel rpc__0[] by 10 may be received at input {41}.
+The entry channel_table(rpc_c__0,rpc__0[]) that may be in a table by 6 may be read at get {45}.
+The entry access_control_table(signer_p__0,rpc_c__0,none__syscall) that may be in a table by 9 may be read at get {44}.
+So the message Signed__chan(x__1) may be sent on channel rpc__0[] at output {42}.
+mess(rpc__0[],Signed__chan(x__1)).
+
+12. The event @p_act(@occ13_1,(false__bool,())) records how variables are instantiated at {13}.
+The message (false__bool,()) that may be sent on channel loop_ch__19[] by 5 may be received at input {13}.
+The entry channel_table(rpc_c__0,rpc__0[]) that may be in a table by 6 may be read at get {30}.
+The entry access_control_table(p__0,rpc_c__0,invoke__0__syscall) that may be in a table by 7 may be read at get {29}.
+The entry channel_table(rpc_c__0,rpc__0[]) that may be in a table by 6 may be read at get {28}.
+The entry access_control_table(p__0,rpc_c__0,invoke__0__syscall) that may be in a table by 7 may be read at get {27}.
+The message Signed__chan(x__1) that may be sent on channel rpc__0[] by 11 may be received at input {16}.
+So the message (false__bool,(),x_,rpc__0[],x_) may be sent on channel channel_case_ch__1 at output {18}.
+mess(channel_case_ch__1,(false__bool,(),x_,rpc__0[],x_)).
+
+13. The event @p_act(@occ13_1,(false__bool,())) records how variables are instantiated at {13}.
+The message (false__bool,()) that may be sent on channel loop_ch__19[] by 5 may be received at input {13}.
+The entry channel_table(rpc_c__0,rpc__0[]) that may be in a table by 6 may be read at get {30}.
+The entry access_control_table(p__0,rpc_c__0,invoke__0__syscall) that may be in a table by 7 may be read at get {29}.
+The entry channel_table(rpc_c__0,rpc__0[]) that may be in a table by 6 may be read at get {28}.
+The entry access_control_table(p__0,rpc_c__0,invoke__0__syscall) that may be in a table by 7 may be read at get {27}.
+The message Signed__chan(x__1) that may be sent on channel rpc__0[] by 11 may be received at input {16}.
+The event @p_act(@occ19_1,(false__bool,(),x_,rpc__0[],x_)) records how variables are instantiated at {19}.
+The message (false__bool,(),x_,rpc__0[],x_) that may be sent on channel channel_case_ch__1 by 12 may be received at input {19}.
+So the message (true__bool,x__1,x_,rpc__0[],x_) may be sent on channel channel_case_ch__1 at output {20}.
+mess(channel_case_ch__1,(true__bool,x__1,x_,rpc__0[],x_)).
+
+14. The entry access_control_table(p__0,transport_c__0,send__0__syscall) may be inserted in a table at insert {1}.
+table(access_control_table(p__0,transport_c__0,send__0__syscall)).
+
+15. The event @p_act(@occ13_1,(false__bool,())) records how variables are instantiated at {13}.
+The message (false__bool,()) that may be sent on channel loop_ch__19[] by 5 may be received at input {13}.
+The entry channel_table(rpc_c__0,rpc__0[]) that may be in a table by 6 may be read at get {30}.
+The entry access_control_table(p__0,rpc_c__0,invoke__0__syscall) that may be in a table by 7 may be read at get {29}.
+The entry channel_table(rpc_c__0,rpc__0[]) that may be in a table by 6 may be read at get {28}.
+The entry access_control_table(p__0,rpc_c__0,invoke__0__syscall) that may be in a table by 7 may be read at get {27}.
+The message Signed__chan(x__1) that may be sent on channel rpc__0[] by 11 may be received at input {16}.
+The event @p_act(@occ21_1,(true__bool,x__1,x_,rpc__0[],x_)) records how variables are instantiated at {21}.
+The message (true__bool,x__1,x_,rpc__0[],x_) that may be sent on channel channel_case_ch__1 by 13 may be received at input {21}.
+The event P__event_global(x_) may be executed at {22}.
+The entry channel_table(transport_c__0,transport__0[]) that may be in a table by 3 may be read at get {26}.
+The entry access_control_table(p__0,transport_c__0,send__0__syscall) that may be in a table by 14 may be read at get {25}.
+So the message M__chan(x_) may be sent on channel transport__0[] at output {23}.
+mess(transport__0[],M__chan(x_)).
+
+16. The event @p_act(@occ59_1,(false__bool,())) records how variables are instantiated at {59}.
+The message (false__bool,()) that may be sent on channel loop_ch__43[] by 1 may be received at input {59}.
+The message true__bool that may be sent on channel attack_choice_ch_1 by 2 may be received at input {73}.
+The entry channel_table(transport_c__0,transport__0[]) that may be in a table by 3 may be read at get {83}.
+The entry access_control_table(p__0,transport_c__0,receive__0__syscall) that may be in a table by 4 may be read at get {82}.
+The message M__chan(x_) that may be sent on channel transport__0[] by 15 may be received at input {74}.
+So the message (false__bool,(),transport__0[]) may be sent on channel channel_case_ch_ at output {76}.
+mess(channel_case_ch_,(false__bool,(),transport__0[])).
+
+17. We assume as hypothesis that
+attacker(x__18).
+
+18. The event @p_act(@occ59_1,(false__bool,())) records how variables are instantiated at {59}.
+The message (false__bool,()) that may be sent on channel loop_ch__43[] by 1 may be received at input {59}.
+The message true__bool that may be sent on channel attack_choice_ch_1 by 2 may be received at input {73}.
+The entry channel_table(transport_c__0,transport__0[]) that may be in a table by 3 may be read at get {83}.
+The entry access_control_table(p__0,transport_c__0,receive__0__syscall) that may be in a table by 4 may be read at get {82}.
+The message M__chan(x_) that may be sent on channel transport__0[] by 15 may be received at input {74}.
+The event @p_act(@occ77_1,(false__bool,(),transport__0[])) records how variables are instantiated at {77}.
+The message (false__bool,(),transport__0[]) that may be sent on channel channel_case_ch_ by 16 may be received at input {77}.
+The message x__18 that the attacker may have by 17 may be received at input {78}.
+So the message (true__bool,x__18,transport__0[]) may be sent on channel channel_case_ch_ at output {79}.
+mess(channel_case_ch_,(true__bool,x__18,transport__0[])).
+
+19. The event @p_act(@occ59_1,(false__bool,())) records how variables are instantiated at {59}.
+The message (false__bool,()) that may be sent on channel loop_ch__43[] by 1 may be received at input {59}.
+The message true__bool that may be sent on channel attack_choice_ch_1 by 2 may be received at input {73}.
+The entry channel_table(transport_c__0,transport__0[]) that may be in a table by 3 may be read at get {83}.
+The entry access_control_table(p__0,transport_c__0,receive__0__syscall) that may be in a table by 4 may be read at get {82}.
+The message M__chan(x_) that may be sent on channel transport__0[] by 15 may be received at input {74}.
+The event @p_act(@occ80_1,(true__bool,x__18,transport__0[])) records how variables are instantiated at {80}.
+The message (true__bool,x__18,transport__0[]) that may be sent on channel channel_case_ch_ by 18 may be received at input {80}.
+So the message (true__bool,x__18) may be sent on channel call_join_ch_ at output {81}.
+mess(call_join_ch_,(true__bool,x__18)).
+
+20. The event @p_act(@occ59_1,(false__bool,())) records how variables are instantiated at {59}.
+The message (false__bool,()) that may be sent on channel loop_ch__43[] by 1 may be received at input {59}.
+The event @p_act(@occ84_1,(true__bool,x__18)) records how variables are instantiated at {84}.
+The message (true__bool,x__18) that may be sent on channel call_join_ch_ by 19 may be received at input {84}.
+So event A__event_global(x__18) may be executed at {85}.
+event(A__event_global(x__18)).
+
+21. By 20, event(A__event_global(x__18)).
+The goal is reached, represented in the following fact:
+event(A__event_global(x__18)).
+
+
+Could not find a trace corresponding to this derivation.
+RESULT event(A__event_global(x__18)) ==> event(P__event_global(x__18)) cannot be proved.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query event(A__event_global(x__18)) ==> event(P__event_global(x__18)) cannot be proved.
+
+--------------------------------------------------------------
+
