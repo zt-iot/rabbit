@@ -141,6 +141,7 @@ let type_of_expr (expr : expr) =
       let desc = Option.get @@ Env.find_opt_by_id expr.env id in
       (Option.get (Env.callable_type_of_desc desc)).result_type
   | Boolean _ | String _ | Integer _ | Float _ | Tuple _ | Unit -> Type.TValue
+
 let vars_of_expr e =
   let rec aux e =
     match e.desc with
