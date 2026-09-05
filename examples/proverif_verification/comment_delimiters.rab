@@ -1,0 +1,16 @@
+type p : process
+
+process worker() : p {
+  main {
+    event [::Seen("a*)b(*c")]
+  }
+}
+
+system worker()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma DelimitersAreHarmless : (* verified *)
+    reachable ::Seen("a*)b(*c")
+]

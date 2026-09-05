@@ -73,6 +73,8 @@ and fact' =
     (** File fact [path.contents] *)
   | Global of string * expr list (** [:: n(e1,..,en)] *)
 
+val string_of_fact : fact -> string
+
 type cmd = cmd' loc_env
 
 (** A match case [| [ ... ] => c] *)

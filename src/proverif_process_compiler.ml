@@ -913,6 +913,11 @@ and compile_case_no_channel
                  body_env (process_e PNil))
             retry
         in
+        add_comment (
+          Format.asprintf "case [ %s ] at %t"
+            (String.concat ", " @@ List.map (fun f -> Typed.string_of_fact f) case.facts)
+            (Location.print case.cmd.loc)
+        ) @@
         process_e @@
         PInput
           ( lock_term
@@ -943,6 +948,7 @@ and compile_case_no_channel
       cont_env,
       fun rest ->
         let continuation =
+          add_comment (Format.asprintf "end of case at %t" (Location.print loc)) @@
           process_e @@
           PInput
             ( lock_term
@@ -956,6 +962,7 @@ and compile_case_no_channel
           parallelize
             (init_proc :: List.map compile_branch cases @ [continuation])
         in
+        add_comment (Format.asprintf "case at %t" (Location.print loc)) @@
         process_e @@ PRestr (lock_ident, None, channel_ident, body)
 
 and compile_case_channelized
@@ -1055,6 +1062,11 @@ and compile_case_channelized
             args
             payload_terms
         in
+        add_comment (
+          Format.asprintf "case [ %s ] at %t"
+            (String.concat ", " @@ List.map (fun f -> Typed.string_of_fact f) case.facts)
+            (Location.print case.cmd.loc)
+        ) @@
         compile_guard_tests genv branch_env case.fresh facts
           (fun final_env ->
              let body_env, body_fragment =
@@ -1131,6 +1143,7 @@ and compile_case_channelized
   cont_env,
   fun rest ->
     let continuation =
+      add_comment (Format.asprintf "end of case at %t" (Location.print loc)) @@
       process_e @@
       PInput
         ( choice_term
@@ -1149,6 +1162,7 @@ and compile_case_channelized
         , parallelize
             (init_proc :: List.map compile_choice channel_guards @ [continuation]) )
     in
+    add_comment (Format.asprintf "case at %t" (Location.print loc)) @@
     wrap_with_channel_access_get channel_term penv
       (process_e @@ PInput (channel_term, input_pattern, branches, []))
       (process_e PNil)
@@ -1464,16 +1478,45 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       let env2, fragment2 = compile_cmd genv env1 cmd2 in
       env2, compose_fragments fragment1 fragment2
   | Put facts ->
-      unit_result penv, compile_put_facts genv penv facts
+      unit_result penv,
+      fun pe ->
+        add_comment (Format.asprintf "put [ %s ] at %t"
+                       (String.concat ", " @@ List.map (fun f -> Typed.string_of_fact f) facts)
+                       (Location.print loc)
+                    ) @@
+        compile_put_facts genv penv facts pe
   | Event facts ->
-      unit_result penv, compile_event_facts genv penv facts
+      unit_result penv,
+      fun pe ->
+        add_comment (Format.asprintf "event [ %s ] at %t"
+                       (String.concat ", " @@ List.map (fun f -> Typed.string_of_fact f) facts)
+                       (Location.print loc)
+                    ) @@
+        compile_event_facts genv penv facts pe
   | Let (id, expr, body) ->
-      compile_let_binding genv penv id expr body
+      let penv, pfrag = compile_let_binding genv penv id expr body in
+      penv, fun pe ->
+        add_comment (
+          Format.asprintf "let %s = .. in .. at %t"
+            (Ident.to_string id)
+            (Location.print loc)
+        ) @@
+        pfrag pe
   | Assign (id_opt, expr) ->
-      compile_assignment genv penv id_opt expr
+      let penv, pfrag = compile_assignment genv penv id_opt expr in
+      penv, fun pe ->
+        add_comment (
+          Format.asprintf "%s := .. at %t"
+            (match id_opt with None -> "_" | Some id -> Ident.to_string id)
+            (Location.print loc)
+        ) @@
+        pfrag pe
   | Expr expr ->
       (* A bare expression sets the command result; it does not exit non-locally. *)
-      let value = compile_expr_to_pterm genv penv expr in
+      let value =
+        add_comment (Format.asprintf "expr at %t" (Location.print loc)) @@
+        compile_expr_to_pterm genv penv expr
+      in
       PEnv.with_result penv (T.type_of_expr expr) value, empty_fragment
   | Case cases ->
       if List.exists (fun (case : T.case) ->
@@ -1580,6 +1623,12 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
               out(lock_ch, (0, s0', ..., sk')) (* keep looping *)
             ```
         *)
+        add_comment (
+          Format.asprintf "%s case [ %s ] at %t"
+            (if is_until then "until" else "repeat")
+            (String.concat ", " @@ List.map (fun f -> Typed.string_of_fact f) case.facts)
+            (Location.print case.cmd.loc)
+        ) @@
         process_e @@
         PInput
           ( lock_term
@@ -1622,6 +1671,7 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       fun rest ->
         let continuation =
           (* `in(lock_ch, (=1, s0:bitstring, ..., sk:bitstring)) [precise];` *)
+          add_comment (Format.asprintf "end of repeat-until at %t" (Location.print loc)) @@
           process_e @@
           PInput
             ( lock_term
@@ -1631,6 +1681,7 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
             , rest
             , [precise_ident, None] )
         in
+        add_comment (Format.asprintf "repeat-until at %t" (Location.print loc)) @@
         process_e @@
         PRestr
           ( lock_ident
@@ -1658,6 +1709,11 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       in
       completed_env,
       fun rest ->
+        add_comment (
+          Format.asprintf "new %s in .. at %t"
+            (Ident.to_string id)
+            (Location.print loc)
+        ) @@
         process_e @@
         PRestr
           ( fresh_ident
@@ -1692,6 +1748,12 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       in
       completed_env,
       fun rest ->
+        add_comment (
+          Format.asprintf "new %s = %s(..) in .. at %t"
+            (Ident.to_string id)
+            name
+            (Location.print loc)
+        ) @@
         process_e @@
         PRestr
           ( fresh_ident
@@ -1735,6 +1797,12 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       let completed_env = PEnv.remove_process_vars body_env ids in
       completed_env,
       fun rest ->
+        add_comment (
+          Format.asprintf "let (%s) := _.%s in .. at %t"
+            (String.concat ", " (List.map Ident.to_string ids))
+            name
+            (Location.print loc)
+        ) @@
         process_e @@
         PGet
           ( deleted_address_table_ident
@@ -1763,7 +1831,7 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       (* insert deleted_address_table( Struct__struct_addr(x_struct) ); ... *)
       unit_result penv,
       fun rest ->
-        add_comment (Printf.sprintf "delete _.%s" name) @@
+        add_comment (Format.asprintf "delete _.%s at %t" name (Location.print loc)) @@
         process_e @@
         PInsert (deleted_address_table_ident, [addr_term], rest)
 

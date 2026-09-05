@@ -190,6 +190,34 @@ and fact' =
       }
   | Global of string * expr list
 
+let string_of_fact (fact : fact) =
+  match fact.desc with
+  | Channel { channel= ({ desc= Ident _; _ } as channel); name; args } ->
+      Printf.sprintf
+        "%s::%s(%s)"
+        (string_of_expr channel)
+        name
+        (String.concat ", " @@ List.map string_of_expr args)
+  | Channel { channel; name; args } ->
+      Printf.sprintf
+        "(%s)::%s(%s)"
+        (string_of_expr channel)
+        name
+        (String.concat ", " @@ List.map string_of_expr args)
+  | Plain (name, args) ->
+      Printf.sprintf "%s(%s)" name (String.concat ", " @@ List.map string_of_expr args)
+  | Eq (e1, e2) -> Printf.sprintf "%s = %s" (string_of_expr e1) (string_of_expr e2)
+  | Neq (e1, e2) -> Printf.sprintf "%s != %s" (string_of_expr e1) (string_of_expr e2)
+  | File { path; contents } ->
+      let parenthesize_if_needed expr =
+        match expr.desc with
+        | Ident _ -> string_of_expr expr
+        | _ -> "(" ^ string_of_expr expr ^ ")"
+      in
+      parenthesize_if_needed path ^ "." ^ parenthesize_if_needed contents
+  | Global (name, args) ->
+      Printf.sprintf "::%s(%s)" name (String.concat ", " @@ List.map string_of_expr args)
+
 type cmd = cmd' loc_env
 
 and case =

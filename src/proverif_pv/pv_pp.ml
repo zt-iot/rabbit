@@ -135,12 +135,39 @@ let binary_prec = function
   | "=" | "<>" | "<=" | ">=" | "<" | ">" -> Some (prec_cmp, Non_assoc)
   | _ -> None
 
+let escape_comment comment =
+  let length = String.length comment in
+  let buffer = Buffer.create length in
+  let rec loop index =
+    if index >= length then
+      Buffer.contents buffer
+    else if index + 1 < length then
+      match comment.[index], comment.[index + 1] with
+      | '(', '*' ->
+          Buffer.add_string buffer "( *";
+          loop (index + 2)
+      | '*', ')' ->
+          Buffer.add_string buffer "* )";
+          loop (index + 2)
+      | character, _ ->
+          Buffer.add_char buffer character;
+          loop (index + 1)
+    else begin
+      Buffer.add_char buffer comment.[index];
+      Buffer.contents buffer
+    end
+  in
+  loop 0
+
+let pp_comment fmt comment =
+  fprintf fmt "(* %s *)" (escape_comment comment)
+
 let pp_with_comments fmt (comments, f) =
   match comments with
   | [] -> f ()
   | _ ->
       fprintf fmt "@[<v>";
-      List.iter (fun c -> fprintf fmt "(* %s *)@ " c) comments;
+      List.iter (fun comment -> fprintf fmt "%a@ " pp_comment comment) comments;
       f ();
       fprintf fmt "@]"
 
@@ -1128,7 +1155,7 @@ let rec pp_decl fmt = function
         (pp_list ~sep:";@ " pp_tlemma) lemmas
         pp_options options
   | TComment comment ->
-      fprintf fmt "(* %s *)" comment
+      pp_comment fmt comment
 
 let pp_program fmt (decls, proc, second_proc) =
   let pp_decl_text () =
