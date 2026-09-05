@@ -448,7 +448,6 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
   let loc = fact.loc in
   match fact.desc with
   | Channel { channel; name; args } ->
-      GEnv.add_channel_fact ~loc genv name (List.map T.type_of_expr args);
       let channel_term = compile_expr_to_pterm genv penv channel in
       let payload =
         pterm_e @@
@@ -751,7 +750,6 @@ let rec compile_channel_guard_case
     ~(on_success : PEnv.t -> tprocess_e)
     ~(else_proc : tprocess_e)
   : tprocess_e =
-  GEnv.add_channel_fact ~loc:case.cmd.loc genv name (List.map T.type_of_expr args);
   let payload_vars =
     List.init (List.length args) (fun i -> Ident.local (Printf.sprintf "case_arg_%d" i))
   in
@@ -998,10 +996,6 @@ and compile_case_channelized
               "Mixed channel/non-channel case branches are not supported yet")
       cases
   in
-  List.iter
-    (fun (_case, _channel, name, args, _other_facts, loc) ->
-       GEnv.add_channel_fact ~loc genv name (List.map T.type_of_expr args))
-    channel_guards;
   let first_channel, first_name, first_args =
     match channel_guards with
     | (_, first_channel, first_name, first_args, _, _) :: _ ->
@@ -1462,6 +1456,7 @@ and compile_assignment
   unit_result assigned_env, value_fragment
 
 and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
+  let loc = cmd.loc in
   match cmd.desc with
   | Skip -> unit_result penv, empty_fragment
   | Sequence (cmd1, cmd2) ->
@@ -1679,7 +1674,6 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
          ```
       *)
       (* `compile_generated_structure_decls` handle the declarations *)
-      let _ftys = GEnv.find_structure_fact ~loc:cmd.loc genv name in
       let fresh_ident = compile_ident id in
       let fresh_term = pterm_e @@ PPIdent fresh_ident in
       let struct_term =
@@ -1714,7 +1708,11 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
          else c[S__struct_par_1(e)/x1, ..., S__struct_par_n(e)/xn]
          ```
       *)
-      let ftys = GEnv.find_structure_fact ~loc:cmd.loc genv name in
+      let ftys =
+        match List.assoc_opt name @@ GEnv.structure_facts genv with
+        | None -> Error.internal ~loc "Structure fact %s is not found" name
+        | Some ftys -> ftys
+      in
       if List.length ftys <> List.length ids then
         Error.internal ~loc:cmd.loc
           "structure fact is declared with arity %d but here used with %d"

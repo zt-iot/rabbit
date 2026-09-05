@@ -845,7 +845,7 @@ let compile_event_decls (genv : GEnv.t) : tdecl list =
   in
   named_events @ comparison_events
 
-let compile_fact_decls (genv : GEnv.t) : tdecl list =
+let compile_channel_fact_decls (genv : GEnv.t) : tdecl list =
   List.concat_map
     (fun (name, types) ->
        [ TComment (Printf.sprintf "Channel fact declaration %s(..)" name)
@@ -882,72 +882,79 @@ let compile_structure_decls (genv : GEnv.t) : tdecl list =
      namespaces or imported declarations, this generation scheme may need to be
      made more explicit. *)
   let mk_var index = pv_ident (Printf.sprintf "x_%d" index) in
-  GEnv.structure_facts genv
-  |> List.concat_map @@ fun (name, ftys) ->
-      let arity = List.length ftys in
-      (* XXX dupe? *)
-      let field_type_ident ty =
-        match Type.repr ty with
-        | TValue | TVar _ -> bitstring_ident
-        | TChannel -> channel_ident
-        | TParameter -> param_data_ident
-      in
-      let envdecl =
-        (mk_var 0, bitstring_ident) ::
-        List.mapi (fun i fty -> mk_var (i+1), field_type_ident fty) ftys
-      in
-      let vars =
-        List.map (fun (id, _ty) -> term_e @@ PIdent id) envdecl
-      in
-      let struct_term =
-        (* Struct(x_0, ..., x_n) *)
-        term_e @@ PFunApp (structure_ctor_ident name, vars)
-      in
-      let ctor_decl =
-        (* fun Struct (bitstring, ..., bitstring) : bitstring[data]. *)
-        TFunDecl
-          ( structure_ctor_ident name
-          , bitstring_ident :: List.map field_type_ident ftys
-          , bitstring_ident
-          , [pv_ident "data", None] )
-      in
-      let addr_decl =
-        (* reduc forall x_0:bitstring, ..., x_n:bitstring;
-             Struct__struct_addr(Struct__struct(x_0, ..., x_n) = x_0.
-        *)
-        TReduc
-          ( [ envdecl
-            , EETerm
-                (term_e @@
-                   PFunApp
+  let compile_structure_fact name ftys =
+    let arity = List.length ftys in
+    (* XXX dupe? *)
+    let field_type_ident ty =
+      match Type.repr ty with
+      | TValue | TVar _ -> bitstring_ident
+      | TChannel -> channel_ident
+      | TParameter -> param_data_ident
+    in
+    let envdecl =
+      (mk_var 0, bitstring_ident) ::
+      List.mapi (fun i fty -> mk_var (i+1), field_type_ident fty) ftys
+    in
+    let vars =
+      List.map (fun (id, _ty) -> term_e @@ PIdent id) envdecl
+    in
+    let struct_term =
+      (* Struct(x_0, ..., x_n) *)
+      term_e @@ PFunApp (structure_ctor_ident name, vars)
+    in
+    let ctor_decl =
+      (* fun Struct (bitstring, ..., bitstring) : bitstring[data]. *)
+      TFunDecl
+        ( structure_ctor_ident name
+        , bitstring_ident :: List.map field_type_ident ftys
+        , bitstring_ident
+        , [pv_ident "data", None] )
+    in
+    let addr_decl =
+      (* reduc forall x_0:bitstring, ..., x_n:bitstring;
+           Struct__struct_addr(Struct__struct(x_0, ..., x_n) = x_0.
+      *)
+      TReduc
+        ( [ envdecl
+          , EETerm
+              (term_e @@
+               PFunApp
+                 ( pv_ident "="
+                 , [ term_e @@ PFunApp (structure_addr_ident name, [struct_term])
+                   ; List.nth vars 0
+                   ] ))
+          ]
+        , [] )
+    in
+    let arg_decls =
+      (* reduc forall x_0:bitstring, ..., x_n:bitstring;
+           Struct__struct_par_i(Struct__struct(x_0, ..., x_n) = x_i.
+      *)
+      List.init arity
+        (fun index ->
+           TReduc
+             ( [ envdecl
+               , EETerm
+                   (term_e @@
+                    PFunApp
                       ( pv_ident "="
-                      , [ term_e @@ PFunApp (structure_addr_ident name, [struct_term])
-                        ; List.nth vars 0
+                      , [ term_e @@ PFunApp (structure_arg_ident name (index + 1), [struct_term])
+                        ; List.nth vars (index + 1)
                         ] ))
-            ]
-          , [] )
-      in
-      let arg_decls =
-        (* reduc forall x_0:bitstring, ..., x_n:bitstring;
-             Struct__struct_par_i(Struct__struct(x_0, ..., x_n) = x_i.
-        *)
-        List.init arity
-          (fun index ->
-             TReduc
-               ( [ envdecl
-                 , EETerm
-                     (term_e @@
-                        PFunApp
-                           ( pv_ident "="
-                           , [ term_e @@ PFunApp (structure_arg_ident name (index + 1), [struct_term])
-                             ; List.nth vars (index + 1)
-                             ] ))
-                 ]
-               , [] ))
-      in
-      TComment (Printf.sprintf "Structure declaration %s(%s)"
-                  name (String.concat "," @@ List.init arity (fun _ -> "_"))) ::
-      ctor_decl :: addr_decl :: arg_decls
+               ]
+             , [] ))
+    in
+    TComment (Printf.sprintf "Structure declaration %s(%s)"
+                name (String.concat "," @@ List.init arity (fun _ -> "_"))) ::
+    ctor_decl :: addr_decl :: arg_decls
+  in
+  Env.facts (GEnv.tyenv genv) |>
+  List.concat_map @@ function
+  | (name, (Env.Structure, Some ftys)) ->
+      compile_structure_fact name ftys
+  | (name, (Env.Structure, None)) ->
+      Error.internal ~loc:Location.nowhere "Structure %s lacks field type information" name
+  | _ -> []
 
 (*
    3.2 Encoding Process Types, Channel types, File types, and Access Control Policies
@@ -987,7 +994,7 @@ let add_allow_inits (genv : GEnv.t) (body : tprocess_e) : tprocess_e =
     (List.rev (GEnv.allow_entries genv))
     body
 
-let rec compile_decl genv (decl : T.decl) : tdecl list =
+let rec compile_decl (env : Env.t) genv (decl : T.decl) : tdecl list =
   let loc = decl.loc in
   match decl.desc with
   | Syscall _ | Attack _ | AllowAttack _ ->
@@ -1010,24 +1017,24 @@ let rec compile_decl genv (decl : T.decl) : tdecl list =
   | System (procs, lemmas) ->
       compile_system ~loc genv procs lemmas
   | Load (filename, decls) ->
-      compile_load genv filename decls
+      compile_load env genv filename decls
 
 (* `load` simply expands its declaration. *)
-and compile_load genv (filename : string) (decls : T.decl list) : tdecl list =
+and compile_load (env : Env.t) genv (filename : string) (decls : T.decl list) : tdecl list =
   TComment (Printf.sprintf "Load %s" filename) ::
-  List.concat_map (compile_decl genv) decls
+  List.concat_map (compile_decl env genv) decls
 
 
-let compile_program (decls : T.decl list) : Pv_parser.program =
-  let genv = GEnv.create () in
+let compile_program (env : Env.t) (decls : T.decl list) : Pv_parser.program =
+  let genv = GEnv.create env in
   List.iter (GEnv.add_decl_strings genv) decls;
   List.iter (collect_decl genv) decls;
-  let body = List.concat_map (compile_decl genv) decls in
+  let body = List.concat_map (compile_decl env genv) decls in
   let top_process = Option.value (GEnv.top_process genv) ~default:(process_e PNil) in
   let top_process = add_allow_inits genv top_process in
   ( compile_prelude genv
     @ compile_structure_decls genv
-    @ compile_fact_decls genv
+    @ compile_channel_fact_decls genv
     @ compile_syscall_consts genv
     @ compile_event_decls genv
     @ compile_string_consts genv

@@ -43,7 +43,8 @@ let compile_comparison_event_name = function
 module GEnv = struct
 
   type t =
-    { mutable strings       : (string * ident) list (** string constants and their identifiers *)
+    { tyenv                 : Env.t (** typing environment *)
+    ; mutable strings       : (string * ident) list (** string constants and their identifiers *)
     ; mutable integers      : (int * ident) list (** integer constants and their identifiers *)
     ; mutable parameters    : (string * ident) list (** concrete parameter values *)
     ; mutable param_inits   : (T.ident * (T.ident * T.expr)) list
@@ -54,15 +55,14 @@ module GEnv = struct
     ; generated_names       : (string, unit) Hashtbl.t (** Generated ProVerif identifiers in use *)
     ; mutable allow_entries : allow_entry list
     ; mutable process_types : (Ident.t * ident) list (** process types in Rabbit and Proverif *)
-    ; mutable structure_facts : (Name.t * Type.type_ list) list (** structure fact constructor and arity *)
-    ; mutable channel_facts   : (Name.t * Type.type_ list) list
     ; mutable events        : (Name.t * (event_kind * Type.type_ list)) list
     ; mutable comparison_events : (comparison_event_kind * Type.type_) list
     ; mutable top_process   : tprocess_e option
     }
 
-  let create () : t =
-    { strings            = []
+  let create tyenv : t =
+    { tyenv              = tyenv
+    ; strings            = []
     ; integers           = []
     ; parameters         = []
     ; param_inits        = []
@@ -72,27 +72,26 @@ module GEnv = struct
     ; generated_names    = Hashtbl.create 101
     ; allow_entries      = []
     ; process_types      = []
-    ; structure_facts    = []
-    ; channel_facts      = []
     ; events             = []
     ; comparison_events  = []
     ; top_process        = None
     }
 
-  let add_with_types kind get_entries set_entries ~loc genv (name : T.name) types =
-    let entries = get_entries genv in
-    match List.assoc_opt name entries with
-    | None -> set_entries genv (entries @ [name, types])
-    | Some types' ->
-        if List.length types <> List.length types' then
-          Error.invalid_input ~loc
-            "%s %s is used with inconsistent arities (%d and %d)"
-            kind name (List.length types') (List.length types);
-        (try List.iter2 Type.unify types types' with
-         | Type.Cannot_unify _ ->
-             Error.invalid_input ~loc
-               "%s %s is used with inconsistent argument types"
-               kind name)
+  let tyenv genv = genv.tyenv
+
+  let add_ident genv ~base : ident =
+    let rec find_available index =
+      let candidate =
+        if index = 0 then base else Printf.sprintf "%s_%d" base index
+      in
+      if Hashtbl.mem genv.generated_names candidate then
+        find_available (index + 1)
+      else
+        candidate
+    in
+    let name = find_available 0 in
+    Hashtbl.add genv.generated_names name ();
+    pv_ident name
 
   (* strings **********************************************)
 
@@ -112,20 +111,6 @@ module GEnv = struct
       "value_" ^ sanitized
     else
       sanitized
-
-  let add_ident genv ~base : ident =
-    let rec find_available index =
-      let candidate =
-        if index = 0 then base else Printf.sprintf "%s_%d" base index
-      in
-      if Hashtbl.mem genv.generated_names candidate then
-        find_available (index + 1)
-      else
-        candidate
-    in
-    let name = find_available 0 in
-    Hashtbl.add genv.generated_names name ();
-    pv_ident name
 
   (* "hello" -> "hello__str" *)
   let add_string genv s =
@@ -181,101 +166,104 @@ module GEnv = struct
   let find_param_init genv id =
     List.assoc_opt id genv.param_inits
 
-  let rec add_expr_strings genv (expr : T.expr) =
-    match expr.desc with
-    | Ident { param; _ } -> Option.iter (add_expr_strings genv) param
-    | Apply (_, args) | Tuple args -> List.iter (add_expr_strings genv) args
-    | String s -> add_string genv s
-    | Boolean _ | Integer _ | Float _ | Unit -> ()
+  module Strings = struct
+    let rec add_expr_strings genv (expr : T.expr) =
+      match expr.desc with
+      | Ident { param; _ } -> Option.iter (add_expr_strings genv) param
+      | Apply (_, args) | Tuple args -> List.iter (add_expr_strings genv) args
+      | String s -> add_string genv s
+      | Boolean _ | Integer _ | Float _ | Unit -> ()
 
-  let add_fact_strings genv (fact : T.fact) =
-    match fact.desc with
-    | Channel { channel; args; _ } ->
-        add_expr_strings genv channel;
-        List.iter (add_expr_strings genv) args
-    | Plain (_name, args) | Global (_name, args) ->
-        List.iter (add_expr_strings genv) args
-    | Eq (lhs, rhs) | Neq (lhs, rhs) ->
-        add_expr_strings genv lhs;
-        add_expr_strings genv rhs
-    | File { path; contents } ->
-        add_expr_strings genv path;
-        add_expr_strings genv contents
+    let add_fact_strings genv (fact : T.fact) =
+      match fact.desc with
+      | Channel { channel; args; _ } ->
+          add_expr_strings genv channel;
+          List.iter (add_expr_strings genv) args
+      | Plain (_name, args) | Global (_name, args) ->
+          List.iter (add_expr_strings genv) args
+      | Eq (lhs, rhs) | Neq (lhs, rhs) ->
+          add_expr_strings genv lhs;
+          add_expr_strings genv rhs
+      | File { path; contents } ->
+          add_expr_strings genv path;
+          add_expr_strings genv contents
 
-  let rec add_cmd_strings genv (cmd : T.cmd) =
-    match cmd.desc with
-    | Skip -> ()
-    | Sequence (lhs, rhs) ->
-        add_cmd_strings genv lhs;
-        add_cmd_strings genv rhs
-    | Put facts | Event facts -> List.iter (add_fact_strings genv) facts
-    | Let (_id, expr, body) ->
-        add_expr_strings genv expr;
-        add_cmd_strings genv body
-    | Assign (_, expr) | Expr expr | Del (expr, _) ->
-        add_expr_strings genv expr
-    | Case cases -> List.iter (add_case_strings genv) cases
-    | While (repeat_cases, until_cases) ->
-        List.iter (add_case_strings genv) repeat_cases;
-        List.iter (add_case_strings genv) until_cases
-    | New (_id, value, body) ->
-        Option.iter
-          (fun (_name, args) -> List.iter (add_expr_strings genv) args)
-          value;
-        add_cmd_strings genv body
-    | Get (_ids, expr, _name, body) ->
-        add_expr_strings genv expr;
-        add_cmd_strings genv body
+    let rec add_cmd_strings genv (cmd : T.cmd) =
+      match cmd.desc with
+      | Skip -> ()
+      | Sequence (lhs, rhs) ->
+          add_cmd_strings genv lhs;
+          add_cmd_strings genv rhs
+      | Put facts | Event facts -> List.iter (add_fact_strings genv) facts
+      | Let (_id, expr, body) ->
+          add_expr_strings genv expr;
+          add_cmd_strings genv body
+      | Assign (_, expr) | Expr expr | Del (expr, _) ->
+          add_expr_strings genv expr
+      | Case cases -> List.iter (add_case_strings genv) cases
+      | While (repeat_cases, until_cases) ->
+          List.iter (add_case_strings genv) repeat_cases;
+          List.iter (add_case_strings genv) until_cases
+      | New (_id, value, body) ->
+          Option.iter
+            (fun (_name, args) -> List.iter (add_expr_strings genv) args)
+            value;
+          add_cmd_strings genv body
+      | Get (_ids, expr, _name, body) ->
+          add_expr_strings genv expr;
+          add_cmd_strings genv body
 
-  and add_case_strings genv ({ facts; cmd; _ } : T.case) =
-    List.iter (add_fact_strings genv) facts;
-    add_cmd_strings genv cmd
+    and add_case_strings genv ({ facts; cmd; _ } : T.case) =
+      List.iter (add_fact_strings genv) facts;
+      add_cmd_strings genv cmd
 
-  let add_proc_strings genv (proc : T.proc) =
-    let { T.parameter; args; _ } = proc.data in
-    Option.iter (add_expr_strings genv) parameter;
-    List.iter
-      (fun ({ parameter; _ } : T.chan_arg) ->
-         Option.iter (Option.iter (add_expr_strings genv)) parameter)
-      args
+    let add_proc_strings genv (proc : T.proc) =
+      let { T.parameter; args; _ } = proc.data in
+      Option.iter (add_expr_strings genv) parameter;
+      List.iter
+        (fun ({ parameter; _ } : T.chan_arg) ->
+           Option.iter (Option.iter (add_expr_strings genv)) parameter)
+        args
 
-  let add_proc_group_strings genv = function
-    | T.Unbounded proc -> add_proc_strings genv proc
-    | Bounded (_id, procs) -> List.iter (add_proc_strings genv) procs
+    let add_proc_group_strings genv = function
+      | T.Unbounded proc -> add_proc_strings genv proc
+      | Bounded (_id, procs) -> List.iter (add_proc_strings genv) procs
 
-  let add_lemma_strings genv (_id, lemma : T.ident * T.lemma) =
-    match lemma.desc with
-    | Plain _ -> ()
-    | Reachability { facts; _ } -> List.iter (add_fact_strings genv) facts
-    | Correspondence { premise; conclusion; _ } ->
-        add_fact_strings genv premise;
-        add_fact_strings genv conclusion
+    let add_lemma_strings genv (_id, lemma : T.ident * T.lemma) =
+      match lemma.desc with
+      | Plain _ -> ()
+      | Reachability { facts; _ } -> List.iter (add_fact_strings genv) facts
+      | Correspondence { premise; conclusion; _ } ->
+          add_fact_strings genv premise;
+          add_fact_strings genv conclusion
 
-  let rec add_decl_strings genv (decl : T.decl) =
-    match decl.desc with
-    | Equation (lhs, rhs) ->
-        add_expr_strings genv lhs;
-        add_expr_strings genv rhs
-    | Syscall { cmd; _ } | Attack { cmd; _ } -> add_cmd_strings genv cmd
-    | Init { desc = Value expr; _ }
-    | Init { desc = Value_with_param (_, expr); _ } ->
-        add_expr_strings genv expr
-    | Process { files; vars; funcs; main; _ } ->
-        List.iter
-          (fun (path, _typ, contents) ->
-             add_expr_strings genv path;
-             add_expr_strings genv contents)
-          files;
-        List.iter (fun (_id, expr) -> add_expr_strings genv expr) vars;
-        List.iter (fun (_id, _args, cmd) -> add_cmd_strings genv cmd) funcs;
-        add_cmd_strings genv main
-    | System (procs, lemmas) ->
-        List.iter (add_proc_group_strings genv) procs;
-        List.iter (add_lemma_strings genv) lemmas
-    | Load (_filename, decls) -> List.iter (add_decl_strings genv) decls
-    | Function _ | Type _ | Allow _ | AllowAttack _
-    | Init { desc = Fresh | Fresh_with_param; _ } | Channel _ -> ()
+    let rec add_decl_strings genv (decl : T.decl) =
+      match decl.desc with
+      | Equation (lhs, rhs) ->
+          add_expr_strings genv lhs;
+          add_expr_strings genv rhs
+      | Syscall { cmd; _ } | Attack { cmd; _ } -> add_cmd_strings genv cmd
+      | Init { desc = Value expr; _ }
+      | Init { desc = Value_with_param (_, expr); _ } ->
+          add_expr_strings genv expr
+      | Process { files; vars; funcs; main; _ } ->
+          List.iter
+            (fun (path, _typ, contents) ->
+               add_expr_strings genv path;
+               add_expr_strings genv contents)
+            files;
+          List.iter (fun (_id, expr) -> add_expr_strings genv expr) vars;
+          List.iter (fun (_id, _args, cmd) -> add_cmd_strings genv cmd) funcs;
+          add_cmd_strings genv main
+      | System (procs, lemmas) ->
+          List.iter (add_proc_group_strings genv) procs;
+          List.iter (add_lemma_strings genv) lemmas
+      | Load (_filename, decls) -> List.iter (add_decl_strings genv) decls
+      | Function _ | Type _ | Allow _ | AllowAttack _
+      | Init { desc = Fresh | Fresh_with_param; _ } | Channel _ -> ()
+  end
 
+  let add_decl_strings = Strings.add_decl_strings
 
   (* syscalls ***********************************************)
 
@@ -362,30 +350,21 @@ module GEnv = struct
     | None ->
         genv.process_types <- (process_id, compile_ident typ) :: genv.process_types
 
-  (* structure facts ****************************************)
+  (* facts **************************************************)
 
-  let structure_facts genv = genv.structure_facts
+  let channel_facts genv =
+    List.filter_map (function
+        | (name, ((Channel : Env.named_fact_desc), Some tys)) -> Some (name, tys)
+        | (_, (Channel, None)) -> assert false
+        | _ -> None)
+      (Env.facts genv.tyenv)
 
-  let find_structure_fact ~loc genv name =
-    match List.assoc_opt name genv.structure_facts with
-    | None -> Error.internal ~loc "structure fact %s is not declared" name
-    | Some ftys -> ftys
-
-  (* called when predeclared using `structure s(_, channel, parameter)` declaration *)
-  let add_structure_fact ~loc genv name ftys =
-    match List.assoc_opt name genv.structure_facts with
-    | None -> genv.structure_facts <- genv.structure_facts @ [name, ftys]
-    | Some _ -> Error.internal ~loc "structure fact %s is already defined" name
-
-  (* channel facts *****************************************)
-
-  let channel_facts genv = genv.channel_facts
-
-  let add_channel_fact =
-    add_with_types
-      "Channel fact"
-      (fun genv -> genv.channel_facts)
-      (fun genv channel_facts -> genv.channel_facts <- channel_facts)
+  let structure_facts genv =
+    List.filter_map (function
+        | (name, ((Structure : Env.named_fact_desc), Some tys)) -> Some (name, tys)
+        | (_, (Structure, None)) -> assert false
+        | _ -> None)
+      (Env.facts genv.tyenv)
 
   (* events *************************************************)
 

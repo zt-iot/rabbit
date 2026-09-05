@@ -10,7 +10,7 @@ let pv_filename rab_filename =
 
 let load_file fn =
   try
-    Ok (snd @@ Typer.load (Env.empty ()) fn)
+    Ok (Typer.load (Env.empty ()) fn)
   with
   | Error.Error _ as exn -> Error exn
   | exn ->
@@ -26,8 +26,8 @@ let write_program filename program =
 let compile_file rab_filename =
   match load_file rab_filename with
   | Error exn -> raise exn
-  | Ok decls ->
-      let program = Proverif_compiler.compile_program decls in
+  | Ok (env, decls) ->
+      let program = Proverif_compiler.compile_program env decls in
       let pv_file = pv_filename rab_filename in
       write_program pv_file program;
       Format.printf "%s -> %s@." rab_filename pv_file

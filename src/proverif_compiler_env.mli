@@ -40,7 +40,9 @@ val compile_comparison_event_name : comparison_event_kind -> ident
 module GEnv : sig
   type t
 
-  val create : unit -> t
+  val create : Env.t -> t
+
+  val tyenv : t -> Env.t
 
   val strings : t -> (string * ident) list
   val fresh_string_ident : t -> string -> ident
@@ -84,12 +86,8 @@ module GEnv : sig
   val find_process_type : loc:Location.t -> t -> T.ident -> ident
   val add_process_type : loc:Location.t -> t -> T.ident -> T.ident -> unit
 
-  val structure_facts : t -> (T.name * Type.type_ list) list
-  val find_structure_fact : loc:Location.t -> t -> Name.t -> Type.type_ list
-  val add_structure_fact : loc:Location.t -> t -> T.name -> Type.type_ list -> unit
-
   val channel_facts : t -> (T.name * Type.type_ list) list
-  val add_channel_fact : loc:Location.t -> t -> T.name -> Type.type_ list -> unit
+  val structure_facts : t -> (T.name * Type.type_ list) list
 
   val events : t -> (T.name * (event_kind * Type.type_ list)) list
   val add_event : loc:Location.t -> t -> T.name -> event_kind -> Type.type_ list -> unit

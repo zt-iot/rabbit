@@ -29,7 +29,7 @@ let current_pv_filename rab_filename =
 
 let load_file fn =
   try
-    Ok (snd @@ Typer.load (Env.empty ()) fn)
+    Ok (Typer.load (Env.empty ()) fn)
   with
   | Error.Error _ as exn -> Error exn
   | exn ->
@@ -40,8 +40,8 @@ let compile_to_string rab_filename =
   try
     match load_file rab_filename with
     | Error exn -> Error exn
-    | Ok decls ->
-        let program = Proverif_compiler.compile_program decls in
+    | Ok (env, decls) ->
+        let program = Proverif_compiler.compile_program env decls in
         let buf = Buffer.create 1024 in
         let ppf = Format.formatter_of_buffer buf in
         Rabbit_proverif_pv.Pv_pp.pp_program ppf program;

@@ -33,7 +33,7 @@ let options =
 
 let load_file fn =
   try
-    Ok (snd @@ Typer.load (Env.empty ()) fn)
+    Ok (Typer.load (Env.empty ()) fn)
   with
   | Error.Error _ as exn -> Error exn
   | exn ->
@@ -44,8 +44,8 @@ let compile_files files =
   List.map
     (fun fn ->
        match load_file fn with
-       | Ok decls ->
-           Proverif_compiler.compile_program decls
+       | Ok (env, decls) ->
+           Proverif_compiler.compile_program env decls
        | Error exn -> raise exn)
     files
 

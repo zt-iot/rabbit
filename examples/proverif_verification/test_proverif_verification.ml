@@ -87,8 +87,8 @@ let rec reachability_flags decls =
     decls
 
 let compile_to_file rab_filename pv_filename =
-  let decls = snd @@ Typer.load (Env.empty ()) rab_filename in
-  let program = Proverif_compiler.compile_program decls in
+  let env, decls = Typer.load (Env.empty ()) rab_filename in
+  let program = Proverif_compiler.compile_program env decls in
   Out_channel.with_open_text pv_filename @@ fun oc ->
   let ppf = Format.formatter_of_out_channel oc in
   Rabbit_proverif_pv.Pv_pp.pp_program ppf program;
