@@ -35,52 +35,71 @@ const chan_t__0: acc_data_t.
 let alice__0(ptype:proc_t, ch__711:channel) =
   (* Channel ch__711 : chan_t *)
   insert channel_table(chan_t__0, ch__711);
+  (* new n__712 in .. at file "./051_attack_ch.rab", line 27, charaters 8-187 *)
   new n__712:bitstring;
+  (* event [ ::Send(n__712) ] at file "./051_attack_ch.rab", line 28, charaters 1-17 *)
   event Send__event_global(n__712);
+  (* _ := .. at file "./051_attack_ch.rab", line 29, charaters 8-24 *)
+  (* put [ c__704::store(v__705) ] at file "./051_attack_ch.rab", line 5, charaters 2-19 *)
   get channel_table(ch_type__748:acc_data_t, =ch__711) in
   get access_control_table(=ptype, =ch_type__748, =send__0__syscall) in
   out(ch__711, store__chan(n__712)) |
+  (* let m__713 = .. in .. at file "./051_attack_ch.rab", line 30, charaters 1-125 *)
   new call_join_ch__726:channel;
   (new attack_choice_ch:channel;
    (out(attack_choice_ch, true__bool) |
     in(attack_choice_ch, _:bitstring);
+    (* case at file "./051_attack_ch.rab", line 10, charaters 21-22 *)
     get channel_table(ch_type__730:acc_data_t, =ch__711) in
     get access_control_table(=ptype, =ch_type__730, =recv__0__syscall) in
     in(ch__711, store__chan(case_arg_0__716:bitstring));
     new channel_case_ch__717:channel;
     (out(channel_case_ch__717, (false__bool, (), n__712, ch__711)) |
      in(channel_case_ch__717, (=false__bool, channel_case_result__727:bitstring, channel_case_state_0__728:bitstring, channel_case_state_1__729:channel))[precise];
-     out(channel_case_ch__717, (true__bool, case_arg_0__716, channel_case_state_0__728, channel_case_state_1__729))) |
+     (* case [ c__706::store(v__707) ] at file "./051_attack_ch.rab", line 10, charaters 21-22 *)
+     out(channel_case_ch__717, (true__bool, (* expr at file "./051_attack_ch.rab", line 10, charaters 21-22 *)
+                                            case_arg_0__716, channel_case_state_0__728, channel_case_state_1__729))) |
+    (* end of case at file "./051_attack_ch.rab", line 10, charaters 21-22 *)
     in(channel_case_ch__717, (=true__bool, channel_case_done_result__718:bitstring, channel_case_done_state_0__719:bitstring, channel_case_done_state_1__720:channel))[precise];
     out(call_join_ch__726, (true__bool, channel_case_done_result__718, channel_case_done_state_0__719))) |
    in(attack_choice_ch, _:bitstring);
+   (* case at file "./051_attack_ch.rab", line 17, charaters 30-31 *)
    get channel_table(ch_type__735:acc_data_t, =ch__711) in
    get access_control_table(=ptype, =ch_type__735, =recv__0__syscall) in
    in(ch__711, store__chan(case_arg_0__721:bitstring));
    new channel_case_ch__722:channel;
    (out(channel_case_ch__722, (false__bool, (), n__712, ch__711)) |
     in(channel_case_ch__722, (=false__bool, channel_case_result__731:bitstring, channel_case_state_0__732:bitstring, channel_case_state_1__733:channel))[precise];
+    (* case [ c__708::store(v__710), ::In(m__709) ] at file "./051_attack_ch.rab", line 17, charaters 30-31 *)
     in(attacker_ch, attacker_input__734:bitstring);
-    out(channel_case_ch__722, (true__bool, attacker_input__734, channel_case_state_0__732, channel_case_state_1__733))) |
+    out(channel_case_ch__722, (true__bool, (* expr at file "./051_attack_ch.rab", line 17, charaters 30-31 *)
+                                           attacker_input__734, channel_case_state_0__732, channel_case_state_1__733))) |
+   (* end of case at file "./051_attack_ch.rab", line 17, charaters 30-31 *)
    in(channel_case_ch__722, (=true__bool, channel_case_done_result__723:bitstring, channel_case_done_state_0__724:bitstring, channel_case_done_state_1__725:channel))[precise];
    out(call_join_ch__726, (true__bool, channel_case_done_result__723, channel_case_done_state_0__724))) |
   in(call_join_ch__726, (=true__bool, call_result__736:bitstring, call_state_0__737:bitstring))[precise];
+  (* case at file "./051_attack_ch.rab", line 32, charaters 21-38 *)
   new case_ch__738:channel;
   ((out(case_ch__738, (false__bool, (), call_state_0__737, call_result__736)) |
+    (* case [ n__712 = m__713 ] at file "./051_attack_ch.rab", line 32, charaters 21-38 *)
     in(case_ch__738, (=false__bool, case_result__742:bitstring, case_state_0__743:bitstring, case_state_1__744:bitstring))[precise];
     if case_state_0__743 = case_state_1__744
     then
+      (* event [ ::Valid(n__712) ] at file "./051_attack_ch.rab", line 32, charaters 21-38 *)
       event Valid__event_global(case_state_0__743);
       out(case_ch__738, (true__bool, (), case_state_0__743, case_state_1__744))
     else
       out(case_ch__738, (false__bool, case_result__742, case_state_0__743, case_state_1__744))) |
+   (* case [ n__712 != m__713 ] at file "./051_attack_ch.rab", line 33, charaters 22-40 *)
    in(case_ch__738, (=false__bool, case_result__745:bitstring, case_state_0__746:bitstring, case_state_1__747:bitstring))[precise];
    if case_state_0__746 = case_state_1__747
    then
      out(case_ch__738, (false__bool, case_result__745, case_state_0__746, case_state_1__747))
    else
+     (* event [ ::Invalid() ] at file "./051_attack_ch.rab", line 33, charaters 22-40 *)
      event Invalid__event_global;
      out(case_ch__738, (true__bool, (), case_state_0__746, case_state_1__747))) |
+  (* end of case at file "./051_attack_ch.rab", line 32, charaters 21-38 *)
   in(case_ch__738, (=true__bool, case_done_result__739:bitstring, case_done_state_0__740:bitstring, case_done_state_1__741:bitstring))[precise].
 (* channel ch : chan_t *)
 free ch__0: channel[private].

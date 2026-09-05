@@ -45,16 +45,25 @@ let alice__0(ptype:proc_t, ch__490:channel, ch2__491:channel) =
   insert channel_table(chan_t__0, ch__490);
   (* Channel ch2__491 : chan_t *)
   insert channel_table(chan_t__0, ch2__491);
+  (* let n2__492 = .. in .. at file "./036_nonce_handshake_simpler.rab", line 22, charaters 8-117 *)
+  (* case at file "./036_nonce_handshake_simpler.rab", line 12, charaters 22-23 *)
   get channel_table(ch_type__511:acc_data_t, =ch__490) in
   get access_control_table(=ptype, =ch_type__511, =recv__0__syscall) in
   in(ch__490, store__chan(case_arg_0__504:bitstring));
   new channel_case_ch__505:channel;
   (out(channel_case_ch__505, (false__bool, (), ch__490)) |
    in(channel_case_ch__505, (=false__bool, channel_case_result__509:bitstring, channel_case_state_0__510:channel))[precise];
-   out(channel_case_ch__505, (true__bool, case_arg_0__504, channel_case_state_0__510))) |
+   (* case [ c__488::store(v__489) ] at file "./036_nonce_handshake_simpler.rab", line 12, charaters 22-23 *)
+   out(channel_case_ch__505, (true__bool, (* expr at file "./036_nonce_handshake_simpler.rab", line 12, charaters 22-23 *)
+                                          case_arg_0__504, channel_case_state_0__510))) |
+  (* end of case at file "./036_nonce_handshake_simpler.rab", line 12, charaters 22-23 *)
   in(channel_case_ch__505, (=true__bool, channel_case_done_result__506:bitstring, channel_case_done_state_0__507:channel))[precise];
+  (* new msg2__493 in .. at file "./036_nonce_handshake_simpler.rab", line 23, charaters 8-88 *)
   new msg2__493:bitstring;
+  (* event [ ::Sent(msg2__493, n2__492) ] at file "./036_nonce_handshake_simpler.rab", line 24, charaters 8-32 *)
   event Sent__event_global(msg2__493, channel_case_done_result__506);
+  (* _ := .. at file "./036_nonce_handshake_simpler.rab", line 25, charaters 8-34 *)
+  (* put [ c__486::store(v__487) ] at file "./036_nonce_handshake_simpler.rab", line 7, charaters 2-19 *)
   get channel_table(ch_type__508:acc_data_t, =ch2__491) in
   get access_control_table(=ptype, =ch_type__508, =send__0__syscall) in
   out(ch2__491, store__chan((msg2__493, channel_case_done_result__506))) | 0.
@@ -64,34 +73,50 @@ let bob__0(ptype:proc_t, ch__494:channel, ch2__495:channel) =
   insert channel_table(chan_t__0, ch__494);
   (* Channel ch2__495 : chan_t *)
   insert channel_table(chan_t__0, ch2__495);
+  (* new n__496 in .. at file "./036_nonce_handshake_simpler.rab", line 32, charaters 8-273 *)
   new n__496:bitstring;
+  (* _ := .. at file "./036_nonce_handshake_simpler.rab", line 33, charaters 8-24 *)
+  (* put [ c__486::store(v__487) ] at file "./036_nonce_handshake_simpler.rab", line 7, charaters 2-19 *)
   get channel_table(ch_type__537:acc_data_t, =ch__494) in
   get access_control_table(=ptype, =ch_type__537, =send__0__syscall) in
   out(ch__494, store__chan(n__496)) |
-  (get channel_table(ch_type__536:acc_data_t, =ch2__495) in
+  ((* let pair__497 = .. in .. at file "./036_nonce_handshake_simpler.rab", line 35, charaters 8-229 *)
+   (* case at file "./036_nonce_handshake_simpler.rab", line 12, charaters 22-23 *)
+   get channel_table(ch_type__536:acc_data_t, =ch2__495) in
    get access_control_table(=ptype, =ch_type__536, =recv__0__syscall) in
    in(ch2__495, store__chan(case_arg_0__512:bitstring));
    new channel_case_ch__513:channel;
    (out(channel_case_ch__513, (false__bool, (), n__496, ch2__495)) |
     in(channel_case_ch__513, (=false__bool, channel_case_result__533:bitstring, channel_case_state_0__534:bitstring, channel_case_state_1__535:channel))[precise];
-    out(channel_case_ch__513, (true__bool, case_arg_0__512, channel_case_state_0__534, channel_case_state_1__535))) |
+    (* case [ c__488::store(v__489) ] at file "./036_nonce_handshake_simpler.rab", line 12, charaters 22-23 *)
+    out(channel_case_ch__513, (true__bool, (* expr at file "./036_nonce_handshake_simpler.rab", line 12, charaters 22-23 *)
+                                           case_arg_0__512, channel_case_state_0__534, channel_case_state_1__535))) |
+   (* end of case at file "./036_nonce_handshake_simpler.rab", line 12, charaters 22-23 *)
    in(channel_case_ch__513, (=true__bool, channel_case_done_result__514:bitstring, channel_case_done_state_0__515:bitstring, channel_case_done_state_1__516:channel))[precise];
+   (* let msg__498 = .. in .. at file "./036_nonce_handshake_simpler.rab", line 36, charaters 8-197 *)
+   (* let m__499 = .. in .. at file "./036_nonce_handshake_simpler.rab", line 37, charaters 8-166 *)
+   (* case at file "./036_nonce_handshake_simpler.rab", line 40, charaters 13-36 *)
    new case_ch__517:channel;
    ((out(case_ch__517, (false__bool, (), channel_case_done_state_0__515, channel_case_done_result__514, fst__0(channel_case_done_result__514), snd__0(channel_case_done_result__514))) |
+     (* case [ n__496 = m__499 ] at file "./036_nonce_handshake_simpler.rab", line 40, charaters 13-36 *)
      in(case_ch__517, (=false__bool, case_result__523:bitstring, case_state_0__524:bitstring, case_state_1__525:bitstring, case_state_2__526:bitstring, case_state_3__527:bitstring))[precise];
      if case_state_0__524 = case_state_3__527
      then
+       (* event [ ::Valid(msg__498, n__496) ] at file "./036_nonce_handshake_simpler.rab", line 40, charaters 13-36 *)
        event Valid__event_global(case_state_2__526, case_state_0__524);
        out(case_ch__517, (true__bool, (), case_state_0__524, case_state_1__525, case_state_2__526, case_state_3__527))
      else
        out(case_ch__517, (false__bool, case_result__523, case_state_0__524, case_state_1__525, case_state_2__526, case_state_3__527))) |
+    (* case [ n__496 != m__499 ] at file "./036_nonce_handshake_simpler.rab", line 42, charaters 13-32 *)
     in(case_ch__517, (=false__bool, case_result__528:bitstring, case_state_0__529:bitstring, case_state_1__530:bitstring, case_state_2__531:bitstring, case_state_3__532:bitstring))[precise];
     if case_state_0__529 = case_state_3__532
     then
       out(case_ch__517, (false__bool, case_result__528, case_state_0__529, case_state_1__530, case_state_2__531, case_state_3__532))
     else
+      (* event [ ::Invalid() ] at file "./036_nonce_handshake_simpler.rab", line 42, charaters 13-32 *)
       event Invalid__event_global;
       out(case_ch__517, (true__bool, (), case_state_0__529, case_state_1__530, case_state_2__531, case_state_3__532))) |
+   (* end of case at file "./036_nonce_handshake_simpler.rab", line 40, charaters 13-36 *)
    in(case_ch__517, (=true__bool, case_done_result__518:bitstring, case_done_state_0__519:bitstring, case_done_state_1__520:bitstring, case_done_state_2__521:bitstring, case_done_state_3__522:bitstring))[precise]).
 (* channel chan : chan_t *)
 free chan__0: channel[private].

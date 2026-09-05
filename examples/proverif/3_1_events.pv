@@ -21,7 +21,9 @@ event ImgSend__event_global(bitstring).
 const proc_t__0: proc_t.
 (* process sender(..): proc_t *)
 let sender__0(ptype:proc_t) =
+  (* new image__7 in .. at file "./3_1_events.rab", line 9, charaters 4-45 *)
   new image__7:bitstring;
+  (* event [ ::ImgSend(image__7) ] at file "./3_1_events.rab", line 10, charaters 4-28 *)
   event ImgSend__event_global(image__7).
 (* Requires *)
 (* lemma ReachableImgSend *)

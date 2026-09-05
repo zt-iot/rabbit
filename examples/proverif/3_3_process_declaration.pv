@@ -29,11 +29,13 @@ const udp_t__0: acc_data_t.
 let client__0(ptype:proc_t, ch__14:channel) =
   (* Channel ch__14 : udp_t *)
   insert channel_table(udp_t__0, ch__14);
+  (* event [ ::Valid() ] at file "./3_3_process_declaration.rab", line 26, charaters 4-21 *)
   event Valid__event_global.
 (* process server(..): server_t *)
 let server__0(ptype:proc_t, ch__15:channel) =
   (* Channel ch__15 : udp_t *)
   insert channel_table(udp_t__0, ch__15);
+  (* event [ ::Served() ] at file "./3_3_process_declaration.rab", line 33, charaters 4-22 *)
   event Served__event_global.
 (* channel udp : udp_t *)
 free udp__0: channel[private].

@@ -23,7 +23,9 @@ const hello__str: bitstring.
 const proc_t__0: proc_t.
 (* process speaker(..): proc_t *)
 let speaker__0(ptype:proc_t) =
+  (* event [ ::Seen("hello") ] at file "./3_1_string.rab", line 10, charaters 4-27 *)
   event Seen__event_global(hello__str);
+  (* event [ ::Seen("hello") ] at file "./3_1_string.rab", line 11, charaters 4-27 *)
   event Seen__event_global(hello__str).
 (* Requires *)
 (* lemma ReachableHello *)

@@ -22,7 +22,9 @@ const client_t__0: proc_t.
 (* type udp_t : channel *)
 const udp_t__0: acc_data_t.
 (* process client(..): client_t *)
-let client__0(ptype:proc_t) = event Valid__event_global.
+let client__0(ptype:proc_t) =
+  (* event [ ::Valid() ] at file "./3_3_channel_declaration.rab", line 16, charaters 4-21 *)
+  event Valid__event_global.
 (* channel udp : udp_t *)
 free udp__0: channel[private].
 (* Requires *)

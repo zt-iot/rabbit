@@ -35,19 +35,27 @@ const int__pos_3: bitstring.
 const proc_t__0: proc_t.
 (* process chooser(..): proc_t *)
 let chooser__0(ptype:proc_t) =
+  (* let result__21 = .. in .. at file "./3_5_case_general.rab", line 14, charaters 4-293 *)
+  (* let one__22 = .. in .. at file "./3_5_case_general.rab", line 15, charaters 4-271 *)
+  (* let two__23 = .. in .. at file "./3_5_case_general.rab", line 16, charaters 4-252 *)
+  (* case at file "./3_5_case_general.rab", line 18, charaters 29-59 *)
   new case_ch__24:channel;
   (((out(case_ch__24, (false__bool, (), int__pos_0, int__pos_1, int__pos_2)) |
+     (* case [ one__22 = 1, two__23 = 2 ] at file "./3_5_case_general.rab", line 18, charaters 29-59 *)
      in(case_ch__24, (=false__bool, case_result__29:bitstring, case_state_0__30:bitstring, case_state_1__31:bitstring, case_state_2__32:bitstring))[precise];
      if case_state_1__31 = int__pos_1
      then
        if case_state_2__32 = int__pos_2
        then
+         (* event [ ::Valid() ] at file "./3_5_case_general.rab", line 18, charaters 29-46 *)
          event Valid__event_global;
+         (* result__21 := .. at file "./3_5_case_general.rab", line 18, charaters 48-59 *)
          out(case_ch__24, (true__bool, (), int__pos_1, case_state_1__31, case_state_2__32))
        else
          out(case_ch__24, (false__bool, case_result__29, case_state_0__30, case_state_1__31, case_state_2__32))
      else
        out(case_ch__24, (false__bool, case_result__29, case_state_0__30, case_state_1__31, case_state_2__32))) |
+    (* case [ one__22 = 1, two__23 != 2 ] at file "./3_5_case_general.rab", line 19, charaters 29-64 *)
     in(case_ch__24, (=false__bool, case_result__33:bitstring, case_state_0__34:bitstring, case_state_1__35:bitstring, case_state_2__36:bitstring))[precise];
     if case_state_1__35 = int__pos_1
     then
@@ -55,18 +63,25 @@ let chooser__0(ptype:proc_t) =
       then
         out(case_ch__24, (false__bool, case_result__33, case_state_0__34, case_state_1__35, case_state_2__36))
       else
+        (* event [ ::Unexpected() ] at file "./3_5_case_general.rab", line 19, charaters 29-51 *)
         event Unexpected__event_global;
+        (* result__21 := .. at file "./3_5_case_general.rab", line 19, charaters 53-64 *)
         out(case_ch__24, (true__bool, (), int__pos_2, case_state_1__35, case_state_2__36))
     else
       out(case_ch__24, (false__bool, case_result__33, case_state_0__34, case_state_1__35, case_state_2__36))) |
+   (* case [ one__22 != 1 ] at file "./3_5_case_general.rab", line 20, charaters 29-61 *)
    in(case_ch__24, (=false__bool, case_result__37:bitstring, case_state_0__38:bitstring, case_state_1__39:bitstring, case_state_2__40:bitstring))[precise];
    if case_state_1__39 = int__pos_1
    then
      out(case_ch__24, (false__bool, case_result__37, case_state_0__38, case_state_1__39, case_state_2__40))
    else
+     (* event [ ::Invalid() ] at file "./3_5_case_general.rab", line 20, charaters 29-48 *)
      event Invalid__event_global;
+     (* result__21 := .. at file "./3_5_case_general.rab", line 20, charaters 50-61 *)
      out(case_ch__24, (true__bool, (), int__pos_3, case_state_1__39, case_state_2__40))) |
+  (* end of case at file "./3_5_case_general.rab", line 18, charaters 29-59 *)
   in(case_ch__24, (=true__bool, case_done_result__25:bitstring, case_done_state_0__26:bitstring, case_done_state_1__27:bitstring, case_done_state_2__28:bitstring))[precise];
+  (* event [ ::Joined(result__21) ] at file "./3_5_case_general.rab", line 22, charaters 4-28 *)
   event Joined__event_global(case_done_state_0__26).
 (* Requires *)
 (* lemma ReachableValid *)

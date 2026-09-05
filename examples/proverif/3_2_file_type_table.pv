@@ -30,7 +30,9 @@ let server__0(ptype:proc_t) =
   (* file "/secret/pub" : readonly_t = .. *)
   insert file_type_table(ptype, readonly_t__0, secret_pub__str);
   new file_ch:channel;
-  out(file_ch, (secret_pub__str, hello__str)) | event Valid__event_global.
+  out(file_ch, (secret_pub__str, hello__str)) |
+  (* event [ ::Valid() ] at file "./3_2_file_type_table.rab", line 18, charaters 4-21 *)
+  event Valid__event_global.
 (* Requires *)
 (* lemma ReachableValid *)
 query event(Valid__event_global()).

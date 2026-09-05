@@ -25,7 +25,12 @@ const int__pos_1: bitstring.
 const proc_t__0: proc_t.
 (* process chooser(..): proc_t *)
 let chooser__0(ptype:proc_t) =
-  if int__pos_1 = int__pos_1 then event Selected__event_global(int__pos_1).
+  (* let selected__64 = .. in .. at file "./3_5_case_optimization_single_equational_branch.rab", line 9, charaters 4-105 *)
+  if int__pos_1 = int__pos_1
+  then
+    (* selected__64 := .. at file "./3_5_case_optimization_single_equational_branch.rab", line 11, charaters 17-30 *)
+    (* event [ ::Selected(selected__64) ] at file "./3_5_case_optimization_single_equational_branch.rab", line 13, charaters 4-32 *)
+    event Selected__event_global(int__pos_1).
 (* Requires *)
 (* lemma UpdatedStateReachesContinuation *)
 query event(Selected__event_global(int__pos_1)).

@@ -41,10 +41,13 @@ const int__pos_3: bitstring.
 const proc_t__0: proc_t.
 (* process p(..): proc_t *)
 let p__0(ptype:proc_t) =
+  (* new x__829 = S(..) in .. at file "./142_structure_fetch_after_delete.rab", line 8, charaters 4-186 *)
   new x__829:bitstring;
+  (* event [ ::Allocated() ] at file "./142_structure_fetch_after_delete.rab", line 9, charaters 4-25 *)
   event Allocated__event_global;
-  (* delete _.S *)
+  (* delete _.S at file "./142_structure_fetch_after_delete.rab", line 10, charaters 4-14 *)
   insert deleted_address_table(S__struct_addr(S__struct(x__829, int__pos_1, int__pos_2, int__pos_3)));
+  (* let (x1__830, x2__831, x3__832) := _.S in .. at file "./142_structure_fetch_after_delete.rab", line 11, charaters 4-119 *)
   get deleted_address_table(=S__struct_addr(S__struct(x__829, int__pos_1, int__pos_2, int__pos_3)))
   else
     (if
@@ -55,8 +58,11 @@ let p__0(ptype:proc_t) =
        then
          if
            S__struct_par_3(S__struct(x__829, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
-         then event Valid__event_global;
-              event Deleted__event_global).
+         then
+           (* event [ ::Valid() ] at file "./142_structure_fetch_after_delete.rab", line 13, charaters 34-51 *)
+           event Valid__event_global;
+           (* event [ ::Deleted() ] at file "./142_structure_fetch_after_delete.rab", line 15, charaters 4-23 *)
+           event Deleted__event_global).
 (* Requires *)
 (* lemma Allocated *)
 query event(Allocated__event_global()).

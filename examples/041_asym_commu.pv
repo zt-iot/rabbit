@@ -58,41 +58,58 @@ equation pubkey__0 = pk__0(privkey__0).
 let server__0(ptype:proc_t, ch__601:channel) =
   (* Channel ch__601 : chan_t *)
   insert channel_table(chan_t__0, ch__601);
+  (* repeat-until at file "./041_asym_commu.rab", line 25, charaters 8-353 *)
   new loop_ch__613:channel;
   (out(loop_ch__613, (false__bool, ())) |
-   !((in(loop_ch__613, (=false__bool, loop_result__616:bitstring))[precise];
+   !(((* repeat case [ ch__601::store(d__602) ] at file "./041_asym_commu.rab", line 27, charaters 5-219 *)
+      in(loop_ch__613, (=false__bool, loop_result__616:bitstring))[precise];
       get channel_table(ch_type__634:acc_data_t, =ch__601) in
       get access_control_table(=ptype, =ch_type__634, =none__syscall) in
       in(ch__601, store__chan(case_arg_0__617:bitstring));
+      (* let sig__603 = .. in .. at file "./041_asym_commu.rab", line 27, charaters 5-219 *)
+      (* let msg__604 = .. in .. at file "./041_asym_commu.rab", line 28, charaters 5-194 *)
+      (* let res__605 = .. in .. at file "./041_asym_commu.rab", line 29, charaters 5-169 *)
+      (* case at file "./041_asym_commu.rab", line 32, charaters 9-28 *)
       new case_ch__618:channel;
       ((out(case_ch__618, (false__bool, (), case_arg_0__617, fst__0(case_arg_0__617), snd__0(case_arg_0__617), verify__0(fst__0(case_arg_0__617), snd__0(case_arg_0__617), pubkey__0))) |
+        (* case [ res__605 = true ] at file "./041_asym_commu.rab", line 32, charaters 9-28 *)
         in(case_ch__618, (=false__bool, case_result__624:bitstring, case_state_0__625:bitstring, case_state_1__626:bitstring, case_state_2__627:bitstring, case_state_3__628:bitstring))[precise];
         if case_state_3__628 = true__0
         then
+          (* event [ ::Valid(msg__604) ] at file "./041_asym_commu.rab", line 32, charaters 9-28 *)
           event Valid__event_global(case_state_2__627);
           out(case_ch__618, (true__bool, (), case_state_0__625, case_state_1__626, case_state_2__627, case_state_3__628))
         else
           out(case_ch__618, (false__bool, case_result__624, case_state_0__625, case_state_1__626, case_state_2__627, case_state_3__628))) |
+       (* case [ res__605 = false ] at file "./041_asym_commu.rab", line 34, charaters 9-30 *)
        in(case_ch__618, (=false__bool, case_result__629:bitstring, case_state_0__630:bitstring, case_state_1__631:bitstring, case_state_2__632:bitstring, case_state_3__633:bitstring))[precise];
        if case_state_3__633 = false__0
        then
+         (* event [ ::Invalid(msg__604) ] at file "./041_asym_commu.rab", line 34, charaters 9-30 *)
          event Invalid__event_global(case_state_2__632);
          out(case_ch__618, (true__bool, (), case_state_0__630, case_state_1__631, case_state_2__632, case_state_3__633))
        else
          out(case_ch__618, (false__bool, case_result__629, case_state_0__630, case_state_1__631, case_state_2__632, case_state_3__633))) |
+      (* end of case at file "./041_asym_commu.rab", line 32, charaters 9-28 *)
       in(case_ch__618, (=true__bool, case_done_result__619:bitstring, case_done_state_0__620:bitstring, case_done_state_1__621:bitstring, case_done_state_2__622:bitstring, case_done_state_3__623:bitstring))[precise];
       out(loop_ch__613, (false__bool, case_done_result__619))
       else out(loop_ch__613, (false__bool, loop_result__616))
       else out(loop_ch__613, (false__bool, loop_result__616))) |
+     (* until case [ ::False() ] at file "./041_asym_commu.rab", line 37, charaters 25-29 *)
      in(loop_ch__613, (=false__bool, loop_result__615:bitstring))[precise];
      out(loop_ch__613, (false__bool, loop_result__615)))) |
+  (* end of repeat-until at file "./041_asym_commu.rab", line 25, charaters 8-353 *)
   in(loop_ch__613, (=true__bool, loop_done_result__614:bitstring))[precise].
 (* process client(..): process_t *)
 let client__0(ptype:proc_t, ch__606:channel) =
   (* Channel ch__606 : chan_t *)
   insert channel_table(chan_t__0, ch__606);
+  (* new msg__607 in .. at file "./041_asym_commu.rab", line 49, charaters 12-128 *)
   new msg__607:bitstring;
+  (* let s__608 = .. in .. at file "./041_asym_commu.rab", line 50, charaters 9-105 *)
+  (* event [ ::Sent(msg__607) ] at file "./041_asym_commu.rab", line 51, charaters 9-27 *)
   event Sent__event_global(msg__607);
+  (* put [ ch__606::store((s__608, msg__607)) ] at file "./041_asym_commu.rab", line 52, charaters 12-36 *)
   get channel_table(ch_type__635:acc_data_t, =ch__606) in
   get access_control_table(=ptype, =ch_type__635, =none__syscall) in
   out(ch__606, store__chan((sign__0(msg__607, privkey__0), msg__607))) | 0.

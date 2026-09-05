@@ -37,7 +37,9 @@ const int__pos_3: bitstring.
 const proc_t__0: proc_t.
 (* process maker(..): proc_t *)
 let maker__0(ptype:proc_t) =
+  (* new x__17 = S(..) in .. at file "./3_4_new.rab", line 17, charaters 4-122 *)
   new x__17:bitstring;
+  (* let (x1__18, x2__19, x3__20) := _.S in .. at file "./3_4_new.rab", line 18, charaters 4-96 *)
   get deleted_address_table(=S__struct_addr(S__struct(x__17, int__pos_1, int__pos_2, int__pos_3)))
   else
     (if
@@ -48,7 +50,9 @@ let maker__0(ptype:proc_t) =
        then
          if
            S__struct_par_3(S__struct(x__17, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
-         then event Valid__event_global).
+         then
+           (* event [ ::Valid() ] at file "./3_4_new.rab", line 20, charaters 34-51 *)
+           event Valid__event_global).
 (* Requires *)
 (* lemma ReachableValid *)
 query event(Valid__event_global()).

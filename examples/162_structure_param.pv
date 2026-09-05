@@ -37,28 +37,38 @@ const int__pos_2: bitstring.
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)
 let proc__0(ptype:proc_t, p__889:param_data) =
+  (* new x__890 = S(..) in .. at file "./162_structure_param.rab", line 8, charaters 4-195 *)
   new x__890:bitstring;
+  (* new y__891 = S(..) in .. at file "./162_structure_param.rab", line 9, charaters 4-171 *)
   new y__891:bitstring;
+  (* let (x1__892, x2__893, xp__894) := _.S in .. at file "./162_structure_param.rab", line 10, charaters 4-147 *)
   get deleted_address_table(=S__struct_addr(S__struct(x__890, int__pos_1, int__pos_2, p__889)))
   else
-    (get deleted_address_table(=S__struct_addr(S__struct(y__891, int__pos_1, int__pos_2, p__889)))
+    ((* let (y1__895, y2__896, yp__897) := _.S in .. at file "./162_structure_param.rab", line 11, charaters 4-119 *)
+     get deleted_address_table(=S__struct_addr(S__struct(y__891, int__pos_1, int__pos_2, p__889)))
      else
+       (* case at file "./162_structure_param.rab", line 13, charaters 19-35 *)
        new case_ch__899:channel;
        ((out(case_ch__899, (false__bool, (), p__889, S__struct(x__890, int__pos_1, int__pos_2, p__889), S__struct(y__891, int__pos_1, int__pos_2, p__889), S__struct_par_1(S__struct(x__890, int__pos_1, int__pos_2, p__889)), S__struct_par_2(S__struct(x__890, int__pos_1, int__pos_2, p__889)), S__struct_par_3(S__struct(x__890, int__pos_1, int__pos_2, p__889)), S__struct_par_1(S__struct(y__891, int__pos_1, int__pos_2, p__889)), S__struct_par_2(S__struct(y__891, int__pos_1, int__pos_2, p__889)), S__struct_par_3(S__struct(y__891, int__pos_1, int__pos_2, p__889)))) |
+         (* case [ xp__894 = yp__897 ] at file "./162_structure_param.rab", line 13, charaters 19-35 *)
          in(case_ch__899, (=false__bool, case_result__910:bitstring, case_state_0__911:param_data, case_state_1__912:bitstring, case_state_2__913:bitstring, case_state_3__914:bitstring, case_state_4__915:bitstring, case_state_5__916:param_data, case_state_6__917:bitstring, case_state_7__918:bitstring, case_state_8__919:param_data))[precise];
          if case_state_5__916 = case_state_8__919
          then
+           (* event [ ::Valid() ] at file "./162_structure_param.rab", line 13, charaters 19-35 *)
            event Valid__event_global;
            out(case_ch__899, (true__bool, (), case_state_0__911, case_state_1__912, case_state_2__913, case_state_3__914, case_state_4__915, case_state_5__916, case_state_6__917, case_state_7__918, case_state_8__919))
          else
            out(case_ch__899, (false__bool, case_result__910, case_state_0__911, case_state_1__912, case_state_2__913, case_state_3__914, case_state_4__915, case_state_5__916, case_state_6__917, case_state_7__918, case_state_8__919))) |
+        (* case [ xp__894 != yp__897 ] at file "./162_structure_param.rab", line 14, charaters 20-38 *)
         in(case_ch__899, (=false__bool, case_result__920:bitstring, case_state_0__921:param_data, case_state_1__922:bitstring, case_state_2__923:bitstring, case_state_3__924:bitstring, case_state_4__925:bitstring, case_state_5__926:param_data, case_state_6__927:bitstring, case_state_7__928:bitstring, case_state_8__929:param_data))[precise];
         if case_state_5__926 = case_state_8__929
         then
           out(case_ch__899, (false__bool, case_result__920, case_state_0__921, case_state_1__922, case_state_2__923, case_state_3__924, case_state_4__925, case_state_5__926, case_state_6__927, case_state_7__928, case_state_8__929))
         else
+          (* event [ ::Invalid() ] at file "./162_structure_param.rab", line 14, charaters 20-38 *)
           event Invalid__event_global;
           out(case_ch__899, (true__bool, (), case_state_0__921, case_state_1__922, case_state_2__923, case_state_3__924, case_state_4__925, case_state_5__926, case_state_6__927, case_state_7__928, case_state_8__929))) |
+       (* end of case at file "./162_structure_param.rab", line 13, charaters 19-35 *)
        in(case_ch__899, (=true__bool, case_done_result__900:bitstring, case_done_state_0__901:param_data, case_done_state_1__902:bitstring, case_done_state_2__903:bitstring, case_done_state_3__904:bitstring, case_done_state_4__905:bitstring, case_done_state_5__906:param_data, case_done_state_6__907:bitstring, case_done_state_7__908:bitstring, case_done_state_8__909:param_data))[precise]).
 (* Requires *)
 (* lemma Reachable *)

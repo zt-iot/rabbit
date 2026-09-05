@@ -37,9 +37,11 @@ const int__pos_3: bitstring.
 const proc_t__0: proc_t.
 (* process maker(..): proc_t *)
 let maker__0(ptype:proc_t) =
+  (* new x__16 = S(..) in .. at file "./3_4_delete.rab", line 14, charaters 4-65 *)
   new x__16:bitstring;
-  (* delete _.S *)
+  (* delete _.S at file "./3_4_delete.rab", line 15, charaters 4-14 *)
   insert deleted_address_table(S__struct_addr(S__struct(x__16, int__pos_1, int__pos_2, int__pos_3)));
+  (* event [ ::Deleted() ] at file "./3_4_delete.rab", line 16, charaters 4-23 *)
   event Deleted__event_global.
 (* Requires *)
 (* lemma ReachableDeleted *)

@@ -26,7 +26,9 @@ const client_t__0: proc_t.
 (* type udp_t : channel *)
 const udp_t__0: acc_data_t.
 (* process client(..): client_t *)
-let client__0(ptype:proc_t) = event Valid__event_global.
+let client__0(ptype:proc_t) =
+  (* event [ ::Valid() ] at file "./3_2_types.rab", line 21, charaters 4-21 *)
+  event Valid__event_global.
 (* Requires *)
 (* lemma ReachableValid *)
 query event(Valid__event_global()).

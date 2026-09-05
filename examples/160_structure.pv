@@ -45,12 +45,17 @@ const int__pos_6: bitstring.
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)
 let proc__0(ptype:proc_t) =
+  (* new x__840 = S(..) in .. at file "./160_structure.rab", line 8, charaters 4-243 *)
   new x__840:bitstring;
+  (* new y__841 = S(..) in .. at file "./160_structure.rab", line 9, charaters 4-219 *)
   new y__841:bitstring;
+  (* let (x1__842, x2__843, x3__844) := _.S in .. at file "./160_structure.rab", line 10, charaters 4-195 *)
   get deleted_address_table(=S__struct_addr(S__struct(x__840, int__pos_1, int__pos_2, int__pos_3)))
   else
+    (* case at file "./160_structure.rab", line 12, charaters 34-50 *)
     new case_ch__845:channel;
     ((out(case_ch__845, (false__bool, (), S__struct(x__840, int__pos_1, int__pos_2, int__pos_3), S__struct(y__841, int__pos_4, int__pos_5, int__pos_6), S__struct_par_1(S__struct(x__840, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_2(S__struct(x__840, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_3(S__struct(x__840, int__pos_1, int__pos_2, int__pos_3)))) |
+      (* case [ x1__842 = 1, x2__843 = 2, x3__844 = 3 ] at file "./160_structure.rab", line 12, charaters 34-50 *)
       in(case_ch__845, (=false__bool, case_result__852:bitstring, case_state_0__853:bitstring, case_state_1__854:bitstring, case_state_2__855:bitstring, case_state_3__856:bitstring, case_state_4__857:bitstring))[precise];
       if case_state_2__855 = int__pos_1
       then
@@ -58,6 +63,7 @@ let proc__0(ptype:proc_t) =
         then
           if case_state_4__857 = int__pos_3
           then
+            (* event [ ::Valid() ] at file "./160_structure.rab", line 12, charaters 34-50 *)
             event Valid__event_global;
             out(case_ch__845, (true__bool, (), case_state_0__853, case_state_1__854, case_state_2__855, case_state_3__856, case_state_4__857))
           else
@@ -66,6 +72,7 @@ let proc__0(ptype:proc_t) =
           out(case_ch__845, (false__bool, case_result__852, case_state_0__853, case_state_1__854, case_state_2__855, case_state_3__856, case_state_4__857))
       else
         out(case_ch__845, (false__bool, case_result__852, case_state_0__853, case_state_1__854, case_state_2__855, case_state_3__856, case_state_4__857))) |
+     (* case [ x1__842 = 4, x2__843 = 5, x3__844 = 6 ] at file "./160_structure.rab", line 13, charaters 34-52 *)
      in(case_ch__845, (=false__bool, case_result__858:bitstring, case_state_0__859:bitstring, case_state_1__860:bitstring, case_state_2__861:bitstring, case_state_3__862:bitstring, case_state_4__863:bitstring))[precise];
      if case_state_2__861 = int__pos_4
      then
@@ -73,6 +80,7 @@ let proc__0(ptype:proc_t) =
        then
          if case_state_4__863 = int__pos_6
          then
+           (* event [ ::Invalid() ] at file "./160_structure.rab", line 13, charaters 34-52 *)
            event Invalid__event_global;
            out(case_ch__845, (true__bool, (), case_state_0__859, case_state_1__860, case_state_2__861, case_state_3__862, case_state_4__863))
          else
@@ -81,6 +89,7 @@ let proc__0(ptype:proc_t) =
          out(case_ch__845, (false__bool, case_result__858, case_state_0__859, case_state_1__860, case_state_2__861, case_state_3__862, case_state_4__863))
      else
        out(case_ch__845, (false__bool, case_result__858, case_state_0__859, case_state_1__860, case_state_2__861, case_state_3__862, case_state_4__863))) |
+    (* end of case at file "./160_structure.rab", line 12, charaters 34-50 *)
     in(case_ch__845, (=true__bool, case_done_result__846:bitstring, case_done_state_0__847:bitstring, case_done_state_1__848:bitstring, case_done_state_2__849:bitstring, case_done_state_3__850:bitstring, case_done_state_4__851:bitstring))[precise].
 (* Requires *)
 (* lemma Reachable *)

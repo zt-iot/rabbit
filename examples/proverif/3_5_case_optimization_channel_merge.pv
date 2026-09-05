@@ -33,26 +33,33 @@ const chan_t__0: acc_data_t.
 let chooser__0(ptype:proc_t, ch__41:channel) =
   (* Channel ch__41 : chan_t *)
   insert channel_table(chan_t__0, ch__41);
+  (* put [ ch__41::store(1) ] at file "./3_5_case_optimization_channel_merge.rab", line 11, charaters 4-22 *)
   get channel_table(ch_type__48:acc_data_t, =ch__41) in
   get access_control_table(=ptype, =ch_type__48, =none__syscall) in
   out(ch__41, store__chan(int__pos_1)) |
-  (get channel_table(ch_type__47:acc_data_t, =ch__41) in
+  ((* case at file "./3_5_case_optimization_channel_merge.rab", line 13, charaters 24-41 *)
+   get channel_table(ch_type__47:acc_data_t, =ch__41) in
    get access_control_table(=ptype, =ch_type__47, =none__syscall) in
    in(ch__41, store__chan(case_arg_0__42:bitstring));
    new channel_case_ch__43:channel;
    ((out(channel_case_ch__43, (false__bool, ())) |
      in(channel_case_ch__43, (=false__bool, channel_case_result__45:bitstring))[precise];
+     (* case [ ch__41::store(1) ] at file "./3_5_case_optimization_channel_merge.rab", line 13, charaters 24-41 *)
      if case_arg_0__42 = int__pos_1
      then
+       (* event [ ::Valid() ] at file "./3_5_case_optimization_channel_merge.rab", line 13, charaters 24-41 *)
        event Valid__event_global;
        out(channel_case_ch__43, (true__bool, ()))
      else out(channel_case_ch__43, (false__bool, channel_case_result__45))) |
     in(channel_case_ch__43, (=false__bool, channel_case_result__46:bitstring))[precise];
+    (* case [ ch__41::store(2) ] at file "./3_5_case_optimization_channel_merge.rab", line 14, charaters 24-43 *)
     if case_arg_0__42 = int__pos_2
     then
+      (* event [ ::Invalid() ] at file "./3_5_case_optimization_channel_merge.rab", line 14, charaters 24-43 *)
       event Invalid__event_global;
       out(channel_case_ch__43, (true__bool, ()))
     else out(channel_case_ch__43, (false__bool, channel_case_result__46))) |
+   (* end of case at file "./3_5_case_optimization_channel_merge.rab", line 13, charaters 24-41 *)
    in(channel_case_ch__43, (=true__bool, channel_case_done_result__44:bitstring))[precise]).
 (* channel ch : chan_t *)
 free ch__0: channel[private].

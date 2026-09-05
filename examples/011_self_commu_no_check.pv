@@ -37,18 +37,27 @@ const chan_t__0: acc_data_t.
 let alice__0(ptype:proc_t, ch__19:channel) =
   (* Channel ch__19 : chan_t *)
   insert channel_table(chan_t__0, ch__19);
+  (* _ := .. at file "./011_self_commu_no_check.rab", line 18, charaters 1-17 *)
+  (* put [ c__15::store(v__16) ] at file "./011_self_commu_no_check.rab", line 3, charaters 2-19 *)
   get channel_table(ch_type__28:acc_data_t, =ch__19) in
   get access_control_table(=ptype, =ch_type__28, =send__0__syscall) in
   out(ch__19, store__chan(int__pos_1)) |
+  (* event [ ::Sent() ] at file "./011_self_commu_no_check.rab", line 19, charaters 1-16 *)
   event Sent__event_global;
+  (* let one__20 = .. in .. at file "./011_self_commu_no_check.rab", line 20, charaters 1-54 *)
+  (* case at file "./011_self_commu_no_check.rab", line 8, charaters 22-23 *)
   get channel_table(ch_type__27:acc_data_t, =ch__19) in
   get access_control_table(=ptype, =ch_type__27, =recv__0__syscall) in
   in(ch__19, store__chan(case_arg_0__21:bitstring));
   new channel_case_ch__22:channel;
   (out(channel_case_ch__22, (false__bool, (), ch__19)) |
    in(channel_case_ch__22, (=false__bool, channel_case_result__25:bitstring, channel_case_state_0__26:channel))[precise];
-   out(channel_case_ch__22, (true__bool, case_arg_0__21, channel_case_state_0__26))) |
+   (* case [ c__17::store(v__18) ] at file "./011_self_commu_no_check.rab", line 8, charaters 22-23 *)
+   out(channel_case_ch__22, (true__bool, (* expr at file "./011_self_commu_no_check.rab", line 8, charaters 22-23 *)
+                                         case_arg_0__21, channel_case_state_0__26))) |
+  (* end of case at file "./011_self_commu_no_check.rab", line 8, charaters 22-23 *)
   in(channel_case_ch__22, (=true__bool, channel_case_done_result__23:bitstring, channel_case_done_state_0__24:channel))[precise];
+  (* event [ ::Received(), ::Valid() ] at file "./011_self_commu_no_check.rab", line 21, charaters 1-31 *)
   event Received__event_global;
   event Valid__event_global.
 (* channel chan : chan_t *)

@@ -41,7 +41,9 @@ letfun cert__0(k__2:param_data) = pair__0(pubkey__0(k__2), priv_k__0(k__2)).
 const proc_t__0: proc_t.
 (* process server(..): proc_t *)
 let server__0(ptype:proc_t) =
+  (* event [ ::Valid(cert<0>) ] at file "./3_10_parametrized_constants.rab", line 22, charaters 4-28 *)
   event Valid__event_global(pair__0(pk__0(priv_k__0(value_0__param)), priv_k__0(value_0__param)));
+  (* event [ ::Other(pubkey<1>) ] at file "./3_10_parametrized_constants.rab", line 23, charaters 4-30 *)
   event Other__event_global(pk__0(priv_k__0(value_1__param))).
 (* Requires *)
 (* lemma ReachableValid *)

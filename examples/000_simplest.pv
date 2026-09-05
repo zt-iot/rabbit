@@ -23,7 +23,9 @@ event Event__event_global.
 const proc_t__0: proc_t.
 (* process p(..): proc_t *)
 let p__0(ptype:proc_t) =
+  (* event [ ::Event() ] at file "./000_simplest.rab", line 9, charaters 4-21 *)
   event Event__event_global;
+  (* event [ ::Event2() ] at file "./000_simplest.rab", line 10, charaters 4-22 *)
   event Event2__event_global.
 (* Requires *)
 (* lemma Reachable *)

@@ -21,7 +21,10 @@ event Valid__event_global.
 const proc_t__0: proc_t.
 (* process server(..): proc_t *)
 let server__0(ptype:proc_t, p__3:param_data) =
-  if p__3 = p__3 then event Valid__event_global.
+  if p__3 = p__3
+  then
+    (* event [ ::Valid() ] at file "./3_10_parametrized_processes.rab", line 10, charaters 17-34 *)
+    event Valid__event_global.
 (* Requires *)
 (* lemma ReachableValid *)
 query event(Valid__event_global()).

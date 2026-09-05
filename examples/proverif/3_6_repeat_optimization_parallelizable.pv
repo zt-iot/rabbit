@@ -31,21 +31,27 @@ const chan_t__0: acc_data_t.
 let worker__0(ptype:proc_t, ch__83:channel) =
   (* Channel ch__83 : chan_t *)
   insert channel_table(chan_t__0, ch__83);
+  (* repeat-until at file "./3_6_repeat_optimization_parallelizable.rab", line 11, charaters 4-119 *)
   new loop_ch__84:channel;
   (out(loop_ch__84, (false__bool, ())) |
-   !((in(loop_ch__84, (=false__bool, loop_result__87:bitstring))[precise];
+   !(((* repeat case [ 1 = 1 ] at file "./3_6_repeat_optimization_parallelizable.rab", line 13, charaters 8-50 *)
+      in(loop_ch__84, (=false__bool, loop_result__87:bitstring))[precise];
       if int__pos_1 = int__pos_1
       then
-        (get channel_table(ch_type__88:acc_data_t, =ch__83) in
+        ((* put [ ch__83::msg(0) ] at file "./3_6_repeat_optimization_parallelizable.rab", line 13, charaters 8-24 *)
+         get channel_table(ch_type__88:acc_data_t, =ch__83) in
          get access_control_table(=ptype, =ch_type__88, =none__syscall) in
          out(ch__83, msg__chan(int__pos_0)) |
+         (* event [ ::Sent() ] at file "./3_6_repeat_optimization_parallelizable.rab", line 14, charaters 8-24 *)
          event Sent__event_global;
          out(loop_ch__84, (false__bool, ())))
       else out(loop_ch__84, (false__bool, loop_result__87))) |
+     (* until case [ 1 != 1 ] at file "./3_6_repeat_optimization_parallelizable.rab", line 16, charaters 18-22 *)
      in(loop_ch__84, (=false__bool, loop_result__86:bitstring))[precise];
      if int__pos_1 = int__pos_1
      then out(loop_ch__84, (false__bool, loop_result__86))
      else out(loop_ch__84, (true__bool, ())))) |
+  (* end of repeat-until at file "./3_6_repeat_optimization_parallelizable.rab", line 11, charaters 4-119 *)
   in(loop_ch__84, (=true__bool, loop_done_result__85:bitstring))[precise].
 (* channel ch : chan_t *)
 free ch__0: channel[private].

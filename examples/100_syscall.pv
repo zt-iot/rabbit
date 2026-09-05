@@ -24,7 +24,11 @@ const int__pos_0: bitstring.
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process alice(..): proc_t *)
-let alice__0(ptype:proc_t) = event Valid__event_global(int__pos_0).
+let alice__0(ptype:proc_t) =
+  (* let x__811 = .. in .. at file "./100_syscall.rab", line 10, charaters 8-68 *)
+  (* let y__812 = .. in .. at file "./100_syscall.rab", line 11, charaters 8-43 *)
+  (* event [ ::Valid(y__812) ] at file "./100_syscall.rab", line 12, charaters 1-18 *)
+  event Valid__event_global(int__pos_0).
 (* Requires *)
 (* lemma Reachable *)
 query event(Valid__event_global(int__pos_0)).

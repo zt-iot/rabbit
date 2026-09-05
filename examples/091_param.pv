@@ -24,7 +24,9 @@ fun c__0(param_data): bitstring[private].
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process server(..): proc_t *)
-let server__0(ptype:proc_t, p__807:param_data) = event Valid__event_global.
+let server__0(ptype:proc_t, p__807:param_data) =
+  (* event [ ::Valid() ] at file "./091_param.rab", line 9, charaters 4-21 *)
+  event Valid__event_global.
 (* Requires *)
 (* lemma Reachable *)
 query event(Valid__event_global()).

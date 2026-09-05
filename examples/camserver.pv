@@ -137,66 +137,100 @@ let client__0(ptype:proc_t, ch_net__983:channel, ch_rpc__984:channel) =
   insert channel_table(udp_t__0, ch_net__983);
   (* Channel ch_rpc__984 : rpc_t *)
   insert channel_table(rpc_t__0, ch_rpc__984);
+  (* let conn__988 = .. in .. at file "./camserver.rab", line 116, charaters 4-391 *)
+  (* put [ c__961::req() ] at file "./udp_rpc.rab", line 15, charaters 2-16 *)
   get channel_table(ch_type__1069:acc_data_t, =ch_rpc__984) in
   get access_control_table(=ptype, =ch_type__1069, =connect_rpc__0__syscall)
   in
   out(ch_rpc__984, req__chan()) |
-  (get channel_table(ch_type__1068:acc_data_t, =ch_rpc__984) in
+  ((* case at file "./udp_rpc.rab", line 18, charaters 4-51 *)
+   get channel_table(ch_type__1068:acc_data_t, =ch_rpc__984) in
    get access_control_table(=ptype, =ch_type__1068, =connect_rpc__0__syscall)
    in
    in(ch_rpc__984, ack__chan());
    new channel_case_ch__1012:channel;
    (out(channel_case_ch__1012, (false__bool, (), dev_camera__str, secret_priv__str, sign_image__str, ch_rpc__984)) |
     in(channel_case_ch__1012, (=false__bool, channel_case_result__1062:bitstring, channel_case_state_0__1063:bitstring, channel_case_state_1__1064:bitstring, channel_case_state_2__1065:bitstring, channel_case_state_3__1066:channel))[precise];
+    (* case [ c__961::ack() ] at file "./udp_rpc.rab", line 18, charaters 4-51 *)
+    (* new x__962 = chid(..) in .. at file "./udp_rpc.rab", line 18, charaters 4-51 *)
     new x__962:bitstring;
+    (* put [ c__961::conn() ] at file "./udp_rpc.rab", line 19, charaters 4-19 *)
     get channel_table(ch_type__1067:acc_data_t, =channel_case_state_3__1066)
     in
     get access_control_table(=ptype, =ch_type__1067, =connect_rpc__0__syscall)
     in
     out(channel_case_state_3__1066, conn__chan()) |
-    out(channel_case_ch__1012, (true__bool, chid__struct(x__962, channel_case_state_3__1066), channel_case_state_0__1063, channel_case_state_1__1064, channel_case_state_2__1065, channel_case_state_3__1066))) |
+    out(channel_case_ch__1012, (true__bool, (* expr at file "./udp_rpc.rab", line 20, charaters 4-5 *)
+                                            chid__struct(x__962, channel_case_state_3__1066), channel_case_state_0__1063, channel_case_state_1__1064, channel_case_state_2__1065, channel_case_state_3__1066))) |
+   (* end of case at file "./udp_rpc.rab", line 18, charaters 4-51 *)
    in(channel_case_ch__1012, (=true__bool, channel_case_done_result__1013:bitstring, channel_case_done_state_0__1014:bitstring, channel_case_done_state_1__1015:bitstring, channel_case_done_state_2__1016:bitstring, channel_case_done_state_3__1017:channel))[precise];
+   (* repeat-until at file "./camserver.rab", line 117, charaters 4-294 *)
    new loop_ch__1018:channel;
    (out(loop_ch__1018, (false__bool, (), channel_case_done_state_0__1014, channel_case_done_state_1__1015, channel_case_done_state_2__1016, channel_case_done_result__1013)) |
-    !((in(loop_ch__1018, (=false__bool, loop_result__1029:bitstring, loop_state_0__1030:bitstring, loop_state_1__1031:bitstring, loop_state_2__1032:bitstring, loop_state_3__1033:bitstring))[precise];
+    !(((* repeat case [  ] at file "./camserver.rab", line 119, charaters 6-235 *)
+       in(loop_ch__1018, (=false__bool, loop_result__1029:bitstring, loop_state_0__1030:bitstring, loop_state_1__1031:bitstring, loop_state_2__1032:bitstring, loop_state_3__1033:bitstring))[precise];
+       (* let image__989 = .. in .. at file "./camserver.rab", line 119, charaters 6-235 *)
+       (* new v__972 in .. at file "./camserver.rab", line 21, charaters 2-14 *)
        new v__972:bitstring;
+       (* _ := .. at file "./camserver.rab", line 121, charaters 6-27 *)
+       (* put [ ::Out(v__982) ] at file "./camserver.rab", line 85, charaters 2-16 *)
        out(attacker_ch, v__972);
+       (* let sig__990 = .. in .. at file "./camserver.rab", line 123, charaters 6-169 *)
+       (* let (c__967) := _.chid in .. at file "./udp_rpc.rab", line 25, charaters 2-89 *)
        get deleted_address_table(=chid__struct_addr(loop_state_3__1033))
        else
-         (get channel_table(ch_type__1060:acc_data_t, =chid__struct_par_1(loop_state_3__1033))
+         ((* put [ c__967::invoke(f__964, arg1__965, arg2__966) ] at file "./udp_rpc.rab", line 26, charaters 2-32 *)
+          get channel_table(ch_type__1060:acc_data_t, =chid__struct_par_1(loop_state_3__1033))
           in
           get access_control_table(=ptype, =ch_type__1060, =invoke_rpc__0__syscall)
           in
           out(chid__struct_par_1(loop_state_3__1033), invoke__chan(loop_state_2__1032, v__972, loop_state_1__1031)) |
-          (get channel_table(ch_type__1059:acc_data_t, =chid__struct_par_1(loop_state_3__1033))
+          ((* case at file "./udp_rpc.rab", line 27, charaters 27-28 *)
+           get channel_table(ch_type__1059:acc_data_t, =chid__struct_par_1(loop_state_3__1033))
            in
            get access_control_table(=ptype, =ch_type__1059, =invoke_rpc__0__syscall)
            in
            in(chid__struct_par_1(loop_state_3__1033), Returned__chan(case_arg_0__1034:bitstring));
            new channel_case_ch__1035:channel;
-           (out(channel_case_ch__1035, (false__bool, (), loop_state_0__1030, loop_state_1__1031, loop_state_2__1032, loop_state_3__1033, v__972, loop_state_3__1033, loop_state_2__1032, v__972, loop_state_1__1031, chid__struct_par_1(loop_state_3__1033))) |
+           (out(channel_case_ch__1035, (false__bool, (), loop_state_0__1030, loop_state_1__1031, loop_state_2__1032, loop_state_3__1033, 
+            (* expr at file "./camserver.rab", line 22, charaters 2-3 *)
+            v__972, loop_state_3__1033, loop_state_2__1032, v__972, loop_state_1__1031, chid__struct_par_1(loop_state_3__1033))) |
             in(channel_case_ch__1035, (=false__bool, channel_case_result__1048:bitstring, channel_case_state_0__1049:bitstring, channel_case_state_1__1050:bitstring, channel_case_state_2__1051:bitstring, channel_case_state_3__1052:bitstring, channel_case_state_4__1053:bitstring, channel_case_state_5__1054:bitstring, channel_case_state_6__1055:bitstring, channel_case_state_7__1056:bitstring, channel_case_state_8__1057:bitstring, channel_case_state_9__1058:channel))[precise];
-            out(channel_case_ch__1035, (true__bool, case_arg_0__1034, channel_case_state_0__1049, channel_case_state_1__1050, channel_case_state_2__1051, channel_case_state_3__1052, channel_case_state_4__1053, channel_case_state_5__1054, channel_case_state_6__1055, channel_case_state_7__1056, channel_case_state_8__1057, channel_case_state_9__1058))) |
+            (* case [ c__967::Returned(v__968) ] at file "./udp_rpc.rab", line 27, charaters 27-28 *)
+            out(channel_case_ch__1035, (true__bool, (* expr at file "./udp_rpc.rab", line 27, charaters 27-28 *)
+                                                    case_arg_0__1034, channel_case_state_0__1049, channel_case_state_1__1050, channel_case_state_2__1051, channel_case_state_3__1052, channel_case_state_4__1053, channel_case_state_5__1054, channel_case_state_6__1055, channel_case_state_7__1056, channel_case_state_8__1057, channel_case_state_9__1058))) |
+           (* end of case at file "./udp_rpc.rab", line 27, charaters 27-28 *)
            in(channel_case_ch__1035, (=true__bool, channel_case_done_result__1036:bitstring, channel_case_done_state_0__1037:bitstring, channel_case_done_state_1__1038:bitstring, channel_case_done_state_2__1039:bitstring, channel_case_done_state_3__1040:bitstring, channel_case_done_state_4__1041:bitstring, channel_case_done_state_5__1042:bitstring, channel_case_done_state_6__1043:bitstring, channel_case_done_state_7__1044:bitstring, channel_case_done_state_8__1045:bitstring, channel_case_done_state_9__1046:channel))[precise];
+           (* _ := .. at file "./camserver.rab", line 125, charaters 6-25 *)
+           (* put [ ::Out(v__982) ] at file "./camserver.rab", line 85, charaters 2-16 *)
            out(attacker_ch, channel_case_done_result__1036);
+           (* event [ ::ImgSend(image__989) ] at file "./camserver.rab", line 127, charaters 6-30 *)
            event ImgSend__event_global(channel_case_done_state_4__1041);
+           (* _ := .. at file "./camserver.rab", line 129, charaters 6-37 *)
+           (* put [ c__957::store(v__958) ] at file "./udp_rpc.rab", line 4, charaters 2-19 *)
            get channel_table(ch_type__1047:acc_data_t, =ch_net__983) in
            get access_control_table(=ptype, =ch_type__1047, =send__0__syscall)
            in
            out(ch_net__983, store__chan((channel_case_done_result__1036, channel_case_done_state_4__1041))) |
            out(loop_ch__1018, (false__bool, (), channel_case_done_state_0__1037, channel_case_done_state_1__1038, channel_case_done_state_2__1039, channel_case_done_state_3__1040))))) |
+      (* until case [  ] at file "./camserver.rab", line 132, charaters 12-16 *)
       in(loop_ch__1018, (=false__bool, loop_result__1024:bitstring, loop_state_0__1025:bitstring, loop_state_1__1026:bitstring, loop_state_2__1027:bitstring, loop_state_3__1028:bitstring))[precise];
       out(loop_ch__1018, (true__bool, (), loop_state_0__1025, loop_state_1__1026, loop_state_2__1027, loop_state_3__1028)))) |
+   (* end of repeat-until at file "./camserver.rab", line 117, charaters 4-294 *)
    in(loop_ch__1018, (=true__bool, loop_done_result__1019:bitstring, loop_done_state_0__1020:bitstring, loop_done_state_1__1021:bitstring, loop_done_state_2__1022:bitstring, loop_done_state_3__1023:bitstring))[precise];
+   (* _ := .. at file "./camserver.rab", line 135, charaters 4-24 *)
+   (* let (c__970) := _.chid in .. at file "./udp_rpc.rab", line 31, charaters 2-57 *)
    get deleted_address_table(=chid__struct_addr(loop_done_state_3__1023))
    else
-     (* delete _.chid *)
+     (* delete _.chid at file "./udp_rpc.rab", line 32, charaters 2-17 *)
      insert deleted_address_table(chid__struct_addr(loop_done_state_3__1023));
-     (get channel_table(ch_type__1061:acc_data_t, =chid__struct_par_1(loop_done_state_3__1023))
+     ((* put [ c__970::exit() ] at file "./udp_rpc.rab", line 33, charaters 2-16 *)
+      get channel_table(ch_type__1061:acc_data_t, =chid__struct_par_1(loop_done_state_3__1023))
       in
       get access_control_table(=ptype, =ch_type__1061, =close_rpc__0__syscall)
       in
       out(chid__struct_par_1(loop_done_state_3__1023), exit__chan()) |
+      (* event [ ::ClientClose() ] at file "./camserver.rab", line 137, charaters 4-28 *)
       event ClientClose__event_global)).
 (* process client_ta(..): client_ta_t *)
 let client_ta__0(ptype:proc_t, ch_rpc__991:channel) =
@@ -206,66 +240,89 @@ let client_ta__0(ptype:proc_t, ch_rpc__991:channel) =
   insert file_type_table(ptype, readonly_t__0, secret_priv__str);
   new file_ch:channel;
   out(file_ch, (secret_priv__str, enc__0(priv_k__0, sym_k__0))) |
-  (get channel_table(ch_type__1110:acc_data_t, =ch_rpc__991) in
+  ((* _ := .. at file "./camserver.rab", line 163, charaters 4-27 *)
+   (* case at file "./udp_rpc.rab", line 37, charaters 20-34 *)
+   get channel_table(ch_type__1110:acc_data_t, =ch_rpc__991) in
    get access_control_table(=ptype, =ch_type__1110, =accept_rpc__0__syscall)
    in
    in(ch_rpc__991, req__chan());
    new channel_case_ch__1070:channel;
    (out(channel_case_ch__1070, (false__bool, (), sym_k__0, ch_rpc__991)) |
     in(channel_case_ch__1070, (=false__bool, channel_case_result__1106:bitstring, channel_case_state_0__1107:bitstring, channel_case_state_1__1108:channel))[precise];
+    (* case [ c__971::req() ] at file "./udp_rpc.rab", line 37, charaters 20-34 *)
+    (* put [ c__971::ack() ] at file "./udp_rpc.rab", line 37, charaters 20-34 *)
     get channel_table(ch_type__1109:acc_data_t, =channel_case_state_1__1108)
     in
     get access_control_table(=ptype, =ch_type__1109, =accept_rpc__0__syscall)
     in
     out(channel_case_state_1__1108, ack__chan()) |
     out(channel_case_ch__1070, (true__bool, (), channel_case_state_0__1107, channel_case_state_1__1108))) |
+   (* end of case at file "./udp_rpc.rab", line 37, charaters 20-34 *)
    in(channel_case_ch__1070, (=true__bool, channel_case_done_result__1071:bitstring, channel_case_done_state_0__1072:bitstring, channel_case_done_state_1__1073:channel))[precise];
+   (* repeat-until at file "./camserver.rab", line 165, charaters 4-324 *)
    new loop_ch__1074:channel;
    (out(loop_ch__1074, (false__bool, (), channel_case_done_state_0__1072)) |
-    !((in(loop_ch__1074, (=false__bool, loop_result__1080:bitstring, loop_state_0__1081:bitstring))[precise];
+    !(((* repeat case [ ch_rpc__991::invoke(fname__1000, image__1001, priv_path__1002) ] at file "./camserver.rab", line 167, charaters 6-215 *)
+       in(loop_ch__1074, (=false__bool, loop_result__1080:bitstring, loop_state_0__1081:bitstring))[precise];
        get channel_table(ch_type__1105:acc_data_t, =ch_rpc__991) in
        get access_control_table(=ptype, =ch_type__1105, =none__syscall) in
        in(ch_rpc__991, invoke__chan(case_arg_0__1082:bitstring, case_arg_1__1083:bitstring, case_arg_2__1084:bitstring));
+       (* case at file "./camserver.rab", line 169, charaters 8-91 *)
        new case_ch__1085:channel;
        ((out(case_ch__1085, (false__bool, (), loop_state_0__1081, case_arg_0__1082, case_arg_1__1083, case_arg_2__1084)) |
+         (* case [ fname__1000 = "sign_image" ] at file "./camserver.rab", line 169, charaters 8-91 *)
          in(case_ch__1085, (=false__bool, case_result__1091:bitstring, case_state_0__1092:bitstring, case_state_1__1093:bitstring, case_state_2__1094:bitstring, case_state_3__1095:bitstring))[precise];
          if case_state_1__1093 = sign_image__str
          then
-           (get file_type_table(=ptype, file_type__1099:acc_data_t, =case_state_3__1095)
+           ((* let signed__1003 = .. in .. at file "./camserver.rab", line 169, charaters 8-91 *)
+            (* let privkey_fd__996 = .. in .. at file "./camserver.rab", line 148, charaters 4-203 *)
+            get file_type_table(=ptype, file_type__1099:acc_data_t, =case_state_3__1095)
             in
             get access_control_table(=ptype, =file_type__1099, =fopen__0__syscall)
             in
             in(file_ch, (=case_state_3__1095, file_contents__1096:bitstring))[precise];
+            (* new y__975 = Fd(..) in .. at file "./camserver.rab", line 31, charaters 4-37 *)
             new y__975:bitstring;
+            (* put [ p__973.x__974 ] at file "./camserver.rab", line 32, charaters 4-13 *)
             get file_type_table(=ptype, file_type__1098:acc_data_t, =case_state_3__1095)
             in
             get access_control_table(=ptype, =file_type__1098, =fopen__0__syscall)
             in
             out(file_ch, (case_state_3__1095, file_contents__1096)) |
-            (get deleted_address_table(=Fd__struct_addr(Fd__struct(y__975, file_contents__1096)))
+            ((* let privkey__997 = .. in .. at file "./camserver.rab", line 150, charaters 4-158 *)
+             (* let (x__977) := _.Fd in .. at file "./camserver.rab", line 37, charaters 2-21 *)
+             get deleted_address_table(=Fd__struct_addr(Fd__struct(y__975, file_contents__1096)))
              else
-               (* delete _.Fd *)
+               (* let privkey0__998 = .. in .. at file "./camserver.rab", line 152, charaters 4-118 *)
+               (* let sig__999 = .. in .. at file "./camserver.rab", line 154, charaters 4-77 *)
+               (* _ := .. at file "./camserver.rab", line 156, charaters 4-27 *)
+               (* delete _.Fd at file "./camserver.rab", line 42, charaters 2-13 *)
                insert deleted_address_table(Fd__struct_addr(Fd__struct(y__975, file_contents__1096)));
-               (get channel_table(ch_type__1097:acc_data_t, =ch_rpc__991) in
+               ((* put [ ch_rpc__991::Returned(signed__1003) ] at file "./camserver.rab", line 170, charaters 8-38 *)
+                get channel_table(ch_type__1097:acc_data_t, =ch_rpc__991) in
                 get access_control_table(=ptype, =ch_type__1097, =none__syscall)
                 in
                 out(ch_rpc__991, Returned__chan(sign__0(case_state_2__1094, dec__0(Fd__struct_par_1(Fd__struct(y__975, file_contents__1096)), case_state_0__1092)))) |
                 out(case_ch__1085, (true__bool, (), case_state_0__1092, case_state_1__1093, case_state_2__1094, case_state_3__1095)))))
          else
            out(case_ch__1085, (false__bool, case_result__1091, case_state_0__1092, case_state_1__1093, case_state_2__1094, case_state_3__1095))) |
+        (* case [ fname__1000 != "sign_image" ] at file "./camserver.rab", line 173, charaters 8-34 *)
         in(case_ch__1085, (=false__bool, case_result__1100:bitstring, case_state_0__1101:bitstring, case_state_1__1102:bitstring, case_state_2__1103:bitstring, case_state_3__1104:bitstring))[precise];
         if case_state_1__1102 = sign_image__str
         then
           out(case_ch__1085, (false__bool, case_result__1100, case_state_0__1101, case_state_1__1102, case_state_2__1103, case_state_3__1104))
         else
+          (* event [ InValidName(fname__1000) ] at file "./camserver.rab", line 173, charaters 8-34 *)
           event InValidName__event_plain(case_state_1__1102);
           out(case_ch__1085, (true__bool, (), case_state_0__1101, case_state_1__1102, case_state_2__1103, case_state_3__1104))) |
+       (* end of case at file "./camserver.rab", line 169, charaters 8-91 *)
        in(case_ch__1085, (=true__bool, case_done_result__1086:bitstring, case_done_state_0__1087:bitstring, case_done_state_1__1088:bitstring, case_done_state_2__1089:bitstring, case_done_state_3__1090:bitstring))[precise];
        out(loop_ch__1074, (false__bool, case_done_result__1086, case_done_state_0__1087))
        else
          out(loop_ch__1074, (false__bool, loop_result__1080, loop_state_0__1081))
        else
          out(loop_ch__1074, (false__bool, loop_result__1080, loop_state_0__1081))) |
+      (* until case [ ch_rpc__991::exit() ] at file "./camserver.rab", line 176, charaters 25-29 *)
       in(loop_ch__1074, (=false__bool, loop_result__1077:bitstring, loop_state_0__1078:bitstring))[precise];
       get channel_table(ch_type__1079:acc_data_t, =ch_rpc__991) in
       get access_control_table(=ptype, =ch_type__1079, =none__syscall) in
@@ -275,7 +332,9 @@ let client_ta__0(ptype:proc_t, ch_rpc__991:channel) =
         out(loop_ch__1074, (false__bool, loop_result__1077, loop_state_0__1078))
       else
         out(loop_ch__1074, (false__bool, loop_result__1077, loop_state_0__1078)))) |
+   (* end of repeat-until at file "./camserver.rab", line 165, charaters 4-324 *)
    in(loop_ch__1074, (=true__bool, loop_done_result__1075:bitstring, loop_done_state_0__1076:bitstring))[precise];
+   (* event [ ::ClientTAClose() ] at file "./camserver.rab", line 179, charaters 4-30 *)
    event ClientTAClose__event_global).
 (* process server(..): server_t *)
 let server__0(ptype:proc_t, ch_net__1004:channel) =
@@ -285,24 +344,36 @@ let server__0(ptype:proc_t, ch_net__1004:channel) =
   insert file_type_table(ptype, readonly_t__0, secret_pub__str);
   new file_ch:channel;
   out(file_ch, (secret_pub__str, pk__0(priv_k__0))) |
-  (get file_type_table(=ptype, file_type__1177:acc_data_t, =secret_pub__str)
+  ((* let pubkey_fd__1006 = .. in .. at file "./camserver.rab", line 190, charaters 4-373 *)
+   get file_type_table(=ptype, file_type__1177:acc_data_t, =secret_pub__str)
    in
    get access_control_table(=ptype, =file_type__1177, =fopen__0__syscall) in
    in(file_ch, (=secret_pub__str, file_contents__1111:bitstring))[precise];
+   (* new y__975 = Fd(..) in .. at file "./camserver.rab", line 31, charaters 4-37 *)
    new y__975:bitstring;
+   (* put [ p__973.x__974 ] at file "./camserver.rab", line 32, charaters 4-13 *)
    get file_type_table(=ptype, file_type__1176:acc_data_t, =secret_pub__str)
    in
    get access_control_table(=ptype, =file_type__1176, =fopen__0__syscall) in
    out(file_ch, (secret_pub__str, file_contents__1111)) |
-   (get deleted_address_table(=Fd__struct_addr(Fd__struct(y__975, file_contents__1111)))
+   ((* let pubkey__1007 = .. in .. at file "./camserver.rab", line 191, charaters 4-331 *)
+    (* let (x__977) := _.Fd in .. at file "./camserver.rab", line 37, charaters 2-21 *)
+    get deleted_address_table(=Fd__struct_addr(Fd__struct(y__975, file_contents__1111)))
     else
+      (* repeat-until at file "./camserver.rab", line 192, charaters 4-294 *)
       new loop_ch__1112:channel;
-      (out(loop_ch__1112, (false__bool, (), secret_pub__str, Fd__struct(y__975, file_contents__1111), Fd__struct_par_1(Fd__struct(y__975, file_contents__1111)))) |
-       !((in(loop_ch__1112, (=false__bool, loop_result__1121:bitstring, loop_state_0__1122:bitstring, loop_state_1__1123:bitstring, loop_state_2__1124:bitstring))[precise];
+      (out(loop_ch__1112, (false__bool, (), secret_pub__str, (* expr at file "./camserver.rab", line 32, charaters 15-16 *)
+                                                             Fd__struct(y__975, file_contents__1111), 
+       (* expr at file "./camserver.rab", line 38, charaters 2-3 *)
+       Fd__struct_par_1(Fd__struct(y__975, file_contents__1111)))) |
+       !(((* repeat case [  ] at file "./camserver.rab", line 194, charaters 6-228 *)
+          in(loop_ch__1112, (=false__bool, loop_result__1121:bitstring, loop_state_0__1122:bitstring, loop_state_1__1123:bitstring, loop_state_2__1124:bitstring))[precise];
+          (* let p__1008 = .. in .. at file "./camserver.rab", line 194, charaters 6-228 *)
           new call_join_ch__1139:channel;
           (new attack_choice_ch:channel;
            (out(attack_choice_ch, true__bool) |
             in(attack_choice_ch, _:bitstring);
+            (* case at file "./udp_rpc.rab", line 9, charaters 22-23 *)
             get channel_table(ch_type__1145:acc_data_t, =ch_net__1004) in
             get access_control_table(=ptype, =ch_type__1145, =recv__0__syscall)
             in
@@ -310,10 +381,14 @@ let server__0(ptype:proc_t, ch_net__1004:channel) =
             new channel_case_ch__1126:channel;
             (out(channel_case_ch__1126, (false__bool, (), loop_state_0__1122, loop_state_1__1123, loop_state_2__1124, ch_net__1004)) |
              in(channel_case_ch__1126, (=false__bool, channel_case_result__1140:bitstring, channel_case_state_0__1141:bitstring, channel_case_state_1__1142:bitstring, channel_case_state_2__1143:bitstring, channel_case_state_3__1144:channel))[precise];
-             out(channel_case_ch__1126, (true__bool, case_arg_0__1125, channel_case_state_0__1141, channel_case_state_1__1142, channel_case_state_2__1143, channel_case_state_3__1144))) |
+             (* case [ c__959::store(v__960) ] at file "./udp_rpc.rab", line 9, charaters 22-23 *)
+             out(channel_case_ch__1126, (true__bool, (* expr at file "./udp_rpc.rab", line 9, charaters 22-23 *)
+                                                     case_arg_0__1125, channel_case_state_0__1141, channel_case_state_1__1142, channel_case_state_2__1143, channel_case_state_3__1144))) |
+            (* end of case at file "./udp_rpc.rab", line 9, charaters 22-23 *)
             in(channel_case_ch__1126, (=true__bool, channel_case_done_result__1127:bitstring, channel_case_done_state_0__1128:bitstring, channel_case_done_state_1__1129:bitstring, channel_case_done_state_2__1130:bitstring, channel_case_done_state_3__1131:channel))[precise];
             out(call_join_ch__1139, (true__bool, channel_case_done_result__1127, channel_case_done_state_0__1128, channel_case_done_state_1__1129, channel_case_done_state_2__1130))) |
            in(attack_choice_ch, _:bitstring);
+           (* case at file "./camserver.rab", line 78, charaters 4-5 *)
            get channel_table(ch_type__1152:acc_data_t, =ch_net__1004) in
            get access_control_table(=ptype, =ch_type__1152, =recv__0__syscall)
            in
@@ -321,31 +396,43 @@ let server__0(ptype:proc_t, ch_net__1004:channel) =
            new channel_case_ch__1133:channel;
            (out(channel_case_ch__1133, (false__bool, (), loop_state_0__1122, loop_state_1__1123, loop_state_2__1124, ch_net__1004)) |
             in(channel_case_ch__1133, (=false__bool, channel_case_result__1146:bitstring, channel_case_state_0__1147:bitstring, channel_case_state_1__1148:bitstring, channel_case_state_2__1149:bitstring, channel_case_state_3__1150:channel))[precise];
+            (* case [ c__979::store(j__980), ::In(w__981) ] at file "./camserver.rab", line 78, charaters 4-5 *)
             in(attacker_ch, attacker_input__1151:bitstring);
-            out(channel_case_ch__1133, (true__bool, attacker_input__1151, channel_case_state_0__1147, channel_case_state_1__1148, channel_case_state_2__1149, channel_case_state_3__1150))) |
+            out(channel_case_ch__1133, (true__bool, (* expr at file "./camserver.rab", line 78, charaters 4-5 *)
+                                                    attacker_input__1151, channel_case_state_0__1147, channel_case_state_1__1148, channel_case_state_2__1149, channel_case_state_3__1150))) |
+           (* end of case at file "./camserver.rab", line 78, charaters 4-5 *)
            in(channel_case_ch__1133, (=true__bool, channel_case_done_result__1134:bitstring, channel_case_done_state_0__1135:bitstring, channel_case_done_state_1__1136:bitstring, channel_case_done_state_2__1137:bitstring, channel_case_done_state_3__1138:channel))[precise];
            out(call_join_ch__1139, (true__bool, channel_case_done_result__1134, channel_case_done_state_0__1135, channel_case_done_state_1__1136, channel_case_done_state_2__1137))) |
           in(call_join_ch__1139, (=true__bool, call_result__1153:bitstring, call_state_0__1154:bitstring, call_state_1__1155:bitstring, call_state_2__1156:bitstring))[precise];
+          (* let res__1009 = .. in .. at file "./camserver.rab", line 195, charaters 6-198 *)
+          (* case at file "./camserver.rab", line 198, charaters 8-38 *)
           new case_ch__1157:channel;
           ((out(case_ch__1157, (false__bool, (), call_state_0__1154, call_state_1__1155, call_state_2__1156, call_result__1153, verify__0(fst__0(call_result__1153), snd__0(call_result__1153), call_state_2__1156))) |
+            (* case [ res__1009 = true ] at file "./camserver.rab", line 198, charaters 8-38 *)
             in(case_ch__1157, (=false__bool, case_result__1164:bitstring, case_state_0__1165:bitstring, case_state_1__1166:bitstring, case_state_2__1167:bitstring, case_state_3__1168:bitstring, case_state_4__1169:bitstring))[precise];
             if case_state_4__1169 = true__0
             then
+              (* event [ ::ImgRecvValid(snd(p__1008)) ] at file "./camserver.rab", line 198, charaters 8-38 *)
               event ImgRecvValid__event_global(snd__0(case_state_3__1168));
               out(case_ch__1157, (true__bool, (), case_state_0__1165, case_state_1__1166, case_state_2__1167, case_state_3__1168, case_state_4__1169))
             else
               out(case_ch__1157, (false__bool, case_result__1164, case_state_0__1165, case_state_1__1166, case_state_2__1167, case_state_3__1168, case_state_4__1169))) |
+           (* case [ res__1009 != true ] at file "./camserver.rab", line 201, charaters 8-40 *)
            in(case_ch__1157, (=false__bool, case_result__1170:bitstring, case_state_0__1171:bitstring, case_state_1__1172:bitstring, case_state_2__1173:bitstring, case_state_3__1174:bitstring, case_state_4__1175:bitstring))[precise];
            if case_state_4__1175 = true__0
            then
              out(case_ch__1157, (false__bool, case_result__1170, case_state_0__1171, case_state_1__1172, case_state_2__1173, case_state_3__1174, case_state_4__1175))
            else
+             (* event [ ::ImgRecvInvalid(snd(p__1008)) ] at file "./camserver.rab", line 201, charaters 8-40 *)
              event ImgRecvInvalid__event_global(snd__0(case_state_3__1174));
              out(case_ch__1157, (true__bool, (), case_state_0__1171, case_state_1__1172, case_state_2__1173, case_state_3__1174, case_state_4__1175))) |
+          (* end of case at file "./camserver.rab", line 198, charaters 8-38 *)
           in(case_ch__1157, (=true__bool, case_done_result__1158:bitstring, case_done_state_0__1159:bitstring, case_done_state_1__1160:bitstring, case_done_state_2__1161:bitstring, case_done_state_3__1162:bitstring, case_done_state_4__1163:bitstring))[precise];
           out(loop_ch__1112, (false__bool, case_done_result__1158, case_done_state_0__1159, case_done_state_1__1160, case_done_state_2__1161))) |
+         (* until case [ ::False() ] at file "./camserver.rab", line 204, charaters 21-25 *)
          in(loop_ch__1112, (=false__bool, loop_result__1117:bitstring, loop_state_0__1118:bitstring, loop_state_1__1119:bitstring, loop_state_2__1120:bitstring))[precise];
          out(loop_ch__1112, (false__bool, loop_result__1117, loop_state_0__1118, loop_state_1__1119, loop_state_2__1120)))) |
+      (* end of repeat-until at file "./camserver.rab", line 192, charaters 4-294 *)
       in(loop_ch__1112, (=true__bool, loop_done_result__1113:bitstring, loop_done_state_0__1114:bitstring, loop_done_state_1__1115:bitstring, loop_done_state_2__1116:bitstring))[precise])).
 (* Requires *)
 (* lemma Reachable *)

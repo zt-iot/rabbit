@@ -23,7 +23,9 @@ event Started__event_global.
 const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
 let worker__0(ptype:proc_t) =
+  (* event [ ::Started() ] at file "./3_12_properties.rab", line 9, charaters 4-23 *)
   event Started__event_global;
+  (* event [ ::Finished() ] at file "./3_12_properties.rab", line 10, charaters 4-24 *)
   event Finished__event_global.
 (* Requires *)
 (* lemma ReachableFinished *)

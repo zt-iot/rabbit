@@ -29,9 +29,13 @@ const a_b__str_1: bitstring.
 const proc_t__0: proc_t.
 (* process speaker(..): proc_t *)
 let speaker__0(ptype:proc_t) =
+  (* event [ ::Seen("zebra") ] at file "./3_1_string_source_order.rab", line 9, charaters 4-27 *)
   event Seen__event_global(zebra__str);
+  (* event [ ::Seen("alpha") ] at file "./3_1_string_source_order.rab", line 10, charaters 4-27 *)
   event Seen__event_global(alpha__str);
+  (* event [ ::Seen("a-b") ] at file "./3_1_string_source_order.rab", line 13, charaters 4-25 *)
   event Seen__event_global(a_b__str);
+  (* event [ ::Seen("a b") ] at file "./3_1_string_source_order.rab", line 14, charaters 4-25 *)
   event Seen__event_global(a_b__str_1).
 (* Requires *)
 (* lemma ReachableAlpha *)

@@ -39,15 +39,19 @@ let server__0(ptype:proc_t) =
   insert file_type_table(ptype, readonly_t__0, secret_pub__str);
   new file_ch:channel;
   out(file_ch, (secret_pub__str, hello__str)) |
-  (get file_type_table(=ptype, file_type__104:acc_data_t, =secret_pub__str)
+  ((* let fd__100 = .. in .. at file "./3_7_file_facts.rab", line 24, charaters 4-60 *)
+   get file_type_table(=ptype, file_type__104:acc_data_t, =secret_pub__str)
    in
    get access_control_table(=ptype, =file_type__104, =fopen__0__syscall) in
    in(file_ch, (=secret_pub__str, file_contents__102:bitstring))[precise];
+   (* new y__99 = Fd(..) in .. at file "./3_7_file_facts.rab", line 8, charaters 6-47 *)
    new y__99:bitstring;
+   (* put [ p__97.x__98 ] at file "./3_7_file_facts.rab", line 9, charaters 6-15 *)
    get file_type_table(=ptype, file_type__103:acc_data_t, =secret_pub__str)
    in
    get access_control_table(=ptype, =file_type__103, =fopen__0__syscall) in
    out(file_ch, (secret_pub__str, file_contents__102)) |
+   (* event [ ::Valid(fd__100) ] at file "./3_7_file_facts.rab", line 25, charaters 4-23 *)
    event Valid__event_global(Fd__struct(y__99, file_contents__102))).
 (* Requires *)
 (* lemma ReachableValid *)

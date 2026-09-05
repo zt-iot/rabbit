@@ -29,9 +29,12 @@ const chan_t__0: acc_data_t.
 let alice__0(ptype:proc_t, ch__752:channel) =
   (* Channel ch__752 : chan_t *)
   insert channel_table(chan_t__0, ch__752);
+  (* put [ ch__752::send(1) ] at file "./061_allow_no_syscall.rab", line 7, charaters 8-24 *)
   get channel_table(ch_type__753:acc_data_t, =ch__752) in
   get access_control_table(=ptype, =ch_type__753, =none__syscall) in
-  out(ch__752, send__chan(int__pos_1)) | event Valid__event_global.
+  out(ch__752, send__chan(int__pos_1)) |
+  (* event [ ::Valid() ] at file "./061_allow_no_syscall.rab", line 18, charaters 8-24 *)
+  event Valid__event_global.
 (* channel chan : chan_t *)
 free chan__0: channel[private].
 (* Requires *)

@@ -37,7 +37,10 @@ const chan_t__0: acc_data_t.
 let alice__0(ptype:proc_t, ch__33:channel) =
   (* Channel ch__33 : chan_t *)
   insert channel_table(chan_t__0, ch__33);
+  (* event [ ::Sent() ] at file "./015_multi_communication.rab", line 18, charaters 1-16 *)
   event Sent__event_global;
+  (* _ := .. at file "./015_multi_communication.rab", line 19, charaters 1-17 *)
+  (* put [ c__29::store(v__30) ] at file "./015_multi_communication.rab", line 3, charaters 2-19 *)
   get channel_table(ch_type__36:acc_data_t, =ch__33) in
   get access_control_table(=ptype, =ch_type__36, =send__0__syscall) in
   out(ch__33, store__chan(int__pos_1)) | 0.
@@ -45,16 +48,25 @@ let alice__0(ptype:proc_t, ch__33:channel) =
 let bob__0(ptype:proc_t, ch__34:channel) =
   (* Channel ch__34 : chan_t *)
   insert channel_table(chan_t__0, ch__34);
+  (* let one__35 = .. in .. at file "./015_multi_communication.rab", line 28, charaters 1-93 *)
+  (* case at file "./015_multi_communication.rab", line 8, charaters 22-23 *)
   get channel_table(ch_type__43:acc_data_t, =ch__34) in
   get access_control_table(=ptype, =ch_type__43, =recv__0__syscall) in
   in(ch__34, store__chan(case_arg_0__37:bitstring));
   new channel_case_ch__38:channel;
   (out(channel_case_ch__38, (false__bool, (), ch__34)) |
    in(channel_case_ch__38, (=false__bool, channel_case_result__41:bitstring, channel_case_state_0__42:channel))[precise];
-   out(channel_case_ch__38, (true__bool, case_arg_0__37, channel_case_state_0__42))) |
+   (* case [ c__31::store(v__32) ] at file "./015_multi_communication.rab", line 8, charaters 22-23 *)
+   out(channel_case_ch__38, (true__bool, (* expr at file "./015_multi_communication.rab", line 8, charaters 22-23 *)
+                                         case_arg_0__37, channel_case_state_0__42))) |
+  (* end of case at file "./015_multi_communication.rab", line 8, charaters 22-23 *)
   in(channel_case_ch__38, (=true__bool, channel_case_done_result__39:bitstring, channel_case_done_state_0__40:channel))[precise];
+  (* event [ ::Received() ] at file "./015_multi_communication.rab", line 29, charaters 1-20 *)
   event Received__event_global;
-  if channel_case_done_result__39 = int__pos_1 then event Valid__event_global.
+  if channel_case_done_result__39 = int__pos_1
+  then
+    (* event [ ::Valid() ] at file "./015_multi_communication.rab", line 32, charaters 5-21 *)
+    event Valid__event_global.
 (* channel chan : chan_t *)
 free chan__0: channel[private].
 (* Requires *)

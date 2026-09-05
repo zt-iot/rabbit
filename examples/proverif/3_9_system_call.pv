@@ -24,7 +24,10 @@ const int__pos_0: bitstring.
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
-let worker__0(ptype:proc_t) = event Valid__event_global(int__pos_0).
+let worker__0(ptype:proc_t) =
+  (* let x__118 = .. in .. at file "./3_9_system_call.rab", line 13, charaters 4-43 *)
+  (* event [ ::Valid(x__118) ] at file "./3_9_system_call.rab", line 14, charaters 4-22 *)
+  event Valid__event_global(int__pos_0).
 (* Requires *)
 (* lemma ReachableValid *)
 query event(Valid__event_global(int__pos_0)).

@@ -27,21 +27,28 @@ const person_t__0: proc_t.
 const chan_t__0: acc_data_t.
 (* process alice(..): person_t *)
 let alice__0(ptype:proc_t) =
+  (* let one__813 = .. in .. at file "./110_case.rab", line 7, charaters 1-112 *)
+  (* case at file "./110_case.rab", line 10, charaters 5-21 *)
   new case_ch__814:channel;
   ((out(case_ch__814, (false__bool, (), int__pos_1)) |
+    (* case [ one__813 = 1 ] at file "./110_case.rab", line 10, charaters 5-21 *)
     in(case_ch__814, (=false__bool, case_result__817:bitstring, case_state_0__818:bitstring))[precise];
     if case_state_0__818 = int__pos_1
     then
+      (* event [ ::Valid() ] at file "./110_case.rab", line 10, charaters 5-21 *)
       event Valid__event_global;
       out(case_ch__814, (true__bool, (), case_state_0__818))
     else
       out(case_ch__814, (false__bool, case_result__817, case_state_0__818))) |
+   (* case [ one__813 != 1 ] at file "./110_case.rab", line 12, charaters 12-30 *)
    in(case_ch__814, (=false__bool, case_result__819:bitstring, case_state_0__820:bitstring))[precise];
    if case_state_0__820 = int__pos_1
    then out(case_ch__814, (false__bool, case_result__819, case_state_0__820))
    else
+     (* event [ ::Invalid() ] at file "./110_case.rab", line 12, charaters 12-30 *)
      event Invalid__event_global;
      out(case_ch__814, (true__bool, (), case_state_0__820))) |
+  (* end of case at file "./110_case.rab", line 10, charaters 5-21 *)
   in(case_ch__814, (=true__bool, case_done_result__815:bitstring, case_done_state_0__816:bitstring))[precise].
 (* Requires *)
 (* lemma Reachable *)

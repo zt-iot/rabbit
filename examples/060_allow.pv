@@ -31,9 +31,13 @@ const chan_t__0: acc_data_t.
 let alice__0(ptype:proc_t, ch__750:channel) =
   (* Channel ch__750 : chan_t *)
   insert channel_table(chan_t__0, ch__750);
+  (* _ := .. at file "./060_allow.rab", line 19, charaters 8-25 *)
+  (* put [ c__749::send(1) ] at file "./060_allow.rab", line 10, charaters 3-18 *)
   get channel_table(ch_type__751:acc_data_t, =ch__750) in
   get access_control_table(=ptype, =ch_type__751, =send_one__0__syscall) in
-  out(ch__750, send__chan(int__pos_1)) | event Valid__event_global.
+  out(ch__750, send__chan(int__pos_1)) |
+  (* event [ ::Valid() ] at file "./060_allow.rab", line 20, charaters 8-24 *)
+  event Valid__event_global.
 (* channel chan : chan_t *)
 free chan__0: channel[private].
 (* Requires *)

@@ -29,7 +29,10 @@ equation forall x__809:bitstring; eq__0(x__809, x__809) = true__0.
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)
 let proc__0(ptype:proc_t) =
-  if eq__0(int__pos_1, int__pos_1) = true__0 then event Valid__event_global.
+  if eq__0(int__pos_1, int__pos_1) = true__0
+  then
+    (* event [ ::Valid() ] at file "./092_nullary.rab", line 12, charaters 28-45 *)
+    event Valid__event_global.
 (* Requires *)
 (* lemma Reachable *)
 query event(Valid__event_global()).

@@ -37,16 +37,25 @@ let alice__0(ptype:proc_t, ch__443:channel, ch2__444:channel) =
   insert channel_table(chan_t__0, ch__443);
   (* Channel ch2__444 : chan_t *)
   insert channel_table(chan_t__0, ch2__444);
+  (* let n__445 = .. in .. at file "./035_nonce_handshake_no_crypto.rab", line 18, charaters 8-104 *)
+  (* case at file "./035_nonce_handshake_no_crypto.rab", line 8, charaters 22-23 *)
   get channel_table(ch_type__461:acc_data_t, =ch__443) in
   get access_control_table(=ptype, =ch_type__461, =recv__0__syscall) in
   in(ch__443, store__chan(case_arg_0__454:bitstring));
   new channel_case_ch__455:channel;
   (out(channel_case_ch__455, (false__bool, (), ch__443)) |
    in(channel_case_ch__455, (=false__bool, channel_case_result__459:bitstring, channel_case_state_0__460:channel))[precise];
-   out(channel_case_ch__455, (true__bool, case_arg_0__454, channel_case_state_0__460))) |
+   (* case [ c__441::store(v__442) ] at file "./035_nonce_handshake_no_crypto.rab", line 8, charaters 22-23 *)
+   out(channel_case_ch__455, (true__bool, (* expr at file "./035_nonce_handshake_no_crypto.rab", line 8, charaters 22-23 *)
+                                          case_arg_0__454, channel_case_state_0__460))) |
+  (* end of case at file "./035_nonce_handshake_no_crypto.rab", line 8, charaters 22-23 *)
   in(channel_case_ch__455, (=true__bool, channel_case_done_result__456:bitstring, channel_case_done_state_0__457:channel))[precise];
+  (* new msg__446 in .. at file "./035_nonce_handshake_no_crypto.rab", line 19, charaters 8-76 *)
   new msg__446:bitstring;
+  (* event [ ::Sent(msg__446, n__445) ] at file "./035_nonce_handshake_no_crypto.rab", line 20, charaters 8-30 *)
   event Sent__event_global(msg__446, channel_case_done_result__456);
+  (* _ := .. at file "./035_nonce_handshake_no_crypto.rab", line 21, charaters 8-25 *)
+  (* put [ c__439::store(v__440) ] at file "./035_nonce_handshake_no_crypto.rab", line 3, charaters 2-19 *)
   get channel_table(ch_type__458:acc_data_t, =ch2__444) in
   get access_control_table(=ptype, =ch_type__458, =send__0__syscall) in
   out(ch2__444, store__chan(channel_case_done_result__456)) | 0.
@@ -56,34 +65,48 @@ let bob__0(ptype:proc_t, ch__447:channel, ch2__448:channel) =
   insert channel_table(chan_t__0, ch__447);
   (* Channel ch2__448 : chan_t *)
   insert channel_table(chan_t__0, ch2__448);
+  (* new n__449 in .. at file "./035_nonce_handshake_no_crypto.rab", line 28, charaters 8-397 *)
   new n__449:bitstring;
+  (* _ := .. at file "./035_nonce_handshake_no_crypto.rab", line 29, charaters 8-24 *)
+  (* put [ c__439::store(v__440) ] at file "./035_nonce_handshake_no_crypto.rab", line 3, charaters 2-19 *)
   get channel_table(ch_type__481:acc_data_t, =ch__447) in
   get access_control_table(=ptype, =ch_type__481, =send__0__syscall) in
   out(ch__447, store__chan(n__449)) |
-  (get channel_table(ch_type__480:acc_data_t, =ch2__448) in
+  ((* let m__450 = .. in .. at file "./035_nonce_handshake_no_crypto.rab", line 30, charaters 8-300 *)
+   (* case at file "./035_nonce_handshake_no_crypto.rab", line 8, charaters 22-23 *)
+   get channel_table(ch_type__480:acc_data_t, =ch2__448) in
    get access_control_table(=ptype, =ch_type__480, =recv__0__syscall) in
    in(ch2__448, store__chan(case_arg_0__462:bitstring));
    new channel_case_ch__463:channel;
    (out(channel_case_ch__463, (false__bool, (), n__449, ch2__448)) |
     in(channel_case_ch__463, (=false__bool, channel_case_result__477:bitstring, channel_case_state_0__478:bitstring, channel_case_state_1__479:channel))[precise];
-    out(channel_case_ch__463, (true__bool, case_arg_0__462, channel_case_state_0__478, channel_case_state_1__479))) |
+    (* case [ c__441::store(v__442) ] at file "./035_nonce_handshake_no_crypto.rab", line 8, charaters 22-23 *)
+    out(channel_case_ch__463, (true__bool, (* expr at file "./035_nonce_handshake_no_crypto.rab", line 8, charaters 22-23 *)
+                                           case_arg_0__462, channel_case_state_0__478, channel_case_state_1__479))) |
+   (* end of case at file "./035_nonce_handshake_no_crypto.rab", line 8, charaters 22-23 *)
    in(channel_case_ch__463, (=true__bool, channel_case_done_result__464:bitstring, channel_case_done_state_0__465:bitstring, channel_case_done_state_1__466:channel))[precise];
+   (* case at file "./035_nonce_handshake_no_crypto.rab", line 33, charaters 13-31 *)
    new case_ch__467:channel;
    ((out(case_ch__467, (false__bool, (), channel_case_done_state_0__465, channel_case_done_result__464)) |
+     (* case [ n__449 = m__450 ] at file "./035_nonce_handshake_no_crypto.rab", line 33, charaters 13-31 *)
      in(case_ch__467, (=false__bool, case_result__471:bitstring, case_state_0__472:bitstring, case_state_1__473:bitstring))[precise];
      if case_state_0__472 = case_state_1__473
      then
+       (* event [ ::Valid(n__449) ] at file "./035_nonce_handshake_no_crypto.rab", line 33, charaters 13-31 *)
        event Valid__event_global(case_state_0__472);
        out(case_ch__467, (true__bool, (), case_state_0__472, case_state_1__473))
      else
        out(case_ch__467, (false__bool, case_result__471, case_state_0__472, case_state_1__473))) |
+    (* case [ n__449 != m__450 ] at file "./035_nonce_handshake_no_crypto.rab", line 35, charaters 13-32 *)
     in(case_ch__467, (=false__bool, case_result__474:bitstring, case_state_0__475:bitstring, case_state_1__476:bitstring))[precise];
     if case_state_0__475 = case_state_1__476
     then
       out(case_ch__467, (false__bool, case_result__474, case_state_0__475, case_state_1__476))
     else
+      (* event [ ::Invalid() ] at file "./035_nonce_handshake_no_crypto.rab", line 35, charaters 13-32 *)
       event Invalid__event_global;
       out(case_ch__467, (true__bool, (), case_state_0__475, case_state_1__476))) |
+   (* end of case at file "./035_nonce_handshake_no_crypto.rab", line 33, charaters 13-31 *)
    in(case_ch__467, (=true__bool, case_done_result__468:bitstring, case_done_state_0__469:bitstring, case_done_state_1__470:bitstring))[precise]).
 (* channel chan : chan_t *)
 free chan__0: channel[private].

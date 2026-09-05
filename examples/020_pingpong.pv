@@ -35,46 +35,60 @@ const chan_t__0: acc_data_t.
 let alice__0(ptype:proc_t, ch__44:channel) =
   (* Channel ch__44 : chan_t *)
   insert channel_table(chan_t__0, ch__44);
+  (* case at file "./020_pingpong.rab", line 9, charaters 7-50 *)
   get channel_table(ch_type__56:acc_data_t, =ch__44) in
   get access_control_table(=ptype, =ch_type__56, =none__syscall) in
   in(ch__44, ping__chan(case_arg_0__51:bitstring));
   new channel_case_ch__52:channel;
   (out(channel_case_ch__52, (false__bool, ())) |
    in(channel_case_ch__52, (=false__bool, channel_case_result__54:bitstring))[precise];
+   (* case [ ch__44::ping(n__45) ] at file "./020_pingpong.rab", line 9, charaters 7-50 *)
+   (* event [ ::Pong(n__45) ] at file "./020_pingpong.rab", line 9, charaters 7-24 *)
    event Pong__event_global(case_arg_0__51);
+   (* put [ ch__44::pong(n__45) ] at file "./020_pingpong.rab", line 10, charaters 7-24 *)
    get channel_table(ch_type__55:acc_data_t, =ch__44) in
    get access_control_table(=ptype, =ch_type__55, =none__syscall) in
    out(ch__44, pong__chan(case_arg_0__51)) |
    out(channel_case_ch__52, (true__bool, ()))) |
+  (* end of case at file "./020_pingpong.rab", line 9, charaters 7-50 *)
   in(channel_case_ch__52, (=true__bool, channel_case_done_result__53:bitstring))[precise].
 (* process bob(..): person_t *)
 let bob__0(ptype:proc_t, ch__46:channel) =
   (* Channel ch__46 : chan_t *)
   insert channel_table(chan_t__0, ch__46);
+  (* new n__47 in .. at file "./020_pingpong.rab", line 18, charaters 8-211 *)
   new n__47:bitstring;
+  (* event [ ::Ping(n__47) ] at file "./020_pingpong.rab", line 19, charaters 1-18 *)
   event Ping__event_global(n__47);
+  (* put [ ch__46::ping(n__47) ] at file "./020_pingpong.rab", line 20, charaters 1-18 *)
   get channel_table(ch_type__66:acc_data_t, =ch__46) in
   get access_control_table(=ptype, =ch_type__66, =none__syscall) in
   out(ch__46, ping__chan(n__47)) |
-  (get channel_table(ch_type__65:acc_data_t, =ch__46) in
+  ((* case at file "./020_pingpong.rab", line 23, charaters 6-24 *)
+   get channel_table(ch_type__65:acc_data_t, =ch__46) in
    get access_control_table(=ptype, =ch_type__65, =none__syscall) in
    in(ch__46, pong__chan(case_arg_0__57:bitstring));
    new channel_case_ch__58:channel;
    ((out(channel_case_ch__58, (false__bool, (), n__47)) |
      in(channel_case_ch__58, (=false__bool, channel_case_result__61:bitstring, channel_case_state_0__62:bitstring))[precise];
+     (* case [ ch__46::pong(n__47) ] at file "./020_pingpong.rab", line 23, charaters 6-24 *)
      if case_arg_0__57 = channel_case_state_0__62
      then
+       (* event [ ::Valid(n__47) ] at file "./020_pingpong.rab", line 23, charaters 6-24 *)
        event Valid__event_global(channel_case_state_0__62);
        out(channel_case_ch__58, (true__bool, (), channel_case_state_0__62))
      else
        out(channel_case_ch__58, (false__bool, channel_case_result__61, channel_case_state_0__62))) |
     in(channel_case_ch__58, (=false__bool, channel_case_result__63:bitstring, channel_case_state_0__64:bitstring))[precise];
+    (* case [ ch__46::pong(m__48), n__47 != m__48 ] at file "./020_pingpong.rab", line 25, charaters 6-29 *)
     if channel_case_state_0__64 = case_arg_0__57
     then
       out(channel_case_ch__58, (false__bool, channel_case_result__63, channel_case_state_0__64))
     else
+      (* event [ ::Invalid(n__47, m__48) ] at file "./020_pingpong.rab", line 25, charaters 6-29 *)
       event Invalid__event_global(channel_case_state_0__64, case_arg_0__57);
       out(channel_case_ch__58, (true__bool, (), channel_case_state_0__64))) |
+   (* end of case at file "./020_pingpong.rab", line 23, charaters 6-24 *)
    in(channel_case_ch__58, (=true__bool, channel_case_done_result__59:bitstring, channel_case_done_state_0__60:bitstring))[precise]).
 (* channel chan : chan_t *)
 free chan__0: channel[private].

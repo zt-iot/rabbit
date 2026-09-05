@@ -26,7 +26,9 @@ const alias__0: bitstring.
 equation alias__0 = secret__0.
 (* process speaker(..): proc_t *)
 let speaker__0(ptype:proc_t) =
+  (* event [ ::Seen(secret) ] at file "./3_1_constants.rab", line 13, charaters 4-26 *)
   event Seen__event_global(secret__0);
+  (* event [ ::Seen(alias) ] at file "./3_1_constants.rab", line 14, charaters 4-25 *)
   event Seen__event_global(alias__0).
 (* Requires *)
 (* lemma ReachableAlias *)

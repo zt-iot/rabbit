@@ -41,8 +41,11 @@ const int__pos_3: bitstring.
 const proc_t__0: proc_t.
 (* process p(..): proc_t *)
 let p__0(ptype:proc_t) =
+  (* event [ ::Allocating() ] at file "./143_structure_fetch_compression.rab", line 8, charaters 4-26 *)
   event Allocating__event_global;
+  (* new x__833 = S(..) in .. at file "./143_structure_fetch_compression.rab", line 9, charaters 4-159 *)
   new x__833:bitstring;
+  (* let (x1__834, x2__835, x3__836) := _.S in .. at file "./143_structure_fetch_compression.rab", line 10, charaters 4-135 *)
   get deleted_address_table(=S__struct_addr(S__struct(x__833, int__pos_1, int__pos_2, int__pos_3)))
   else
     (if
@@ -54,9 +57,11 @@ let p__0(ptype:proc_t) =
          if
            S__struct_par_3(S__struct(x__833, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
          then
+           (* event [ ::Valid() ] at file "./143_structure_fetch_compression.rab", line 12, charaters 34-51 *)
            event Valid__event_global;
-           (* delete _.S *)
+           (* delete _.S at file "./143_structure_fetch_compression.rab", line 14, charaters 4-14 *)
            insert deleted_address_table(S__struct_addr(S__struct(x__833, int__pos_1, int__pos_2, int__pos_3)));
+           (* event [ ::Deleted() ] at file "./143_structure_fetch_compression.rab", line 15, charaters 4-23 *)
            event Deleted__event_global).
 (* Requires *)
 (* lemma Reachable *)

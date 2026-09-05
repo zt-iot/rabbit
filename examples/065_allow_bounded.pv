@@ -35,22 +35,34 @@ const chan_t__0: acc_data_t.
 let alice__0(ptype:proc_t, p__773:param_data, ch__774:channel) =
   (* Channel ch__774 : chan_t *)
   insert channel_table(chan_t__0, ch__774);
+  (* _ := .. at file "./065_allow_bounded.rab", line 15, charaters 8-25 *)
+  (* put [ c__771::send(1) ] at file "./065_allow_bounded.rab", line 2, charaters 3-18 *)
   get channel_table(ch_type__779:acc_data_t, =ch__774) in
   get access_control_table(=ptype, =ch_type__779, =send_one__0__syscall) in
   out(ch__774, send__chan(int__pos_1)) |
-  (get channel_table(ch_type__778:acc_data_t, =ch__774) in
+  ((* _ := .. at file "./065_allow_bounded.rab", line 16, charaters 8-25 *)
+   (* put [ c__772::send(2) ] at file "./065_allow_bounded.rab", line 6, charaters 3-18 *)
+   get channel_table(ch_type__778:acc_data_t, =ch__774) in
    get access_control_table(=ptype, =ch_type__778, =send_two__0__syscall) in
-   out(ch__774, send__chan(int__pos_2)) | event Valid__event_global).
+   out(ch__774, send__chan(int__pos_2)) |
+   (* event [ ::Valid() ] at file "./065_allow_bounded.rab", line 17, charaters 8-24 *)
+   event Valid__event_global).
 (* process bob(..): person_t *)
 let bob__0(ptype:proc_t, p__775:param_data, ch__776:channel) =
   (* Channel ch__776 : chan_t *)
   insert channel_table(chan_t__0, ch__776);
+  (* _ := .. at file "./065_allow_bounded.rab", line 24, charaters 8-25 *)
+  (* put [ c__772::send(2) ] at file "./065_allow_bounded.rab", line 6, charaters 3-18 *)
   get channel_table(ch_type__781:acc_data_t, =ch__776) in
   get access_control_table(=ptype, =ch_type__781, =send_two__0__syscall) in
   out(ch__776, send__chan(int__pos_2)) |
-  (get channel_table(ch_type__780:acc_data_t, =ch__776) in
+  ((* _ := .. at file "./065_allow_bounded.rab", line 25, charaters 8-25 *)
+   (* put [ c__771::send(1) ] at file "./065_allow_bounded.rab", line 2, charaters 3-18 *)
+   get channel_table(ch_type__780:acc_data_t, =ch__776) in
    get access_control_table(=ptype, =ch_type__780, =send_one__0__syscall) in
-   out(ch__776, send__chan(int__pos_1)) | event Valid__event_global).
+   out(ch__776, send__chan(int__pos_1)) |
+   (* event [ ::Valid() ] at file "./065_allow_bounded.rab", line 26, charaters 8-24 *)
+   event Valid__event_global).
 (* channel chan : chan_t *)
 free chan__0: channel[private].
 (* Requires *)

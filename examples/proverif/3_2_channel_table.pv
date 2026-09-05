@@ -25,6 +25,7 @@ const udp_t__0: acc_data_t.
 let client__0(ptype:proc_t, ch__11:channel) =
   (* Channel ch__11 : udp_t *)
   insert channel_table(udp_t__0, ch__11);
+  (* event [ ::Valid() ] at file "./3_2_channel_table.rab", line 16, charaters 4-21 *)
   event Valid__event_global.
 (* channel udp : udp_t *)
 free udp__0: channel[private].

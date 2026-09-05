@@ -39,10 +39,13 @@ const int__pos_3: bitstring.
 const proc_t__0: proc_t.
 (* process p(..): proc_t *)
 let p__0(ptype:proc_t) =
+  (* new x__824 = S(..) in .. at file "./140_structure.rab", line 8, charaters 4-90 *)
   new x__824:bitstring;
+  (* event [ ::Allocated() ] at file "./140_structure.rab", line 9, charaters 4-25 *)
   event Allocated__event_global;
-  (* delete _.S *)
+  (* delete _.S at file "./140_structure.rab", line 10, charaters 4-14 *)
   insert deleted_address_table(S__struct_addr(S__struct(x__824, int__pos_1, int__pos_2, int__pos_3)));
+  (* event [ ::Deleted() ] at file "./140_structure.rab", line 11, charaters 4-23 *)
   event Deleted__event_global.
 (* Requires *)
 (* lemma Reachable *)

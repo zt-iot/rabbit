@@ -37,25 +37,33 @@ const int__pos_2: bitstring.
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)
 let proc__0(ptype:proc_t, p__864:param_data) =
+  (* new x__865 = S(..) in .. at file "./161_structure_param.rab", line 8, charaters 4-200 *)
   new x__865:bitstring;
+  (* let (x1__866, x2__867, xp__868) := _.S in .. at file "./161_structure_param.rab", line 9, charaters 4-176 *)
   get deleted_address_table(=S__struct_addr(S__struct(x__865, int__pos_1, int__pos_2, p__864)))
   else
+    (* case at file "./161_structure_param.rab", line 11, charaters 18-34 *)
     new case_ch__870:channel;
     ((out(case_ch__870, (false__bool, (), p__864, S__struct(x__865, int__pos_1, int__pos_2, p__864), S__struct_par_1(S__struct(x__865, int__pos_1, int__pos_2, p__864)), S__struct_par_2(S__struct(x__865, int__pos_1, int__pos_2, p__864)), S__struct_par_3(S__struct(x__865, int__pos_1, int__pos_2, p__864)))) |
+      (* case [ xp__868 = p__864 ] at file "./161_structure_param.rab", line 11, charaters 18-34 *)
       in(case_ch__870, (=false__bool, case_result__877:bitstring, case_state_0__878:param_data, case_state_1__879:bitstring, case_state_2__880:bitstring, case_state_3__881:bitstring, case_state_4__882:param_data))[precise];
       if case_state_4__882 = case_state_0__878
       then
+        (* event [ ::Valid() ] at file "./161_structure_param.rab", line 11, charaters 18-34 *)
         event Valid__event_global;
         out(case_ch__870, (true__bool, (), case_state_0__878, case_state_1__879, case_state_2__880, case_state_3__881, case_state_4__882))
       else
         out(case_ch__870, (false__bool, case_result__877, case_state_0__878, case_state_1__879, case_state_2__880, case_state_3__881, case_state_4__882))) |
+     (* case [ xp__868 != p__864 ] at file "./161_structure_param.rab", line 12, charaters 19-37 *)
      in(case_ch__870, (=false__bool, case_result__883:bitstring, case_state_0__884:param_data, case_state_1__885:bitstring, case_state_2__886:bitstring, case_state_3__887:bitstring, case_state_4__888:param_data))[precise];
      if case_state_4__888 = case_state_0__884
      then
        out(case_ch__870, (false__bool, case_result__883, case_state_0__884, case_state_1__885, case_state_2__886, case_state_3__887, case_state_4__888))
      else
+       (* event [ ::Invalid() ] at file "./161_structure_param.rab", line 12, charaters 19-37 *)
        event Invalid__event_global;
        out(case_ch__870, (true__bool, (), case_state_0__884, case_state_1__885, case_state_2__886, case_state_3__887, case_state_4__888))) |
+    (* end of case at file "./161_structure_param.rab", line 11, charaters 18-34 *)
     in(case_ch__870, (=true__bool, case_done_result__871:bitstring, case_done_state_0__872:param_data, case_done_state_1__873:bitstring, case_done_state_2__874:bitstring, case_done_state_3__875:bitstring, case_done_state_4__876:param_data))[precise].
 (* Requires *)
 (* lemma Reachable *)
