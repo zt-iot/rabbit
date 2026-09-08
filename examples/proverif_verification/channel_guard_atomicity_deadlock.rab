@@ -1,0 +1,68 @@
+(* Known semantic difference: ProVerif may consume [ch::msg("bad")] in
+   [mismatching_reader] before checking its equality guard.  That execution
+   deadlocks and prevents [valid_reader] from receiving the message.
+
+   Rabbit checks the complete guard atomically, so the mismatching reader is
+   not enabled and cannot consume the message.  The extra ProVerif deadlock is
+   not observable by the current reachability and correspondence properties:
+   ProVerif also retains a schedule in which [valid_reader] receives first.
+*)
+
+type proc_t : process
+type chan_t : channel
+
+channel ch : chan_t
+
+allow proc_t chan_t [.]
+
+process sender(c : chan_t) : proc_t
+{
+  main {
+    event [::Sent()];
+    put [c::msg("bad")]
+  }
+}
+
+process mismatching_reader(c : chan_t) : proc_t
+{
+  main {
+    case
+    | [c::msg(value), value = "expected"] -> event [::UnexpectedMatch()]
+    end
+  }
+}
+
+process valid_reader(c : chan_t) : proc_t
+{
+  main {
+    case
+    | [c::msg(value)] -> event [::Received(value)]
+    end
+  }
+}
+
+system
+  sender(ch) | mismatching_reader(ch) | valid_reader(ch)
+requires
+[
+  (* PROVERIF EXPECTED
+  # The valid reader can win the ProVerif input race.
+  true
+  *)
+  lemma ValidReceiveIsReachable : (* verified *)
+    reachable ::Received("bad") ;
+
+  (* PROVERIF EXPECTED
+  # Every successful receive follows the sender event.
+  true
+  *)
+  lemma ReceiveFollowsSend : (* verified *)
+    corresponds ::Received("bad") ~> ::Sent() ;
+
+  (* PROVERIF EXPECTED
+  # The mismatching equality never enables the source branch.
+  false
+  *)
+  lemma MismatchIsUnreachable : (* falsified *)
+    reachable ::UnexpectedMatch()
+]
