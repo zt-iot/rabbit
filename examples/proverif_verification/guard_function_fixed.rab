@@ -1,0 +1,55 @@
+(* Functions remain usable when their arguments have another binding source. *)
+function f:1
+function erase:1
+equation erase(x) = 0
+type proc_t : process
+type channel_t : channel
+allow proc_t channel_t [ . ]
+process worker(ch : channel_t) : proc_t {
+  main {
+    var p = (f(1), 1) in
+    assume [p = (f(x), x)] in
+    event [::Tuple(x)];
+    assume [f(y) = f(1), y = 1] in
+    event [::Equality(y)];
+    put [ch::Msg(f(2), 2)];
+    case [ch::Msg(f(z), z)] -> event [::Channel(z)] end;
+    var q = (erase(5), 5) in
+    assume [q = (erase(w), w)] in
+    event [::Equational(w)];
+    var state = 1 in
+    repeat [f(n) = f(state), n = 1, state = 1] ->
+      event [::Loop(n)]; state := 2
+    until [f(m) = f(state), m = 2, state = 2] ->
+      event [::Exit(m)]
+    end
+  }
+}
+channel ch : channel_t
+system worker(ch)
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Tuple : reachable ::Tuple(1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Equality : reachable ::Equality(1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Channel : reachable ::Channel(2);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Equational : reachable ::Equational(5);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Loop : reachable ::Loop(1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Exit : reachable ::Exit(2)
+]

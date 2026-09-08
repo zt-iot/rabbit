@@ -1,0 +1,16 @@
+function f:1
+type proc_t : process
+type channel_t : channel
+type storage_t : filesys
+allow proc_t channel_t [ . ]
+allow proc_t storage_t [ . ]
+process worker(ch : channel_t) : proc_t {
+  file "/data" : storage_t = f(1)
+  main {
+    var p = f(1) in
+    case ["/data".f(x)] -> event [::Matched(x)] end
+  }
+}
+channel ch : channel_t
+system worker(ch)
+requires [lemma Check : reachable ::Matched(x)]

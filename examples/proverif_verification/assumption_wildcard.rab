@@ -4,7 +4,6 @@
    Reviewed.
 *)
 
-function enc:2
 
 const fresh message
 const fresh key1
@@ -12,7 +11,7 @@ const fresh key2
 
 type proc_t : process
 
-process tuple_worker() : proc_t
+process all_wildcard_worker() : proc_t
 {
   main {
     var value = (1, 2) in
@@ -24,42 +23,42 @@ process tuple_worker() : proc_t
 process overlapping_worker() : proc_t
 {
   main {
-    assume [enc(_, key1) = enc(message, _)] in
+    assume [(_, key1) = (message, _)] in
     event [::OverlappingPatternsMatched()]
   }
 }
 
-process constructor_worker() : proc_t
+process tuple_worker() : proc_t
 {
   main {
-    var ciphertext = enc(message, key1) in
-    assume [ciphertext = enc(_, key1)] in
-    event [::ConstructorMatched()]
+    var ciphertext = (message, key1) in
+    assume [ciphertext = (_, key1)] in
+    event [::TupleConstructorMatched()]
   }
 }
 
-process constructor_conflicting_worker() : proc_t
+process tuple_conflicting_worker() : proc_t
 {
   main {
-    var ciphertext = enc(message, key1) in
-    assume [ciphertext = enc(_, key2)] in
-    event [::ConstructorConflictMatched()]
+    var ciphertext = (message, key1) in
+    assume [ciphertext = (_, key2)] in
+    event [::TupleConstructorConflictMatched()]
   }
 }
 
 process conflicting_worker() : proc_t
 {
   main {
-    assume [enc(_, key1) = enc(message, key2)] in
+    assume [(_, key1) = (message, key2)] in
     event [::ConflictingPatternsMatched()]
   }
 }
 
 system
-  tuple_worker()
+  all_wildcard_worker()
   | overlapping_worker()
-  | constructor_worker()
-  | constructor_conflicting_worker()
+  | tuple_worker()
+  | tuple_conflicting_worker()
   | conflicting_worker()
 requires
 [
@@ -71,25 +70,25 @@ requires
     reachable ::TupleMatched() ;
 
   (* PROVERIF EXPECTED
-  # The two constructor patterns overlap at enc(message, key1).
+  # The two tuple patterns overlap at (message, key1).
   true
   *)
   lemma TwoWildcardPatternsOverlap : (* verified *)
     reachable ::OverlappingPatternsMatched() ;
 
   (* PROVERIF EXPECTED
-  # The private matcher recognizes a constructor while ignoring one argument.
+  # The private matcher recognizes a tuple while ignoring one argument.
   true
   *)
-  lemma ConstructorPatternMatches : (* verified *)
-    reachable ::ConstructorMatched() ;
+  lemma TupleConstructorPatternMatches : (* verified *)
+    reachable ::TupleConstructorMatched() ;
 
   (* PROVERIF EXPECTED
-  # The private matcher still checks the constructor's fixed key argument.
+  # The private matcher still checks the tuple's fixed key argument.
   false
   *)
-  lemma ConstructorPatternChecksFixedArguments : (* falsified *)
-    reachable ::ConstructorConflictMatched() ;
+  lemma TupleConstructorPatternChecksFixedArguments : (* falsified *)
+    reachable ::TupleConstructorConflictMatched() ;
 
   (* PROVERIF EXPECTED
   # Fresh key1 and key2 cannot satisfy the conflicting fixed positions.

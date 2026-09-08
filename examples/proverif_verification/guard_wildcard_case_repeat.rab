@@ -4,7 +4,6 @@
    Reviewed.
 *)
 
-function enc:2
 
 const fresh message
 const fresh key1
@@ -17,10 +16,10 @@ type proc_t : process
 process case_worker() : proc_t
 {
   main {
-    var ciphertext = enc(message, key1) in
+    var ciphertext = (message, key1) in
     case
-    | [ciphertext = enc(_, key1)] -> event [::CaseMatched()]
-    | [ciphertext = enc(_, key2)] -> event [::CaseConflictMatched()]
+    | [ciphertext = (_, key1)] -> event [::CaseMatched()]
+    | [ciphertext = (_, key2)] -> event [::CaseConflictMatched()]
     end
   }
 }
@@ -30,11 +29,11 @@ process repeat_worker() : proc_t
   main {
     var state = initial_state in
     repeat
-    | [state = initial_state, enc(_, key1) = enc(message, _)] ->
+    | [state = initial_state, (_, key1) = (message, _)] ->
         event [::RepeatMatched()];
         state := repeated_state
     until
-    | [state = repeated_state, enc(_, key1) = enc(message, _)] ->
+    | [state = repeated_state, (_, key1) = (message, _)] ->
         event [::UntilMatched()]
     end
   }

@@ -58,7 +58,6 @@ module GEnv = struct
     ; mutable events        : (Name.t * (event_kind * Type.type_ list)) list
     ; mutable comparison_events : (comparison_event_kind * Type.type_) list
     ; mutable auxiliary_decls : tdecl list
-    ; mutable equational_functions : T.ident list
     ; mutable top_process   : tprocess_e option
     }
 
@@ -77,22 +76,10 @@ module GEnv = struct
     ; events             = []
     ; comparison_events  = []
     ; auxiliary_decls    = []
-    ; equational_functions = []
     ; top_process        = None
     }
 
   let tyenv genv = genv.tyenv
-
-  let rec record_equational_functions genv (expr : T.expr) =
-    match expr.desc with
-    | Apply (id, args) ->
-        genv.equational_functions <- id :: genv.equational_functions;
-        List.iter (record_equational_functions genv) args
-    | Tuple args -> List.iter (record_equational_functions genv) args
-    | Ident { param; _ } -> Option.iter (record_equational_functions genv) param
-    | Unit | String _ | Boolean _ | Integer _ | Float _ -> ()
-
-  let is_free_function genv id = not (List.mem id genv.equational_functions)
 
   let add_ident genv ~base : ident =
     let rec find_available index =

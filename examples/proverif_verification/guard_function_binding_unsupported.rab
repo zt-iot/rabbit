@@ -1,4 +1,5 @@
-(* Free function patterns use private extractors, not public projections. *)
+(* Regression: functions without equations must not gain argument extractors.
+   This previously compiled; the first assumption must now be rejected. *)
 function wrap:1
 function pair:2
 function erase:1
