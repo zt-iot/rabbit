@@ -1,0 +1,83 @@
+(* Verification feature: one branch can consume multiple channel facts.
+
+   The generated ProVerif process receives these facts sequentially, so it
+   retains the documented atomicity limitation when a later guard fails.
+
+   Reviewed.
+*)
+
+const fresh case_left_payload
+const fresh case_right_payload
+const fresh repeat_left_payload
+const fresh repeat_right_payload
+
+type proc_t : process
+type transport_t : channel
+
+process sender(
+  case_left : transport_t,
+  case_right : transport_t,
+  repeat_left : transport_t,
+  repeat_right : transport_t
+) : proc_t
+{
+  main {
+    put
+      [ case_left::Message(case_left_payload)
+      , case_right::Message(case_right_payload)
+      , repeat_left::Message(repeat_left_payload)
+      , repeat_right::Message(repeat_right_payload)
+      ]
+  }
+}
+
+process case_worker(left : transport_t, right : transport_t) : proc_t
+{
+  main {
+    case
+    | [left::Message(x), right::Message(y)] -> event [::CaseBoth(x, y)]
+    end
+  }
+}
+
+process repeat_worker(left : transport_t, right : transport_t) : proc_t
+{
+  main {
+    var done = 0 in
+    repeat
+    | [left::Message(x), right::Message(y)] ->
+        event [::RepeatBoth(x, y)];
+        done := 1
+    until
+    | [done = 1] -> skip
+    end
+  }
+}
+
+allow proc_t transport_t [.]
+
+channel case_left : transport_t
+channel case_right : transport_t
+channel repeat_left : transport_t
+channel repeat_right : transport_t
+
+system
+  sender(case_left, case_right, repeat_left, repeat_right)
+  | case_worker(case_left, case_right)
+  | repeat_worker(repeat_left, repeat_right)
+requires
+[
+  (* PROVERIF EXPECTED
+  # The case branch consumes both channel facts and binds both payloads.
+  true
+  *)
+  lemma CaseConsumesBoth : (* verified *)
+    reachable ::CaseBoth(case_left_payload, case_right_payload) ;
+
+  (* PROVERIF EXPECTED
+  # The repeat branch uses the same multiple-channel guard lowering.
+  true
+  *)
+  lemma RepeatConsumesBoth : (* verified *)
+    reachable ::RepeatBoth(repeat_left_payload, repeat_right_payload)
+]

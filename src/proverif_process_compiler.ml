@@ -506,6 +506,17 @@ let compile_event_facts genv penv (facts : T.fact list) (body : tprocess_e)
     facts
     events
 
+let compile_pterm_eq_tests
+    (tests : (pterm_e * pterm_e) list)
+    (then_proc : tprocess_e)
+    (else_proc : tprocess_e)
+  : tprocess_e =
+  List.fold_right
+    (fun (lhs, rhs) acc ->
+       process_e @@ PTest (eq_pterm lhs rhs, acc, else_proc))
+    tests
+    then_proc
+
 let rec compile_guard_fragment
     genv
     penv
@@ -560,9 +571,65 @@ let rec compile_guard_fragment
            final_env,
            fun rest ->
              process_e @@ PTest (cond, else_proc, fragment rest)
-       | Channel _ ->
-           Error.unsupported ~loc:fact.loc
-             "Nested channel guard lowering is not supported here"
+       | Channel { channel; name; args } ->
+           (* Channel facts are linear. This sequential lowering can consume an
+              earlier channel fact before a later guard fails, whereas Rabbit
+              consumes the complete guard atomically. This is the same accepted
+              atomicity limitation as the outer channel-guard lowering below. *)
+           let payload_vars =
+             List.init (List.length args) (fun i ->
+                 Ident.local (Printf.sprintf "guard_arg_%d" i))
+           in
+           let payload_patterns =
+             List.map2
+               (fun id arg ->
+                  PPatVar
+                    ( compile_ident id
+                    , Some (compile_value_type (T.type_of_expr arg)) ))
+               payload_vars
+               args
+           in
+           let payload_terms =
+             List.map
+               (fun id -> pterm_e @@ PPIdent (compile_ident id))
+               payload_vars
+           in
+           let branch_env, arg_eq_tests =
+             List.fold_left2
+               (fun (branch_env, tests) (arg : T.expr) payload_term ->
+                  match arg.desc with
+                  | T.Ident { id; _ }
+                    when List.mem id fresh
+                         && Option.is_none (PEnv.find_process_var branch_env id) ->
+                      ( PEnv.define_process_var branch_env id
+                          (T.type_of_expr arg) payload_term
+                      , tests )
+                  | _ ->
+                      ( branch_env
+                      , ( payload_term
+                        , compile_expr_to_pterm genv branch_env arg )
+                        :: tests ))
+               (penv, [])
+               args
+               payload_terms
+           in
+           let final_env, fragment =
+             compile_guard_fragment genv branch_env fresh facts
+               ~on_success ~else_proc
+           in
+           let channel_term = compile_expr_to_pterm genv penv channel in
+           final_env,
+           fun rest ->
+             wrap_with_channel_access_get channel_term penv
+               (process_e @@
+                PInput
+                  ( channel_term
+                  , PPatFunApp
+                      (compile_name name "chan", payload_patterns)
+                  , compile_pterm_eq_tests
+                      (List.rev arg_eq_tests) (fragment rest) else_proc
+                  , [] ))
+               else_proc
        | File { path; contents } ->
            let path_term = compile_expr_to_pterm genv penv path in
            let file_channel =
@@ -663,17 +730,6 @@ let compile_guard_tests
       ~else_proc
   in
   fragment (process_e PNil)
-
-let compile_pterm_eq_tests
-    (tests : (pterm_e * pterm_e) list)
-    (then_proc : tprocess_e)
-    (else_proc : tprocess_e)
-  : tprocess_e =
-  List.fold_right
-    (fun (lhs, rhs) acc ->
-       process_e @@ PTest (eq_pterm lhs rhs, acc, else_proc))
-    tests
-    then_proc
 
 let extract_channel_guard (facts : T.fact list) =
   let rec go rev_prefix = function
