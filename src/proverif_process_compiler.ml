@@ -650,17 +650,6 @@ let compile_event_facts genv penv (facts : T.fact list) (body : tprocess_e)
     facts
     events
 
-let compile_pterm_eq_tests
-    (tests : (pterm_e * pterm_e) list)
-    (then_proc : tprocess_e)
-    (else_proc : tprocess_e)
-  : tprocess_e =
-  List.fold_right
-    (fun (lhs, rhs) acc ->
-       process_e @@ PTest (eq_pterm lhs rhs, acc, else_proc))
-    tests
-    then_proc
-
 let unbound_guard_var penv fresh id =
   List.mem id fresh && Option.is_none (PEnv.find_process_var penv id)
 
@@ -736,6 +725,33 @@ let bind_tuple_guard penv fresh pattern =
             penv, pattern, [T.{ loc = expr.loc; env = expr.env; desc = Eq (expr, component) }]
   in
   bind penv pattern
+
+(* Every input path uses this binding pass. Bind all payloads before checking
+   fixed expressions, so references to later arguments are handled consistently.
+   Tuple decomposition and tests still follow consumption of the linear fact. *)
+let bind_guard_payloads penv fresh args payload_ids ~else_proc =
+  List.fold_left2
+    (fun (penv, tests, wrap) (arg : T.expr) payload_id ->
+       let term = pterm_e @@ PPIdent (compile_ident payload_id) in
+       match arg.desc with
+       | Ident { id; param = None; _ } when is_wildcard_ident id ->
+           penv, tests, wrap
+       | Ident { id; param = None; _ } when unbound_guard_var penv fresh id ->
+           PEnv.define_process_var penv id (T.type_of_expr arg) term, tests, wrap
+       | Tuple _ ->
+           let penv, pattern, more_tests = bind_tuple_guard penv fresh arg in
+           penv, tests @ more_tests,
+           (fun body -> wrap (process_e @@ PLet (pattern, term, body, else_proc)))
+       | _ ->
+           let subject : T.expr =
+             { arg with desc = Ident
+                 { id = payload_id; desc = Var (T.type_of_expr arg); param = None } }
+           in
+           let test : T.fact =
+             { loc = arg.loc; env = arg.env; desc = Eq (subject, arg) }
+           in
+           penv, tests @ [test], wrap)
+    (penv, [], Fun.id) args payload_ids
 
 let rec compile_guard_fragment
     genv
@@ -831,32 +847,11 @@ let rec compile_guard_fragment
                payload_vars
                args
            in
-           let payload_terms =
-             List.map
-               (fun id -> pterm_e @@ PPIdent (compile_ident id))
-               payload_vars
-           in
-           let branch_env, arg_eq_tests =
-             List.fold_left2
-               (fun (branch_env, tests) (arg : T.expr) payload_term ->
-                  match arg.desc with
-                  | T.Ident { id; _ }
-                    when List.mem id fresh
-                         && Option.is_none (PEnv.find_process_var branch_env id) ->
-                      ( PEnv.define_process_var branch_env id
-                          (T.type_of_expr arg) payload_term
-                      , tests )
-                  | _ ->
-                      ( branch_env
-                      , ( payload_term
-                        , compile_expr_to_pterm genv branch_env arg )
-                        :: tests ))
-               (penv, [])
-               args
-               payload_terms
+           let branch_env, tests, wrap =
+             bind_guard_payloads penv fresh args payload_vars ~else_proc
            in
            let final_env, fragment =
-             compile_guard_fragment genv branch_env fresh facts
+             compile_guard_fragment genv branch_env fresh (tests @ facts)
                ~on_success ~else_proc
            in
            let channel_term = compile_expr_to_pterm genv penv channel in
@@ -868,8 +863,7 @@ let rec compile_guard_fragment
                   ( channel_term
                   , PPatFunApp
                       (compile_name name "chan", payload_patterns)
-                  , compile_pterm_eq_tests
-                      (List.rev arg_eq_tests) (fragment rest) else_proc
+                  , wrap (fragment rest)
                   , [] ))
                else_proc
        | File { path; contents } ->
@@ -882,29 +876,17 @@ let rec compile_guard_fragment
                    "File guard requires a process-local file channel"
            in
            let payload_id = Ident.local "file_contents" in
-           let payload_term = pterm_e @@ PPIdent (compile_ident payload_id) in
            let payload_pattern =
              PPatTuple
                [ PPatEqual path_term
                ; PPatVar (compile_ident payload_id, Some bitstring_ident)
                ]
            in
-           let branch_env, match_contents =
-             match contents.desc with
-             | T.Ident { id; _ } when List.mem id fresh ->
-                 PEnv.define_process_var penv id Type.TValue payload_term, Fun.id
-             | _ ->
-                 penv,
-                 fun then_proc ->
-                   process_e @@
-                   PTest
-                     ( eq_pterm payload_term
-                         (compile_expr_to_pterm genv penv contents)
-                     , then_proc
-                     , else_proc )
+           let branch_env, tests, match_contents =
+             bind_guard_payloads penv fresh [contents] [payload_id] ~else_proc
            in
            let final_env, fragment =
-             compile_guard_fragment genv branch_env fresh facts ~on_success ~else_proc
+             compile_guard_fragment genv branch_env fresh (tests @ facts) ~on_success ~else_proc
            in
            final_env,
            fun rest ->
@@ -924,22 +906,11 @@ let rec compile_guard_fragment
              | _ -> assert false
            in
            let payload_id = Ident.local "attacker_input" in
-           let payload_term = pterm_e @@ PPIdent (compile_ident payload_id) in
-           let branch_env, match_arg =
-             match arg.desc with
-             | T.Ident { id; _ } when List.mem id fresh ->
-                 PEnv.define_process_var penv id (T.type_of_expr arg) payload_term, Fun.id
-             | _ ->
-                 penv,
-                 fun then_proc ->
-                   process_e @@
-                   PTest
-                     ( eq_pterm payload_term (compile_expr_to_pterm genv penv arg)
-                     , then_proc
-                     , else_proc )
+           let branch_env, tests, match_arg =
+             bind_guard_payloads penv fresh [arg] [payload_id] ~else_proc
            in
            let final_env, fragment =
-             compile_guard_fragment genv branch_env fresh facts ~on_success ~else_proc
+             compile_guard_fragment genv branch_env fresh (tests @ facts) ~on_success ~else_proc
            in
            final_env,
            fun rest ->
@@ -1003,9 +974,6 @@ let channel_guards_share_input (cases : T.case list) =
         guards
   | None :: _ | [] -> false
 
-let is_fresh_case_var (case : T.case) (id : T.ident) =
-  List.mem id case.fresh
-
 let case_result_type = function
   | [] -> Type.TValue
   | (case : T.case) :: _ -> T.type_of_cmd case.cmd
@@ -1042,19 +1010,6 @@ let lock_output_fragment
       , lock_state_message ~done_flag ~loc penv state_ids
       , process_e PNil )
 
-let rec filter_map2
-    (f : 'a -> 'b -> 'c option)
-    (xs : 'a list)
-    (ys : 'b list)
-  : 'c list =
-  match xs, ys with
-  | [], [] -> []
-  | x :: xs, y :: ys ->
-      (match f x y with
-       | Some z -> z :: filter_map2 f xs ys
-       | None -> filter_map2 f xs ys)
-  | _ -> invalid_arg "filter_map2"
-
 let rec compile_channel_guard_case
     genv
     penv
@@ -1083,36 +1038,8 @@ let rec compile_channel_guard_case
       args
   in
   let input_pattern = PPatFunApp (compile_name name "chan", payload_patterns) in
-  let payload_terms =
-    List.map (fun id -> pterm_e @@ PPIdent (compile_ident id)) payload_vars
-  in
-  let branch_env =
-    List.fold_left2
-      (fun penv (arg : T.expr) payload_term ->
-         match arg.desc with
-         | T.Ident { id; _ } when is_fresh_case_var case id ->
-             PEnv.define_process_var penv id (T.type_of_expr arg) payload_term
-         | _ -> penv)
-      penv
-      args
-      payload_terms
-  in
-  let arg_eq_tests =
-    let rec collect acc args payload_terms =
-      match args, payload_terms with
-      | [], [] -> List.rev acc
-      | (arg : T.expr) :: args, payload_term :: payload_terms ->
-          (match arg.desc with
-           | T.Ident { id; _ } when is_fresh_case_var case id ->
-               collect acc args payload_terms
-           | _ ->
-               collect
-                 ((payload_term, compile_expr_to_pterm genv branch_env arg) :: acc)
-                 args
-                 payload_terms)
-      | _ -> invalid_arg "compile_channel_guard_case"
-    in
-    collect [] args payload_terms
+  let branch_env, tests, wrap =
+    bind_guard_payloads penv case.fresh args payload_vars ~else_proc
   in
   let channel_term = compile_expr_to_pterm genv penv channel in
   wrap_with_channel_access_get channel_term penv
@@ -1120,15 +1047,13 @@ let rec compile_channel_guard_case
      PInput
        ( channel_term
        , input_pattern
-       , compile_guard_tests genv branch_env case.fresh other_facts
+       , wrap (compile_guard_tests genv branch_env case.fresh (tests @ other_facts)
            (fun final_env ->
               let body_env, body_fragment =
                 compile_case_branch_body genv (unit_result final_env) case
               in
-              compile_pterm_eq_tests arg_eq_tests
-                (body_fragment (on_success body_env))
-                else_proc)
-           else_proc
+              body_fragment (on_success body_env))
+           else_proc)
        , [] ))
     else_proc
 
@@ -1369,46 +1294,23 @@ and compile_case_channelized
       first_args
   in
   let input_pattern = PPatFunApp (compile_name first_name "chan", payload_patterns) in
-  let payload_terms =
-    List.map (fun id -> pterm_e @@ PPIdent (compile_ident id)) payload_vars
-  in
   let compile_branch base_env ~on_success ~else_proc
-      (case, _channel, _name, args, facts, _loc) =
-        let branch_env =
-          List.fold_left2
-            (fun penv (arg : T.expr) payload_term ->
-               match arg.desc with
-               | T.Ident { id; _ } when is_fresh_case_var case id ->
-                   PEnv.define_process_var penv id (T.type_of_expr arg) payload_term
-               | _ -> penv)
-            base_env
-            args
-            payload_terms
-        in
-        let arg_eq_tests =
-          filter_map2
-            (fun (arg : T.expr) payload_term ->
-               match arg.desc with
-               | T.Ident { id; _ } when is_fresh_case_var case id -> None
-               | _ ->
-                   Some (payload_term, compile_expr_to_pterm genv branch_env arg))
-            args
-            payload_terms
+      ((case : T.case), _channel, _name, args, facts, _loc) =
+        let branch_env, tests, wrap =
+          bind_guard_payloads base_env case.fresh args payload_vars ~else_proc
         in
         add_comment (
           Format.asprintf "case [ %s ] at %t"
             (String.concat ", " @@ List.map (fun f -> Typed.string_of_fact f) case.facts)
             (Location.print case.cmd.loc)
         ) @@
-        compile_guard_tests genv branch_env case.fresh facts
+        wrap (compile_guard_tests genv branch_env case.fresh (tests @ facts)
           (fun final_env ->
              let body_env, body_fragment =
                compile_case_branch_body genv final_env case
              in
-             compile_pterm_eq_tests arg_eq_tests
-               (body_fragment (on_success body_env))
-               else_proc)
-          else_proc
+             body_fragment (on_success body_env))
+          else_proc)
   in
   let loc =
     match channel_guards with

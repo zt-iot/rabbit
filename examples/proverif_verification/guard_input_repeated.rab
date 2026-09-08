@@ -1,0 +1,61 @@
+(* A fresh guard variable is bound once, even when repeated across arguments
+   or across file/attacker facts. *)
+type proc_t : process
+type transport_t : channel
+type storage_t : filesys
+allow proc_t transport_t [ . ]
+allow proc_t storage_t [ . ]
+
+process merged(ch : transport_t) : proc_t {
+  main {
+    put [ch::Pair(1, 2)];
+    case
+    | [ch::Pair(x, x)] -> event [::BadMerged()]
+    | [ch::Pair(x, y)] -> event [::GoodMerged(x, y)]
+    end
+  }
+}
+process loop(ch : transport_t) : proc_t {
+  main {
+    put [ch::Pair(1, 2)];
+    repeat [ch::Pair(x, x)] -> event [::BadLoop()]
+    until [0 = 1] -> skip end
+  }
+}
+process files() : proc_t {
+  file "/a" : storage_t = 1
+  file "/b" : storage_t = 2
+  main {
+    case ["/a".x, "/b".x] -> event [::BadFiles()] end
+  }
+}
+process attacker() : proc_t {
+  main {
+    case [::In(x), x = 1, ::In(x), x = 2] -> event [::BadInput()] end
+  }
+}
+channel merged_ch : transport_t
+channel loop_ch : transport_t
+system merged(merged_ch) | loop(loop_ch) | files() | attacker()
+requires [
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadMerged : reachable ::BadMerged();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma GoodMerged : reachable ::GoodMerged(1, 2);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadLoop : reachable ::BadLoop();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadFiles : reachable ::BadFiles();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadInput : reachable ::BadInput()
+]

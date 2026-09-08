@@ -1,0 +1,100 @@
+(* Input tuple patterns share binding and checks across merged case inputs,
+   ordinary loop inputs, file contents, and attacker inputs. *)
+type proc_t : process
+type transport_t : channel
+type storage_t : filesys
+allow proc_t transport_t [ . ]
+allow proc_t storage_t [ . ]
+
+process merged(ch : transport_t) : proc_t {
+  main {
+    put [ch::Msg((1, (2, 3)), 1, 9)];
+    case
+    | [ch::Msg((x, (_, y)), x, _), y = 3] -> event [::Merged(x, y)]
+    | [ch::Msg((x, (_, y)), x, _), y = 4] -> event [::BadMerged()]
+    end
+  }
+}
+
+process loop(ch : transport_t) : proc_t {
+  main {
+    put [ch::Msg((1, (2, 3)), 1, 9)];
+    var state = 0 in
+    repeat
+    | [ch::Msg((x, (_, y)), x, _), state = 0] ->
+        event [::Loop(x, y)];
+        put [ch::Msg((y, (y, y)), y, 0)];
+        state := 1
+    until
+    | [ch::Msg((z, (z, _)), z, _), state = 1] -> event [::Exit(z)]
+    end
+  }
+}
+
+process multiple(ch : transport_t) : proc_t {
+  main {
+    put [ch::First(1), ch::Msg((1, (2, 3)), 1, 9)];
+    case [ch::First(x), ch::Msg((x, (_, y)), x, _)] ->
+      event [::Multiple(x, y)]
+    end
+  }
+}
+
+process files() : proc_t {
+  file "/a" : storage_t = (1, (2, 1))
+  file "/b" : storage_t = (3, 4)
+  main {
+    case ["/a".(x, (_, x))] -> event [::File(x)] end;
+    case ["/b".(y, y)] -> event [::BadFile()] end
+  }
+}
+
+process attacker() : proc_t {
+  main {
+    case [::In((x, (_, x))), x = 1] -> event [::Input(x)] end;
+    case [::In(_)] -> event [::AnyInput()] end
+  }
+}
+
+channel merged_ch : transport_t
+channel loop_ch : transport_t
+channel multi_ch : transport_t
+system merged(merged_ch) | loop(loop_ch) | multiple(multi_ch) | files() | attacker()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Merged : reachable ::Merged(1, 3);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadMerged : reachable ::BadMerged();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Loop : reachable ::Loop(1, 3);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Exit : reachable ::Exit(3);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Multiple : reachable ::Multiple(1, 3);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma File : reachable ::File(1);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadFile : reachable ::BadFile();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Input : reachable ::Input(1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma AnyInput : reachable ::AnyInput()
+]
