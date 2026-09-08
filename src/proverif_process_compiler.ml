@@ -916,7 +916,15 @@ let rec compile_guard_fragment
                   , [] ))
                else_proc
        | File { path; contents } ->
-           let path_term = compile_expr_to_pterm genv penv path in
+           let dynamic_path =
+             not (guard_expr_ready penv fresh path) || expr_contains_wildcard path
+           in
+           let path_id = if dynamic_path then Some (Ident.local "file_path") else None in
+           let path_term =
+             match path_id with
+             | Some id -> pterm_e @@ PPIdent (compile_ident id)
+             | None -> compile_expr_to_pterm genv penv path
+           in
            let file_channel =
              match PEnv.file_channel penv with
              | Some file_channel -> file_channel
@@ -927,12 +935,19 @@ let rec compile_guard_fragment
            let payload_id = Ident.local "file_contents" in
            let payload_pattern =
              PPatTuple
-               [ PPatEqual path_term
+               [ (match path_id with
+                  | Some id -> PPatVar (compile_ident id, Some bitstring_ident)
+                  | None -> PPatEqual path_term)
                ; PPatVar (compile_ident payload_id, Some bitstring_ident)
                ]
            in
+           let args, payload_ids =
+             match path_id with
+             | Some id -> [path; contents], [id; payload_id]
+             | None -> [contents], [payload_id]
+           in
            let branch_env, tests, match_contents =
-             bind_guard_payloads genv penv fresh [contents] [payload_id] ~else_proc
+             bind_guard_payloads genv penv fresh args payload_ids ~else_proc
            in
            let final_env, fragment =
              compile_guard_fragment genv branch_env fresh (tests @ facts) ~on_success ~else_proc
@@ -940,14 +955,23 @@ let rec compile_guard_fragment
            final_env,
            fun rest ->
              let then_proc = match_contents (fragment rest) in
-             wrap_with_file_access_get path_term branch_env
-               (process_e @@
-                PInput
-                  ( file_channel
-                  , payload_pattern
-                  , then_proc
-                  , [precise_ident, None] ))
-               else_proc
+             if dynamic_path then
+               (* The selected fact supplies the path used for authorization.
+                  As with other linear guards, rejection after input consumes
+                  the fact; the accepted atomicity limitation still applies. *)
+               process_e @@ PInput
+                 ( file_channel, payload_pattern
+                 , wrap_with_file_access_get path_term branch_env then_proc else_proc
+                 , [precise_ident, None] )
+             else
+               wrap_with_file_access_get path_term branch_env
+                 (process_e @@
+                  PInput
+                    ( file_channel
+                    , payload_pattern
+                    , then_proc
+                    , [precise_ident, None] ))
+                 else_proc
        | Global ("In", [_arg]) ->
            let arg =
              match fact.desc with

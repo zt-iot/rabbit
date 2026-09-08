@@ -1,0 +1,103 @@
+(* Unbound file paths select a process-local fact and authorize its actual
+   path. Linear input retains the documented guard atomicity limitation. *)
+type proc_t : process
+type readable_t : filesys
+type denied_t : filesys
+allow proc_t readable_t [ . ]
+
+process choices() : proc_t {
+  file "/a" : readable_t = 1
+  file "/b" : readable_t = 2
+  main {
+    case [p.v] -> event [::Selected(p, v)] end
+  }
+}
+process filtered() : proc_t {
+  file "/a" : readable_t = 1
+  file "/b" : readable_t = 2
+  main {
+    case [v = 2, p.v] -> event [::Filtered(p)] end
+  }
+}
+process denied() : proc_t {
+  file "/secret" : denied_t = 3
+  main {
+    case [p.v] -> event [::Denied(p)] end
+  }
+}
+process mixed() : proc_t {
+  file "/public" : readable_t = 4
+  file "/secret" : denied_t = 5
+  main {
+    case [p.v] -> event [::Mixed(p)] end
+  }
+}
+process wildcard() : proc_t {
+  file "/a" : readable_t = (1, 2)
+  main {
+    assume [_.(x, _)] in event [::Wildcard(x)]
+  }
+}
+process repeated() : proc_t {
+  file "/a" : readable_t = "/b"
+  main {
+    case [p.p] -> event [::BadRepeated()] end
+  }
+}
+process loop() : proc_t {
+  file "/a" : readable_t = 1
+  file "/b" : readable_t = 2
+  main {
+    var state = 0 in
+    repeat [state = 0, p.v, v = 1] ->
+      event [::Loop(p)]; state := 1
+    until [state = 1, p.v, v = 2] -> event [::Exit(p)] end
+  }
+}
+system choices() | filtered() | denied() | mixed() | wildcard() | repeated() | loop()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma First : reachable ::Selected("/a", 1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Second : reachable ::Selected("/b", 2);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Filtered : reachable ::Filtered("/b");
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma WrongFilter : reachable ::Filtered("/a");
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Denied : reachable ::Denied("/secret");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Public : reachable ::Mixed("/public");
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Secret : reachable ::Mixed("/secret");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Wildcard : reachable ::Wildcard(1);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Repeated : reachable ::BadRepeated();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Loop : reachable ::Loop("/a");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Exit : reachable ::Exit("/b")
+]
