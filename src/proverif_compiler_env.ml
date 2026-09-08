@@ -57,6 +57,7 @@ module GEnv = struct
     ; mutable process_types : (Ident.t * ident) list (** process types in Rabbit and Proverif *)
     ; mutable events        : (Name.t * (event_kind * Type.type_ list)) list
     ; mutable comparison_events : (comparison_event_kind * Type.type_) list
+    ; mutable auxiliary_decls : tdecl list
     ; mutable top_process   : tprocess_e option
     }
 
@@ -74,6 +75,7 @@ module GEnv = struct
     ; process_types      = []
     ; events             = []
     ; comparison_events  = []
+    ; auxiliary_decls    = []
     ; top_process        = None
     }
 
@@ -92,6 +94,16 @@ module GEnv = struct
     let name = find_available 0 in
     Hashtbl.add genv.generated_names name ();
     pv_ident name
+
+  let fresh_auxiliary_ident genv ~base = add_ident genv ~base
+
+  let add_auxiliary_decl genv decl =
+    genv.auxiliary_decls <- genv.auxiliary_decls @ [decl]
+
+  let take_auxiliary_decls genv =
+    let decls = genv.auxiliary_decls in
+    genv.auxiliary_decls <- [];
+    decls
 
   (* strings **********************************************)
 

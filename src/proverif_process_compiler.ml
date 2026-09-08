@@ -8,8 +8,10 @@ let check_param_cycle expanding id loc =
       "Cyclic parameterized constant definition involving %s"
       (Ident.to_string id)
 
-let reject_wildcard ~loc ((name, _) : T.ident) =
-  if name = "_" then
+let is_wildcard_ident ((name, _) : T.ident) = name = "_"
+
+let reject_wildcard ~loc id =
+  if is_wildcard_ident id then
     Error.unsupported ~loc
       "Wildcard patterns are not supported in ProVerif translation"
 
@@ -143,6 +145,152 @@ let compile_expr_to_pterm genv penv expr =
 
   in
   compile_expr_to_pterm_with genv penv [] [] expr
+
+(* lhs = rhs *)
+let eq_pterm (lhs : pterm_e) (rhs : pterm_e) : pterm_e =
+  pterm_e @@ PPFunApp (pv_ident "=", [lhs; rhs])
+
+let rec expr_contains_wildcard (expr : T.expr) =
+  match expr.desc with
+  | Ident { id; param; _ } ->
+      is_wildcard_ident id
+      || Option.fold ~none:false ~some:expr_contains_wildcard param
+  | Apply (_, args) | Tuple args -> List.exists expr_contains_wildcard args
+  | Unit | String _ | Boolean _ | Integer _ | Float _ -> false
+
+let is_wildcard_expr (expr : T.expr) =
+  match expr.desc with
+  | Ident { id; param = None; _ } -> is_wildcard_ident id
+  | Ident _ | Apply _ | Tuple _ | Unit
+  | String _ | Boolean _ | Integer _ | Float _ -> false
+
+let compile_wildcard_match
+    genv
+    penv
+    (pattern : T.expr)
+    (subject : T.expr)
+    ~(on_match : tprocess_e)
+    ~(on_mismatch : tprocess_e)
+  : tprocess_e =
+  let rec compile_pattern (expr : T.expr) =
+    match expr.desc with
+    | Ident { id; param = None; _ } when is_wildcard_ident id ->
+        let wildcard_id = compile_ident @@ Ident.local "wildcard" in
+        ( term_e @@ PIdent wildcard_id
+        , [wildcard_id, compile_value_type (T.type_of_expr expr)]
+        , []
+        , [] )
+    | Apply (id, args) when expr_contains_wildcard expr ->
+        let args, envdecl, rule_args, call_args = compile_patterns args in
+        ( term_e @@ PFunApp (compile_ident id, args)
+        , envdecl
+        , rule_args
+        , call_args )
+    | Tuple args when expr_contains_wildcard expr ->
+        let args, envdecl, rule_args, call_args = compile_patterns args in
+        term_e @@ PTuple args, envdecl, rule_args, call_args
+    | Ident _ | Apply _ | Tuple _ | Unit
+    | String _ | Boolean _ | Integer _ | Float _ ->
+        let fixed_id = compile_ident @@ Ident.local "wildcard_fixed" in
+        let typ = compile_value_type (T.type_of_expr expr) in
+        ( term_e @@ PIdent fixed_id
+        , [fixed_id, typ]
+        , [term_e @@ PIdent fixed_id]
+        , [compile_expr_to_pterm genv penv expr] )
+  and compile_patterns exprs =
+    List.fold_right
+      (fun expr (terms, envdecl, rule_args, call_args) ->
+         let term, new_envdecl, new_rule_args, new_call_args =
+           compile_pattern expr
+         in
+         ( term :: terms
+         , new_envdecl @ envdecl
+         , new_rule_args @ rule_args
+         , new_call_args @ call_args ))
+      exprs
+      ([], [], [], [])
+  in
+  let pattern, envdecl, rule_args, call_args = compile_pattern pattern in
+  let matcher_id =
+    GEnv.fresh_auxiliary_ident genv ~base:"wildcard_match"
+  in
+  let matcher_rule =
+    term_e @@ PFunApp (matcher_id, pattern :: rule_args)
+  in
+  GEnv.add_auxiliary_decl genv @@
+  TComment "Wildcard guard matcher";
+  GEnv.add_auxiliary_decl genv @@
+  TReduc
+    ( [ envdecl
+      , EETerm
+          (term_e @@
+           PFunApp
+             ( pv_ident "="
+             , [matcher_rule; term_e @@ PIdent true_ident] ))
+      ]
+    , [pv_ident "private", None] );
+  let matcher_call =
+    pterm_e @@
+    PPFunApp
+      ( matcher_id
+      , compile_expr_to_pterm genv penv subject :: call_args )
+  in
+  process_e @@
+  PTest
+    ( eq_pterm matcher_call (pterm_e @@ PPIdent true_ident)
+    , on_match
+    , on_mismatch )
+
+let rec compile_wildcard_equality
+    genv
+    penv
+    lhs
+    rhs
+    ~(on_equal : tprocess_e)
+    ~(on_unequal : tprocess_e)
+  : tprocess_e =
+  if is_wildcard_expr lhs || is_wildcard_expr rhs
+  then on_equal
+  else
+    match lhs.desc, rhs.desc with
+    | Apply (lhs_id, lhs_args), Apply (rhs_id, rhs_args)
+      when lhs_id = rhs_id
+           && List.length lhs_args = List.length rhs_args
+           && (expr_contains_wildcard lhs || expr_contains_wildcard rhs) ->
+        List.fold_right2
+          (fun lhs rhs success ->
+             compile_wildcard_equality genv penv lhs rhs
+               ~on_equal:success ~on_unequal)
+          lhs_args
+          rhs_args
+          on_equal
+    | Tuple lhs_args, Tuple rhs_args
+      when List.length lhs_args = List.length rhs_args
+           && (expr_contains_wildcard lhs || expr_contains_wildcard rhs) ->
+        List.fold_right2
+          (fun lhs rhs success ->
+             compile_wildcard_equality genv penv lhs rhs
+               ~on_equal:success ~on_unequal)
+          lhs_args
+          rhs_args
+          on_equal
+    | _ when expr_contains_wildcard lhs && not (expr_contains_wildcard rhs) ->
+        compile_wildcard_match genv penv lhs rhs
+          ~on_match:on_equal ~on_mismatch:on_unequal
+    | _ when expr_contains_wildcard rhs && not (expr_contains_wildcard lhs) ->
+        compile_wildcard_match genv penv rhs lhs
+          ~on_match:on_equal ~on_mismatch:on_unequal
+    | _ when expr_contains_wildcard lhs || expr_contains_wildcard rhs ->
+        Error.unsupported ~loc:lhs.loc
+          "Wildcard equality between different constructor patterns is not supported"
+    | _ ->
+        process_e @@
+        PTest
+          ( eq_pterm
+              (compile_expr_to_pterm genv penv lhs)
+              (compile_expr_to_pterm genv penv rhs)
+          , on_equal
+          , on_unequal )
 
 let ppar
     (proc1 : tprocess_e)
@@ -347,10 +495,6 @@ let bind_lock_state
          (pterm_e @@ PPIdent (compile_ident pattern_id)))
     penv state_ids state_pattern_ids
 
-(* lhs = rhs *)
-let eq_pterm (lhs : pterm_e) (rhs : pterm_e) : pterm_e =
-  pterm_e @@ PPFunApp (pv_ident "=", [lhs; rhs])
-
 let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
   : tprocess_e =
   (*
@@ -551,26 +695,38 @@ let rec compile_guard_fragment
            let final_env, fragment =
              compile_guard_fragment genv penv fresh facts ~on_success ~else_proc
            in
-           let cond =
-             eq_pterm
-               (compile_expr_to_pterm genv penv lhs)
-               (compile_expr_to_pterm genv penv rhs)
-           in
            final_env,
            fun rest ->
-             process_e @@ PTest (cond, fragment rest, else_proc)
+             if expr_contains_wildcard lhs || expr_contains_wildcard rhs
+             then
+               compile_wildcard_equality genv penv lhs rhs
+                 ~on_equal:(fragment rest)
+                 ~on_unequal:else_proc
+             else
+               let cond =
+                 eq_pterm
+                   (compile_expr_to_pterm genv penv lhs)
+                   (compile_expr_to_pterm genv penv rhs)
+               in
+               process_e @@ PTest (cond, fragment rest, else_proc)
        | Neq (lhs, rhs) ->
            let final_env, fragment =
              compile_guard_fragment genv penv fresh facts ~on_success ~else_proc
            in
-           let cond =
-             eq_pterm
-               (compile_expr_to_pterm genv penv lhs)
-               (compile_expr_to_pterm genv penv rhs)
-           in
            final_env,
            fun rest ->
-             process_e @@ PTest (cond, else_proc, fragment rest)
+             if expr_contains_wildcard lhs || expr_contains_wildcard rhs
+             then
+               compile_wildcard_equality genv penv lhs rhs
+                 ~on_equal:else_proc
+                 ~on_unequal:(fragment rest)
+             else
+               let cond =
+                 eq_pterm
+                   (compile_expr_to_pterm genv penv lhs)
+                   (compile_expr_to_pterm genv penv rhs)
+               in
+               process_e @@ PTest (cond, else_proc, fragment rest)
        | Channel { channel; name; args } ->
            (* Channel facts are linear. This sequential lowering can consume an
               earlier channel fact before a later guard fails, whereas Rabbit
@@ -898,6 +1054,26 @@ and compile_case_branch_body
   let body_env, body_fragment = compile_cmd genv penv case.cmd in
   PEnv.remove_process_vars body_env case.fresh, body_fragment
 
+and compile_guarded_case
+    genv
+    penv
+    (case : T.case)
+    ~(on_success : PEnv.t -> tprocess_e)
+    ~(else_proc : tprocess_e)
+  : tprocess_e =
+  match extract_channel_guard case.facts with
+  | Some (channel, name, args, other_facts, _loc) ->
+      compile_channel_guard_case genv penv case
+        channel name args other_facts ~on_success ~else_proc
+  | None ->
+      compile_guard_tests genv penv case.fresh case.facts
+        (fun final_env ->
+           let body_env, body_fragment =
+             compile_case_branch_body genv (unit_result final_env) case
+           in
+           body_fragment (on_success body_env))
+        else_proc
+
 and compile_single_case_no_channel
     genv
     penv
@@ -981,20 +1157,8 @@ and compile_case_general
             body_env (process_e PNil)
         in
         let guard_proc =
-          match extract_channel_guard case.facts with
-          | Some (channel, name, args, other_facts, _loc) ->
-              compile_channel_guard_case genv branch_env case
-                channel name args other_facts
-                ~on_success:success
-                ~else_proc:retry
-          | None ->
-              compile_guard_tests genv branch_env case.fresh case.facts
-                (fun final_env ->
-                   let body_env, body_fragment =
-                     compile_case_branch_body genv final_env case
-                   in
-                   body_fragment (success body_env))
-                retry
+          compile_guarded_case genv branch_env case
+            ~on_success:success ~else_proc:retry
         in
         add_comment (
           Format.asprintf "case [ %s ] at %t"
@@ -1674,24 +1838,11 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
             , process_e PNil )
         in
         let guard_proc =
-          match extract_channel_guard case.facts with
-          | Some (channel, name, args, other_facts, _loc) ->
-              compile_channel_guard_case genv branch_env case
-                channel name args other_facts
-                ~on_success:(fun body_env ->
-                  lock_output_fragment ~done_flag:is_until ~loc:cmd.loc
-                    lock_term state_ids body_env (process_e PNil))
-                ~else_proc
-          | None ->
-              compile_guard_tests genv branch_env case.fresh case.facts
-                (fun final_env ->
-                   let body_env, body_fragment =
-                     compile_case_branch_body genv (unit_result final_env) case
-                   in
-                   body_fragment @@
-                   lock_output_fragment ~done_flag:is_until ~loc:cmd.loc
-                     lock_term state_ids body_env (process_e PNil))
-                else_proc
+          compile_guarded_case genv branch_env case
+            ~on_success:(fun body_env ->
+              lock_output_fragment ~done_flag:is_until ~loc:cmd.loc
+                lock_term state_ids body_env (process_e PNil))
+            ~else_proc
         in
         (*
             ```

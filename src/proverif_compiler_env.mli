@@ -95,6 +95,10 @@ module GEnv : sig
   val comparison_events : t -> (comparison_event_kind * Type.type_) list
   val add_comparison_event : loc:Location.t -> t -> comparison_event_kind -> Type.type_ -> unit
 
+  val fresh_auxiliary_ident : t -> base:string -> ident
+  val add_auxiliary_decl : t -> tdecl -> unit
+  val take_auxiliary_decls : t -> tdecl list
+
   val top_process : t -> tprocess_e option
   val set_top_process : t -> tprocess_e -> unit
 end

@@ -884,16 +884,9 @@ let compile_structure_decls (genv : GEnv.t) : tdecl list =
   let mk_var index = pv_ident (Printf.sprintf "x_%d" index) in
   let compile_structure_fact name ftys =
     let arity = List.length ftys in
-    (* XXX dupe? *)
-    let field_type_ident ty =
-      match Type.repr ty with
-      | TValue | TVar _ -> bitstring_ident
-      | TChannel -> channel_ident
-      | TParameter -> param_data_ident
-    in
     let envdecl =
       (mk_var 0, bitstring_ident) ::
-      List.mapi (fun i fty -> mk_var (i+1), field_type_ident fty) ftys
+      List.mapi (fun i fty -> mk_var (i+1), compile_value_type fty) ftys
     in
     let vars =
       List.map (fun (id, _ty) -> term_e @@ PIdent id) envdecl
@@ -906,7 +899,7 @@ let compile_structure_decls (genv : GEnv.t) : tdecl list =
       (* fun Struct (bitstring, ..., bitstring) : bitstring[data]. *)
       TFunDecl
         ( structure_ctor_ident name
-        , bitstring_ident :: List.map field_type_ident ftys
+        , bitstring_ident :: List.map compile_value_type ftys
         , bitstring_ident
         , [pv_ident "data", None] )
     in
@@ -1013,7 +1006,10 @@ let rec compile_decl (env : Env.t) genv (decl : T.decl) : tdecl list =
   | Channel { id; param; typ } ->
       compile_channel ~loc id param typ
   | Process { id; param; args; typ; files; vars; funcs; main } ->
-      compile_process genv ~loc id param args typ files vars funcs main
+      let process_decls =
+        compile_process genv ~loc id param args typ files vars funcs main
+      in
+      GEnv.take_auxiliary_decls genv @ process_decls
   | System (procs, lemmas) ->
       compile_system ~loc genv procs lemmas
   | Load (filename, decls) ->

@@ -1,0 +1,100 @@
+(* Verification feature: wildcard expressions in assumptions are lowered to
+   equality checks and private pattern-matching destructors.
+
+   Reviewed.
+*)
+
+function enc:2
+
+const fresh message
+const fresh key1
+const fresh key2
+
+type proc_t : process
+
+process tuple_worker() : proc_t
+{
+  main {
+    var value = (1, 2) in
+    assume [value = (_, _)] in
+    event [::TupleMatched()]
+  }
+}
+
+process overlapping_worker() : proc_t
+{
+  main {
+    assume [enc(_, key1) = enc(message, _)] in
+    event [::OverlappingPatternsMatched()]
+  }
+}
+
+process constructor_worker() : proc_t
+{
+  main {
+    var ciphertext = enc(message, key1) in
+    assume [ciphertext = enc(_, key1)] in
+    event [::ConstructorMatched()]
+  }
+}
+
+process constructor_conflicting_worker() : proc_t
+{
+  main {
+    var ciphertext = enc(message, key1) in
+    assume [ciphertext = enc(_, key2)] in
+    event [::ConstructorConflictMatched()]
+  }
+}
+
+process conflicting_worker() : proc_t
+{
+  main {
+    assume [enc(_, key1) = enc(message, key2)] in
+    event [::ConflictingPatternsMatched()]
+  }
+}
+
+system
+  tuple_worker()
+  | overlapping_worker()
+  | constructor_worker()
+  | constructor_conflicting_worker()
+  | conflicting_worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # A tuple value matches a tuple of wildcards.
+  true
+  *)
+  lemma TuplePatternMatches : (* verified *)
+    reachable ::TupleMatched() ;
+
+  (* PROVERIF EXPECTED
+  # The two constructor patterns overlap at enc(message, key1).
+  true
+  *)
+  lemma TwoWildcardPatternsOverlap : (* verified *)
+    reachable ::OverlappingPatternsMatched() ;
+
+  (* PROVERIF EXPECTED
+  # The private matcher recognizes a constructor while ignoring one argument.
+  true
+  *)
+  lemma ConstructorPatternMatches : (* verified *)
+    reachable ::ConstructorMatched() ;
+
+  (* PROVERIF EXPECTED
+  # The private matcher still checks the constructor's fixed key argument.
+  false
+  *)
+  lemma ConstructorPatternChecksFixedArguments : (* falsified *)
+    reachable ::ConstructorConflictMatched() ;
+
+  (* PROVERIF EXPECTED
+  # Fresh key1 and key2 cannot satisfy the conflicting fixed positions.
+  false
+  *)
+  lemma ConflictingPatternsDoNotMatch : (* falsified *)
+    reachable ::ConflictingPatternsMatched()
+]

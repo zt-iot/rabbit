@@ -1,0 +1,74 @@
+(* Verification feature: wildcard equality guards use the same lowering in
+   case, repeat, and until branches.
+
+   Reviewed.
+*)
+
+function enc:2
+
+const fresh message
+const fresh key1
+const fresh key2
+const initial_state = 0
+const repeated_state = 1
+
+type proc_t : process
+
+process case_worker() : proc_t
+{
+  main {
+    var ciphertext = enc(message, key1) in
+    case
+    | [ciphertext = enc(_, key1)] -> event [::CaseMatched()]
+    | [ciphertext = enc(_, key2)] -> event [::CaseConflictMatched()]
+    end
+  }
+}
+
+process repeat_worker() : proc_t
+{
+  main {
+    var state = initial_state in
+    repeat
+    | [state = initial_state, enc(_, key1) = enc(message, _)] ->
+        event [::RepeatMatched()];
+        state := repeated_state
+    until
+    | [state = repeated_state, enc(_, key1) = enc(message, _)] ->
+        event [::UntilMatched()]
+    end
+  }
+}
+
+system
+  case_worker() | repeat_worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  # A case branch accepts the matching constructor pattern.
+  true
+  *)
+  lemma CasePatternMatches : (* verified *)
+    reachable ::CaseMatched() ;
+
+  (* PROVERIF EXPECTED
+  # A case branch rejects a conflicting fixed constructor argument.
+  false
+  *)
+  lemma CasePatternChecksFixedArguments : (* falsified *)
+    reachable ::CaseConflictMatched() ;
+
+  (* PROVERIF EXPECTED
+  # A repeat branch accepts overlapping constructor patterns.
+  true
+  *)
+  lemma RepeatPatternMatches : (* verified *)
+    reachable ::RepeatMatched() ;
+
+  (* PROVERIF EXPECTED
+  # The until branch uses the same wildcard guard lowering.
+  true
+  *)
+  lemma UntilPatternMatches : (* verified *)
+    reachable ::UntilMatched()
+]
