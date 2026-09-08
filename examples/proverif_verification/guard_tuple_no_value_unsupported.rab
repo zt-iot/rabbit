@@ -1,0 +1,8 @@
+type proc_t : process
+process worker() : proc_t {
+  main {
+    assume [(x, 2) = (y, 2)] in event [::Matched(x, y)]
+  }
+}
+system worker()
+requires [lemma Matched : reachable ::Matched(x, y)]

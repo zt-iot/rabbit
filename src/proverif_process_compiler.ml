@@ -661,6 +661,27 @@ let rec guard_expr_ready penv fresh (expr : T.expr) =
   | Apply (_, args) | Tuple args -> List.for_all (guard_expr_ready penv fresh) args
   | Unit | String _ | Boolean _ | Integer _ | Float _ -> true
 
+let value_guard_binding penv fresh lhs rhs =
+  let candidate (variable : T.expr) value =
+    match variable.desc with
+    | Ident { id; param = None; _ }
+      when unbound_guard_var penv fresh id
+           && guard_expr_ready penv fresh value
+           && not (expr_contains_wildcard value) -> Some (id, value)
+    | _ -> None
+  in
+  match candidate lhs rhs with
+  | Some _ as binding -> binding
+  | None -> candidate rhs lhs
+
+let split_guard_tuple penv fresh (lhs : T.expr) (rhs : T.expr) =
+  match lhs.desc, rhs.desc with
+  | Tuple left, Tuple right
+    when not (guard_expr_ready penv fresh lhs)
+         && not (guard_expr_ready penv fresh rhs)
+         && List.length left = List.length right -> Some (List.combine left right)
+  | _ -> None
+
 let pattern_guard_binding penv fresh lhs rhs =
   let candidate (pattern : T.expr) subject =
     match pattern.desc with
@@ -680,6 +701,8 @@ let select_guard penv fresh (facts : T.fact list) =
     match fact.desc with
     | Eq (lhs, rhs) ->
         (guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs)
+        || Option.is_some (value_guard_binding penv fresh lhs rhs)
+        || Option.is_some (split_guard_tuple penv fresh lhs rhs)
         || Option.is_some (pattern_guard_binding penv fresh lhs rhs)
     | Neq (lhs, rhs) ->
         guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs
@@ -828,6 +851,16 @@ let rec compile_guard_fragment
   | [] -> on_success penv
   | fact :: facts ->
       (match fact.desc with
+       | Eq (lhs, rhs) when Option.is_some (split_guard_tuple penv fresh lhs rhs) ->
+           let pairs = Option.get (split_guard_tuple penv fresh lhs rhs) in
+           let tests = List.map (fun (lhs, rhs) ->
+               { fact with desc = T.Eq (lhs, rhs) }) pairs in
+           compile_guard_fragment genv penv fresh (tests @ facts) ~on_success ~else_proc
+       | Eq (lhs, rhs) when Option.is_some (value_guard_binding penv fresh lhs rhs) ->
+           let id, value = Option.get (value_guard_binding penv fresh lhs rhs) in
+           let penv = PEnv.define_process_var penv id (T.type_of_expr value)
+               (compile_expr_to_pterm genv penv value) in
+           compile_guard_fragment genv penv fresh facts ~on_success ~else_proc
        | Eq (lhs, rhs) when Option.is_some (pattern_guard_binding penv fresh lhs rhs) ->
            let pattern, subject = Option.get (pattern_guard_binding penv fresh lhs rhs) in
            (match pattern.desc with
