@@ -1,0 +1,109 @@
+(* Shared variables must keep one value across guards, regardless of where
+   their binding comparison appears. Channel operands need a bound value. *)
+type proc_t : process
+type transport_t : channel
+type storage_t : filesys
+allow proc_t transport_t [ . ]
+allow proc_t storage_t [ . ]
+
+process late_endpoint(ch : transport_t) : proc_t {
+  main {
+    var endpoint = (ch, 0) in
+    put [ch::Msg(1)];
+    case
+    | [c::Msg(x), endpoint = (c, _), x = 1] -> event [::Late(x)]
+    | [c::Msg(x), endpoint = (c, _), x = 2] -> event [::BadLate()]
+    end
+  }
+}
+process early_endpoint(ch : transport_t) : proc_t {
+  main {
+    var endpoint = (ch, 0) in
+    put [ch::Msg(1)];
+    assume [endpoint = (c, _), c::Msg(x)] in event [::Early(x)]
+  }
+}
+process loop(ch : transport_t) : proc_t {
+  main {
+    var endpoint = (ch, 0) in
+    var done = 0 in
+    put [ch::Msg(1)];
+    repeat [c::Msg(x), endpoint = (c, _), done = 0] ->
+      event [::Loop(x)]; put [ch::Msg(2)]; done := 1
+    until [done = 1, c::Msg(x), endpoint = (c, _)] -> event [::Exit(x)] end
+  }
+}
+process received_endpoint(control : transport_t, target : transport_t) : proc_t {
+  main {
+    put [control::Endpoint(target), target::Msg(3)];
+    case [c::Msg(x), control::Endpoint(c)] -> event [::ReceivedEndpoint(x)] end
+  }
+}
+process file_first(ch : transport_t) : proc_t {
+  file "/a" : storage_t = 1
+  main {
+    put [ch::Path("/a")];
+    case [p.v, ch::Path(p), ::In(v)] -> event [::FileFirst(p, v)] end
+  }
+}
+process channel_first(ch : transport_t) : proc_t {
+  file "/a" : storage_t = 1
+  main {
+    put [ch::Path("/a")];
+    case [ch::Path(p), ::In(v), p.v, v = 1] -> event [::ChannelFirst(p, v)] end
+  }
+}
+process conflict(ch : transport_t) : proc_t {
+  file "/a" : storage_t = 1
+  main {
+    put [ch::Path("/a")];
+    case [ch::Path(p), p.v, ::In(v), v = 2] -> event [::BadShared()] end
+  }
+}
+channel a : transport_t
+channel b : transport_t
+channel c : transport_t
+channel d : transport_t
+channel e : transport_t
+channel f : transport_t
+channel control : transport_t
+channel target : transport_t
+system late_endpoint(a) | early_endpoint(b) | loop(c) | file_first(d) | channel_first(e) | conflict(f) | received_endpoint(control, target)
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Late : reachable ::Late(1);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadLate : reachable ::BadLate();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Early : reachable ::Early(1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Loop : reachable ::Loop(1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Exit : reachable ::Exit(2);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma FileFirst : reachable ::FileFirst("/a", 1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma ChannelFirst : reachable ::ChannelFirst("/a", 1);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadShared : reachable ::BadShared();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma ReceivedEndpoint : reachable ::ReceivedEndpoint(3)
+]

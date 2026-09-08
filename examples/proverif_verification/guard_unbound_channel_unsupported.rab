@@ -1,0 +1,10 @@
+(* A channel operand without a supported binding source must not be emitted
+   as an undeclared ProVerif variable. *)
+type proc_t : process
+process worker() : proc_t {
+  main {
+    case [c::Msg(x)] -> event [::Received(x)] end
+  }
+}
+system worker()
+requires [lemma Received : reachable ::Received(x)]

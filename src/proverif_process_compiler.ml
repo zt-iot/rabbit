@@ -673,8 +673,8 @@ let pattern_guard_binding penv fresh lhs rhs =
   | Some _ as binding -> binding
   | None -> candidate rhs lhs
 
-(* Postpone comparisons until their variables have been bound. Retain the
-   relative order of consumable facts; this does not repair guard atomicity. *)
+(* Postpone comparisons and channel inputs whose operands are not bound yet.
+   Keep the order among ready facts. This does not repair guard atomicity. *)
 let select_guard penv fresh (facts : T.fact list) =
   let ready (fact : T.fact) =
     match fact.desc with
@@ -683,7 +683,8 @@ let select_guard penv fresh (facts : T.fact list) =
         || Option.is_some (pattern_guard_binding penv fresh lhs rhs)
     | Neq (lhs, rhs) ->
         guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs
-    | Channel _ | File _ | Global _ | Plain _ -> true
+    | Channel { channel; _ } -> guard_expr_ready penv fresh channel
+    | File _ | Global _ | Plain _ -> true
   in
   let rec select skipped = function
     | [] ->
@@ -1017,21 +1018,21 @@ let compile_guard_tests
   in
   fragment (process_e PNil)
 
-let extract_channel_guard (facts : T.fact list) =
+let extract_channel_guard penv fresh (facts : T.fact list) =
   let rec go rev_prefix = function
     | [] -> None
     | (fact : T.fact) :: rest ->
         (match fact.desc with
-         | Channel { channel; name; args } ->
+         | Channel { channel; name; args } when guard_expr_ready penv fresh channel ->
              Some (channel, name, args, List.rev rev_prefix @ rest, fact.loc)
          | _ ->
              go (fact :: rev_prefix) rest)
   in
   go [] facts
 
-let channel_guards_share_input (cases : T.case list) =
+let channel_guards_share_input penv (cases : T.case list) =
   let guards =
-    List.map (fun (case : T.case) -> extract_channel_guard case.facts) cases
+    List.map (fun (case : T.case) -> extract_channel_guard penv case.fresh case.facts) cases
   in
   match guards with
   | Some (first_channel, first_name, first_args, _, _) :: guards ->
@@ -1145,7 +1146,7 @@ and compile_guarded_case
     ~(on_success : PEnv.t -> tprocess_e)
     ~(else_proc : tprocess_e)
   : tprocess_e =
-  match extract_channel_guard case.facts with
+  match extract_channel_guard penv case.fresh case.facts with
   | Some (channel, name, args, other_facts, _loc) ->
       compile_channel_guard_case genv penv case
         channel name args other_facts ~on_success ~else_proc
@@ -1326,7 +1327,7 @@ and compile_case_channelized
      when multiple payload guards hold. *)
   let channel_guards =
     List.map (fun (case : T.case) ->
-        match extract_channel_guard case.facts with
+        match extract_channel_guard penv case.fresh case.facts with
         | Some (channel, name, args, other_facts, loc) ->
             case, channel, name, args, other_facts, loc
         | None ->
@@ -1827,7 +1828,7 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       in
       PEnv.with_result penv (T.type_of_expr expr) value, empty_fragment
   | Case cases ->
-      if channel_guards_share_input cases
+      if channel_guards_share_input penv cases
       then
         compile_case_channelized genv penv cases
       else
