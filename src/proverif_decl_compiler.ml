@@ -5,6 +5,9 @@ include Proverif_process_compiler
 let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
   let loc = decl.loc in
   match decl.desc with
+  | Equation (lhs, rhs) ->
+      GEnv.record_equational_functions genv lhs;
+      GEnv.record_equational_functions genv rhs
   | Syscall { id; args; cmd; attack = passive } ->
       (* Syscalls and passive attacks are expanded when they are called.
          No declaration is generated at this point.  *)

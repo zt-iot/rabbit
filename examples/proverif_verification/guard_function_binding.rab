@@ -1,0 +1,90 @@
+(* Free function patterns use private extractors, not public projections. *)
+function wrap:1
+function pair:2
+function erase:1
+equation erase(x) = 0
+const fresh secret
+type proc_t : process
+type transport_t : channel
+type storage_t : filesys
+allow proc_t transport_t [ . ]
+allow proc_t storage_t [ . ]
+
+process worker(ch : transport_t) : proc_t {
+  file "/data" : storage_t = wrap((4, 4))
+  main {
+    var p = pair(wrap(1), (2, 3)) in
+    assume [x != y, pair(wrap(x), (_, y)) = p] in
+    event [::Assumed(x, y)];
+    var q = (erase(5), 5) in
+    assume [q = (erase(w), w)] in
+    event [::EquationalFixed(w)];
+    put [ch::Msg(pair(1, 2))];
+    case
+    | [ch::Msg(pair(a, a))] -> event [::BadRepeated()]
+    | [ch::Msg(pair(a, 2))] -> event [::Channel(a)]
+    end;
+    case ["/data".wrap((v, v))] -> event [::File(v)] end;
+    var state = wrap(1) in
+    repeat [state = wrap(n), n = 1] ->
+      event [::Loop(n)]; state := wrap(2)
+    until [m = 2, state = wrap(m)] -> event [::Exit(m)] end
+  }
+}
+process attacker() : proc_t {
+  main {
+    put [::Out(wrap(secret))];
+    case [::In(pair(x, wrap(x))), x = 1] -> event [::Input(x)] end;
+    case [::In(s), s = secret] -> event [::Leaked()] end
+  }
+}
+process mismatch() : proc_t {
+  main {
+    var p = wrap(1) in
+    assume [p = pair(x, y)] in event [::BadShape()]
+  }
+}
+channel ch : transport_t
+system worker(ch) | attacker() | mismatch()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Assumed : reachable ::Assumed(1, 3);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma EquationalFixed : reachable ::EquationalFixed(5);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadRepeated : reachable ::BadRepeated();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Channel : reachable ::Channel(1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma File : reachable ::File(4);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Loop : reachable ::Loop(1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Exit : reachable ::Exit(2);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Input : reachable ::Input(1);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Leaked : reachable ::Leaked();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadShape : reachable ::BadShape()
+]

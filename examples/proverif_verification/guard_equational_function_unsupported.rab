@@ -1,0 +1,11 @@
+function erase:1
+type proc_t : process
+process worker() : proc_t {
+  main {
+    var p = erase(1) in
+    assume [p = erase(x)] in event [::Matched(x)]
+  }
+}
+equation erase(x) = 0
+system worker()
+requires [lemma Matched : reachable ::Matched(x)]

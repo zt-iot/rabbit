@@ -661,10 +661,10 @@ let rec guard_expr_ready penv fresh (expr : T.expr) =
   | Apply (_, args) | Tuple args -> List.for_all (guard_expr_ready penv fresh) args
   | Unit | String _ | Boolean _ | Integer _ | Float _ -> true
 
-let tuple_guard_binding penv fresh lhs rhs =
+let pattern_guard_binding penv fresh lhs rhs =
   let candidate (pattern : T.expr) subject =
     match pattern.desc with
-    | Tuple _ when not (guard_expr_ready penv fresh pattern)
+    | (Tuple _ | Apply _) when not (guard_expr_ready penv fresh pattern)
                    && guard_expr_ready penv fresh subject
                    && not (expr_contains_wildcard subject) -> Some (pattern, subject)
     | _ -> None
@@ -680,7 +680,7 @@ let select_guard penv fresh (facts : T.fact list) =
     match fact.desc with
     | Eq (lhs, rhs) ->
         (guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs)
-        || Option.is_some (tuple_guard_binding penv fresh lhs rhs)
+        || Option.is_some (pattern_guard_binding penv fresh lhs rhs)
     | Neq (lhs, rhs) ->
         guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs
     | Channel _ | File _ | Global _ | Plain _ -> true
@@ -726,10 +726,53 @@ let bind_tuple_guard penv fresh pattern =
   in
   bind penv pattern
 
+(* Private destructors expose constructor components to the translated process
+   without granting the attacker projections (as a [data] declaration would).
+   Functions mentioned anywhere in an equation are conservatively excluded. *)
+let bind_guard_pattern genv penv fresh (pattern : T.expr) =
+  let rec needs_extraction (expr : T.expr) =
+    match expr.desc with
+    | Apply (id, _) ->
+        GEnv.is_free_function genv id && not (guard_expr_ready penv fresh expr)
+    | Tuple args -> List.exists needs_extraction args
+    | _ -> false
+  in
+  if not (needs_extraction pattern) then
+    let penv, pattern, tests = bind_tuple_guard penv fresh pattern in
+    penv, pattern, tests, Fun.id
+  else
+    let leaves = ref [] in
+    let rec encode (expr : T.expr) =
+      match expr.desc with
+      | Tuple args -> term_e @@ PTuple (List.map encode args)
+      | Apply (id, args) when GEnv.is_free_function genv id
+                             && not (guard_expr_ready penv fresh expr) ->
+          term_e @@ PFunApp (compile_ident id, List.map encode args)
+      | _ ->
+          let id = compile_ident @@ Ident.local "pattern_leaf" in
+          leaves := (expr, id, compile_value_type (T.type_of_expr expr)) :: !leaves;
+          term_e @@ PIdent id
+    in
+    let encoded = encode pattern in
+    let leaves = List.rev !leaves in
+    let extractor = GEnv.fresh_auxiliary_ident genv ~base:"guard_extract" in
+    let envdecl = List.map (fun (_, id, typ) -> id, typ) leaves in
+    let output = term_e @@ PTuple (List.map (fun (_, id, _) -> term_e @@ PIdent id) leaves) in
+    GEnv.add_auxiliary_decl genv @@
+    TReduc ([envdecl, EETerm (term_e @@ PFunApp
+      (pv_ident "=", [term_e @@ PFunApp (extractor, [encoded]); output]))],
+      [pv_ident "private", None]);
+    let flattened : T.expr =
+      { pattern with desc = Tuple (List.map (fun (expr, _, _) -> expr) leaves) }
+    in
+    let penv, pattern, tests = bind_tuple_guard penv fresh flattened in
+    penv, pattern, tests,
+    (fun subject -> pterm_e @@ PPFunApp (extractor, [subject]))
+
 (* Every input path uses this binding pass. Bind all payloads before checking
    fixed expressions, so references to later arguments are handled consistently.
    Tuple decomposition and tests still follow consumption of the linear fact. *)
-let bind_guard_payloads penv fresh args payload_ids ~else_proc =
+let bind_guard_payloads genv penv fresh args payload_ids ~else_proc =
   List.fold_left2
     (fun (penv, tests, wrap) (arg : T.expr) payload_id ->
        let term = pterm_e @@ PPIdent (compile_ident payload_id) in
@@ -738,10 +781,11 @@ let bind_guard_payloads penv fresh args payload_ids ~else_proc =
            penv, tests, wrap
        | Ident { id; param = None; _ } when unbound_guard_var penv fresh id ->
            PEnv.define_process_var penv id (T.type_of_expr arg) term, tests, wrap
-       | Tuple _ ->
-           let penv, pattern, more_tests = bind_tuple_guard penv fresh arg in
+       | (Tuple _ | Apply _) when not (guard_expr_ready penv fresh arg)
+                                  || (match arg.desc with Tuple _ -> true | _ -> false) ->
+           let penv, pattern, more_tests, extract = bind_guard_pattern genv penv fresh arg in
            penv, tests @ more_tests,
-           (fun body -> wrap (process_e @@ PLet (pattern, term, body, else_proc)))
+           (fun body -> wrap (process_e @@ PLet (pattern, extract term, body, else_proc)))
        | _ ->
            let subject : T.expr =
              { arg with desc = Ident
@@ -783,14 +827,19 @@ let rec compile_guard_fragment
   | [] -> on_success penv
   | fact :: facts ->
       (match fact.desc with
-       | Eq (lhs, rhs) when Option.is_some (tuple_guard_binding penv fresh lhs rhs) ->
-           let pattern, subject = Option.get (tuple_guard_binding penv fresh lhs rhs) in
-           let branch_env, pattern, tests = bind_tuple_guard penv fresh pattern in
+       | Eq (lhs, rhs) when Option.is_some (pattern_guard_binding penv fresh lhs rhs) ->
+           let pattern, subject = Option.get (pattern_guard_binding penv fresh lhs rhs) in
+           (match pattern.desc with
+            | Apply (id, _) when not (GEnv.is_free_function genv id) ->
+                Error.unsupported ~loc:pattern.loc
+                  "Named guard patterns cannot decompose a function occurring in an equation"
+            | _ -> ());
+           let branch_env, pattern, tests, extract = bind_guard_pattern genv penv fresh pattern in
            let final_env, fragment =
              compile_guard_fragment genv branch_env fresh (tests @ facts)
                ~on_success ~else_proc
            in
-           let subject = compile_expr_to_pterm genv penv subject in
+           let subject = extract (compile_expr_to_pterm genv penv subject) in
            final_env, fun rest ->
              process_e @@ PLet (pattern, subject, fragment rest, else_proc)
        | Eq (lhs, rhs) ->
@@ -848,7 +897,7 @@ let rec compile_guard_fragment
                args
            in
            let branch_env, tests, wrap =
-             bind_guard_payloads penv fresh args payload_vars ~else_proc
+             bind_guard_payloads genv penv fresh args payload_vars ~else_proc
            in
            let final_env, fragment =
              compile_guard_fragment genv branch_env fresh (tests @ facts)
@@ -883,7 +932,7 @@ let rec compile_guard_fragment
                ]
            in
            let branch_env, tests, match_contents =
-             bind_guard_payloads penv fresh [contents] [payload_id] ~else_proc
+             bind_guard_payloads genv penv fresh [contents] [payload_id] ~else_proc
            in
            let final_env, fragment =
              compile_guard_fragment genv branch_env fresh (tests @ facts) ~on_success ~else_proc
@@ -907,7 +956,7 @@ let rec compile_guard_fragment
            in
            let payload_id = Ident.local "attacker_input" in
            let branch_env, tests, match_arg =
-             bind_guard_payloads penv fresh [arg] [payload_id] ~else_proc
+             bind_guard_payloads genv penv fresh [arg] [payload_id] ~else_proc
            in
            let final_env, fragment =
              compile_guard_fragment genv branch_env fresh (tests @ facts) ~on_success ~else_proc
@@ -1039,7 +1088,7 @@ let rec compile_channel_guard_case
   in
   let input_pattern = PPatFunApp (compile_name name "chan", payload_patterns) in
   let branch_env, tests, wrap =
-    bind_guard_payloads penv case.fresh args payload_vars ~else_proc
+    bind_guard_payloads genv penv case.fresh args payload_vars ~else_proc
   in
   let channel_term = compile_expr_to_pterm genv penv channel in
   wrap_with_channel_access_get channel_term penv
@@ -1297,7 +1346,7 @@ and compile_case_channelized
   let compile_branch base_env ~on_success ~else_proc
       ((case : T.case), _channel, _name, args, facts, _loc) =
         let branch_env, tests, wrap =
-          bind_guard_payloads base_env case.fresh args payload_vars ~else_proc
+          bind_guard_payloads genv base_env case.fresh args payload_vars ~else_proc
         in
         add_comment (
           Format.asprintf "case [ %s ] at %t"

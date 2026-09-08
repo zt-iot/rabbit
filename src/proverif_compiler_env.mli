@@ -43,6 +43,8 @@ module GEnv : sig
   val create : Env.t -> t
 
   val tyenv : t -> Env.t
+  val record_equational_functions : t -> T.expr -> unit
+  val is_free_function : t -> T.ident -> bool
 
   val strings : t -> (string * ident) list
   val fresh_string_ident : t -> string -> ident
