@@ -1,0 +1,115 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Channel fact declaration store(..) *)
+fun store__chan(bitstring): bitstring[data].
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Event declaration ::Invalid(..) *)
+event Invalid__event_global.
+(* Integer constant 1 *)
+const int__pos_1: bitstring.
+(* Integer constant 2 *)
+const int__pos_2: bitstring.
+(* Body *)
+(* type person_t : process *)
+const person_t__0: proc_t.
+(* type chan_t : channel *)
+const chan_t__0: acc_data_t.
+(* channel chan1 : chan_t *)
+free chan1__0: channel[private].
+(* channel chan2 : chan_t *)
+free chan2__0: channel[private].
+(* process alice(..): person_t *)
+let alice__0(ptype:proc_t, chan1__821:channel, chan2__822:channel) =
+  (* Channel chan1__821 : chan_t *)
+  insert channel_table(chan_t__0, chan1__821);
+  (* Channel chan2__822 : chan_t *)
+  insert channel_table(chan_t__0, chan2__822);
+  (* put [ chan1__821::store(1), chan2__822::store(2) ] at file "./120_channel.rab", line 10, charaters 8-46 *)
+  get channel_table(ch_type__838:acc_data_t, =chan1__821) in
+  get access_control_table(=ptype, =ch_type__838, =none__syscall) in
+  out(chan1__821, store__chan(int__pos_1)) |
+  (get channel_table(ch_type__837:acc_data_t, =chan2__822) in
+   get access_control_table(=ptype, =ch_type__837, =none__syscall) in
+   out(chan2__822, store__chan(int__pos_2)) |
+   (* case at file "./120_channel.rab", line 12, charaters 24-40 *)
+   new case_ch__823:channel;
+   ((((out(case_ch__823, (false__bool, ())) |
+       (* case [ chan1__821::store(1) ] at file "./120_channel.rab", line 12, charaters 24-40 *)
+       in(case_ch__823, (=false__bool, case_result__825:bitstring))[precise];
+       get channel_table(ch_type__827:acc_data_t, =chan1__821) in
+       get access_control_table(=ptype, =ch_type__827, =none__syscall) in
+       in(chan1__821, store__chan(case_arg_0__826:bitstring));
+       if case_arg_0__826 = int__pos_1
+       then
+         (* event [ ::Valid() ] at file "./120_channel.rab", line 12, charaters 24-40 *)
+         event Valid__event_global;
+         out(case_ch__823, (true__bool, ()))
+       else out(case_ch__823, (false__bool, case_result__825))
+       else out(case_ch__823, (false__bool, case_result__825))
+       else out(case_ch__823, (false__bool, case_result__825))) |
+      (* case [ chan1__821::store(2) ] at file "./120_channel.rab", line 13, charaters 24-42 *)
+      in(case_ch__823, (=false__bool, case_result__828:bitstring))[precise];
+      get channel_table(ch_type__830:acc_data_t, =chan1__821) in
+      get access_control_table(=ptype, =ch_type__830, =none__syscall) in
+      in(chan1__821, store__chan(case_arg_0__829:bitstring));
+      if case_arg_0__829 = int__pos_2
+      then
+        (* event [ ::Invalid() ] at file "./120_channel.rab", line 13, charaters 24-42 *)
+        event Invalid__event_global;
+        out(case_ch__823, (true__bool, ()))
+      else out(case_ch__823, (false__bool, case_result__828))
+      else out(case_ch__823, (false__bool, case_result__828))
+      else out(case_ch__823, (false__bool, case_result__828))) |
+     (* case [ chan2__822::store(1) ] at file "./120_channel.rab", line 14, charaters 24-42 *)
+     in(case_ch__823, (=false__bool, case_result__831:bitstring))[precise];
+     get channel_table(ch_type__833:acc_data_t, =chan2__822) in
+     get access_control_table(=ptype, =ch_type__833, =none__syscall) in
+     in(chan2__822, store__chan(case_arg_0__832:bitstring));
+     if case_arg_0__832 = int__pos_1
+     then
+       (* event [ ::Invalid() ] at file "./120_channel.rab", line 14, charaters 24-42 *)
+       event Invalid__event_global;
+       out(case_ch__823, (true__bool, ()))
+     else out(case_ch__823, (false__bool, case_result__831))
+     else out(case_ch__823, (false__bool, case_result__831))
+     else out(case_ch__823, (false__bool, case_result__831))) |
+    (* case [ chan2__822::store(2) ] at file "./120_channel.rab", line 15, charaters 24-40 *)
+    in(case_ch__823, (=false__bool, case_result__834:bitstring))[precise];
+    get channel_table(ch_type__836:acc_data_t, =chan2__822) in
+    get access_control_table(=ptype, =ch_type__836, =none__syscall) in
+    in(chan2__822, store__chan(case_arg_0__835:bitstring));
+    if case_arg_0__835 = int__pos_2
+    then
+      (* event [ ::Valid() ] at file "./120_channel.rab", line 15, charaters 24-40 *)
+      event Valid__event_global;
+      out(case_ch__823, (true__bool, ()))
+    else out(case_ch__823, (false__bool, case_result__834))
+    else out(case_ch__823, (false__bool, case_result__834))
+    else out(case_ch__823, (false__bool, case_result__834))) |
+   (* end of case at file "./120_channel.rab", line 12, charaters 24-40 *)
+   in(case_ch__823, (=true__bool, case_done_result__824:bitstring))[precise]).
+(* Requires *)
+(* lemma Valid *)
+query event(Valid__event_global()).
+(* lemma Invalid *)
+query event(Invalid__event_global()).
+(* System *)
+process
+  (* allow person_t chan_t [.] *)
+  insert access_control_table(person_t__0, chan_t__0, none__syscall);
+  alice__0(person_t__0, chan1__0, chan2__0)

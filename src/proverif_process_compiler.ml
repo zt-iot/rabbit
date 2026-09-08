@@ -687,6 +687,24 @@ let extract_channel_guard (facts : T.fact list) =
   in
   go [] facts
 
+let channel_guards_share_input (cases : T.case list) =
+  let guards =
+    List.map (fun (case : T.case) -> extract_channel_guard case.facts) cases
+  in
+  match guards with
+  | Some (first_channel, first_name, first_args, _, _) :: guards ->
+      let first_channel_key = T.string_of_expr first_channel in
+      let first_arity = List.length first_args in
+      List.for_all
+        (function
+          | Some (channel, name, args, _, _) ->
+              T.string_of_expr channel = first_channel_key
+              && name = first_name
+              && List.length args = first_arity
+          | None -> false)
+        guards
+  | None :: _ | [] -> false
+
 let is_fresh_case_var (case : T.case) (id : T.ident) =
   List.mem id case.fresh
 
@@ -850,7 +868,7 @@ and compile_single_case_no_channel
       compile_case_branch_body genv final_env case)
     ~else_proc:(process_e PNil)
 
-and compile_case_no_channel
+and compile_case_general
     genv
     penv
     (cases : T.case list)
@@ -902,16 +920,25 @@ and compile_case_no_channel
             , lock_state_message ~done_flag:false ~loc branch_env state_ids
             , process_e PNil )
         in
+        let success body_env =
+          lock_output_fragment ~done_flag:true ~loc lock_term state_ids
+            body_env (process_e PNil)
+        in
         let guard_proc =
-          compile_guard_tests genv branch_env case.fresh case.facts
-            (fun final_env ->
-               let body_env, body_fragment =
-                 compile_case_branch_body genv final_env case
-               in
-               body_fragment @@
-               lock_output_fragment ~done_flag:true ~loc lock_term state_ids
-                 body_env (process_e PNil))
-            retry
+          match extract_channel_guard case.facts with
+          | Some (channel, name, args, other_facts, _loc) ->
+              compile_channel_guard_case genv branch_env case
+                channel name args other_facts
+                ~on_success:success
+                ~else_proc:retry
+          | None ->
+              compile_guard_tests genv branch_env case.fresh case.facts
+                (fun final_env ->
+                   let body_env, body_fragment =
+                     compile_case_branch_body genv final_env case
+                   in
+                   body_fragment (success body_env))
+                retry
         in
         add_comment (
           Format.asprintf "case [ %s ] at %t"
@@ -1519,12 +1546,11 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
       in
       PEnv.with_result penv (T.type_of_expr expr) value, empty_fragment
   | Case cases ->
-      if List.exists (fun (case : T.case) ->
-          Option.is_some (extract_channel_guard case.facts)) cases
+      if channel_guards_share_input cases
       then
         compile_case_channelized genv penv cases
       else
-        compile_case_no_channel genv penv cases
+        compile_case_general genv penv cases
   | While (repeat_cases, until_cases) ->
       (*
          3.6 Repeat Encoding

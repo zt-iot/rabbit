@@ -1,0 +1,46 @@
+(* Verification feature: channel and non-channel branches share the general
+   case lock and pass their selected state to the continuation. *)
+
+type proc_t : process
+type transport_t : channel
+
+channel transport : transport_t
+
+allow proc_t transport_t [.]
+
+process sender(ch : transport_t) : proc_t
+{
+  main {
+    put [ch::Message("channel")]
+  }
+}
+
+process worker(ch : transport_t) : proc_t
+{
+  main {
+    var selected = "unset" in
+    case
+    | [ch::Message(value)] -> selected := value
+    | [1 = 1] -> selected := "equation"
+    end;
+    event [::Selected(selected)]
+  }
+}
+
+system sender(transport) | worker(transport)
+requires
+[
+  (* PROVERIF EXPECTED
+  # The channel branch may acquire the case lock and reach the continuation.
+  true
+  *)
+  lemma ChannelBranchIsReachable : (* verified *)
+    reachable ::Selected("channel") ;
+
+  (* PROVERIF EXPECTED
+  # The non-channel branch may instead acquire the case lock.
+  true
+  *)
+  lemma EquationBranchIsReachable : (* verified *)
+    reachable ::Selected("equation")
+]
