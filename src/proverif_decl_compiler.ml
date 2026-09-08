@@ -1024,8 +1024,39 @@ and compile_load (env : Env.t) genv (filename : string) (decls : T.decl list) : 
   TComment (Printf.sprintf "Load %s" filename) ::
   List.concat_map (compile_decl env genv) decls
 
+let rec warn_cmd (cmd : T.cmd) =
+  let warn_case (case : T.case) = warn_cmd case.cmd in
+  match cmd.desc with
+  | Event (_ :: _ :: _ as facts) ->
+      Print.message ~loc:cmd.loc "Warning"
+        "event [...] contains %d facts; ProVerif emits them sequentially and cannot preserve their simultaneous occurrence"
+        (List.length facts)
+  | Sequence (lhs, rhs) ->
+      warn_cmd lhs;
+      warn_cmd rhs
+  | Let (_, _, body) | New (_, _, body) | Get (_, _, _, body) ->
+      warn_cmd body
+  | Case cases ->
+      List.iter warn_case cases
+  | While (repeat_cases, until_cases) ->
+      List.iter warn_case repeat_cases;
+      List.iter warn_case until_cases
+  | Skip | Put _ | Assign _ | Event _ | Expr _ | Del _ -> ()
+
+let rec warn_decl (decl : T.decl) =
+  match decl.desc with
+  | Syscall { cmd; _ } | Attack { cmd; _ } ->
+      warn_cmd cmd
+  | Process { funcs; main; _ } ->
+      List.iter (fun (_, _, cmd) -> warn_cmd cmd) funcs;
+      warn_cmd main
+  | Load (_, decls) ->
+      List.iter warn_decl decls
+  | Function _ | Equation _ | Type _ | Allow _ | AllowAttack _ | Init _
+  | Channel _ | System _ -> ()
 
 let compile_program (env : Env.t) (decls : T.decl list) : Pv_parser.program =
+  List.iter warn_decl decls;
   let genv = GEnv.create env in
   List.iter (GEnv.add_decl_strings genv) decls;
   List.iter (collect_decl genv) decls;

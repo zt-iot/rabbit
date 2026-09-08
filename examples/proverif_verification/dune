@@ -37,3 +37,21 @@
    %{dep:cli_output.rab}
    -o
    %{target})))
+
+(rule
+ (alias runtest)
+ (targets multiple_event_warning.pv multiple_event_warning.stderr)
+ (deps multiple_event_facts.rab)
+ (action
+  (progn
+   (with-stderr-to multiple_event_warning.stderr
+    (run
+     %{exe:../../src/rabbit_proverif.exe}
+     %{dep:multiple_event_facts.rab}
+     -o
+     multiple_event_warning.pv))
+   (run
+    %{bin:grep}
+    -F
+    "event [...] contains 2 facts; ProVerif emits them sequentially and cannot preserve their simultaneous occurrence"
+    multiple_event_warning.stderr))))
