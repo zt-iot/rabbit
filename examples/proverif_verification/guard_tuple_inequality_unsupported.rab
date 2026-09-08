@@ -1,0 +1,11 @@
+(* Inequality must not introduce variables by negating a tuple match. *)
+type proc_t : process
+process worker() : proc_t {
+  main {
+    var p = (1, 2) in
+    assume [p != (x, y)] in
+    event [::Matched(x, y)]
+  }
+}
+system worker()
+requires [lemma Matched : reachable ::Matched(x, y)]

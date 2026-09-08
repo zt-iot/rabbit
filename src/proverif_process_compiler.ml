@@ -661,6 +661,82 @@ let compile_pterm_eq_tests
     tests
     then_proc
 
+let unbound_guard_var penv fresh id =
+  List.mem id fresh && Option.is_none (PEnv.find_process_var penv id)
+
+let rec guard_expr_ready penv fresh (expr : T.expr) =
+  match expr.desc with
+  | Ident { id; param; _ } ->
+      not (unbound_guard_var penv fresh id)
+      && Option.fold ~none:true ~some:(guard_expr_ready penv fresh) param
+  | Apply (_, args) | Tuple args -> List.for_all (guard_expr_ready penv fresh) args
+  | Unit | String _ | Boolean _ | Integer _ | Float _ -> true
+
+let tuple_guard_binding penv fresh lhs rhs =
+  let candidate (pattern : T.expr) subject =
+    match pattern.desc with
+    | Tuple _ when not (guard_expr_ready penv fresh pattern)
+                   && guard_expr_ready penv fresh subject
+                   && not (expr_contains_wildcard subject) -> Some (pattern, subject)
+    | _ -> None
+  in
+  match candidate lhs rhs with
+  | Some _ as binding -> binding
+  | None -> candidate rhs lhs
+
+(* Postpone comparisons until their variables have been bound. Retain the
+   relative order of consumable facts; this does not repair guard atomicity. *)
+let select_guard penv fresh (facts : T.fact list) =
+  let ready (fact : T.fact) =
+    match fact.desc with
+    | Eq (lhs, rhs) ->
+        (guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs)
+        || Option.is_some (tuple_guard_binding penv fresh lhs rhs)
+    | Neq (lhs, rhs) ->
+        guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs
+    | Channel _ | File _ | Global _ | Plain _ -> true
+  in
+  let rec select skipped = function
+    | [] ->
+        Error.unsupported ~loc:(List.hd facts).loc
+          "Guard variables cannot be bound by supported tuple equality or input patterns"
+    | fact :: rest when ready fact -> fact :: List.rev_append skipped rest
+    | fact :: rest -> select (fact :: skipped) rest
+  in
+  match facts with [] -> [] | _ -> select [] facts
+
+(* Decompose tuples first, then check fixed leaves and repeated variables in
+   the extended environment. Function applications remain equality tests. *)
+let bind_tuple_guard penv fresh pattern =
+  let rec bind penv (expr : T.expr) =
+    match expr.desc with
+    | Tuple args ->
+        let penv, patterns, tests =
+          List.fold_left (fun (penv, patterns, tests) arg ->
+              let penv, pattern, more_tests = bind penv arg in
+              penv, pattern :: patterns, tests @ more_tests)
+            (penv, [], []) args
+        in
+        penv, PPatTuple (List.rev patterns), tests
+    | _ ->
+        let id = Ident.local "guard_component" in
+        let typ = T.type_of_expr expr in
+        let term = pterm_e @@ PPIdent (compile_ident id) in
+        let pattern = PPatVar (compile_ident id, Some (compile_value_type typ)) in
+        match expr.desc with
+        | Ident { id = variable; param = None; _ }
+          when is_wildcard_ident variable -> penv, pattern, []
+        | Ident { id = variable; param = None; _ }
+          when unbound_guard_var penv fresh variable ->
+            PEnv.define_process_var penv variable typ term, pattern, []
+        | _ ->
+            let component : T.expr =
+              { expr with desc = Ident { id; desc = Var typ; param = None } }
+            in
+            penv, pattern, [T.{ loc = expr.loc; env = expr.env; desc = Eq (expr, component) }]
+  in
+  bind penv pattern
+
 let rec compile_guard_fragment
     genv
     penv
@@ -687,10 +763,20 @@ let rec compile_guard_fragment
        ...
      ```
   *)
-  match facts with
+  match select_guard penv fresh facts with
   | [] -> on_success penv
   | fact :: facts ->
       (match fact.desc with
+       | Eq (lhs, rhs) when Option.is_some (tuple_guard_binding penv fresh lhs rhs) ->
+           let pattern, subject = Option.get (tuple_guard_binding penv fresh lhs rhs) in
+           let branch_env, pattern, tests = bind_tuple_guard penv fresh pattern in
+           let final_env, fragment =
+             compile_guard_fragment genv branch_env fresh (tests @ facts)
+               ~on_success ~else_proc
+           in
+           let subject = compile_expr_to_pterm genv penv subject in
+           final_env, fun rest ->
+             process_e @@ PLet (pattern, subject, fragment rest, else_proc)
        | Eq (lhs, rhs) ->
            let final_env, fragment =
              compile_guard_fragment genv penv fresh facts ~on_success ~else_proc

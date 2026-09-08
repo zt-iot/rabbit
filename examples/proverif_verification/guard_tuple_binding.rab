@@ -1,0 +1,106 @@
+(* Tuple equality binds local variables in all guarded commands. Comparisons
+   may precede the equality that supplies their variables. *)
+type proc_t : process
+function box:1
+
+process assumptions() : proc_t {
+  main {
+    var p = (1, (2, 3), 4) in
+    assume [x != y, (x, (_, y), 4) = p] in
+    event [::Nested(x, y)];
+    var q = (5, 5) in
+    assume [q = (z, z)] in
+    event [::Repeated(z)];
+    var r = (box(6), 6) in
+    assume [r = (box(w), w)] in
+    event [::FixedFunction(w)];
+    var nested = ((7, 8), 9) in
+    assume [a != b, inner = (a, b), nested = (inner, _)] in
+    event [::Chain(a, b)]
+  }
+}
+
+process cases() : proc_t {
+  main {
+    var p = (1, 2) in
+    case
+    | [p = (x, x)] -> event [::BadRepeated()]
+    | [p = (x, 3)] -> event [::BadFixed()]
+    | [x != y, p = (x, y)] -> event [::CaseBound(x, y)]
+    end
+  }
+}
+
+process wrong_shape() : proc_t {
+  main {
+    var p = 1 in
+    assume [p = (x, y)] in
+    event [::BadShape(x, y)]
+  }
+}
+
+process loop() : proc_t {
+  main {
+    var p = (1, 2) in
+    repeat
+    | [x != y, p = (x, y)] ->
+        event [::LoopBound(x, y)];
+        p := (y, 3)
+    until
+    | [z = 3, p = (z, z)] -> event [::ExitBound(z)]
+    end;
+    event [::Done(p)]
+  }
+}
+
+system assumptions() | cases() | wrong_shape() | loop()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Nested : reachable ::Nested(1, 3);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Repeated : reachable ::Repeated(5);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma FixedFunction : reachable ::FixedFunction(6);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Chain : reachable ::Chain(7, 8);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadRepeated : reachable ::BadRepeated();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadFixed : reachable ::BadFixed();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma CaseBound : reachable ::CaseBound(1, 2);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadShape : reachable ::BadShape(x, y);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma LoopBound : reachable ::LoopBound(1, 2);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma LoopRebound : reachable ::LoopBound(2, 3);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma ExitBound : reachable ::ExitBound(3);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Done : reachable ::Done((3, 3))
+]
