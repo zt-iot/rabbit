@@ -15,6 +15,12 @@ let reject_wildcard ~loc id =
     Error.unsupported ~loc
       "Wildcard patterns are not supported in ProVerif translation"
 
+let check_channel_parameter (parameter : T.expr) =
+  match parameter.desc with
+  | Ident { param = None; _ } | Integer _ | String _ | Boolean _ -> ()
+  | _ -> Error.unsupported ~loc:parameter.loc
+      "Only a directly bound or atomic constant channel parameter is supported"
+
 let compile_expr_to_term genv expr =
   let rec compile_expr_to_term_with genv bindings expanding (expr : T.expr) : term_e =
     let compile = compile_expr_to_term_with genv bindings expanding in
@@ -27,7 +33,12 @@ let compile_expr_to_term genv expr =
       | _ -> term_e @@ PIdent (GEnv.fresh_parameter_ident genv parameter)
     in
     term_e @@ match expr.desc with
-    | T.Ident { id; param = Some param; _ } ->
+    | T.Ident { id; desc = Env.Channel (true, _); param = Some param } ->
+        check_channel_parameter param;
+        let instance, _, _ = Option.get (GEnv.channel_family_symbols genv) in
+        PFunApp (instance,
+          [term_e @@ PIdent (compile_ident id); compile_parameter param])
+    | Ident { id; param = Some param; _ } ->
         let parameter = compile_parameter param in
         (match GEnv.find_param_init genv id with
          | None -> PFunApp (compile_ident id, [parameter])
@@ -67,6 +78,11 @@ let compile_expr_to_gterm genv expr =
       | _ -> gterm_e @@ PGIdent (GEnv.fresh_parameter_ident genv parameter)
     in
     gterm_e @@ match expr.desc with
+    | T.Ident { id; desc = Env.Channel (true, _); param = Some param } ->
+        check_channel_parameter param;
+        let instance, _, _ = Option.get (GEnv.channel_family_symbols genv) in
+        PGFunApp (instance,
+          [gterm_e @@ PGIdent (compile_ident id); compile_parameter param], None)
     | T.Ident { id; param = Some param; _ } ->
         let parameter = compile_parameter param in
         (match GEnv.find_param_init genv id with
@@ -111,6 +127,11 @@ let compile_expr_to_pterm genv penv expr =
       | _ -> pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv parameter)
     in
     pterm_e @@ match expr.desc with
+    | T.Ident { id; desc = Env.Channel (true, _); param = Some param } ->
+        check_channel_parameter param;
+        let instance, _, _ = Option.get (GEnv.channel_family_symbols genv) in
+        PPFunApp (instance,
+          [pterm_e @@ PPIdent (compile_ident id); compile_parameter param])
     | T.Ident { id; param = Some param; _ } ->
         let parameter = compile_parameter param in
         (match GEnv.find_param_init genv id with
@@ -395,6 +416,44 @@ let wrap_with_channel_access_get
     , else_proc
     , [] )
 
+(* A channel handle is either an ordinary channel or a tagged family instance.
+   Keep the fallback so ordinary channel arguments need no separate encoding. *)
+let route_channel genv channel ~plain ~instance =
+  match GEnv.channel_family_symbols genv with
+  | None -> plain channel
+  | Some (_, family, parameter) ->
+      let f = compile_ident (Ident.local "family") in
+      let p = compile_ident (Ident.local "parameter") in
+      process_e @@ PLet
+        (PPatVar (f, Some channel_ident),
+         pterm_e @@ PPFunApp (family, [channel]),
+         process_e @@ PLet
+           (PPatVar (p, Some param_data_ident),
+            pterm_e @@ PPFunApp (parameter, [channel]),
+            instance (pterm_e @@ PPIdent f) (pterm_e @@ PPIdent p),
+            process_e PNil),
+         plain channel)
+
+let channel_input genv channel pattern body =
+  route_channel genv channel
+    ~plain:(fun channel -> process_e @@ PInput (channel, pattern, body, []))
+    ~instance:(fun family parameter ->
+      process_e @@ PInput
+        (family, PPatTuple [PPatEqual parameter; pattern], body, []))
+
+let channel_output genv channel payload =
+  route_channel genv channel
+    ~plain:(fun channel -> process_e @@ POutput (channel, payload, process_e PNil))
+    ~instance:(fun family parameter ->
+      process_e @@ POutput
+        (family, pterm_e @@ PPTuple [parameter; payload], process_e PNil))
+
+let channel_access_term genv penv (channel : T.expr) =
+  match channel.desc with
+  | Ident { id; desc = Env.Channel (true, _); param = Some _ } ->
+      pterm_e @@ PPIdent (compile_ident id)
+  | _ -> compile_expr_to_pterm genv penv channel
+
 let wrap_with_file_access_get
     (path_term : pterm_e)
     (penv : PEnv.t)
@@ -601,8 +660,8 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
           ( compile_name name "chan"
           , List.map (compile_expr_to_pterm genv penv) args )
       in
-      wrap_with_channel_access_get channel_term penv
-        (ppar (process_e @@ POutput (channel_term, payload, process_e PNil)) body)
+      wrap_with_channel_access_get (channel_access_term genv penv channel) penv
+        (ppar (channel_output genv channel_term payload) body)
         (process_e PNil)
   | File { path; contents } ->
       let path_term = compile_expr_to_pterm genv penv path in
@@ -700,7 +759,12 @@ let select_guard_to_compile penv fresh (facts : T.fact list) : T.fact option * T
         || Option.is_some (pattern_guard_binding penv fresh lhs rhs)
     | Neq (lhs, rhs) ->
         guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs
-    | Channel { channel; _ } -> guard_expr_ready penv fresh channel
+    | Channel { channel; _ } ->
+        guard_expr_ready penv fresh channel
+        || (match channel.desc with
+            | Ident { desc = Env.Channel (true, _); param = Some
+                { desc = Ident { param = None; _ }; _ }; _ } -> true
+            | _ -> false)
     | File _ | Global _ | Plain _ -> true
   in
   let rec select skipped = function
@@ -881,6 +945,24 @@ and compile_guard_facts
 
             channel.name(p1, ... pn)  where channel is already bound
           *)
+          let penv, input =
+            match channel.desc with
+            | Ident { id = family; desc = Env.Channel (true, _);
+                      param = Some ({ desc = Ident { id; param = None; _ }; _ } as parameter) }
+              when is_wildcard_ident id || unbound_guard_var penv fresh id ->
+                let parameter_id = compile_ident (Ident.local "received_parameter") in
+                let penv =
+                  if is_wildcard_ident id then penv
+                  else PEnv.define_process_var penv id (T.type_of_expr parameter)
+                      (pterm_e @@ PPIdent parameter_id)
+                in
+                penv, (fun pattern body -> process_e @@ PInput
+                  (pterm_e @@ PPIdent (compile_ident family),
+                   PPatTuple [PPatVar (parameter_id, Some param_data_ident); pattern],
+                   body, []))
+            | _ ->
+                penv, channel_input genv (compile_expr_to_pterm genv penv channel)
+          in
           let payload_vars =
             List.init (List.length args) (fun i ->
                 Ident.local (Printf.sprintf "guard_arg_%d" i))
@@ -901,17 +983,11 @@ and compile_guard_facts
             compile_guard genv branch_env fresh (tests @ facts)
               ~on_success ~else_proc
           in
-          let channel_term = compile_expr_to_pterm genv penv channel in
           final_env,
           fun rest ->
-            wrap_with_channel_access_get channel_term penv
-              (process_e @@
-               PInput
-                 ( channel_term
-                 , PPatFunApp
-                     (compile_name name "chan", payload_patterns)
-                 , wrap (fragment rest)
-                 , [] ))
+            wrap_with_channel_access_get (channel_access_term genv penv channel) penv
+              (input (PPatFunApp (compile_name name "chan", payload_patterns))
+                 (wrap (fragment rest)))
               else_proc
       | File { path; contents } ->
           (* path.contents *)
@@ -1024,7 +1100,8 @@ let extract_channel_guard penv fresh (facts : T.fact list) =
     | [] -> None
     | (fact : T.fact) :: rest ->
         (match fact.desc with
-         | Channel { channel; name; args } when guard_expr_ready penv fresh channel ->
+         | Channel { channel; name; args }
+           when guard_expr_ready penv fresh channel && not (expr_contains_wildcard channel) ->
              Some (channel, name, args, List.rev rev_prefix @ rest, fact.loc)
          | _ ->
              go (fact :: rev_prefix) rest)
@@ -1117,19 +1194,15 @@ let rec compile_channel_guard_case
     bind_guard_payloads penv case.fresh args payload_vars ~else_proc
   in
   let channel_term = compile_expr_to_pterm genv penv channel in
-  wrap_with_channel_access_get channel_term penv
-    (process_e @@
-     PInput
-       ( channel_term
-       , input_pattern
-       , wrap (compile_guard_tests genv branch_env case.fresh (tests @ other_facts)
+  wrap_with_channel_access_get (channel_access_term genv penv channel) penv
+    (channel_input genv channel_term input_pattern
+       (wrap (compile_guard_tests genv branch_env case.fresh (tests @ other_facts)
            (fun final_env ->
               let body_env, body_fragment =
                 compile_case_branch_body genv (unit_result final_env) case
               in
               body_fragment (on_success body_env))
-           else_proc)
-       , [] ))
+           else_proc)))
     else_proc
 
 and compile_case_branch_body
@@ -1473,8 +1546,8 @@ and compile_case_channelized
             (init_proc :: List.map compile_choice channel_guards @ [continuation]) )
     in
     add_comment (Format.asprintf "case at %t" (Location.print loc)) @@
-    wrap_with_channel_access_get channel_term penv
-      (process_e @@ PInput (channel_term, input_pattern, branches, []))
+    wrap_with_channel_access_get (channel_access_term genv penv first_channel) penv
+      (channel_input genv channel_term input_pattern branches)
       (process_e PNil)
 
 and compile_syscall_call

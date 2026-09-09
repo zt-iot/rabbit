@@ -184,9 +184,9 @@ system
   |    server(udp<>)
 requires
 [
-  lemma Reachable :
+  lemma Reachable : (* verified *)
     reachable ::ClientClose(), ::ClientTAClose(), ::ImgRecvValid(x) ;
 
-  lemma Correspondence :
+  lemma Correspondence : (* verified *)
     corresponds ::ImgRecvValid(x) ~> ::ImgSend (x)
 ]

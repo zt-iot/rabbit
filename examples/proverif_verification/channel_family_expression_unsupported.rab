@@ -1,0 +1,9 @@
+type proc_t : process
+type transport_t : channel
+allow proc_t transport_t [.]
+channel c<> : transport_t
+process worker(ch<> : transport_t) : proc_t {
+  main { put [ch<(1, 2)> ::Msg()]; event [::Ready()] }
+}
+system worker(c<>)
+requires [lemma Ready : reachable ::Ready()]

@@ -43,6 +43,8 @@ module GEnv : sig
   val create : Env.t -> t
 
   val tyenv : t -> Env.t
+  val enable_channel_families : t -> unit
+  val channel_family_symbols : t -> (ident * ident * ident) option
 
   val strings : t -> (string * ident) list
   val fresh_string_ident : t -> string -> ident

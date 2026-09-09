@@ -58,6 +58,7 @@ module GEnv = struct
     ; mutable events        : (Name.t * (event_kind * Type.type_ list)) list
     ; mutable comparison_events : (comparison_event_kind * Type.type_) list
     ; mutable auxiliary_decls : tdecl list
+    ; mutable channel_family_symbols : (ident * ident * ident) option
     ; mutable top_process   : tprocess_e option
     }
 
@@ -76,6 +77,7 @@ module GEnv = struct
     ; events             = []
     ; comparison_events  = []
     ; auxiliary_decls    = []
+    ; channel_family_symbols = None
     ; top_process        = None
     }
 
@@ -96,6 +98,15 @@ module GEnv = struct
     pv_ident name
 
   let fresh_auxiliary_ident genv ~base = add_ident genv ~base
+
+  let enable_channel_families genv =
+    if Option.is_none genv.channel_family_symbols then
+      genv.channel_family_symbols <- Some
+        (add_ident genv ~base:"channel_instance",
+         add_ident genv ~base:"channel_family",
+         add_ident genv ~base:"channel_parameter")
+
+  let channel_family_symbols genv = genv.channel_family_symbols
 
   let add_auxiliary_decl genv decl =
     genv.auxiliary_decls <- genv.auxiliary_decls @ [decl]

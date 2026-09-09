@@ -5,6 +5,7 @@ include Proverif_process_compiler
 let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
   let loc = decl.loc in
   match decl.desc with
+  | Channel { param = Some (); _ } -> GEnv.enable_channel_families genv
   | Syscall { id; args; cmd; attack = passive } ->
       (* Syscalls and passive attacks are expanded when they are called.
          No declaration is generated at this point.  *)
@@ -17,7 +18,9 @@ let rec collect_decl (genv : GEnv.t) (decl : T.decl) =
       List.iter
         (fun process_typ -> GEnv.add_allowed_attacks genv process_typ attacks)
         process_typs
-  | Process { id; typ; _ } ->
+  | Process { id; typ; args; _ } ->
+      if List.exists (fun (arg : T.chan_param) -> Option.is_some arg.param) args then
+        GEnv.enable_channel_families genv;
       GEnv.add_process_type ~loc genv id typ
   | Init { id; desc = Value_with_param (param, expr) } ->
       GEnv.add_param_init genv id param expr
@@ -266,12 +269,9 @@ let compile_channel
   *)
   match param with
   | Some () ->
-      (* A private channel-valued constructor preserves instance identity:
-         the same family and parameter denote the same channel. Passing the
-         family itself to a process is handled separately and remains unsupported. *)
+      (* The family is a private transport; instances carry a parameter tag. *)
       [ TComment (Printf.sprintf "channel %s<> : %s" (Ident.to_string id) (Ident.to_string typ))
-      ; TFunDecl
-          (compile_ident id, [param_data_ident], channel_ident, [pv_ident "private", None])
+      ; TFree (compile_ident id, channel_ident, [pv_ident "private", None])
       ]
   | None ->
       [ TComment (Printf.sprintf "channel %s : %s" (Ident.to_string id) (Ident.to_string typ))
@@ -281,7 +281,7 @@ let compile_channel
 let process_file_channel_ident : ident = pv_ident "file_ch"
 
 let wrap_with_channel_init
-    ~loc
+    ~loc:_loc
     (args : T.chan_param list)
     (body : tprocess_e)
   : tprocess_e =
@@ -299,20 +299,15 @@ let wrap_with_channel_init
      ```
   *)
   List.fold_right
-    (fun ({ channel; param; typ } : T.chan_param) acc ->
-       match param with
-       | Some () ->
-           Error.unsupported ~loc
-             "Parameterized process channel arguments are not supported yet"
-       | None ->
-           add_comment (Printf.sprintf "Channel %s : %s" (Ident.to_string channel) (Ident.to_string typ)) @@
-           process_e @@
-             PInsert
-                ( channel_table_ident
-                , [ pterm_e @@ PPIdent (compile_ident typ)
-                  ; pterm_e @@ PPIdent (compile_ident channel)
-                  ]
-                , acc ))
+    (fun ({ channel; typ; _ } : T.chan_param) acc ->
+       add_comment (Printf.sprintf "Channel %s : %s" (Ident.to_string channel) (Ident.to_string typ)) @@
+       process_e @@
+         PInsert
+            ( channel_table_ident
+            , [ pterm_e @@ PPIdent (compile_ident typ)
+              ; pterm_e @@ PPIdent (compile_ident channel)
+              ]
+            , acc ))
     args
     body
 
@@ -432,12 +427,8 @@ let compile_process
       (Option.map (fun param -> compile_ident param, param_data_ident, false) param)
     @
     List.map
-      (fun ({ channel; param; _ } : T.chan_param) ->
-         match param with
-         | Some () ->
-             Error.unsupported ~loc
-               "Parameterized process channel arguments are not supported yet"
-         | None -> compile_ident channel, channel_ident, false)
+      (fun ({ channel; _ } : T.chan_param) ->
+         compile_ident channel, channel_ident, false)
       args
   in
   let base_penv =
@@ -522,10 +513,11 @@ let compile_proc_call genv parameter_bindings (proc : T.proc) : tprocess_e =
                | _ -> Error.unsupported ~loc:proc.loc
                    "Only a directly bound or atomic constant channel parameter is supported"
              in
-             pterm_e @@ PPFunApp (compile_ident channel, [parameter_term])
+             let instance, _, _ = Option.get (GEnv.channel_family_symbols genv) in
+             pterm_e @@ PPFunApp
+               (instance, [pterm_e @@ PPIdent (compile_ident channel); parameter_term])
          | Some None ->
-             Error.unsupported ~loc:proc.loc
-               "Passing a parameterized channel family is not supported yet")
+             pterm_e @@ PPIdent (compile_ident channel))
       proc_desc.args
   in
   process_e @@ PLetDef (compile_ident proc_desc.id, args, None)
@@ -767,6 +759,25 @@ let compile_prelude (_genv : GEnv.t) : tdecl list =
   ; TConstDecl (true_ident, bitstring_ident, [])
   ; TConstDecl (false_ident, bitstring_ident, [])
   ]
+
+let compile_channel_families genv =
+  match GEnv.channel_family_symbols genv with
+  | None -> []
+  | Some (instance, family, parameter) ->
+      let f = pv_ident "family" and p = pv_ident "parameter" in
+      let ft = term_e @@ PIdent f and pt = term_e @@ PIdent p in
+      let handle = term_e @@ PFunApp (instance, [ft; pt]) in
+      let projection name result =
+        TReduc
+          ([ [f, channel_ident; p, param_data_ident],
+             EETerm (term_e @@ PFunApp (pv_ident "=",
+               [term_e @@ PFunApp (name, [handle]); result])) ],
+           [pv_ident "private", None])
+      in
+      [ TFunDecl (instance, [channel_ident; param_data_ident], channel_ident,
+          [pv_ident "private", None])
+      ; projection family ft
+      ; projection parameter pt ]
 
 let compile_string_consts (genv : GEnv.t) : tdecl list =
   (*
@@ -1079,6 +1090,7 @@ let compile_program (env : Env.t) (decls : T.decl list) : Pv_parser.program =
   let top_process = Option.value (GEnv.top_process genv) ~default:(process_e PNil) in
   let top_process = add_allow_inits genv top_process in
   ( compile_prelude genv
+    @ compile_channel_families genv
     @ compile_structure_decls genv
     @ compile_channel_fact_decls genv
     @ compile_syscall_consts genv

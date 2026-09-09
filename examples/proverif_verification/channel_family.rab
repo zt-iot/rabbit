@@ -1,0 +1,97 @@
+const fresh secret<>
+type proc_t : process
+type denied_t : process
+type transport_t : channel
+allow proc_t transport_t [.]
+channel c<> : transport_t
+channel d<> : transport_t
+channel e<> : transport_t
+channel f<> : transport_t
+channel ordinary : transport_t
+
+(* x and y are initially unbound. The parameter is reused in the reply. *)
+process server(ch<> : transport_t) : proc_t {
+  main {
+    case [ch<x> ::Request(y), y = secret<x>] ->
+      put [ch<x> ::Reply(y)]
+    end
+  }
+}
+process client<p>(ch : transport_t) : proc_t {
+  main {
+    put [ch::Request(secret<p>)];
+    case [ch::Reply(y), y = secret<p>] -> event [::Replied()] end
+  }
+}
+(* Receiving a parameter also works in repeat and until guards. *)
+process loop(ch<> : transport_t) : proc_t {
+  main {
+    repeat [ch<x> ::Step(y), y = secret<x>] -> event [::Stepped()]
+    until [ch<x> ::Stop(y), y = secret<x>] -> event [::Stopped()]
+    end
+  }
+}
+process steps<p>(ch : transport_t) : proc_t {
+  main { put [ch::Step(secret<p>), ch::Stop(secret<p>)] }
+}
+process fixed(ch<> : transport_t) : proc_t {
+  main {
+    put [ch<1> ::Fixed(secret<1>)];
+    case [ch<1> ::Fixed(y)] -> event [::FixedReceived()] end
+  }
+}
+process wildcard(ch<> : transport_t) : proc_t {
+  main { case [ch<_> ::Step(_)] -> event [::Wildcard()] end }
+}
+process denied(ch<> : transport_t) : denied_t {
+  main { case [ch<x> ::Step(y)] -> event [::Denied()] end }
+}
+process isolated(ch<> : transport_t) : proc_t {
+  main {
+    put [ch<1> ::Only()];
+    case [ch<2> ::Only()] -> event [::Crossed()] end
+  }
+}
+(* Ordinary channels retain their untagged representation. *)
+process plain(ch : transport_t) : proc_t {
+  main { put [ch::Plain()]; case [ch::Plain()] -> event [::PlainReceived()] end }
+}
+system
+  server(c<>) | !p.client<p>(c<p>)
+  | loop(d<>) | !p.steps<p>(d<p>)
+  | fixed(e<>) | wildcard(d<>) | denied(d<>)
+  | isolated(f<>) | plain(ordinary)
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Replied : reachable ::Replied();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Step : reachable ::Stepped();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Stopped : reachable ::Stopped();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Fixed : reachable ::FixedReceived();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Wildcard : reachable ::Wildcard();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Denied : reachable ::Denied();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Crossed : reachable ::Crossed();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Plain : reachable ::PlainReceived()
+]

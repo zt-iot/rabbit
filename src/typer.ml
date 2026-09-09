@@ -150,6 +150,12 @@ let rec type_expr ?(allow_wildcard = false) env (e : Input.expr) : Typed.expr =
         (match Env.find ~loc env f with
          | id, ((Const _ | Channel _) as desc) ->
              let e = type_expr ~allow_wildcard env e in
+             (* A variable selecting a channel instance has the same type as
+                a process replication parameter. Concrete indices remain atomic values. *)
+             (match desc, e.desc with
+              | Channel _, Ident { desc = Var typ; param = None; _ } ->
+                  unify ~loc:e.loc typ TParameter
+              | _ -> ());
              Ident { id; desc; param= Some e }
          | id, desc -> Error.raise ~loc @@ NonParameterizableIdentifier (id, desc))
   in

@@ -1,0 +1,148 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+fun channel_instance(channel, param_data): channel[private].
+reduc
+  forall family:channel, parameter:param_data; channel_family(channel_instance(family, parameter)) = family[private].
+reduc
+  forall family:channel, parameter:param_data; channel_parameter(channel_instance(family, parameter)) = parameter[private].
+(* Channel fact declaration store(..) *)
+fun store__chan(bitstring): bitstring[data].
+(* Event declaration ::Valid(..) *)
+event Valid__event_global(bitstring).
+(* Event declaration ::Invalid(..) *)
+event Invalid__event_global(bitstring).
+(* Event declaration ::Sent(..) *)
+event Sent__event_global(bitstring).
+(* Parameter value k__523 *)
+const k_523__param: param_data.
+(* Parameter value k__527 *)
+const k_527__param: param_data.
+(* Body *)
+(* function fst:1 *)
+fun fst__0(bitstring): bitstring.
+(* function snd:1 *)
+fun snd__0(bitstring): bitstring.
+(* equation fst((x__514, y__515)) = x__514 *)
+equation forall x__514:bitstring, y__515:bitstring; fst__0((x__514, y__515)) = x__514.
+(* equation snd((x__516, y__517)) = y__517 *)
+equation forall x__516:bitstring, y__517:bitstring; snd__0((x__516, y__517)) = y__517.
+(* function true:0 *)
+fun true__0(): bitstring.
+(* function false:0 *)
+fun false__0(): bitstring.
+(* function pk:1 *)
+fun pk__0(bitstring): bitstring.
+(* function sign:2 *)
+fun sign__0(bitstring, bitstring): bitstring.
+(* function verify:3 *)
+fun verify__0(bitstring, bitstring, bitstring): bitstring.
+(* equation verify(sign(d__518, k__519), d__518, pk(k__519)) = true *)
+equation forall d__518:bitstring, k__519:bitstring; verify__0(sign__0(d__518, k__519), d__518, pk__0(k__519)) = true__0.
+(* type process_t : process *)
+const process_t__0: proc_t.
+(* type client_t : process *)
+const client_t__0: proc_t.
+(* type chan_t : channel *)
+const chan_t__0: acc_data_t.
+(* const fresh privkey<> *)
+fun privkey__0(param_data): bitstring[private].
+(* const pubkey<k__520> = .. *)
+letfun pubkey__0(k__520:param_data) = pk__0(privkey__0(k__520)).
+(* process server(..): process_t *)
+let server__0(ptype:proc_t, ch__521:channel) =
+  (* Channel ch__521 : chan_t *)
+  insert channel_table(chan_t__0, ch__521);
+  (* repeat-until at file "./042_asym_commu_param.rab", line 25, charaters 8-399 *)
+  new loop_ch__536:channel;
+  (out(loop_ch__536, (false__bool, ())) |
+   !(((* repeat case [ ch__521<k__523>::store(d__522) ] at file "./042_asym_commu_param.rab", line 27, charaters 5-222 *)
+      in(loop_ch__536, (=false__bool, loop_result__539:bitstring))[precise];
+      get channel_table(ch_type__561:acc_data_t, =ch__521) in
+      get access_control_table(=ptype, =ch_type__561, =none__syscall) in
+      in(ch__521, (received_parameter__540:param_data, store__chan(guard_arg_0__541:bitstring)));
+      (* let sig__524 = .. in .. at file "./042_asym_commu_param.rab", line 27, charaters 5-222 *)
+      (* let msg__525 = .. in .. at file "./042_asym_commu_param.rab", line 28, charaters 5-197 *)
+      (* let res__526 = .. in .. at file "./042_asym_commu_param.rab", line 29, charaters 5-172 *)
+      (* case at file "./042_asym_commu_param.rab", line 32, charaters 9-28 *)
+      new case_ch__542:channel;
+      ((out(case_ch__542, (false__bool, (), received_parameter__540, guard_arg_0__541, fst__0(guard_arg_0__541), snd__0(guard_arg_0__541), verify__0(fst__0(guard_arg_0__541), snd__0(guard_arg_0__541), pk__0(privkey__0(received_parameter__540))))) |
+        (* case [ res__526 = true ] at file "./042_asym_commu_param.rab", line 32, charaters 9-28 *)
+        in(case_ch__542, (=false__bool, case_result__549:bitstring, case_state_0__550:param_data, case_state_1__551:bitstring, case_state_2__552:bitstring, case_state_3__553:bitstring, case_state_4__554:bitstring))[precise];
+        if case_state_4__554 = true__0
+        then
+          (* event [ ::Valid(msg__525) ] at file "./042_asym_commu_param.rab", line 32, charaters 9-28 *)
+          event Valid__event_global(case_state_3__553);
+          out(case_ch__542, (true__bool, (), case_state_0__550, case_state_1__551, case_state_2__552, case_state_3__553, case_state_4__554))
+        else
+          out(case_ch__542, (false__bool, case_result__549, case_state_0__550, case_state_1__551, case_state_2__552, case_state_3__553, case_state_4__554))) |
+       (* case [ res__526 = false ] at file "./042_asym_commu_param.rab", line 34, charaters 9-30 *)
+       in(case_ch__542, (=false__bool, case_result__555:bitstring, case_state_0__556:param_data, case_state_1__557:bitstring, case_state_2__558:bitstring, case_state_3__559:bitstring, case_state_4__560:bitstring))[precise];
+       if case_state_4__560 = false__0
+       then
+         (* event [ ::Invalid(msg__525) ] at file "./042_asym_commu_param.rab", line 34, charaters 9-30 *)
+         event Invalid__event_global(case_state_3__559);
+         out(case_ch__542, (true__bool, (), case_state_0__556, case_state_1__557, case_state_2__558, case_state_3__559, case_state_4__560))
+       else
+         out(case_ch__542, (false__bool, case_result__555, case_state_0__556, case_state_1__557, case_state_2__558, case_state_3__559, case_state_4__560))) |
+      (* end of case at file "./042_asym_commu_param.rab", line 32, charaters 9-28 *)
+      in(case_ch__542, (=true__bool, case_done_result__543:bitstring, case_done_state_0__544:param_data, case_done_state_1__545:bitstring, case_done_state_2__546:bitstring, case_done_state_3__547:bitstring, case_done_state_4__548:bitstring))[precise];
+      out(loop_ch__536, (false__bool, case_done_result__543))
+      else out(loop_ch__536, (false__bool, loop_result__539))
+      else out(loop_ch__536, (false__bool, loop_result__539))) |
+     (* until case [ ::False() ] at file "./042_asym_commu_param.rab", line 37, charaters 25-29 *)
+     in(loop_ch__536, (=false__bool, loop_result__538:bitstring))[precise];
+     out(loop_ch__536, (false__bool, loop_result__538)))) |
+  (* end of repeat-until at file "./042_asym_commu_param.rab", line 25, charaters 8-399 *)
+  in(loop_ch__536, (=true__bool, loop_done_result__537:bitstring))[precise].
+(* process client(..): process_t *)
+let client__0(ptype:proc_t, k__527:param_data, ch__528:channel) =
+  (* Channel ch__528 : chan_t *)
+  insert channel_table(chan_t__0, ch__528);
+  (* new msg__529 in .. at file "./042_asym_commu_param.rab", line 49, charaters 12-131 *)
+  new msg__529:bitstring;
+  (* let s__530 = .. in .. at file "./042_asym_commu_param.rab", line 50, charaters 9-108 *)
+  (* event [ ::Sent(msg__529) ] at file "./042_asym_commu_param.rab", line 51, charaters 9-27 *)
+  event Sent__event_global(msg__529);
+  (* put [ ch__528::store((s__530, msg__529)) ] at file "./042_asym_commu_param.rab", line 52, charaters 12-36 *)
+  get channel_table(ch_type__564:acc_data_t, =ch__528) in
+  get access_control_table(=ptype, =ch_type__564, =none__syscall) in
+  (let family__562:channel = channel_family(ch__528) in
+   (let parameter__563:param_data = channel_parameter(ch__528) in
+    out(family__562, (parameter__563, store__chan((sign__0(msg__529, privkey__0(k__527)), msg__529)))))
+   else
+     out(ch__528, store__chan((sign__0(msg__529, privkey__0(k__527)), msg__529)))) |
+  0.
+(* channel chan<> : chan_t *)
+free chan__0: channel[private].
+(* Requires *)
+(* lemma Reachable *)
+query msg__532:bitstring; event(Valid__event_global(msg__532)).
+(* lemma NotReachable *)
+query msg__533:bitstring; event(Invalid__event_global(msg__533)).
+(* lemma Corresponds *)
+query msg__534:bitstring;
+  event(Valid__event_global(msg__534)) ==> event(Sent__event_global(msg__534)).
+(* lemma NotCorresponds *)
+query msg__535:bitstring;
+  event(Invalid__event_global(msg__535)) ==> event(Sent__event_global(msg__535)).
+(* System *)
+process
+  (* allow process_t chan_t [.] *)
+  insert access_control_table(process_t__0, chan_t__0, none__syscall);
+  server__0(process_t__0, chan__0) |
+  !(new k__531:param_data;
+    client__0(process_t__0, k__531, channel_instance(chan__0, k__531)))
