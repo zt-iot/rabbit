@@ -240,9 +240,13 @@ let compile_wildcard_match
       ( matcher_id
       , compile_expr_to_pterm genv penv subject :: call_args )
   in
+  (* The matcher returns true or fails. A failed condition in [if] does not
+     take its else branch; [let] catches reduction failure explicitly. *)
+  let result_id = compile_ident (Ident.local "wildcard_result") in
   process_e @@
-  PTest
-    ( eq_pterm matcher_call (pterm_e @@ PPIdent true_ident)
+  PLet
+    ( PPatVar (result_id, Some bitstring_ident)
+    , matcher_call
     , on_match
     , on_mismatch )
 

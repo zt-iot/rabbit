@@ -1,0 +1,47 @@
+(* A failed private matcher must take the inequality success continuation. *)
+type proc_t : process
+process worker() : proc_t {
+  main {
+    var a = (1, 2) in
+    assume [a != (3, _)] in event [::Assumed()];
+    case [(3, _) != a] -> event [::Reversed()] end;
+    var b = ((1, 2), 3) in
+    case [b != ((4, _), _)] -> event [::Nested()] end;
+    var state = (0, 2) in
+    repeat [state != (1, _)] ->
+      event [::Loop()]; state := (1, 2)
+    until [state != (0, _)] -> event [::Exit()] end;
+    case
+    | [a != (1, _)] -> event [::Bad()]
+    | [(1, _) != a] -> event [::Bad()]
+    | [b != ((1, _), _)] -> event [::Bad()]
+    end
+  }
+}
+system worker()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Assumed : reachable ::Assumed();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Reversed : reachable ::Reversed();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Nested : reachable ::Nested();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Loop : reachable ::Loop();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Exit : reachable ::Exit();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Bad : reachable ::Bad()
+]
