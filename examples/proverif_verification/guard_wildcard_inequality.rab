@@ -1,0 +1,28 @@
+type proc_t : process
+process worker() : proc_t {
+  main {
+    var a = (1, 2) in
+    case [(1, 2, _) != (1, 3, _)] -> event [::LaterComponent()] end;
+    case [(1, 2, _) != (3, 2, _)] -> event [::FirstComponent()] end;
+    case
+    | [a != (1, _)] -> event [::Bad()]
+    | [a != _] -> event [::Bad()]
+    | [(_, 1) != (2, _)] -> event [::Bad()]
+    end
+  }
+}
+system worker()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma LaterComponent : reachable ::LaterComponent();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma FirstComponent : reachable ::FirstComponent();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Bad : reachable ::Bad()
+]

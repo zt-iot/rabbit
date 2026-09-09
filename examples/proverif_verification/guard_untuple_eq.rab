@@ -1,0 +1,39 @@
+(* Normalize tuple equalities before scheduling, even when the ready side
+   contains wildcards. Inequality must remain a comparison, not a conjunction. *)
+type proc_t : process
+process worker() : proc_t {
+  main {
+    assume [((x, _), _) = ((1, _), _)] in event [::Assumed(x)];
+    case [(y, _) = (2, _)] -> event [::Case(y)] end;
+    case [(1, 2) != (1, 3)] -> event [::Different()] end;
+    var state = 0 in
+    repeat [(n, _) = (state, _), n = 0] ->
+      event [::Loop(n)]; state := 1
+    until [(m, _) = (state, _), m = 1] ->
+      event [::Exit(m)]
+    end
+  }
+}
+system worker()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Assumed : reachable ::Assumed(1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Case : reachable ::Case(2);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Different : reachable ::Different();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Loop : reachable ::Loop(0);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Exit : reachable ::Exit(1)
+]

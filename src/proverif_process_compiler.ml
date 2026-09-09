@@ -246,47 +246,49 @@ let compile_wildcard_match
     , on_match
     , on_mismatch )
 
-let rec compile_wildcard_equality
+(* Tuple inequality is a disjunction of component mismatches.
+   Wildcards match every value, so they cannot establish inequality. *)
+let rec compile_wildcard_inequality
     genv
     penv
     lhs
     rhs
-    ~(on_equal : tprocess_e)
-    ~(on_unequal : tprocess_e)
+    ~(on_success : tprocess_e)
+    ~(on_failure : tprocess_e)
   : tprocess_e =
   reject_function_wildcards lhs;
   reject_function_wildcards rhs;
   if is_wildcard_expr lhs || is_wildcard_expr rhs
-  then on_equal
+  then on_failure
   else
     match lhs.desc, rhs.desc with
     | Tuple lhs_args, Tuple rhs_args
       when List.length lhs_args = List.length rhs_args
            && (expr_contains_wildcard lhs || expr_contains_wildcard rhs) ->
         List.fold_right2
-          (fun lhs rhs success ->
-             compile_wildcard_equality genv penv lhs rhs
-               ~on_equal:success ~on_unequal)
+          (fun lhs rhs remaining ->
+             compile_wildcard_inequality genv penv lhs rhs
+               ~on_success ~on_failure:remaining)
           lhs_args
           rhs_args
-          on_equal
+          on_failure
     | _ when expr_contains_wildcard lhs && not (expr_contains_wildcard rhs) ->
         compile_wildcard_match genv penv lhs rhs
-          ~on_match:on_equal ~on_mismatch:on_unequal
+          ~on_match:on_failure ~on_mismatch:on_success
     | _ when expr_contains_wildcard rhs && not (expr_contains_wildcard lhs) ->
         compile_wildcard_match genv penv rhs lhs
-          ~on_match:on_equal ~on_mismatch:on_unequal
+          ~on_match:on_failure ~on_mismatch:on_success
     | _ when expr_contains_wildcard lhs || expr_contains_wildcard rhs ->
         Error.unsupported ~loc:lhs.loc
-          "Wildcard equality between different constructor patterns is not supported"
+          "Wildcard inequality between different constructor patterns is not supported"
     | _ ->
         process_e @@
         PTest
           ( eq_pterm
               (compile_expr_to_pterm genv penv lhs)
               (compile_expr_to_pterm genv penv rhs)
-          , on_equal
-          , on_unequal )
+          , on_failure
+          , on_success )
 
 let ppar
     (proc1 : tprocess_e)
@@ -661,27 +663,20 @@ let value_guard_binding penv fresh lhs rhs =
   let candidate (variable : T.expr) value =
     match variable.desc with
     | Ident { id; param = None; _ }
-      when unbound_guard_var penv fresh id
+      when (unbound_guard_var penv fresh id || is_wildcard_ident id)
            && guard_expr_ready penv fresh value
-           && not (expr_contains_wildcard value) -> Some (id, value)
+           && (is_wildcard_ident id || not (expr_contains_wildcard value)) -> Some (id, value)
     | _ -> None
   in
   match candidate lhs rhs with
   | Some _ as binding -> binding
   | None -> candidate rhs lhs
 
-let split_guard_tuple penv fresh (lhs : T.expr) (rhs : T.expr) =
-  match lhs.desc, rhs.desc with
-  | Tuple left, Tuple right
-    when not (guard_expr_ready penv fresh lhs)
-         && not (guard_expr_ready penv fresh rhs)
-         && List.length left = List.length right -> Some (List.combine left right)
-  | _ -> None
-
 let pattern_guard_binding penv fresh lhs rhs =
   let candidate (pattern : T.expr) subject =
     match pattern.desc with
-    | Tuple _ when not (guard_expr_ready penv fresh pattern)
+    | Tuple _ when (not (guard_expr_ready penv fresh pattern)
+                    || expr_contains_wildcard pattern)
                    && guard_expr_ready penv fresh subject
                    && not (expr_contains_wildcard subject) -> Some (pattern, subject)
     | _ -> None
@@ -692,13 +687,12 @@ let pattern_guard_binding penv fresh lhs rhs =
 
 (* Postpone comparisons and channel inputs whose operands are not bound yet.
    Keep the order among ready facts. This does not repair guard atomicity. *)
-let select_guard penv fresh (facts : T.fact list) =
+let select_guard_to_compile penv fresh (facts : T.fact list) : T.fact option * T.fact list =
   let ready (fact : T.fact) =
     match fact.desc with
     | Eq (lhs, rhs) ->
         (guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs)
         || Option.is_some (value_guard_binding penv fresh lhs rhs)
-        || Option.is_some (split_guard_tuple penv fresh lhs rhs)
         || Option.is_some (pattern_guard_binding penv fresh lhs rhs)
     | Neq (lhs, rhs) ->
         guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs
@@ -706,13 +700,11 @@ let select_guard penv fresh (facts : T.fact list) =
     | File _ | Global _ | Plain _ -> true
   in
   let rec select skipped = function
-    | [] ->
-        Error.unsupported ~loc:(List.hd facts).loc
-          "Guard variables cannot be bound by supported tuple equality or input patterns; function decomposition is not supported"
-    | fact :: rest when ready fact -> fact :: List.rev_append skipped rest
+    | [] -> None, List.rev skipped
+    | fact :: rest when ready fact -> Some fact, List.rev_append skipped rest
     | fact :: rest -> select (fact :: skipped) rest
   in
-  match facts with [] -> [] | _ -> select [] facts
+  select [] facts
 
 (* Decompose tuples first, then check fixed leaves and repeated variables in
    the extended environment. Function applications remain equality tests. *)
@@ -773,7 +765,20 @@ let bind_guard_payloads penv fresh args payload_ids ~else_proc =
            penv, tests @ [test], wrap)
     (penv, [], Fun.id) args payload_ids
 
-let rec compile_guard_fragment
+(* (f1, f2) = (f3, f4) => f1 = f3 AND f2 = f4 *)
+let rec untuple_eq (f : T.fact) : T.fact list =
+  match f.desc with
+  | Eq ({desc= Tuple e1s; _}, {desc= Tuple e2s; _}) ->
+      List.concat_map untuple_eq
+        (List.map2 (fun e1 e2 -> { f with desc = T.Eq (e1, e2) }) e1s e2s)
+  | _ -> [f]
+
+(* Normalize initial facts and newly generated tests before selecting a fact. *)
+let rec compile_guard genv penv fresh facts ~on_success ~else_proc =
+  compile_guard_facts genv penv fresh (List.concat_map untuple_eq facts)
+    ~on_success ~else_proc
+
+and compile_guard_facts
     genv
     penv
     (fresh : T.ident list)
@@ -799,189 +804,201 @@ let rec compile_guard_fragment
        ...
      ```
   *)
-  match select_guard penv fresh facts with
-  | [] -> on_success penv
-  | fact :: facts ->
-      (match fact.desc with
-       | Eq (lhs, rhs) when Option.is_some (split_guard_tuple penv fresh lhs rhs) ->
-           let pairs = Option.get (split_guard_tuple penv fresh lhs rhs) in
-           let tests = List.map (fun (lhs, rhs) ->
-               { fact with desc = T.Eq (lhs, rhs) }) pairs in
-           compile_guard_fragment genv penv fresh (tests @ facts) ~on_success ~else_proc
-       | Eq (lhs, rhs) when Option.is_some (value_guard_binding penv fresh lhs rhs) ->
-           let id, value = Option.get (value_guard_binding penv fresh lhs rhs) in
-           let penv = PEnv.define_process_var penv id (T.type_of_expr value)
-               (compile_expr_to_pterm genv penv value) in
-           compile_guard_fragment genv penv fresh facts ~on_success ~else_proc
-       | Eq (lhs, rhs) when Option.is_some (pattern_guard_binding penv fresh lhs rhs) ->
-           let pattern, subject = Option.get (pattern_guard_binding penv fresh lhs rhs) in
-           let branch_env, pattern, tests = bind_tuple_guard penv fresh pattern in
-           let final_env, fragment =
-             compile_guard_fragment genv branch_env fresh (tests @ facts)
-               ~on_success ~else_proc
-           in
-           let subject = compile_expr_to_pterm genv penv subject in
-           final_env, fun rest ->
-             process_e @@ PLet (pattern, subject, fragment rest, else_proc)
-       | Eq (lhs, rhs) ->
-           let final_env, fragment =
-             compile_guard_fragment genv penv fresh facts ~on_success ~else_proc
-           in
-           final_env,
-           fun rest ->
-             if expr_contains_wildcard lhs || expr_contains_wildcard rhs
-             then
-               compile_wildcard_equality genv penv lhs rhs
-                 ~on_equal:(fragment rest)
-                 ~on_unequal:else_proc
-             else
-               let cond =
-                 eq_pterm
-                   (compile_expr_to_pterm genv penv lhs)
-                   (compile_expr_to_pterm genv penv rhs)
+  match select_guard_to_compile penv fresh facts with
+  | None, [] -> on_success penv
+  | None, fact :: _ ->
+      Error.unsupported ~loc:fact.loc
+        "Guard variables cannot be bound by supported tuple equality or input patterns; function decomposition is not supported (fact: %s)"
+        (T.string_of_fact fact)
+  | Some fact, facts ->
+      match fact.desc with
+      | Eq (lhs, rhs) ->
+          reject_function_wildcards lhs;
+          reject_function_wildcards rhs;
+          (match value_guard_binding penv fresh lhs rhs with
+           | Some (id, value) ->
+               (* Simple variable assignment: id = value *)
+               let penv =
+                 if is_wildcard_ident id then penv
+                 else PEnv.define_process_var penv id (T.type_of_expr value)
+                     (compile_expr_to_pterm genv penv value)
                in
-               process_e @@ PTest (cond, fragment rest, else_proc)
-       | Neq (lhs, rhs) ->
-           let final_env, fragment =
-             compile_guard_fragment genv penv fresh facts ~on_success ~else_proc
-           in
-           final_env,
-           fun rest ->
-             if expr_contains_wildcard lhs || expr_contains_wildcard rhs
-             then
-               compile_wildcard_equality genv penv lhs rhs
-                 ~on_equal:else_proc
-                 ~on_unequal:(fragment rest)
-             else
-               let cond =
-                 eq_pterm
-                   (compile_expr_to_pterm genv penv lhs)
-                   (compile_expr_to_pterm genv penv rhs)
-               in
-               process_e @@ PTest (cond, else_proc, fragment rest)
-       | Channel { channel; name; args } ->
-           (* Channel facts are linear. This sequential lowering can consume an
-              earlier channel fact before a later guard fails, whereas Rabbit
-              consumes the complete guard atomically. This is the same accepted
-              atomicity limitation as the outer channel-guard lowering below. *)
-           let payload_vars =
-             List.init (List.length args) (fun i ->
-                 Ident.local (Printf.sprintf "guard_arg_%d" i))
-           in
-           let payload_patterns =
-             List.map2
-               (fun id arg ->
-                  PPatVar
-                    ( compile_ident id
-                    , Some (compile_value_type (T.type_of_expr arg)) ))
-               payload_vars
-               args
-           in
-           let branch_env, tests, wrap =
-             bind_guard_payloads penv fresh args payload_vars ~else_proc
-           in
-           let final_env, fragment =
-             compile_guard_fragment genv branch_env fresh (tests @ facts)
-               ~on_success ~else_proc
-           in
-           let channel_term = compile_expr_to_pterm genv penv channel in
-           final_env,
-           fun rest ->
-             wrap_with_channel_access_get channel_term penv
-               (process_e @@
-                PInput
-                  ( channel_term
-                  , PPatFunApp
-                      (compile_name name "chan", payload_patterns)
-                  , wrap (fragment rest)
-                  , [] ))
-               else_proc
-       | File { path; contents } ->
-           let dynamic_path =
-             not (guard_expr_ready penv fresh path) || expr_contains_wildcard path
-           in
-           let path_id = if dynamic_path then Some (Ident.local "file_path") else None in
-           let path_term =
-             match path_id with
-             | Some id -> pterm_e @@ PPIdent (compile_ident id)
-             | None -> compile_expr_to_pterm genv penv path
-           in
-           let file_channel =
-             match PEnv.file_channel penv with
-             | Some file_channel -> file_channel
-             | None ->
-                 Error.internal ~loc:fact.loc
-                   "File guard requires a process-local file channel"
-           in
-           let payload_id = Ident.local "file_contents" in
-           let payload_pattern =
-             PPatTuple
-               [ (match path_id with
-                  | Some id -> PPatVar (compile_ident id, Some bitstring_ident)
-                  | None -> PPatEqual path_term)
-               ; PPatVar (compile_ident payload_id, Some bitstring_ident)
-               ]
-           in
-           let args, payload_ids =
-             match path_id with
-             | Some id -> [path; contents], [id; payload_id]
-             | None -> [contents], [payload_id]
-           in
-           let branch_env, tests, match_contents =
-             bind_guard_payloads penv fresh args payload_ids ~else_proc
-           in
-           let final_env, fragment =
-             compile_guard_fragment genv branch_env fresh (tests @ facts) ~on_success ~else_proc
-           in
-           final_env,
-           fun rest ->
-             let then_proc = match_contents (fragment rest) in
-             if dynamic_path then
-               (* The selected fact supplies the path used for authorization.
-                  As with other linear guards, rejection after input consumes
-                  the fact; the accepted atomicity limitation still applies. *)
-               process_e @@ PInput
-                 ( file_channel, payload_pattern
-                 , wrap_with_file_access_get path_term branch_env then_proc else_proc
-                 , [precise_ident, None] )
-             else
-               wrap_with_file_access_get path_term branch_env
-                 (process_e @@
-                  PInput
-                    ( file_channel
-                    , payload_pattern
-                    , then_proc
-                    , [precise_ident, None] ))
-                 else_proc
-       | Global ("In", [_arg]) ->
-           let arg =
-             match fact.desc with
-             | Global ("In", [arg]) -> arg
-             | _ -> assert false
-           in
-           let payload_id = Ident.local "attacker_input" in
-           let branch_env, tests, match_arg =
-             bind_guard_payloads penv fresh [arg] [payload_id] ~else_proc
-           in
-           let final_env, fragment =
-             compile_guard_fragment genv branch_env fresh (tests @ facts) ~on_success ~else_proc
-           in
-           final_env,
-           fun rest ->
-             process_e @@
-             PInput
-               ( pterm_e @@ PPIdent attacker_channel_ident
-               , PPatVar
-                   ( compile_ident payload_id
-                   , Some (compile_value_type (T.type_of_expr arg)) )
-               , match_arg (fragment rest)
-               , [] )
-       | Global ("False", []) -> penv, fun _rest -> else_proc
-       | Global ("True", []) ->
-           compile_guard_fragment genv penv fresh facts ~on_success ~else_proc
-       | Global _ | Plain _ ->
-           Error.unsupported ~loc:fact.loc
-             "Only equality/inequality/file guards are supported in ProVerif case lowering")
+               compile_guard genv penv fresh facts ~on_success ~else_proc
+           | None ->
+               match pattern_guard_binding penv fresh lhs rhs with
+               | Some (pattern, subject) ->
+                   (* Value is a tuple with unbounds:  a = (x, y)  or  a = (x, x) or  a = (x, b) *)
+                   let branch_env, pattern, tests = bind_tuple_guard penv fresh pattern in
+                   let final_env, fragment =
+                     compile_guard genv branch_env fresh (tests @ facts)
+                       ~on_success ~else_proc
+                   in
+                   let subject = compile_expr_to_pterm genv penv subject in
+                   final_env, fun rest ->
+                     process_e @@ PLet (pattern, subject, fragment rest, else_proc)
+               | None ->
+                   (* Nothing unbound: a = b ,  f(a) = g(b) *)
+                   let final_env, fragment =
+                     compile_guard genv penv fresh facts ~on_success ~else_proc
+                   in
+                   final_env,
+                   fun rest ->
+                     let cond =
+                       eq_pterm
+                         (compile_expr_to_pterm genv penv lhs)
+                         (compile_expr_to_pterm genv penv rhs)
+                     in
+                     process_e @@ PTest (cond, fragment rest, else_proc))
+      | Neq (lhs, rhs) ->
+          let final_env, fragment =
+            compile_guard genv penv fresh facts ~on_success ~else_proc
+          in
+          final_env,
+          fun rest ->
+            if expr_contains_wildcard lhs || expr_contains_wildcard rhs
+            then
+              (* a != _  ,  a != (b, _) *)
+              compile_wildcard_inequality genv penv lhs rhs
+                ~on_success:(fragment rest)
+                ~on_failure:else_proc
+            else
+              (* a != b *)
+              let cond =
+                eq_pterm
+                  (compile_expr_to_pterm genv penv lhs)
+                  (compile_expr_to_pterm genv penv rhs)
+              in
+              process_e @@ PTest (cond, else_proc, fragment rest)
+      | Channel { channel; name; args } ->
+          (* Channel facts are linear. This sequential lowering can consume an
+             earlier channel fact before a later guard fails, whereas Rabbit
+             consumes the complete guard atomically. This is the same accepted
+             atomicity limitation as the outer channel-guard lowering below.
+
+            channel.name(p1, ... pn)  where channel is already bound
+          *)
+          let payload_vars =
+            List.init (List.length args) (fun i ->
+                Ident.local (Printf.sprintf "guard_arg_%d" i))
+          in
+          let payload_patterns =
+            List.map2
+              (fun id arg ->
+                 PPatVar
+                   ( compile_ident id
+                   , Some (compile_value_type (T.type_of_expr arg)) ))
+              payload_vars
+              args
+          in
+          let branch_env, tests, wrap =
+            bind_guard_payloads penv fresh args payload_vars ~else_proc
+          in
+          let final_env, fragment =
+            compile_guard genv branch_env fresh (tests @ facts)
+              ~on_success ~else_proc
+          in
+          let channel_term = compile_expr_to_pterm genv penv channel in
+          final_env,
+          fun rest ->
+            wrap_with_channel_access_get channel_term penv
+              (process_e @@
+               PInput
+                 ( channel_term
+                 , PPatFunApp
+                     (compile_name name "chan", payload_patterns)
+                 , wrap (fragment rest)
+                 , [] ))
+              else_proc
+      | File { path; contents } ->
+          (* path.contents *)
+          let file_channel =
+            match PEnv.file_channel penv with
+            | Some file_channel -> file_channel
+            | None ->
+                Error.internal ~loc:fact.loc
+                  "File guard requires a process-local file channel"
+          in
+          let payload_id = Ident.local "file_contents" in
+          let compile_payloads args payload_ids =
+            let branch_env, tests, match_contents =
+              bind_guard_payloads penv fresh args payload_ids ~else_proc
+            in
+            let final_env, fragment =
+              compile_guard genv branch_env fresh (tests @ facts) ~on_success ~else_proc
+            in
+            final_env, branch_env, match_contents, fragment
+          in
+          if not (guard_expr_ready penv fresh path) || expr_contains_wildcard path then
+            (* path is unbound *)
+            let path_id = Ident.local "file_path" in
+            let path_term = pterm_e @@ PPIdent (compile_ident path_id) in
+            let payload_pattern =
+              PPatTuple
+                [ PPatVar (compile_ident path_id, Some bitstring_ident)
+                ; PPatVar (compile_ident payload_id, Some bitstring_ident)
+                ]
+            in
+            let args = [path; contents] in
+            let payload_ids = [path_id; payload_id] in
+            let final_env, branch_env, match_contents, fragment = compile_payloads args payload_ids in
+            final_env,
+            fun rest ->
+              let then_proc = match_contents (fragment rest) in
+              (* The selected fact supplies the path used for authorization.
+                 As with other linear guards, rejection after input consumes
+                 the fact; the accepted atomicity limitation still applies. *)
+              process_e @@
+              PInput
+                ( file_channel, payload_pattern
+                , wrap_with_file_access_get path_term branch_env then_proc else_proc
+                , [precise_ident, None] )
+          else
+            (* path is already bound *)
+            let path_term = compile_expr_to_pterm genv penv path in
+            let payload_pattern =
+              PPatTuple
+                [ PPatEqual path_term
+                ; PPatVar (compile_ident payload_id, Some bitstring_ident)
+                ]
+            in
+            let args = [contents] in
+            let payload_ids = [payload_id] in
+            let final_env, branch_env, match_contents, fragment = compile_payloads args payload_ids in
+            final_env,
+            fun rest ->
+              let then_proc = match_contents (fragment rest) in
+              wrap_with_file_access_get path_term branch_env
+                (process_e @@
+                 PInput
+                   ( file_channel
+                   , payload_pattern
+                   , then_proc
+                   , [precise_ident, None] ))
+                else_proc
+      | Global ("In", [arg]) ->
+          let payload_id = Ident.local "attacker_input" in
+          let branch_env, tests, match_arg =
+            bind_guard_payloads penv fresh [arg] [payload_id] ~else_proc
+          in
+          let final_env, fragment =
+            compile_guard genv branch_env fresh (tests @ facts) ~on_success ~else_proc
+          in
+          final_env,
+          fun rest ->
+            process_e @@
+            PInput
+              ( pterm_e @@ PPIdent attacker_channel_ident
+              , PPatVar
+                  ( compile_ident payload_id
+                  , Some (compile_value_type (T.type_of_expr arg)) )
+              , match_arg (fragment rest)
+              , [] )
+      | Global ("False", []) -> penv, fun _rest -> else_proc
+      | Global ("True", []) ->
+          compile_guard genv penv fresh facts ~on_success ~else_proc
+      | Global _ | Plain _ ->
+          Error.unsupported ~loc:fact.loc
+            "Only equality/inequality/file guards are supported in ProVerif case lowering"
 
 let compile_guard_tests
     genv
@@ -992,7 +1009,7 @@ let compile_guard_tests
     (else_proc : tprocess_e)
   : tprocess_e =
   let _final_env, fragment =
-    compile_guard_fragment genv penv fresh facts
+    compile_guard genv penv fresh facts
       ~on_success:(fun final_env -> final_env, fun _rest -> then_proc final_env)
       ~else_proc
   in
@@ -1160,7 +1177,7 @@ and compile_single_case_no_channel
      unnecessary. Guard failure terminates this path, while guard success can
      pass the branch environment directly to the following command.
   *)
-  compile_guard_fragment genv penv case.fresh case.facts
+  compile_guard genv penv case.fresh case.facts
     ~on_success:(fun final_env ->
       compile_case_branch_body genv final_env case)
     ~else_proc:(process_e PNil)

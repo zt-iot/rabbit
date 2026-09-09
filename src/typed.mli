@@ -75,6 +75,8 @@ and fact' =
 
 val string_of_fact : fact -> string
 
+val vars_of_fact : fact -> ident list
+
 type cmd = cmd' loc_env
 
 (** A match case [| [ ... ] => c] *)

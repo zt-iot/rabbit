@@ -190,6 +190,17 @@ and fact' =
       }
   | Global of string * expr list
 
+let vars_of_fact f =
+  let vars_of_exprs es =
+    vars_of_expr { desc= Tuple es; loc= Location.nowhere; env= Env.empty () }
+  in
+  match f.desc with
+  | Channel { channel; args; _ } -> vars_of_exprs (channel :: args)
+  | Plain (_, es) -> vars_of_exprs es
+  | Eq (e1, e2) | Neq (e1, e2) -> vars_of_exprs [e1; e2]
+  | File { path; contents } -> vars_of_exprs [path; contents]
+  | Global (_, es) -> vars_of_exprs es
+
 let string_of_fact (fact : fact) =
   match fact.desc with
   | Channel { channel= ({ desc= Ident _; _ } as channel); name; args } ->

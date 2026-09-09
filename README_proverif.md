@@ -1,5 +1,9 @@
 # Rabbit ProVerif compiler
 
+## Compiler documentation
+
+- [Guard compilation](proverif_guard_compilation.md): supported forms, variable bindings, inputs, and the known atomicity limitation.
+
 ## How to compile
 
 ```

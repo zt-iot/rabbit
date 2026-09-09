@@ -1,5 +1,5 @@
-(* Verification feature: wildcard expressions in assumptions are lowered to
-   equality checks and private pattern-matching destructors.
+(* Verification feature: tuple wildcard equalities in assumptions are lowered
+   to tuple bindings and checks of fixed components; wildcards are ignored.
 
    Reviewed.
 *)
@@ -14,6 +14,7 @@ type proc_t : process
 process all_wildcard_worker() : proc_t
 {
   main {
+    assume [_ = 1, 2 = _, _ = _, _ = (1, _), (_, 2) = _] in
     var value = (1, 2) in
     assume [value = (_, _)] in
     event [::TupleMatched()]
