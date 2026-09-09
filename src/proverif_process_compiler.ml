@@ -1160,7 +1160,7 @@ and compile_guarded_case
            body_fragment (on_success body_env))
         else_proc
 
-and compile_single_case_no_channel
+and compile_single_case
     genv
     penv
     (case : T.case)
@@ -1212,7 +1212,7 @@ and compile_case_general
   *)
   match cases with
   | [] -> penv, closed_fragment (process_e PNil)
-  | [case] -> compile_single_case_no_channel genv penv case
+  | [case] -> compile_single_case genv penv case
   | _ ->
       let loc = (List.hd cases).cmd.loc in
       let case_env = unit_result penv in
@@ -1828,6 +1828,7 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
         compile_expr_to_pterm genv penv expr
       in
       PEnv.with_result penv (T.type_of_expr expr) value, empty_fragment
+  | Case [case] -> compile_single_case genv penv case
   | Case cases ->
       if channel_guards_share_input penv cases
       then

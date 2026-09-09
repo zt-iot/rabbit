@@ -1,6 +1,5 @@
-(* Regression: a two-iteration active attack falsifies correspondence, but the
-   generated replicated loop currently yields a Horn derivation whose concrete
-   trace ProVerif cannot reconstruct.
+(* Regression: removing single-branch channel choice locks lets ProVerif
+   reconstruct a correspondence attack that previously returned unknown.
 
    Reviewed.
 *)
@@ -124,9 +123,9 @@ system
 requires
 [
   (* PROVERIF EXPECTED
-  # Iteration one supplies the packet consumed by `substitute`; iteration two
-  # discloses a fresh sealed value that can be accepted before `Published`.
-  unknown
+  # After consuming a legitimate packet, substitute injects an attacker-built
+  # (seal(value), value) packet. seal is public, and value need not be Published.
+  false
   *)
   lemma AcceptedValuesWerePublished : (* falsified *)
     corresponds ::Accepted(value) ~> ::Published(value)

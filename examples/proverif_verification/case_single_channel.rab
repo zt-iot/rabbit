@@ -1,0 +1,54 @@
+(* A single channel branch needs no choice lock or state-passing join. *)
+type proc_t : process
+type denied_t : process
+type transport_t : channel
+allow proc_t transport_t [.]
+process worker(c : transport_t) : proc_t {
+  main {
+    var state = 0 in
+    put [c::Msg((1, 2))];
+    case [c::Msg((x, y)), x = 1] -> state := y end;
+    event [::Updated(state)];
+    put [c::Other((3, 4))];
+    case [c::Other((x, y)), x = 1] -> event [::BadBranch()] end;
+    event [::BadContinuation()]
+  }
+}
+process sender(c : transport_t) : proc_t {
+  main { put [c::Msg((1, 2))] }
+}
+process denied(c : transport_t) : denied_t {
+  main {
+    case [c::Msg((x, y))] -> event [::Denied()] end;
+    event [::DeniedContinuation()]
+  }
+}
+channel c : transport_t
+channel d : transport_t
+system worker(c) | sender(d) | denied(d)
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Updated : reachable ::Updated(2);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma OldState : reachable ::Updated(0);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadBranch : reachable ::BadBranch();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadContinuation : reachable ::BadContinuation();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Denied : reachable ::Denied();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma DeniedContinuation : reachable ::DeniedContinuation()
+]

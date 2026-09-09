@@ -25,24 +25,24 @@ const int__pos_1: bitstring.
 const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
 let worker__0(ptype:proc_t) =
-  (* let state__65 = .. in .. at file "./3_6_repeat.rab", line 11, charaters 4-130 *)
+  (* let state__62 = .. in .. at file "./3_6_repeat.rab", line 11, charaters 4-130 *)
   (* repeat-until at file "./3_6_repeat.rab", line 12, charaters 4-86 *)
-  new loop_ch__66:channel;
-  (out(loop_ch__66, (false__bool, (), int__pos_0)) |
-   !(((* repeat case [ state__65 = 0 ] at file "./3_6_repeat.rab", line 13, charaters 21-31 *)
-      in(loop_ch__66, (=false__bool, loop_result__71:bitstring, loop_state_0__72:bitstring))[precise];
-      if loop_state_0__72 = int__pos_0
+  new loop_ch__63:channel;
+  (out(loop_ch__63, (false__bool, (), int__pos_0)) |
+   !(((* repeat case [ state__62 = 0 ] at file "./3_6_repeat.rab", line 13, charaters 21-31 *)
+      in(loop_ch__63, (=false__bool, loop_result__68:bitstring, loop_state_0__69:bitstring))[precise];
+      if loop_state_0__69 = int__pos_0
       then
-        (* state__65 := .. at file "./3_6_repeat.rab", line 13, charaters 21-31 *)
-        out(loop_ch__66, (false__bool, (), int__pos_1))
-      else out(loop_ch__66, (false__bool, loop_result__71, loop_state_0__72))) |
-     (* until case [ state__65 = 1 ] at file "./3_6_repeat.rab", line 15, charaters 21-25 *)
-     in(loop_ch__66, (=false__bool, loop_result__69:bitstring, loop_state_0__70:bitstring))[precise];
-     if loop_state_0__70 = int__pos_1
-     then out(loop_ch__66, (true__bool, (), loop_state_0__70))
-     else out(loop_ch__66, (false__bool, loop_result__69, loop_state_0__70)))) |
+        (* state__62 := .. at file "./3_6_repeat.rab", line 13, charaters 21-31 *)
+        out(loop_ch__63, (false__bool, (), int__pos_1))
+      else out(loop_ch__63, (false__bool, loop_result__68, loop_state_0__69))) |
+     (* until case [ state__62 = 1 ] at file "./3_6_repeat.rab", line 15, charaters 21-25 *)
+     in(loop_ch__63, (=false__bool, loop_result__66:bitstring, loop_state_0__67:bitstring))[precise];
+     if loop_state_0__67 = int__pos_1
+     then out(loop_ch__63, (true__bool, (), loop_state_0__67))
+     else out(loop_ch__63, (false__bool, loop_result__66, loop_state_0__67)))) |
   (* end of repeat-until at file "./3_6_repeat.rab", line 12, charaters 4-86 *)
-  in(loop_ch__66, (=true__bool, loop_done_result__67:bitstring, loop_done_state_0__68:bitstring))[precise];
+  in(loop_ch__63, (=true__bool, loop_done_result__64:bitstring, loop_done_state_0__65:bitstring))[precise];
   (* event [ ::Valid() ] at file "./3_6_repeat.rab", line 17, charaters 4-21 *)
   event Valid__event_global.
 (* Requires *)

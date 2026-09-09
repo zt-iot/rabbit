@@ -25,24 +25,24 @@ const int__pos_1: bitstring.
 const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
 let worker__0(ptype:proc_t) =
-  (* let state__89 = .. in .. at file "./3_6_repeat_optimization_single_until.rab", line 10, charaters 4-130 *)
+  (* let state__86 = .. in .. at file "./3_6_repeat_optimization_single_until.rab", line 10, charaters 4-130 *)
   (* repeat-until at file "./3_6_repeat_optimization_single_until.rab", line 11, charaters 4-86 *)
-  new loop_ch__90:channel;
-  (out(loop_ch__90, (false__bool, (), int__pos_0)) |
-   !(((* repeat case [ state__89 = 0 ] at file "./3_6_repeat_optimization_single_until.rab", line 12, charaters 21-31 *)
-      in(loop_ch__90, (=false__bool, loop_result__95:bitstring, loop_state_0__96:bitstring))[precise];
-      if loop_state_0__96 = int__pos_0
+  new loop_ch__87:channel;
+  (out(loop_ch__87, (false__bool, (), int__pos_0)) |
+   !(((* repeat case [ state__86 = 0 ] at file "./3_6_repeat_optimization_single_until.rab", line 12, charaters 21-31 *)
+      in(loop_ch__87, (=false__bool, loop_result__92:bitstring, loop_state_0__93:bitstring))[precise];
+      if loop_state_0__93 = int__pos_0
       then
-        (* state__89 := .. at file "./3_6_repeat_optimization_single_until.rab", line 12, charaters 21-31 *)
-        out(loop_ch__90, (false__bool, (), int__pos_1))
-      else out(loop_ch__90, (false__bool, loop_result__95, loop_state_0__96))) |
-     (* until case [ state__89 = 1 ] at file "./3_6_repeat_optimization_single_until.rab", line 14, charaters 21-25 *)
-     in(loop_ch__90, (=false__bool, loop_result__93:bitstring, loop_state_0__94:bitstring))[precise];
-     if loop_state_0__94 = int__pos_1
-     then out(loop_ch__90, (true__bool, (), loop_state_0__94))
-     else out(loop_ch__90, (false__bool, loop_result__93, loop_state_0__94)))) |
+        (* state__86 := .. at file "./3_6_repeat_optimization_single_until.rab", line 12, charaters 21-31 *)
+        out(loop_ch__87, (false__bool, (), int__pos_1))
+      else out(loop_ch__87, (false__bool, loop_result__92, loop_state_0__93))) |
+     (* until case [ state__86 = 1 ] at file "./3_6_repeat_optimization_single_until.rab", line 14, charaters 21-25 *)
+     in(loop_ch__87, (=false__bool, loop_result__90:bitstring, loop_state_0__91:bitstring))[precise];
+     if loop_state_0__91 = int__pos_1
+     then out(loop_ch__87, (true__bool, (), loop_state_0__91))
+     else out(loop_ch__87, (false__bool, loop_result__90, loop_state_0__91)))) |
   (* end of repeat-until at file "./3_6_repeat_optimization_single_until.rab", line 11, charaters 4-86 *)
-  in(loop_ch__90, (=true__bool, loop_done_result__91:bitstring, loop_done_state_0__92:bitstring))[precise];
+  in(loop_ch__87, (=true__bool, loop_done_result__88:bitstring, loop_done_state_0__89:bitstring))[precise];
   (* event [ ::Valid() ] at file "./3_6_repeat_optimization_single_until.rab", line 16, charaters 4-21 *)
   event Valid__event_global.
 (* Requires *)
