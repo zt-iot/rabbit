@@ -1,0 +1,46 @@
+(* Different nesting on the two sides reduces to a one-sided matcher.
+   a matches (b, _); d does not. Check both operand orders independently. *)
+const a = (1, 2)
+const b = 1
+const c = 3
+const d = (4, 2)
+type proc_t : process
+process mismatch() : proc_t {
+  main {
+    case [(d, _) != ((b, _), c)] -> event [::Mismatch()] end
+  }
+}
+process reversed_mismatch() : proc_t {
+  main {
+    case [((b, _), c) != (d, _)] -> event [::ReversedMismatch()] end
+  }
+}
+process matching() : proc_t {
+  main {
+    case [(a, _) != ((b, _), c)] -> event [::BadMatch()] end
+  }
+}
+process reversed_matching() : proc_t {
+  main {
+    case [((b, _), c) != (a, _)] -> event [::BadReversedMatch()] end
+  }
+}
+system mismatch() | reversed_mismatch() | matching() | reversed_matching()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Mismatch : reachable ::Mismatch();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma ReversedMismatch : reachable ::ReversedMismatch();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadMatch : reachable ::BadMatch();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma BadReversedMatch : reachable ::BadReversedMatch()
+]
