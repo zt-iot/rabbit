@@ -248,7 +248,7 @@ let compile_init ~loc:(_loc : Location.t) genv (id : T.ident) (desc : T.init_des
           , [pv_ident "private", None] )]
 
 let compile_channel
-    ~loc
+    ~loc:_loc
     (id : T.ident)
     (param : unit option)
     (typ : T.ident)
@@ -266,8 +266,13 @@ let compile_channel
   *)
   match param with
   | Some () ->
-      Error.unsupported ~loc
-        "Parameterized channel declarations are not supported yet"
+      (* A private channel-valued constructor preserves instance identity:
+         the same family and parameter denote the same channel. Passing the
+         family itself to a process is handled separately and remains unsupported. *)
+      [ TComment (Printf.sprintf "channel %s<> : %s" (Ident.to_string id) (Ident.to_string typ))
+      ; TFunDecl
+          (compile_ident id, [param_data_ident], channel_ident, [pv_ident "private", None])
+      ]
   | None ->
       [ TComment (Printf.sprintf "channel %s : %s" (Ident.to_string id) (Ident.to_string typ))
       ; TFree (compile_ident id, channel_ident, [pv_ident "private", None])
@@ -504,9 +509,23 @@ let compile_proc_call genv parameter_bindings (proc : T.proc) : tprocess_e =
       (fun ({ channel; parameter; _ } : T.chan_arg) ->
          match parameter with
          | None -> pterm_e @@ PPIdent (compile_ident channel)
-         | Some None | Some (Some _) ->
+         | Some (Some parameter) ->
+             let parameter_term =
+               match parameter.desc with
+               | Ident { id; desc = Env.Param; param = None } ->
+                   (match List.assoc_opt id parameter_bindings with
+                    | Some value -> value
+                    | None -> Error.internal ~loc:proc.loc
+                        "channel parameter %s is not bound" (Ident.to_string id))
+               | Ident { param = None; _ } | Integer _ | String _ | Boolean _ ->
+                   pterm_e @@ PPIdent (GEnv.fresh_parameter_ident genv parameter)
+               | _ -> Error.unsupported ~loc:proc.loc
+                   "Only a directly bound or atomic constant channel parameter is supported"
+             in
+             pterm_e @@ PPFunApp (compile_ident channel, [parameter_term])
+         | Some None ->
              Error.unsupported ~loc:proc.loc
-               "Parameterized channel instantiation is not supported yet")
+               "Passing a parameterized channel family is not supported yet")
       proc_desc.args
   in
   process_e @@ PLetDef (compile_ident proc_desc.id, args, None)

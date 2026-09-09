@@ -1,4 +1,4 @@
-(* Known gap: parameterized channel declarations are not implemented. *)
+(* An unused parameterized channel declaration is supported. *)
 
 type proc_t : process
 type transport_t : channel
@@ -13,5 +13,8 @@ process worker() : proc_t
 system worker()
 requires
 [
+  (* PROVERIF EXPECTED
+  true
+  *)
   lemma ReadyIsReachable : (* verified *) reachable ::Ready()
 ]

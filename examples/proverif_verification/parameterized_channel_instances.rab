@@ -1,0 +1,69 @@
+const fresh secret
+type proc_t : process
+type denied_t : process
+type transport_t : channel
+allow proc_t transport_t [.]
+channel c<> : transport_t
+channel d<> : transport_t
+channel e<> : transport_t
+process sender<p>(ch : transport_t) : proc_t {
+  main { put [ch::Msg(secret)] }
+}
+process receiver<p>(ch : transport_t) : proc_t {
+  main { case [ch::Msg(x)] -> event [::Received(x)] end }
+}
+process compare<p>(a : transport_t, b : transport_t, c : transport_t) : proc_t {
+  main {
+    case [a = b] -> event [::Same()] end;
+    case [a != c] -> event [::Distinct()] end
+  }
+}
+process denied(ch : transport_t) : denied_t {
+  main { case [ch::Msg(x)] -> event [::Denied()] end }
+}
+process fixed_sender(ch : transport_t) : proc_t {
+  main { put [ch::Msg(secret)] }
+}
+process fixed_compare(a : transport_t, b : transport_t, c : transport_t) : proc_t {
+  main {
+    case [a = b] -> event [::FixedSame()] end;
+    case [a != c] -> event [::FixedDistinct()] end
+  }
+}
+process attacker() : proc_t {
+  main { case [::In(x), x = secret] -> event [::Leaked()] end }
+}
+system
+  !p.(sender<p>(c<p>) | receiver<p>(c<p>) | compare<p>(c<p>, c<p>, d<p>))
+  | fixed_compare(c<1>, c<1>, c<2>)
+  | fixed_sender(e<1>) | denied(e<1>) | attacker()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Received : reachable ::Received(secret);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Same : reachable ::Same();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Distinct : reachable ::Distinct();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma FixedSame : reachable ::FixedSame();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma FixedDistinct : reachable ::FixedDistinct();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Denied : reachable ::Denied();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Leaked : reachable ::Leaked()
+]

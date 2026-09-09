@@ -1,0 +1,8 @@
+type proc_t : process
+type transport_t : channel
+channel c<> : transport_t
+process worker<p>(ch : transport_t) : proc_t {
+  main { event [::Ready()] }
+}
+system !p.worker<p>(c<(p, p)>)
+requires [lemma Ready : reachable ::Ready()]
