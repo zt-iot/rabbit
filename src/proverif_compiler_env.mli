@@ -28,6 +28,7 @@ type allow_entry =
 type event_kind =
   | Global
   | Plain
+  | Channel
 
 val compile_event_name : T.name -> event_kind -> ident
 

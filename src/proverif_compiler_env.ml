@@ -27,10 +27,12 @@ type allow_entry =
 type event_kind =
   | Global
   | Plain
+  | Channel
 
 let compile_event_name (name : T.name) = function
   | Global -> compile_name name "event_global"
   | Plain -> compile_name name "event_plain"
+  | Channel -> compile_name name "event_channel"
 
 type comparison_event_kind =
   | Equality
@@ -399,7 +401,7 @@ module GEnv = struct
         genv.events <- genv.events @ [name, (kind, types)]
     | Some (kind', _) when kind <> kind' ->
         Error.invalid_input ~loc
-          "Event %s is used as both a global and a plain fact"
+          "Event %s is used with different fact kinds"
           name
     | Some (_, types') ->
         if List.length types <> List.length types' then

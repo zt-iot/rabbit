@@ -1,0 +1,93 @@
+(* Channel events record the channel and payload without sending a message.
+   The same variables in correspondence queries preserve both identities. *)
+const fresh payload
+const fresh other
+
+type proc_t : process
+type transport_t : channel
+allow proc_t transport_t [.]
+channel first : transport_t
+channel second : transport_t
+channel family<> : transport_t
+
+process worker(a : transport_t, b : transport_t) : proc_t {
+  main {
+    event [a::Sent(payload)];
+    event [a::Received(payload)];
+    event [b::WrongChannel(payload)];
+    event [a::WrongPayload(other)];
+    event [a::Empty()];
+    event [a::Pair((payload, other))];
+    event [a::OnlyEvent(payload)];
+    case [a::OnlyEvent(x)] -> event [::UnexpectedMessage()] end
+  }
+}
+process producer(ch : transport_t) : proc_t {
+  main { put [ch::OnlyPut(payload)] }
+}
+process indexed(ch<> : transport_t) : proc_t {
+  main {
+    event [ch<1> ::IndexedStart(payload)];
+    event [ch<1> ::IndexedEnd(payload)];
+    event [ch<2> ::OtherInstance(payload)]
+  }
+}
+system worker(first, second) | producer(first) | indexed(family<>)
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Observed : reachable ch::Received(payload);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma MissingPayload : reachable ch::Received(other);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Ordered : corresponds ch::Received(x) ~> ch::Sent(x);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Reversed : corresponds ch::Sent(x) ~> ch::Received(x);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma DifferentChannel : corresponds ch::WrongChannel(x) ~> ch::Sent(x);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma DifferentPayload : corresponds ch::WrongPayload(x) ~> ch::Sent(x);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma ZeroArguments : reachable ch::Empty();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma TupleArgument : reachable ch::Pair((payload, other));
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma NoSend : reachable ::UnexpectedMessage();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma NoImplicitEvent : reachable ch::OnlyPut(payload);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma NeverEmitted : reachable ch::NeverEmitted(payload);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma IndexedReachable : reachable ch::IndexedEnd(payload);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma IndexedOrdered : corresponds ch::IndexedEnd(x) ~> ch::IndexedStart(x);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma IndexedIsolated : corresponds ch::OtherInstance(x) ~> ch::IndexedStart(x)
+]

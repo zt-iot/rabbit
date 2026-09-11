@@ -625,9 +625,17 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , [lhs; rhs]
         , None
         , body )
-  | Channel _ | File _ ->
+  | Channel { channel; name; args } ->
+      let args = channel :: args in
+      GEnv.add_event ~loc genv name Channel (List.map T.type_of_expr args);
+      process_e @@ PEvent
+        ( compile_event_name name Channel
+        , List.map (compile_expr_to_pterm genv penv) args
+        , None
+        , body )
+  | File _ ->
       Error.unsupported ~loc
-        "Channel/file event facts are not supported in ProVerif event lowering"
+        "File event facts are not supported in ProVerif event lowering"
 
 let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
   : tprocess_e =

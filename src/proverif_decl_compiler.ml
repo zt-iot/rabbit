@@ -612,10 +612,14 @@ let compile_lemma_fact genv (fact : T.fact) : gterm_e =
         [ compile_expr_to_gterm genv lhs
         ; compile_expr_to_gterm genv rhs
         ]
-  | Channel _ | File _ ->
-      (* Section 3.12 does not specify how to translate Channel and File facts *)
+  | Channel { channel; name; args } ->
+      let args = channel :: args in
+      GEnv.add_event ~loc genv name Channel (List.map T.type_of_expr args);
+      gterm_event name Channel (List.map (compile_expr_to_gterm genv) args)
+  | File _ ->
+      (* Section 3.12 does not specify how to translate File facts *)
       Error.unsupported ~loc
-        "Channel/file facts are not supported in ProVerif lemma lowering"
+        "File facts are not supported in ProVerif lemma lowering"
 
 (* 3.12 Encoding Properties
 
@@ -853,6 +857,7 @@ let compile_event_decls (genv : GEnv.t) : tdecl list =
           match kind with
           | Global -> "::" ^ name
           | Plain -> name
+          | Channel -> "channel::" ^ name
         in
         [ TComment (Printf.sprintf "Event declaration %s(..)" source_name)
         ; TEventDecl (compile_event_name name kind, List.map compile_value_type types)
