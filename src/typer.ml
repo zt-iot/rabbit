@@ -12,6 +12,11 @@ type Error.error +=
       ; def : Env.named_fact_desc
       ; use : Env.named_fact_desc
       }
+  | InvalidTag of
+      { name : Name.ident
+      ; def : Env.named_fact_desc
+      ; use : Env.named_fact_desc
+      }
   | InvalidVariable of
       { ident : Ident.t
       ; def : Env.desc
@@ -23,8 +28,24 @@ type Error.error +=
   | GlobalChannelInExpr of Ident.t
   | WildcardNotAllowed
   | TypeMismatch of Type.type_ * Type.type_
+  | PersistencyMismatch of
+      { name : Name.ident
+      ; persist : bool
+      ; use : bool
+      }
+  | FactDescConflict of Input.fact_desc list
+  | PersistentTag of Name.ident
 
-let () = Error.add_printer @@ fun err ppf ->
+let string_of_fact_desc = function
+  | Input.Global -> "global"
+  | Channel -> "channel"
+  | Plain -> "local"
+  | Process -> "process"
+  | Persistent -> "pers"
+;;
+
+(** Print error description. *)
+let print_error err ppf =
   match err with
   | Misc s -> Format.fprintf ppf "%s" s
   | ArityMismatch { arity; use } ->
@@ -55,6 +76,13 @@ let () = Error.add_printer @@ fun err ppf ->
         name
         (Env.string_of_named_fact_desc def)
         (Env.string_of_named_fact_desc use)
+  | InvalidTag { name; def; use } ->
+      Format.fprintf
+        ppf
+        "%s is %s tag but used as %s"
+        name
+        (Env.string_of_named_fact_desc def)
+        (Env.string_of_named_fact_desc use)
   | InvalidVariable { ident; def; use } ->
       Format.fprintf
         ppf
@@ -82,6 +110,19 @@ let () = Error.add_printer @@ fun err ppf ->
         expected
         (fun ppf typ -> Type.print_type typ ppf)
         actual
+  | PersistencyMismatch { name; persist; use } ->
+      Format.fprintf
+        ppf
+        "%s is %s fact but used as %s"
+        name
+        (if persist then "persistent" else "not persistent")
+        (if use then "persistent" else "not persistent")
+  | FactDescConflict descs ->
+      Format.fprintf
+        ppf
+        "Declaration of fact kinds are conflicting: %s"
+        (String.concat ", " (List.map string_of_fact_desc descs))
+  | PersistentTag name -> Format.fprintf ppf "Tag %s cannot be specified as persistent" name
   | _ -> Error.use_other_printers ()
 
 let misc_errorf ~loc fmt = Format.kasprintf (fun s -> Error.raise ~loc (Misc s)) fmt
@@ -101,6 +142,31 @@ let type_of_value_desc = Env.type_of_desc
 
 let type_of_expr = Typed.type_of_expr
 ;;
+
+(* XXX
+  val add_tag
+    :  loc:Location.t
+    -> t
+    -> Name.ident
+    -> named_fact_desc * int option
+    -> unit
+end = struct
+  include Env
+
+  let add_tag ~loc env name (desc, arity) =
+    match find_tag_opt env name with
+    | Some (desc', arity') ->
+        if desc <> desc'
+        then error ~loc @@ InvalidTag { name; def = desc'; use = desc }
+        else (
+          match arity, arity' with
+          | Some a, Some a' ->
+              if a = a' then () else error ~loc @@ ArityMismatch { arity = a'; use = a }
+          | _ -> ())
+    | None -> update_tag env name (desc, arity)
+  ;;
+end
+*)
 
 let check_arity ~loc ~arity ~use =
   if arity <> use then Error.raise ~loc @@ ArityMismatch { arity; use }
@@ -181,6 +247,7 @@ let check_apps e =
     | Tuple es -> List.iter aux es
   in
   aux e
+;;
 
 let type_expr ?(at_assignment = false) ?(allow_wildcard = false) env (e : Input.expr)
   : Typed.expr =
@@ -189,12 +256,40 @@ let type_expr ?(at_assignment = false) ?(allow_wildcard = false) env (e : Input.
   e
 ;;
 
+let check_persist ~loc ~name ~persist ~use =
+  if persist <> use then error ~loc @@ PersistencyMismatch { name; persist; use }
+;;
+
+(* Compare facts and tags with the declared ones *)
+let check_env_fact ~is_tag ~loc env typ name arity persist =
+  if not is_tag then
+    (match Env.find_fact_opt env name with
+    | None ->
+        error ~loc @@ UnknownName name
+    | Some (desc, Some arity', persist') when desc = typ ->
+        check_arity ~loc ~arity:arity' ~use:arity;
+        check_persist ~loc ~name ~persist:persist' ~use:persist
+    | Some (desc, None, _) when desc = typ -> assert false
+    | Some (desc, _, _) ->
+        error ~loc @@ InvalidFact { name; def = desc; use = typ })
+  else (
+    if persist then error ~loc @@ PersistentTag name;
+    (match Env.find_tag_opt env name with
+    | None ->
+        error ~loc @@ UnknownName name
+    | Some (desc, Some arity') when desc = typ ->
+        check_arity ~loc ~arity:arity' ~use:arity
+    | Some (desc, None) when desc = typ -> assert false
+    | Some (desc, _) ->
+        error ~loc @@ InvalidFact { name; def = desc; use = typ }))
+
 let type_fact ?(allow_wildcard = false) env (fact : Input.fact) : Typed.fact =
   let loc = fact.loc in
   let desc : Typed.fact' =
     match fact.data with
     | ProcessFact _ -> assert false (* Unused *)
-    | Fact (name, es) ->
+    | Fact { name; args = es; persist } ->
+(* XXX???
         (* Which fact? For strucure? *)
         let nes = List.length es in
         let es = List.map (type_expr ~allow_wildcard env) es in
@@ -211,16 +306,33 @@ let type_fact ?(allow_wildcard = false) env (fact : Input.fact) : Typed.fact =
          | Some (desc, _) ->
              Error.raise ~loc @@ InvalidFact { name; def= desc; use= Plain }
         )
+*)
+        check_env_fact ~is_tag ~loc env Plain name nes persist;
+        Plain { name; args = List.map (type_expr env) es; persist }
+(* XXX???
     | GlobalFact (name, es) ->
         let es = List.map (type_expr ~allow_wildcard env) es in
         Env.add_fact ~loc env name (Global, Some (List.map type_of_expr es));
         Global (name, es)
+*)
+    | GlobalFact { name; args = es; persist } ->
+        let nes = List.length es in
+        check_env_fact ~is_tag ~loc env Global name nes persist;
+        Global { name; args = List.map (type_expr env) es; persist }
+(* XXX???
     | ChannelFact (e, name, es) ->
         let e = type_expr ~allow_wildcard env e in
         unify ~loc:e.loc TChannel (type_of_expr e);
         let es = List.map (type_expr ~allow_wildcard env) es in
         Env.add_fact ~loc env name (Channel, Some (List.map type_of_expr es));
         Channel { channel = e; name; args = es }
+*)
+    | ChannelFact { ch = e; name; args = es; persist } ->
+        let e = type_expr env e in
+        let es = List.map (type_expr env) es in
+        let nes = List.length es in
+        check_env_fact ~is_tag ~loc env Channel name nes persist;
+        Channel { channel = e; name; args = es; persist }
     | EqFact (e1, e2) ->
         let e1 = type_expr ~allow_wildcard env e1 in
         let e2 = type_expr ~allow_wildcard env e2 in
@@ -253,9 +365,8 @@ let extend_with_args env (args : Name.ident list) f =
   env, List.rev rev_ids
 ;;
 
-let type_facts ?(allow_wildcard = false) env facts =
-  List.map (type_fact ~allow_wildcard env) facts
-;;
+let type_facts ?(is_tag = false) ?(allow_wildcard = false) env facts =
+  List.map (type_fact ~is_tag ~allow_wildcard env) facts
 
 let rec infer_cmd_result_type (cmd : Typed.cmd) =
   match cmd.desc with
@@ -345,7 +456,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         let cases2 = type_cases env cases2 in
         While (cases1, cases2)
     | Event facts ->
-        let facts = type_facts env facts in
+        let facts = type_facts ~is_tag:true env facts in
         Event facts
     | Expr e ->
         let e = type_expr env e in
@@ -453,7 +564,7 @@ let type_process
            let chanty = Env.find_desc ~loc env chanty (Type CChan) in
            let chanid = Ident.local chanid in
            ( Env.add env chanid (Channel (with_param, chanty))
-           , Typed.{ channel=chanid; param; typ= chanty } :: rev_args ))
+           , Typed.{ channel = chanid; param; typ = chanty } :: rev_args ))
         (env', [])
         args
     in
@@ -541,7 +652,7 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
             env
             fresh_ids
         in
-        let facts = type_facts env' facts in
+        let facts = type_facts ~is_tag:true env' facts in
         Reachability { fresh = fresh_ids; facts }
     | Correspondence (f1, f2) ->
         let vs = Name.Set.union (Input.vars_of_fact f1) (Input.vars_of_fact f2) in
@@ -555,8 +666,8 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
             env
             fresh_ids
         in
-        let f1 = type_fact env' f1 in
-        let f2 = type_fact env' f2 in
+        let f1 = type_fact ~is_tag:true env' f1 in
+        let f2 = type_fact ~is_tag:true env' f2 in
         Correspondence { fresh = fresh_ids; premise = f1; conclusion = f2 }
   in
   let lemma : Typed.lemma = { env; loc; desc } in
@@ -564,6 +675,14 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
   let id = Ident.global name in
   env, (id, lemma)
 ;;
+
+let type_fact_desc (d : Input.fact_desc) : Env.named_fact_desc =
+  match d with
+  | Process -> assert false (* Unused *)
+  | Channel -> Channel
+  | Plain -> Plain
+  | Global -> Global
+  | Persistent -> assert false
 
 let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
   let loc = d.loc in
@@ -592,13 +711,30 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let e2 = type_expr env' e2 in
       unify ~loc (type_of_expr e1) (type_of_expr e2);
       ( env
-      , [{ env = env'
-         ; loc
-         ; desc =
-             (* [_fresh_ids] should be included,
+      , [ { env = env'
+          ; loc
+          ; desc =
+              (* [_fresh_ids] should be included,
                 but so far this information is not required in the later stages *)
-             Equation (e1, e2)
-         }] )
+              Equation (e1, e2)
+          }
+        ] )
+  | DeclExtFacts (descs, facts) ->
+      let desc_persist, descs = List.partition (fun desc -> desc = Input.Persistent) descs in
+      let is_persist = List.length desc_persist > 0 in
+      if List.length descs <= 0
+      then error ~loc @@ (Misc "Fact declaration must specify some kind")
+      else if List.length descs > 1
+      then error ~loc @@ FactDescConflict descs
+      else let desc = type_fact_desc (List.hd descs) in
+      List.iter (fun (id, arity) -> Env.add_fact ~loc env id (desc, Some arity, is_persist)) facts;
+      (env, [])
+  | DeclTags (desc, tags) ->
+      if desc = Input.Persistent
+      then error ~loc @@ (Misc "Tag declaration must specify some kind")
+      else let desc = type_fact_desc desc in
+      List.iter (fun (id, arity) -> Env.add_tag ~loc env id (desc, Some arity)) tags;
+      (env, [])
   | DeclExtSyscall (name, args, c, attack) ->
       let typ = fresh_callable (List.length args) in
       let args, cmd =
@@ -645,10 +781,10 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         args, c
       in
       let env', id = Env.add_global ~loc env name Attack in
-      env', [{ env; loc; desc = Attack { id; syscall; args; cmd } }]
+      env', [ { env; loc; desc = Attack { id; syscall; args; cmd } } ]
   | DeclType (name, tclass) ->
       let env', id = Env.add_global ~loc env name (Type tclass) in
-      env', [{ env; loc; desc = Type { id; typclass = tclass } }]
+      env', [ { env; loc; desc = Type { id; typclass = tclass } } ]
   | DeclAccess (proc_ty, tys, syscalls_opt) ->
       let proc_ty = Env.find_desc ~loc env proc_ty (Type CProc) in
       let tys =
@@ -676,11 +812,12 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
           syscalls_opt
       in
       ( env
-      , [{ env
-        ; loc
-        ; desc =
-            Allow { process_typ = proc_ty; target_typs = tys; syscalls = syscalls_opt }
-        }] )
+      , [ { env
+          ; loc
+          ; desc =
+              Allow { process_typ = proc_ty; target_typs = tys; syscalls = syscalls_opt }
+          }
+        ] )
   | DeclAttack (proc_tys, attacks) ->
       (* [allow attack proc_ty1 .. proc_tyn [attack1, .., attackn]] *)
       let proc_tys =
@@ -689,21 +826,21 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let attacks =
         List.map (fun attack -> Env.find_desc ~loc env attack Attack) attacks
       in
-      env, [{ env; loc; desc = AllowAttack { process_typs = proc_tys; attacks } }]
+      env, [ { env; loc; desc = AllowAttack { process_typs = proc_tys; attacks } } ]
   | DeclInit (name, Fresh) ->
       (* [const fresh n] *)
       let env', id = Env.add_global ~loc env name (Const false) in
-      env', [{ env; loc; desc = Init { id; desc = Fresh } }]
+      env', [ { env; loc; desc = Init { id; desc = Fresh } } ]
   | DeclInit (name, Value e) ->
       (* [const n = e] *)
       let e = type_expr env e in
       unify ~loc:e.loc TValue (type_of_expr e);
       let env', id = Env.add_global ~loc env name (Const false) in
-      env', [{ env; loc; desc = Init { id; desc = Value e } }]
+      env', [ { env; loc; desc = Init { id; desc = Value e } } ]
   | DeclInit (name, Fresh_with_param) ->
       (* [const fresh n<>] *)
       let env', id = Env.add_global ~loc env name (Const true) in
-      env', [{ env; loc; desc = Init { id; desc = Fresh_with_param } }]
+      env', [ { env; loc; desc = Init { id; desc = Fresh_with_param } } ]
   | DeclInit (name, Value_with_param (e, p)) ->
       (* [const n<p> = e] *)
       let p = Ident.local p in
@@ -714,16 +851,16 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
         Env.add_global ~loc env name (Const true)
         (* no info of param? *)
       in
-      env', [{ env; loc; desc = Init { id; desc = Value_with_param (p, e) } }]
+      env', [ { env; loc; desc = Init { id; desc = Value_with_param (p, e) } } ]
   | DeclChan (ChanParam { id = name; param; typ = chty }) ->
       (* [channel n : ty] *)
       (* [channel n<> : ty] *)
       let chty = Env.find_desc ~loc env chty (Type CChan) in
       let env', id = Env.add_global ~loc env name (Channel (param <> None, chty)) in
-      env', [{ env; loc; desc = Channel { id; param; typ = chty } }]
+      env', [ { env; loc; desc = Channel { id; param; typ = chty } } ]
   | DeclProc { id; param; args; typ; files; vars; funcs; main } ->
       let env', decl = type_process ~loc env id param args typ files vars funcs main in
-      env', [decl]
+      env', [ decl ]
   | DeclSys (procs, lemmas) ->
       (* [system proc1|..|procn requires [lemma X : ...; ..; lemma Y : ...]] *)
       let type_chan_arg ~loc env : _ -> Typed.chan_arg = function
@@ -748,7 +885,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
             let e = type_expr env e in
             (match Env.find ~loc env name with
              | id, Channel (true, chty) ->
-                 { channel= id; parameter= Some (Some e); typ= chty }
+                 { channel = id; parameter = Some (Some e); typ = chty }
              | id, _ ->
                  misc_errorf ~loc "%t is not a channel with a parameter" (Ident.print id))
       in
@@ -769,9 +906,11 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
               let chan_args = List.map (type_chan_arg ~loc env) chan_args in
               { id = pid; parameter = Some e; args = chan_args }
           | Proc _, Some p ->
-              misc_errorf ~loc "Process must be parameterized with the quantification %t" (Ident.print p)
-          | ParamProc _, None ->
-              misc_errorf ~loc "Process cannot be parameterized"
+              misc_errorf
+                ~loc
+                "Process must be parameterized with the quantification %t"
+                (Ident.print p)
+          | ParamProc _, None -> misc_errorf ~loc "Process cannot be parameterized"
         in
         { pproc with data }
       in
@@ -793,7 +932,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
           lemmas
       in
       let lemmas = List.rev rev_lemmas in
-      env, [{ env; loc; desc = System (procs, lemmas) }]
+      env, [ { env; loc; desc = System (procs, lemmas) } ]
 
 and load_decls env fn : Env.t * Typed.decl list =
   let decls, (_used_idents, _used_strings) = Lexer.read_file Parser.file fn in

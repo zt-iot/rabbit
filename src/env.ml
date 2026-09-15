@@ -6,7 +6,7 @@ type named_fact_desc =
 
 let string_of_named_fact_desc = function
   | Channel -> "channel"
-  | Structure -> "struture"
+  | Structure -> "structure"
   | Plain -> "plain"
   | Global -> "global"
 
@@ -127,19 +127,32 @@ let print_desc desc ppf =
 
 type t =
   { vars : (Ident.t * desc) list
-  ; facts : (Name.ident * (named_fact_desc * Type.type_ list option)) list ref
+  ; facts : (Name.ident * (named_fact_desc * Type.type_ list option * bool)) list ref
     (* The fact environment is global and must be shared by environments made
        with record copies.  A mutable record field would be copied into an
-       independent mutable field, so this must be a shared [ref]. *)
+       independent mutable field, so this must be a shared [ref].
+       The last [bool] is for persistency.
+    *)
+  ; tags : (Name.ident * (named_fact_desc * Type.type_ list option)) list ref;
   }
 
 let bindings x = x.vars
 
 let facts x = !(x.facts)
 
-let empty () = { vars= []; facts= ref [] }
+let tags x = !(x.tags)
 
-let singleton id desc = { vars= [(id, desc)]; facts= ref [] }
+let empty () = { vars= []; facts= ref []; tags= ref [] }
+
+let init_env () =
+  let env = empty () in
+  env.facts := ("In", (Global, Some 1, false)) :: ("Out", (Global, Some 1, false)) :: !(env.facts);
+  env.tags := ("K", (Global, Some 1)) :: !(env.tags);
+  env
+
+let singleton id desc =
+  let e = init_env () in
+  { e with vars= [(id, desc)] }
 
 let find_opt env name =
   List.find_opt (fun (id, _desc) -> name = fst id) env.vars
@@ -159,7 +172,19 @@ let update_fact env name v =
   in
   env.facts := update [] !(env.facts)
 
+let update_tag env name v =
+  let rec update rev_tags = function
+    | [] -> (name, v) :: List.rev rev_tags
+    | (name', _) :: tags when name = name' ->
+        List.rev_append rev_tags ((name, v) :: tags)
+    | t :: tags -> update (t :: rev_tags) tags
+  in
+  env.tags := update [] !(env.tags)
+
 let find_fact_opt env name = List.assoc_opt name !(env.facts)
+
+
+let find_tag_opt env name = List.assoc_opt name !(env.tags)
 
 let must_be_fresh ~loc env name =
   if mem env name then Error.raise ~loc (IdentifierAlreadyBound name)

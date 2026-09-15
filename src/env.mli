@@ -35,8 +35,9 @@ type t
 val bindings : t -> (Ident.t * desc) list
 
 val facts : t -> (Name.ident * (named_fact_desc * Type.type_ list option)) list
-
 val empty : unit -> t
+
+val init_env : unit -> t
 
 val singleton : Ident.t -> desc -> t
 
@@ -58,3 +59,10 @@ val add_global : loc:Location.t -> t -> Name.ident -> desc -> t * Ident.t
 val find_fact_opt : t -> Name.ident -> (named_fact_desc * Type.type_ list option) option
 
 val add_fact : loc:Location.t -> t -> Name.ident -> named_fact_desc * Type.type_ list option -> unit
+
+val update_tag : t -> Name.ident -> named_fact_desc * int option -> unit
+
+val find_fact_opt : t -> Name.ident -> (named_fact_desc * int option * bool) option
+
+val find_tag_opt : t -> Name.ident -> (named_fact_desc * int option) option
+>>>>>>> origin/hasegawa/fact-decl

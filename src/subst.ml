@@ -34,12 +34,14 @@ let rec expr (s : t) (e : expr) : expr =
 
 let fact s (f : fact) : fact =
   let desc : fact' = match f.desc with
-    | Channel { channel; name; args } ->
+    | Channel { channel; name; args; persist } ->
         let channel = expr s channel in
         let args = List.map (expr s) args in
-        Channel { channel; name; args }
-    | Plain (n, es) -> Plain (n, List.map (expr s) es)
-    | Global (n, es) -> Global (n, List.map (expr s) es)
+        Channel { channel; name; args; persist }
+    | Plain { name; args = es; persist } ->
+        Plain { name; args = List.map (expr s) es; persist }
+    | Global { name; args = es; persist } ->
+        Global { name; args = List.map (expr s) es; persist }
     | Eq (e1, e2) -> Eq (expr s e1, expr s e2)
     | Neq (e1, e2) -> Neq (expr s e1, expr s e2)
     | File { path; contents } -> File { path= expr s path; contents= expr s contents }
