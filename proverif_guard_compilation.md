@@ -241,6 +241,10 @@ else 0
 - `(x, 2) = (y, 2)` without another value source: no arbitrary-value search.
 - General global/plain fact guards, apart from `::In`, `::True()`, and `::False()`.
 
+The [process-local fact specification](proverif_local_facts.md) defines an
+initial subset for a future implementation. It does not change the current
+unsupported status or extend the sequential-input approximation to local facts.
+
 Function restrictions apply regardless of equations. Bound function
 applications remain ordinary comparisons; declarations still translate to
 ProVerif `fun`.

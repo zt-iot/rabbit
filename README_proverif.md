@@ -3,6 +3,7 @@
 ## Compiler documentation
 
 - [Guard compilation](proverif_guard_compilation.md): supported forms, variable bindings, inputs, and the known atomicity limitation.
+- [Process-local facts](proverif_local_facts.md): translation specification and initial supported subset for future implementation; local fact output and guards are currently unsupported.
 
 ## Channel fact events and queries
 
