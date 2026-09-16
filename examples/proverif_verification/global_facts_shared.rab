@@ -1,0 +1,60 @@
+fact global [Message:3, Missing:0, Left:0, Right:0]
+tag global [Sent:1, Received:2, Continued:0, Bad:0, First:0, Second:0, Leaked:0, Missing:0]
+const fresh secret
+type producer_t : process
+type consumer_t : process
+process producer<p>() : producer_t {
+  main {
+    event [::Missing()];
+    event [::Sent(secret)];
+    put [::Message((secret, (1, 2)), secret, 9), ::Left(), ::Left()];
+    event [::Continued()]
+  }
+}
+process consumer<p>() : consumer_t {
+  main {
+    case [::Message((x, (_, y)), x, _), y = 2] -> event [::Received(x, y)] end
+  }
+}
+process absent() : consumer_t {
+  main { case [::Missing()] -> event [::Bad()] end }
+}
+process distinct() : consumer_t {
+  main { case [::Right()] -> event [::Bad()] end }
+}
+process duplicates() : consumer_t {
+  main {
+    case [::Left()] -> event [::First()] end;
+    case [::Left()] -> event [::Second()] end
+  }
+}
+process attacker() : consumer_t {
+  main { case [::In(secret)] -> event [::Leaked()] end }
+}
+system attacker() | !p.producer<p>() | !q.consumer<q>() | absent() | distinct() | duplicates()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Received : reachable ::Received(secret, 2);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Origin : corresponds ::Received(secret, 2) ~> ::Sent(secret);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Continued : reachable ::Continued();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma NoInjection : reachable ::Bad();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma NoLeak : reachable ::Leaked();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma TwoOccurrences : reachable ::Second()
+]

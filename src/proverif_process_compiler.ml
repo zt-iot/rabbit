@@ -581,7 +581,9 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , List.map (compile_expr_to_pterm genv penv) args
         , None
         , body )
-  | Global { name=_; args=_; persist= true } -> assert false (* XXX *)
+  | Global { persist= true; _ } ->
+      Error.unsupported ~loc
+        "Persistent global facts are not supported in ProVerif event lowering"
   | Plain { name; args; persist= false } ->
       GEnv.add_event ~loc genv name Plain (List.map T.type_of_expr args);
       process_e
@@ -691,10 +693,18 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
         (process_e PNil)
   | Global { name= "Out"; args= [arg]; persist= false } ->
       process_e @@ POutput (pterm_e @@ PPIdent attacker_channel_ident, compile_expr_to_pterm genv penv arg, body)
-  | Global { name= "Out"; args= _; persist= true } -> assert false
-  | Global _ ->
+  | Global { persist= true; _ } ->
       Error.unsupported ~loc
-        "Global facts other than ::Out(...) are not supported in ProVerif put lowering"
+        "Persistent global facts are not supported in ProVerif put lowering"
+  | Global { name= ("In" | "Out" | "True" | "False"); _ } ->
+      Error.unsupported ~loc
+        "Only ::Out(value) is supported as a built-in global fact in ProVerif put lowering"
+  | Global { name; args; persist= false } ->
+      let channel = pterm_e @@ PPIdent (GEnv.global_fact_channel genv) in
+      let symbol = GEnv.global_fact_symbol genv name (List.map T.type_of_expr args) in
+      let payload = pterm_e @@ PPFunApp
+          (symbol, List.map (compile_expr_to_pterm genv penv) args) in
+      ppar (process_e @@ POutput (channel, payload, process_e PNil)) body
   | _ ->
       Error.unsupported ~loc
         "Only channel/global output facts are supported in ProVerif put lowering"
@@ -1087,13 +1097,32 @@ and compile_guard_facts
                   , Some (compile_value_type (T.type_of_expr arg)) )
               , match_arg (fragment rest)
               , [] )
-      | Global { name= "In"; args= _; persist= true } -> assert false (* XXX *)
+      | Global { persist= true; _ } ->
+          Error.unsupported ~loc:fact.loc
+            "Persistent global facts are not supported in ProVerif guard lowering"
       | Global { name= "False"; args= []; persist= false } -> penv, fun _rest -> else_proc
-      | Global { name= "False"; args= []; persist= true } -> assert false (* XXX *)
       | Global { name= "True"; args= []; persist= false } ->
           compile_guard genv penv fresh facts ~on_success ~else_proc
-      | Global { name= "True"; args= []; persist= true } -> assert false (* XXX *)
-      | Global _ | Plain _ ->
+      | Global { name= ("In" | "Out" | "True" | "False"); _ } ->
+          Error.unsupported ~loc:fact.loc
+            "Unsupported built-in global fact in ProVerif guard lowering"
+      | Global { name; args; persist= false } ->
+          let channel = pterm_e @@ PPIdent (GEnv.global_fact_channel genv) in
+          let symbol = GEnv.global_fact_symbol genv name (List.map T.type_of_expr args) in
+          let payload_vars = List.mapi (fun i _ ->
+              Ident.local (Printf.sprintf "global_arg_%d" i)) args in
+          let patterns = List.map2 (fun id arg ->
+              PPatVar (compile_ident id, Some (compile_value_type (T.type_of_expr arg))))
+              payload_vars args in
+          let branch_env, tests, wrap =
+            bind_guard_payloads penv fresh args payload_vars ~else_proc in
+          let final_env, fragment =
+            compile_guard genv branch_env fresh (tests @ facts) ~on_success ~else_proc in
+          final_env, fun rest ->
+            process_e @@ PInput
+              (channel, PPatFunApp (symbol, patterns), wrap (fragment rest),
+               [precise_ident, None])
+      | Plain _ ->
           Error.unsupported ~loc:fact.loc
             "Only equality/inequality/file guards are supported in ProVerif case lowering"
 

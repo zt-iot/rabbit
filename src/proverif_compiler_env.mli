@@ -101,6 +101,8 @@ module GEnv : sig
   val fresh_auxiliary_ident : t -> base:string -> ident
   val add_auxiliary_decl : t -> tdecl -> unit
   val take_auxiliary_decls : t -> tdecl list
+  val global_fact_channel : t -> ident
+  val global_fact_symbol : t -> T.name -> Type.type_ list -> ident
 
   val top_process : t -> tprocess_e option
   val set_top_process : t -> tprocess_e -> unit

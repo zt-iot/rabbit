@@ -1,0 +1,20 @@
+fact global [Recorded:0]
+tag global [Recorded:0]
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    put [::Recorded()]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma ModelRuns : (* falsified *) reachable ::Recorded()
+]

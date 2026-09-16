@@ -1,0 +1,39 @@
+fact global [Step:1, Result:1]
+fact channel [Msg:1]
+tag global [Loop:1, Finished:1, Wrong:0]
+type proc_t : process
+type transport_t : channel
+allow proc_t transport_t [.]
+syscall send(value) { put [::Step(value)]; value }
+allow proc_t [send]
+process worker(ch : transport_t) : proc_t {
+  main {
+    var sent = send(1) in
+    var state = 0 in
+    repeat
+    | [::Step(x), x = 2] -> event [::Wrong()]
+    | [::Step(x), x = 1] ->
+        event [::Loop(x)];
+        put [::Result(x), ch::Msg(x)];
+        state := 1
+    until
+    | [state = 1, ::Result(y), ch::Msg(y)] -> event [::Finished(y)]
+    end
+  }
+}
+channel ch : transport_t
+system worker(ch)
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Loop : reachable ::Loop(1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Finished : reachable ::Finished(1);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Wrong : reachable ::Wrong()
+]
