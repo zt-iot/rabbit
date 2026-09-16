@@ -1,7 +1,9 @@
+tag global [Equal:2, Unequal:2]
+
 tag global [BeforeInequality:2, AfterInequality:2]
 
-(* Verification feature: an inequality fact can be used in reachability and
-   on either side of a correspondence. *)
+(* Comparisons are guard conditions; ordinary tags record their successful
+   evaluation for reachability and correspondence queries. *)
 
 const fresh left
 const fresh right
@@ -12,7 +14,7 @@ process worker() : proc_t
 {
   main {
     event [::BeforeInequality(left, right)];
-    event [left != right];
+    case [left != right] -> event [::Unequal(left, right)] end;
     event [::AfterInequality(left, right)]
   }
 }
@@ -24,17 +26,17 @@ requires
   true
   *)
   lemma InequalityIsReachable : (* verified *)
-    reachable left != right ;
+    reachable ::Unequal(left, right) ;
 
   (* PROVERIF EXPECTED
   true
   *)
   lemma InequalityHasPredecessor : (* verified *)
-    corresponds left != right ~> ::BeforeInequality(left, right) ;
+    corresponds ::Unequal(left, right) ~> ::BeforeInequality(left, right) ;
 
   (* PROVERIF EXPECTED
   true
   *)
   lemma InequalityPrecedesContinuation : (* verified *)
-    corresponds ::AfterInequality(left, right) ~> left != right
+    corresponds ::AfterInequality(left, right) ~> ::Unequal(left, right)
 ]

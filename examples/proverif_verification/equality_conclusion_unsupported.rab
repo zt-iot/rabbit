@@ -1,0 +1,9 @@
+tag global [Observed:0]
+const fresh left
+const fresh right
+type proc_t : process
+process worker() : proc_t {
+  main { event [::Observed()] }
+}
+system worker()
+requires [ lemma Comparison : corresponds ::Observed() ~> left = right ]
