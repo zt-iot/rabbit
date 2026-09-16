@@ -1,6 +1,6 @@
 tag global [Never:0]
 
-(* Known gap: ProVerif event lowering does not support file facts. *)
+(* File facts have no event or query semantics and must be rejected by the typer. *)
 
 type proc_t : process
 type data_t : filesys

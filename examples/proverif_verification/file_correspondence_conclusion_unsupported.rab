@@ -1,0 +1,14 @@
+tag global [Seen:0]
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main { event [::Seen()] }
+}
+
+system worker()
+requires
+[
+  lemma FileCorrespondence : corresponds ::Seen() ~> "/data".value
+]
