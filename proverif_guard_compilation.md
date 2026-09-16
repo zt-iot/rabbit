@@ -241,9 +241,9 @@ else 0
 - `(x, 2) = (y, 2)` without another value source: no arbitrary-value search.
 - General global/plain fact guards, apart from `::In`, `::True()`, and `::False()`.
 
-The [process-local fact specification](proverif_local_facts.md) defines an
-initial subset for a future implementation. It does not change the current
-unsupported status or extend the sequential-input approximation to local facts.
+The [process-local fact specification](proverif_local_facts.md) defines a
+sequential-consumption contract for future local fact support. Local facts
+remain unsupported in the current compiler.
 
 Function restrictions apply regardless of equations. Bound function
 applications remain ordinary comparisons; declarations still translate to
@@ -255,5 +255,11 @@ In example 9, `Msg(a,b)` is consumed even if `a != b`.
 Rabbit would consume the fact only when the complete guard succeeds.
 File inputs have the same limitation.
 
-The generated model may therefore omit Rabbit executions, affecting both
-reachability and correspondence results. This remains unresolved.
+Partial consumption can add deadlock paths. This alone does not imply a
+change to existential reachability or past-event correspondence: the relevant
+criterion is preservation of observable event histories, including all original
+successful choices. Deadlock freedom and eventual progress are not required.
+The [local fact specification](proverif_local_facts.md#atomicity-and-the-properties-being-preserved)
+states the conditions and argument for applying this policy to local facts.
+Each lowering must satisfy those conditions; sequential inputs alone are
+neither a proof of preservation nor a reason to reject a guard.

@@ -1,11 +1,11 @@
 # Process-local fact translation
 
 This specification addresses [#31](https://github.com/zt-iot/rabbit/issues/31).
-It defines an initial translation for ordinary, non-persistent named facts
-declared with `fact local`, represented by `Typed.Plain`. It deliberately
-limits accepted guards to those for which one input implements the complete
-fact-consuming transition. Extending this subset requires an atomic guard
-encoding; sequential inputs alone are not such an extension.
+It defines a translation for ordinary, non-persistent named facts declared
+with `fact local`, represented by `Typed.Plain`. Guards use sequential
+consumption, following the channel/file fact approach. The contract preserves
+existential reachability and past-event correspondence under the conditions
+below; it does not require preservation of deadlock freedom or atomic stores.
 
 Status: specification for subsequent implementation. The current compiler
 rejects local fact output and guards, including `examples/issue20.rab`.
@@ -77,22 +77,20 @@ code to execute without waiting for a receiver. Do not use a sequential
 output that blocks the continuation, replication of the output, or a
 ProVerif table that would make the fact reusable.
 
-A `put` containing only ordinary local facts produces one parallel output
+A `put` containing several ordinary local facts produces one parallel output
 per occurrence alongside the continuation. The owning process has no
 concurrent Rabbit command consuming this store, and other instances cannot
-access it, so the continuation sees all these outputs as available. This
-rule does not authorize mixed local/channel/file/global outputs in one
-command; reject such commands until their combined translation is specified.
+access it, so the continuation sees all these outputs as available. When a
+command also contains supported channel/file outputs, compose their existing
+output translations with these local outputs. Preserve their access checks
+and existing restrictions; adding local facts does not enable unsupported
+global outputs or persistent facts. Local facts impose no additional
+single-fact restriction on `put`.
 
-## Consumption and the initial supported subset
+## Consumption, comparisons, and control flow
 
-An accepted guard contains exactly one ordinary local fact. Its arguments
-must consist only of distinct, previously unbound variables and anonymous
-wildcards. Tuple patterns, fixed values, repeated variables, function
-patterns, comparisons, and any additional facts are excluded initially.
-Each wildcard is translated to a separate unused input variable.
-
-For example:
+For each ordinary local fact in a guard, input one constructor-tagged
+message from the owning process's channel. For example:
 
 ```rabbit
 case [F(x, _)] -> body end
@@ -106,18 +104,49 @@ Body
 ```
 
 Use the actual translated argument types in place of `bitstring`. The
-constructor pattern selects the fact declaration without receiving and
-discarding messages belonging to other declarations. The input binds the
-arguments and consumes exactly one occurrence. No fallible test follows
-receipt before entering the branch body. If no matching occurrence exists,
-the process blocks and consumes nothing. Selecting among multiple matching
-occurrences is nondeterministic.
+constructor pattern selects the declaration. Each input consumes exactly
+one occurrence; two occurrences of `A()` in a guard require two messages.
+Selecting among matching messages is nondeterministic. If a required message
+is unavailable, the input blocks, possibly after earlier inputs consumed
+other facts.
 
-Initially this rule applies only to a single-branch `case` and a single
-`assume` guard with the same supported shape. Reject local facts in
-multi-branch `case`, `repeat`, or `until` guards until their choice and loop
-encoding is validated with local fact consumption. Local fact production
-inside an otherwise supported loop retains the owning instance's channel.
+Reuse the existing guard binding and comparison machinery for argument
+patterns: distinct variables bind values, wildcards introduce separate unused
+variables, and repeated variables or fixed expressions introduce tests.
+Tuple decomposition and function expressions follow the supported forms in
+[the guard guide](proverif_guard_compilation.md); this specification does not
+introduce arbitrary function inversion. Schedule tests after their variables
+are bound, and execute the branch body only after every fact and test succeeds.
+
+For example, the guard `[A(x), B(y), x = y]` can be lowered schematically as:
+
+```proverif
+in(local_ch, local_A(x:bitstring));
+in(local_ch, local_B(y:bitstring));
+if x = y then Body else Failure
+```
+
+On failure, consumed occurrences need not be restored. `Failure` is the
+surrounding control-flow failure continuation: termination for a single case,
+or release of the unchanged control state for another guard attempt where
+applicable. It must not execute the failed branch body or export its fresh
+bindings. Blocking on an input can retain the control token indefinitely.
+These are accepted additional stopping paths, subject to the preservation
+conditions below.
+
+Apply these rules to `case`, `assume`, `repeat`, and `until`. Alternative
+branches use nondeterministic selection, with the existing private control
+token serializing guard attempts and branch execution for the owning
+process. At most one branch body executes for a case selection or loop step.
+A successful step passes the resulting state to the continuation; a loop
+retains the same local channel. Do not impose source-order priority or select
+one branch permanently at compile time: every enabled Rabbit branch and
+matching choice must still have a corresponding successful execution.
+
+Local facts may also occur alongside otherwise supported channel/file facts,
+comparisons, and access checks. Apply the same sequential guard machinery and
+preservation conditions to the whole guard. Existing independent restrictions
+on those forms remain; atomicity alone is not a reason to reject the mixture.
 
 The motivating fragment from `examples/issue20.rab` therefore translates to:
 
@@ -130,39 +159,59 @@ new local_ch: channel;
 This is schematic: declarations and the rest of the process are omitted.
 One occurrence is produced and consumed before `Continuation` executes.
 
-## Atomicity and required rejection
+## Atomicity and the properties being preserved
 
-Rabbit evaluates a complete guard against the available facts and consumes
-its ordinary facts only when the whole guard succeeds. A failed guard
-leaves the multiset unchanged. Alternative branches choose one enabled
-branch, without consuming facts for losing branches.
+Rabbit consumes a guard's ordinary facts only when the complete guard
+succeeds. Sequential ProVerif inputs can instead partially consume a guard,
+block, or fail a later comparison. This difference is accepted when it adds
+stopping executions without removing original observable executions or
+introducing new observable event histories.
 
-The initial subset preserves this property because its sole input is the
-complete guard. A conforming implementation must reject the following
-forms with a source-located unsupported-feature diagnostic before emitting
-a model; it must not silently fall back to general sequential lowering.
+The translation must satisfy the following conditions:
 
-| Guard shape | Reason for rejection |
-| --- | --- |
-| `[A(), B()]` or `[A(), A()]` | Two inputs can consume the first occurrence while the complete guard is disabled. |
-| `[F(x), x = a]`, `[F(x), x != a]` | A failed comparison must leave the selected occurrence available. |
-| `[F(x, x)]`, `[F(a)]`, or structured arguments | Outside the initial pattern subset; do not implement by consuming then testing. |
-| Local facts combined with channel/file/global facts or access checks | The complete transition needs atomic consumption across stores. |
-| Multiple alternative branches involving local facts | A blocked or losing branch must not reserve or consume facts needed by another branch. |
-| Persistent local facts | Consuming input does not implement persistence. |
+- Each instance's local store is private. Guard evaluation and branch bodies
+  of that instance are serialized, including workers introduced for loops.
+- No branch-body event, output, or other visible effect occurs before the
+  complete guard succeeds. Receiving a local fact emits no event.
+- Every original enabled transition, including its branch and occurrence
+  choices, remains possible in the translation. An additional execution
+  that selects an unavailable fact and blocks does not remove this choice.
+- Fact guards test positive availability, not absence or exact remaining
+  cardinality. No operation observes a failed guard's discarded local facts.
+- Any other operations in a mixed guard satisfy the same preservation
+  argument; sequential consumption is not a blanket justification for
+  unrelated effects during guard evaluation.
 
-Reordering comparisons can simplify some cases, but does not authorize
-these forms in the initial subset. A lock only prevents concurrent guard
-evaluation; it does not make several inputs atomic or detect that a later
-input cannot proceed. Restoring facts after a failed comparison also fails
-to address a blocked input or competition between alternatives.
+For a successful local guard, its hidden inputs can be interpreted as one
+consumption at guard success. No competing command of that instance observes
+the intermediate store. For a failed attempt that discards local facts, an
+original execution can leave those facts unused and make the same subsequent
+positive guard choices. Keeping extra unused facts does not force another
+branch to run. A blocked attempt can be represented by leaving the original
+process unscheduled while other processes continue; no fairness guarantee is
+assumed. Conversely, an enabled original guard can be reproduced by choosing
+its branch and messages and completing its tests. This is the argument the
+implementation must maintain across case selection, loops, and inlined calls.
 
-The existing channel/file guard atomicity limitation is therefore not
-inherited as an implicit approximation for local facts. Broader support
-requires a separate specification of selection, commit, failure and
-blocking that preserves all enabled Rabbit transitions. Such support must
-also address ProVerif's analysis approximations; the operational encoding
-alone does not guarantee that ProVerif proves a query.
+Consequently, additional stopping paths alone do not change existential
+reachability: the original path to an event remains available. They also do
+not change past-event correspondence (an event requires a preceding event)
+when observable event histories are preserved. This does not assert deadlock
+freedom, eventual progress, fairness, or equivalence of internal stores.
+Absence tests, observable consumption, or priority choice would require
+revisiting the argument.
+
+A control token serializes attempts; it does not make inputs atomic, and no
+such atomicity claim is needed here. Multiple facts, comparisons, repeated
+variables, and alternative branches must not be rejected solely because
+partial consumption is possible. Persistent local facts remain unsupported
+under this specification because consuming an occurrence does not implement
+persistence; report a source-located diagnostic rather than asserting.
+
+This operational preservation argument is separate from ProVerif's analysis
+approximations. It does not guarantee that ProVerif will prove every true
+query or avoid an `unknown` result. Local fact support must be checked against
+these conditions rather than inferred solely from a successful tool run.
 
 ## Implementation acceptance checks
 
@@ -177,8 +226,15 @@ The implementation PR must add focused regression examples under
   each other's facts. Also inspect the generated restriction scope.
 - Local functions and inlined system calls can consume facts produced by
   their caller and leave new facts for it after return.
-- Every rejected shape above produces a diagnostic, including when hidden
-  in a called function or system call. Persistent uses must not assert.
+- Multiple facts, comparisons, repeated variables, and supported tuple
+  patterns preserve successful reachability and correspondence examples.
+- Alternatives and loops retain valid successful choices even when another
+  choice blocks or fails after partial consumption. Failed attempts execute
+  no branch-body event and do not leak bindings or duplicate the control token.
+- Supported mixed local/channel/file guards and outputs preserve their access
+  checks and successful paths, including inside inlined calls.
+- Persistent local uses produce diagnostics rather than assertions. Other
+  unsupported patterns retain the existing guard diagnostics.
 
 Use query checks together with generated-process inspection where the
 analyzer's approximation cannot establish exact multiplicity or isolation.
