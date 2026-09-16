@@ -241,6 +241,10 @@ else 0
 - `(x, 2) = (y, 2)` without another value source: no arbitrary-value search.
 - General global/plain fact guards, apart from `::In`, `::True()`, and `::False()`.
 
+The [global fact specification](proverif_global_facts.md) defines the planned
+shared-store translation and its explicit atomicity assumption. It does not
+change the current compiler support listed here.
+
 Function restrictions apply regardless of equations. Bound function
 applications remain ordinary comparisons; declarations still translate to
 ProVerif `fun`.
