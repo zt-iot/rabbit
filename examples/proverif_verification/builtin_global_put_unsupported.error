@@ -1,0 +1,1 @@
+Only ::Out(value) is supported as a built-in global fact in ProVerif put lowering

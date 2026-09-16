@@ -1,0 +1,5 @@
+tag global [Never:0]
+type proc_t : process
+process worker() : proc_t { main { case [::Out(x)] -> skip end } }
+system worker()
+requires [ lemma Never : reachable ::Never() ]

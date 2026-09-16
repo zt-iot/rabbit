@@ -3,7 +3,7 @@
 ## Compiler documentation
 
 - [Guard compilation](proverif_guard_compilation.md): supported forms, variable bindings, inputs, and the known atomicity limitation.
-- [Global facts](proverif_global_facts.md): planned shared private-channel translation for ordinary global facts; output and guards remain unsupported until implementation.
+- [Global facts](proverif_global_facts.md): shared private-channel translation for ordinary global facts, with sequential consumption and an explicit atomicity assumption.
 
 ## Channel fact events and queries
 

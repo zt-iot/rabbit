@@ -1,8 +1,7 @@
 # Global fact translation
 
-Status: specification for subsequent implementation. The current compiler
-rejects ordinary global fact output and guards. This document defines their
-translation; it does not claim that the compiler already supports them.
+Status: implemented for ordinary non-persistent global fact output and
+guards. This document defines the translation and its analysis assumptions.
 
 The scope is non-persistent facts declared with `fact global`, represented
 by `Typed.Global`. Global tags used in events and queries remain separate:
@@ -18,12 +17,13 @@ occurrences. Two identical outputs create two independently consumable
 occurrences.
 
 Represent this multiset by pending messages on one private ProVerif channel
-`global_fact_ch`. Allocate it once outside all process-instance replications
-and pass it to process definitions as needed. Schematically:
+`global_fact_ch`. Declare it once at top level, outside all process-instance
+replications. Process definitions refer to this shared private name. Schematically:
 
 ```proverif
-new global_fact_ch: channel;
-(!Producer(global_fact_ch) | !Consumer(global_fact_ch))
+free global_fact_ch: channel [private].
+(* Process definitions refer to global_fact_ch. *)
+process (!Producer | !Consumer)
 ```
 
 Do not allocate a separate channel inside each process instance: that would
@@ -34,8 +34,8 @@ public channel/access tables. Ordinary global facts need no channel access
 policy check.
 
 For each fact declaration `F` with argument types `t1, ..., tn`, generate a
-distinct constructor `global_F(t1, ..., tn): bitstring`, using the existing
-value-type translation. A nullary fact uses a nullary constructor. Generated
+distinct data constructor `F__global_fact(t1, ..., tn): bitstring`, using
+the existing value-type translation. A nullary fact uses a nullary constructor. Generated
 names must not collide with other declarations, events, or channel messages.
 These constructors have no equations or reductions; channel privacy, rather
 than constructor secrecy, protects the store.
@@ -45,7 +45,7 @@ than constructor secrecy, protects the store.
 Translate `put [::F(v1, ..., vn)]; continuation` schematically as:
 
 ```proverif
-out(global_fact_ch, global_F(V1, ..., Vn)) | Continuation
+out(global_fact_ch, F__global_fact(V1, ..., Vn)) | Continuation
 ```
 
 Each `Vi` is evaluated using the environment at the output command. The
@@ -65,7 +65,7 @@ A guard `::F(patterns)` consumes one message matching the declaration's
 constructor. For example, `case [::F(x, _)] -> body end` becomes:
 
 ```proverif
-in(global_fact_ch, global_F(x:bitstring, ignored:bitstring));
+in(global_fact_ch, F__global_fact(x:bitstring, ignored:bitstring));
 Body
 ```
 
@@ -84,8 +84,8 @@ body only after the complete guard succeeds.
 Multiple fact guards use sequential inputs. For example:
 
 ```proverif
-in(global_fact_ch, global_A(x:bitstring));
-in(global_fact_ch, global_B(y:bitstring));
+in(global_fact_ch, A__global_fact(x:bitstring));
+in(global_fact_ch, B__global_fact(y:bitstring));
 if x = y then Body else Failure
 ```
 
@@ -127,9 +127,8 @@ therefore not rejected solely because the translation is non-atomic.
 
 ## Implementation acceptance checks
 
-A subsequent implementation PR must add focused regression examples under
-`examples/proverif_verification/` and update the existing ordinary-global-fact
-unsupported fixtures. Check:
+Regression examples under `examples/proverif_verification/` cover ordinary
+global facts and persistent-use diagnostics. Implementation obligations include:
 
 - A producer's fact reaches a consumer in a different process instance,
   including replicated instances and different process types/parameters.
@@ -149,4 +148,9 @@ unsupported fixtures. Check:
 Use generated-process inspection as well as query checks, especially for
 channel scope, multiplicity, privacy, and blocking behavior that ProVerif's
 approximation may not establish. These checks do not prove the atomicity
-assumption. This specification PR changes no compiler behavior.
+assumption. In particular, `global_facts_linear.rab` records `unknown` for
+the query attempting to consume one occurrence twice; the AST regression
+checks that the compiler emits one output and two consuming inputs without
+replication. The shared and control-flow fixtures cover cross-instance
+communication, declaration separation, patterns, correspondence, mixed
+channel/global guards, syscalls, alternatives, and loops.
