@@ -255,11 +255,8 @@ In example 9, `Msg(a,b)` is consumed even if `a != b`.
 Rabbit would consume the fact only when the complete guard succeeds.
 File inputs have the same limitation.
 
-Partial consumption can add deadlock paths. This alone does not imply a
-change to existential reachability or past-event correspondence: the relevant
-criterion is preservation of observable event histories, including all original
-successful choices. Deadlock freedom and eventual progress are not required.
-The [local fact specification](proverif_local_facts.md#atomicity-and-the-properties-being-preserved)
-states the conditions and argument for applying this policy to local facts.
-Each lowering must satisfy those conditions; sequential inputs alone are
-neither a proof of preservation nor a reason to reject a guard.
+Partial consumption can add deadlock paths. Based on past discussions, we
+assume that this atomicity issue does not affect reachability or correspondence.
+The [local fact specification](proverif_local_facts.md#atomicity-assumption)
+applies the same assumption to local facts; it does not claim a proof of
+preservation or require deadlock freedom.

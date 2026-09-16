@@ -4,7 +4,7 @@ This specification addresses [#31](https://github.com/zt-iot/rabbit/issues/31).
 It defines a translation for ordinary, non-persistent named facts declared
 with `fact local`, represented by `Typed.Plain`. Guards use sequential
 consumption, following the channel/file fact approach. The contract preserves
-existential reachability and past-event correspondence under the conditions
+existential reachability and past-event correspondence under the assumption
 below; it does not require preservation of deadlock freedom or atomic stores.
 
 Status: specification for subsequent implementation. The current compiler
@@ -131,8 +131,8 @@ surrounding control-flow failure continuation: termination for a single case,
 or release of the unchanged control state for another guard attempt where
 applicable. It must not execute the failed branch body or export its fresh
 bindings. Blocking on an input can retain the control token indefinitely.
-These are accepted additional stopping paths, subject to the preservation
-conditions below.
+These are accepted additional stopping paths, under the atomicity assumption
+below.
 
 Apply these rules to `case`, `assume`, `repeat`, and `until`. Alternative
 branches use nondeterministic selection, with the existing private control
@@ -145,7 +145,7 @@ matching choice must still have a corresponding successful execution.
 
 Local facts may also occur alongside otherwise supported channel/file facts,
 comparisons, and access checks. Apply the same sequential guard machinery and
-preservation conditions to the whole guard. Existing independent restrictions
+atomicity assumption to the whole guard. Existing independent restrictions
 on those forms remain; atomicity alone is not a reason to reject the mixture.
 
 The motivating fragment from `examples/issue20.rab` therefore translates to:
@@ -159,59 +159,19 @@ new local_ch: channel;
 This is schematic: declarations and the rest of the process are omitted.
 One occurrence is produced and consumed before `Continuation` executes.
 
-## Atomicity and the properties being preserved
+## Atomicity assumption
 
-Rabbit consumes a guard's ordinary facts only when the complete guard
-succeeds. Sequential ProVerif inputs can instead partially consume a guard,
-block, or fail a later comparison. This difference is accepted when it adds
-stopping executions without removing original observable executions or
-introducing new observable event histories.
+Sequential consumption is not atomic: it may consume some facts before a
+later input blocks or a comparison fails, adding deadlock paths. Based on
+past discussions, we assume that this atomicity issue does not affect
+reachability or correspondence, and apply the same assumption to local facts.
+This is an assumption of this specification, not a proof of preservation;
+deadlock freedom is not required. Multiple facts, comparisons, and alternative
+branches are therefore not rejected solely because consumption is non-atomic.
 
-The translation must satisfy the following conditions:
-
-- Each instance's local store is private. Guard evaluation and branch bodies
-  of that instance are serialized, including workers introduced for loops.
-- No branch-body event, output, or other visible effect occurs before the
-  complete guard succeeds. Receiving a local fact emits no event.
-- Every original enabled transition, including its branch and occurrence
-  choices, remains possible in the translation. An additional execution
-  that selects an unavailable fact and blocks does not remove this choice.
-- Fact guards test positive availability, not absence or exact remaining
-  cardinality. No operation observes a failed guard's discarded local facts.
-- Any other operations in a mixed guard satisfy the same preservation
-  argument; sequential consumption is not a blanket justification for
-  unrelated effects during guard evaluation.
-
-For a successful local guard, its hidden inputs can be interpreted as one
-consumption at guard success. No competing command of that instance observes
-the intermediate store. For a failed attempt that discards local facts, an
-original execution can leave those facts unused and make the same subsequent
-positive guard choices. Keeping extra unused facts does not force another
-branch to run. A blocked attempt can be represented by leaving the original
-process unscheduled while other processes continue; no fairness guarantee is
-assumed. Conversely, an enabled original guard can be reproduced by choosing
-its branch and messages and completing its tests. This is the argument the
-implementation must maintain across case selection, loops, and inlined calls.
-
-Consequently, additional stopping paths alone do not change existential
-reachability: the original path to an event remains available. They also do
-not change past-event correspondence (an event requires a preceding event)
-when observable event histories are preserved. This does not assert deadlock
-freedom, eventual progress, fairness, or equivalence of internal stores.
-Absence tests, observable consumption, or priority choice would require
-revisiting the argument.
-
-A control token serializes attempts; it does not make inputs atomic, and no
-such atomicity claim is needed here. Multiple facts, comparisons, repeated
-variables, and alternative branches must not be rejected solely because
-partial consumption is possible. Persistent local facts remain unsupported
-under this specification because consuming an occurrence does not implement
-persistence; report a source-located diagnostic rather than asserting.
-
-This operational preservation argument is separate from ProVerif's analysis
-approximations. It does not guarantee that ProVerif will prove every true
-query or avoid an `unknown` result. Local fact support must be checked against
-these conditions rather than inferred solely from a successful tool run.
+Persistent local facts remain outside this specification: consuming an
+occurrence does not implement persistence. Unsupported persistent uses must
+produce a source-located diagnostic rather than an assertion failure.
 
 ## Implementation acceptance checks
 
