@@ -1,3 +1,5 @@
+tag global [Result:1]
+
 (* Verification feature: active-attack alternatives propagate return values.
 
    Reviewed

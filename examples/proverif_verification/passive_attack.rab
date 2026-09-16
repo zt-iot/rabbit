@@ -1,3 +1,5 @@
+tag global [Observed:1]
+
 (* Verification feature: passive attack
 
    Reviewed.

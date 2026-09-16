@@ -1,3 +1,5 @@
+tag global [Continued:0]
+
 (* Verification feature: a return expression in main does not lose its continuation.
 
    Reviewed.

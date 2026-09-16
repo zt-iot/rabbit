@@ -1,3 +1,7 @@
+fact channel [store:1]
+tag global [Valid:1, Invalid:1, Sent:1]
+fact global [False:0]
+
 (* Artificial example of non variable parameters *)
 
 function fst:1

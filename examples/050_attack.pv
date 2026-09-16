@@ -29,50 +29,50 @@ fun succ__0(bitstring): bitstring.
 const proc_t__0: proc_t.
 (* process alice(..): proc_t *)
 let alice__0(ptype:proc_t) =
-  (* new n__687 in .. at file "./050_attack.rab", line 15, charaters 8-165 *)
-  new n__687:bitstring;
-  (* event [ ::Send(n__687) ] at file "./050_attack.rab", line 16, charaters 1-17 *)
-  event Send__event_global(n__687);
-  (* let m__688 = .. in .. at file "./050_attack.rab", line 17, charaters 8-129 *)
-  new call_join_ch__691:channel;
+  (* new n__610 in .. at file "./050_attack.rab", line 17, charaters 8-165 *)
+  new n__610:bitstring;
+  (* event [ ::Send(n__610) ] at file "./050_attack.rab", line 18, charaters 1-17 *)
+  event Send__event_global(n__610);
+  (* let m__611 = .. in .. at file "./050_attack.rab", line 19, charaters 8-129 *)
+  new call_join_ch__614:channel;
   (new attack_choice_ch:channel;
    (out(attack_choice_ch, true__bool) |
     in(attack_choice_ch, _:bitstring);
-    out(call_join_ch__691, (true__bool, (* expr at file "./050_attack.rab", line 5, charaters 2-3 *)
-                                        n__687, n__687))) |
+    out(call_join_ch__614, (true__bool, (* expr at file "./050_attack.rab", line 7, charaters 2-3 *)
+                                        n__610, n__610))) |
    in(attack_choice_ch, _:bitstring);
-   out(call_join_ch__691, (true__bool, (* expr at file "./050_attack.rab", line 9, charaters 2-9 *)
-                                       succ__0(n__687), n__687))) |
-  in(call_join_ch__691, (=true__bool, call_result__692:bitstring, call_state_0__693:bitstring))[precise];
-  (* case at file "./050_attack.rab", line 19, charaters 21-38 *)
-  new case_ch__694:channel;
-  ((out(case_ch__694, (false__bool, (), call_state_0__693, call_result__692)) |
-    (* case [ n__687 = m__688 ] at file "./050_attack.rab", line 19, charaters 21-38 *)
-    in(case_ch__694, (=false__bool, case_result__698:bitstring, case_state_0__699:bitstring, case_state_1__700:bitstring))[precise];
-    if case_state_0__699 = case_state_1__700
+   out(call_join_ch__614, (true__bool, (* expr at file "./050_attack.rab", line 11, charaters 2-9 *)
+                                       succ__0(n__610), n__610))) |
+  in(call_join_ch__614, (=true__bool, call_result__615:bitstring, call_state_0__616:bitstring))[precise];
+  (* case at file "./050_attack.rab", line 21, charaters 21-38 *)
+  new case_ch__617:channel;
+  ((out(case_ch__617, (false__bool, (), call_state_0__616, call_result__615)) |
+    (* case [ n__610 = m__611 ] at file "./050_attack.rab", line 21, charaters 21-38 *)
+    in(case_ch__617, (=false__bool, case_result__621:bitstring, case_state_0__622:bitstring, case_state_1__623:bitstring))[precise];
+    if case_state_0__622 = case_state_1__623
     then
-      (* event [ ::Valid(n__687) ] at file "./050_attack.rab", line 19, charaters 21-38 *)
-      event Valid__event_global(case_state_0__699);
-      out(case_ch__694, (true__bool, (), case_state_0__699, case_state_1__700))
+      (* event [ ::Valid(n__610) ] at file "./050_attack.rab", line 21, charaters 21-38 *)
+      event Valid__event_global(case_state_0__622);
+      out(case_ch__617, (true__bool, (), case_state_0__622, case_state_1__623))
     else
-      out(case_ch__694, (false__bool, case_result__698, case_state_0__699, case_state_1__700))) |
-   (* case [ n__687 != m__688 ] at file "./050_attack.rab", line 20, charaters 22-40 *)
-   in(case_ch__694, (=false__bool, case_result__701:bitstring, case_state_0__702:bitstring, case_state_1__703:bitstring))[precise];
-   if case_state_0__702 = case_state_1__703
+      out(case_ch__617, (false__bool, case_result__621, case_state_0__622, case_state_1__623))) |
+   (* case [ n__610 != m__611 ] at file "./050_attack.rab", line 22, charaters 22-40 *)
+   in(case_ch__617, (=false__bool, case_result__624:bitstring, case_state_0__625:bitstring, case_state_1__626:bitstring))[precise];
+   if case_state_0__625 = case_state_1__626
    then
-     out(case_ch__694, (false__bool, case_result__701, case_state_0__702, case_state_1__703))
+     out(case_ch__617, (false__bool, case_result__624, case_state_0__625, case_state_1__626))
    else
-     (* event [ ::Invalid() ] at file "./050_attack.rab", line 20, charaters 22-40 *)
+     (* event [ ::Invalid() ] at file "./050_attack.rab", line 22, charaters 22-40 *)
      event Invalid__event_global;
-     out(case_ch__694, (true__bool, (), case_state_0__702, case_state_1__703))) |
-  (* end of case at file "./050_attack.rab", line 19, charaters 21-38 *)
-  in(case_ch__694, (=true__bool, case_done_result__695:bitstring, case_done_state_0__696:bitstring, case_done_state_1__697:bitstring))[precise].
+     out(case_ch__617, (true__bool, (), case_state_0__625, case_state_1__626))) |
+  (* end of case at file "./050_attack.rab", line 21, charaters 21-38 *)
+  in(case_ch__617, (=true__bool, case_done_result__618:bitstring, case_done_state_0__619:bitstring, case_done_state_1__620:bitstring))[precise].
 (* Requires *)
 (* lemma Reachable *)
-query n__689:bitstring; event(Valid__event_global(n__689)).
+query n__612:bitstring; event(Valid__event_global(n__612)).
 (* lemma Corresponds *)
-query n__690:bitstring;
-  event(Valid__event_global(n__690)) ==> event(Send__event_global(n__690)).
+query n__613:bitstring;
+  event(Valid__event_global(n__613)) ==> event(Send__event_global(n__613)).
 (* lemma Tampered *)
 query event(Invalid__event_global()).
 (* System *)

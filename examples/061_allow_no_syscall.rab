@@ -1,3 +1,6 @@
+fact channel [send:1]
+tag global [Valid:0]
+
 type person_t : process
 type chan_t : channel
 

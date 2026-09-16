@@ -1,3 +1,5 @@
+tag global [Notified:1, Continued:0]
+
 (* Verification feature: a local function without return falls through to its
    caller when its result is discarded.
 

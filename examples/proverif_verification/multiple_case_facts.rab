@@ -1,3 +1,5 @@
+tag global [AllMatched:0, OneFailed:0]
+
 (* Verification feature: facts in a case guard are combined by conjunction. *)
 
 type proc_t : process

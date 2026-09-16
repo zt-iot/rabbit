@@ -1,3 +1,6 @@
+tag global [Assumed:2, EquationalFixed:1, BadRepeated:0, Channel:1, File:1, Loop:1, Exit:1, Input:1, Leaked:0, BadShape:0]
+fact channel [Msg:1]
+
 (* Regression: functions without equations must not gain argument extractors.
    This previously compiled; the first assumption must now be rejected. *)
 function wrap:1

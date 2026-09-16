@@ -1,3 +1,5 @@
+tag global [DecryptionResult:1, Continued:0]
+
 (* An equation does not make `dec` a partial function in Rabbit or Tamarin.
    When its argument is not an encryption under the given key, the term stays
    unreduced and execution continues. *)

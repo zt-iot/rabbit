@@ -41,38 +41,38 @@ let server__0(ptype:proc_t, ch__581:channel) =
   get channel_table(ch_type__604:acc_data_t, =ch__581) in
   get access_control_table(=ptype, =ch_type__604, =none__syscall) in
   in(ch__581, (received_parameter__592:param_data, store__chan(guard_arg_0__593:param_data)));
-  (* case at file "./044_asym_commu_param_simpler.rab", line 12, charaters 9-26 *)
+  (* case at file "./044_asym_commu_param_simpler.rab", line 15, charaters 9-26 *)
   new case_ch__594:channel;
   ((out(case_ch__594, (false__bool, (), received_parameter__592, guard_arg_0__593)) |
-    (* case [ k__582 = k2__583 ] at file "./044_asym_commu_param_simpler.rab", line 12, charaters 9-26 *)
+    (* case [ k__582 = k2__583 ] at file "./044_asym_commu_param_simpler.rab", line 15, charaters 9-26 *)
     in(case_ch__594, (=false__bool, case_result__598:bitstring, case_state_0__599:param_data, case_state_1__600:param_data))[precise];
     if case_state_0__599 = case_state_1__600
     then
-      (* event [ ::Valid(k__582) ] at file "./044_asym_commu_param_simpler.rab", line 12, charaters 9-26 *)
+      (* event [ ::Valid(k__582) ] at file "./044_asym_commu_param_simpler.rab", line 15, charaters 9-26 *)
       event Valid__event_global(case_state_0__599);
       out(case_ch__594, (true__bool, (), case_state_0__599, case_state_1__600))
     else
       out(case_ch__594, (false__bool, case_result__598, case_state_0__599, case_state_1__600))) |
-   (* case [ k__582 != k2__583 ] at file "./044_asym_commu_param_simpler.rab", line 14, charaters 9-28 *)
+   (* case [ k__582 != k2__583 ] at file "./044_asym_commu_param_simpler.rab", line 17, charaters 9-28 *)
    in(case_ch__594, (=false__bool, case_result__601:bitstring, case_state_0__602:param_data, case_state_1__603:param_data))[precise];
    if case_state_0__602 = case_state_1__603
    then
      out(case_ch__594, (false__bool, case_result__601, case_state_0__602, case_state_1__603))
    else
-     (* event [ ::Invalid(k__582) ] at file "./044_asym_commu_param_simpler.rab", line 14, charaters 9-28 *)
+     (* event [ ::Invalid(k__582) ] at file "./044_asym_commu_param_simpler.rab", line 17, charaters 9-28 *)
      event Invalid__event_global(case_state_0__602);
      out(case_ch__594, (true__bool, (), case_state_0__602, case_state_1__603))) |
-  (* end of case at file "./044_asym_commu_param_simpler.rab", line 12, charaters 9-26 *)
+  (* end of case at file "./044_asym_commu_param_simpler.rab", line 15, charaters 9-26 *)
   in(case_ch__594, (=true__bool, case_done_result__595:bitstring, case_done_state_0__596:param_data, case_done_state_1__597:param_data))[precise].
 (* process client(..): process_t *)
 let client__0(ptype:proc_t, k__584:param_data, ch__585:channel) =
   (* Channel ch__585 : chan_t *)
   insert channel_table(chan_t__0, ch__585);
-  (* new msg__586 in .. at file "./044_asym_commu_param_simpler.rab", line 23, charaters 12-80 *)
+  (* new msg__586 in .. at file "./044_asym_commu_param_simpler.rab", line 26, charaters 12-80 *)
   new msg__586:bitstring;
-  (* event [ ::Sent(k__584) ] at file "./044_asym_commu_param_simpler.rab", line 24, charaters 9-25 *)
+  (* event [ ::Sent(k__584) ] at file "./044_asym_commu_param_simpler.rab", line 27, charaters 9-25 *)
   event Sent__event_global(k__584);
-  (* put [ ch__585::store(k__584) ] at file "./044_asym_commu_param_simpler.rab", line 25, charaters 12-29 *)
+  (* put [ ch__585::store(k__584) ] at file "./044_asym_commu_param_simpler.rab", line 28, charaters 12-29 *)
   get channel_table(ch_type__607:acc_data_t, =ch__585) in
   get access_control_table(=ptype, =ch_type__607, =none__syscall) in
   (let family__605:channel = channel_family(ch__585) in

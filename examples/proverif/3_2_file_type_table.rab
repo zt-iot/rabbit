@@ -1,3 +1,5 @@
+tag global [Valid:0]
+
 (* Spec 3.2: for a process-local file declaration
 
      file "/secret/pub" : readonly_t = "hello"

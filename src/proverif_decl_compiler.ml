@@ -592,10 +592,10 @@ let gterm_event
 let compile_lemma_fact genv (fact : T.fact) : gterm_e =
   let loc = fact.loc in
   match fact.desc with
-  | Global (name, args) ->
+  | Global { name; args; _ } ->
       GEnv.add_event ~loc genv name Global (List.map T.type_of_expr args);
       gterm_event name Global (List.map (compile_expr_to_gterm genv) args)
-  | Plain (name, args) ->
+  | Plain { name; args; _ } ->
       GEnv.add_event ~loc genv name Plain (List.map T.type_of_expr args);
       gterm_event name Plain (List.map (compile_expr_to_gterm genv) args)
   | Eq (lhs, rhs) ->
@@ -612,7 +612,7 @@ let compile_lemma_fact genv (fact : T.fact) : gterm_e =
         [ compile_expr_to_gterm genv lhs
         ; compile_expr_to_gterm genv rhs
         ]
-  | Channel { channel; name; args } ->
+  | Channel { channel; name; args; _ } ->
       let args = channel :: args in
       GEnv.add_event ~loc genv name Channel (List.map T.type_of_expr args);
       gterm_event name Channel (List.map (compile_expr_to_gterm genv) args)
@@ -978,9 +978,9 @@ let compile_structure_decls (genv : GEnv.t) : tdecl list =
   in
   Env.facts (GEnv.tyenv genv) |>
   List.concat_map @@ function
-  | (name, (Env.Structure, Some ftys)) ->
+  | (name, (Env.Structure, Some ftys, _)) ->
       compile_structure_fact name ftys
-  | (name, (Env.Structure, None)) ->
+  | (name, (Env.Structure, None, _)) ->
       Error.internal ~loc:Location.nowhere "Structure %s lacks field type information" name
   | _ -> []
 

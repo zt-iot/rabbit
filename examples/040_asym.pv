@@ -23,10 +23,10 @@ event Invalid__event_global.
 fun fst__0(bitstring): bitstring.
 (* function snd:1 *)
 fun snd__0(bitstring): bitstring.
-(* equation fst((x__573, y__574)) = x__573 *)
-equation forall x__573:bitstring, y__574:bitstring; fst__0((x__573, y__574)) = x__573.
-(* equation snd((x__575, y__576)) = y__576 *)
-equation forall x__575:bitstring, y__576:bitstring; snd__0((x__575, y__576)) = y__576.
+(* equation fst((x__451, y__452)) = x__451 *)
+equation forall x__451:bitstring, y__452:bitstring; fst__0((x__451, y__452)) = x__451.
+(* equation snd((x__453, y__454)) = y__454 *)
+equation forall x__453:bitstring, y__454:bitstring; snd__0((x__453, y__454)) = y__454.
 (* function true:0 *)
 fun true__0(): bitstring.
 (* function false:0 *)
@@ -37,8 +37,8 @@ fun pk__0(bitstring): bitstring.
 fun sign__0(bitstring, bitstring): bitstring.
 (* function verify:3 *)
 fun verify__0(bitstring, bitstring, bitstring): bitstring.
-(* equation verify(sign(d__577, k__578), d__577, pk(k__578)) = true *)
-equation forall d__577:bitstring, k__578:bitstring; verify__0(sign__0(d__577, k__578), d__577, pk__0(k__578)) = true__0.
+(* equation verify(sign(d__455, k__456), d__455, pk(k__456)) = true *)
+equation forall d__455:bitstring, k__456:bitstring; verify__0(sign__0(d__455, k__456), d__455, pk__0(k__456)) = true__0.
 (* type process_t : process *)
 const process_t__0: proc_t.
 (* const fresh privkey *)
@@ -48,33 +48,33 @@ const pubkey__0: bitstring.
 equation pubkey__0 = pk__0(privkey__0).
 (* process client(..): process_t *)
 let client__0(ptype:proc_t) =
-  (* new msg__579 in .. at file "./040_asym.rab", line 23, charaters 8-191 *)
-  new msg__579:bitstring;
-  (* let sig__580 = .. in .. at file "./040_asym.rab", line 24, charaters 1-172 *)
-  (* let res__581 = .. in .. at file "./040_asym.rab", line 25, charaters 1-139 *)
-  (* case at file "./040_asym.rab", line 28, charaters 4-20 *)
-  new case_ch__582:channel;
-  ((out(case_ch__582, (false__bool, (), msg__579, sign__0(msg__579, privkey__0), verify__0(sign__0(msg__579, privkey__0), msg__579, pubkey__0))) |
-    (* case [ res__581 = true ] at file "./040_asym.rab", line 28, charaters 4-20 *)
-    in(case_ch__582, (=false__bool, case_result__587:bitstring, case_state_0__588:bitstring, case_state_1__589:bitstring, case_state_2__590:bitstring))[precise];
-    if case_state_2__590 = true__0
+  (* new msg__457 in .. at file "./040_asym.rab", line 25, charaters 8-191 *)
+  new msg__457:bitstring;
+  (* let sig__458 = .. in .. at file "./040_asym.rab", line 26, charaters 1-172 *)
+  (* let res__459 = .. in .. at file "./040_asym.rab", line 27, charaters 1-139 *)
+  (* case at file "./040_asym.rab", line 30, charaters 4-20 *)
+  new case_ch__460:channel;
+  ((out(case_ch__460, (false__bool, (), msg__457, sign__0(msg__457, privkey__0), verify__0(sign__0(msg__457, privkey__0), msg__457, pubkey__0))) |
+    (* case [ res__459 = true ] at file "./040_asym.rab", line 30, charaters 4-20 *)
+    in(case_ch__460, (=false__bool, case_result__465:bitstring, case_state_0__466:bitstring, case_state_1__467:bitstring, case_state_2__468:bitstring))[precise];
+    if case_state_2__468 = true__0
     then
-      (* event [ ::Valid() ] at file "./040_asym.rab", line 28, charaters 4-20 *)
+      (* event [ ::Valid() ] at file "./040_asym.rab", line 30, charaters 4-20 *)
       event Valid__event_global;
-      out(case_ch__582, (true__bool, (), case_state_0__588, case_state_1__589, case_state_2__590))
+      out(case_ch__460, (true__bool, (), case_state_0__466, case_state_1__467, case_state_2__468))
     else
-      out(case_ch__582, (false__bool, case_result__587, case_state_0__588, case_state_1__589, case_state_2__590))) |
-   (* case [ res__581 = false ] at file "./040_asym.rab", line 30, charaters 4-22 *)
-   in(case_ch__582, (=false__bool, case_result__591:bitstring, case_state_0__592:bitstring, case_state_1__593:bitstring, case_state_2__594:bitstring))[precise];
-   if case_state_2__594 = false__0
+      out(case_ch__460, (false__bool, case_result__465, case_state_0__466, case_state_1__467, case_state_2__468))) |
+   (* case [ res__459 = false ] at file "./040_asym.rab", line 32, charaters 4-22 *)
+   in(case_ch__460, (=false__bool, case_result__469:bitstring, case_state_0__470:bitstring, case_state_1__471:bitstring, case_state_2__472:bitstring))[precise];
+   if case_state_2__472 = false__0
    then
-     (* event [ ::Invalid() ] at file "./040_asym.rab", line 30, charaters 4-22 *)
+     (* event [ ::Invalid() ] at file "./040_asym.rab", line 32, charaters 4-22 *)
      event Invalid__event_global;
-     out(case_ch__582, (true__bool, (), case_state_0__592, case_state_1__593, case_state_2__594))
+     out(case_ch__460, (true__bool, (), case_state_0__470, case_state_1__471, case_state_2__472))
    else
-     out(case_ch__582, (false__bool, case_result__591, case_state_0__592, case_state_1__593, case_state_2__594))) |
-  (* end of case at file "./040_asym.rab", line 28, charaters 4-20 *)
-  in(case_ch__582, (=true__bool, case_done_result__583:bitstring, case_done_state_0__584:bitstring, case_done_state_1__585:bitstring, case_done_state_2__586:bitstring))[precise].
+     out(case_ch__460, (false__bool, case_result__469, case_state_0__470, case_state_1__471, case_state_2__472))) |
+  (* end of case at file "./040_asym.rab", line 30, charaters 4-20 *)
+  in(case_ch__460, (=true__bool, case_done_result__461:bitstring, case_done_state_0__462:bitstring, case_done_state_1__463:bitstring, case_done_state_2__464:bitstring))[precise].
 (* Requires *)
 (* lemma Reachable *)
 query event(Valid__event_global()).

@@ -1,3 +1,5 @@
+tag global [ImgSend:1]
+
 (* Spec 3.1: if Rabbit contains [event [:: ImgSend(image)]], the ProVerif
    translation should declare [event ImgSend(bitstring)]. *)
 

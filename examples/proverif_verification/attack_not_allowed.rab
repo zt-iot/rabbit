@@ -1,3 +1,5 @@
+tag global [Result:1]
+
 (* Verification feature: an undelegated active attack is not an alternative.
 
    Reviewed

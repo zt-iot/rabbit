@@ -1,3 +1,5 @@
+tag global [Initialized:0, ReadBack:1, ReadBackAgain:1]
+
 (* Verification feature: syscalls write and consume process-local file facts
    under explicit access-control entries. *)
 

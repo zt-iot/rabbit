@@ -204,7 +204,7 @@ module GEnv = struct
       | Channel { channel; args; _ } ->
           add_expr_strings genv channel;
           List.iter (add_expr_strings genv) args
-      | Plain (_name, args) | Global (_name, args) ->
+      | Plain { args; _ } | Global { args; _ } ->
           List.iter (add_expr_strings genv) args
       | Eq (lhs, rhs) | Neq (lhs, rhs) ->
           add_expr_strings genv lhs;
@@ -379,15 +379,15 @@ module GEnv = struct
 
   let channel_facts genv =
     List.filter_map (function
-        | (name, ((Channel : Env.named_fact_desc), Some tys)) -> Some (name, tys)
-        | (_, (Channel, None)) -> assert false
+        | (name, ((Channel : Env.named_fact_desc), Some tys, _persistent)) -> Some (name, tys)
+        | (_, (Channel, None, _)) -> assert false
         | _ -> None)
       (Env.facts genv.tyenv)
 
   let structure_facts genv =
     List.filter_map (function
-        | (name, ((Structure : Env.named_fact_desc), Some tys)) -> Some (name, tys)
-        | (_, (Structure, None)) -> assert false
+        | (name, ((Structure : Env.named_fact_desc), Some tys, _persistent)) -> Some (name, tys)
+        | (_, (Structure, None, _)) -> assert false
         | _ -> None)
       (Env.facts genv.tyenv)
 

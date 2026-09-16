@@ -1,3 +1,5 @@
+tag global [SecretReturned:0]
+
 (* Verification feature: `const fresh` is initially private.
 
    The process never sends `secret` to the attacker. The attacker must therefore

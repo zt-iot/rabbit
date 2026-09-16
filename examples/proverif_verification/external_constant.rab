@@ -1,3 +1,5 @@
+tag global [Marked:1]
+
 (* Verification feature: `constant` declares a callable arity-zero symbol.
 
    Reviewed.

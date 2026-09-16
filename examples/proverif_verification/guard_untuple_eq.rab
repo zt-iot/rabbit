@@ -1,3 +1,5 @@
+tag global [Assumed:1, Case:1, Different:0, Loop:1, Exit:1]
+
 (* Normalize tuple equalities before scheduling, even when the ready side
    contains wildcards. Inequality must remain a comparison, not a conjunction. *)
 type proc_t : process

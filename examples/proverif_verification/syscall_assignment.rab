@@ -1,3 +1,5 @@
+tag global [Assigned:1]
+
 (* Verification feature: a syscall return value updates an existing variable.
 
    Reviewed.

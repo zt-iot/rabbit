@@ -23,15 +23,15 @@ const int__pos_1: bitstring.
 fun true__0(): bitstring.
 (* function eq:2 *)
 fun eq__0(bitstring, bitstring): bitstring.
-(* equation eq(x__809, x__809) = true *)
-equation forall x__809:bitstring; eq__0(x__809, x__809) = true__0.
+(* equation eq(x__720, x__720) = true *)
+equation forall x__720:bitstring; eq__0(x__720, x__720) = true__0.
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)
 let proc__0(ptype:proc_t) =
   if eq__0(int__pos_1, int__pos_1) = true__0
   then
-    (* event [ ::Valid() ] at file "./092_nullary.rab", line 12, charaters 28-45 *)
+    (* event [ ::Valid() ] at file "./092_nullary.rab", line 14, charaters 28-45 *)
     event Valid__event_global.
 (* Requires *)
 (* lemma Reachable *)

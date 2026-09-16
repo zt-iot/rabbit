@@ -128,6 +128,8 @@ process client() : client_t
 }
 
 (*** Verified *)
+tag global [Event:0, Event2:0]
+
 (* One of the simplest Rabbit code *)
 
 type proc_t 	  : process
@@ -154,6 +156,8 @@ requires
 ]
 
 (*** Falsified *)
+tag global [Event:0, Event2:0]
+
 (* One of the simplest Rabbit code *)
 
 type proc_t 	  : process
@@ -175,7 +179,9 @@ requires
     reachable ::Event2()
 ]
 
-(*** Fail "1 arguments provided while Event requires 0", TyperFail "Object of arity 1 takes 0 arguments" *)
+(*** Fail "1 arguments provided while Event requires 0", TyperFail "Object of arity 0 takes 1 arguments" *)
+tag global [Event:0]
+
 (* One of the simplest Rabbit code *)
 
 type proc_t 	  : process
@@ -201,6 +207,9 @@ requires
 syscall s() { x := 1 }
 
 (*** Verified *)
+fact channel [store:1]
+tag global [Valid:0]
+
 type person_t : process
 type chan_t : channel
 
@@ -226,6 +235,8 @@ requires
 ]
 
 (*** TyperFail "Object of arity 2 takes 1 arguments" *)
+fact channel [store:1]
+
 (* issue #13: arity mismatch between syscall and attack should give a proper error *)
 syscall send(c, v) {
   put [c::store(v)]
@@ -235,6 +246,9 @@ attack eavesdrop_channel on send (c) {
 }
 
 (*** Fail "unknown meta variable chan", TyperFail "Global channel chan cannot be used in an expression" *)
+fact channel [store:1]
+tag global [Valid:0]
+
 type person_t : process
 type chan_t : channel
 
@@ -261,6 +275,8 @@ requires
 ]
 
 (*** NewCompilerVerified *)
+tag global [ReadBack:1]
+
 (* Issue #23: compression must forward the persistent access-control fact
    produced by process initialization to the first filesystem syscall. *)
 syscall write_file(p, contents) {

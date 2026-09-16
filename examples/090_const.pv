@@ -16,12 +16,12 @@ const true__bool: bitstring.
 const false__bool: bitstring.
 (* Event declaration ::Valid(..) *)
 event Valid__event_global.
-(* Parameter value (p__804, p__804) *)
-const p_804_p_804__param: param_data.
-(* Parameter value p__805 *)
-const p_805__param: param_data.
-(* Parameter value (p__805, p__805) *)
-const p_805_p_805__param: param_data.
+(* Parameter value (p__715, p__715) *)
+const p_715_p_715__param: param_data.
+(* Parameter value p__716 *)
+const p_716__param: param_data.
+(* Parameter value (p__716, p__716) *)
+const p_716_p_716__param: param_data.
 (* Body *)
 (* const fresh c *)
 const c__0: bitstring[private].
@@ -30,18 +30,18 @@ const c2__0: bitstring.
 equation c2__0 = (c__0, c__0).
 (* const fresh cp<> *)
 fun cp__0(param_data): bitstring[private].
-(* const cp2<p__804> = .. *)
-letfun cp2__0(p__804:param_data) =
-  (cp__0(p__804), cp__0(p_804_p_804__param)).
+(* const cp2<p__715> = .. *)
+letfun cp2__0(p__715:param_data) =
+  (cp__0(p__715), cp__0(p_715_p_715__param)).
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)
-let proc__0(ptype:proc_t, p__805:param_data) =
-  (* event [ ::Valid() ] at file "./090_const.rab", line 49, charaters 4-21 *)
+let proc__0(ptype:proc_t, p__716:param_data) =
+  (* event [ ::Valid() ] at file "./090_const.rab", line 51, charaters 4-21 *)
   event Valid__event_global.
 (* Requires *)
 (* lemma Reachable *)
 query event(Valid__event_global()).
 (* System *)
-process !(new p__806:param_data;
-          proc__0(proc_t__0, p__806))
+process !(new p__717:param_data;
+          proc__0(proc_t__0, p__717))

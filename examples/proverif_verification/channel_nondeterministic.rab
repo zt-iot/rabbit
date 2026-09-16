@@ -1,3 +1,6 @@
+fact channel [Message:1]
+tag global [First:0, Second:0, Merged:1]
+
 (* Regression: overlapping channel branches are nondeterministic, and the
    single post-case continuation receives the selected branch's updated
    process-variable state through the private lock channel.

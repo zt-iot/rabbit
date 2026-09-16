@@ -1,3 +1,5 @@
+tag global [Started:0, Finished:0]
+
 (* Spec 3.12: Rabbit reachability and correspondence lemmas are translated to
    ProVerif queries. This example keeps both in the smallest form. *)
 

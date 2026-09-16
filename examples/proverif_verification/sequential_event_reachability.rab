@@ -1,3 +1,5 @@
+tag global [A:0, B:0]
+
 (* Verification feature: a conjunctive reachability query can collect events
    emitted sequentially by one process.
 

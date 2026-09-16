@@ -1,3 +1,5 @@
+tag global [Valid:0]
+
 (* Spec 3.10: process parameters become ordinary [param_data] arguments, and
    a parameter binder becomes replicated fresh parameter generation. *)
 

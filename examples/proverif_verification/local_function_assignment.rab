@@ -1,3 +1,5 @@
+tag global [Called:1, Assigned:1]
+
 (* Verification feature: local-function returns support assignment and discard calls.
 
    Reviewed.

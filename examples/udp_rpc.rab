@@ -1,3 +1,5 @@
+fact channel [store:1, req:0, ack:0, conn:0, invoke:3, Returned:1, exit:0]
+
 
 (** asynchronous channels *)
 syscall send(c, v) {

@@ -214,12 +214,12 @@ let pid_expr pid =
 
 let fact_symbol_and_args (f : fact) =
   match f.desc with
-  | Channel { channel; name; args } -> Some (`Channel name, channel :: args)
-  | Plain { pid; name; args } -> Some (`Plain name, pid_args pid @ args)
+  | Channel { channel; name; args; _ } -> Some (`Channel name, channel :: args)
+  | Plain { pid; name; args; _ } -> Some (`Plain name, pid_args pid @ args)
   | Eq (e1, e2) -> Some (`Eq, [e1; e2])
   | Neq (e1, e2) -> Some (`NEq, [e1; e2])
   | File { pid; path; contents } -> Some (`File, pid_args pid @ [path; contents])
-  | Global (name, args) -> Some (`Global name, args)
+  | Global { name; args; _ } -> Some (`Global name, args)
   | Fresh id -> Some (`Fresh, [ident id (Var TValue)])
   | Structure { pid; name; address; args } ->
       Some (`Structure, pid_args pid @ string name :: address :: args)
@@ -1548,14 +1548,14 @@ let rec eq_expr e1 e2 =
 
 let eq_fact (f1 : fact) (f2 : fact) =
   match f1.desc, f2.desc with
-  | Channel { channel= channel1; name= name1; args= args1 },
-    Channel { channel= channel2; name= name2; args= args2 } ->
+  | Channel { channel= channel1; name= name1; args= args1; _ },
+    Channel { channel= channel2; name= name2; args= args2; _ } ->
       name1 = name2
       && eq_expr channel1 channel2
       && List.length args1 = List.length args2
       && List.for_all2 eq_expr args1 args2
-  | Plain { pid= pid1; name= name1; args= args1 },
-    Plain { pid= pid2; name= name2; args= args2 } ->
+  | Plain { pid= pid1; name= name1; args= args1; _ },
+    Plain { pid= pid2; name= name2; args= args2; _ } ->
       pid1 = pid2
       && name1 = name2
       && List.length args1 = List.length args2
@@ -1566,7 +1566,7 @@ let eq_fact (f1 : fact) (f2 : fact) =
   | File { pid= pid1; path= path1; contents= contents1 },
     File { pid= pid2; path= path2; contents= contents2 } ->
       pid1 = pid2 && eq_expr path1 path2 && eq_expr contents1 contents2
-  | Global (name1, args1), Global (name2, args2) ->
+  | Global { name=name1; args=args1; _ }, Global { name=name2; args=args2; _ } ->
       name1 = name2
       && List.length args1 = List.length args2
       && List.for_all2 eq_expr args1 args2

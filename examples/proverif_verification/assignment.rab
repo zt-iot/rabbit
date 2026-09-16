@@ -1,3 +1,5 @@
+tag global [Assigned:1]
+
 (* Verification feature: assignment changes the value used by the continuation.
 
    Reviewed

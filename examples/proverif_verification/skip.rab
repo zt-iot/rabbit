@@ -1,3 +1,5 @@
+tag global [AfterSkip:0]
+
 (* Verification feature: skip continues with the following command.
 
    Reviewed.

@@ -1,3 +1,5 @@
+tag global [Sent:0, Other:0]
+
 (* Verification feature: emitting an event makes it reachable.
 
    Reviewed.

@@ -55,3 +55,14 @@
     -F
     "event [...] contains 2 facts; ProVerif emits them sequentially and cannot preserve their simultaneous occurrence"
     multiple_event_warning.stderr))))
+
+(rule
+ (alias runtest)
+ (target builtin_facts_cli.pv)
+ (deps attacker_io.rab)
+ (action
+  (run
+   %{exe:../../src/rabbit_proverif.exe}
+   %{dep:attacker_io.rab}
+   -o
+   %{target})))

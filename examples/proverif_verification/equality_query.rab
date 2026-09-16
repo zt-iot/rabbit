@@ -1,3 +1,5 @@
+tag global [BeforeEquality:1, AfterEquality:1]
+
 (* Verification feature: an equation fact can be used in reachability and on
    either side of a correspondence. *)
 

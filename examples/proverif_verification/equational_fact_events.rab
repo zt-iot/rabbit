@@ -1,3 +1,5 @@
+tag global [AfterTrueEquality:0, AfterTrueInequality:0, InsideFalseEquality:0, AfterFalseEquality:0, InsideFalseInequality:0, AfterFalseInequality:0]
+
 (* Verification feature: equation and inequality facts become observable
    internal events, and a false comparison blocks the continuation. *)
 

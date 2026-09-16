@@ -1,3 +1,8 @@
+tag global [ImgSend:1, ClientClose:0, ClientTAClose:0, ImgRecvValid:1, ImgRecvInvalid:1]
+fact channel [invoke:3, Returned:1, exit:0, store:1]
+tag local [InValidName:1]
+fact global [False:0]
+
 
 (* security primitives *)
 function pk:1

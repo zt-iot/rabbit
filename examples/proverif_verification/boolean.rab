@@ -1,3 +1,5 @@
+tag global [Value:1]
+
 (* Verification feature: Rabbit booleans are user-defined nullary functions.
 
    Reviewed

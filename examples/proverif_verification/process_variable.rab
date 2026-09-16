@@ -1,3 +1,5 @@
+tag global [Initialized:1]
+
 (* Verification feature: process-level variables initialize the main environment.
 
    Reviewed.

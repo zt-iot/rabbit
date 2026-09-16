@@ -1,3 +1,6 @@
+tag global [Tuple:1, Equality:1, Channel:1, Equational:1, Loop:1, Exit:1]
+fact channel [Msg:2]
+
 (* Functions remain usable when their arguments have another binding source. *)
 function f:1
 function erase:1

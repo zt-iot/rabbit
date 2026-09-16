@@ -1,3 +1,6 @@
+tag global [Valid:0]
+fact global [False:0]
+
 type person_t : process
 
 process alice() : person_t 

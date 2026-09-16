@@ -1,3 +1,5 @@
+tag global [Left:0, Right:0]
+
 (* Verification feature: system composition runs component processes in parallel.
 
    Reviewed.

@@ -1,3 +1,5 @@
+tag global [UnrelatedCalled:0, TargetCalled:0, TargetTampered:0]
+
 (* Verification feature: an allowed active attack applies only to its target syscall.
 
    Reviewed.

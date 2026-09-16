@@ -1,3 +1,5 @@
+tag global [Matched:2]
+
 (* Inequality must not introduce variables by negating a tuple match. *)
 type proc_t : process
 process worker() : proc_t {

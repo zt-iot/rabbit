@@ -25,23 +25,23 @@ const not_a_ciphertext__str: bitstring.
 fun enc__0(bitstring, bitstring): bitstring.
 (* function dec:2 *)
 fun dec__0(bitstring, bitstring): bitstring.
-(* equation dec(enc(message__946, key__945), key__945) = message__946 *)
-equation forall key__945:bitstring, message__946:bitstring; dec__0(enc__0(message__946, key__945), key__945) = message__946.
+(* equation dec(enc(message__902, key__901), key__901) = message__902 *)
+equation forall key__901:bitstring, message__902:bitstring; dec__0(enc__0(message__902, key__901), key__901) = message__902.
 (* const fresh decryption_key *)
 const decryption_key__0: bitstring[private].
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
 let worker__0(ptype:proc_t) =
-  (* let result__947 = .. in .. at file "./210_dec_failure.rab", line 16, charaters 4-125 *)
-  (* event [ ::DecryptionResult(result__947) ] at file "./210_dec_failure.rab", line 17, charaters 4-38 *)
+  (* let result__903 = .. in .. at file "./210_dec_failure.rab", line 18, charaters 4-125 *)
+  (* event [ ::DecryptionResult(result__903) ] at file "./210_dec_failure.rab", line 19, charaters 4-38 *)
   event DecryptionResult__event_global(dec__0(not_a_ciphertext__str, decryption_key__0));
-  (* event [ ::Continued() ] at file "./210_dec_failure.rab", line 18, charaters 4-25 *)
+  (* event [ ::Continued() ] at file "./210_dec_failure.rab", line 20, charaters 4-25 *)
   event Continued__event_global.
 (* Requires *)
 (* lemma DecryptionResultIsReachable *)
-query result__948:bitstring;
-  event(DecryptionResult__event_global(result__948)).
+query result__904:bitstring;
+  event(DecryptionResult__event_global(result__904)).
 (* lemma UnreducedDecryptionContinues *)
 query event(Continued__event_global()).
 (* System *)

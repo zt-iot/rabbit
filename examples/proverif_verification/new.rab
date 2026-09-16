@@ -1,3 +1,5 @@
+tag global [Created:1]
+
 (* Verification feature: new creates a value usable by the continuation.
 
    Reviewed.

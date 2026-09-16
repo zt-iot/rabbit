@@ -1,3 +1,6 @@
+tag global [A:0, B:0]
+fact channel [Exit:0]
+
 (* Regression: replicate repeat branches independently so that ProVerif can
    reconstruct both orders of a semantically commutative conjunction.
 

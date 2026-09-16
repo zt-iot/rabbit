@@ -1,3 +1,7 @@
+fact channel [Request:1, Reply:1]
+tag global [Published:1, Accepted:1]
+fact global [False:0]
+
 type client_t : process
 type server_t : process
 type rpc_t : channel

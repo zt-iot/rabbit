@@ -1,3 +1,5 @@
+tag global [Selected:1]
+
 (* Verification feature: monomorphic inference preserves a channel returned by
    an inlined syscall and used by its caller.
 *)

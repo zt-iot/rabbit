@@ -1,3 +1,5 @@
+tag global [Returned:1]
+
 (* Verification feature: a syscall return value binds a var/in continuation.
 
    Reviewed.

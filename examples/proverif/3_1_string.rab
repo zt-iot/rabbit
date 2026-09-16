@@ -1,3 +1,5 @@
+tag global [Seen:1]
+
 (* Spec 3.1: a Rabbit string literal like "hello" is compiled to a generated
    ProVerif constant such as hello__str. *)
 

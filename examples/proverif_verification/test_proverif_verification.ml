@@ -87,7 +87,7 @@ let rec reachability_flags decls =
     decls
 
 let compile_to_file rab_filename pv_filename =
-  let env, decls = Typer.load (Env.empty ()) rab_filename in
+  let env, decls = Typer.load (Env.init_env ()) rab_filename in
   let program = Proverif_compiler.compile_program env decls in
   Out_channel.with_open_text pv_filename @@ fun oc ->
   let ppf = Format.formatter_of_out_channel oc in
@@ -167,7 +167,7 @@ let test_file proverif rab_filename =
 
 let test_snapshot_file proverif rab_filename =
   let expected = expected_marker_results rab_filename in
-  let decls = snd @@ Typer.load (Env.empty ()) rab_filename in
+  let decls = snd @@ Typer.load (Env.init_env ()) rab_filename in
   let reachability_flags = reachability_flags decls in
   let pv_filename = replace_suffix rab_filename ~suffix:".rab" ~replacement:".pv" in
   let actual =

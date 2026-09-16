@@ -1,3 +1,5 @@
+tag global [Ready:0, PeerReady:0]
+
 (* Verification feature: a parameter binder supplies the same fresh
    [param_data] value to each process in its replicated group. *)
 

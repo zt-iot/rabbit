@@ -1,3 +1,7 @@
+fact channel [Packet:1, Sign:1, Signed:1, Exit:0]
+tag global [Published:1, Accepted:1]
+fact global [False:0]
+
 (* Regression: removing single-branch channel choice locks lets ProVerif
    reconstruct a correspondence attack that previously returned unknown.
 

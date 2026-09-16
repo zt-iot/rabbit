@@ -1,3 +1,5 @@
+tag global [Deleted:0, Dereferenced:1]
+
 (* Verification feature: dereferencing any alias after delete deadlocks.
 
    Reviewed.

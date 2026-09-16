@@ -1,3 +1,5 @@
+tag global [Valid:0]
+
 (* Spec 3.10: parameterized channel declarations are not implemented yet.
 
      channel udp<> : udp_t

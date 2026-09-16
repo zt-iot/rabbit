@@ -1,3 +1,6 @@
+fact channel [Msg:1, Endpoint:1, Path:1]
+tag global [Late:1, BadLate:0, Early:1, Loop:1, Exit:1, ReceivedEndpoint:1, FileFirst:2, ChannelFirst:2, BadShared:0]
+
 (* Shared variables must keep one value across guards, regardless of where
    their binding comparison appears. Channel operands need a bound value. *)
 type proc_t : process

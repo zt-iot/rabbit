@@ -1,3 +1,5 @@
+tag global [Decoded:1]
+
 (* Verification feature: Rabbit equational theories are used by ProVerif.
 
    Reviewed.

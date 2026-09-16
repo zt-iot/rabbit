@@ -1,3 +1,7 @@
+fact channel [store:1]
+tag global [Valid:1, Invalid:1, Sent:1]
+fact global [False:0]
+
 function fst:1
 function snd:1
 equation fst ((x, y)) = x

@@ -1,3 +1,5 @@
+tag global [Seen:1]
+
 (* Verification feature: fresh and derived Rabbit constants preserve equations.
 
    Reviewed.

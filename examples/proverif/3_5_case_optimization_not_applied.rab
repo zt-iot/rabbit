@@ -1,3 +1,5 @@
+tag global [Valid:0, Invalid:0]
+
 (* Spec 3.5 equational guards using the general encoding.
 
    This currently uses the private lock encoding. It does not test the optional

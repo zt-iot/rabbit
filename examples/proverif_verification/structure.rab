@@ -1,3 +1,5 @@
+tag global [Read:1]
+
 (* Verification feature: structured new/get preserves fields and pointer identity.
 
    Reviewed.

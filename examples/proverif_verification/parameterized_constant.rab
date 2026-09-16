@@ -1,3 +1,5 @@
+tag global [Ready:1]
+
 (* Verification feature: a fresh parameterized constant emits a private function.
 
    Reviewed.

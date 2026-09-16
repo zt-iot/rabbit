@@ -1,0 +1,10 @@
+(* A tag declaration does not declare a fact with the same name. *)
+tag channel [Message:1]
+type proc_t : process
+type chan_t : channel
+allow proc_t chan_t [.]
+channel transport : chan_t
+
+process worker(ch : chan_t) : proc_t {
+  main { put [ch::Message("payload")] }
+}

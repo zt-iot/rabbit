@@ -1,3 +1,5 @@
+tag global [Valid:0, Unexpected:0, Invalid:0, Joined:1]
+
 (* Spec 3.5: a general non-channel Rabbit case with a state-carrying join
 
      case [A1] -> c1 | [A2] -> c2 | [A3] -> c3 end

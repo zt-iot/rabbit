@@ -1,3 +1,5 @@
+tag global [ReadBack:1, ReadBackAgain:1]
+
 (* Verification feature: put writes a process-local file fact.
 
    Reviewed.

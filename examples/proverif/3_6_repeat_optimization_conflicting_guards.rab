@@ -1,3 +1,5 @@
+tag global [Valid:0]
+
 (* Spec 3.6 potential optimization 1: repeat/until could inherit the case
    optimization that merges mutually exclusive equational guards. This example
    is for checking how the current compiler treats conflicting repeat guards. *)

@@ -1,3 +1,5 @@
+tag global [Valid:0]
+
 (* Spec 3.6 potential optimization 2: when there is a single until branch, the
    exit message and continuation could be fused instead of routing through a
    separate done-state receive. This example is for checking that shape. *)

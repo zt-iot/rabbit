@@ -1,3 +1,6 @@
+fact channel [Request:0, Reply:0, Packet:0, Exit:0]
+tag global [Accepted:0, Closed:0]
+
 (* Regression: each event is individually reachable after lowering the repeat
    to replicated workers and a private state-token channel. Combining them in
    one reachability lemma currently makes ProVerif return unknown.

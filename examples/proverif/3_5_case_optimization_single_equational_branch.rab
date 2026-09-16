@@ -1,3 +1,5 @@
+tag global [Selected:1]
+
 (* Spec 3.5 single-branch optimization: an equational case without a channel
    guard is lowered directly, without a private lock-channel join. *)
 

@@ -1,3 +1,7 @@
+tag channel [Sent:1, Received:1, WrongChannel:1, WrongPayload:1, Empty:0, Pair:1, OnlyEvent:1, IndexedStart:1, IndexedEnd:1, OtherInstance:1, OnlyPut:1, NeverEmitted:1]
+fact channel [OnlyEvent:1, OnlyPut:1]
+tag global [UnexpectedMessage:0]
+
 (* Channel events record the channel and payload without sending a message.
    The same variables in correspondence queries preserve both identities. *)
 const fresh payload

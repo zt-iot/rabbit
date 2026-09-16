@@ -1,3 +1,7 @@
+fact channel [store:1]
+tag global [Valid:1, Invalid:1, Sent:1]
+fact global [False:0]
+
 function fst:1
 function snd:1
 equation fst ((x, y)) = x
@@ -23,7 +27,8 @@ process server(ch<> : chan_t) : process_t (* has many channels *)
 {
     main {
         repeat
-        | [ch<k> ::store(d)] → (* XXX Space required after [ch<k>] *)
+        | [ch<k> ::store(d)] → (* XXX Space required after [ch<k>]
+          Answer: Without whitespace, the lexer reads [>::] as one infix operator. *)
 	    var sig = fst(d) in
 	    var msg = snd(d) in
 	    var res = verify (sig, msg, pubkey<k>) in

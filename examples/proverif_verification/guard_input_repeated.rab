@@ -1,3 +1,6 @@
+fact channel [Pair:2]
+tag global [BadMerged:0, GoodMerged:2, BadLoop:0, BadFiles:0, BadInput:0]
+
 (* A fresh guard variable is bound once, even when repeated across arguments
    or across file/attacker facts. *)
 type proc_t : process

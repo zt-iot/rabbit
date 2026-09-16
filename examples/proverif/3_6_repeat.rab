@@ -1,3 +1,5 @@
+tag global [Valid:0]
+
 (* Spec 3.6: a Rabbit repeat/until loop is compiled using a private lock
    channel that carries the loop state between replicated worker processes and
    the continuation after loop exit. This example uses one mutable variable so

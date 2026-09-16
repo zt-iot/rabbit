@@ -1,3 +1,5 @@
+tag global [Returned:2]
+
 (* Verification feature: a bare expression in a local-function case branch
    updates the result register without skipping the code after the case.
 

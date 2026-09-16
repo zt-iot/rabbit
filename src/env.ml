@@ -41,8 +41,6 @@ let kind_of_desc = function
   | Rho -> "rho"
 ;;
 
-(* XXX Make a functor
-   Fixed: extend the shared [Error.error] type and register a printer. *)
 (** Conversion errors *)
 type Error.error +=
   | IdentifierAlreadyBound of Name.ident
@@ -57,13 +55,17 @@ type Error.error +=
       ; def : named_fact_desc
       ; use : named_fact_desc
       }
+  | InvalidTag of
+      { name : Name.ident
+      ; def : named_fact_desc
+      ; use : named_fact_desc
+      }
   | ArityMismatch of
       { arity : int
       ; use : int
       }
   | TypeMismatch of Type.type_ * Type.type_
-
-(* let misc_errorf ~loc fmt = Format.kasprintf (fun s -> Error.raise ~loc (Misc s)) fmt *)
+  | PersistencyConflict of Name.t
 
 let () = Error.add_printer @@ fun err ppf ->
   match err with
@@ -75,6 +77,13 @@ let () = Error.add_printer @@ fun err ppf ->
       Format.fprintf
         ppf
         "%s is %s fact but used as %s"
+        name
+        (string_of_named_fact_desc def)
+        (string_of_named_fact_desc use)
+  | InvalidTag { name; def; use } ->
+      Format.fprintf
+        ppf
+        "%s is %s tag but used as %s"
         name
         (string_of_named_fact_desc def)
         (string_of_named_fact_desc use)
@@ -93,6 +102,10 @@ let () = Error.add_printer @@ fun err ppf ->
         expected
         (fun ppf typ -> Type.print_type typ ppf)
         actual
+  | PersistencyConflict n ->
+      Format.fprintf
+        ppf
+        "Fact %s is declared with different persistency" n
   | _ -> Error.use_other_printers ()
 
 let callable_type_of_desc = function
@@ -146,8 +159,8 @@ let empty () = { vars= []; facts= ref []; tags= ref [] }
 
 let init_env () =
   let env = empty () in
-  env.facts := ("In", (Global, Some 1, false)) :: ("Out", (Global, Some 1, false)) :: !(env.facts);
-  env.tags := ("K", (Global, Some 1)) :: !(env.tags);
+  env.facts := ("In", (Global, Some [TValue], false)) :: ("Out", (Global, Some [TValue], false)) :: !(env.facts);
+  env.tags := ("K", (Global, Some [TValue])) :: !(env.tags);
   env
 
 let singleton id desc =
@@ -183,7 +196,6 @@ let update_tag env name v =
 
 let find_fact_opt env name = List.assoc_opt name !(env.facts)
 
-
 let find_tag_opt env name = List.assoc_opt name !(env.tags)
 
 let must_be_fresh ~loc env name =
@@ -209,11 +221,13 @@ let add_global ~loc env name desc =
   add env id desc, id
 ;;
 
-let add_fact ~loc env name (desc, argument_types) =
+let add_fact ~loc env name (desc, argument_types, persist) =
   match find_fact_opt env name with
-  | Some (desc', argument_types') ->
+  | Some (desc', argument_types', persist') ->
       if desc <> desc'
       then Error.raise ~loc @@ InvalidFact { name; def = desc'; use = desc }
+      else if persist <> persist' then
+        Error.raise ~loc @@ PersistencyConflict name
       else (
         match argument_types, argument_types' with
         | Some types, Some types' ->
@@ -224,7 +238,27 @@ let add_fact ~loc env name (desc, argument_types) =
              | Type.Cannot_unify (expected, actual) ->
                  Error.raise ~loc @@ TypeMismatch (expected, actual))
         | None, Some _ -> ()
-        | Some _, None -> update_fact env name (desc, argument_types)
+        | Some _, None -> update_fact env name (desc, argument_types, persist)
         | None, None -> ())
-  | None -> update_fact env name (desc, argument_types)
+  | None -> update_fact env name (desc, argument_types, persist)
+;;
+
+let add_tag ~loc env name (desc, argument_types) =
+  match find_tag_opt env name with
+  | Some (desc', argument_types') ->
+      if desc <> desc'
+      then Error.raise ~loc @@ InvalidTag { name; def = desc'; use = desc }
+      else (
+        match argument_types, argument_types' with
+        | Some types, Some types' ->
+            if List.length types <> List.length types' then
+              Error.raise ~loc @@
+              ArityMismatch { arity= List.length types; use= List.length types' };
+            (try List.iter2 Type.unify types types' with
+             | Type.Cannot_unify (expected, actual) ->
+                 Error.raise ~loc @@ TypeMismatch (expected, actual))
+        | None, Some _ -> ()
+        | Some _, None -> update_tag env name (desc, argument_types)
+        | None, None -> ())
+  | None -> update_tag env name (desc, argument_types)
 ;;

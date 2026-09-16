@@ -1,3 +1,5 @@
+tag global [BeforeInequality:2, AfterInequality:2]
+
 (* Verification feature: an inequality fact can be used in reachability and
    on either side of a correspondence. *)
 

@@ -1,3 +1,6 @@
+tag global [Sent:0, UnexpectedMatch:0, Received:1]
+fact channel [msg:1]
+
 (* Known semantic difference: ProVerif may consume [ch::msg("bad")] in
    [mismatching_reader] before checking its equality guard.  That execution
    deadlocks and prevents [valid_reader] from receiving the message.

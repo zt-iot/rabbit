@@ -25,9 +25,9 @@ const int__pos_0: bitstring.
 const proc_t__0: proc_t.
 (* process alice(..): proc_t *)
 let alice__0(ptype:proc_t) =
-  (* let x__811 = .. in .. at file "./100_syscall.rab", line 10, charaters 8-68 *)
-  (* let y__812 = .. in .. at file "./100_syscall.rab", line 11, charaters 8-43 *)
-  (* event [ ::Valid(y__812) ] at file "./100_syscall.rab", line 12, charaters 1-18 *)
+  (* let x__722 = .. in .. at file "./100_syscall.rab", line 12, charaters 8-68 *)
+  (* let y__723 = .. in .. at file "./100_syscall.rab", line 13, charaters 8-43 *)
+  (* event [ ::Valid(y__723) ] at file "./100_syscall.rab", line 14, charaters 1-18 *)
   event Valid__event_global(int__pos_0).
 (* Requires *)
 (* lemma Reachable *)

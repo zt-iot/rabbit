@@ -1,3 +1,5 @@
+tag global [Selected:2, Filtered:1, Denied:1, Mixed:1, Wildcard:1, BadRepeated:0, Loop:1, Exit:1]
+
 (* Unbound file paths select a process-local fact and authorize its actual
    path. Linear input retains the documented guard atomicity limitation. *)
 type proc_t : process

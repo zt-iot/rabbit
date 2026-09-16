@@ -1,3 +1,5 @@
+tag global [Ready:0]
+
 (* ProVerif currently represents a process parameter as one [param_data]
    argument. Rabbit also permits compound parameter expressions such as
    `(p, p)`, but the specification does not define an encoding from such

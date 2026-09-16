@@ -1,3 +1,5 @@
+tag global [Normal:0, Tampered:0]
+
 (* Verification feature: allowing an attack keeps both normal and attack paths.
 
    Reviewed

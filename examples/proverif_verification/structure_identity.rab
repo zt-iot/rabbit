@@ -1,3 +1,5 @@
+tag global [SameAddress:0, DifferentAddresses:0]
+
 (* Verification feature: separately allocated structures have distinct addresses.
 
    Reviewed.

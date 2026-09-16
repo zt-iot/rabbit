@@ -1,3 +1,5 @@
+tag global [Value:1]
+
 (* Known gap: operator tokens cannot currently be declared as external functions.
 
    This is a bug of Rabbit.  It cannot declare operators like `function +:2`.

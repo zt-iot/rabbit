@@ -1,3 +1,5 @@
+tag global [LeftRepeat:0, RightRepeat:0, LeftUntil:0, RightUntil:0, Finished:1]
+
 (* Verification feature: repeat supports multiple repeat/until cases and threads
    each branch's mutable state to the continuation.
 

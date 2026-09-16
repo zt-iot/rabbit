@@ -1,3 +1,5 @@
+tag global [Selected:0, Rejected:0]
+
 (* Verification feature: only a case branch whose guard holds is executed.
 
    Reviewed.

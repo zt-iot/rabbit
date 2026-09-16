@@ -1,3 +1,6 @@
+fact channel [store:1]
+tag global [Valid:0, Invalid:0]
+
 (* Spec 3.5 optimization 2: when all branches read the same fact name from the
    same channel, the case can be compiled into one channel input followed by
    conditional tests on the payload. *)

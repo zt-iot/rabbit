@@ -34,38 +34,29 @@ const person_t__0: proc_t.
 (* type chan_t : channel *)
 const chan_t__0: acc_data_t.
 (* process alice(..): person_t *)
-let alice__0(ptype:proc_t, ch__33:channel) =
-  (* Channel ch__33 : chan_t *)
-  insert channel_table(chan_t__0, ch__33);
-  (* event [ ::Sent() ] at file "./015_multi_communication.rab", line 18, charaters 1-16 *)
+let alice__0(ptype:proc_t, ch__23:channel) =
+  (* Channel ch__23 : chan_t *)
+  insert channel_table(chan_t__0, ch__23);
+  (* event [ ::Sent() ] at file "./015_multi_communication.rab", line 21, charaters 1-16 *)
   event Sent__event_global;
-  (* _ := .. at file "./015_multi_communication.rab", line 19, charaters 1-17 *)
-  (* put [ c__29::store(v__30) ] at file "./015_multi_communication.rab", line 3, charaters 2-19 *)
-  get channel_table(ch_type__36:acc_data_t, =ch__33) in
-  get access_control_table(=ptype, =ch_type__36, =send__0__syscall) in
-  out(ch__33, store__chan(int__pos_1)) | 0.
+  (* _ := .. at file "./015_multi_communication.rab", line 22, charaters 1-17 *)
+  (* put [ c__19::store(v__20) ] at file "./015_multi_communication.rab", line 6, charaters 2-19 *)
+  get channel_table(ch_type__26:acc_data_t, =ch__23) in
+  get access_control_table(=ptype, =ch_type__26, =send__0__syscall) in
+  out(ch__23, store__chan(int__pos_1)) | 0.
 (* process bob(..): person_t *)
-let bob__0(ptype:proc_t, ch__34:channel) =
-  (* Channel ch__34 : chan_t *)
-  insert channel_table(chan_t__0, ch__34);
-  (* let one__35 = .. in .. at file "./015_multi_communication.rab", line 28, charaters 1-93 *)
-  (* case at file "./015_multi_communication.rab", line 8, charaters 22-23 *)
-  get channel_table(ch_type__43:acc_data_t, =ch__34) in
-  get access_control_table(=ptype, =ch_type__43, =recv__0__syscall) in
-  in(ch__34, store__chan(case_arg_0__37:bitstring));
-  new channel_case_ch__38:channel;
-  (out(channel_case_ch__38, (false__bool, (), ch__34)) |
-   in(channel_case_ch__38, (=false__bool, channel_case_result__41:bitstring, channel_case_state_0__42:channel))[precise];
-   (* case [ c__31::store(v__32) ] at file "./015_multi_communication.rab", line 8, charaters 22-23 *)
-   out(channel_case_ch__38, (true__bool, (* expr at file "./015_multi_communication.rab", line 8, charaters 22-23 *)
-                                         case_arg_0__37, channel_case_state_0__42))) |
-  (* end of case at file "./015_multi_communication.rab", line 8, charaters 22-23 *)
-  in(channel_case_ch__38, (=true__bool, channel_case_done_result__39:bitstring, channel_case_done_state_0__40:channel))[precise];
-  (* event [ ::Received() ] at file "./015_multi_communication.rab", line 29, charaters 1-20 *)
+let bob__0(ptype:proc_t, ch__24:channel) =
+  (* Channel ch__24 : chan_t *)
+  insert channel_table(chan_t__0, ch__24);
+  (* let one__25 = .. in .. at file "./015_multi_communication.rab", line 31, charaters 1-93 *)
+  get channel_table(ch_type__28:acc_data_t, =ch__24) in
+  get access_control_table(=ptype, =ch_type__28, =recv__0__syscall) in
+  in(ch__24, store__chan(guard_arg_0__27:bitstring));
+  (* event [ ::Received() ] at file "./015_multi_communication.rab", line 32, charaters 1-20 *)
   event Received__event_global;
-  if channel_case_done_result__39 = int__pos_1
+  if guard_arg_0__27 = int__pos_1
   then
-    (* event [ ::Valid() ] at file "./015_multi_communication.rab", line 32, charaters 5-21 *)
+    (* event [ ::Valid() ] at file "./015_multi_communication.rab", line 35, charaters 5-21 *)
     event Valid__event_global.
 (* channel chan : chan_t *)
 free chan__0: channel[private].

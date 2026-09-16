@@ -1,3 +1,6 @@
+fact channel [store:1]
+tag global [Valid:0]
+
 (* Spec 3.5 optimization 3: when a case has a single branch, the lock-channel
    encoding can be eliminated. For a channel fact, the result is a single
    [in(...)]-style input without an extra dispatch tree. *)

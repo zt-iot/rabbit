@@ -1,3 +1,5 @@
+tag global [Value:1]
+
 (* Known gap: float terms have no ProVerif lowering. *)
 
 type proc_t : process

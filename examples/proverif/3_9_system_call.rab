@@ -1,3 +1,5 @@
+tag global [Valid:1]
+
 (* Spec 3.9: system calls are inlined at the call site, with the current
    syscall tracked for access-control checks. *)
 

@@ -1,3 +1,5 @@
+tag global [First:0, Second:0]
+
 (* Verification feature: one event command emits every fact in its list.
 
    Reviewed.

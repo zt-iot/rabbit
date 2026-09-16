@@ -573,7 +573,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
   *)
   let loc = fact.loc in
   match fact.desc with
-  | Global (name, args) ->
+  | Global { name; args; _ } ->
       GEnv.add_event ~loc genv name Global (List.map T.type_of_expr args);
       process_e @@
       PEvent
@@ -581,7 +581,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , List.map (compile_expr_to_pterm genv penv) args
         , None
         , body )
-  | Plain (name, args) ->
+  | Plain { name; args; _ } ->
       GEnv.add_event ~loc genv name Plain (List.map T.type_of_expr args);
       process_e
       @@ PEvent
@@ -625,7 +625,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , [lhs; rhs]
         , None
         , body )
-  | Channel { channel; name; args } ->
+  | Channel { channel; name; args; _ } ->
       let args = channel :: args in
       GEnv.add_event ~loc genv name Channel (List.map T.type_of_expr args);
       process_e @@ PEvent
@@ -660,7 +660,7 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
   *)
   let loc = fact.loc in
   match fact.desc with
-  | Channel { channel; name; args } ->
+  | Channel { channel; name; args; _ } ->
       let channel_term = compile_expr_to_pterm genv penv channel in
       let payload =
         pterm_e @@
@@ -685,7 +685,7 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
       wrap_with_file_access_get path_term penv
         (ppar (process_e @@ POutput (file_channel, payload, process_e PNil)) body)
         (process_e PNil)
-  | Global ("Out", [arg]) ->
+  | Global { name= "Out"; args= [arg]; _ } ->
       process_e @@ POutput (pterm_e @@ PPIdent attacker_channel_ident, compile_expr_to_pterm genv penv arg, body)
   | Global _ ->
       Error.unsupported ~loc
@@ -945,7 +945,7 @@ and compile_guard_facts
                   (compile_expr_to_pterm genv penv rhs)
               in
               process_e @@ PTest (cond, else_proc, fragment rest)
-      | Channel { channel; name; args } ->
+      | Channel { channel; name; args; _ } ->
           (* Channel facts are linear. This sequential lowering can consume an
              earlier channel fact before a later guard fails, whereas Rabbit
              consumes the complete guard atomically. This is the same accepted
@@ -1063,7 +1063,7 @@ and compile_guard_facts
                    , then_proc
                    , [precise_ident, None] ))
                 else_proc
-      | Global ("In", [arg]) ->
+      | Global { name= "In"; args= [arg]; _ } ->
           let payload_id = Ident.local "attacker_input" in
           let branch_env, tests, match_arg =
             bind_guard_payloads penv fresh [arg] [payload_id] ~else_proc
@@ -1081,8 +1081,8 @@ and compile_guard_facts
                   , Some (compile_value_type (T.type_of_expr arg)) )
               , match_arg (fragment rest)
               , [] )
-      | Global ("False", []) -> penv, fun _rest -> else_proc
-      | Global ("True", []) ->
+      | Global { name= "False"; args= []; _ } -> penv, fun _rest -> else_proc
+      | Global { name= "True"; args= []; _ } ->
           compile_guard genv penv fresh facts ~on_success ~else_proc
       | Global _ | Plain _ ->
           Error.unsupported ~loc:fact.loc
@@ -1108,7 +1108,7 @@ let extract_channel_guard penv fresh (facts : T.fact list) =
     | [] -> None
     | (fact : T.fact) :: rest ->
         (match fact.desc with
-         | Channel { channel; name; args }
+         | Channel { channel; name; args; _ }
            when guard_expr_ready penv fresh channel && not (expr_contains_wildcard channel) ->
              Some (channel, name, args, List.rev rev_prefix @ rest, fact.loc)
          | _ ->

@@ -1,3 +1,5 @@
+tag global [HelperCalled:1, Returned:1]
+
 (* Verification feature: a process-local function returns into its caller.
 
    Reviewed.

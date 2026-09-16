@@ -1,3 +1,5 @@
+tag global [Valid:0]
+
 (* Spec 3.2: for a process with a channel argument
 
      process client(ch : udp_t) : client_t

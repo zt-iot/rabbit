@@ -2,6 +2,8 @@
 
 type proc_t : process
 
+tag [Started:0]
+
 process worker() : proc_t {
   main {
     event [::Started()]

@@ -1,3 +1,6 @@
+fact channel [store:1]
+tag global [Sent:2, Valid:2, Invalid:0, End:2]
+
 (* https://www-kb.is.s.u-tokyo.ac.jp/~koba/spica2/example/nonce-handshake.txt 
 
 /* simple nonce handshake protocols */

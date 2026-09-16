@@ -1,3 +1,5 @@
+tag global [CaseMatched:0, CaseConflictMatched:0, RepeatMatched:0, UntilMatched:0]
+
 (* Verification feature: wildcard equality guards use the same lowering in
    case, repeat, and until branches.
 

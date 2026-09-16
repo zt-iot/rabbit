@@ -1,3 +1,5 @@
+tag global [Seen:1]
+
 type p : process
 
 process worker() : p {

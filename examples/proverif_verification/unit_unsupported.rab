@@ -1,3 +1,5 @@
+tag global [Continued:0]
+
 (* BUG: The parser represents `()` as an empty tuple, but Typer asserts that
    every tuple is nonempty instead of converting it to `Typed.Unit`.  This
    crashes with `Assertion failed` before ProVerif compilation. *)

@@ -12,11 +12,6 @@ type Error.error +=
       ; def : Env.named_fact_desc
       ; use : Env.named_fact_desc
       }
-  | InvalidTag of
-      { name : Name.ident
-      ; def : Env.named_fact_desc
-      ; use : Env.named_fact_desc
-      }
   | InvalidVariable of
       { ident : Ident.t
       ; def : Env.desc
@@ -35,6 +30,8 @@ type Error.error +=
       }
   | FactDescConflict of Input.fact_desc list
   | PersistentTag of Name.ident
+  | UnboundFact of Name.t
+  | UnboundTag of Name.t
 
 let string_of_fact_desc = function
   | Input.Global -> "global"
@@ -44,8 +41,7 @@ let string_of_fact_desc = function
   | Persistent -> "pers"
 ;;
 
-(** Print error description. *)
-let print_error err ppf =
+let () = Error.add_printer @@ fun err ppf ->
   match err with
   | Misc s -> Format.fprintf ppf "%s" s
   | ArityMismatch { arity; use } ->
@@ -73,13 +69,6 @@ let print_error err ppf =
       Format.fprintf
         ppf
         "%s is %s fact but used as %s"
-        name
-        (Env.string_of_named_fact_desc def)
-        (Env.string_of_named_fact_desc use)
-  | InvalidTag { name; def; use } ->
-      Format.fprintf
-        ppf
-        "%s is %s tag but used as %s"
         name
         (Env.string_of_named_fact_desc def)
         (Env.string_of_named_fact_desc use)
@@ -122,7 +111,12 @@ let print_error err ppf =
         ppf
         "Declaration of fact kinds are conflicting: %s"
         (String.concat ", " (List.map string_of_fact_desc descs))
-  | PersistentTag name -> Format.fprintf ppf "Tag %s cannot be specified as persistent" name
+  | PersistentTag name ->
+      Format.fprintf ppf "Tag %s cannot be specified as persistent" name
+  | UnboundFact n ->
+      Format.fprintf ppf "Unbound fact \"%s\"" n
+  | UnboundTag n ->
+      Format.fprintf ppf "Unbound tag \"%s\"" n
   | _ -> Error.use_other_printers ()
 
 let misc_errorf ~loc fmt = Format.kasprintf (fun s -> Error.raise ~loc (Misc s)) fmt
@@ -142,31 +136,6 @@ let type_of_value_desc = Env.type_of_desc
 
 let type_of_expr = Typed.type_of_expr
 ;;
-
-(* XXX
-  val add_tag
-    :  loc:Location.t
-    -> t
-    -> Name.ident
-    -> named_fact_desc * int option
-    -> unit
-end = struct
-  include Env
-
-  let add_tag ~loc env name (desc, arity) =
-    match find_tag_opt env name with
-    | Some (desc', arity') ->
-        if desc <> desc'
-        then error ~loc @@ InvalidTag { name; def = desc'; use = desc }
-        else (
-          match arity, arity' with
-          | Some a, Some a' ->
-              if a = a' then () else error ~loc @@ ArityMismatch { arity = a'; use = a }
-          | _ -> ())
-    | None -> update_tag env name (desc, arity)
-  ;;
-end
-*)
 
 let check_arity ~loc ~arity ~use =
   if arity <> use then Error.raise ~loc @@ ArityMismatch { arity; use }
@@ -257,82 +226,55 @@ let type_expr ?(at_assignment = false) ?(allow_wildcard = false) env (e : Input.
 ;;
 
 let check_persist ~loc ~name ~persist ~use =
-  if persist <> use then error ~loc @@ PersistencyMismatch { name; persist; use }
+  if persist <> use then Error.raise ~loc @@ PersistencyMismatch { name; persist; use }
 ;;
 
 (* Compare facts and tags with the declared ones *)
-let check_env_fact ~is_tag ~loc env typ name arity persist =
+let check_env_fact ~is_tag ~loc env typ name args ~persist =
+  let arity = List.length args in
   if not is_tag then
-    (match Env.find_fact_opt env name with
+    match Env.find_fact_opt env name with
     | None ->
-        error ~loc @@ UnknownName name
-    | Some (desc, Some arity', persist') when desc = typ ->
-        check_arity ~loc ~arity:arity' ~use:arity;
-        check_persist ~loc ~name ~persist:persist' ~use:persist
+        Error.raise ~loc @@ UnboundFact name
+    | Some (desc, Some args', persist') when desc = typ ->
+        check_arity ~loc ~arity:(List.length args') ~use:arity;
+        check_persist ~loc ~name ~persist:persist' ~use:persist;
+        List.iter2 (fun a a' -> unify ~loc (type_of_expr a) a') args args'
     | Some (desc, None, _) when desc = typ -> assert false
     | Some (desc, _, _) ->
-        error ~loc @@ InvalidFact { name; def = desc; use = typ })
+        Error.raise ~loc @@ InvalidFact { name; def = desc; use = typ }
   else (
-    if persist then error ~loc @@ PersistentTag name;
-    (match Env.find_tag_opt env name with
+    if persist then Error.raise ~loc @@ PersistentTag name;
+    match Env.find_tag_opt env name with
     | None ->
-        error ~loc @@ UnknownName name
-    | Some (desc, Some arity') when desc = typ ->
-        check_arity ~loc ~arity:arity' ~use:arity
+        Error.raise ~loc @@ UnboundTag name
+    | Some (desc, Some args') when desc = typ ->
+        check_arity ~loc ~arity:(List.length args') ~use:arity;
+        List.iter2 (fun a a' -> unify ~loc (type_of_expr a) a') args args'
     | Some (desc, None) when desc = typ -> assert false
     | Some (desc, _) ->
-        error ~loc @@ InvalidFact { name; def = desc; use = typ }))
+        Error.raise ~loc @@ InvalidFact { name; def = desc; use = typ }
+  )
 
-let type_fact ?(allow_wildcard = false) env (fact : Input.fact) : Typed.fact =
+let type_fact ?(allow_wildcard = false) ~is_tag env (fact : Input.fact) : Typed.fact =
   let loc = fact.loc in
   let desc : Typed.fact' =
     match fact.data with
     | ProcessFact _ -> assert false (* Unused *)
-    | Fact { name; args = es; persist } ->
-(* XXX???
-        (* Which fact? For strucure? *)
-        let nes = List.length es in
-        let es = List.map (type_expr ~allow_wildcard env) es in
-        let argument_types = List.map type_of_expr es in
-        (match Env.find_fact_opt env name with
-         | None ->
-             Env.add_fact ~loc env name (Plain, Some argument_types);
-             Typed.Plain (name, es)
-         | Some (Plain, Some types) ->
-             check_arity ~loc ~arity:(List.length types) ~use:nes;
-             List.iter2 (unify ~loc) types argument_types;
-             Plain (name, es)
-         | Some (Plain, None) -> assert false
-         | Some (desc, _) ->
-             Error.raise ~loc @@ InvalidFact { name; def= desc; use= Plain }
-        )
-*)
-        check_env_fact ~is_tag ~loc env Plain name nes persist;
-        Plain { name; args = List.map (type_expr env) es; persist }
-(* XXX???
-    | GlobalFact (name, es) ->
-        let es = List.map (type_expr ~allow_wildcard env) es in
-        Env.add_fact ~loc env name (Global, Some (List.map type_of_expr es));
-        Global (name, es)
-*)
-    | GlobalFact { name; args = es; persist } ->
-        let nes = List.length es in
-        check_env_fact ~is_tag ~loc env Global name nes persist;
-        Global { name; args = List.map (type_expr env) es; persist }
-(* XXX???
-    | ChannelFact (e, name, es) ->
+    | Fact { name; args; persist } ->
+        let args = List.map (type_expr ~allow_wildcard env) args in
+        check_env_fact ~is_tag ~loc env Plain name args ~persist;
+        Plain { name; args; persist }
+    | GlobalFact { name; args; persist } ->
+        let args = List.map (type_expr ~allow_wildcard env) args in
+        check_env_fact ~is_tag ~loc env Global name args ~persist;
+        Global { name; args; persist }
+    | ChannelFact { ch = e; name; args; persist } ->
         let e = type_expr ~allow_wildcard env e in
         unify ~loc:e.loc TChannel (type_of_expr e);
-        let es = List.map (type_expr ~allow_wildcard env) es in
-        Env.add_fact ~loc env name (Channel, Some (List.map type_of_expr es));
-        Channel { channel = e; name; args = es }
-*)
-    | ChannelFact { ch = e; name; args = es; persist } ->
-        let e = type_expr env e in
-        let es = List.map (type_expr env) es in
-        let nes = List.length es in
-        check_env_fact ~is_tag ~loc env Channel name nes persist;
-        Channel { channel = e; name; args = es; persist }
+        let args = List.map (type_expr ~allow_wildcard env) args in
+        check_env_fact ~is_tag ~loc env Channel name args ~persist;
+        Channel { channel = e; name; args; persist }
     | EqFact (e1, e2) ->
         let e1 = type_expr ~allow_wildcard env e1 in
         let e2 = type_expr ~allow_wildcard env e2 in
@@ -365,7 +307,7 @@ let extend_with_args env (args : Name.ident list) f =
   env, List.rev rev_ids
 ;;
 
-let type_facts ?(is_tag = false) ?(allow_wildcard = false) env facts =
+let type_facts ~is_tag ?(allow_wildcard = false) env facts =
   List.map (type_fact ~is_tag ~allow_wildcard env) facts
 
 let rec infer_cmd_result_type (cmd : Typed.cmd) =
@@ -398,21 +340,21 @@ let type_structure_fact ~loc env name (arity : int option) =
   (* [str] must be a structure fact *)
   match Env.find_fact_opt env name, arity with
   | None, None ->
-      Env.add_fact ~loc env name (Structure, None);
+      Env.add_fact ~loc env name (Structure, None, false (* XXX *));
       None
-  | Some (Structure, None), None ->
+  | Some (Structure, None, _ (* XXX *)), None ->
       None
-  | (None | Some (Structure, None)), Some arity ->
+  | (None | Some (Structure, None, _ (* XXX *))), Some arity ->
       let ftys = List.init arity (fun _ -> Type.fresh_type ()) in
-      Env.add_fact ~loc env name (Structure, Some ftys);
+      Env.add_fact ~loc env name (Structure, Some ftys, false (* XXX *));
       Some ftys
-  | Some (Structure, Some ftys), None ->
+  | Some (Structure, Some ftys, _ (* XXX *)), None ->
       Some ftys
-  | Some (Structure, Some ftys), Some arity ->
+  | Some (Structure, Some ftys, _ (* XXX *)), Some arity ->
       if List.length ftys <> arity then
         Error.raise ~loc @@ ArityMismatch { arity= List.length ftys; use= arity };
       Some ftys
-  | Some (desc, _), _ ->
+  | Some (desc, _, _), _ ->
       Error.raise ~loc @@ InvalidFact { name; def= desc; use= Structure }
 
 let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
@@ -425,7 +367,8 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         let c2 = type_cmd env c2 in
         Sequence (c1, c2)
     | Put facts ->
-        let facts = type_facts env facts in
+        (* `facts` must be predefined as facts (global, channel or local) *)
+        let facts = type_facts ~is_tag:false env facts in
         Put facts
     | Let (name, e, cmd) ->
         let e = type_expr ~at_assignment:true env e in
@@ -456,6 +399,7 @@ let rec type_cmd (env : Env.t) (cmd : Input.cmd) : Typed.cmd =
         let cases2 = type_cases env cases2 in
         While (cases1, cases2)
     | Event facts ->
+        (* `facts` must be predefined as tags (global, channel or local) *)
         let facts = type_facts ~is_tag:true env facts in
         Event facts
     | Expr e ->
@@ -524,7 +468,7 @@ and type_case env (facts, cmd) : Typed.case =
   let env' =
     List.fold_left (fun env id -> Env.add env id (Var (Type.fresh_type ()))) env fresh_ids
   in
-  let facts = type_facts ~allow_wildcard:true env' facts in
+  let facts = type_facts ~is_tag:false ~allow_wildcard:true env' facts in
   let cmd = type_cmd env' cmd in
   Typed.{ fresh = fresh_ids; facts; cmd }
 ;;
@@ -723,18 +667,20 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let desc_persist, descs = List.partition (fun desc -> desc = Input.Persistent) descs in
       let is_persist = List.length desc_persist > 0 in
       if List.length descs <= 0
-      then error ~loc @@ (Misc "Fact declaration must specify some kind")
+      then Error.raise ~loc @@ (Misc "Fact declaration must specify some kind")
       else if List.length descs > 1
-      then error ~loc @@ FactDescConflict descs
-      else let desc = type_fact_desc (List.hd descs) in
-      List.iter (fun (id, arity) -> Env.add_fact ~loc env id (desc, Some arity, is_persist)) facts;
-      (env, [])
+      then Error.raise ~loc @@ FactDescConflict descs
+      else
+        let desc = type_fact_desc (List.hd descs) in
+        List.iter (fun (id, arity) -> Env.add_fact ~loc env id (desc, Some (List.init arity (fun _ -> Type.fresh_type ())), is_persist)) facts;
+        (env, [])
   | DeclTags (desc, tags) ->
       if desc = Input.Persistent
-      then error ~loc @@ (Misc "Tag declaration must specify some kind")
-      else let desc = type_fact_desc desc in
-      List.iter (fun (id, arity) -> Env.add_tag ~loc env id (desc, Some arity)) tags;
-      (env, [])
+      then Error.raise ~loc @@ (Misc "Tag declaration must specify some kind")
+      else
+        let desc = type_fact_desc desc in
+        List.iter (fun (id, arity) -> Env.add_tag ~loc env id (desc, Some (List.init arity (fun _ -> Type.fresh_type ())))) tags;
+        (env, [])
   | DeclExtSyscall (name, args, c, attack) ->
       let typ = fresh_callable (List.length args) in
       let args, cmd =

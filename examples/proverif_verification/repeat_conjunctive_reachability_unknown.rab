@@ -1,3 +1,6 @@
+tag global [A:0, B:0]
+fact channel [Exit:0]
+
 (* Regression: conjunction is semantically commutative, but after repeat
    lowering ProVerif reconstructs the A-then-B order and returns unknown for
    the equivalent B-then-A query.

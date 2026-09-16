@@ -1,3 +1,5 @@
+tag global [Seen:1]
+
 (* Spec 3.1: Rabbit constants are compiled to ProVerif declarations.
    - [const fresh secret] becomes a bitstring constant.
    - [const alias = secret] becomes a bitstring constant together with an equation. *)

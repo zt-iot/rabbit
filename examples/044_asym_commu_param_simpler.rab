@@ -1,3 +1,6 @@
+fact channel [store:1]
+tag global [Valid:1, Invalid:1, Sent:1]
+
 type process_t : process
 type client_t : process
 type chan_t : channel

@@ -1,3 +1,5 @@
+tag global [Valid:1, Other:1]
+
 (* Spec 3.10: parameterized constants are translated using [param_data].
 
      const fresh priv_k<>

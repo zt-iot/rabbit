@@ -1,3 +1,5 @@
+tag global [AssumptionSatisfied:0, AssumptionUnsatisfied:0]
+
 (* Verification feature: an assumption enables its body only when all of its
    equational facts hold.
 

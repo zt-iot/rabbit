@@ -1,3 +1,6 @@
+fact channel [Msg:3, First:1]
+tag global [Merged:2, BadMerged:0, Loop:2, Exit:1, Multiple:2, File:1, BadFile:0, Input:1, AnyInput:0]
+
 (* Input tuple patterns share binding and checks across merged case inputs,
    ordinary loop inputs, file contents, and attacker inputs. *)
 type proc_t : process

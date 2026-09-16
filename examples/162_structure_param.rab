@@ -1,3 +1,5 @@
+tag global [Valid:0, Invalid:0]
+
 
 type proc_t : process
 

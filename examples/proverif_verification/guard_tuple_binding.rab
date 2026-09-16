@@ -1,3 +1,5 @@
+tag global [Nested:2, Repeated:1, FixedFunction:1, Chain:2, BadRepeated:0, BadFixed:0, CaseBound:2, BadShape:2, LoopBound:2, ExitBound:1, Done:1]
+
 (* Tuple equality binds local variables in all guarded commands. Comparisons
    may precede the equality that supplies their variables. *)
 type proc_t : process

@@ -27,7 +27,7 @@ equation forall x__5:bitstring, y__6:bitstring; dec__0(enc__0(x__5, y__6), y__6)
 const proc_t__0: proc_t.
 (* process sender(..): proc_t *)
 let sender__0(ptype:proc_t) =
-  (* event [ ::Valid() ] at file "./3_1_equational_theories.rab", line 19, charaters 4-21 *)
+  (* event [ ::Valid() ] at file "./3_1_equational_theories.rab", line 21, charaters 4-21 *)
   event Valid__event_global.
 (* Requires *)
 (* lemma ReachableValid *)

@@ -1,3 +1,5 @@
+tag global [First:0, Second:0, Missing:0]
+
 (* Verification feature: reachability facts are compiled as a conjunction. *)
 
 type proc_t : process

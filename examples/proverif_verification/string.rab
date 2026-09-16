@@ -1,3 +1,5 @@
+tag global [Seen:1]
+
 (* Verification feature: string literals denote stable symbolic constants.
 
    Reviewed.

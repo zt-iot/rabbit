@@ -214,26 +214,26 @@ let vars_of_fact f =
   in
   match f.desc with
   | Channel { channel; args; _ } -> vars_of_exprs (channel :: args)
-  | Plain (_, es) -> vars_of_exprs es
+  | Plain { name=_; args= es; persist=_ } -> vars_of_exprs es
   | Eq (e1, e2) | Neq (e1, e2) -> vars_of_exprs [e1; e2]
   | File { path; contents } -> vars_of_exprs [path; contents]
-  | Global (_, es) -> vars_of_exprs es
+  | Global { name=_; args= es; persist=_ } -> vars_of_exprs es
 
 let string_of_fact (fact : fact) =
   match fact.desc with
-  | Channel { channel= ({ desc= Ident _; _ } as channel); name; args } ->
+  | Channel { channel= ({ desc= Ident _; _ } as channel); name; args; persist=_ } ->
       Printf.sprintf
         "%s::%s(%s)"
         (string_of_expr channel)
         name
         (String.concat ", " @@ List.map string_of_expr args)
-  | Channel { channel; name; args } ->
+  | Channel { channel; name; args; persist=_ } ->
       Printf.sprintf
         "(%s)::%s(%s)"
         (string_of_expr channel)
         name
         (String.concat ", " @@ List.map string_of_expr args)
-  | Plain (name, args) ->
+  | Plain { name; args; persist=_ } ->
       Printf.sprintf "%s(%s)" name (String.concat ", " @@ List.map string_of_expr args)
   | Eq (e1, e2) -> Printf.sprintf "%s = %s" (string_of_expr e1) (string_of_expr e2)
   | Neq (e1, e2) -> Printf.sprintf "%s != %s" (string_of_expr e1) (string_of_expr e2)
@@ -244,7 +244,7 @@ let string_of_fact (fact : fact) =
         | _ -> "(" ^ string_of_expr expr ^ ")"
       in
       parenthesize_if_needed path ^ "." ^ parenthesize_if_needed contents
-  | Global (name, args) ->
+  | Global { name; args; persist=_ } ->
       Printf.sprintf "::%s(%s)" name (String.concat ", " @@ List.map string_of_expr args)
 
 type cmd = cmd' loc_env

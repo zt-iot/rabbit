@@ -1,3 +1,5 @@
+tag global [Started:0, Finished:0]
+
 (* Verification feature: correspondence distinguishes ordering from reachability.
 
    Reviewed.

@@ -1,3 +1,5 @@
+tag global [OuterState:1, LocalResult:1]
+
 (* Verification feature: assignments update the nearest binding while leaving
    function-local bindings scoped to the call. *)
 

@@ -1,3 +1,6 @@
+fact channel [Message:1]
+tag global [LeftReceived:1, RightReceived:1]
+
 (* Verification feature: one put command emits every fact in its list.
 
    Reviewed.

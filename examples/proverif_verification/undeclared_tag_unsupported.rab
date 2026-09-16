@@ -1,0 +1,7 @@
+(* A fact declaration does not declare an event tag with the same name. *)
+fact global [Observed:0]
+type proc_t : process
+
+process worker() : proc_t {
+  main { event [::Observed()] }
+}

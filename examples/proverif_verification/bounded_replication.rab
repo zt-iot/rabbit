@@ -1,3 +1,5 @@
+tag global [Left:0, Right:0]
+
 (* Verification feature: a parameter binder replicates a group of processes
    that share the same fresh [param_data] value. *)
 

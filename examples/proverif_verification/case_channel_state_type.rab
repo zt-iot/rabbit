@@ -1,3 +1,5 @@
+tag global [Constructed:1]
+
 (* BUG: the general case encoding carries every process binding through its
    private lock channel, but currently receives every state field as a
    bitstring. The process argument [c] is a channel, so using it after that

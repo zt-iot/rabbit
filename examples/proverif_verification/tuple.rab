@@ -1,3 +1,5 @@
+tag global [Value:1]
+
 (* Verification feature: tuples survive expression translation.
 
    Reviewed.

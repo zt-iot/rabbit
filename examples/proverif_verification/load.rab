@@ -1,3 +1,5 @@
+tag global [Loaded:1]
+
 (* Verification feature: load makes declarations from another Rabbit file visible.
 
    Reviewed.

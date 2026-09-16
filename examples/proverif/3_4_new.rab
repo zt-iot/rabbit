@@ -1,3 +1,5 @@
+tag global [Valid:0]
+
 (* Spec 3.4: from
 
      new x = S(1, 2, 3) in

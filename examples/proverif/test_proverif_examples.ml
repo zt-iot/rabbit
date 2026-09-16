@@ -29,7 +29,7 @@ let current_pv_filename rab_filename =
 
 let load_file fn =
   try
-    Ok (Typer.load (Env.empty ()) fn)
+    Ok (Typer.load (Env.init_env ()) fn)
   with
   | Error.Error _ as exn -> Error exn
   | exn ->

@@ -1,3 +1,5 @@
+tag global [Ready:0]
+
 (* Known gap: trace-language string lemmas have no ProVerif lowering. *)
 
 type proc_t : process

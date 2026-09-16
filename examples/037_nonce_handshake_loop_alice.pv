@@ -21,19 +21,19 @@ event Valid__event_global.
 const person_t__0: proc_t.
 (* process alice(..): person_t *)
 let alice__0(ptype:proc_t) =
-  (* event [ ::Valid() ] at file "./037_nonce_handshake_loop_alice.rab", line 6, charaters 5-21 *)
+  (* event [ ::Valid() ] at file "./037_nonce_handshake_loop_alice.rab", line 9, charaters 5-21 *)
   event Valid__event_global;
-  (* repeat-until at file "./037_nonce_handshake_loop_alice.rab", line 8, charaters 8-138 *)
-  new loop_ch__538:channel;
-  (out(loop_ch__538, (false__bool, ())) |
-   !(((* repeat case [  ] at file "./037_nonce_handshake_loop_alice.rab", line 10, charaters 5-9 *)
-      in(loop_ch__538, (=false__bool, loop_result__541:bitstring))[precise];
-      out(loop_ch__538, (false__bool, ()))) |
-     (* until case [ ::False() ] at file "./037_nonce_handshake_loop_alice.rab", line 12, charaters 25-29 *)
-     in(loop_ch__538, (=false__bool, loop_result__540:bitstring))[precise];
-     out(loop_ch__538, (false__bool, loop_result__540)))) |
-  (* end of repeat-until at file "./037_nonce_handshake_loop_alice.rab", line 8, charaters 8-138 *)
-  in(loop_ch__538, (=true__bool, loop_done_result__539:bitstring))[precise].
+  (* repeat-until at file "./037_nonce_handshake_loop_alice.rab", line 11, charaters 8-138 *)
+  new loop_ch__423:channel;
+  (out(loop_ch__423, (false__bool, ())) |
+   !(((* repeat case [  ] at file "./037_nonce_handshake_loop_alice.rab", line 13, charaters 5-9 *)
+      in(loop_ch__423, (=false__bool, loop_result__426:bitstring))[precise];
+      out(loop_ch__423, (false__bool, ()))) |
+     (* until case [ ::False() ] at file "./037_nonce_handshake_loop_alice.rab", line 15, charaters 25-29 *)
+     in(loop_ch__423, (=false__bool, loop_result__425:bitstring))[precise];
+     out(loop_ch__423, (false__bool, loop_result__425)))) |
+  (* end of repeat-until at file "./037_nonce_handshake_loop_alice.rab", line 11, charaters 8-138 *)
+  in(loop_ch__423, (=true__bool, loop_done_result__424:bitstring))[precise].
 (* Requires *)
 (* lemma Valid *)
 query event(Valid__event_global()).

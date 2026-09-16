@@ -1,3 +1,5 @@
+tag global [TupleMatched:0, OverlappingPatternsMatched:0, TupleConstructorMatched:0, TupleConstructorConflictMatched:0, ConflictingPatternsMatched:0]
+
 (* Verification feature: tuple wildcard equalities in assumptions are lowered
    to tuple bindings and checks of fixed components; wildcards are ignored.
 

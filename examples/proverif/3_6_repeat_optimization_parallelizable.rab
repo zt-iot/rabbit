@@ -1,3 +1,6 @@
+fact channel [msg:1]
+tag global [Sent:0]
+
 (* Spec 3.6 potential optimization 3: when loop iterations are independent and
    only produce outputs, sequential lock-step execution may be removable. This
    example is a candidate for that optimization. *)

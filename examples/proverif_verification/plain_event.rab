@@ -1,3 +1,6 @@
+tag local [PlainEvent:0]
+tag global [GlobalEvent:0]
+
 (* Verification feature: plain and global event facts use the same event semantics.
 
    Reviewed.

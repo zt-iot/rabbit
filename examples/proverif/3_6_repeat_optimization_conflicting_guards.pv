@@ -25,31 +25,31 @@ const int__pos_1: bitstring.
 const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
 let worker__0(ptype:proc_t) =
-  (* let state__70 = .. in .. at file "./3_6_repeat_optimization_conflicting_guards.rab", line 10, charaters 4-157 *)
-  (* repeat-until at file "./3_6_repeat_optimization_conflicting_guards.rab", line 11, charaters 4-113 *)
+  (* let state__70 = .. in .. at file "./3_6_repeat_optimization_conflicting_guards.rab", line 12, charaters 4-157 *)
+  (* repeat-until at file "./3_6_repeat_optimization_conflicting_guards.rab", line 13, charaters 4-113 *)
   new loop_ch__71:channel;
   (out(loop_ch__71, (false__bool, (), int__pos_0)) |
-   !((((* repeat case [ state__70 = 0 ] at file "./3_6_repeat_optimization_conflicting_guards.rab", line 12, charaters 21-31 *)
+   !((((* repeat case [ state__70 = 0 ] at file "./3_6_repeat_optimization_conflicting_guards.rab", line 14, charaters 21-31 *)
        in(loop_ch__71, (=false__bool, loop_result__76:bitstring, loop_state_0__77:bitstring))[precise];
        if loop_state_0__77 = int__pos_0
        then
-         (* state__70 := .. at file "./3_6_repeat_optimization_conflicting_guards.rab", line 12, charaters 21-31 *)
+         (* state__70 := .. at file "./3_6_repeat_optimization_conflicting_guards.rab", line 14, charaters 21-31 *)
          out(loop_ch__71, (false__bool, (), int__pos_1))
        else
          out(loop_ch__71, (false__bool, loop_result__76, loop_state_0__77))) |
-      (* repeat case [ state__70 != 0 ] at file "./3_6_repeat_optimization_conflicting_guards.rab", line 13, charaters 22-26 *)
+      (* repeat case [ state__70 != 0 ] at file "./3_6_repeat_optimization_conflicting_guards.rab", line 15, charaters 22-26 *)
       in(loop_ch__71, (=false__bool, loop_result__78:bitstring, loop_state_0__79:bitstring))[precise];
       if loop_state_0__79 = int__pos_0
       then out(loop_ch__71, (false__bool, loop_result__78, loop_state_0__79))
       else out(loop_ch__71, (false__bool, (), loop_state_0__79))) |
-     (* until case [ state__70 = 1 ] at file "./3_6_repeat_optimization_conflicting_guards.rab", line 15, charaters 21-25 *)
+     (* until case [ state__70 = 1 ] at file "./3_6_repeat_optimization_conflicting_guards.rab", line 17, charaters 21-25 *)
      in(loop_ch__71, (=false__bool, loop_result__74:bitstring, loop_state_0__75:bitstring))[precise];
      if loop_state_0__75 = int__pos_1
      then out(loop_ch__71, (true__bool, (), loop_state_0__75))
      else out(loop_ch__71, (false__bool, loop_result__74, loop_state_0__75)))) |
-  (* end of repeat-until at file "./3_6_repeat_optimization_conflicting_guards.rab", line 11, charaters 4-113 *)
+  (* end of repeat-until at file "./3_6_repeat_optimization_conflicting_guards.rab", line 13, charaters 4-113 *)
   in(loop_ch__71, (=true__bool, loop_done_result__72:bitstring, loop_done_state_0__73:bitstring))[precise];
-  (* event [ ::Valid() ] at file "./3_6_repeat_optimization_conflicting_guards.rab", line 17, charaters 4-21 *)
+  (* event [ ::Valid() ] at file "./3_6_repeat_optimization_conflicting_guards.rab", line 19, charaters 4-21 *)
   event Valid__event_global.
 (* Requires *)
 (* lemma ReachableValid *)

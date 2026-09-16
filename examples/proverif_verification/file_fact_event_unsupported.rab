@@ -1,3 +1,5 @@
+tag global [Never:0]
+
 (* Known gap: ProVerif event lowering does not support file facts. *)
 
 type proc_t : process

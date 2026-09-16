@@ -32,36 +32,36 @@ const person_t__0: proc_t.
 (* type chan_t : channel *)
 const chan_t__0: acc_data_t.
 (* process alice(..): person_t *)
-let alice__0(ptype:proc_t, p__773:param_data, ch__774:channel) =
-  (* Channel ch__774 : chan_t *)
-  insert channel_table(chan_t__0, ch__774);
-  (* _ := .. at file "./065_allow_bounded.rab", line 15, charaters 8-25 *)
-  (* put [ c__771::send(1) ] at file "./065_allow_bounded.rab", line 2, charaters 3-18 *)
-  get channel_table(ch_type__779:acc_data_t, =ch__774) in
-  get access_control_table(=ptype, =ch_type__779, =send_one__0__syscall) in
-  out(ch__774, send__chan(int__pos_1)) |
-  ((* _ := .. at file "./065_allow_bounded.rab", line 16, charaters 8-25 *)
-   (* put [ c__772::send(2) ] at file "./065_allow_bounded.rab", line 6, charaters 3-18 *)
-   get channel_table(ch_type__778:acc_data_t, =ch__774) in
-   get access_control_table(=ptype, =ch_type__778, =send_two__0__syscall) in
-   out(ch__774, send__chan(int__pos_2)) |
-   (* event [ ::Valid() ] at file "./065_allow_bounded.rab", line 17, charaters 8-24 *)
+let alice__0(ptype:proc_t, p__684:param_data, ch__685:channel) =
+  (* Channel ch__685 : chan_t *)
+  insert channel_table(chan_t__0, ch__685);
+  (* _ := .. at file "./065_allow_bounded.rab", line 18, charaters 8-25 *)
+  (* put [ c__682::send(1) ] at file "./065_allow_bounded.rab", line 5, charaters 3-18 *)
+  get channel_table(ch_type__690:acc_data_t, =ch__685) in
+  get access_control_table(=ptype, =ch_type__690, =send_one__0__syscall) in
+  out(ch__685, send__chan(int__pos_1)) |
+  ((* _ := .. at file "./065_allow_bounded.rab", line 19, charaters 8-25 *)
+   (* put [ c__683::send(2) ] at file "./065_allow_bounded.rab", line 9, charaters 3-18 *)
+   get channel_table(ch_type__689:acc_data_t, =ch__685) in
+   get access_control_table(=ptype, =ch_type__689, =send_two__0__syscall) in
+   out(ch__685, send__chan(int__pos_2)) |
+   (* event [ ::Valid() ] at file "./065_allow_bounded.rab", line 20, charaters 8-24 *)
    event Valid__event_global).
 (* process bob(..): person_t *)
-let bob__0(ptype:proc_t, p__775:param_data, ch__776:channel) =
-  (* Channel ch__776 : chan_t *)
-  insert channel_table(chan_t__0, ch__776);
-  (* _ := .. at file "./065_allow_bounded.rab", line 24, charaters 8-25 *)
-  (* put [ c__772::send(2) ] at file "./065_allow_bounded.rab", line 6, charaters 3-18 *)
-  get channel_table(ch_type__781:acc_data_t, =ch__776) in
-  get access_control_table(=ptype, =ch_type__781, =send_two__0__syscall) in
-  out(ch__776, send__chan(int__pos_2)) |
-  ((* _ := .. at file "./065_allow_bounded.rab", line 25, charaters 8-25 *)
-   (* put [ c__771::send(1) ] at file "./065_allow_bounded.rab", line 2, charaters 3-18 *)
-   get channel_table(ch_type__780:acc_data_t, =ch__776) in
-   get access_control_table(=ptype, =ch_type__780, =send_one__0__syscall) in
-   out(ch__776, send__chan(int__pos_1)) |
-   (* event [ ::Valid() ] at file "./065_allow_bounded.rab", line 26, charaters 8-24 *)
+let bob__0(ptype:proc_t, p__686:param_data, ch__687:channel) =
+  (* Channel ch__687 : chan_t *)
+  insert channel_table(chan_t__0, ch__687);
+  (* _ := .. at file "./065_allow_bounded.rab", line 27, charaters 8-25 *)
+  (* put [ c__683::send(2) ] at file "./065_allow_bounded.rab", line 9, charaters 3-18 *)
+  get channel_table(ch_type__692:acc_data_t, =ch__687) in
+  get access_control_table(=ptype, =ch_type__692, =send_two__0__syscall) in
+  out(ch__687, send__chan(int__pos_2)) |
+  ((* _ := .. at file "./065_allow_bounded.rab", line 28, charaters 8-25 *)
+   (* put [ c__682::send(1) ] at file "./065_allow_bounded.rab", line 5, charaters 3-18 *)
+   get channel_table(ch_type__691:acc_data_t, =ch__687) in
+   get access_control_table(=ptype, =ch_type__691, =send_one__0__syscall) in
+   out(ch__687, send__chan(int__pos_1)) |
+   (* event [ ::Valid() ] at file "./065_allow_bounded.rab", line 29, charaters 8-24 *)
    event Valid__event_global).
 (* channel chan : chan_t *)
 free chan__0: channel[private].
@@ -74,6 +74,6 @@ process
   insert access_control_table(person_t__0, chan_t__0, send_one__0__syscall);
   (* allow person_t chan_t [send_two] *)
   insert access_control_table(person_t__0, chan_t__0, send_two__0__syscall);
-  !(new p__777:param_data;
-    alice__0(person_t__0, p__777, chan__0) |
-    bob__0(person_t__0, p__777, chan__0))
+  !(new p__688:param_data;
+    alice__0(person_t__0, p__688, chan__0) |
+    bob__0(person_t__0, p__688, chan__0))

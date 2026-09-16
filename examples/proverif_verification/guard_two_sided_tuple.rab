@@ -1,3 +1,5 @@
+tag global [Basic:2, Nested:3, Chain:3, Bad:0, Repeated:2, Loop:2, Exit:2]
+
 (* Two-sided tuples are decomposed into constraints. Bind only variables
    whose values are supplied by a ground expression or another guard. *)
 type proc_t : process

@@ -29,7 +29,7 @@ const chan_t__0: acc_data_t.
 let worker__0(ptype:proc_t, ch__102:channel) =
   (* Channel ch__102 : chan_t *)
   insert channel_table(chan_t__0, ch__102);
-  (* put [ ch__102::store(1) ] at file "./3_8_channel_facts.rab", line 10, charaters 4-22 *)
+  (* put [ ch__102::store(1) ] at file "./3_8_channel_facts.rab", line 13, charaters 4-22 *)
   get channel_table(ch_type__105:acc_data_t, =ch__102) in
   get access_control_table(=ptype, =ch_type__105, =none__syscall) in
   out(ch__102, store__chan(int__pos_1)) |
@@ -38,7 +38,7 @@ let worker__0(ptype:proc_t, ch__102:channel) =
    in(ch__102, store__chan(guard_arg_0__103:bitstring));
    if guard_arg_0__103 = int__pos_1
    then
-     (* event [ ::Valid() ] at file "./3_8_channel_facts.rab", line 12, charaters 24-41 *)
+     (* event [ ::Valid() ] at file "./3_8_channel_facts.rab", line 15, charaters 24-41 *)
      event Valid__event_global).
 (* channel ch : chan_t *)
 free ch__0: channel[private].

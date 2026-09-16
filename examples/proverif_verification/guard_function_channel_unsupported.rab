@@ -1,3 +1,6 @@
+fact channel [Msg:1]
+tag global [Matched:1]
+
 function f:1
 type proc_t : process
 type channel_t : channel

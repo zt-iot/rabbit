@@ -1,3 +1,5 @@
+tag global [Syscall:1, Attack:1, Sent:1, Observed:1]
+
 (* Spec 3.9: allowed attacks introduce nondeterministic alternatives around a
    syscall call. This example makes the normal branch and the attack branch
    observable with distinct events, so it is easier to check whether the

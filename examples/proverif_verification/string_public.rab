@@ -1,3 +1,5 @@
+tag global [PublicStringReturned:0]
+
 (* Verification feature: string literals are public symbolic constants.
 
    The process never sends `"public"` to the attacker. Reachability therefore

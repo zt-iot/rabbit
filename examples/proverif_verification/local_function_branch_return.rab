@@ -1,3 +1,5 @@
+tag global [Returned:2]
+
 (* Verification feature: return from a local-function case branch resumes the
    caller with that branch's value.
 

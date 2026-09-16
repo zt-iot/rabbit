@@ -1,3 +1,6 @@
+fact channel [store:1]
+tag global [ClientSendQuery:1, ClientRecvResponse:2, Cached:2, Record:2]
+
 
 (* security primitives *)
 function pk:1

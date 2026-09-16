@@ -35,8 +35,8 @@ let () = Error.add_printer @@ fun err ppf ->
   | WrongChannelType (x, y) -> Format.fprintf ppf "%s type expected but %s given" x y
   | WildcardNotAllowed ->
       Format.fprintf ppf "wildcard '_' is not supported in legacy compiler"
-  | _ -> Error.use_other_printers ()
   | Unsupported -> Format.fprintf ppf "currently unsupported in legacy version"
+  | _ -> Error.use_other_printers ()
 
 let find_index f lst =
   let rec aux i = function
@@ -997,7 +997,7 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           }
           :: env.system
       }
-  | Input.DeclExtFacts _ | Input.DeclTags _ -> error ~loc Unsupported
+  | Input.DeclExtFacts _ | Input.DeclTags _ -> Error.raise ~loc Unsupported
     (* Fact declaration is currently unsupported in legacy compiler *)
 
 and load fn env =

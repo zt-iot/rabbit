@@ -1,3 +1,5 @@
+tag global [Ready:0]
+
 (* An unused parameterized channel declaration is supported. *)
 
 type proc_t : process

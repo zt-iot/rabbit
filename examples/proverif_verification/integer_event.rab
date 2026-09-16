@@ -1,3 +1,5 @@
+tag global [Value:1, Negative:1]
+
 (* Verification feature: integer literals are symbolic bitstring constants.
 
    Reviewed.

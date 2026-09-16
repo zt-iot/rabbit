@@ -1,3 +1,5 @@
+tag global [Mismatch:0, ReversedMismatch:0, BadMatch:0, BadReversedMatch:0]
+
 (* Different nesting on the two sides reduces to a one-sided matcher.
    a matches (b, _); d does not. Check both operand orders independently. *)
 const a = (1, 2)

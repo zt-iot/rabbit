@@ -1,3 +1,5 @@
+tag global [Selected:1, ImpossibleBranch:0, ContinuedAfterFailedCase:0]
+
 (* Verification feature: a non-channel case with one branch passes its updated
    process state directly to the continuation and needs no competing branch. *)
 

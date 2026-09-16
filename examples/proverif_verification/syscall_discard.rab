@@ -1,3 +1,5 @@
+tag global [Marked:0, Continued:0]
+
 (* Verification feature: discarding a syscall result still runs its effects.
 
    Reviewed.
