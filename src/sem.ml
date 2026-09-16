@@ -113,6 +113,9 @@ and fact' =
       ; args : expr list
       ; persist : bool
       }
+      (** Named process-local fact or tag, written [F(args)] and declared with
+          [local]. This constructor does not cover all facts classified as local
+          by [is_nonlocal_fact]; for example, [File] and [Structure] are separate. *)
   | Eq of expr * expr
   | Neq of expr * expr
   | File of
@@ -150,7 +153,7 @@ let is_nonlocal_fact f =
   match f.desc with
   | Channel _ -> true
   | Global _ -> true
-  | _ -> false
+  | Plain _ | Eq _ | Neq _ | File _ | Fresh _ | Structure _ | Loop _ | Access _ -> false
 
 let string_of_fact f =
   match f.desc with

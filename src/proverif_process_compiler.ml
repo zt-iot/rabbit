@@ -573,7 +573,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
   *)
   let loc = fact.loc in
   match fact.desc with
-  | Global { name; args; _ } ->
+  | Global { name; args; persist= false } ->
       GEnv.add_event ~loc genv name Global (List.map T.type_of_expr args);
       process_e @@
       PEvent
@@ -581,7 +581,8 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , List.map (compile_expr_to_pterm genv penv) args
         , None
         , body )
-  | Plain { name; args; _ } ->
+  | Global { name=_; args=_; persist= true } -> assert false (* XXX *)
+  | Plain { name; args; persist= false } ->
       GEnv.add_event ~loc genv name Plain (List.map T.type_of_expr args);
       process_e
       @@ PEvent
@@ -589,6 +590,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , List.map (compile_expr_to_pterm genv penv) args
         , None
         , body )
+  | Plain { name=_; args=_; persist= true } -> assert false (* XXX *)
   | Eq (lhs, rhs) ->
       (*
          ```
@@ -625,7 +627,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , [lhs; rhs]
         , None
         , body )
-  | Channel { channel; name; args; _ } ->
+  | Channel { channel; name; args; persist= false } ->
       let args = channel :: args in
       GEnv.add_event ~loc genv name Channel (List.map T.type_of_expr args);
       process_e @@ PEvent
@@ -633,6 +635,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , List.map (compile_expr_to_pterm genv penv) args
         , None
         , body )
+  | Channel { channel=_; name=_; args=_; persist= true } -> assert false (* XXX *)
   | File _ ->
       Error.unsupported ~loc
         "File event facts are not supported in ProVerif event lowering"
@@ -660,7 +663,7 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
   *)
   let loc = fact.loc in
   match fact.desc with
-  | Channel { channel; name; args; _ } ->
+  | Channel { channel; name; args; persist= false } ->
       let channel_term = compile_expr_to_pterm genv penv channel in
       let payload =
         pterm_e @@
@@ -671,6 +674,7 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
       wrap_with_channel_access_get (channel_access_term genv penv channel) penv
         (ppar (channel_output genv channel_term payload) body)
         (process_e PNil)
+  | Channel { channel=_; name=_; args=_; persist= true } -> assert false (* XXX *)
   | File { path; contents } ->
       let path_term = compile_expr_to_pterm genv penv path in
       let contents_term = compile_expr_to_pterm genv penv contents in
@@ -685,8 +689,9 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
       wrap_with_file_access_get path_term penv
         (ppar (process_e @@ POutput (file_channel, payload, process_e PNil)) body)
         (process_e PNil)
-  | Global { name= "Out"; args= [arg]; _ } ->
+  | Global { name= "Out"; args= [arg]; persist= false } ->
       process_e @@ POutput (pterm_e @@ PPIdent attacker_channel_ident, compile_expr_to_pterm genv penv arg, body)
+  | Global { name= "Out"; args= _; persist= true } -> assert false
   | Global _ ->
       Error.unsupported ~loc
         "Global facts other than ::Out(...) are not supported in ProVerif put lowering"
@@ -945,7 +950,7 @@ and compile_guard_facts
                   (compile_expr_to_pterm genv penv rhs)
               in
               process_e @@ PTest (cond, else_proc, fragment rest)
-      | Channel { channel; name; args; _ } ->
+      | Channel { channel; name; args; persist= false } ->
           (* Channel facts are linear. This sequential lowering can consume an
              earlier channel fact before a later guard fails, whereas Rabbit
              consumes the complete guard atomically. This is the same accepted
@@ -997,6 +1002,7 @@ and compile_guard_facts
               (input (PPatFunApp (compile_name name "chan", payload_patterns))
                  (wrap (fragment rest)))
               else_proc
+      | Channel { channel=_; name=_; args=_; persist= true } -> assert false
       | File { path; contents } ->
           (* path.contents *)
           let file_channel =
@@ -1063,7 +1069,7 @@ and compile_guard_facts
                    , then_proc
                    , [precise_ident, None] ))
                 else_proc
-      | Global { name= "In"; args= [arg]; _ } ->
+      | Global { name= "In"; args= [arg]; persist= false } ->
           let payload_id = Ident.local "attacker_input" in
           let branch_env, tests, match_arg =
             bind_guard_payloads penv fresh [arg] [payload_id] ~else_proc
@@ -1081,9 +1087,12 @@ and compile_guard_facts
                   , Some (compile_value_type (T.type_of_expr arg)) )
               , match_arg (fragment rest)
               , [] )
-      | Global { name= "False"; args= []; _ } -> penv, fun _rest -> else_proc
-      | Global { name= "True"; args= []; _ } ->
+      | Global { name= "In"; args= _; persist= true } -> assert false (* XXX *)
+      | Global { name= "False"; args= []; persist= false } -> penv, fun _rest -> else_proc
+      | Global { name= "False"; args= []; persist= true } -> assert false (* XXX *)
+      | Global { name= "True"; args= []; persist= false } ->
           compile_guard genv penv fresh facts ~on_success ~else_proc
+      | Global { name= "True"; args= []; persist= true } -> assert false (* XXX *)
       | Global _ | Plain _ ->
           Error.unsupported ~loc:fact.loc
             "Only equality/inequality/file guards are supported in ProVerif case lowering"
@@ -1108,9 +1117,10 @@ let extract_channel_guard penv fresh (facts : T.fact list) =
     | [] -> None
     | (fact : T.fact) :: rest ->
         (match fact.desc with
-         | Channel { channel; name; args; _ }
+         | Channel { channel; name; args; persist= false }
            when guard_expr_ready penv fresh channel && not (expr_contains_wildcard channel) ->
              Some (channel, name, args, List.rev rev_prefix @ rest, fact.loc)
+         | Channel { channel=_; name=_; args=_; persist= true } -> assert false (* XXX*)
          | _ ->
              go (fact :: rev_prefix) rest)
   in
