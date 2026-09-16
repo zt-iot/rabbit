@@ -61,6 +61,8 @@ module GEnv = struct
     ; mutable comparison_events : (comparison_event_kind * Type.type_) list
     ; mutable auxiliary_decls : tdecl list
     ; mutable channel_family_symbols : (ident * ident * ident) option
+    ; mutable global_fact_channel : ident option
+    ; mutable global_fact_symbols : (T.name * ident) list
     ; mutable top_process   : tprocess_e option
     }
 
@@ -80,6 +82,8 @@ module GEnv = struct
     ; comparison_events  = []
     ; auxiliary_decls    = []
     ; channel_family_symbols = None
+    ; global_fact_channel = None
+    ; global_fact_symbols = []
     ; top_process        = None
     }
 
@@ -117,6 +121,27 @@ module GEnv = struct
     let decls = genv.auxiliary_decls in
     genv.auxiliary_decls <- [];
     decls
+
+  let global_fact_channel genv =
+    match genv.global_fact_channel with
+    | Some id -> id
+    | None ->
+        let id = add_ident genv ~base:"global_fact_ch" in
+        genv.global_fact_channel <- Some id;
+        add_auxiliary_decl genv
+          (TFree (id, channel_ident, [pv_ident "private", None]));
+        id
+
+  let global_fact_symbol genv name types =
+    match List.assoc_opt name genv.global_fact_symbols with
+    | Some id -> id
+    | None ->
+        let id = add_ident genv ~base:(name ^ "__global_fact") in
+        genv.global_fact_symbols <- (name, id) :: genv.global_fact_symbols;
+        add_auxiliary_decl genv
+          (TFunDecl (id, List.map compile_value_type types, bitstring_ident,
+             [pv_ident "data", None]));
+        id
 
   (* strings **********************************************)
 
