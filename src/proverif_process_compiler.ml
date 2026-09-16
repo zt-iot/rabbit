@@ -592,7 +592,9 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , List.map (compile_expr_to_pterm genv penv) args
         , None
         , body )
-  | Plain { name=_; args=_; persist= true } -> assert false (* XXX *)
+  | Plain { persist= true; _ } ->
+      Error.unsupported ~loc
+        "Persistent local facts are not supported in ProVerif event lowering"
   | Eq (lhs, rhs) ->
       (*
          ```
@@ -699,9 +701,18 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
   | Global { name= ("In" | "Out" | "True" | "False"); _ } ->
       Error.unsupported ~loc
         "Only ::Out(value) is supported as a built-in global fact in ProVerif put lowering"
-  | Global { name; args; persist= false } ->
-      let channel = pterm_e @@ PPIdent (GEnv.global_fact_channel genv) in
-      let symbol = GEnv.global_fact_symbol genv name (List.map T.type_of_expr args) in
+  | Plain { persist= true; _ } ->
+      Error.unsupported ~loc
+        "Persistent local facts are not supported in ProVerif put lowering"
+  | Global { name; args; persist= false }
+  | Plain { name; args; persist= false } ->
+      let channel, symbol =
+        let types = List.map T.type_of_expr args in
+        match fact.desc with
+        | Plain _ -> PEnv.local_fact_channel genv penv, GEnv.local_fact_symbol genv name types
+        | _ -> GEnv.global_fact_channel genv, GEnv.global_fact_symbol genv name types
+      in
+      let channel = pterm_e @@ PPIdent channel in
       let payload = pterm_e @@ PPFunApp
           (symbol, List.map (compile_expr_to_pterm genv penv) args) in
       ppar (process_e @@ POutput (channel, payload, process_e PNil)) body
@@ -1106,9 +1117,18 @@ and compile_guard_facts
       | Global { name= ("In" | "Out" | "True" | "False"); _ } ->
           Error.unsupported ~loc:fact.loc
             "Unsupported built-in global fact in ProVerif guard lowering"
-      | Global { name; args; persist= false } ->
-          let channel = pterm_e @@ PPIdent (GEnv.global_fact_channel genv) in
-          let symbol = GEnv.global_fact_symbol genv name (List.map T.type_of_expr args) in
+      | Plain { persist= true; _ } ->
+          Error.unsupported ~loc:fact.loc
+            "Persistent local facts are not supported in ProVerif guard lowering"
+      | Global { name; args; persist= false }
+      | Plain { name; args; persist= false } ->
+          let channel, symbol =
+            let types = List.map T.type_of_expr args in
+            match fact.desc with
+            | Plain _ -> PEnv.local_fact_channel genv penv, GEnv.local_fact_symbol genv name types
+            | _ -> GEnv.global_fact_channel genv, GEnv.global_fact_symbol genv name types
+          in
+          let channel = pterm_e @@ PPIdent channel in
           let payload_vars = List.mapi (fun i _ ->
               Ident.local (Printf.sprintf "global_arg_%d" i)) args in
           let patterns = List.map2 (fun id arg ->
@@ -1122,9 +1142,6 @@ and compile_guard_facts
             process_e @@ PInput
               (channel, PPatFunApp (symbol, patterns), wrap (fragment rest),
                [precise_ident, None])
-      | Plain _ ->
-          Error.unsupported ~loc:fact.loc
-            "Only equality/inequality/file guards are supported in ProVerif case lowering"
 
 let compile_guard_tests
     genv

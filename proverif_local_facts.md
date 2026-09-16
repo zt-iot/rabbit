@@ -7,9 +7,8 @@ consumption, following the channel/file fact approach. The contract preserves
 existential reachability and past-event correspondence under the assumption
 below; it does not require preservation of deadlock freedom or atomic stores.
 
-Status: specification for subsequent implementation. The current compiler
-rejects local fact output and guards, including `examples/issue20.rab`.
-The rules below do not describe features already available in the compiler.
+Status: implemented for ordinary local fact output and guards, including
+`examples/issue20.rab`. Regression tests cover the translation described below.
 Local tags (`tag local`, events and queries), global facts, and persistent
 facts are outside this specification. Persistence is tracked in
 [#28](https://github.com/zt-iot/rabbit/issues/28).
@@ -30,14 +29,15 @@ channel/access table. No Rabbit access-policy check is needed to access the
 owning process's local facts.
 
 For each local fact declaration `F` with argument types `t1, ..., tn`, emit
-a fresh constructor `local_F(t1, ..., tn): bitstring`. Its name must be
+a fresh data constructor `F__local_fact(t1, ..., tn): bitstring`. Its name must be
 distinct from constructors for other declarations, channel messages and
 events. Use the existing value-type translation for arguments. A nullary
-fact uses a nullary constructor, written `local_TEST()` below. These
+fact uses a nullary constructor, written `TEST__local_fact()` below. These
 constructors have no equations or reductions. The channel, rather than
 constructor secrecy, enforces ownership.
 
-Put channel allocation inside the process definition, so each invocation
+Allocate the channel only in process definitions that use local facts, including
+through inlined calls. Put its restriction at process entry, so each invocation
 allocates a new channel, including two invocations with identical arguments
 or process types. For replicated instances the scope is schematically:
 
@@ -68,7 +68,7 @@ continuation
 as:
 
 ```proverif
-out(local_ch, local_F(V1, ..., Vn)) | Continuation
+out(local_ch, F__local_fact(V1, ..., Vn)) | Continuation
 ```
 
 Here `Vi` is the translated value of `vi` at the output command, and each
@@ -83,8 +83,9 @@ concurrent Rabbit command consuming this store, and other instances cannot
 access it, so the continuation sees all these outputs as available. When a
 command also contains supported channel/file outputs, compose their existing
 output translations with these local outputs. Preserve their access checks
-and existing restrictions; adding local facts does not enable unsupported
-global outputs or persistent facts. Local facts impose no additional
+and existing restrictions. Ordinary global outputs use the separate shared
+store described in the [global fact guide](proverif_global_facts.md); persistent
+facts remain unsupported. Local facts impose no additional
 single-fact restriction on `put`.
 
 ## Consumption, comparisons, and control flow
@@ -99,7 +100,7 @@ case [F(x, _)] -> body end
 has the following schematic translation:
 
 ```proverif
-in(local_ch, local_F(x:bitstring, ignored:bitstring));
+in(local_ch, F__local_fact(x:bitstring, ignored:bitstring));
 Body
 ```
 
@@ -121,8 +122,8 @@ are bound, and execute the branch body only after every fact and test succeeds.
 For example, the guard `[A(x), B(y), x = y]` can be lowered schematically as:
 
 ```proverif
-in(local_ch, local_A(x:bitstring));
-in(local_ch, local_B(y:bitstring));
+in(local_ch, A__local_fact(x:bitstring));
+in(local_ch, B__local_fact(y:bitstring));
 if x = y then Body else Failure
 ```
 
@@ -152,8 +153,8 @@ The motivating fragment from `examples/issue20.rab` therefore translates to:
 
 ```proverif
 new local_ch: channel;
-(out(local_ch, local_TEST()) |
- (in(local_ch, local_TEST()); Continuation))
+(out(local_ch, TEST__local_fact()) |
+ (in(local_ch, TEST__local_fact()); Continuation))
 ```
 
 This is schematic: declarations and the rest of the process are omitted.
@@ -175,8 +176,8 @@ produce a source-located diagnostic rather than an assertion failure.
 
 ## Implementation acceptance checks
 
-The implementation PR must add focused regression examples under
-`examples/proverif_verification/`, covering these obligations:
+Regression examples under `examples/proverif_verification/` cover these
+implementation obligations:
 
 - The `issue20.rab` production/consumption path reaches its final event.
 - A fact's arguments reach the branch body; different declarations do not
@@ -198,5 +199,11 @@ The implementation PR must add focused regression examples under
 
 Use query checks together with generated-process inspection where the
 analyzer's approximation cannot establish exact multiplicity or isolation.
-This specification PR does not change the compiler or claim these checks
-already pass.
+`local_fact_issue31.rab` reproduces the original issue. The isolation, calls,
+control-flow, and linear fixtures test the ownership and consumption rules.
+`test_local_fact_shape` checks that each used local store is restricted at
+process entry, including outside loop replication and around inlined calls.
+It also checks exact output/input counts for equal occurrences. The
+single-occurrence double-consumption query remains `unknown` under ProVerif
+approximation; neither that query nor AST inspection proves the atomicity
+assumption.

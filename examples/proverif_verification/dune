@@ -75,3 +75,12 @@
  (deps global_facts_linear.rab global_facts_shared.rab)
  (action
   (run %{test} %{dep:global_facts_linear.rab} %{dep:global_facts_shared.rab})))
+
+(test
+ (name test_local_fact_shape)
+ (modules test_local_fact_shape)
+ (libraries rabbit_core rabbit_proverif_pv)
+ (deps local_facts_linear.rab local_facts_isolation.rab local_facts_calls.rab local_facts_control.rab)
+ (action
+  (run %{test} %{dep:local_facts_linear.rab} %{dep:local_facts_isolation.rab}
+   %{dep:local_facts_calls.rab} %{dep:local_facts_control.rab})))

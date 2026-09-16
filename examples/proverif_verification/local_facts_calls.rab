@@ -1,0 +1,32 @@
+fact local [Input:1, Output:1, Saved:1, State:1]
+tag global [Started:1, Finished:1]
+type proc_t : process
+syscall consume(value) {
+  case [Input(x), x = value] -> put [Output(x)]; x end
+}
+allow proc_t [consume]
+process worker() : proc_t {
+  function inner(value) {
+    var result = consume(value) in
+    case [Output(x), x = result] -> put [Saved(x)]; x end
+  }
+  function outer(value) { var result = inner(value) in result }
+  main {
+    event [::Started(7)];
+    put [Input(7)];
+    var result = outer(7) in
+    case [Saved(x), x = result] -> put [State(x)] end;
+    assume [State(7)] in event [::Finished(result)]
+  }
+}
+system worker()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Returned : reachable ::Finished(7);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Origin : corresponds ::Finished(7) ~> ::Started(7)
+]

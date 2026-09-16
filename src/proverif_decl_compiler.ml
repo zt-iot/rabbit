@@ -462,6 +462,12 @@ let compile_process
     @@ wrap_with_file_init ~loc genv penv files
     @@ compile_process_body genv penv main
   in
+  let process =
+    match PEnv.allocated_local_fact_channel penv with
+    | None -> process
+    | Some channel ->
+        process_e @@ PRestr (channel, None, channel_ident, process)
+  in
   [ TComment (Printf.sprintf "process %s(..): %s" (Ident.to_string id) (Ident.to_string typ))
   ; TPDef (compile_ident id, proc_args, process)
   ]

@@ -1,8 +1,6 @@
 fact local [Flag:0]
 tag global [Selected:0]
 
-(* Known gap: ordinary plain facts cannot be used as case guards. *)
-
 type proc_t : process
 
 process worker() : proc_t
@@ -17,5 +15,8 @@ process worker() : proc_t
 system worker()
 requires
 [
+  (* PROVERIF EXPECTED
+  false
+  *)
   lemma SelectedIsReachable : (* falsified *) reachable ::Selected()
 ]

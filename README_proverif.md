@@ -3,7 +3,7 @@
 ## Compiler documentation
 
 - [Guard compilation](proverif_guard_compilation.md): supported forms, variable bindings, inputs, and the known atomicity limitation.
-- [Process-local facts](proverif_local_facts.md): translation specification, ownership, and sequential-consumption contract for future implementation; local fact output and guards are currently unsupported.
+- [Process-local facts](proverif_local_facts.md): private storage per process instance, including inlined calls, with sequential consumption and an explicit atomicity assumption.
 - [Global facts](proverif_global_facts.md): shared private-channel translation for ordinary global facts, with sequential consumption and an explicit atomicity assumption.
 
 ## Channel fact events and queries

@@ -1,8 +1,6 @@
 fact local [Message:1]
 tag global [Never:0]
 
-(* Known gap: ordinary plain facts cannot be emitted with put. *)
-
 type proc_t : process
 
 process worker() : proc_t
@@ -13,5 +11,8 @@ process worker() : proc_t
 system worker()
 requires
 [
+  (* PROVERIF EXPECTED
+  false
+  *)
   lemma ModelRuns : (* falsified *) reachable ::Never()
 ]

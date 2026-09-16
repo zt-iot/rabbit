@@ -1,0 +1,47 @@
+fact local [Token:1, Hidden:1, Unproduced:0]
+tag global [Good:1, Bad:0, Leaked:0, Continued:0]
+const fresh secret
+type proc_t : process
+process worker<p>() : proc_t {
+  main {
+    new n in
+    put [Token(n)];
+    case [Token(x)] ->
+      case
+      | [x = n] -> event [::Good(n)]
+      | [x != n] -> event [::Bad()]
+      end
+    end
+  }
+}
+process producer() : proc_t {
+  main { put [Hidden(secret)]; event [::Continued()] }
+}
+process consumer() : proc_t {
+  main { case [Hidden(x)] -> event [::Bad()] end }
+}
+process empty() : proc_t {
+  main { case [Unproduced()] -> event [::Bad()] end }
+}
+process attacker() : proc_t {
+  main { case [::In(secret)] -> event [::Leaked()] end }
+}
+system !p.(worker<p>() | worker<p>()) | producer() | consumer() | empty() | attacker()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma OwnToken : reachable ::Good(x);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Isolated : reachable ::Bad();
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Secret : reachable ::Leaked();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Nonblocking : reachable ::Continued()
+]

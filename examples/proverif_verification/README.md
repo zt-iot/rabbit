@@ -29,3 +29,10 @@ patterns, mixed guards, loops, syscalls, and persistent-use diagnostics.
 parallel output continuations, and exact output/input counts without replication
 in `global_facts_linear.rab`. The corresponding single-use query remains
 `unknown` under ProVerif's Horn approximation; this is not a proof of reuse.
+
+Local fact regressions reproduce #31 and check isolation between process
+instances, inherited storage across nested local functions and syscalls,
+`assume`, mixed guards, patterns, and loops. `test_local_fact_shape` checks
+process-entry channel restrictions and exact occurrence counts. Persistent
+local uses remain expected diagnostics. The single-use query in
+`local_facts_linear.rab` records ProVerif's `unknown` approximation result.
