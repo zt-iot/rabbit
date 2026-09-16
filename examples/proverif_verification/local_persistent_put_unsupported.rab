@@ -1,0 +1,6 @@
+fact local persist [Stored:1]
+tag global [Never:0]
+type proc_t : process
+process worker() : proc_t { main { put [!Stored(1)] } }
+system worker()
+requires [lemma Never : reachable ::Never()]

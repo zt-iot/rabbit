@@ -103,6 +103,7 @@ module GEnv : sig
   val take_auxiliary_decls : t -> tdecl list
   val global_fact_channel : t -> ident
   val global_fact_symbol : t -> T.name -> Type.type_ list -> ident
+  val local_fact_symbol : t -> T.name -> Type.type_ list -> ident
 
   val top_process : t -> tprocess_e option
   val set_top_process : t -> tprocess_e -> unit
@@ -136,6 +137,8 @@ module PEnv : sig
   val with_curr_syscall : t -> pterm_e -> t
 
   val file_channel : t -> pterm_e option
+  val local_fact_channel : GEnv.t -> t -> ident
+  val allocated_local_fact_channel : t -> ident option
 
   val result : t -> pterm_e
   val result_type : t -> Type.type_

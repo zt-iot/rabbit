@@ -63,6 +63,7 @@ module GEnv = struct
     ; mutable channel_family_symbols : (ident * ident * ident) option
     ; mutable global_fact_channel : ident option
     ; mutable global_fact_symbols : (T.name * ident) list
+    ; mutable local_fact_symbols : (T.name * ident) list
     ; mutable top_process   : tprocess_e option
     }
 
@@ -84,6 +85,7 @@ module GEnv = struct
     ; channel_family_symbols = None
     ; global_fact_channel = None
     ; global_fact_symbols = []
+    ; local_fact_symbols = []
     ; top_process        = None
     }
 
@@ -138,6 +140,17 @@ module GEnv = struct
     | None ->
         let id = add_ident genv ~base:(name ^ "__global_fact") in
         genv.global_fact_symbols <- (name, id) :: genv.global_fact_symbols;
+        add_auxiliary_decl genv
+          (TFunDecl (id, List.map compile_value_type types, bitstring_ident,
+             [pv_ident "data", None]));
+        id
+
+  let local_fact_symbol genv name types =
+    match List.assoc_opt name genv.local_fact_symbols with
+    | Some id -> id
+    | None ->
+        let id = add_ident genv ~base:(name ^ "__local_fact") in
+        genv.local_fact_symbols <- (name, id) :: genv.local_fact_symbols;
         add_auxiliary_decl genv
           (TFunDecl (id, List.map compile_value_type types, bitstring_ident,
              [pv_ident "data", None]));
@@ -470,6 +483,9 @@ module PEnv = struct
     ; proc_type : pterm_e
     ; curr_syscall : pterm_e
     ; file_channel : pterm_e option
+    ; local_fact_channel : ident option ref
+        (** Shared by derived environments for one process definition. The
+            restriction is inside that definition, fresh at each invocation. *)
     ; result : pterm_e
     ; result_type : Type.type_
     }
@@ -487,6 +503,7 @@ module PEnv = struct
     ; proc_type
     ; curr_syscall
     ; file_channel
+    ; local_fact_channel = ref None
     ; result = pterm_e @@ PPTuple []
     ; result_type = Type.TValue
     }
@@ -557,6 +574,16 @@ module PEnv = struct
   (* file channel *******************************************)
 
   let file_channel penv = penv.file_channel
+
+  let allocated_local_fact_channel penv = !(penv.local_fact_channel)
+
+  let local_fact_channel genv penv =
+    match allocated_local_fact_channel penv with
+    | Some id -> id
+    | None ->
+        let id = GEnv.fresh_auxiliary_ident genv ~base:"local_fact_ch" in
+        penv.local_fact_channel := Some id;
+        id
 
   (* result register ****************************************)
 

@@ -1,0 +1,41 @@
+fact local [Step:3, Result:1]
+fact global [Shared:1]
+fact channel [Msg:1]
+tag global [Loop:1, Finished:1, Wrong:0]
+type proc_t : process
+type transport_t : channel
+type storage_t : filesys
+allow proc_t transport_t [.]
+allow proc_t storage_t [.]
+process worker(ch : transport_t) : proc_t {
+  file "/state" : storage_t = 3
+  main {
+    put [Step((1, (2, 3)), 1, 9)];
+    var state = 0 in
+    repeat
+    | [Step((x, (_, y)), x, _), y = 4] -> event [::Wrong()]
+    | [Step((x, (_, y)), x, _), y = 3] ->
+        event [::Loop(x)];
+        put [Result(y), ::Shared(y), ch::Msg(y)];
+        state := 1
+    until
+    | [state = 1, Result(z), ::Shared(z), ch::Msg(z), "/state".z] -> event [::Finished(z)]
+    end
+  }
+}
+channel ch : transport_t
+system worker(ch)
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Loop : reachable ::Loop(1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Finished : reachable ::Finished(3);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Wrong : reachable ::Wrong()
+]

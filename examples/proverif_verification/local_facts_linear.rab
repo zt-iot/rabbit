@@ -1,0 +1,27 @@
+fact local [Once:0, Twice:0, Unreceived:0]
+tag global [Again:0, TwiceDone:0, Continued:0]
+type proc_t : process
+process worker() : proc_t {
+  main {
+    put [Once(), Twice(), Twice(), Unreceived()];
+    event [::Continued()];
+    case [Twice(), Twice()] -> event [::TwiceDone()] end;
+    case [Once(), Once()] -> event [::Again()] end
+  }
+}
+system worker()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Continued : reachable ::Continued();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Two : reachable ::TwiceDone();
+  (* PROVERIF EXPECTED
+  # Horn approximation cannot prove exact single-use consumption.
+  unknown
+  *)
+  lemma OnlyOne : reachable ::Again()
+]

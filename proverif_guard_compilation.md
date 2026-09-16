@@ -239,12 +239,15 @@ else 0
 - `a = f(_)` or `f(_, a) = f(b, _)`: no wildcards inside function applications.
 - `a != (x, y)` with unbound `x, y`: no bindings through inequality.
 - `(x, 2) = (y, 2)` without another value source: no arbitrary-value search.
-- Plain fact guards and persistent global fact guards.
+- Persistent local/global fact guards.
 
 The [global fact specification](proverif_global_facts.md) defines the implemented
 shared-store translation for ordinary global guards and its explicit atomicity
 assumption. Built-in `::In`, `::True()`, and `::False()` retain their special
 behavior.
+
+The [process-local fact specification](proverif_local_facts.md) defines the
+implemented sequential-consumption contract for ordinary local facts.
 
 Function restrictions apply regardless of equations. Bound function
 applications remain ordinary comparisons; declarations still translate to
@@ -256,5 +259,8 @@ In example 9, `Msg(a,b)` is consumed even if `a != b`.
 Rabbit would consume the fact only when the complete guard succeeds.
 File inputs have the same limitation.
 
-The generated model may therefore omit Rabbit executions, affecting both
-reachability and correspondence results. This remains unresolved.
+Partial consumption can add deadlock paths. Based on past discussions, we
+assume that this atomicity issue does not affect reachability or correspondence.
+The [local fact specification](proverif_local_facts.md#atomicity-assumption)
+applies the same assumption to local facts; it does not claim a proof of
+preservation or require deadlock freedom.
