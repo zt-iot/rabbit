@@ -1,3 +1,7 @@
+> The comparison examples `equality_query.rab`, `inequality_query.rab`, and
+> `equational_fact_events.rab` now use guards and ordinary event tags (#30).
+> Their rows below describe the earlier comparison-fact implementation.
+
 # ProVerif compiler test status
 
 Checked on: 2026-08-28

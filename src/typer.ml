@@ -22,6 +22,7 @@ type Error.error +=
   | InvalidAnonymousAssignment
   | GlobalChannelInExpr of Ident.t
   | WildcardNotAllowed
+  | ComparisonFactOutsideGuard
   | TypeMismatch of Type.type_ * Type.type_
   | PersistencyMismatch of
       { name : Name.ident
@@ -91,6 +92,9 @@ let () = Error.add_printer @@ fun err ppf ->
       Format.fprintf ppf "Global channel %t cannot be used in an expression" (Ident.print id)
   | WildcardNotAllowed ->
       Format.pp_print_string ppf "Wildcard '_' is only allowed in case/while guards"
+  | ComparisonFactOutsideGuard ->
+      Format.pp_print_string ppf
+        "Equality and inequality facts are only allowed in case/while guards"
   | TypeMismatch (expected, actual) ->
       Format.fprintf
         ppf
@@ -256,7 +260,7 @@ let check_env_fact ~is_tag ~loc env typ name args ~persist =
         Error.raise ~loc @@ InvalidFact { name; def = desc; use = typ }
   )
 
-let type_fact ?(allow_wildcard = false) ~is_tag env (fact : Input.fact) : Typed.fact =
+let type_fact ?(allow_comparison = false) ?(allow_wildcard = false) ~is_tag env (fact : Input.fact) : Typed.fact =
   let loc = fact.loc in
   let desc : Typed.fact' =
     match fact.data with
@@ -276,11 +280,13 @@ let type_fact ?(allow_wildcard = false) ~is_tag env (fact : Input.fact) : Typed.
         check_env_fact ~is_tag ~loc env Channel name args ~persist;
         Channel { channel = e; name; args; persist }
     | EqFact (e1, e2) ->
+        if not allow_comparison then Error.raise ~loc ComparisonFactOutsideGuard;
         let e1 = type_expr ~allow_wildcard env e1 in
         let e2 = type_expr ~allow_wildcard env e2 in
         unify ~loc (type_of_expr e1) (type_of_expr e2);
         Eq (e1, e2)
     | NeqFact (e1, e2) ->
+        if not allow_comparison then Error.raise ~loc ComparisonFactOutsideGuard;
         let e1 = type_expr ~allow_wildcard env e1 in
         let e2 = type_expr ~allow_wildcard env e2 in
         unify ~loc (type_of_expr e1) (type_of_expr e2);
@@ -309,8 +315,8 @@ let extend_with_args env (args : Name.ident list) f =
   env, List.rev rev_ids
 ;;
 
-let type_facts ~is_tag ?(allow_wildcard = false) env facts =
-  List.map (type_fact ~is_tag ~allow_wildcard env) facts
+let type_facts ~is_tag ?(allow_comparison = false) ?(allow_wildcard = false) env facts =
+  List.map (type_fact ~is_tag ~allow_comparison ~allow_wildcard env) facts
 
 let rec infer_cmd_result_type (cmd : Typed.cmd) =
   match cmd.desc with
@@ -470,7 +476,7 @@ and type_case env (facts, cmd) : Typed.case =
   let env' =
     List.fold_left (fun env id -> Env.add env id (Var (Type.fresh_type ()))) env fresh_ids
   in
-  let facts = type_facts ~is_tag:false ~allow_wildcard:true env' facts in
+  let facts = type_facts ~is_tag:false ~allow_comparison:true ~allow_wildcard:true env' facts in
   let cmd = type_cmd env' cmd in
   Typed.{ fresh = fresh_ids; facts; cmd }
 ;;

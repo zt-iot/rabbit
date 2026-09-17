@@ -26,6 +26,24 @@ referenced directly in a lemma expression. File fact events and queries remain
 unsupported, and multiple facts in one `event [...]` are still emitted
 sequentially.
 
+## Equality and inequality facts
+
+`=` and `!=` facts are allowed only in `case`/`while` guards. Rabbit rejects
+these facts in `put`, `event`, `reachable`, and either side of `corresponds`
+during type checking, for both backends. Equational theory declarations are
+unaffected.
+
+To observe a successful comparison, declare a normal tag and emit it from a
+guard, then query that tag:
+
+```text
+tag global [Equal:2]
+(* Inside a process: *)
+case [x = y] -> event [::Equal(x, y)] end
+(* In a lemma: *)
+reachable ::Equal(x, y)
+```
+
 ## How to compile
 
 ```
