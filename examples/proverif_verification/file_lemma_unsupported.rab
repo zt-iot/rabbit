@@ -1,4 +1,4 @@
-(* Known gap: file facts cannot be lowered in ProVerif queries. *)
+(* File facts have no event or query semantics and must be rejected by the typer. *)
 
 type proc_t : process
 type file_t : filesys

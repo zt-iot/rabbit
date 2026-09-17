@@ -286,6 +286,8 @@ let type_fact ?(allow_wildcard = false) ~is_tag env (fact : Input.fact) : Typed.
         unify ~loc (type_of_expr e1) (type_of_expr e2);
         Neq (e1, e2)
     | FileFact (e1, e2) ->
+        if is_tag then
+          Error.raise ~loc (Misc "File facts are not allowed in events or queries");
         let e1 = type_expr ~allow_wildcard env e1 in
         let e2 = type_expr ~allow_wildcard env e2 in
         unify ~loc:e1.loc TValue (type_of_expr e1);
