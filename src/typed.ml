@@ -329,6 +329,7 @@ and decl' =
       ; typ : Type.callable_type
       }
   | Equation of expr * expr
+  | Reduc of expr * expr
   | Syscall of
       { id : ident
       ; args : ident list

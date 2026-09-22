@@ -1,0 +1,3 @@
+function enc:2
+function dec:2
+reduc dec(enc(message, key), key) = message

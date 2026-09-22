@@ -6,12 +6,14 @@ type Error.error +=
   | NoSystem
   | MultipleSystems
   | LocalFactNotAllowed
+  | ReducNotSupported
 
 let () = Error.add_printer @@ fun err ppf ->
   match err with
   | NoSystem -> Format.fprintf ppf "No system to compile"
   | MultipleSystems -> Format.fprintf ppf "Only 1 system can exist"
   | LocalFactNotAllowed -> Format.fprintf ppf "Local fact is not allowed in this context"
+  | ReducNotSupported -> Format.fprintf ppf "reduc declarations are not supported in Tamarin compilation"
   | _ -> Error.use_other_printers ()
 
 let unit = { env= Env.empty (); loc= Location.nowhere; desc= Unit }
@@ -1504,6 +1506,13 @@ type t =
   }
 
 let compile (decls : decl list) =
+  let rec check_decl (decl : decl) =
+    match decl.desc with
+    | Reduc _ -> Error.raise ~loc:decl.loc ReducNotSupported
+    | Load (_, decls) -> List.iter check_decl decls
+    | _ -> ()
+  in
+  List.iter check_decl decls;
   (* for each process:
      - model inits
      - access control

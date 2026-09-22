@@ -1,0 +1,89 @@
+load "reduc_rules_library.rab"
+
+(* The second rule depends on a constructor declared after the first rule. *)
+function box:1
+reduc dec(box(message), key) = message
+function duplicate:1
+reduc duplicate(x) = (x, x)
+function first:2
+reduc first(x, y) = x
+function wrap:1
+reduc wrap(x) = box(x)
+function same:2
+constant yes
+reduc same(x, x) = yes
+function legacy:1
+equation legacy(box(x)) = x
+
+tag global [Value:2, Continued:0]
+type proc_t : process
+syscall echo(x) { x }
+allow proc_t [echo]
+process worker() : proc_t {
+  function local_duplicate(x) { duplicate(x) }
+  main {
+    event [::Value(1, dec(enc("message", "key"), "key"))];
+    event [::Value(2, dec(box("message"), "key"))];
+    event [::Value(3, duplicate("message"))];
+    event [::Value(4, first("message", "ignored"))];
+    event [::Value(5, wrap("message"))];
+    event [::Value(6, same("message", "message"))];
+    var unreduced = legacy("not a box") in
+    event [::Value(7, unreduced)];
+    var copied = local_duplicate(dec(enc("message", "key"), "key")) in
+    event [::Value(8, copied)];
+    var echoed = echo(dec(box("message"), "key")) in
+    event [::Value(9, echoed)];
+    assume [dec(box("message"), "key") = bound] in
+    event [::Value(10, bound)];
+    assume [_ = (dec(box("message"), "key"), _)] in
+    event [::Continued()]
+  }
+}
+system worker()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Decrypt : reachable ::Value(1, "message");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma OtherRule : reachable ::Value(2, "message");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma TupleResult : reachable ::Value(3, ("message", "message"));
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Total : reachable ::Value(4, "message");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma ConstructorResult : reachable ::Value(5, box("message"));
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma RepeatedVariable : reachable ::Value(6, yes);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma EquationStillTotal : reachable ::Value(7, legacy("not a box"));
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma LocalCall : reachable ::Value(8, ("message", "message"));
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Syscall : reachable ::Value(9, "message");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma GuardBinding : reachable ::Value(10, "message");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Continued : reachable ::Continued()
+]

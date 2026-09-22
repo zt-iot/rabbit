@@ -130,6 +130,7 @@ type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int (** external function, [function id : arity] *)
   | DeclExtEq of expr * expr (** external equation, [equation e1 = e2] *)
+  | DeclReduc of expr * expr (** directed reduction, [reduc lhs = rhs] *)
   | DeclExtFacts of fact_desc list * (Name.ident * int) list
   (** external facts, [fact (ty ?pers) [id1: arity1, ..., idn: arityn]] *)
   | DeclTags of fact_desc * (Name.ident * int) list

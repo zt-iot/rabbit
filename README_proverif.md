@@ -46,6 +46,38 @@ reachable ::Equal(x, y)
 
 ## How to compile
 
+### Explicit reduction declarations
+
+```text
+function enc:2
+function dec:2
+reduc dec(enc(message, key), key) = message
+```
+
+`reduc` defines a directed computation for the function at its left-hand head.
+The ProVerif backend emits that function as a destructor, without a separate
+`fun` declaration. Rules with the same head are grouped into one `reduc`
+declaration, including rules from loaded files. Constructor declarations are
+emitted before reduction groups and process definitions.
+
+The head must be a declared function application. Its arguments and result
+must contain only variables, constructors (including `constant` declarations
+and tuples), and supported literals. Destructors cannot occur inside these
+terms, and every result variable must occur in the arguments. Ordinary type
+and arity checks also apply. ProVerif checks whether overlapping rules are
+deterministic, taking constructor equations into account.
+
+If no rule matches, evaluation fails: a command evaluating that expression
+does not continue, even when the result is discarded or unused. A failing
+guard does not select its branch. Existing `equation` declarations keep their
+previous meaning; they are never inferred to be reductions. Destructors are
+rejected in equations and query terms. To query a result, first evaluate it in
+the process and record its value in an event.
+
+`reduc` is not supported by the Tamarin backend.
+
+### Command
+
 ```
 dune exec src/rabbit_proverif.exe -- x.rab -o x.pv
 ```

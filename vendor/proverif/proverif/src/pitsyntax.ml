@@ -2081,7 +2081,7 @@ let rec get_top_symbol_reduc = function
       input_error ("In \"reduc\", all rewrite rules should be an equality between two terms") ext1
   | EELet (_,_,eq) -> get_top_symbol_reduc eq
 
-let check_red tlist options =
+let check_reduc tlist options =
 
   match tlist with
     | (_,t1)::_ ->
@@ -4412,7 +4412,7 @@ let rec check_one = function
   | TFunDecl(f,argt,rest,i) -> check_fun_decl f argt rest (no_param_option_list i)
   | TConstDecl(f,rest,i) -> check_fun_decl f [] rest (no_param_option_list i)
   | TEquation(l,eqinfo) -> check_equations l (no_param_option_list eqinfo)
-  | TReduc (r,i) -> check_red r (no_param_option_list i)
+  | TReduc (r,i) -> check_reduc r (no_param_option_list i)
   | TReducFail (f,ty_arg,ty_res,r,i) -> check_red_may_fail f ty_arg ty_res r (no_param_option_list i)
   | TPredDecl (p, argt, info) -> check_pred p argt (no_param_option_list info)
   | TEventDecl(i, args) -> check_event i args

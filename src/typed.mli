@@ -185,6 +185,7 @@ and decl' =
       }
      (** external function, [function id : arity] *)
   | Equation of expr * expr (** external equation, [equation e1 = e2] *)
+  | Reduc of expr * expr (** directed reduction, [reduc lhs = rhs] *)
   | Syscall of
       { id : ident
       ; args : ident list

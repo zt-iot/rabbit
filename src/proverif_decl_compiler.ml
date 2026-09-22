@@ -65,10 +65,8 @@ let compile_function ~loc:_loc (id : T.ident) (typ : Type.callable_type) : tdecl
      dec(enc(x__5, y__6), y__6) = x__5.
    ```
 
-   TODO: Line 40: Potential Improvement
 *)
-let compile_equation ~loc:_loc genv (lhs : T.expr) (rhs : T.expr) : tdecl list =
-  let envdecl =
+let equation_variables (lhs : T.expr) (rhs : T.expr) =
     List.sort_uniq compare (T.vars_of_expr lhs @ T.vars_of_expr rhs)
     |> List.map (fun id ->
          let typ =
@@ -79,7 +77,9 @@ let compile_equation ~loc:_loc genv (lhs : T.expr) (rhs : T.expr) : tdecl list =
                Option.get (Env.type_of_desc desc)
          in
          compile_ident id, compile_value_type typ)
-  in
+
+let compile_equation ~loc:_loc genv (lhs : T.expr) (rhs : T.expr) : tdecl list =
+  let envdecl = equation_variables lhs rhs in
   let lhs_term = compile_expr_to_term genv lhs in
   let rhs_term = compile_expr_to_term genv rhs in
   let equality_term =
@@ -88,6 +88,76 @@ let compile_equation ~loc:_loc genv (lhs : T.expr) (rhs : T.expr) : tdecl list =
   [ TComment (Printf.sprintf "equation %s = %s" (T.string_of_expr lhs) (T.string_of_expr rhs))
   ; TEquation ([envdecl, EETerm equality_term], [])
   ]
+
+let reduc_head (lhs : T.expr) =
+  match lhs.desc with
+  | Apply (id, args) when
+      (match Env.find_opt_by_id lhs.env id with
+       | Some (ExtFun _) -> true
+       | _ -> false) -> id, args
+  | _ -> Error.invalid_input ~loc:lhs.loc
+      "The left-hand side of reduc must be an application of a declared function"
+
+let rec check_reduc_term genv (expr : T.expr) =
+  match expr.desc with
+  | Apply (id, args) ->
+      if GEnv.is_destructor genv id then
+        Error.invalid_input ~loc:expr.loc
+          "Destructor %s is not allowed inside reduc arguments or results"
+          (Ident.to_string id);
+      (match Env.find_opt_by_id expr.env id with
+       | Some (ExtFun _) -> List.iter (check_reduc_term genv) args
+       | _ -> Error.invalid_input ~loc:expr.loc
+           "Only constructors are allowed inside reduc arguments or results")
+  | Tuple args -> List.iter (check_reduc_term genv) args
+  | Ident { desc = (Var _ | ExtConst); param = None; _ }
+  | Unit | String _ | Integer _ | Boolean _ -> ()
+  | _ -> Error.invalid_input ~loc:expr.loc
+      "Only variables, constructors, and literal values are allowed in reduc terms"
+
+let check_reduc genv (lhs : T.expr) (rhs : T.expr) =
+  let _, args = reduc_head lhs in
+  List.iter (check_reduc_term genv) args;
+  check_reduc_term genv rhs;
+  let lhs_vars = T.vars_of_expr lhs in
+  if List.exists (fun id -> not (List.mem id lhs_vars)) (T.vars_of_expr rhs) then
+    Error.invalid_input ~loc:rhs.loc
+      "All variables on the right-hand side of reduc must occur on the left-hand side"
+
+let rec flatten_decls decls =
+  List.concat_map (fun (decl : T.decl) ->
+      match decl.desc with
+      | Load (_, decls) -> flatten_decls decls
+      | _ -> [decl]) decls
+
+let collect_reductions genv decls =
+  let rules = List.filter_map (fun (decl : T.decl) ->
+      match decl.desc with
+      | Reduc (lhs, rhs) ->
+          let id, _ = reduc_head lhs in
+          GEnv.add_destructor genv id;
+          Some (id, (lhs, rhs))
+      | _ -> None) decls
+  in
+  (* Classify every head before checking the interiors, including forward uses. *)
+  List.fold_left (fun groups (id, ((lhs, rhs) as rule)) ->
+      check_reduc genv lhs rhs;
+      if List.mem_assoc id groups then
+        List.map (fun (head, rules) ->
+            head, if head = id then rules @ [rule] else rules) groups
+      else groups @ [id, [rule]]) [] rules
+
+let compile_reduc genv (id, rules) =
+  let clauses = List.map (fun (lhs, rhs) ->
+      let _, args = reduc_head lhs in
+      let lhs_term = term_e (PFunApp (compile_ident id,
+          List.map (compile_expr_to_term genv) args)) in
+      let rhs_term = compile_expr_to_term genv rhs in
+      equation_variables lhs rhs,
+      EETerm (term_e (PFunApp (pv_ident "=", [lhs_term; rhs_term])))) rules
+  in
+  (* Overlap/determinism modulo constructor equations is checked by ProVerif. *)
+  TReduc (clauses, [])
 
 (* 3.2 Encoding Process Types, Channel types, File types, and Access
 
@@ -343,15 +413,21 @@ let wrap_with_file_init
         Error.internal ~loc
           "Internal file channel is not available for process file setup"
   | Some file_channel ->
+      let files, evaluate_files =
+        List.fold_right (fun ((path, _typ, contents) as file) (files, rest) ->
+            let path_term, evaluate_path = evaluate_expr genv penv path in
+            let contents_term, evaluate_contents = evaluate_expr genv penv contents in
+            (file, path_term, contents_term) :: files,
+            (fun body -> evaluate_path (evaluate_contents (rest body))))
+          files ([], Fun.id)
+      in
       let output_processes =
         List.map
-          (fun ((path, _typ, contents) : T.expr * T.ident * T.expr) ->
+          (fun (_file, path_term, contents_term) ->
              let payload =
                pterm_e @@
                  PPTuple
-                    [ compile_expr_to_pterm genv penv path
-                    ; compile_expr_to_pterm genv penv contents
-                    ]
+                    [path_term; contents_term]
              in
              process_e @@ POutput (file_channel, payload, process_e @@ PNil))
           files
@@ -368,15 +444,15 @@ let wrap_with_file_init
       let with_channel =
         process_e @@ PRestr (process_file_channel_ident, None, channel_ident, parallel_body)
       in
-      List.fold_right
-        (fun ((path, typ, _contents) : T.expr * T.ident * T.expr) acc ->
+      evaluate_files @@ List.fold_right
+        (fun ((path, typ, _contents), path_term, _contents_term) acc ->
            add_comment (Printf.sprintf "file %s : %s = .." (T.string_of_expr path) (Ident.to_string typ)) @@
            process_e @@
              PInsert
                 ( file_type_table_ident
                 , [ pterm_e @@ PPIdent ptype_arg_ident
                   ; pterm_e @@ PPIdent (compile_ident typ)
-                  ; compile_expr_to_pterm genv penv path
+                  ; path_term
                   ]
                 , acc ))
         files
@@ -451,14 +527,16 @@ let compile_process
         PEnv.define_process_var base_penv param Type.TParameter
           (pterm_e @@ PPIdent (compile_ident param))
   in
-  let penv =
-    List.fold_left (fun penv (var, expr) ->
-        let value = compile_expr_to_pterm genv penv expr in
-        PEnv.define_process_var penv var (T.type_of_expr expr) value)
-      base_penv vars
+  let penv, var_fragment =
+    List.fold_left (fun (penv, fragment) (var, expr) ->
+        let value, evaluate = evaluate_expr genv penv expr in
+        PEnv.define_process_var penv var (T.type_of_expr expr) value,
+        (fun rest -> fragment (evaluate rest)))
+      (base_penv, Fun.id) vars
   in
   let process =
-    wrap_with_channel_init ~loc args
+    var_fragment
+    @@ wrap_with_channel_init ~loc args
     @@ wrap_with_file_init ~loc genv penv files
     @@ compile_process_body genv penv main
   in
@@ -1035,9 +1113,11 @@ let rec compile_decl (env : Env.t) genv (decl : T.decl) : tdecl list =
       (* They are handled by `collect_decl` *)
       []
   | Function { id; typ } ->
-      compile_function ~loc id typ
+      if GEnv.has_destructors genv then []
+      else compile_function ~loc id typ
   | Equation (lhs, rhs) ->
       compile_equation ~loc genv lhs rhs
+  | Reduc _ -> [] (* Grouped by head and emitted before process definitions. *)
   | Type { id; typclass } ->
       compile_type ~loc id typclass
   | Allow { process_typ; target_typs; syscalls } ->
@@ -1089,7 +1169,7 @@ let rec warn_decl (decl : T.decl) =
       warn_cmd main
   | Load (_, decls) ->
       List.iter warn_decl decls
-  | Function _ | Equation _ | Type _ | Allow _ | AllowAttack _ | Init _
+  | Function _ | Equation _ | Reduc _ | Type _ | Allow _ | AllowAttack _ | Init _
   | Channel _ | System _ -> ()
 
 let compile_program (env : Env.t) (decls : T.decl list) : Pv_parser.program =
@@ -1097,6 +1177,21 @@ let compile_program (env : Env.t) (decls : T.decl list) : Pv_parser.program =
   let genv = GEnv.create env in
   List.iter (GEnv.add_decl_strings genv) decls;
   List.iter (collect_decl genv) decls;
+  let flat_decls = flatten_decls decls in
+  let reductions = collect_reductions genv flat_decls in
+  let function_decls =
+    if reductions = [] then []
+    else
+      (* A later rule may use a constructor declared after the first rule, or
+         a process may use a destructor before its rules. Declare constructors
+         first, then complete reduction groups, before any such uses. *)
+      List.concat_map (fun (decl : T.decl) ->
+          match decl.desc with
+          | Function { id; typ } when not (GEnv.is_destructor genv id) ->
+              compile_function ~loc:decl.loc id typ
+          | _ -> []) flat_decls
+      @ List.map (compile_reduc genv) reductions
+  in
   let body = List.concat_map (compile_decl env genv) decls in
   let top_process = Option.value (GEnv.top_process genv) ~default:(process_e PNil) in
   let top_process = add_allow_inits genv top_process in
@@ -1110,6 +1205,7 @@ let compile_program (env : Env.t) (decls : T.decl list) : Pv_parser.program =
     @ compile_integer_consts genv
     @ compile_parameter_consts genv
     @ [ TComment "Body" ]
+    @ function_decls
     @ body
     @ [ TComment "System" ]
   , top_process

@@ -23,6 +23,7 @@ let reserved = [
   ("requires", REQUIRES) ;
   ("constant", CONSTANT) ;
   ("equation", EQUATION) ;
+  ("reduc", REDUC) ;
   ("syscall", SYSCALL) ;
   ("load", LOAD) ;
   ("fresh", FRESH) ;

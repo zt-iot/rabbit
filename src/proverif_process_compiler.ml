@@ -53,7 +53,12 @@ let compile_expr_to_term genv expr =
         (match List.assoc_opt id bindings with
          | Some (term, _, _) -> term
          | None -> PIdent (compile_ident id))
-    | Apply (id, args) -> PFunApp (compile_ident id, List.map compile args)
+    | Apply (id, args) ->
+        if GEnv.is_destructor genv id then
+          Error.invalid_input ~loc:expr.loc
+            "Destructor %s is not allowed in constructor terms (including equations)"
+            (Ident.to_string id);
+        PFunApp (compile_ident id, List.map compile args)
     | Tuple exprs -> PTuple (List.map compile exprs)
     | Unit -> PTuple []
     | String s -> PIdent (GEnv.fresh_string_ident genv s)
@@ -98,7 +103,12 @@ let compile_expr_to_gterm genv expr =
         (match List.assoc_opt id bindings with
          | Some (term, _, _) -> term
          | None -> PGIdent (compile_ident id))
-    | Apply (id, args) -> PGFunApp (compile_ident id, List.map compile args, None)
+    | Apply (id, args) ->
+        if GEnv.is_destructor genv id then
+          Error.unsupported ~loc:expr.loc
+            "Destructor %s is not supported in ProVerif queries"
+            (Ident.to_string id);
+        PGFunApp (compile_ident id, List.map compile args, None)
     | Tuple exprs -> PGTuple (List.map compile exprs)
     | Unit -> PGTuple []
     | String s -> PGIdent (GEnv.fresh_string_ident genv s)
@@ -166,6 +176,31 @@ let compile_expr_to_pterm genv penv expr =
 
   in
   compile_expr_to_pterm_with genv penv [] [] expr
+
+(* Partial functions must be evaluated even when their result is unused.
+   Without explicit reductions, keep the existing substitution encoding. *)
+let evaluate_value genv ~else_proc typ value =
+  if not (GEnv.has_destructors genv) then value, Fun.id
+  else
+    let id = GEnv.fresh_auxiliary_ident genv ~base:"evaluated_value" in
+    let pattern = PPatVar (id, Some (compile_value_type typ)) in
+    pterm_e (PPIdent id),
+    fun rest -> process_e (PLet (pattern, value, rest, else_proc))
+
+let evaluate_expr genv penv (expr : T.expr) =
+  evaluate_value genv ~else_proc:(process_e PNil) (T.type_of_expr expr)
+    (compile_expr_to_pterm genv penv expr)
+
+let rec evaluate_discarded_guard genv penv ~else_proc (expr : T.expr) body =
+  if not (GEnv.has_destructors genv) then body
+  else match expr.desc with
+  | Ident { id; _ } when is_wildcard_ident id -> body
+  | Tuple args ->
+      List.fold_right (evaluate_discarded_guard genv penv ~else_proc) args body
+  | _ ->
+      let _, evaluate = evaluate_value genv ~else_proc (T.type_of_expr expr)
+          (compile_expr_to_pterm genv penv expr) in
+      evaluate body
 
 (* lhs = rhs *)
 let eq_pterm (lhs : pterm_e) (rhs : pterm_e) : pterm_e =
@@ -675,7 +710,8 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
           ( compile_name name "chan"
           , List.map (compile_expr_to_pterm genv penv) args )
       in
-      wrap_with_channel_access_get (channel_access_term genv penv channel) penv
+      let payload, evaluate = evaluate_value genv ~else_proc:(process_e PNil) Type.TValue payload in
+      evaluate @@ wrap_with_channel_access_get (channel_access_term genv penv channel) penv
         (ppar (channel_output genv channel_term payload) body)
         (process_e PNil)
   | Channel { channel=_; name=_; args=_; persist= true } -> assert false (* XXX *)
@@ -690,7 +726,8 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
               "File output requires a process-local file channel"
       in
       let payload = pterm_e @@ PPTuple [path_term; contents_term] in
-      wrap_with_file_access_get path_term penv
+      let payload, evaluate = evaluate_value genv ~else_proc:(process_e PNil) Type.TValue payload in
+      evaluate @@ wrap_with_file_access_get path_term penv
         (ppar (process_e @@ POutput (file_channel, payload, process_e PNil)) body)
         (process_e PNil)
   | Global { name= "Out"; args= [arg]; persist= false } ->
@@ -715,7 +752,8 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
       let channel = pterm_e @@ PPIdent channel in
       let payload = pterm_e @@ PPFunApp
           (symbol, List.map (compile_expr_to_pterm genv penv) args) in
-      ppar (process_e @@ POutput (channel, payload, process_e PNil)) body
+      let payload, evaluate = evaluate_value genv ~else_proc:(process_e PNil) Type.TValue payload in
+      evaluate @@ ppar (process_e @@ POutput (channel, payload, process_e PNil)) body
   | _ ->
       Error.unsupported ~loc
         "Only channel/global output facts are supported in ProVerif put lowering"
@@ -918,14 +956,19 @@ and compile_guard_facts
           reject_function_wildcards lhs;
           reject_function_wildcards rhs;
           (match value_guard_binding penv fresh lhs rhs with
+           | Some (id, value) when is_wildcard_ident id ->
+               let final_env, fragment =
+                 compile_guard genv penv fresh facts ~on_success ~else_proc in
+               final_env, fun rest ->
+                 evaluate_discarded_guard genv penv ~else_proc value (fragment rest)
            | Some (id, value) ->
                (* Simple variable assignment: id = value *)
-               let penv =
-                 if is_wildcard_ident id then penv
-                 else PEnv.define_process_var penv id (T.type_of_expr value)
-                     (compile_expr_to_pterm genv penv value)
-               in
-               compile_guard genv penv fresh facts ~on_success ~else_proc
+               let term, evaluate = evaluate_value genv ~else_proc (T.type_of_expr value)
+                   (compile_expr_to_pterm genv penv value) in
+               let penv = PEnv.define_process_var penv id (T.type_of_expr value) term in
+               let final_env, fragment =
+                 compile_guard genv penv fresh facts ~on_success ~else_proc in
+               final_env, fun rest -> evaluate (fragment rest)
            | None ->
                match pattern_guard_binding penv fresh lhs rhs with
                | Some (pattern, subject) ->
@@ -1208,6 +1251,10 @@ let compose_fragments
     (second : process_fragment)
   : process_fragment =
   fun rest -> first (second rest)
+
+let evaluate_args genv penv args =
+  let values, fragments = List.split (List.map (evaluate_expr genv penv) args) in
+  values, List.fold_right compose_fragments fragments empty_fragment
 
 let closed_fragment (process : tprocess_e) : process_fragment =
   fun _rest -> process
@@ -1664,7 +1711,7 @@ and compile_syscall_call
       Error.internal ~loc "syscall definition for %s is not available"
         (Ident.to_string id)
   | Some def ->
-      let arg_values = List.map (compile_expr_to_pterm genv penv) args in
+      let arg_values, arg_fragment = evaluate_args genv penv args in
       let compile_branch arg_ids cmd =
         let call_env =
           List.fold_left2
@@ -1694,7 +1741,10 @@ and compile_syscall_call
             (GEnv.find_allowed_attacks ~loc genv
                ~process_typ_id:(PEnv.process_typ_id penv) ~syscall_id:id)
       in
-      join_call_branches penv ~loc (normal_branch :: attack_branches)
+      let result_env, body_fragment =
+        join_call_branches penv ~loc (normal_branch :: attack_branches)
+      in
+      result_env, compose_fragments arg_fragment body_fragment
 
 and compile_local_function_call
     genv
@@ -1721,7 +1771,7 @@ and compile_local_function_call
       Error.internal ~loc "local function definition for %s is not available"
         (Ident.to_string id)
   | Some (arg_ids, cmd) ->
-      let arg_values = List.map (compile_expr_to_pterm genv penv) args in
+      let arg_values, arg_fragment = evaluate_args genv penv args in
       let call_env =
         List.fold_left2
           (fun penv arg_id ((arg : T.expr), value) ->
@@ -1731,7 +1781,8 @@ and compile_local_function_call
           (List.combine args arg_values)
       in
       let body_env, body_fragment = compile_cmd genv call_env cmd in
-      PEnv.remove_process_vars body_env arg_ids, body_fragment
+      PEnv.remove_process_vars body_env arg_ids,
+      compose_fragments arg_fragment body_fragment
 
 and join_call_branches
     penv
@@ -1863,8 +1914,8 @@ and compile_let_binding
       when Option.is_some (PEnv.find_local_func_def penv func_id) ->
         compile_local_function_call genv penv func_id args ~loc:expr.loc
     | _ ->
-        let value = compile_expr_to_pterm genv penv expr in
-        PEnv.with_result penv (T.type_of_expr expr) value, empty_fragment
+        let value, fragment = evaluate_expr genv penv expr in
+        PEnv.with_result penv (T.type_of_expr expr) value, fragment
   in
   let value = PEnv.result value_env in
   let body_start_env =
@@ -1905,8 +1956,8 @@ and compile_assignment
       when Option.is_some (PEnv.find_local_func_def penv func_id) ->
         compile_local_function_call genv penv func_id args ~loc:expr.loc
     | _ ->
-        let value = compile_expr_to_pterm genv penv expr in
-        PEnv.with_result penv (T.type_of_expr expr) value, empty_fragment
+        let value, fragment = evaluate_expr genv penv expr in
+        PEnv.with_result penv (T.type_of_expr expr) value, fragment
   in
   let value = PEnv.result value_env in
   let assigned_env =
@@ -1960,11 +2011,12 @@ and compile_cmd genv penv (cmd : T.cmd) : PEnv.t * process_fragment =
         pfrag pe
   | Expr expr ->
       (* A bare expression sets the command result; it does not exit non-locally. *)
+      let value, fragment = evaluate_expr genv penv expr in
       let value =
         add_comment (Format.asprintf "expr at %t" (Location.print loc)) @@
-        compile_expr_to_pterm genv penv expr
+        value
       in
-      PEnv.with_result penv (T.type_of_expr expr) value, empty_fragment
+      PEnv.with_result penv (T.type_of_expr expr) value, fragment
   | Case [case] -> compile_single_case genv penv case
   | Case cases ->
       if channel_guards_share_input penv cases

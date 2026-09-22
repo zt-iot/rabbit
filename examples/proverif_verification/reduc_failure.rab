@@ -1,0 +1,66 @@
+load "reduc_rules_library.rab"
+tag global [After:1, Inside:1]
+fact global [Saved:1]
+type proc_t : process
+type fs_t : filesys
+syscall ignore_arg(x) { event [::Inside(1)] }
+allow proc_t [ignore_arg]
+process unused() : proc_t {
+  main { var x = dec("bad", "key") in event [::After(1)] }
+}
+process discarded() : proc_t {
+  main { _ := dec("bad", "key"); event [::After(2)] }
+}
+process overwritten() : proc_t {
+  main { var x = 0 in x := dec("bad", "key"); x := 1; event [::After(3)] }
+}
+process bare() : proc_t {
+  main { dec("bad", "key"); event [::After(4)] }
+}
+process syscall_arg() : proc_t {
+  main { _ := ignore_arg(dec("bad", "key")); event [::After(5)] }
+}
+process local_arg() : proc_t {
+  function ignore_local(x) { event [::Inside(2)] }
+  main { _ := ignore_local(dec("bad", "key")); event [::After(6)] }
+}
+process guard() : proc_t {
+  main { assume [dec("bad", "key") = _] in event [::After(7)] }
+}
+process output() : proc_t {
+  main { put [::Saved(dec("bad", "key"))]; event [::After(8)] }
+}
+process nested() : proc_t {
+  main { var x = enc(dec("bad", "key"), "key") in event [::After(9)] }
+}
+process event_arg() : proc_t {
+  main { event [::After(dec("bad", "key"))]; event [::After(10)] }
+}
+process initial_var() : proc_t {
+  var x = dec("bad", "key")
+  main { event [::After(11)] }
+}
+process initial_file() : proc_t {
+  file "/data" : fs_t = dec("bad", "key")
+  main { event [::After(12)] }
+}
+process local_result() : proc_t {
+  function bad_result() { dec("bad", "key") }
+  main { _ := bad_result(); event [::After(13)] }
+}
+process wildcard_tuple() : proc_t {
+  main { assume [_ = (dec("bad", "key"), _)] in event [::After(14)] }
+}
+system unused() | discarded() | overwritten() | bare() | syscall_arg()
+     | local_arg() | guard() | output() | nested() | event_arg()
+     | initial_var() | initial_file() | local_result() | wildcard_tuple()
+requires [
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma NoContinuation : reachable ::After(x);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma NoCallBody : reachable ::Inside(x)
+]

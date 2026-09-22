@@ -1,0 +1,7 @@
+function f:1
+reduc f(x) = x
+tag global [Done:1]
+type proc_t : process
+process worker() : proc_t { main { event [::Done(1)] } }
+system worker()
+requires [lemma Done : reachable ::Done(f(1))]
