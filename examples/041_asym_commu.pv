@@ -71,28 +71,25 @@ let server__0(ptype:proc_t, ch__479:channel) =
       (* let res__483 = .. in .. at file "./041_asym_commu.rab", line 33, charaters 5-169 *)
       (* case at file "./041_asym_commu.rab", line 36, charaters 9-28 *)
       new case_ch__496:channel;
-      ((out(case_ch__496, (false__bool, (), case_arg_0__495, fst__0(case_arg_0__495), snd__0(case_arg_0__495), verify__0(fst__0(case_arg_0__495), snd__0(case_arg_0__495), pubkey__0))) |
-        (* case [ res__483 = true ] at file "./041_asym_commu.rab", line 36, charaters 9-28 *)
-        in(case_ch__496, (=false__bool, case_result__502:bitstring, case_state_0__503:bitstring, case_state_1__504:bitstring, case_state_2__505:bitstring, case_state_3__506:bitstring))[precise];
-        if case_state_3__506 = true__0
-        then
-          (* event [ ::Valid(msg__482) ] at file "./041_asym_commu.rab", line 36, charaters 9-28 *)
-          event Valid__event_global(case_state_2__505);
-          out(case_ch__496, (true__bool, (), case_state_0__503, case_state_1__504, case_state_2__505, case_state_3__506))
-        else
-          out(case_ch__496, (false__bool, case_result__502, case_state_0__503, case_state_1__504, case_state_2__505, case_state_3__506))) |
-       (* case [ res__483 = false ] at file "./041_asym_commu.rab", line 38, charaters 9-30 *)
-       in(case_ch__496, (=false__bool, case_result__507:bitstring, case_state_0__508:bitstring, case_state_1__509:bitstring, case_state_2__510:bitstring, case_state_3__511:bitstring))[precise];
-       if case_state_3__511 = false__0
+      (out(case_ch__496, (false__bool, (), case_arg_0__495, fst__0(case_arg_0__495), snd__0(case_arg_0__495), verify__0(fst__0(case_arg_0__495), snd__0(case_arg_0__495), pubkey__0))) |
+       (* case [ res__483 = true ] at file "./041_asym_commu.rab", line 36, charaters 9-28 *)
+       in(case_ch__496, (=false__bool, case_result__502:bitstring, case_state_0__503:bitstring, case_state_1__504:bitstring, case_state_2__505:bitstring, case_state_3__506:bitstring))[precise];
+       if case_state_3__506 = true__0
        then
-         (* event [ ::Invalid(msg__482) ] at file "./041_asym_commu.rab", line 38, charaters 9-30 *)
-         event Invalid__event_global(case_state_2__510);
-         out(case_ch__496, (true__bool, (), case_state_0__508, case_state_1__509, case_state_2__510, case_state_3__511))
+         (* event [ ::Valid(msg__482) ] at file "./041_asym_commu.rab", line 36, charaters 9-28 *)
+         event Valid__event_global(case_state_2__505);
+         out(loop_ch__491, (false__bool, ()))
        else
-         out(case_ch__496, (false__bool, case_result__507, case_state_0__508, case_state_1__509, case_state_2__510, case_state_3__511))) |
-      (* end of case at file "./041_asym_commu.rab", line 36, charaters 9-28 *)
-      in(case_ch__496, (=true__bool, case_done_result__497:bitstring, case_done_state_0__498:bitstring, case_done_state_1__499:bitstring, case_done_state_2__500:bitstring, case_done_state_3__501:bitstring))[precise];
-      out(loop_ch__491, (false__bool, case_done_result__497))
+         out(case_ch__496, (false__bool, case_result__502, case_state_0__503, case_state_1__504, case_state_2__505, case_state_3__506))) |
+      (* case [ res__483 = false ] at file "./041_asym_commu.rab", line 38, charaters 9-30 *)
+      in(case_ch__496, (=false__bool, case_result__507:bitstring, case_state_0__508:bitstring, case_state_1__509:bitstring, case_state_2__510:bitstring, case_state_3__511:bitstring))[precise];
+      if case_state_3__511 = false__0
+      then
+        (* event [ ::Invalid(msg__482) ] at file "./041_asym_commu.rab", line 38, charaters 9-30 *)
+        event Invalid__event_global(case_state_2__510);
+        out(loop_ch__491, (false__bool, ()))
+      else
+        out(case_ch__496, (false__bool, case_result__507, case_state_0__508, case_state_1__509, case_state_2__510, case_state_3__511))
       else out(loop_ch__491, (false__bool, loop_result__494))
       else out(loop_ch__491, (false__bool, loop_result__494))) |
      (* until case [ ::False() ] at file "./041_asym_commu.rab", line 41, charaters 25-29 *)

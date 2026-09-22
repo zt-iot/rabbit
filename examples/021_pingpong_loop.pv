@@ -48,8 +48,8 @@ let alice__0(ptype:proc_t, ch__49:channel) =
       (* put [ ch__49::pong(n__50) ] at file "./021_pingpong_loop.rab", line 16, charaters 11-28 *)
       get channel_table(ch_type__62:acc_data_t, =ch__49) in
       get access_control_table(=ptype, =ch_type__62, =none__syscall) in
-      out(ch__49, pong__chan(guard_arg_0__61)) |
-      out(loop_ch__57, (false__bool, ()))) |
+      out(loop_ch__57, (false__bool, ()));
+      out(ch__49, pong__chan(guard_arg_0__61))) |
      (* until case [ ::False() ] at file "./021_pingpong_loop.rab", line 19, charaters 18-22 *)
      in(loop_ch__57, (=false__bool, loop_result__59:bitstring))[precise];
      out(loop_ch__57, (false__bool, loop_result__59)))) |
@@ -77,28 +77,25 @@ let bob__0(ptype:proc_t, ch__51:channel) =
        get access_control_table(=ptype, =ch_type__76, =none__syscall) in
        in(ch__51, pong__chan(case_arg_0__68:bitstring));
        new channel_case_ch__69:channel;
-       ((out(channel_case_ch__69, (false__bool, (), n__52)) |
-         in(channel_case_ch__69, (=false__bool, channel_case_result__72:bitstring, channel_case_state_0__73:bitstring))[precise];
-         (* case [ ch__51::pong(n__52) ] at file "./021_pingpong_loop.rab", line 34, charaters 10-28 *)
-         if case_arg_0__68 = channel_case_state_0__73
-         then
-           (* event [ ::Valid(n__52) ] at file "./021_pingpong_loop.rab", line 34, charaters 10-28 *)
-           event Valid__event_global(channel_case_state_0__73);
-           out(channel_case_ch__69, (true__bool, (), channel_case_state_0__73))
-         else
-           out(channel_case_ch__69, (false__bool, channel_case_result__72, channel_case_state_0__73))) |
-        in(channel_case_ch__69, (=false__bool, channel_case_result__74:bitstring, channel_case_state_0__75:bitstring))[precise];
-        (* case [ ch__51::pong(m__53), n__52 != m__53 ] at file "./021_pingpong_loop.rab", line 36, charaters 10-33 *)
-        if channel_case_state_0__75 = case_arg_0__68
+       (out(channel_case_ch__69, (false__bool, (), n__52)) |
+        in(channel_case_ch__69, (=false__bool, channel_case_result__72:bitstring, channel_case_state_0__73:bitstring))[precise];
+        (* case [ ch__51::pong(n__52) ] at file "./021_pingpong_loop.rab", line 34, charaters 10-28 *)
+        if case_arg_0__68 = channel_case_state_0__73
         then
-          out(channel_case_ch__69, (false__bool, channel_case_result__74, channel_case_state_0__75))
+          (* event [ ::Valid(n__52) ] at file "./021_pingpong_loop.rab", line 34, charaters 10-28 *)
+          event Valid__event_global(channel_case_state_0__73);
+          out(loop_ch__64, (false__bool, ()))
         else
-          (* event [ ::Invalid(n__52, m__53) ] at file "./021_pingpong_loop.rab", line 36, charaters 10-33 *)
-          event Invalid__event_global(channel_case_state_0__75, case_arg_0__68);
-          out(channel_case_ch__69, (true__bool, (), channel_case_state_0__75))) |
-       (* end of case at file "./021_pingpong_loop.rab", line 34, charaters 10-28 *)
-       in(channel_case_ch__69, (=true__bool, channel_case_done_result__70:bitstring, channel_case_done_state_0__71:bitstring))[precise];
-       out(loop_ch__64, (false__bool, channel_case_done_result__70)))) |
+          out(channel_case_ch__69, (false__bool, channel_case_result__72, channel_case_state_0__73))) |
+       in(channel_case_ch__69, (=false__bool, channel_case_result__74:bitstring, channel_case_state_0__75:bitstring))[precise];
+       (* case [ ch__51::pong(m__53), n__52 != m__53 ] at file "./021_pingpong_loop.rab", line 36, charaters 10-33 *)
+       if channel_case_state_0__75 = case_arg_0__68
+       then
+         out(channel_case_ch__69, (false__bool, channel_case_result__74, channel_case_state_0__75))
+       else
+         (* event [ ::Invalid(n__52, m__53) ] at file "./021_pingpong_loop.rab", line 36, charaters 10-33 *)
+         event Invalid__event_global(channel_case_state_0__75, case_arg_0__68);
+         out(loop_ch__64, (false__bool, ())))) |
      (* until case [ ::False() ] at file "./021_pingpong_loop.rab", line 39, charaters 18-22 *)
      in(loop_ch__64, (=false__bool, loop_result__66:bitstring))[precise];
      out(loop_ch__64, (false__bool, loop_result__66)))) |
