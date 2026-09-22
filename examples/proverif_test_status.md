@@ -4,6 +4,11 @@
 
 # ProVerif compiler test status
 
+This is a historical snapshot. The former `equality_query.rab`,
+`inequality_query.rab`, and `equational_fact_events.rab` verification fixtures
+have since been replaced by `_unsupported.rab` rejection tests because Eq/Neq
+event facts were discontinued. The results below describe the older behavior.
+
 Checked on: 2026-08-28
 
 Tested commit: `116d516` plus the current tracked working-tree changes

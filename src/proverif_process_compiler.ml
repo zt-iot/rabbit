@@ -616,9 +616,6 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , List.map (compile_expr_to_pterm genv penv) args
         , None
         , body )
-  | Global { persist= true; _ } ->
-      Error.unsupported ~loc
-        "Persistent global facts are not supported in ProVerif event lowering"
   | Plain { name; args; persist= false } ->
       GEnv.add_event ~loc genv name Plain (List.map T.type_of_expr args);
       process_e
@@ -627,10 +624,27 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , List.map (compile_expr_to_pterm genv penv) args
         , None
         , body )
+  | Channel { channel; name; args; persist= false } ->
+      let args = channel :: args in
+      GEnv.add_event ~loc genv name Channel (List.map T.type_of_expr args);
+      process_e @@ PEvent
+        ( compile_event_name name Channel
+        , List.map (compile_expr_to_pterm genv penv) args
+        , None
+        , body )
+  | Channel { channel=_; name=_; args=_; persist= true } ->
+      Error.unsupported ~loc
+        "Persistent channel facts are not supported in ProVerif event lowering"
+  | Global { persist= true; _ } ->
+      Error.unsupported ~loc
+        "Persistent global facts are not supported in ProVerif event lowering"
   | Plain { persist= true; _ } ->
       Error.unsupported ~loc
         "Persistent local facts are not supported in ProVerif event lowering"
-  | Eq (lhs, rhs) ->
+  | Eq (_lhs, _rhs) ->
+      Error.unsupported ~loc
+        "Eq facts are not supported in ProVerif event lowering"
+      (*
       (*
          ```
          event [lhs = rhs]
@@ -648,7 +662,11 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , [lhs; rhs]
         , None
         , body )
-  | Neq (lhs, rhs) ->
+      *)
+  | Neq (_lhs, _rhs) ->
+      Error.unsupported ~loc
+        "Neq facts are not supported in ProVerif event lowering"
+      (*
       (*
          ```
          event [lhs != rhs]
@@ -666,15 +684,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
         , [lhs; rhs]
         , None
         , body )
-  | Channel { channel; name; args; persist= false } ->
-      let args = channel :: args in
-      GEnv.add_event ~loc genv name Channel (List.map T.type_of_expr args);
-      process_e @@ PEvent
-        ( compile_event_name name Channel
-        , List.map (compile_expr_to_pterm genv penv) args
-        , None
-        , body )
-  | Channel { channel=_; name=_; args=_; persist= true } -> assert false (* XXX *)
+      *)
   | File _ ->
       Error.unsupported ~loc
         "File event facts are not supported in ProVerif event lowering"

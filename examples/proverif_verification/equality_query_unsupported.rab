@@ -1,0 +1,32 @@
+tag global [Equal:2, Unequal:2]
+
+tag global [BeforeEquality:1, AfterEquality:1]
+
+(* Rejection regression: Eq/Neq event facts are no longer supported.
+   Compilation must fail at event lowering, before these queries are checked. *)
+
+const fresh value
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::BeforeEquality(value)];
+    case [value = value] -> event [::Equal(value, value)] end;
+    event [::AfterEquality(value)]
+  }
+}
+
+system worker()
+requires
+[
+  lemma EqualityIsReachable :
+    reachable value = value ;
+
+  lemma EqualityHasPredecessor :
+    corresponds value = value ~> ::BeforeEquality(value) ;
+
+  lemma EqualityPrecedesContinuation :
+    corresponds ::AfterEquality(value) ~> value = value
+]

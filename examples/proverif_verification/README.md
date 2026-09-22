@@ -37,6 +37,12 @@ process-entry channel restrictions and exact occurrence counts. Persistent
 local uses remain expected diagnostics. The single-use query in
 `local_facts_linear.rab` records ProVerif's `unknown` approximation result.
 
+Eq/Neq facts in `event` commands have been discontinued. The rejection fixtures
+`equality_query_unsupported.rab`, `inequality_query_unsupported.rab`, and
+`equational_fact_events_unsupported.rab` assert the event-lowering diagnostic.
+Their queries are not reached; these tests do not establish query-only support.
+Equality and inequality comparisons in guards are separate from event facts.
+
 Reduction regressions cover explicit `reduc` declarations, multiple rules across
 loaded files, tuple and constructor results, total rules, and unchanged
 `equation` semantics. `reduc_failure.rab` verifies that failed computations do
@@ -44,3 +50,4 @@ not continue through unused bindings, discarded values, inlined calls, guards,
 asynchronous fact outputs, or process initialization. Conflicting rules and
 destructors in queries have expected diagnostic fixtures. AST and invalid-rule
 checks are in `test/reduc`.
+
