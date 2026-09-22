@@ -1,0 +1,36 @@
+fact global persist [Stored:1, Pair:2]
+fact local persist [LocalStored:1, LocalPair:2]
+tag global [Global:0, Local:0, Tuple:0, Repeated:0, Forward:0, Wrong:0]
+function f:1
+type proc_t : process
+process worker() : proc_t {
+  main {
+    put [!::Stored(1), !::Stored(2), !LocalStored(1), !LocalStored(2),
+         !::Pair(1, 2), !::Pair(2, 2), !LocalPair(f(2), 2),
+         !::Stored((1, 2)), !::Stored((2, 2))];
+    assume [!::Stored(2)] in event [::Global()];
+    assume [!LocalStored(2)] in event [::Local()];
+    assume [!::Stored((x, x))] in event [::Tuple()];
+    assume [!::Pair(2, 2)] in
+    assume [!::Pair(y, y)] in event [::Repeated()];
+    assume [!LocalPair(f(z), z)] in event [::Forward()];
+    assume [!::Stored(3)] in event [::Wrong()]
+  }
+}
+system worker()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  true
+  true
+  true
+  true
+  false
+  *)
+  lemma Global : reachable ::Global();
+  lemma Local : reachable ::Local();
+  lemma Tuple : reachable ::Tuple();
+  lemma Repeated : reachable ::Repeated();
+  lemma Forward : reachable ::Forward();
+  lemma Wrong : reachable ::Wrong()
+]

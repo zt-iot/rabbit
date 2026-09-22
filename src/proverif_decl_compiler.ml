@@ -546,6 +546,11 @@ let compile_process
     | Some channel ->
         process_e @@ PRestr (channel, None, channel_ident, process)
   in
+  let process =
+    match PEnv.allocated_local_fact_id penv with
+    | None -> process
+    | Some id -> process_e @@ PRestr (id, None, bitstring_ident, process)
+  in
   [ TComment (Printf.sprintf "process %s(..): %s" (Ident.to_string id) (Ident.to_string typ))
   ; TPDef (compile_ident id, proc_args, process)
   ]
@@ -825,6 +830,7 @@ let compile_prelude (_genv : GEnv.t) : tdecl list =
      table file_type_table(proc_t, acc_data_t, bitstring).
      table channel_table(acc_data_t, channel).
      table deleted_address_table(bitstring).
+     table persistent_fact_table(bitstring).
      const none__syscall : syscall_t.
      ```
   *)
@@ -841,6 +847,13 @@ let compile_prelude (_genv : GEnv.t) : tdecl list =
       (file_type_table_ident, [proc_t_ident; acc_data_t_ident; bitstring_ident])
   ; TTableDecl (channel_table_ident, [acc_data_t_ident; channel_ident])
   ; TTableDecl (deleted_address_table_ident, [bitstring_ident])
+  ; TTableDecl (persistent_fact_table_ident, [bitstring_ident])
+  ; TFunDecl
+      (persistent_local_fact_ident, [bitstring_ident; bitstring_ident], bitstring_ident,
+       [pv_ident "data", None])
+  ; TFunDecl
+      (persistent_channel_fact_ident, [channel_ident; bitstring_ident], bitstring_ident,
+       [pv_ident "data", None])
   ; TComment "Pattern which matches with any system call"
   ; TConstDecl (none_syscall_ident, syscall_t_ident, [])
   ; TComment "Booleans"

@@ -689,7 +689,7 @@ let compile_event_fact genv penv (fact : T.fact) (body : tprocess_e)
       Error.unsupported ~loc
         "File event facts are not supported in ProVerif event lowering"
 
-let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
+let compile_put_fact (genv : GEnv.t) (penv : PEnv.t) (fact : T.fact) (body : tprocess_e)
   : tprocess_e =
   (*
      3.7 File Fact Encoding
@@ -724,7 +724,6 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
       evaluate @@ wrap_with_channel_access_get (channel_access_term genv penv channel) penv
         (ppar (channel_output genv channel_term payload) body)
         (process_e PNil)
-  | Channel { channel=_; name=_; args=_; persist= true } -> assert false (* XXX *)
   | File { path; contents } ->
       let path_term = compile_expr_to_pterm genv penv path in
       let contents_term = compile_expr_to_pterm genv penv contents in
@@ -742,15 +741,9 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
         (process_e PNil)
   | Global { name= "Out"; args= [arg]; persist= false } ->
       process_e @@ POutput (pterm_e @@ PPIdent attacker_channel_ident, compile_expr_to_pterm genv penv arg, body)
-  | Global { persist= true; _ } ->
-      Error.unsupported ~loc
-        "Persistent global facts are not supported in ProVerif put lowering"
   | Global { name= ("In" | "Out" | "True" | "False"); _ } ->
       Error.unsupported ~loc
         "Only ::Out(value) is supported as a built-in global fact in ProVerif put lowering"
-  | Plain { persist= true; _ } ->
-      Error.unsupported ~loc
-        "Persistent local facts are not supported in ProVerif put lowering"
   | Global { name; args; persist= false }
   | Plain { name; args; persist= false } ->
       let channel, symbol =
@@ -764,9 +757,43 @@ let compile_put_fact genv penv (fact : T.fact) (body : tprocess_e)
           (symbol, List.map (compile_expr_to_pterm genv penv) args) in
       let payload, evaluate = evaluate_value genv ~else_proc:(process_e PNil) Type.TValue payload in
       evaluate @@ ppar (process_e @@ POutput (channel, payload, process_e PNil)) body
-  | _ ->
+  | Plain { name; args; persist= true }
+  | Global { name; args; persist= true } ->
+      (* Local persistent entries are keyed by the current invocation. *)
+      let types = List.map T.type_of_expr args in
+      let id, wrap_payload =
+        match fact.desc with
+        | Plain _ ->
+            let key = pterm_e @@ PPIdent (PEnv.local_fact_id genv penv) in
+            GEnv.local_fact_symbol genv name types,
+            (fun payload -> pterm_e @@ PPFunApp (persistent_local_fact_ident, [key; payload]))
+        | Global _ ->
+            GEnv.global_fact_symbol genv name types, Fun.id
+        | _ -> assert false
+      in
+      let args = List.map (compile_expr_to_pterm genv penv) args in
+      let term = pterm_e @@ PPFunApp (id, args) in
+      process_e @@ PInsert (persistent_fact_table_ident, [wrap_payload term], body)
+  | Channel { channel; name; args; persist= true } ->
+      (* Keep the channel identity separate from the fact payload constructor. *)
+      let channel_term = compile_expr_to_pterm genv penv channel in
+      let payload =
+        pterm_e @@
+        PPFunApp
+          ( compile_name name "chan"
+          , List.map (compile_expr_to_pterm genv penv) args )
+      in
+      let entry = pterm_e @@
+        PPFunApp (persistent_channel_fact_ident, [channel_term; payload]) in
+      wrap_with_channel_access_get (channel_access_term genv penv channel) penv
+        (process_e @@ PInsert (persistent_fact_table_ident, [entry], body))
+        (process_e PNil)
+  | Eq _ ->
       Error.unsupported ~loc
-        "Only channel/global output facts are supported in ProVerif put lowering"
+        "Eq facts are not supported in ProVerif put lowering"
+  | Neq _ ->
+      Error.unsupported ~loc
+        "Neq facts are not supported in ProVerif put lowering"
 
 let compile_put_facts genv penv (facts : T.fact list) (body : tprocess_e)
   : tprocess_e =
@@ -1076,7 +1103,6 @@ and compile_guard_facts
               (input (PPatFunApp (compile_name name "chan", payload_patterns))
                  (wrap (fragment rest)))
               else_proc
-      | Channel { channel=_; name=_; args=_; persist= true } -> assert false
       | File { path; contents } ->
           (* path.contents *)
           let file_channel =
@@ -1161,29 +1187,24 @@ and compile_guard_facts
                   , Some (compile_value_type (T.type_of_expr arg)) )
               , match_arg (fragment rest)
               , [] )
-      | Global { persist= true; _ } ->
-          Error.unsupported ~loc:fact.loc
-            "Persistent global facts are not supported in ProVerif guard lowering"
       | Global { name= "False"; args= []; persist= false } -> penv, fun _rest -> else_proc
       | Global { name= "True"; args= []; persist= false } ->
           compile_guard genv penv fresh facts ~on_success ~else_proc
       | Global { name= ("In" | "Out" | "True" | "False"); _ } ->
           Error.unsupported ~loc:fact.loc
             "Unsupported built-in global fact in ProVerif guard lowering"
-      | Plain { persist= true; _ } ->
-          Error.unsupported ~loc:fact.loc
-            "Persistent local facts are not supported in ProVerif guard lowering"
       | Global { name; args; persist= false }
       | Plain { name; args; persist= false } ->
           let channel, symbol =
             let types = List.map T.type_of_expr args in
             match fact.desc with
             | Plain _ -> PEnv.local_fact_channel genv penv, GEnv.local_fact_symbol genv name types
-            | _ -> GEnv.global_fact_channel genv, GEnv.global_fact_symbol genv name types
+            | Global _ -> GEnv.global_fact_channel genv, GEnv.global_fact_symbol genv name types
+            | _ -> assert false
           in
           let channel = pterm_e @@ PPIdent channel in
           let payload_vars = List.mapi (fun i _ ->
-              Ident.local (Printf.sprintf "global_arg_%d" i)) args in
+              Ident.local (Printf.sprintf "arg_%d" i)) args in
           let patterns = List.map2 (fun id arg ->
               PPatVar (compile_ident id, Some (compile_value_type (T.type_of_expr arg))))
               payload_vars args in
@@ -1195,6 +1216,94 @@ and compile_guard_facts
             process_e @@ PInput
               (channel, PPatFunApp (symbol, patterns), wrap (fragment rest),
                [precise_ident, None])
+      | Channel { name; args; persist= true; _ }
+      | Plain { name; args; persist= true } | Global { name; args; persist= true } ->
+          let access_env = penv in
+          let penv, channel_pattern, channel_condition =
+            match fact.desc with
+            | Channel { channel; _ } ->
+                (match channel.desc with
+                 | Ident { id = family; desc = Env.Channel (true, _);
+                           param = Some ({ desc = Ident { id; param = None; _ }; _ } as parameter) }
+                   when is_wildcard_ident id || unbound_guard_var penv fresh id ->
+                     let _, family_symbol, parameter_symbol =
+                       Option.get (GEnv.channel_family_symbols genv) in
+                     let received = compile_ident (Ident.local "persistent_channel") in
+                     let term = pterm_e @@ PPIdent received in
+                     let penv =
+                       if is_wildcard_ident id then penv
+                       else PEnv.define_process_var penv id (T.type_of_expr parameter)
+                         (pterm_e @@ PPFunApp (parameter_symbol, [term])) in
+                     penv, Some (PPatVar (received, Some channel_ident)),
+                     Some (eq_pterm (pterm_e @@ PPFunApp (family_symbol, [term]))
+                       (pterm_e @@ PPIdent (compile_ident family)))
+                 | _ -> penv, Some (PPatEqual (compile_expr_to_pterm genv penv channel)), None)
+            | _ -> penv, None, None
+          in
+          let types = List.map T.type_of_expr args in
+          let symbol, wrap_pattern =
+            match fact.desc with
+            | Plain _ ->
+                let key = pterm_e @@ PPIdent (PEnv.local_fact_id genv penv) in
+                GEnv.local_fact_symbol genv name types,
+                (fun pattern -> PPatFunApp (persistent_local_fact_ident, [PPatEqual key; pattern]))
+            | Global _ ->
+                GEnv.global_fact_symbol genv name types, Fun.id
+            | Channel _ ->
+                compile_name name "chan",
+                (fun pattern -> PPatFunApp
+                  (persistent_channel_fact_ident, [Option.get channel_pattern; pattern]))
+            | _ -> assert false
+          in
+          (* Match tuple structure in the table pattern. Bind every argument
+             before compiling constraints, including references to later args.
+             Testing after [get] could reject a row without trying a matching one. *)
+          let branch_env, patterns, tests =
+            List.fold_left (fun (penv, patterns, tests) arg ->
+                let penv, pattern, more_tests = bind_tuple_guard penv fresh arg in
+                penv, pattern :: patterns, tests @ more_tests)
+              (penv, [], []) args
+          in
+          let ready_tests, remaining_tests =
+            List.partition (fun (test : T.fact) ->
+                match test.desc with
+                | Eq (lhs, rhs) ->
+                    guard_expr_ready branch_env fresh lhs
+                    && guard_expr_ready branch_env fresh rhs
+                | _ -> false) tests
+          in
+          let condition =
+            List.fold_left (fun condition (test : T.fact) ->
+                let term = match test.desc with
+                  | Eq (lhs, rhs) ->
+                      reject_function_wildcards lhs;
+                      reject_function_wildcards rhs;
+                      eq_pterm (compile_expr_to_pterm genv branch_env lhs)
+                        (compile_expr_to_pterm genv branch_env rhs)
+                  | _ -> assert false
+                in
+                Some (match condition with
+                  | None -> term
+                  | Some previous -> pterm_e @@ PPFunApp (pv_ident "&&", [previous; term])))
+              channel_condition ready_tests
+          in
+          let final_env, fragment =
+            compile_guard genv branch_env fresh (remaining_tests @ facts)
+              ~on_success ~else_proc in
+          final_env, fun rest ->
+            let lookup = process_e @@ PGet
+              ( persistent_fact_table_ident,
+                [wrap_pattern (PPatFunApp (symbol, List.rev patterns))],
+                condition,
+                fragment rest,
+                else_proc,
+                []
+              ) in
+            match fact.desc with
+            | Channel { channel; _ } ->
+                wrap_with_channel_access_get
+                  (channel_access_term genv access_env channel) access_env lookup else_proc
+            | _ -> lookup
 
 let compile_guard_tests
     genv
@@ -1219,7 +1328,6 @@ let extract_channel_guard penv fresh (facts : T.fact list) =
          | Channel { channel; name; args; persist= false }
            when guard_expr_ready penv fresh channel && not (expr_contains_wildcard channel) ->
              Some (channel, name, args, List.rev rev_prefix @ rest, fact.loc)
-         | Channel { channel=_; name=_; args=_; persist= true } -> assert false (* XXX*)
          | _ ->
              go (fact :: rev_prefix) rest)
   in

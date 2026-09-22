@@ -1,0 +1,28 @@
+fact global persist [Stored:1]
+tag global [Twice:1, Other:1, Missing:0]
+type proc_t : process
+process worker() : proc_t { main {
+  put [!::Stored(1)];
+  case [!::Stored(x)] ->
+    assume [!::Stored(x)] in event [::Twice(x)]
+  end;
+  assume [!::Stored(2)] in event [::Missing()]
+} }
+process reader() : proc_t { main {
+  case [!::Stored(x)] -> event [::Other(x)] end
+} }
+system worker() | reader()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Twice : reachable ::Twice(1);
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Other : reachable ::Other(1);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Missing : reachable ::Missing()
+]

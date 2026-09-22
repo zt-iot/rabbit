@@ -10,8 +10,9 @@ below; it does not require preservation of deadlock freedom or atomic stores.
 Status: implemented for ordinary local fact output and guards, including
 `examples/issue20.rab`. Regression tests cover the translation described below.
 Local tags (`tag local`, events and queries), global facts, and persistent
-facts are outside this specification. Persistence is tracked in
-[#28](https://github.com/zt-iot/rabbit/issues/28).
+facts are outside this ordinary-fact specification. Persistent facts are
+implemented as described in the [persistent fact guide](proverif_persistent_facts.md)
+for [#28](https://github.com/zt-iot/rabbit/issues/28).
 
 ## State and ownership
 
@@ -85,7 +86,7 @@ command also contains supported channel/file outputs, compose their existing
 output translations with these local outputs. Preserve their access checks
 and existing restrictions. Ordinary global outputs use the separate shared
 store described in the [global fact guide](proverif_global_facts.md); persistent
-facts remain unsupported. Local facts impose no additional
+facts use the [table translation](proverif_persistent_facts.md). Local facts impose no additional
 single-fact restriction on `put`.
 
 ## Consumption, comparisons, and control flow
@@ -170,9 +171,9 @@ This is an assumption of this specification, not a proof of preservation;
 deadlock freedom is not required. Multiple facts, comparisons, and alternative
 branches are therefore not rejected solely because consumption is non-atomic.
 
-Persistent local facts remain outside this specification: consuming an
-occurrence does not implement persistence. Unsupported persistent uses must
-produce a source-located diagnostic rather than an assertion failure.
+Persistent local facts use a table keyed by a fresh process-instance identity,
+not this consumable store. Their ownership and matching rules are documented
+in the [persistent fact guide](proverif_persistent_facts.md).
 
 ## Implementation acceptance checks
 
@@ -194,8 +195,8 @@ implementation obligations:
   no branch-body event and do not leak bindings or duplicate the control token.
 - Supported mixed local/channel/file guards and outputs preserve their access
   checks and successful paths, including inside inlined calls.
-- Persistent local uses produce diagnostics rather than assertions. Other
-  unsupported patterns retain the existing guard diagnostics.
+- Persistent local uses retain their separate non-consuming table translation.
+  Unsupported patterns retain the existing guard diagnostics.
 
 Use query checks together with generated-process inspection where the
 analyzer's approximation cannot establish exact multiplicity or isolation.

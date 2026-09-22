@@ -24,7 +24,7 @@ opam exec -- dune runtest examples/proverif_verification
 ```
 
 Global fact regressions include shared state across replicated processes,
-patterns, mixed guards, loops, syscalls, and persistent-use diagnostics.
+patterns, mixed guards, loops, and syscalls.
 `test_global_fact_shape` additionally checks the shared private declaration,
 parallel output continuations, and exact output/input counts without replication
 in `global_facts_linear.rab`. The corresponding single-use query remains
@@ -33,9 +33,22 @@ in `global_facts_linear.rab`. The corresponding single-use query remains
 Local fact regressions reproduce #31 and check isolation between process
 instances, inherited storage across nested local functions and syscalls,
 `assume`, mixed guards, patterns, and loops. `test_local_fact_shape` checks
-process-entry channel restrictions and exact occurrence counts. Persistent
-local uses remain expected diagnostics. The single-use query in
+process-entry channel restrictions and exact occurrence counts. The single-use query in
 `local_facts_linear.rab` records ProVerif's `unknown` approximation result.
+
+Persistent fact regressions follow the [table translation](../../proverif_persistent_facts.md):
+
+- `global_persistent_{put,guard}.rab` and `local_persistent_{put,guard}.rab`
+  check continuations, repeated reads, fresh bindings, missing values, and
+  global sharing versus local isolation. These replace the old unsupported tests.
+- `persistent_matching.rab` and `test_persistent_matching` check fixed values,
+  repeated variables, tuples, and references to later arguments. AST checks
+  ensure constraints are evaluated inside `get`, before choosing a row.
+- `persistent_channel_put.rab`, `persistent_channel_put_no_access.rab`, and
+  `persistent_channel_get.rab` check access control, channel/index isolation,
+  repeated reads, parameter binding, wildcards, and loops.
+- `test_persistent_local_scope` uses `persistent_local_scope/scope.rab` to check
+  fresh process-entry identities and their sharing across nested calls/syscalls.
 
 Eq/Neq facts in `event` commands have been discontinued. The rejection fixtures
 `equality_query_unsupported.rab`, `inequality_query_unsupported.rab`, and
