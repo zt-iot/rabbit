@@ -997,8 +997,8 @@ let rec process_decl env fn ({ Location.data = c; Location.loc } : Input.decl) =
           }
           :: env.system
       }
-  | Input.DeclExtFacts _ | Input.DeclTags _ -> Error.raise ~loc Unsupported
-    (* Fact declaration is currently unsupported in legacy compiler *)
+  | Input.DeclReduc _ | Input.DeclExtFacts _ | Input.DeclTags _ -> Error.raise ~loc Unsupported
+    (* Reduction and fact declarations are unsupported in the legacy compiler. *)
 
 and load fn env =
   let decls, (used_idents, used_strings) = Lexer.read_file Parser.file fn in

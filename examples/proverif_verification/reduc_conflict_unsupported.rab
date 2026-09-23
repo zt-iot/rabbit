@@ -1,0 +1,8 @@
+function f:1
+reduc f(x) = "first"
+reduc f(x) = "second"
+tag global [Done:0]
+type proc_t : process
+process worker() : proc_t { main { event [::Done()] } }
+system worker()
+requires [lemma Done : reachable ::Done()]

@@ -1,0 +1,4 @@
+(test
+ (name test_reduc)
+ (libraries rabbit_core rabbit_proverif_pv str)
+ (flags (:standard -w +a-4-40-42-70 -warn-error +a-4-40-42-70)))

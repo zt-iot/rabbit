@@ -651,7 +651,7 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let typ = fresh_callable arity in
       let env', id = Env.add_global ~loc env name (ExtFun typ) in
       env', [{ env; loc; desc = Function { id; typ } }]
-  | DeclExtEq (e1, e2) ->
+  | (DeclExtEq (e1, e2) | DeclReduc (e1, e2)) as desc ->
       let vars = Name.Set.union (Input.vars_of_expr e1) (Input.vars_of_expr e2) in
       let fresh =
         Name.Set.elements (Name.Set.filter (fun v -> not (Env.mem env v)) vars)
@@ -668,7 +668,9 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
           ; desc =
               (* [_fresh_ids] should be included,
                 but so far this information is not required in the later stages *)
-              Equation (e1, e2)
+              (match desc with
+               | DeclReduc _ -> Reduc (e1, e2)
+               | _ -> Equation (e1, e2))
           }
         ] )
   | DeclExtFacts (descs, facts) ->

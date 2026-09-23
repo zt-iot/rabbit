@@ -36,3 +36,11 @@ instances, inherited storage across nested local functions and syscalls,
 process-entry channel restrictions and exact occurrence counts. Persistent
 local uses remain expected diagnostics. The single-use query in
 `local_facts_linear.rab` records ProVerif's `unknown` approximation result.
+
+Reduction regressions cover explicit `reduc` declarations, multiple rules across
+loaded files, tuple and constructor results, total rules, and unchanged
+`equation` semantics. `reduc_failure.rab` verifies that failed computations do
+not continue through unused bindings, discarded values, inlined calls, guards,
+asynchronous fact outputs, or process initialization. Conflicting rules and
+destructors in queries have expected diagnostic fixtures. AST and invalid-rule
+checks are in `test/reduc`.

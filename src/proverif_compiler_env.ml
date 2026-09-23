@@ -46,6 +46,7 @@ module GEnv = struct
 
   type t =
     { tyenv                 : Env.t (** typing environment *)
+    ; mutable destructors   : Ident.Set.t
     ; mutable strings       : (string * ident) list (** string constants and their identifiers *)
     ; mutable integers      : (int * ident) list (** integer constants and their identifiers *)
     ; mutable parameters    : (string * ident) list (** concrete parameter values *)
@@ -69,6 +70,7 @@ module GEnv = struct
 
   let create tyenv : t =
     { tyenv              = tyenv
+    ; destructors        = Ident.Set.empty
     ; strings            = []
     ; integers           = []
     ; parameters         = []
@@ -90,6 +92,12 @@ module GEnv = struct
     }
 
   let tyenv genv = genv.tyenv
+
+  let add_destructor genv id =
+    genv.destructors <- Ident.Set.add id genv.destructors
+
+  let is_destructor genv id = Ident.Set.mem id genv.destructors
+  let has_destructors genv = not (Ident.Set.is_empty genv.destructors)
 
   let add_ident genv ~base : ident =
     let rec find_available index =
@@ -302,7 +310,7 @@ module GEnv = struct
 
     let rec add_decl_strings genv (decl : T.decl) =
       match decl.desc with
-      | Equation (lhs, rhs) ->
+      | Equation (lhs, rhs) | Reduc (lhs, rhs) ->
           add_expr_strings genv lhs;
           add_expr_strings genv rhs
       | Syscall { cmd; _ } | Attack { cmd; _ } -> add_cmd_strings genv cmd

@@ -150,6 +150,7 @@ type decl = decl' Location.located
 and decl' =
   | DeclExtFun of Name.ident * int
   | DeclExtEq of expr * expr
+  | DeclReduc of expr * expr
   | DeclExtFacts of fact_desc list * (Name.ident * int) list
   | DeclTags of fact_desc * (Name.ident * int) list
   | DeclExtSyscall of Name.ident * Name.ident list * cmd * bool
