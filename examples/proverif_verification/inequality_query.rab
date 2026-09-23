@@ -1,0 +1,42 @@
+tag global [Equal:2, Unequal:2]
+
+tag global [BeforeInequality:2, AfterInequality:2]
+
+(* Comparisons are guard conditions; ordinary tags record their successful
+   evaluation for reachability and correspondence queries. *)
+
+const fresh left
+const fresh right
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::BeforeInequality(left, right)];
+    case [left != right] -> event [::Unequal(left, right)] end;
+    event [::AfterInequality(left, right)]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma InequalityIsReachable : (* verified *)
+    reachable ::Unequal(left, right) ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma InequalityHasPredecessor : (* verified *)
+    corresponds ::Unequal(left, right) ~> ::BeforeInequality(left, right) ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma InequalityPrecedesContinuation : (* verified *)
+    corresponds ::AfterInequality(left, right) ~> ::Unequal(left, right)
+]

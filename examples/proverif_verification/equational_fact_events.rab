@@ -2,8 +2,8 @@ tag global [Equal:2, Unequal:2]
 
 tag global [AfterTrueEquality:0, AfterTrueInequality:0, InsideFalseEquality:0, AfterFalseEquality:0, InsideFalseInequality:0, AfterFalseInequality:0]
 
-(* Rejection regression: Eq/Neq event facts are no longer supported.
-   Compilation must fail at event lowering, before these queries are checked. *)
+(* Comparisons are guard conditions; ordinary tags record their successful
+   evaluation for reachability and correspondence queries. *)
 
 const fresh left
 const fresh right
@@ -40,33 +40,63 @@ system
   true_comparisons() | false_equality() | false_inequality()
 requires
 [
-  lemma TrueEqualityIsReachable :
-    reachable left = left ;
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma TrueEqualityIsReachable : (* verified *)
+    reachable ::Equal(left, left) ;
 
-  lemma TrueEqualityContinues :
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma TrueEqualityContinues : (* verified *)
     reachable ::AfterTrueEquality() ;
 
-  lemma TrueInequalityIsReachable :
-    reachable left != right ;
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma TrueInequalityIsReachable : (* verified *)
+    reachable ::Unequal(left, right) ;
 
-  lemma TrueInequalityContinues :
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma TrueInequalityContinues : (* verified *)
     reachable ::AfterTrueInequality() ;
 
-  lemma FalseEqualityIsUnreachable :
-    reachable left = right ;
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseEqualityIsUnreachable : (* falsified *)
+    reachable ::Equal(left, right) ;
 
-  lemma FalseEqualitySuppressesWholeEvent :
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseEqualitySuppressesWholeEvent : (* falsified *)
     reachable ::InsideFalseEquality() ;
 
-  lemma FalseEqualityBlocks :
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseEqualityBlocks : (* falsified *)
     reachable ::AfterFalseEquality() ;
 
-  lemma FalseInequalityIsUnreachable :
-    reachable left != left ;
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseInequalityIsUnreachable : (* falsified *)
+    reachable ::Unequal(left, left) ;
 
-  lemma FalseInequalitySuppressesWholeEvent :
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseInequalitySuppressesWholeEvent : (* falsified *)
     reachable ::InsideFalseInequality() ;
 
-  lemma FalseInequalityBlocks :
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FalseInequalityBlocks : (* falsified *)
     reachable ::AfterFalseInequality()
 ]

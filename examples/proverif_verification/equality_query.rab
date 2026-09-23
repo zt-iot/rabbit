@@ -1,0 +1,41 @@
+tag global [Equal:2, Unequal:2]
+
+tag global [BeforeEquality:1, AfterEquality:1]
+
+(* Comparisons are guard conditions; ordinary tags record their successful
+   evaluation for reachability and correspondence queries. *)
+
+const fresh value
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    event [::BeforeEquality(value)];
+    case [value = value] -> event [::Equal(value, value)] end;
+    event [::AfterEquality(value)]
+  }
+}
+
+system worker()
+requires
+[
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma EqualityIsReachable : (* verified *)
+    reachable ::Equal(value, value) ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma EqualityHasPredecessor : (* verified *)
+    corresponds ::Equal(value, value) ~> ::BeforeEquality(value) ;
+
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma EqualityPrecedesContinuation : (* verified *)
+    corresponds ::AfterEquality(value) ~> ::Equal(value, value)
+]

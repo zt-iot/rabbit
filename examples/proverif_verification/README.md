@@ -50,11 +50,12 @@ Persistent fact regressions follow the [table translation](../../proverif_persis
 - `test_persistent_local_scope` uses `persistent_local_scope/scope.rab` to check
   fresh process-entry identities and their sharing across nested calls/syscalls.
 
-Eq/Neq facts in `event` commands have been discontinued. The rejection fixtures
-`equality_query_unsupported.rab`, `inequality_query_unsupported.rab`, and
-`equational_fact_events_unsupported.rab` assert the event-lowering diagnostic.
-Their queries are not reached; these tests do not establish query-only support.
-Equality and inequality comparisons in guards are separate from event facts.
+Equality and inequality comparisons are allowed only in guards. The
+`equality_query.rab`, `inequality_query.rab`, and `equational_fact_events.rab`
+regressions use guard comparisons followed by ordinary event tags to check
+reachability, correspondence, and continuation behavior. The separate
+`equality_*_unsupported.rab` and `inequality_*_unsupported.rab` fixtures check
+that comparisons outside guards are rejected during type checking.
 
 Reduction regressions cover explicit `reduc` declarations, multiple rules across
 loaded files, tuple and constructor results, total rules, and unchanged
