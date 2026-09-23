@@ -494,6 +494,8 @@ module PEnv = struct
     ; local_fact_channel : ident option ref
         (** Shared by derived environments for one process definition. The
             restriction is inside that definition, fresh at each invocation. *)
+    ; local_fact_id : ident option ref
+        (** Shared by derived environments; restricted fresh at each invocation. *)
     ; result : pterm_e
     ; result_type : Type.type_
     }
@@ -512,6 +514,7 @@ module PEnv = struct
     ; curr_syscall
     ; file_channel
     ; local_fact_channel = ref None
+    ; local_fact_id = ref None
     ; result = pterm_e @@ PPTuple []
     ; result_type = Type.TValue
     }
@@ -591,6 +594,16 @@ module PEnv = struct
     | None ->
         let id = GEnv.fresh_auxiliary_ident genv ~base:"local_fact_ch" in
         penv.local_fact_channel := Some id;
+        id
+
+  let allocated_local_fact_id penv = !(penv.local_fact_id)
+
+  let local_fact_id genv penv =
+    match allocated_local_fact_id penv with
+    | Some id -> id
+    | None ->
+        let id = GEnv.fresh_auxiliary_ident genv ~base:"local_fact_id" in
+        penv.local_fact_id := Some id;
         id
 
   (* result register ****************************************)

@@ -6,7 +6,8 @@ guards. This document defines the translation and its analysis assumptions.
 The scope is non-persistent facts declared with `fact global`, represented
 by `Typed.Global`. Global tags used in events and queries remain separate:
 producing a fact does not emit an event, and an event does not populate the
-fact store. Persistent facts are outside this specification.
+fact store. Persistent facts use the separate table translation described in the
+[persistent fact guide](proverif_persistent_facts.md).
 
 ## Shared state and representation
 
@@ -107,9 +108,8 @@ their access checks and independent restrictions.
   translation on the public attacker channel. They do not use this store.
 - `::True()` and `::False()` keep their existing special guard behavior.
 - Global tags in `event` commands and queries keep their event translation.
-- Persistent global fact uses are unsupported and must produce a
-  source-located diagnostic, not an assertion failure. Consuming a message
-  does not implement persistence.
+- Persistent global facts use `persistent_fact_table`, not the consumable
+  channel store. See the [persistent fact guide](proverif_persistent_facts.md).
 
 ## Atomicity assumption
 
@@ -128,7 +128,7 @@ therefore not rejected solely because the translation is non-atomic.
 ## Implementation acceptance checks
 
 Regression examples under `examples/proverif_verification/` cover ordinary
-global facts and persistent-use diagnostics. Implementation obligations include:
+global facts; persistent behavior has separate table regressions. Implementation obligations include:
 
 - A producer's fact reaches a consumer in a different process instance,
   including replicated instances and different process types/parameters.
@@ -143,7 +143,7 @@ global facts and persistent-use diagnostics. Implementation obligations include:
   patterns, alternatives, loops, and inlined calls retain successful paths.
   Failed attempts execute no branch-body event or leak fresh bindings.
 - Mixed outputs and guards preserve existing access checks and restrictions.
-- Persistent uses produce diagnostics rather than assertion failures.
+- Persistent uses retain their separate non-consuming table translation.
 
 Use generated-process inspection as well as query checks, especially for
 channel scope, multiplicity, privacy, and blocking behavior that ProVerif's

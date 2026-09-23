@@ -142,6 +142,8 @@ module PEnv : sig
   val file_channel : t -> pterm_e option
   val local_fact_channel : GEnv.t -> t -> ident
   val allocated_local_fact_channel : t -> ident option
+  val local_fact_id : GEnv.t -> t -> ident
+  val allocated_local_fact_id : t -> ident option
 
   val result : t -> pterm_e
   val result_type : t -> Type.type_

@@ -1,0 +1,24 @@
+fact channel persist [Message:1, Ready:0]
+tag global [AfterPut:0, Done:0]
+type proc_t : process
+type transport_t : channel
+allow proc_t transport_t [.]
+channel first : transport_t
+channel second : transport_t
+process writer(a : transport_t, b : transport_t) : proc_t {
+  main {
+    put [!a::Message(1)];
+    event [::AfterPut()];
+    put [!b::Message(2), !a::Ready()];
+    event [::Done()]
+  }
+}
+system writer(first, second)
+requires [
+  (* PROVERIF EXPECTED
+  true
+  true
+  *)
+  lemma AfterPut : reachable ::AfterPut();
+  lemma Done : reachable ::Done()
+]

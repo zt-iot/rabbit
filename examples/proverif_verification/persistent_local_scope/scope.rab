@@ -1,0 +1,21 @@
+fact local persist [Stored:1]
+fact global persist [Shared:1]
+tag global [Never:0]
+type proc_t : process
+syscall save(value) { put [!Stored(value)] }
+allow proc_t [save]
+process worker() : proc_t {
+  function inner(value) { var result = save(value) in assume [!Stored(value)] in 0 }
+  function outer(value) { var result = inner(value) in result }
+  main {
+    put [!Stored(7), !::Shared(7)];
+    var result = outer(7) in
+    assume [!Stored(7), !::Shared(7)] in 0
+  }
+}
+process reader() : proc_t {
+  main { assume [!Stored(7)] in 0 }
+}
+system worker() | worker() | reader()
+
+requires [ lemma Never : reachable ::Never() ]

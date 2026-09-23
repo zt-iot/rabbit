@@ -1,0 +1,71 @@
+fact channel persist [Message:1]
+tag global [Twice:0, Other:0, Wrong:0, Denied:0, Indexed:0, Fresh:0, Wildcard:0, WrongIndex:0, Step:0, Stop:0]
+type proc_t : process
+type denied_t : process
+type transport_t : channel
+allow proc_t transport_t [.]
+channel first : transport_t
+channel second : transport_t
+channel family<> : transport_t
+process writer(c : transport_t) : proc_t {
+  main { put [!c::Message(1), !c::Message(2)] }
+}
+process reader(c : transport_t) : proc_t {
+  main {
+    case [!c::Message(x)] ->
+      assume [!c::Message(x)] in event [::Twice()]
+    end
+  }
+}
+process other(c : transport_t) : proc_t {
+  main { case [!c::Message(x)] -> event [::Other()] end }
+}
+process wrong(c : transport_t) : proc_t {
+  main { case [!c::Message(3)] -> event [::Wrong()] end }
+}
+process denied(c : transport_t) : denied_t {
+  main { case [!c::Message(x)] -> event [::Denied()] end }
+}
+process loop(c : transport_t) : proc_t {
+  main {
+    repeat [!c::Message(1)] -> event [::Step()]
+    until [!c::Message(2)] -> event [::Stop()]
+    end
+  }
+}
+process indexed(c<> : transport_t) : proc_t {
+  main {
+    put [!c<1> ::Message(2)];
+    assume [!c<1> ::Message(2)] in event [::Indexed()];
+    case [!c<p> ::Message(x)] ->
+      assume [!c<p> ::Message(x)] in event [::Fresh()]
+    end;
+    case [!c<_> ::Message(_)] -> event [::Wildcard()] end;
+    case [!c<2> ::Message(_)] -> event [::WrongIndex()] end
+  }
+}
+system loop(first) | writer(first) | reader(first) | other(second) | wrong(first) | denied(first) | indexed(family<>)
+requires [
+  (* PROVERIF EXPECTED
+  true
+  false
+  false
+  false
+  true
+  true
+  true
+  false
+  true
+  true
+  *)
+  lemma Twice : reachable ::Twice();
+  lemma Other : reachable ::Other();
+  lemma Wrong : reachable ::Wrong();
+  lemma Denied : reachable ::Denied();
+  lemma Indexed : reachable ::Indexed();
+  lemma Fresh : reachable ::Fresh();
+  lemma Wildcard : reachable ::Wildcard();
+  lemma WrongIndex : reachable ::WrongIndex();
+  lemma Step : reachable ::Step();
+  lemma Stop : reachable ::Stop()
+]

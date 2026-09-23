@@ -84,3 +84,17 @@
  (action
   (run %{test} %{dep:local_facts_linear.rab} %{dep:local_facts_isolation.rab}
    %{dep:local_facts_calls.rab} %{dep:local_facts_control.rab})))
+
+(test
+ (name test_persistent_local_scope)
+ (modules test_persistent_local_scope)
+ (libraries rabbit_core rabbit_proverif_pv)
+ (deps persistent_local_scope/scope.rab)
+ (action (run %{test} %{dep:persistent_local_scope/scope.rab})))
+
+(test
+ (name test_persistent_matching)
+ (modules test_persistent_matching)
+ (libraries rabbit_core rabbit_proverif_pv)
+ (deps persistent_matching.rab)
+ (action (run %{test} %{dep:persistent_matching.rab})))

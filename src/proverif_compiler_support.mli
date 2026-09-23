@@ -23,6 +23,9 @@ val access_control_table_ident : ident
 val file_type_table_ident : ident
 val channel_table_ident : ident
 val deleted_address_table_ident : ident
+val persistent_channel_fact_ident : ident
+val persistent_local_fact_ident : ident
+val persistent_fact_table_ident : ident
 val attacker_channel_ident : ident
 val true_ident : ident
 val false_ident : ident
