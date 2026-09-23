@@ -3,6 +3,7 @@
 ## Compiler documentation
 
 - [Persistent facts](proverif_persistent_facts.md): shared table translation for global, process-local, and channel facts, including scope, matching, access control, and analysis limits.
+- [Loop continuations](proverif_loop_continuations.md): branch-local loop handoffs, final asynchronous outputs, and verification scope.
 - [Guard compilation](proverif_guard_compilation.md): supported forms, variable bindings, inputs, and the known atomicity limitation.
 - [Process-local facts](proverif_local_facts.md): private storage per process instance, including inlined calls, with sequential consumption and an explicit atomicity assumption.
 - [Global facts](proverif_global_facts.md): shared private-channel translation for ordinary global facts, with sequential consumption and an explicit atomicity assumption.

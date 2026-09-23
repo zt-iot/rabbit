@@ -51,29 +51,26 @@ let alice__0(ptype:proc_t, ch__431:channel) =
        in(ch__431, store__chan(guard_arg_0__438:bitstring));
        (* case at file "./038_nonce_handshake_loop_alice.rab", line 28, charaters 10-27 *)
        new case_ch__439:channel;
-       ((out(case_ch__439, (false__bool, (), n__432, (* expr at file "./038_nonce_handshake_loop_alice.rab", line 11, charaters 20-21 *)
-                                                     guard_arg_0__438)) |
-         (* case [ n__432 = m__433 ] at file "./038_nonce_handshake_loop_alice.rab", line 28, charaters 10-27 *)
-         in(case_ch__439, (=false__bool, case_result__443:bitstring, case_state_0__444:bitstring, case_state_1__445:bitstring))[precise];
-         if case_state_0__444 = case_state_1__445
-         then
-           (* event [ ::Valid() ] at file "./038_nonce_handshake_loop_alice.rab", line 28, charaters 10-27 *)
-           event Valid__event_global;
-           out(case_ch__439, (true__bool, (), case_state_0__444, case_state_1__445))
-         else
-           out(case_ch__439, (false__bool, case_result__443, case_state_0__444, case_state_1__445))) |
-        (* case [ n__432 != m__433 ] at file "./038_nonce_handshake_loop_alice.rab", line 30, charaters 10-29 *)
-        in(case_ch__439, (=false__bool, case_result__446:bitstring, case_state_0__447:bitstring, case_state_1__448:bitstring))[precise];
-        if case_state_0__447 = case_state_1__448
+       (out(case_ch__439, (false__bool, (), n__432, (* expr at file "./038_nonce_handshake_loop_alice.rab", line 11, charaters 20-21 *)
+                                                    guard_arg_0__438)) |
+        (* case [ n__432 = m__433 ] at file "./038_nonce_handshake_loop_alice.rab", line 28, charaters 10-27 *)
+        in(case_ch__439, (=false__bool, case_result__443:bitstring, case_state_0__444:bitstring, case_state_1__445:bitstring))[precise];
+        if case_state_0__444 = case_state_1__445
         then
-          out(case_ch__439, (false__bool, case_result__446, case_state_0__447, case_state_1__448))
+          (* event [ ::Valid() ] at file "./038_nonce_handshake_loop_alice.rab", line 28, charaters 10-27 *)
+          event Valid__event_global;
+          out(loop_ch__434, (false__bool, ()))
         else
-          (* event [ ::Invalid() ] at file "./038_nonce_handshake_loop_alice.rab", line 30, charaters 10-29 *)
-          event Invalid__event_global;
-          out(case_ch__439, (true__bool, (), case_state_0__447, case_state_1__448))) |
-       (* end of case at file "./038_nonce_handshake_loop_alice.rab", line 28, charaters 10-27 *)
-       in(case_ch__439, (=true__bool, case_done_result__440:bitstring, case_done_state_0__441:bitstring, case_done_state_1__442:bitstring))[precise];
-       out(loop_ch__434, (false__bool, case_done_result__440)))) |
+          out(case_ch__439, (false__bool, case_result__443, case_state_0__444, case_state_1__445))) |
+       (* case [ n__432 != m__433 ] at file "./038_nonce_handshake_loop_alice.rab", line 30, charaters 10-29 *)
+       in(case_ch__439, (=false__bool, case_result__446:bitstring, case_state_0__447:bitstring, case_state_1__448:bitstring))[precise];
+       if case_state_0__447 = case_state_1__448
+       then
+         out(case_ch__439, (false__bool, case_result__446, case_state_0__447, case_state_1__448))
+       else
+         (* event [ ::Invalid() ] at file "./038_nonce_handshake_loop_alice.rab", line 30, charaters 10-29 *)
+         event Invalid__event_global;
+         out(loop_ch__434, (false__bool, ())))) |
      (* until case [ ::False() ] at file "./038_nonce_handshake_loop_alice.rab", line 33, charaters 25-29 *)
      in(loop_ch__434, (=false__bool, loop_result__436:bitstring))[precise];
      out(loop_ch__434, (false__bool, loop_result__436)))) |

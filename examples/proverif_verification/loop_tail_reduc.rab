@@ -1,0 +1,85 @@
+load "reduc_rules_library.rab"
+tag global [AfterFailure:1, InsideFailedCall:0, Succeeded:0]
+fact channel [Message:1]
+type proc_t : process
+type transport_t : channel
+allow proc_t transport_t [.]
+channel transport : transport_t
+syscall ignore_arg(x) { event [::InsideFailedCall()] }
+allow proc_t [ignore_arg]
+
+(* Even a discarded failing argument must block the tail call and handoff. *)
+process syscall_arg() : proc_t {
+  main {
+    var state = 0 in
+    repeat [state = 0] -> state := 1; _ := ignore_arg(dec("bad", "key"))
+    until [state = 1] -> skip end;
+    event [::AfterFailure(1)]
+  }
+}
+process local_arg() : proc_t {
+  function ignore_local(x) { event [::InsideFailedCall()] }
+  main {
+    var state = 0 in
+    repeat [state = 0] -> state := 1; _ := ignore_local(dec("bad", "key"))
+    until [state = 1] -> skip end;
+    event [::AfterFailure(2)]
+  }
+}
+
+(* Evaluate a pending output before releasing either kind of loop token. *)
+process repeat_output(ch : transport_t) : proc_t {
+  main {
+    var state = 0 in
+    repeat [state = 0] -> state := 1; put [ch::Message(dec("bad", "key"))]
+    until [state = 1] -> skip end;
+    event [::AfterFailure(3)]
+  }
+}
+process until_output(ch : transport_t) : proc_t {
+  main {
+    repeat [] -> skip
+    until [] -> put [ch::Message(dec("bad", "key"))] end;
+    event [::AfterFailure(4)]
+  }
+}
+process case_result() : proc_t {
+  function bad_result() {
+    case [] -> dec("bad", "key") | [] -> dec("bad", "key") end
+  }
+  main {
+    var state = 0 in
+    repeat [state = 0] -> state := 1; _ := bad_result()
+    until [state = 1] -> skip end;
+    event [::AfterFailure(5)]
+  }
+}
+process success(ch : transport_t) : proc_t {
+  function send(value) { put [ch::Message(value)] }
+  main {
+    var state = 0 in
+    repeat [state = 0] ->
+      case
+      | [] -> state := 1; _ := send(dec(enc("ok", "key"), "key"))
+      | [] -> state := 1; _ := send(dec(enc("ok", "key"), "key"))
+      end
+    until [state = 1] -> skip end;
+    case [ch::Message("ok")] -> event [::Succeeded()] end
+  }
+}
+system syscall_arg() | local_arg() | repeat_output(transport)
+     | until_output(transport) | case_result() | success(transport)
+requires [
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FailedEvaluationDoesNotReleaseLoop: reachable ::AfterFailure(x);
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma FailedArgumentDoesNotEnterCall: reachable ::InsideFailedCall();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma SuccessfulEvaluationContinues: reachable ::Succeeded()
+]

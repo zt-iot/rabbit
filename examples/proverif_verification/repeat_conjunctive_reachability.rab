@@ -1,11 +1,9 @@
 tag global [A:0, B:0]
 fact channel [Exit:0]
 
-(* Regression: replicate repeat branches independently so that ProVerif can
-   reconstruct both orders of a semantically commutative conjunction.
-
-   Reviewed.
-*)
+(* Regression: publishing the loop continuation before the final channel
+   output lets ProVerif reconstruct either order of this conjunction.
+   The reverse-order query returned unknown before loop-tail lowering. *)
 
 type proc_t : process
 type channel_t : channel
@@ -32,7 +30,7 @@ system worker(loopback)
 requires
 [
   (* PROVERIF EXPECTED
-  unknown
+  true
   *)
   lemma ReverseOrderIsReachable : (* verified *)
     reachable ::B(), ::A() ;

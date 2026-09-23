@@ -1,0 +1,184 @@
+fact channel [TailGeneral:1, TailShared:1, TailUntil:0, TailDenied:0, Step:1, Ordinary:0]
+tag global [Finished:1, SharedFinished:1, DeniedAdvanced:0, Prefix:0, AfterCase:0, CallFinished:2, InnerDone:0, OuterDone:0, RemoteFinished:1]
+
+type proc_t : process
+type denied_t : process
+type transport_t : channel
+allow proc_t transport_t [.]
+channel general : transport_t
+channel shared : transport_t
+channel denied : transport_t
+
+(* A non-tail case keeps its join and the following event. The nested tail
+   cases carry the updated value and channel directly to the enclosing loop. *)
+process worker(ch : transport_t) : proc_t {
+  main {
+    var state = "initial" in
+    var target = ch in
+    case
+    | [] -> put [ch::Ordinary()]; event [::Prefix()]
+    | [] -> put [ch::Ordinary()]; event [::Prefix()]
+    end;
+    event [::AfterCase()];
+    repeat
+    | [state = "initial"] ->
+      case
+      | [] ->
+        case [state = "initial"] ->
+          state := "done";
+          target := ch;
+          put [target::TailGeneral(state)]
+        end
+      | [] -> state := "other"; put [target::TailGeneral(state)]
+      end
+    until
+    | [state = "done"] -> event [::Finished(state)]; put [ch::TailUntil()]
+    | [state = "other"] -> event [::Finished(state)]
+    end
+  }
+}
+
+(* The shared input optimization must keep exclusive branch selection, while
+   removing only the completed-state join of this tail case. *)
+process channel_case(ch : transport_t) : proc_t {
+  main {
+    var state = "initial" in
+    put [ch::Step("a"), ch::Step("b")];
+    repeat
+    | [state = "initial"] ->
+      case
+      | [ch::Step(value), value = "a"] ->
+        state := value; put [ch::TailShared(state)]
+      | [ch::Step(value), value = "b"] ->
+        state := value; put [ch::TailShared(state)]
+      end
+    until
+    | [state != "initial"] -> event [::SharedFinished(state)]
+    end
+  }
+}
+
+(* A denied last output must not release the loop token, even though the
+   preceding assignment has already changed the compiler environment. *)
+process blocked(ch : transport_t) : denied_t {
+  main {
+    var state = "initial" in
+    repeat
+    | [state = "initial"] -> state := "done"; put [ch::TailDenied()]
+    until
+    | [state = "done"] -> event [::DeniedAdvanced()]
+    end
+  }
+}
+
+(* Tail calls must apply the return-value assignment before emitting state.
+   Each local-function branch also changes a different mutable variable. *)
+process calls() : proc_t {
+  var state = "initial"
+  var answer = "none"
+  function choose() {
+    case
+    | [] -> state := "left"; "L"
+    | [] -> state := "right"; "R"
+    end
+  }
+  main {
+    repeat
+    | [state = "initial"] -> answer := choose()
+    until
+    | [state != "initial"] -> event [::CallFinished(state, answer)]
+    end
+  }
+}
+
+(* A normal/attack syscall choice also has one branch-local continuation. *)
+syscall choose_remote() {
+  case [] -> "normal_a" | [] -> "normal_b" end
+}
+attack replace_choice on choose_remote() { "attack" }
+allow proc_t [choose_remote]
+allow attack proc_t [replace_choice]
+process remote_call() : proc_t {
+  main {
+    var answer = "none" in
+    repeat
+    | [answer = "none"] -> answer := choose_remote()
+    until
+    | [answer != "none"] -> event [::RemoteFinished(answer)]
+    end
+  }
+}
+
+(* Completing an inner loop must still run the remainder of the outer body. *)
+process nested() : proc_t {
+  main {
+    var outer = "initial" in
+    repeat
+    | [outer = "initial"] ->
+      repeat [] -> skip until [] -> event [::InnerDone()] end;
+      outer := "done"
+    until
+    | [outer = "done"] -> event [::OuterDone()]
+    end
+  }
+}
+
+system worker(general) | channel_case(shared) | blocked(denied) | calls() | remote_call() | nested()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma RemoteA: reachable ::RemoteFinished("normal_a");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma RemoteB: reachable ::RemoteFinished("normal_b");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma RemoteAttack: reachable ::RemoteFinished("attack");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma GeneralDone: reachable ::Finished("done");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma GeneralOther: reachable ::Finished("other");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma SharedA: reachable ::SharedFinished("a");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma SharedB: reachable ::SharedFinished("b");
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma Denied: reachable ::DeniedAdvanced();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma PrefixOrder: corresponds ::AfterCase() ~> ::Prefix();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma CallLeft: reachable ::CallFinished("left", "L");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma CallRight: reachable ::CallFinished("right", "R");
+  (* PROVERIF EXPECTED
+  false
+  *)
+  lemma CallMismatch: reachable ::CallFinished("left", "R");
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Nested: reachable ::OuterDone();
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma NestedOrder: corresponds ::OuterDone() ~> ::InnerDone()
+]
