@@ -21,11 +21,10 @@
  (alias runtest)
  (deps
   (glob_files *.rab)
-  (glob_files *.pv)
-  proverif_verification/proverif_under_test.exe)
+  (glob_files *.pv))
  (action
   (run
    %{exe:proverif_verification/test_proverif_verification.exe}
    --expect-markers
-   %{dep:proverif_verification/proverif_under_test.exe}
+   %{bin:proverif}
    .)))

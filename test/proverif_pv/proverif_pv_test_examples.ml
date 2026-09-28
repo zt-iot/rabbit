@@ -4,9 +4,9 @@ open Parse
 
 let proverif_examples_dir_candidates =
   [
-    "vendor/proverif/proverif/examples";
-    "../vendor/proverif/proverif/examples";
-    "../../vendor/proverif/proverif/examples";
+    "examples";
+    "../examples";
+    "../../examples";
   ]
 
 let proverif_examples_dir =
@@ -42,14 +42,14 @@ let indentation_example_files =
         (String.concat " | "
            (List.map (String.concat ", ") indentation_example_file_candidates))
 
-let rec collect_pv_files dir =
+let collect_pv_files dir =
   Sys.readdir dir
   |> Array.to_list
   |> List.sort String.compare
   |> List.concat_map (fun entry ->
          let path = Filename.concat dir entry in
          if Sys.is_directory path then
-           collect_pv_files path
+           []
          else if Filename.check_suffix path ".pv" && not (Filename.check_suffix path ".m4.pv") then
            [path]
          else
@@ -119,7 +119,10 @@ let parse_file path =
       Some (Printf.sprintf "%s\n%s" path (Printexc.to_string exn))
 
 let run () =
-  let files = collect_pv_files proverif_examples_dir in
+  let files =
+    collect_pv_files proverif_examples_dir
+    @ collect_pv_files (Filename.concat proverif_examples_dir "proverif")
+  in
   if files = [] then
     Proverif_pv_test_support.failwithf "No .pv files found under %s" proverif_examples_dir;
   let all_files = files @ indentation_example_files in

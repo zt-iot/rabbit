@@ -1,6 +1,8 @@
 # ProVerif Example Indentation Notes
 
-Source surveyed: `vendor/proverif/proverif/examples/**/*.pv`
+Historical survey of upstream ProVerif examples (before the vendored source
+was removed). Paths below are relative to the upstream ProVerif source tree;
+the statistics describe that original corpus, not the current test inputs.
 
 ## Corpus summary
 
@@ -121,7 +123,7 @@ process
 
 Observed in:
 
-- `vendor/proverif/proverif/examples/pitype/lemma/toy-one-dec.pv`
+- `examples/pitype/lemma/toy-one-dec.pv`
 
 ### `let process... =`
 
@@ -138,7 +140,7 @@ let processA(...) =
 
 Observed in:
 
-- `vendor/proverif/proverif/examples/pitype/choice/NeedhamSchroederPK-corr1.pv`
+- `examples/pitype/choice/NeedhamSchroederPK-corr1.pv`
 
 ### Sequential process commands
 
@@ -155,7 +157,7 @@ Example:
 
 Observed in:
 
-- `vendor/proverif/proverif/examples/pitype/lemma/toy-one-dec.pv`
+- `examples/pitype/lemma/toy-one-dec.pv`
 
 ### `let ... in`
 
@@ -175,7 +177,7 @@ and later:
 
 Observed in:
 
-- `vendor/proverif/proverif/examples/pitype/choice/NeedhamSchroederPK-corr1.pv`
+- `examples/pitype/choice/NeedhamSchroederPK-corr1.pv`
 
 ### `if ... then`
 
@@ -193,7 +195,7 @@ This is important: the examples do **not** consistently add another indentation 
 
 Observed in:
 
-- `vendor/proverif/proverif/examples/pitype/choice/NeedhamSchroederPK-corr1.pv`
+- `examples/pitype/choice/NeedhamSchroederPK-corr1.pv`
 
 ### `get`
 
@@ -219,7 +221,7 @@ equivalence
 
 Observed in:
 
-- `vendor/proverif/proverif/examples/pitype/choice/epassportUK_processes.pv`
+- `examples/pitype/choice/epassportUK_processes.pv`
 
 Longer example with wrapped substructure:
 
@@ -235,7 +237,7 @@ equivalence
 
 Observed in:
 
-- `vendor/proverif/proverif/examples/pitype/choice/private_authentication_unbound.pv`
+- `examples/pitype/choice/private_authentication_unbound.pv`
 
 What this suggests:
 
@@ -258,9 +260,9 @@ reduc forall y: key, x: bitstring; decE(y, E(y,x)) = x.
 
 Observed in:
 
-- `vendor/proverif/proverif/examples/pitype/lemma/toy-one-dec.pv`
-- `vendor/proverif/proverif/examples/pitype/choice/NeedhamSchroederPK-corr1.pv`
-- `vendor/proverif/proverif/examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv`
+- `examples/pitype/lemma/toy-one-dec.pv`
+- `examples/pitype/choice/NeedhamSchroederPK-corr1.pv`
+- `examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv`
 
 ### `const` lists
 
@@ -278,7 +280,7 @@ const Give,      (* Message 1 *)
 
 Observed in:
 
-- `vendor/proverif/proverif/examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv`
+- `examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv`
 
 ### Multi-line comments
 
@@ -295,7 +297,7 @@ Example:
 
 Observed in:
 
-- `vendor/proverif/proverif/examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv`
+- `examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv`
 
 Typical pattern:
 
@@ -318,7 +320,7 @@ ifdef(`PROP4',`
 
 Observed in:
 
-- `vendor/proverif/proverif/examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv`
+- `examples/pitype/certified-mail-AbadiGlewHornePinkas/onefile/protocol.m4.pv`
 
 So for `.m4.pv`, indentation often reflects macro editing convenience more than ProVerif block structure.
 

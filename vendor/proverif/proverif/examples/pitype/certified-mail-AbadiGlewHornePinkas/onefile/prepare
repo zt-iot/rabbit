@@ -1,9 +1,0 @@
-#!/bin/sh
-
-for i in SECRECY PROP1 PROP2 PROP3 PROP4
-do
-    for j in CHTOTTP PKCHANNEL SSH
-    do
-	m4 -D$j -D$i protocol.m4.pv > prot-$i-$j.pv
-    done
-done

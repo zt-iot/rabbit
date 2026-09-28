@@ -1,3 +1,0 @@
-#!/bin/sh
-
-grep POST $1 | awk '{ print (substr($4,2,11) " " $1 "\n"); }' | sort | uniq
