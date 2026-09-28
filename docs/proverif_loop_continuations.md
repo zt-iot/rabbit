@@ -77,8 +77,9 @@ or ProVerif's Horn approximation. It is not a general `P | Q` to `Q; P` rule.
 path using fresh RPC request IDs. With the previous compiler, both queries
 return unknown. The new compiler produces a reachable trace and a
 correspondence counterexample. This standalone fixture uses the protocol
-without the auxiliary persistent `Signed` fact: the base branch
-`proverif-dev-fact-decl` does not support persistent-fact compilation.
+without the auxiliary persistent `Signed` fact. Persistent facts are now
+implemented with the [table translation](proverif_persistent_facts.md); their
+omission here is a fixture simplification, not a compiler restriction.
 
 `loop_tail_state.rab` covers branch-local value/channel state, return values,
 normal/attack calls, non-tail sequencing, nested loops, and denied outputs.

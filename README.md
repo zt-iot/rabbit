@@ -63,7 +63,7 @@ graph `xxx.spthy.2.svg` is generated for the new compilation `xxx.spthy.2`.)
 ## Resources
 
 * **WIP** https://typst.app/project/rpEh0EsfMZuGaVAWyrgS2J
-* The compiler pipeline is `pipeline.md` in this directory.
+* The compiler pipeline is described in [docs/pipeline.md](docs/pipeline.md).
 
 ### Related Papers
 

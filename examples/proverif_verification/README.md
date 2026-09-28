@@ -1,7 +1,7 @@
 # ProVerif verification tests
 
 These tests compile each Rabbit input to a temporary ProVerif program, run the
-vendored ProVerif implementation, and compare the normalized query results
+`proverif` executable on `PATH`, and compare the normalized query results
 with the `(* PROVERIF EXPECTED ... *)` block immediately before each Rabbit
 lemma.
 
@@ -16,6 +16,10 @@ Rabbit lemma: `true` means that it holds, and `false` means that it does not.
 ProVerif reports the raw result of a reachability query with the opposite
 polarity, so the runner reverses `true` and `false` for `reachable` lemmas.
 `unknown` remains unchanged.
+
+Install ProVerif and ensure `proverif` is available on the `PATH` used by
+`opam exec`. Dune resolves it with `%{bin:proverif}` and reports an error if
+it is missing; the tests do not build or fall back to the vendored source.
 
 Run the tests with:
 
@@ -36,7 +40,7 @@ instances, inherited storage across nested local functions and syscalls,
 process-entry channel restrictions and exact occurrence counts. The single-use query in
 `local_facts_linear.rab` records ProVerif's `unknown` approximation result.
 
-Persistent fact regressions follow the [table translation](../../proverif_persistent_facts.md):
+Persistent fact regressions follow the [table translation](../../docs/proverif_persistent_facts.md):
 
 - `global_persistent_{put,guard}.rab` and `local_persistent_{put,guard}.rab`
   check continuations, repeated reads, fresh bindings, missing values, and
@@ -66,7 +70,7 @@ destructors in queries have expected diagnostic fixtures. AST and invalid-rule
 checks are in `test/reduc`.
 
 Loop continuation regressions are described in
-[Loop continuations](../../proverif_loop_continuations.md). `camserver_sid.rab`
+[Loop continuations](../../docs/proverif_loop_continuations.md). `camserver_sid.rab`
 checks the previously unknown reachability and correspondence queries;
 `loop_tail_state.rab` and `test_loop_tail_shape` check state propagation,
 exclusive branch selection, access denial, and preserved non-tail ordering.

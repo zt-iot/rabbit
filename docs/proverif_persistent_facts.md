@@ -115,7 +115,7 @@ semantic equivalence or preservation of deadlock freedom.
 
 ## Validation
 
-See the [verification test guide](examples/proverif_verification/README.md)
+See the [verification test guide](../examples/proverif_verification/README.md)
 for regression filenames. Query tests check repeated reads, sharing and
 isolation, access denial, argument binding, channel families, and loops.
 Generated-AST tests additionally check local identity scope and constraints

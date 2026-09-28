@@ -239,7 +239,6 @@ else 0
 - `a = f(_)` or `f(_, a) = f(b, _)`: no wildcards inside function applications.
 - `a != (x, y)` with unbound `x, y`: no bindings through inequality.
 - `(x, 2) = (y, 2)` without another value source: no arbitrary-value search.
-- Persistent local/global fact guards.
 
 The [global fact specification](proverif_global_facts.md) defines the implemented
 shared-store translation for ordinary global guards and its explicit atomicity
@@ -248,6 +247,8 @@ behavior.
 
 The [process-local fact specification](proverif_local_facts.md) defines the
 implemented sequential-consumption contract for ordinary local facts.
+Persistent local, global, and channel guards are implemented with non-consuming
+table lookups; see the [persistent fact guide](proverif_persistent_facts.md).
 
 Function restrictions apply regardless of equations. Bound function
 applications remain ordinary comparisons; declarations still translate to

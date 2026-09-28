@@ -4,48 +4,57 @@
 
 # ProVerif compiler test status
 
-## Current loop-continuation results — 2026-09-23
+## Current results — 2026-09-28
 
-Tested: `codex/proverif-loop-continuation`, based on `a0a58d3`, with the
-current uncommitted compiler and test changes.
+Tested code: `dc5e94b` on `proverif` (checked before committing those changes).
+Verification uses ProVerif 2.05 resolved from `PATH`. The documentation-only
+updates in this report do not change the tested compiler, fixtures, or expectations.
 
 ```sh
-opam exec -- dune runtest --force examples/proverif_verification
+opam exec -- dune runtest --force
 ```
 
-The suite recompiles Rabbit inputs and compares normalized ProVerif results
-with their `PROVERIF EXPECTED` blocks. Reachability results below use Rabbit
-polarity: a concrete reachable trace is `true`. No Tamarin run was performed
-for this update.
+Reachability results below use Rabbit polarity: a concrete reachable trace
+is `true`. No Tamarin run was performed for this update.
 
 | Suite | Inputs | Pass | Fail |
 |---|---:|---:|---:|
-| `examples/proverif_verification/*.rab` | 147 | 142 | 5 |
+| `examples/` PV and expected-error snapshots | 59 | 59 | 0 |
+| `examples/proverif/` PV snapshots | 29 | 29 | 0 |
+| `examples/proverif_verification/` compiled-input verification | 168 | 160 | 8 |
+| `examples/` stored-PV verification | 54 | 51 | 3 |
+| Total | 310 | 299 | 11 |
 
-Counts include expected-rejection inputs. AST shape checks also passed.
+These are file/check counts, not unique Rabbit inputs or individual lemmas.
+Expected-rejection inputs count as passes when their diagnostics match.
+AST shape checks, `test/reduc`, and ProVerif parser/pretty-printer tests also
+passed, including 85 file round trips and the QCheck suite. The full command
+exits unsuccessfully because of the 11 verification mismatches below.
+`examples/issues/` is not included in these Dune test counts.
+
 A passing test may intentionally expect `unknown`; the suite as a whole is
 not free of unknown results.
 
-### Added or updated expectations
+### Current snapshot and regression results
 
-All paths in this table are relative to `examples/proverif_verification/`.
+All PV snapshots and expected-error checks now match. The formerly rejected
+`062_allow_param`, `130_var`, `150_loop`, and `200_camserver_param` examples
+now have successful-compilation snapshots and pass ProVerif verification.
+`issue20` also has a snapshot and passes verification. The two camserver
+assumption examples match their updated wildcard diagnostic expectations.
 
-| Input | Lemma / checks | Previous result | Current expected and actual result | Status |
-|---|---|---|---|---|
-| `camserver_sid.rab` | `Reachable` | `unknown` with the previous compiler | `true` | Pass |
-| `camserver_sid.rab` | `Correspondence` | `unknown` with the previous compiler | `false` | Pass |
-| `repeat_conjunctive_reachability.rab` | `ReverseOrderIsReachable`, `ExecutionOrderIsReachable` | `unknown`, `true` | `true`, `true` | Pass |
-| `repeat_conjunctive_reachability_unknown.rab` | `ReverseOrderIsReachable`, `ExecutionOrderIsReachable` | `unknown`, `true` | `true`, `true` | Pass |
-| `loop_tail_state.rab` | 14 state, call, scope, and ordering checks | New regression | 12 `true`, 2 `false` | Pass |
+In `examples/proverif_verification/`, `camserver_sid` returns `true` for
+reachability and `false` for correspondence. Both reachability conjunction
+fixtures, `loop_tail_state`, and `loop_tail_reduc` pass. Persistent global,
+local, and channel fact regressions also pass. The SID fixture omits the
+auxiliary persistent `Signed` fact as a simplification; persistent facts are
+supported by the current compiler. Its results are distinct from those of
+`examples/camserver.rab` below.
 
-These four inputs have no unknown results. The SID camserver fixture omits
-the auxiliary persistent `Signed` fact, which the base branch does not yet
-compile. Its result does not describe the unchanged `examples/camserver.rab`.
+### Current expectation mismatches
 
-### Existing expectation mismatches
-
-These five failures have the same results as before loop-continuation lowering.
-Their expectations have not been changed to accept unknown results.
+All remaining mismatches involve actual `unknown` results. Paths in the
+first table are relative to `examples/proverif_verification/`.
 
 | Input | Expected | Actual |
 |---|---|---|
@@ -54,13 +63,17 @@ Their expectations have not been changed to accept unknown results.
 | `fetch_after_delete.rab` | `false` | `unknown` |
 | `file_write.rab` | `true`, `true`, `true` | `true`, `true`, `unknown` |
 | `file_write_without_ac.rab` | `true`, `true`, `true` | `true`, `true`, `unknown` |
+| `global_facts_linear.rab` | `true`, `true`, `false` | `true`, `true`, `unknown` |
+| `local_facts_linear.rab` | `true`, `true`, `false` | `true`, `true`, `unknown` |
+| `repeat_horn_over_approx.rab` | `true` | `unknown` |
 
-The six affected generated-PV snapshots under `examples/` were also updated:
-`021_pingpong_loop`, `031_nonce_handshake_loop`,
-`032_nonce_handshake_loop_dest`, `038_nonce_handshake_loop_alice`,
-`041_asym_commu`, and `042_asym_commu_param`. These are output-shape changes;
-the two conjunction inputs above are the existing verification regressions
-whose results changed.
+The following stored-PV verification failures are under `examples/`:
+
+| Input | Expected | Actual |
+|---|---|---|
+| `033_nonce_handshake_loop_single_channel.rab` | `true`, `true`, `false` | `true`, `unknown`, `unknown` |
+| `142_structure_fetch_after_delete.rab` | `true`, `false`, `true` | `true`, `unknown`, `true` |
+| `camserver.rab` | `true`, `false` | `true`, `unknown` |
 
 ## Historical report — 2026-08-28
 

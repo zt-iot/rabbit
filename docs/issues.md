@@ -89,32 +89,12 @@ More precisely, the ambiguity depends on how the **first** process ends.
 - `equivalence (x8) (P).` parses, because the end of the first process is made
   explicit by the closing `)`
 
-In particular, the current pretty-printer strategy
+### Implemented printer workaround
 
-- print the first process
-- print the second process with the ordinary process printer
-
-is not sufficient for `equivalence`.
-
-We likely need an `equivalence`-specific printer rule for the second process,
-which avoids outermost parentheses in cases such as:
-
-- parallel composition `P | Q`
-- restricted process `new x:T; P`
-- input process `in(M, pat); P`
-
-and probably any construct whose standard printed form starts with `(`.
-
-### Temporary workaround
-
-As a temporary workaround, when printing
-
-```pv
-equivalence P Q.
-```
-
-it seems safer to force both sides into an explicitly delimited form, for
-example:
+The syntax ambiguity above still explains why printing the two processes
+without explicit delimiters is unsafe. The current `pp_program` in
+`src/proverif_pv/pv_pp.ml` already handles `equivalence` specially: it wraps
+both processes in parentheses, producing:
 
 ```pv
 equivalence

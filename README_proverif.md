@@ -1,56 +1,114 @@
 # Rabbit ProVerif compiler
 
-## Compiler documentation
+The Rabbit ProVerif compiler translates Rabbit source files (`.rab`) into
+ProVerif models (`.pv`).
 
-- [Persistent facts](proverif_persistent_facts.md): shared table translation for global, process-local, and channel facts, including scope, matching, access control, and analysis limits.
-- [Loop continuations](proverif_loop_continuations.md): branch-local loop handoffs, final asynchronous outputs, and verification scope.
-- [Guard compilation](proverif_guard_compilation.md): supported forms, variable bindings, inputs, and the known atomicity limitation.
-- [Process-local facts](proverif_local_facts.md): private storage per process instance, including inlined calls, with sequential consumption and an explicit atomicity assumption.
-- [Global facts](proverif_global_facts.md): shared private-channel translation for ordinary global facts, with sequential consumption and an explicit atomicity assumption.
+## Usage
 
-## Channel fact events and queries
+### ProVerif version
 
-`event [ch::Observed(x)]` records an event with the channel as its first
-argument, followed by the fact arguments. It does not send a channel message;
-conversely, `put [ch::Observed(x)]` does not emit an event.
+ProVerif 2.05. Install it separately and make `proverif` available on the
+`PATH`. Verification tests use this executable as well.
 
-Queries can use channel variables:
-
-```text
-reachable ch::Observed(x)
-corresponds ch::Received(x) ~> ch::Sent(x)
+```
+% opam exec proverif -- --help
+Proverif 2.05. Cryptographic protocol verifier, by Bruno Blanchet, Vincent Cheval, and Marc Sylvestre
+  -test 		display a bit more information for debugging
+  -in <format> 		choose the input format (horn, horntype, spass, pi, pitype)
+  ...
+...
 ```
 
-The correspondence requires a preceding `Sent` event on the same channel
-with the same value. Parameterized channel instances retain their identity.
-Rabbit's typing rules are unchanged: a bare global channel name cannot be
-referenced directly in a lemma expression. File fact events and queries remain
-unsupported, and multiple facts in one `event [...]` are still emitted
-sequentially.
+### Compilation to ProVerif
 
-## Equality and inequality facts
-
-`=` and `!=` facts are allowed only in `case`/`while` guards. Rabbit rejects
-these facts in `put`, `event`, `reachable`, and either side of `corresponds`
-during type checking, for both backends. Equational theory declarations are
-unaffected.
-
-To observe a successful comparison, declare a normal tag and emit it from a
-guard, then query that tag:
-
-```text
-tag global [Equal:2]
-(* Inside a process: *)
-case [x = y] -> event [::Equal(x, y)] end
-(* In a lemma: *)
-reachable ::Equal(x, y)
+```sh
+dune exec src/rabbit_proverif.exe -- x.rab -o x.pv
 ```
 
-## How to compile
+The `-o` option is optional; by default, the output filename is derived from
+the input filename. Run these commands from the repository root.
 
-### Explicit reduction declarations
+### Verification with ProVerif
+
+If `proverif` is installed and available on your `PATH`:
+
+```sh
+proverif x.pv
+```
+
+For more detailed verification output:
+
+```sh
+proverif \
+  -set verboseClauses explained \
+  -set removeUselessClausesBeforeDisplay true \
+  x.pv
+```
+
+## Tests
+
+```sh
+dune runtest
+```
+
+At commit `aa7f9e0`, 11 ProVerif verification tests fail because the actual
+result is `unknown` where `true` or `false` is expected. See
+[Limitations](#limitations) and the [test status report](examples/proverif_test_status.md).
+
+## Rabbit language updates
+
+This branch extends the Rabbit language relative to `main` at commit `3c8598ef`.
+
+### Explicit declaration of facts and tags
+
+Origin: `hasegawa/fact-decl` branch.
+
+Local, global, and channel facts and event tags must be declared before use
+with `fact` and `tag`, respectively:
+
+```
+fact global [X:0, Y:1]
+tag local [PlainEvent:0]
+fact local persist [Stored:1]
+```
+
+Declare a persistent fact with `persist` and prefix each use with `!`.
+For example, with the `Stored` declaration above, a process can execute:
 
 ```text
+put [!Stored(1)];
+case [!Stored(x)] ->
+  case [!Stored(x)] -> skip end
+end
+```
+
+Both guards can match the same stored fact: reading a persistent fact does
+not consume it. In contrast, an ordinary fact is consumed when its guard
+succeeds. The `persist` declaration and the `!` at each use must agree.
+
+### Assume
+
+Origin: `feat/assumption` branch.
+
+`assume [facts] in body` is shorthand for a single-branch case:
+
+```text
+case [facts] -> body end
+```
+
+For example, given already bound values `ciphertext` and `key1`:
+
+```text
+assume [ciphertext = (_, key1)] in
+  skip
+```
+
+This continues only if `ciphertext` is a pair whose second component equals
+`key1`. The wildcard `_` ignores the first component.
+
+### Reduc declaration
+
+```
 function enc:2
 function dec:2
 reduc dec(enc(message, key), key) = message
@@ -78,25 +136,87 @@ the process and record its value in an event.
 
 `reduc` is not supported by the Tamarin backend.
 
-### Command
+### Restrictions on facts and tags
 
-```
-dune exec src/rabbit_proverif.exe -- x.rab -o x.pv
-```
+- Facts declared by `fact` can only appear in `put` and guards.
+- Tags declared by `tag` can only appear in `event` and queries.
+- Equality and inequality facts can only appear in guards.
+- File facts are only allowed in `put` and guards.
 
-- `-o` option is omittable.
+### Static typing for ProVerif compilation
 
-## How to verify with ProVerif
+A simple type system provides information needed for ProVerif compilation.
+It distinguishes ordinary values, channels, and process/channel-family
+parameters. Strings, integers, booleans, tuples, and structures are all ordinary
+values; this type system does not distinguish them further.
 
-```
-proverif x.pv
-```
+- The type system is monomorphic.
+- No additional type annotations are required.
+- The shared type checker also applies these checks to Tamarin compilation.
 
-or
+### Wildcards in guards
 
-```
-proverif \
-  -set verboseClauses explained \
-  -set removeUselessClausesBeforeDisplay true \
-  x.pv
-```
+The wildcard `_` matches a value without binding a name:
+
+- `case [p = (_, y)] -> ... end`
+- `assume [ciphertext = (_, key1)] in ...`
+
+Wildcards inside function applications, such as `pair(_, y)`, are not
+supported by the ProVerif backend. Tuple patterns such as `(_, y)` are supported.
+
+## Limitations
+
+The ProVerif translation does not preserve all details of Rabbit execution,
+and ProVerif cannot always decide the generated queries.
+
+### Atomicity of facts
+
+The ProVerif translation consumes multiple facts in a guard sequentially,
+rather than atomically. Partial consumption can introduce deadlocks that do
+not exist in the original Rabbit semantics. The translation assumes that these
+differences do not affect reachability or past-event correspondence. This is
+an analysis assumption, not a proof of semantic preservation.
+
+### Atomicity of events
+
+Multiple event tags in one `event` command are emitted sequentially:
+`event [A(), B()]` emits `A()` first and then `B()`. Their simultaneous
+occurrence is not preserved, and the compiler warns about this translation.
+
+### Provability
+
+ProVerif may return `unknown` for properties that Tamarin can prove or
+falsify. Its over-approximation can lose information needed to decide a query;
+the translation can also affect provability. An `unknown` result alone does
+not establish whether a property holds.
+
+[Loop-tail continuation lowering](https://github.com/zt-iot/rabbit/pull/40)
+improves trace reconstruction for some examples. At the tested revision above,
+11 examples still have queries with `unknown` results.
+
+## Code derived from ProVerif
+
+Rabbit includes parts of the [ProVerif source code](https://gitlab.inria.fr/bblanche/proverif)
+in `src/proverif_pv/parse/`. These provide the ProVerif AST, lexer, parser,
+and parsing utilities used by Rabbit's ProVerif backend and its parser/printer
+tests.
+
+The following files were copied from ProVerif's repository, commit
+`a138c1ea33bdf8d621035a51c973a4ceef4095be`:
+
+- `src/proverif_pv/parse/parsing_helper.ml` and `.mli`
+- `src/proverif_pv/parse/pitlexer.mll`
+- `src/proverif_pv/parse/pitparser.mly`
+- `src/proverif_pv/parse/pitptree.mli`
+- `src/proverif_pv/parse/ptree.mli`
+
+Some of these files are slightly modified for Rabbit to carry annotations and new types.
+
+A copy of the upstream GPL text is retained in [src/proverif_pv/parse/LICENSE](src/proverif_pv/parse/LICENSE).
+
+## Compiler documentation
+
+See the [compiler pipeline](docs/pipeline.md),
+[guard compilation](docs/proverif_guard_compilation.md),
+[persistent facts](docs/proverif_persistent_facts.md), and
+[loop continuations](docs/proverif_loop_continuations.md) guides for details.

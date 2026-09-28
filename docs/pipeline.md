@@ -22,7 +22,7 @@ Note: `--legacy` and `--test-new` are mutually exclusive.
 
 The new compiler pipeline consists of the following stages:
 
-- `Typer`: Name checking
+- `Typer`: Name checking and simple monomorphic typing
 - `Sem`: Compilation to a transition graph
 - `Spthy`: The final output to Tamarin’s .spthy code.
 
@@ -38,13 +38,26 @@ graph TD
   Typed -- Sem.compile --> Sem(Sem /w Sem.optimize)
   Sem -- Spthy.compile_sem --> Spthy
   Spthy -- Spthy.print --> spthy2(.spthy file)
+  Typed -- Proverif_compiler.compile_program --> PV(ProVerif AST)
+  PV -- Pv_pp.pp_program --> pv(.pv file)
 ```
 
-### Typer, name checker
+### Typer, name checking and simple typing
 
-Note that this is not really typing but just checking name occurrences to
-reject the unbound use of names. It however uses a similar technique to 
-static typing, thus called `Typer` and its output AST is called `Typed`.
+`Typer` resolves names and performs very simple monomorphic type inference
+for ProVerif compilation. It distinguishes three expression categories:
+
+- `TValue`: ordinary data, including strings, integers, booleans, tuples,
+  and structure values. These are not separate types in this type system.
+- `TChannel`: channel values.
+- `TParameter`: process parameters and channel-family indices.
+
+Inference uses type variables (`TVar`) and unification to check assignments,
+function arguments and results, and fact arguments consistently. A callable
+has one shared argument/result type signature, rather than a polymorphic
+signature instantiated independently at each call. This prevents, for example,
+using the same value argument as both ordinary data and a channel. These
+checks run in the shared `Typer` used by both backends.
 
 Module `Typed` defines yet another version of the Rabbit AST than `Input`
 and `Syntax`. It provides a cleaner implementation:
@@ -53,13 +66,13 @@ and `Syntax`. It provides a cleaner implementation:
   paired with an integer stamp, to avoid name reuse confusions.
 - Variants without a parameter and with a parameter are unified.
 - Variant arguments are labeled for better identification.
-- The name-checking environment `Env.t` is attached to each AST node.
+- The name and type environment `Env.t` is attached to each AST node.
 
 `Typer.load` takes a filename of Rabbit code. The code is first parsed 
 by `Parser` to a list of `Input.decl`. The input declarations are then
-name-checked by `Typer` and rejected if there is any unbound use of names.
-If there are no erroneous uses of names, `Typer.load` returns a list of
-`Typed.decl`, Rabbit declarations annotated with name-checking environments.
+name- and type-checked by `Typer`. Unbound names and inconsistent types are
+rejected. `Typer.load` returns `Env.t * Typed.decl list`: the updated environment
+and declarations annotated with their environments.
 
 ### Subst, process instantiation
 
