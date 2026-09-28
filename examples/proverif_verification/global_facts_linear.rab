@@ -20,8 +20,8 @@ requires [
   *)
   lemma Two : reachable ::TwiceDone();
   (* PROVERIF EXPECTED
-  # Horn approximation cannot prove exact single-use consumption.
-  unknown
+  # A single linear Once fact cannot satisfy two consuming guards.
+  false
   *)
   lemma OnlyOne : reachable ::Again()
 ]

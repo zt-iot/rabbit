@@ -39,7 +39,8 @@ process server(ch : rpc_t) : server_t {
 system client(rpc) | server(rpc)
 requires [
   (* PROVERIF EXPECTED
-  unknown
+  # The server echoes the request value; Published precedes Accepted.
+  true
   *)
   lemma ResultWasPublished : (* verified *)
     corresponds ::Accepted(value) ~> ::Published(value)
