@@ -47,6 +47,8 @@ module GEnv : sig
   val add_destructor : t -> T.ident -> unit
   val is_destructor : t -> T.ident -> bool
   val has_destructors : t -> bool
+  val add_equation_expr : t -> T.expr -> unit
+  val is_free_constructor : t -> T.ident -> bool
   val enable_channel_families : t -> unit
   val channel_family_symbols : t -> (ident * ident * ident) option
 

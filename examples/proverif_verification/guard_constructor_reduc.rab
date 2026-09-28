@@ -1,0 +1,48 @@
+tag global [Bound:1, Bad:0, Failed:0, Discarded:0, DiscardFailed:0, PartialSubject:0, PartialFixed:0]
+function box:1
+function unbox:1
+reduc unbox(box(x)) = x
+const fresh hidden
+type proc_t : process
+process good() : proc_t { main {
+ var v = box(1) in
+ assume [v = box(x)] in event [::Bound(x)]
+} }
+process failed() : proc_t { main {
+ assume [box(unbox(hidden)) = box(_)] in event [::Failed()]
+} }
+process mismatch() : proc_t { main {
+ var v = box(1) in
+ assume [v != box(_)] in event [::Bad()]
+} }
+process discarded() : proc_t { main {
+ assume [_ = box(_)] in event [::Discarded()]
+} }
+process discard_failed() : proc_t { main {
+ assume [_ = box((_,unbox(hidden)))] in event [::DiscardFailed()]
+} }
+process partial_subject() : proc_t { main {
+ assume [unbox(hidden) != box(_)] in event [::PartialSubject()]
+} }
+process partial_fixed() : proc_t { main {
+ assume [hidden != box((_,unbox(hidden)))] in event [::PartialFixed()]
+} }
+system partial_subject() | partial_fixed() | good() | failed() | mismatch() | discarded() | discard_failed()
+requires [
+ (* PROVERIF EXPECTED
+ true
+ false
+ false
+ true
+ false
+ false
+ false
+ *)
+ lemma Bound : reachable ::Bound(1);
+ lemma Failed : reachable ::Failed();
+ lemma Bad : reachable ::Bad();
+ lemma Discarded : reachable ::Discarded();
+ lemma DiscardFailed : reachable ::DiscardFailed();
+ lemma PartialSubject : reachable ::PartialSubject();
+ lemma PartialFixed : reachable ::PartialFixed()
+]

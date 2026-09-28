@@ -197,6 +197,8 @@ let rec evaluate_discarded_guard genv penv ~else_proc (expr : T.expr) body =
   | Ident { id; _ } when is_wildcard_ident id -> body
   | Tuple args ->
       List.fold_right (evaluate_discarded_guard genv penv ~else_proc) args body
+  | Apply (id, args) when not (GEnv.is_destructor genv id) ->
+      List.fold_right (evaluate_discarded_guard genv penv ~else_proc) args body
   | _ ->
       let _, evaluate = evaluate_value genv ~else_proc (T.type_of_expr expr)
           (compile_expr_to_pterm genv penv expr) in
@@ -214,12 +216,12 @@ let rec expr_contains_wildcard (expr : T.expr) =
   | Apply (_, args) | Tuple args -> List.exists expr_contains_wildcard args
   | Unit | String _ | Boolean _ | Integer _ | Float _ -> false
 
-let rec reject_function_wildcards (expr : T.expr) =
+let rec reject_destructor_wildcards genv (expr : T.expr) =
   match expr.desc with
-  | Apply _ when expr_contains_wildcard expr ->
+  | Apply (id, _) when GEnv.is_destructor genv id && expr_contains_wildcard expr ->
       Error.unsupported ~loc:expr.loc
-        "Function patterns containing wildcards are not supported"
-  | Tuple args -> List.iter reject_function_wildcards args
+        "Destructor patterns containing wildcards are not supported"
+  | Apply (_, args) | Tuple args -> List.iter (reject_destructor_wildcards genv) args
   | _ -> ()
 
 let is_wildcard_expr (expr : T.expr) =
@@ -235,6 +237,7 @@ let compile_wildcard_match
     (subject : T.expr)
     ~(on_match : tprocess_e)
     ~(on_mismatch : tprocess_e)
+    ~(on_evaluation_failure : tprocess_e)
   : tprocess_e =
   let rec compile_pattern (expr : T.expr) =
     match expr.desc with
@@ -244,9 +247,10 @@ let compile_wildcard_match
         , [wildcard_id, compile_value_type (T.type_of_expr expr)]
         , []
         , [] )
-    | Apply _ when expr_contains_wildcard expr ->
-        Error.unsupported ~loc:expr.loc
-          "Function patterns containing wildcards are not supported"
+    | Apply (id, args) when expr_contains_wildcard expr ->
+        reject_destructor_wildcards genv expr;
+        let args, envdecl, rule_args, call_args = compile_patterns args in
+        term_e @@ PFunApp (compile_ident id, args), envdecl, rule_args, call_args
     | Tuple args when expr_contains_wildcard expr ->
         let args, envdecl, rule_args, call_args = compile_patterns args in
         term_e @@ PTuple args, envdecl, rule_args, call_args
@@ -257,7 +261,7 @@ let compile_wildcard_match
         ( term_e @@ PIdent fixed_id
         , [fixed_id, typ]
         , [term_e @@ PIdent fixed_id]
-        , [compile_expr_to_pterm genv penv expr] )
+        , [expr] )
   and compile_patterns exprs =
     List.fold_right
       (fun expr (terms, envdecl, rule_args, call_args) ->
@@ -290,21 +294,30 @@ let compile_wildcard_match
              , [matcher_rule; term_e @@ PIdent true_ident] ))
       ]
     , [pv_ident "private", None] );
+  (* Evaluate operands before matching: a failed user destructor is not a
+     successful inequality. Only failure of the matcher means "no match". *)
+  let evaluate_operand (expr : T.expr) =
+    evaluate_value genv ~else_proc:on_evaluation_failure (T.type_of_expr expr)
+      (compile_expr_to_pterm genv penv expr)
+  in
+  let subject, evaluate_subject = evaluate_operand subject in
+  let call_args, evaluations = List.split (List.map evaluate_operand call_args) in
   let matcher_call =
     pterm_e @@
     PPFunApp
       ( matcher_id
-      , compile_expr_to_pterm genv penv subject :: call_args )
+      , subject :: call_args )
   in
   (* The matcher returns true or fails. A failed condition in [if] does not
      take its else branch; [let] catches reduction failure explicitly. *)
   let result_id = compile_ident (Ident.local "wildcard_result") in
-  process_e @@
-  PLet
-    ( PPatVar (result_id, Some bitstring_ident)
-    , matcher_call
-    , on_match
-    , on_mismatch )
+  evaluate_subject @@
+  List.fold_right (fun evaluate body -> evaluate body) evaluations
+    (process_e @@ PLet
+       ( PPatVar (result_id, Some bitstring_ident)
+       , matcher_call
+       , on_match
+       , on_mismatch ))
 
 (* Tuple inequality is a disjunction of component mismatches.
    Wildcards match every value, so they cannot establish inequality. *)
@@ -316,8 +329,8 @@ let rec compile_wildcard_inequality
     ~(on_success : tprocess_e)
     ~(on_failure : tprocess_e)
   : tprocess_e =
-  reject_function_wildcards lhs;
-  reject_function_wildcards rhs;
+  reject_destructor_wildcards genv lhs;
+  reject_destructor_wildcards genv rhs;
   if is_wildcard_expr lhs || is_wildcard_expr rhs
   then on_failure
   else
@@ -335,9 +348,11 @@ let rec compile_wildcard_inequality
     | _ when expr_contains_wildcard lhs && not (expr_contains_wildcard rhs) ->
         compile_wildcard_match genv penv lhs rhs
           ~on_match:on_failure ~on_mismatch:on_success
+          ~on_evaluation_failure:on_failure
     | _ when expr_contains_wildcard rhs && not (expr_contains_wildcard lhs) ->
         compile_wildcard_match genv penv rhs lhs
           ~on_match:on_failure ~on_mismatch:on_success
+          ~on_evaluation_failure:on_failure
     | _ when expr_contains_wildcard lhs || expr_contains_wildcard rhs ->
         Error.unsupported ~loc:lhs.loc
           "Wildcard inequality between different constructor patterns is not supported"
@@ -840,6 +855,14 @@ let rec guard_expr_ready penv fresh (expr : T.expr) =
   | Apply (_, args) | Tuple args -> List.for_all (guard_expr_ready penv fresh) args
   | Unit | String _ | Boolean _ | Integer _ | Float _ -> true
 
+let rec has_unbound_function_pattern penv fresh (expr : T.expr) =
+  match expr.desc with
+  | Apply (_, args) ->
+      not (guard_expr_ready penv fresh expr)
+      || List.exists (has_unbound_function_pattern penv fresh) args
+  | Tuple args -> List.exists (has_unbound_function_pattern penv fresh) args
+  | _ -> false
+
 let value_guard_binding penv fresh lhs rhs =
   let candidate (variable : T.expr) value =
     match variable.desc with
@@ -853,10 +876,12 @@ let value_guard_binding penv fresh lhs rhs =
   | Some _ as binding -> binding
   | None -> candidate rhs lhs
 
-let pattern_guard_binding penv fresh lhs rhs =
+let pattern_guard_binding genv penv fresh lhs rhs =
   let candidate (pattern : T.expr) subject =
     match pattern.desc with
-    | Tuple _ when (not (guard_expr_ready penv fresh pattern)
+    | Apply (id, _) when not (GEnv.is_free_constructor genv id)
+                         && not (guard_expr_ready penv fresh pattern) -> None
+    | (Tuple _ | Apply _) when (not (guard_expr_ready penv fresh pattern)
                     || expr_contains_wildcard pattern)
                    && guard_expr_ready penv fresh subject
                    && not (expr_contains_wildcard subject) -> Some (pattern, subject)
@@ -868,13 +893,13 @@ let pattern_guard_binding penv fresh lhs rhs =
 
 (* Postpone comparisons and channel inputs whose operands are not bound yet.
    Keep the order among ready facts. This does not repair guard atomicity. *)
-let select_guard_to_compile penv fresh (facts : T.fact list) : T.fact option * T.fact list =
+let select_guard_to_compile genv penv fresh (facts : T.fact list) : T.fact option * T.fact list =
   let ready (fact : T.fact) =
     match fact.desc with
     | Eq (lhs, rhs) ->
         (guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs)
         || Option.is_some (value_guard_binding penv fresh lhs rhs)
-        || Option.is_some (pattern_guard_binding penv fresh lhs rhs)
+        || Option.is_some (pattern_guard_binding genv penv fresh lhs rhs)
     | Neq (lhs, rhs) ->
         guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs
     | Channel { channel; _ } ->
@@ -924,10 +949,51 @@ let bind_tuple_guard penv fresh pattern =
   in
   bind penv pattern
 
+let bind_guard_pattern genv penv fresh (pattern : T.expr) =
+  let rec needs_extraction (expr : T.expr) =
+    match expr.desc with
+    | Apply (id, _) ->
+        GEnv.is_free_constructor genv id
+        && (not (guard_expr_ready penv fresh expr) || expr_contains_wildcard expr)
+    | Tuple args -> List.exists needs_extraction args
+    | _ -> false
+  in
+  if not (needs_extraction pattern) then
+    let penv, pattern, tests = bind_tuple_guard penv fresh pattern in
+    penv, pattern, tests, Fun.id
+  else
+    let leaves = ref [] in
+    let rec encode (expr : T.expr) =
+      match expr.desc with
+      | Tuple args -> term_e @@ PTuple (List.map encode args)
+      | Apply (id, args) when GEnv.is_free_constructor genv id
+                             && (not (guard_expr_ready penv fresh expr) || expr_contains_wildcard expr) ->
+          term_e @@ PFunApp (compile_ident id, List.map encode args)
+      | _ ->
+          let id = compile_ident @@ Ident.local "pattern_leaf" in
+          leaves := (expr, id, compile_value_type (T.type_of_expr expr)) :: !leaves;
+          term_e @@ PIdent id
+    in
+    let encoded = encode pattern in
+    let leaves = List.rev !leaves in
+    let extractor = GEnv.fresh_auxiliary_ident genv ~base:"guard_extract" in
+    let envdecl = List.map (fun (_, id, typ) -> id, typ) leaves in
+    let output = term_e @@ PTuple (List.map (fun (_, id, _) -> term_e @@ PIdent id) leaves) in
+    GEnv.add_auxiliary_decl genv @@
+    TReduc ([envdecl, EETerm (term_e @@ PFunApp
+      (pv_ident "=", [term_e @@ PFunApp (extractor, [encoded]); output]))],
+      [pv_ident "private", None]);
+    let flattened : T.expr =
+      { pattern with desc = Tuple (List.map (fun (expr, _, _) -> expr) leaves) }
+    in
+    let penv, pattern, tests = bind_tuple_guard penv fresh flattened in
+    penv, pattern, tests,
+    (fun subject -> pterm_e @@ PPFunApp (extractor, [subject]))
+
 (* Every input path uses this binding pass. Bind all payloads before checking
    fixed expressions, so references to later arguments are handled consistently.
    Tuple decomposition and tests still follow consumption of the linear fact. *)
-let bind_guard_payloads penv fresh args payload_ids ~else_proc =
+let bind_guard_payloads genv penv fresh args payload_ids ~else_proc =
   List.fold_left2
     (fun (penv, tests, wrap) (arg : T.expr) payload_id ->
        let term = pterm_e @@ PPIdent (compile_ident payload_id) in
@@ -937,9 +1003,9 @@ let bind_guard_payloads penv fresh args payload_ids ~else_proc =
        | Ident { id; param = None; _ } when unbound_guard_var penv fresh id ->
            PEnv.define_process_var penv id (T.type_of_expr arg) term, tests, wrap
        | Tuple _ ->
-           let penv, pattern, more_tests = bind_tuple_guard penv fresh arg in
+           let penv, pattern, more_tests, extract = bind_guard_pattern genv penv fresh arg in
            penv, tests @ more_tests,
-           (fun body -> wrap (process_e @@ PLet (pattern, term, body, else_proc)))
+           (fun body -> wrap (process_e @@ PLet (pattern, extract term, body, else_proc)))
        | _ ->
            let subject : T.expr =
              { arg with desc = Ident
@@ -951,17 +1017,26 @@ let bind_guard_payloads penv fresh args payload_ids ~else_proc =
            penv, tests @ [test], wrap)
     (penv, [], Fun.id) args payload_ids
 
-(* (f1, f2) = (f3, f4) => f1 = f3 AND f2 = f4 *)
-let rec untuple_eq (f : T.fact) : T.fact list =
+(* Split tuple equations and same-free-constructor patterns into component
+   equations. Keep fully bound function comparisons intact. No value is invented
+   when decomposition leaves unbound variables on both sides. *)
+let rec decompose_guard_eq genv penv fresh (f : T.fact) : T.fact list =
   match f.desc with
   | Eq ({desc= Tuple e1s; _}, {desc= Tuple e2s; _}) ->
-      List.concat_map untuple_eq
+      List.concat_map (decompose_guard_eq genv penv fresh)
         (List.map2 (fun e1 e2 -> { f with desc = T.Eq (e1, e2) }) e1s e2s)
+  | Eq (({desc = Apply (id, args); _} as lhs),
+        ({desc = Apply (other, other_args); _} as rhs))
+    when id = other && GEnv.is_free_constructor genv id
+         && (not (guard_expr_ready penv fresh lhs && guard_expr_ready penv fresh rhs)
+             || expr_contains_wildcard lhs || expr_contains_wildcard rhs) ->
+      List.concat_map (decompose_guard_eq genv penv fresh)
+        (List.map2 (fun lhs rhs -> { f with desc = T.Eq (lhs, rhs) }) args other_args)
   | _ -> [f]
 
 (* Normalize initial facts and newly generated tests before selecting a fact. *)
 let rec compile_guard genv penv fresh facts ~on_success ~else_proc =
-  compile_guard_facts genv penv fresh (List.concat_map untuple_eq facts)
+  compile_guard_facts genv penv fresh (List.concat_map (decompose_guard_eq genv penv fresh) facts)
     ~on_success ~else_proc
 
 and compile_guard_facts
@@ -990,17 +1065,17 @@ and compile_guard_facts
        ...
      ```
   *)
-  match select_guard_to_compile penv fresh facts with
+  match select_guard_to_compile genv penv fresh facts with
   | None, [] -> on_success penv
   | None, fact :: _ ->
       Error.unsupported ~loc:fact.loc
-        "Guard variables cannot be bound by supported tuple equality or input patterns; function decomposition is not supported (fact: %s)"
+        "Guard variables cannot be bound by supported equality or input patterns (fact: %s)"
         (T.string_of_fact fact)
   | Some fact, facts ->
       match fact.desc with
       | Eq (lhs, rhs) ->
-          reject_function_wildcards lhs;
-          reject_function_wildcards rhs;
+          reject_destructor_wildcards genv lhs;
+          reject_destructor_wildcards genv rhs;
           (match value_guard_binding penv fresh lhs rhs with
            | Some (id, value) when is_wildcard_ident id ->
                let final_env, fragment =
@@ -1016,18 +1091,28 @@ and compile_guard_facts
                  compile_guard genv penv fresh facts ~on_success ~else_proc in
                final_env, fun rest -> evaluate (fragment rest)
            | None ->
-               match pattern_guard_binding penv fresh lhs rhs with
+               match pattern_guard_binding genv penv fresh lhs rhs with
+               | Some (({ desc = Apply (id, _); _ } as pattern), subject)
+                 when not (GEnv.is_free_constructor genv id) ->
+                   let final_env, fragment =
+                     compile_guard genv penv fresh facts ~on_success ~else_proc in
+                   final_env, fun rest ->
+                     compile_wildcard_match genv penv pattern subject
+                       ~on_match:(fragment rest) ~on_mismatch:else_proc
+                       ~on_evaluation_failure:else_proc
                | Some (pattern, subject) ->
-                   (* Value is a tuple with unbounds:  a = (x, y)  or  a = (x, x) or  a = (x, b) *)
-                   let branch_env, pattern, tests = bind_tuple_guard penv fresh pattern in
+                   let branch_env, pattern, tests, extract = bind_guard_pattern genv penv fresh pattern in
                    let final_env, fragment =
                      compile_guard genv branch_env fresh (tests @ facts)
                        ~on_success ~else_proc
                    in
-                   let subject = compile_expr_to_pterm genv penv subject in
+                   let subject = extract (compile_expr_to_pterm genv penv subject) in
                    final_env, fun rest ->
                      process_e @@ PLet (pattern, subject, fragment rest, else_proc)
                | None ->
+                   if expr_contains_wildcard lhs || expr_contains_wildcard rhs then
+                     Error.unsupported ~loc:fact.loc
+                       "Wildcard equality between different or equational constructor patterns is not supported";
                    (* Nothing unbound: a = b ,  f(a) = g(b) *)
                    let final_env, fragment =
                      compile_guard genv penv fresh facts ~on_success ~else_proc
@@ -1100,7 +1185,7 @@ and compile_guard_facts
               args
           in
           let branch_env, tests, wrap =
-            bind_guard_payloads penv fresh args payload_vars ~else_proc
+            bind_guard_payloads genv penv fresh args payload_vars ~else_proc
           in
           let final_env, fragment =
             compile_guard genv branch_env fresh (tests @ facts)
@@ -1124,7 +1209,7 @@ and compile_guard_facts
           let payload_id = Ident.local "file_contents" in
           let compile_payloads args payload_ids =
             let branch_env, tests, match_contents =
-              bind_guard_payloads penv fresh args payload_ids ~else_proc
+              bind_guard_payloads genv penv fresh args payload_ids ~else_proc
             in
             let final_env, fragment =
               compile_guard genv branch_env fresh (tests @ facts) ~on_success ~else_proc
@@ -1181,7 +1266,7 @@ and compile_guard_facts
       | Global { name= "In"; args= [arg]; persist= false } ->
           let payload_id = Ident.local "attacker_input" in
           let branch_env, tests, match_arg =
-            bind_guard_payloads penv fresh [arg] [payload_id] ~else_proc
+            bind_guard_payloads genv penv fresh [arg] [payload_id] ~else_proc
           in
           let final_env, fragment =
             compile_guard genv branch_env fresh (tests @ facts) ~on_success ~else_proc
@@ -1218,7 +1303,7 @@ and compile_guard_facts
               PPatVar (compile_ident id, Some (compile_value_type (T.type_of_expr arg))))
               payload_vars args in
           let branch_env, tests, wrap =
-            bind_guard_payloads penv fresh args payload_vars ~else_proc in
+            bind_guard_payloads genv penv fresh args payload_vars ~else_proc in
           let final_env, fragment =
             compile_guard genv branch_env fresh (tests @ facts) ~on_success ~else_proc in
           final_env, fun rest ->
@@ -1273,6 +1358,14 @@ and compile_guard_facts
                 penv, pattern :: patterns, tests @ more_tests)
               (penv, [], []) args
           in
+          List.iter (fun (test : T.fact) ->
+              match test.desc with
+              | Eq (lhs, rhs) when
+                  has_unbound_function_pattern branch_env fresh lhs
+                  || has_unbound_function_pattern branch_env fresh rhs ->
+                  Error.unsupported ~loc:test.loc
+                    "Unbound function patterns in persistent fact selection are not supported"
+              | _ -> ()) tests;
           let ready_tests, remaining_tests =
             List.partition (fun (test : T.fact) ->
                 match test.desc with
@@ -1285,8 +1378,9 @@ and compile_guard_facts
             List.fold_left (fun condition (test : T.fact) ->
                 let term = match test.desc with
                   | Eq (lhs, rhs) ->
-                      reject_function_wildcards lhs;
-                      reject_function_wildcards rhs;
+                      if expr_contains_wildcard lhs || expr_contains_wildcard rhs then
+                        Error.unsupported ~loc:test.loc
+                          "Function wildcard patterns in persistent fact selection are not supported";
                       eq_pterm (compile_expr_to_pterm genv branch_env lhs)
                         (compile_expr_to_pterm genv branch_env rhs)
                   | _ -> assert false
@@ -1535,7 +1629,7 @@ let rec compile_channel_guard_case
   in
   let input_pattern = PPatFunApp (compile_name name "chan", payload_patterns) in
   let branch_env, tests, wrap =
-    bind_guard_payloads penv case.fresh args payload_vars ~else_proc
+    bind_guard_payloads genv penv case.fresh args payload_vars ~else_proc
   in
   let channel_term = compile_expr_to_pterm genv penv channel in
   wrap_with_channel_access_get (channel_access_term genv penv channel) penv
@@ -1795,7 +1889,7 @@ and compile_case_channelized
   let compile_branch base_env ~on_success ~else_proc
       ((case : T.case), _channel, _name, args, facts, _loc) =
         let branch_env, tests, wrap =
-          bind_guard_payloads base_env case.fresh args payload_vars ~else_proc
+          bind_guard_payloads genv base_env case.fresh args payload_vars ~else_proc
         in
         add_comment (
           Format.asprintf "case [ %s ] at %t"

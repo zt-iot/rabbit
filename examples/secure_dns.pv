@@ -62,18 +62,18 @@ fun dec__0(bitstring, bitstring): bitstring.
 fun fst__0(bitstring): bitstring.
 (* function snd:1 *)
 fun snd__0(bitstring): bitstring.
-(* equation fst((x__1668, y__1669)) = x__1668 *)
-equation forall x__1668:bitstring, y__1669:bitstring; fst__0((x__1668, y__1669)) = x__1668.
-(* equation snd((x__1670, y__1671)) = y__1671 *)
-equation forall x__1670:bitstring, y__1671:bitstring; snd__0((x__1670, y__1671)) = y__1671.
+(* equation fst((x__1791, y__1792)) = x__1791 *)
+equation forall x__1791:bitstring, y__1792:bitstring; fst__0((x__1791, y__1792)) = x__1791.
+(* equation snd((x__1793, y__1794)) = y__1794 *)
+equation forall x__1793:bitstring, y__1794:bitstring; snd__0((x__1793, y__1794)) = y__1794.
 (* function true:0 *)
 fun true__0(): bitstring.
 (* function verify:3 *)
 fun verify__0(bitstring, bitstring, bitstring): bitstring.
-(* equation dec(enc(x__1672, y__1673), y__1673) = x__1672 *)
-equation forall x__1672:bitstring, y__1673:bitstring; dec__0(enc__0(x__1672, y__1673), y__1673) = x__1672.
-(* equation verify(sign(d__1674, k__1675), d__1674, pk(k__1675)) = true *)
-equation forall d__1674:bitstring, k__1675:bitstring; verify__0(sign__0(d__1674, k__1675), d__1674, pk__0(k__1675)) = true__0.
+(* equation dec(enc(x__1795, y__1796), y__1796) = x__1795 *)
+equation forall x__1795:bitstring, y__1796:bitstring; dec__0(enc__0(x__1795, y__1796), y__1796) = x__1795.
+(* equation verify(sign(d__1797, k__1798), d__1797, pk(k__1798)) = true *)
+equation forall d__1797:bitstring, k__1798:bitstring; verify__0(sign__0(d__1797, k__1798), d__1797, pk__0(k__1798)) = true__0.
 (* function hash:1 *)
 fun hash__0(bitstring): bitstring.
 (* type client : process *)
@@ -105,190 +105,190 @@ const auth_privk__0: bitstring[private].
 (* const fresh tls_symk *)
 const tls_symk__0: bitstring[private].
 (* process Client(..): client *)
-let Client__0(ptype:proc_t, ch_cache_in__1691:channel, ch_cache_out__1692:channel) =
-  (* Channel ch_cache_in__1691 : udp *)
-  insert channel_table(udp__0, ch_cache_in__1691);
-  (* Channel ch_cache_out__1692 : udp *)
-  insert channel_table(udp__0, ch_cache_out__1692);
-  (* let domain__1693 = .. in .. at file "./secure_dns.rab", line 109, charaters 6-932 *)
-  (* let query_fingerprint__1694 = .. in .. at file "./secure_dns.rab", line 113, charaters 6-802 *)
-  (* let query_cipher__1695 = .. in .. at file "./secure_dns.rab", line 115, charaters 6-727 *)
-  (* event [ ::ClientSendQuery(domain__1693) ] at file "./secure_dns.rab", line 117, charaters 6-39 *)
+let Client__0(ptype:proc_t, ch_cache_in__1814:channel, ch_cache_out__1815:channel) =
+  (* Channel ch_cache_in__1814 : udp *)
+  insert channel_table(udp__0, ch_cache_in__1814);
+  (* Channel ch_cache_out__1815 : udp *)
+  insert channel_table(udp__0, ch_cache_out__1815);
+  (* let domain__1816 = .. in .. at file "./secure_dns.rab", line 109, charaters 6-932 *)
+  (* let query_fingerprint__1817 = .. in .. at file "./secure_dns.rab", line 113, charaters 6-802 *)
+  (* let query_cipher__1818 = .. in .. at file "./secure_dns.rab", line 115, charaters 6-727 *)
+  (* event [ ::ClientSendQuery(domain__1816) ] at file "./secure_dns.rab", line 117, charaters 6-39 *)
   event ClientSendQuery__event_global(example_com__str);
   (* _ := .. at file "./secure_dns.rab", line 118, charaters 6-42 *)
-  (* put [ c__1676::store(v__1677) ] at file "./secure_dns.rab", line 38, charaters 2-19 *)
-  get channel_table(ch_type__1734:acc_data_t, =ch_cache_out__1692) in
-  get access_control_table(=ptype, =ch_type__1734, =send__0__syscall) in
-  out(ch_cache_out__1692, store__chan(enc__0((example_com__str, hash__0(example_com__str)), tls_symk__0))) |
-  ((* let cipher__1696 = .. in .. at file "./secure_dns.rab", line 124, charaters 6-417 *)
-   get channel_table(ch_type__1733:acc_data_t, =ch_cache_in__1691) in
-   get access_control_table(=ptype, =ch_type__1733, =recv__0__syscall) in
-   in(ch_cache_in__1691, store__chan(guard_arg_0__1732:bitstring));
-   (* let response__1697 = .. in .. at file "./secure_dns.rab", line 125, charaters 6-377 *)
-   (* let message__1698 = .. in .. at file "./secure_dns.rab", line 126, charaters 6-331 *)
-   (* let fingerprint__1699 = .. in .. at file "./secure_dns.rab", line 127, charaters 6-294 *)
+  (* put [ c__1799::store(v__1800) ] at file "./secure_dns.rab", line 38, charaters 2-19 *)
+  get channel_table(ch_type__1857:acc_data_t, =ch_cache_out__1815) in
+  get access_control_table(=ptype, =ch_type__1857, =send__0__syscall) in
+  out(ch_cache_out__1815, store__chan(enc__0((example_com__str, hash__0(example_com__str)), tls_symk__0))) |
+  ((* let cipher__1819 = .. in .. at file "./secure_dns.rab", line 124, charaters 6-417 *)
+   get channel_table(ch_type__1856:acc_data_t, =ch_cache_in__1814) in
+   get access_control_table(=ptype, =ch_type__1856, =recv__0__syscall) in
+   in(ch_cache_in__1814, store__chan(guard_arg_0__1855:bitstring));
+   (* let response__1820 = .. in .. at file "./secure_dns.rab", line 125, charaters 6-377 *)
+   (* let message__1821 = .. in .. at file "./secure_dns.rab", line 126, charaters 6-331 *)
+   (* let fingerprint__1822 = .. in .. at file "./secure_dns.rab", line 127, charaters 6-294 *)
    if
-     snd__0(dec__0(guard_arg_0__1732, tls_symk__0)) = hash__0(fst__0(dec__0(guard_arg_0__1732, tls_symk__0)))
+     snd__0(dec__0(guard_arg_0__1855, tls_symk__0)) = hash__0(fst__0(dec__0(guard_arg_0__1855, tls_symk__0)))
    then
-     (* let res_domain__1700 = .. in .. at file "./secure_dns.rab", line 132, charaters 10-150 *)
-     (* let res_address__1701 = .. in .. at file "./secure_dns.rab", line 133, charaters 10-107 *)
-     (* event [ ::ClientRecvResponse(res_domain__1700, res_address__1701) ] at file "./secure_dns.rab", line 134, charaters 10-63 *)
-     event ClientRecvResponse__event_global(fst__0(fst__0(dec__0(guard_arg_0__1732, tls_symk__0))), snd__0(fst__0(dec__0(guard_arg_0__1732, tls_symk__0))))).
+     (* let res_domain__1823 = .. in .. at file "./secure_dns.rab", line 132, charaters 10-150 *)
+     (* let res_address__1824 = .. in .. at file "./secure_dns.rab", line 133, charaters 10-107 *)
+     (* event [ ::ClientRecvResponse(res_domain__1823, res_address__1824) ] at file "./secure_dns.rab", line 134, charaters 10-63 *)
+     event ClientRecvResponse__event_global(fst__0(fst__0(dec__0(guard_arg_0__1855, tls_symk__0))), snd__0(fst__0(dec__0(guard_arg_0__1855, tls_symk__0))))).
 (* process DNScache(..): dnscache *)
-let DNScache__0(ptype:proc_t, ch_client_in__1702:channel, ch_client_out__1703:channel, ch_auth_out__1704:channel, ch_auth_in__1705:channel) =
-  (* Channel ch_client_in__1702 : udp *)
-  insert channel_table(udp__0, ch_client_in__1702);
-  (* Channel ch_client_out__1703 : udp *)
-  insert channel_table(udp__0, ch_client_out__1703);
-  (* Channel ch_auth_out__1704 : udp *)
-  insert channel_table(udp__0, ch_auth_out__1704);
-  (* Channel ch_auth_in__1705 : udp *)
-  insert channel_table(udp__0, ch_auth_in__1705);
-  (* let cipher_query__1706 = .. in .. at file "./secure_dns.rab", line 146, charaters 8-947 *)
-  new call_join_ch__1738:channel;
+let DNScache__0(ptype:proc_t, ch_client_in__1825:channel, ch_client_out__1826:channel, ch_auth_out__1827:channel, ch_auth_in__1828:channel) =
+  (* Channel ch_client_in__1825 : udp *)
+  insert channel_table(udp__0, ch_client_in__1825);
+  (* Channel ch_client_out__1826 : udp *)
+  insert channel_table(udp__0, ch_client_out__1826);
+  (* Channel ch_auth_out__1827 : udp *)
+  insert channel_table(udp__0, ch_auth_out__1827);
+  (* Channel ch_auth_in__1828 : udp *)
+  insert channel_table(udp__0, ch_auth_in__1828);
+  (* let cipher_query__1829 = .. in .. at file "./secure_dns.rab", line 146, charaters 8-947 *)
+  new call_join_ch__1861:channel;
   (new attack_choice_ch:channel;
    (out(attack_choice_ch, true__bool) |
     in(attack_choice_ch, _:bitstring);
-    get channel_table(ch_type__1739:acc_data_t, =ch_client_in__1702) in
-    get access_control_table(=ptype, =ch_type__1739, =recv__0__syscall) in
-    in(ch_client_in__1702, store__chan(guard_arg_0__1735:bitstring));
-    out(call_join_ch__1738, (true__bool, (* expr at file "./secure_dns.rab", line 43, charaters 22-23 *)
-                                         guard_arg_0__1735))) |
+    get channel_table(ch_type__1862:acc_data_t, =ch_client_in__1825) in
+    get access_control_table(=ptype, =ch_type__1862, =recv__0__syscall) in
+    in(ch_client_in__1825, store__chan(guard_arg_0__1858:bitstring));
+    out(call_join_ch__1861, (true__bool, (* expr at file "./secure_dns.rab", line 43, charaters 22-23 *)
+                                         guard_arg_0__1858))) |
    in(attack_choice_ch, _:bitstring);
-   get channel_table(ch_type__1740:acc_data_t, =ch_client_in__1702) in
-   get access_control_table(=ptype, =ch_type__1740, =recv__0__syscall) in
-   in(ch_client_in__1702, store__chan(guard_arg_0__1736:bitstring));
-   in(attacker_ch, attacker_input__1737:bitstring);
-   out(call_join_ch__1738, (true__bool, (* expr at file "./secure_dns.rab", line 79, charaters 4-5 *)
-                                        attacker_input__1737))) |
-  in(call_join_ch__1738, (=true__bool, call_result__1741:bitstring))[precise];
-  (* let query__1707 = .. in .. at file "./secure_dns.rab", line 147, charaters 8-898 *)
-  (* let query_fingerprint__1708 = .. in .. at file "./secure_dns.rab", line 148, charaters 8-847 *)
-  (* let domain__1709 = .. in .. at file "./secure_dns.rab", line 149, charaters 8-801 *)
+   get channel_table(ch_type__1863:acc_data_t, =ch_client_in__1825) in
+   get access_control_table(=ptype, =ch_type__1863, =recv__0__syscall) in
+   in(ch_client_in__1825, store__chan(guard_arg_0__1859:bitstring));
+   in(attacker_ch, attacker_input__1860:bitstring);
+   out(call_join_ch__1861, (true__bool, (* expr at file "./secure_dns.rab", line 79, charaters 4-5 *)
+                                        attacker_input__1860))) |
+  in(call_join_ch__1861, (=true__bool, call_result__1864:bitstring))[precise];
+  (* let query__1830 = .. in .. at file "./secure_dns.rab", line 147, charaters 8-898 *)
+  (* let query_fingerprint__1831 = .. in .. at file "./secure_dns.rab", line 148, charaters 8-847 *)
+  (* let domain__1832 = .. in .. at file "./secure_dns.rab", line 149, charaters 8-801 *)
   if
-    snd__0(dec__0(call_result__1741, tls_symk__0)) = hash__0(fst__0(dec__0(call_result__1741, tls_symk__0)))
+    snd__0(dec__0(call_result__1864, tls_symk__0)) = hash__0(fst__0(dec__0(call_result__1864, tls_symk__0)))
   then
     (* _ := .. at file "./secure_dns.rab", line 154, charaters 10-40 *)
-    new call_join_ch__1742:channel;
+    new call_join_ch__1865:channel;
     (new attack_choice_ch:channel;
      (out(attack_choice_ch, true__bool) |
       in(attack_choice_ch, _:bitstring);
-      (* put [ c__1676::store(v__1677) ] at file "./secure_dns.rab", line 38, charaters 2-19 *)
-      get channel_table(ch_type__1743:acc_data_t, =ch_auth_out__1704) in
-      get access_control_table(=ptype, =ch_type__1743, =send__0__syscall) in
-      out(ch_auth_out__1704, store__chan(fst__0(dec__0(call_result__1741, tls_symk__0)))) |
-      out(call_join_ch__1742, (true__bool, (), call_result__1741, dec__0(call_result__1741, tls_symk__0), snd__0(dec__0(call_result__1741, tls_symk__0)), fst__0(dec__0(call_result__1741, tls_symk__0))))) |
+      (* put [ c__1799::store(v__1800) ] at file "./secure_dns.rab", line 38, charaters 2-19 *)
+      get channel_table(ch_type__1866:acc_data_t, =ch_auth_out__1827) in
+      get access_control_table(=ptype, =ch_type__1866, =send__0__syscall) in
+      out(ch_auth_out__1827, store__chan(fst__0(dec__0(call_result__1864, tls_symk__0)))) |
+      out(call_join_ch__1865, (true__bool, (), call_result__1864, dec__0(call_result__1864, tls_symk__0), snd__0(dec__0(call_result__1864, tls_symk__0)), fst__0(dec__0(call_result__1864, tls_symk__0))))) |
      in(attack_choice_ch, _:bitstring);
-     (* put [ c__1689::store(v__1690), ::Out(v__1690) ] at file "./secure_dns.rab", line 84, charaters 2-29 *)
-     get channel_table(ch_type__1744:acc_data_t, =ch_auth_out__1704) in
-     get access_control_table(=ptype, =ch_type__1744, =send__0__syscall) in
-     out(ch_auth_out__1704, store__chan(fst__0(dec__0(call_result__1741, tls_symk__0)))) |
-     out(attacker_ch, fst__0(dec__0(call_result__1741, tls_symk__0)));
-     out(call_join_ch__1742, (true__bool, (), call_result__1741, dec__0(call_result__1741, tls_symk__0), snd__0(dec__0(call_result__1741, tls_symk__0)), fst__0(dec__0(call_result__1741, tls_symk__0))))) |
-    in(call_join_ch__1742, (=true__bool, call_result__1745:bitstring, call_state_0__1746:bitstring, call_state_1__1747:bitstring, call_state_2__1748:bitstring, call_state_3__1749:bitstring))[precise];
-    (* let response__1710 = .. in .. at file "./secure_dns.rab", line 158, charaters 8-580 *)
-    new call_join_ch__1753:channel;
+     (* put [ c__1812::store(v__1813), ::Out(v__1813) ] at file "./secure_dns.rab", line 84, charaters 2-29 *)
+     get channel_table(ch_type__1867:acc_data_t, =ch_auth_out__1827) in
+     get access_control_table(=ptype, =ch_type__1867, =send__0__syscall) in
+     out(ch_auth_out__1827, store__chan(fst__0(dec__0(call_result__1864, tls_symk__0)))) |
+     out(attacker_ch, fst__0(dec__0(call_result__1864, tls_symk__0)));
+     out(call_join_ch__1865, (true__bool, (), call_result__1864, dec__0(call_result__1864, tls_symk__0), snd__0(dec__0(call_result__1864, tls_symk__0)), fst__0(dec__0(call_result__1864, tls_symk__0))))) |
+    in(call_join_ch__1865, (=true__bool, call_result__1868:bitstring, call_state_0__1869:bitstring, call_state_1__1870:bitstring, call_state_2__1871:bitstring, call_state_3__1872:bitstring))[precise];
+    (* let response__1833 = .. in .. at file "./secure_dns.rab", line 158, charaters 8-580 *)
+    new call_join_ch__1876:channel;
     (new attack_choice_ch:channel;
      (out(attack_choice_ch, true__bool) |
       in(attack_choice_ch, _:bitstring);
-      get channel_table(ch_type__1754:acc_data_t, =ch_auth_in__1705) in
-      get access_control_table(=ptype, =ch_type__1754, =recv__0__syscall) in
-      in(ch_auth_in__1705, store__chan(guard_arg_0__1750:bitstring));
-      out(call_join_ch__1753, (true__bool, (* expr at file "./secure_dns.rab", line 43, charaters 22-23 *)
-                                           guard_arg_0__1750, call_state_0__1746, call_state_1__1747, call_state_2__1748, call_state_3__1749))) |
+      get channel_table(ch_type__1877:acc_data_t, =ch_auth_in__1828) in
+      get access_control_table(=ptype, =ch_type__1877, =recv__0__syscall) in
+      in(ch_auth_in__1828, store__chan(guard_arg_0__1873:bitstring));
+      out(call_join_ch__1876, (true__bool, (* expr at file "./secure_dns.rab", line 43, charaters 22-23 *)
+                                           guard_arg_0__1873, call_state_0__1869, call_state_1__1870, call_state_2__1871, call_state_3__1872))) |
      in(attack_choice_ch, _:bitstring);
-     get channel_table(ch_type__1755:acc_data_t, =ch_auth_in__1705) in
-     get access_control_table(=ptype, =ch_type__1755, =recv__0__syscall) in
-     in(ch_auth_in__1705, store__chan(guard_arg_0__1751:bitstring));
-     in(attacker_ch, attacker_input__1752:bitstring);
-     out(call_join_ch__1753, (true__bool, (* expr at file "./secure_dns.rab", line 79, charaters 4-5 *)
-                                          attacker_input__1752, call_state_0__1746, call_state_1__1747, call_state_2__1748, call_state_3__1749))) |
-    in(call_join_ch__1753, (=true__bool, call_result__1756:bitstring, call_state_0__1757:bitstring, call_state_1__1758:bitstring, call_state_2__1759:bitstring, call_state_3__1760:bitstring))[precise];
-    (* let address__1711 = .. in .. at file "./secure_dns.rab", line 159, charaters 8-537 *)
-    (* let sig_record__1712 = .. in .. at file "./secure_dns.rab", line 160, charaters 8-498 *)
-    (* let res__1713 = .. in .. at file "./secure_dns.rab", line 163, charaters 8-426 *)
+     get channel_table(ch_type__1878:acc_data_t, =ch_auth_in__1828) in
+     get access_control_table(=ptype, =ch_type__1878, =recv__0__syscall) in
+     in(ch_auth_in__1828, store__chan(guard_arg_0__1874:bitstring));
+     in(attacker_ch, attacker_input__1875:bitstring);
+     out(call_join_ch__1876, (true__bool, (* expr at file "./secure_dns.rab", line 79, charaters 4-5 *)
+                                          attacker_input__1875, call_state_0__1869, call_state_1__1870, call_state_2__1871, call_state_3__1872))) |
+    in(call_join_ch__1876, (=true__bool, call_result__1879:bitstring, call_state_0__1880:bitstring, call_state_1__1881:bitstring, call_state_2__1882:bitstring, call_state_3__1883:bitstring))[precise];
+    (* let address__1834 = .. in .. at file "./secure_dns.rab", line 159, charaters 8-537 *)
+    (* let sig_record__1835 = .. in .. at file "./secure_dns.rab", line 160, charaters 8-498 *)
+    (* let res__1836 = .. in .. at file "./secure_dns.rab", line 163, charaters 8-426 *)
     if
-      verify__0(snd__0(call_result__1756), fst__0(call_result__1756), auth_pubk__0) = true__0
+      verify__0(snd__0(call_result__1879), fst__0(call_result__1879), auth_pubk__0) = true__0
     then
-      (* event [ ::Cached(domain__1709, address__1711) ] at file "./secure_dns.rab", line 168, charaters 10-43 *)
-      event Cached__event_global(call_state_3__1760, fst__0(call_result__1756));
-      (* let message__1714 = .. in .. at file "./secure_dns.rab", line 171, charaters 10-196 *)
-      (* let fingerprint__1715 = .. in .. at file "./secure_dns.rab", line 172, charaters 10-151 *)
-      (* let cipher__1716 = .. in .. at file "./secure_dns.rab", line 173, charaters 10-106 *)
+      (* event [ ::Cached(domain__1832, address__1834) ] at file "./secure_dns.rab", line 168, charaters 10-43 *)
+      event Cached__event_global(call_state_3__1883, fst__0(call_result__1879));
+      (* let message__1837 = .. in .. at file "./secure_dns.rab", line 171, charaters 10-196 *)
+      (* let fingerprint__1838 = .. in .. at file "./secure_dns.rab", line 172, charaters 10-151 *)
+      (* let cipher__1839 = .. in .. at file "./secure_dns.rab", line 173, charaters 10-106 *)
       (* _ := .. at file "./secure_dns.rab", line 174, charaters 10-42 *)
-      new call_join_ch__1761:channel;
+      new call_join_ch__1884:channel;
       (new attack_choice_ch:channel;
        (out(attack_choice_ch, true__bool) |
         in(attack_choice_ch, _:bitstring);
-        (* put [ c__1676::store(v__1677) ] at file "./secure_dns.rab", line 38, charaters 2-19 *)
-        get channel_table(ch_type__1762:acc_data_t, =ch_client_out__1703) in
-        get access_control_table(=ptype, =ch_type__1762, =send__0__syscall)
+        (* put [ c__1799::store(v__1800) ] at file "./secure_dns.rab", line 38, charaters 2-19 *)
+        get channel_table(ch_type__1885:acc_data_t, =ch_client_out__1826) in
+        get access_control_table(=ptype, =ch_type__1885, =send__0__syscall)
         in
-        out(ch_client_out__1703, store__chan(enc__0(((call_state_3__1760, fst__0(call_result__1756)), hash__0((call_state_3__1760, fst__0(call_result__1756)))), tls_symk__0))) |
-        out(call_join_ch__1761, (true__bool, (), call_state_0__1757, call_state_1__1758, call_state_2__1759, call_state_3__1760, call_result__1756, fst__0(call_result__1756), snd__0(call_result__1756), verify__0(snd__0(call_result__1756), fst__0(call_result__1756), auth_pubk__0), (call_state_3__1760, fst__0(call_result__1756)), hash__0((call_state_3__1760, fst__0(call_result__1756))), enc__0(((call_state_3__1760, fst__0(call_result__1756)), hash__0((call_state_3__1760, fst__0(call_result__1756)))), tls_symk__0)))) |
+        out(ch_client_out__1826, store__chan(enc__0(((call_state_3__1883, fst__0(call_result__1879)), hash__0((call_state_3__1883, fst__0(call_result__1879)))), tls_symk__0))) |
+        out(call_join_ch__1884, (true__bool, (), call_state_0__1880, call_state_1__1881, call_state_2__1882, call_state_3__1883, call_result__1879, fst__0(call_result__1879), snd__0(call_result__1879), verify__0(snd__0(call_result__1879), fst__0(call_result__1879), auth_pubk__0), (call_state_3__1883, fst__0(call_result__1879)), hash__0((call_state_3__1883, fst__0(call_result__1879))), enc__0(((call_state_3__1883, fst__0(call_result__1879)), hash__0((call_state_3__1883, fst__0(call_result__1879)))), tls_symk__0)))) |
        in(attack_choice_ch, _:bitstring);
-       (* put [ c__1689::store(v__1690), ::Out(v__1690) ] at file "./secure_dns.rab", line 84, charaters 2-29 *)
-       get channel_table(ch_type__1763:acc_data_t, =ch_client_out__1703) in
-       get access_control_table(=ptype, =ch_type__1763, =send__0__syscall) in
-       out(ch_client_out__1703, store__chan(enc__0(((call_state_3__1760, fst__0(call_result__1756)), hash__0((call_state_3__1760, fst__0(call_result__1756)))), tls_symk__0))) |
-       out(attacker_ch, enc__0(((call_state_3__1760, fst__0(call_result__1756)), hash__0((call_state_3__1760, fst__0(call_result__1756)))), tls_symk__0));
-       out(call_join_ch__1761, (true__bool, (), call_state_0__1757, call_state_1__1758, call_state_2__1759, call_state_3__1760, call_result__1756, fst__0(call_result__1756), snd__0(call_result__1756), verify__0(snd__0(call_result__1756), fst__0(call_result__1756), auth_pubk__0), (call_state_3__1760, fst__0(call_result__1756)), hash__0((call_state_3__1760, fst__0(call_result__1756))), enc__0(((call_state_3__1760, fst__0(call_result__1756)), hash__0((call_state_3__1760, fst__0(call_result__1756)))), tls_symk__0)))) |
-      in(call_join_ch__1761, (=true__bool, call_result__1764:bitstring, call_state_0__1765:bitstring, call_state_1__1766:bitstring, call_state_2__1767:bitstring, call_state_3__1768:bitstring, call_state_4__1769:bitstring, call_state_5__1770:bitstring, call_state_6__1771:bitstring, call_state_7__1772:bitstring, call_state_8__1773:bitstring, call_state_9__1774:bitstring, call_state_10__1775:bitstring))[precise].
+       (* put [ c__1812::store(v__1813), ::Out(v__1813) ] at file "./secure_dns.rab", line 84, charaters 2-29 *)
+       get channel_table(ch_type__1886:acc_data_t, =ch_client_out__1826) in
+       get access_control_table(=ptype, =ch_type__1886, =send__0__syscall) in
+       out(ch_client_out__1826, store__chan(enc__0(((call_state_3__1883, fst__0(call_result__1879)), hash__0((call_state_3__1883, fst__0(call_result__1879)))), tls_symk__0))) |
+       out(attacker_ch, enc__0(((call_state_3__1883, fst__0(call_result__1879)), hash__0((call_state_3__1883, fst__0(call_result__1879)))), tls_symk__0));
+       out(call_join_ch__1884, (true__bool, (), call_state_0__1880, call_state_1__1881, call_state_2__1882, call_state_3__1883, call_result__1879, fst__0(call_result__1879), snd__0(call_result__1879), verify__0(snd__0(call_result__1879), fst__0(call_result__1879), auth_pubk__0), (call_state_3__1883, fst__0(call_result__1879)), hash__0((call_state_3__1883, fst__0(call_result__1879))), enc__0(((call_state_3__1883, fst__0(call_result__1879)), hash__0((call_state_3__1883, fst__0(call_result__1879)))), tls_symk__0)))) |
+      in(call_join_ch__1884, (=true__bool, call_result__1887:bitstring, call_state_0__1888:bitstring, call_state_1__1889:bitstring, call_state_2__1890:bitstring, call_state_3__1891:bitstring, call_state_4__1892:bitstring, call_state_5__1893:bitstring, call_state_6__1894:bitstring, call_state_7__1895:bitstring, call_state_8__1896:bitstring, call_state_9__1897:bitstring, call_state_10__1898:bitstring))[precise].
 (* process DNSauth(..): dnsauth *)
-let DNSauth__0(ptype:proc_t, ch_cache_in__1717:channel, ch_cache_out__1718:channel) =
-  (* Channel ch_cache_in__1717 : udp *)
-  insert channel_table(udp__0, ch_cache_in__1717);
-  (* Channel ch_cache_out__1718 : udp *)
-  insert channel_table(udp__0, ch_cache_out__1718);
+let DNSauth__0(ptype:proc_t, ch_cache_in__1840:channel, ch_cache_out__1841:channel) =
+  (* Channel ch_cache_in__1840 : udp *)
+  insert channel_table(udp__0, ch_cache_in__1840);
+  (* Channel ch_cache_out__1841 : udp *)
+  insert channel_table(udp__0, ch_cache_out__1841);
   (* file "/data/record" : dns_records = .. *)
   insert file_type_table(ptype, dns_records__0, data_record__str);
   new file_ch:channel;
   out(file_ch, (data_record__str, (example_com__str, value_192_0_2_1__str))) |
-  ((* let recordfile__1720 = .. in .. at file "./secure_dns.rab", line 187, charaters 8-509 *)
-   get file_type_table(=ptype, file_type__1781:acc_data_t, =data_record__str)
+  ((* let recordfile__1843 = .. in .. at file "./secure_dns.rab", line 187, charaters 8-509 *)
+   get file_type_table(=ptype, file_type__1904:acc_data_t, =data_record__str)
    in
-   get access_control_table(=ptype, =file_type__1781, =fopen__0__syscall) in
-   in(file_ch, (=data_record__str, file_contents__1776:bitstring))[precise];
-   (* new y__1682 = Fd(..) in .. at file "./secure_dns.rab", line 60, charaters 4-38 *)
-   new y__1682:bitstring;
-   (* put [ p__1680.x__1681 ] at file "./secure_dns.rab", line 61, charaters 4-13 *)
-   get file_type_table(=ptype, file_type__1780:acc_data_t, =data_record__str)
+   get access_control_table(=ptype, =file_type__1904, =fopen__0__syscall) in
+   in(file_ch, (=data_record__str, file_contents__1899:bitstring))[precise];
+   (* new y__1805 = Fd(..) in .. at file "./secure_dns.rab", line 60, charaters 4-38 *)
+   new y__1805:bitstring;
+   (* put [ p__1803.x__1804 ] at file "./secure_dns.rab", line 61, charaters 4-13 *)
+   get file_type_table(=ptype, file_type__1903:acc_data_t, =data_record__str)
    in
-   get access_control_table(=ptype, =file_type__1780, =fopen__0__syscall) in
-   out(file_ch, (data_record__str, file_contents__1776)) |
-   ((* let record__1721 = .. in .. at file "./secure_dns.rab", line 188, charaters 8-463 *)
-    (* let (x__1684) := _.Fd in .. at file "./secure_dns.rab", line 66, charaters 2-21 *)
-    get deleted_address_table(=Fd__struct_addr(Fd__struct(y__1682, file_contents__1776)))
+   get access_control_table(=ptype, =file_type__1903, =fopen__0__syscall) in
+   out(file_ch, (data_record__str, file_contents__1899)) |
+   ((* let record__1844 = .. in .. at file "./secure_dns.rab", line 188, charaters 8-463 *)
+    (* let (x__1807) := _.Fd in .. at file "./secure_dns.rab", line 66, charaters 2-21 *)
+    get deleted_address_table(=Fd__struct_addr(Fd__struct(y__1805, file_contents__1899)))
     else
-      (* let domain__1722 = .. in .. at file "./secure_dns.rab", line 191, charaters 8-394 *)
-      (* let address__1723 = .. in .. at file "./secure_dns.rab", line 192, charaters 8-358 *)
-      (* event [ ::Record(domain__1722, address__1723) ] at file "./secure_dns.rab", line 193, charaters 8-41 *)
-      event Record__event_global(fst__0(Fd__struct_par_1(Fd__struct(y__1682, file_contents__1776))), snd__0(Fd__struct_par_1(Fd__struct(y__1682, file_contents__1776))));
-      ((* let query__1724 = .. in .. at file "./secure_dns.rab", line 196, charaters 8-256 *)
-       get channel_table(ch_type__1779:acc_data_t, =ch_cache_in__1717) in
-       get access_control_table(=ptype, =ch_type__1779, =recv__0__syscall) in
-       in(ch_cache_in__1717, store__chan(guard_arg_0__1777:bitstring));
+      (* let domain__1845 = .. in .. at file "./secure_dns.rab", line 191, charaters 8-394 *)
+      (* let address__1846 = .. in .. at file "./secure_dns.rab", line 192, charaters 8-358 *)
+      (* event [ ::Record(domain__1845, address__1846) ] at file "./secure_dns.rab", line 193, charaters 8-41 *)
+      event Record__event_global(fst__0(Fd__struct_par_1(Fd__struct(y__1805, file_contents__1899))), snd__0(Fd__struct_par_1(Fd__struct(y__1805, file_contents__1899))));
+      ((* let query__1847 = .. in .. at file "./secure_dns.rab", line 196, charaters 8-256 *)
+       get channel_table(ch_type__1902:acc_data_t, =ch_cache_in__1840) in
+       get access_control_table(=ptype, =ch_type__1902, =recv__0__syscall) in
+       in(ch_cache_in__1840, store__chan(guard_arg_0__1900:bitstring));
        if
-         guard_arg_0__1777 = fst__0(Fd__struct_par_1(Fd__struct(y__1682, file_contents__1776)))
+         guard_arg_0__1900 = fst__0(Fd__struct_par_1(Fd__struct(y__1805, file_contents__1899)))
        then
-         (* let sig__1725 = .. in .. at file "./secure_dns.rab", line 202, charaters 12-102 *)
+         (* let sig__1848 = .. in .. at file "./secure_dns.rab", line 202, charaters 12-102 *)
          (* _ := .. at file "./secure_dns.rab", line 203, charaters 12-51 *)
-         (* put [ c__1676::store(v__1677) ] at file "./secure_dns.rab", line 38, charaters 2-19 *)
-         get channel_table(ch_type__1778:acc_data_t, =ch_cache_out__1718) in
-         get access_control_table(=ptype, =ch_type__1778, =send__0__syscall)
+         (* put [ c__1799::store(v__1800) ] at file "./secure_dns.rab", line 38, charaters 2-19 *)
+         get channel_table(ch_type__1901:acc_data_t, =ch_cache_out__1841) in
+         get access_control_table(=ptype, =ch_type__1901, =send__0__syscall)
          in
-         out(ch_cache_out__1718, store__chan((snd__0(Fd__struct_par_1(Fd__struct(y__1682, file_contents__1776))), sign__0(snd__0(Fd__struct_par_1(Fd__struct(y__1682, file_contents__1776))), auth_privk__0)))) |
+         out(ch_cache_out__1841, store__chan((snd__0(Fd__struct_par_1(Fd__struct(y__1805, file_contents__1899))), sign__0(snd__0(Fd__struct_par_1(Fd__struct(y__1805, file_contents__1899))), auth_privk__0)))) |
          0))).
 (* Requires *)
 (* lemma x *)
-query y__1727:bitstring, x__1726:bitstring;
-  event(Cached__event_global(x__1726, y__1727)) ==> event(Record__event_global(x__1726, y__1727)).
+query y__1850:bitstring, x__1849:bitstring;
+  event(Cached__event_global(x__1849, y__1850)) ==> event(Record__event_global(x__1849, y__1850)).
 (* lemma y *)
-query y__1729:bitstring, x__1728:bitstring;
-  event(ClientRecvResponse__event_global(x__1728, y__1729)) ==> event(Cached__event_global(x__1728, y__1729)).
+query y__1852:bitstring, x__1851:bitstring;
+  event(ClientRecvResponse__event_global(x__1851, y__1852)) ==> event(Cached__event_global(x__1851, y__1852)).
 (* lemma z *)
-query y__1731:bitstring, x__1730:bitstring;
-  event(ClientRecvResponse__event_global(x__1730, y__1731)) ==> event(Record__event_global(x__1730, y__1731)).
+query y__1854:bitstring, x__1853:bitstring;
+  event(ClientRecvResponse__event_global(x__1853, y__1854)) ==> event(Record__event_global(x__1853, y__1854)).
 (* System *)
 process
   (* allow client udp [send] *)

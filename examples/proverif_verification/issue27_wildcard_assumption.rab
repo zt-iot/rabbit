@@ -1,0 +1,55 @@
+tag global [Good:0, WrongKey:0, WrongShape:0, Reduced:0, Noninjective:0, Miss:0, Inequality:0]
+function enc:2
+function dec:2
+equation dec(enc(x,k),k) = x
+function erase:1
+equation erase(x) = 0
+const fresh message
+const fresh key1
+const fresh key2
+type proc_t : process
+process good() : proc_t { main {
+  var privkey = enc(message,key1) in
+  var fek = key1 in
+  assume [privkey = enc(_,fek)] in event [::Good()]
+} }
+process wrong_key() : proc_t { main {
+  var v = enc(message,key1) in
+  assume [v = enc(_,key2)] in event [::WrongKey()]
+} }
+process wrong_shape() : proc_t { main {
+  assume [message = enc(_,key1)] in event [::WrongShape()]
+} }
+process reduced() : proc_t { main {
+  var v = dec(enc(enc(message,key1),key2),key2) in
+  assume [enc(_,key1) = v] in event [::Reduced()]
+} }
+process noninjective() : proc_t { main {
+  assume [0 = erase(_)] in event [::Noninjective()]
+} }
+process miss() : proc_t { main {
+  assume [1 = erase(_)] in event [::Miss()]
+} }
+process inequality() : proc_t { main {
+  var v = enc(message,key1) in
+  assume [v != enc(_,key2)] in event [::Inequality()]
+} }
+system good() | wrong_key() | wrong_shape() | reduced() | noninjective() | miss() | inequality()
+requires [
+  (* PROVERIF EXPECTED
+  true
+  false
+  false
+  true
+  true
+  false
+  true
+  *)
+  lemma Good : reachable ::Good();
+  lemma WrongKey : reachable ::WrongKey();
+  lemma WrongShape : reachable ::WrongShape();
+  lemma Reduced : reachable ::Reduced();
+  lemma Noninjective : reachable ::Noninjective();
+  lemma Miss : reachable ::Miss();
+  lemma Inequality : reachable ::Inequality()
+]

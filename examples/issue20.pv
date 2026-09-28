@@ -26,15 +26,15 @@ fun TEST__local_fact(): bitstring[data].
 (* process alice(..): proc_t *)
 let alice__0(ptype:proc_t) =
   new local_fact_ch:channel;
-  (* new n__1666 in .. at file "./issue20.rab", line 8, charaters 4-97 *)
-  new n__1666:bitstring;
+  (* new n__1789 in .. at file "./issue20.rab", line 8, charaters 4-97 *)
+  new n__1789:bitstring;
   (* put [ TEST() ] at file "./issue20.rab", line 10, charaters 4-16 *)
   out(local_fact_ch, TEST__local_fact()) |
   in(local_fact_ch, TEST__local_fact())[precise];
-  (* event [ ::Ok(n__1666) ] at file "./issue20.rab", line 15, charaters 4-19 *)
-  event Ok__event_global(n__1666).
+  (* event [ ::Ok(n__1789) ] at file "./issue20.rab", line 15, charaters 4-19 *)
+  event Ok__event_global(n__1789).
 (* Requires *)
 (* lemma Reachable *)
-query x__1667:bitstring; event(Ok__event_global(x__1667)).
+query x__1790:bitstring; event(Ok__event_global(x__1790)).
 (* System *)
 process alice__0(proc_t__0)

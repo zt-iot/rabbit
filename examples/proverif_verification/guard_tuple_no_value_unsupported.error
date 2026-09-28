@@ -1,1 +1,1 @@
-Guard variables cannot be bound by supported tuple equality or input patterns
+Guard variables cannot be bound by supported equality or input patterns

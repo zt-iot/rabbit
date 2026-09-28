@@ -1,8 +1,8 @@
 tag global [Assumed:2, EquationalFixed:1, BadRepeated:0, Channel:1, File:1, Loop:1, Exit:1, Input:1, Leaked:0, BadShape:0]
 fact channel [Msg:1]
 
-(* Regression: functions without equations must not gain argument extractors.
-   This previously compiled; the first assumption must now be rejected. *)
+(* Free constructor patterns bind through private extractors.
+   Repeated variables, fixed leaves and attacker secrecy must be preserved. *)
 function wrap:1
 function pair:2
 function erase:1
@@ -20,6 +20,7 @@ process worker(ch : transport_t) : proc_t {
     var p = pair(wrap(1), (2, 3)) in
     assume [x != y, pair(wrap(x), (_, y)) = p] in
     event [::Assumed(x, y)];
+    assume [erase(9) = erase(z), z = 5] in
     var q = (erase(5), 5) in
     assume [q = (erase(w), w)] in
     event [::EquationalFixed(w)];

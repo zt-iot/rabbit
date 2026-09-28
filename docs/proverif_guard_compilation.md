@@ -67,7 +67,13 @@ else 0
 
 Nested tuples are decomposed recursively.
 
-XXX A compilation example of nested tuples
+For `a = (x, (y, z))`, the pattern is nested as well:
+
+```proverif
+let (x:bitstring, (y:bitstring, z:bitstring)) = a in
+  Success(x, y, z)
+else 0
+```
 
 ## 4. Check a repeated variable or fixed component
 
@@ -233,10 +239,60 @@ let (x:bitstring, second:bitstring) = payload in
 else 0
 ```
 
+## Constructor patterns
+
+A function declared by `function` is a ProVerif constructor unless it is the
+head of a `reduc` rule. For argument extraction and injective decomposition,
+the compiler conservatively requires that the constructor occur in no
+`equation` (including loaded and later declarations). This is a sufficient
+syntactic criterion within the supported symbolic equational model, not a
+complete classification of injectivity. Constructors in `reduc` arguments
+remain eligible.
+
+For free constructors, `f(x, b) = f(a, y)` becomes `x = a` and `b = y`.
+This does not supply a value for `f(x) = f(y)` when both variables are unbound.
+
+For `value = f(x)`, generate a private extractor, schematically:
+
+```proverif
+reduc forall x:bitstring; extract_f(f(x)) = x [private].
+
+let x = extract_f(value) in Success(x) else 0
+```
+
+Nested constructors and tuples are extracted together. Fixed components and
+repeated variables are checked after binding; `_` is extracted and discarded.
+Extractors are private and do not grant the attacker access to components.
+The same processing serves assumptions, case/repeat/until guards, and linear
+channel/file/global/local facts and attacker inputs.
+
+An equational constructor can still be used in a one-sided wildcard test if
+all named arguments are already bound. For `value = enc(_, key)`, generate:
+
+```proverif
+reduc forall m:bitstring, k:bitstring;
+  matches_enc(enc(m, k), k) = true [private].
+
+let matched = matches_enc(value, key) in Success else 0
+```
+
+The result is constant, so this does not assume injectivity or extract a
+witness. ProVerif checks the generated rule against the equational theory;
+not every theory is supported. Inequality reverses the two continuations,
+using `let` to catch matching failure. Subject and fixed-argument evaluation
+failures still reject the guard; they do not count as successful inequalities.
+Both-sided patterns with the same free
+constructor are supported for equality through component decomposition.
+
 ## Unsupported forms
 
-- `a = f(x)` when no other guard binds `x`: no function argument extraction.
-- `a = f(_)` or `f(_, a) = f(b, _)`: no wildcards inside function applications.
+- Named-variable extraction through equational constructors or destructors.
+  Other facts may first bind those variables, allowing ordinary comparison.
+- Wildcards inside destructor applications.
+- Both-sided wildcard function patterns that cannot be reduced to supported
+  component comparisons (including equational constructors).
+- Function extraction or wildcard patterns inside persistent fact payloads;
+  these require integration into table-row selection, not a test after `get`.
 - `a != (x, y)` with unbound `x, y`: no bindings through inequality.
 - `(x, 2) = (y, 2)` without another value source: no arbitrary-value search.
 

@@ -1,4 +1,3 @@
-fact channel [Msg:1]
 tag global [Matched:1]
 
 function f:1
@@ -11,9 +10,13 @@ process worker(ch : channel_t) : proc_t {
   file "/data" : storage_t = f(1)
   main {
     var p = f(1) in
-    put [ch::Msg(p)]; case [ch::Msg(f(x))] -> event [::Matched(x)] end
+    case [f(_) = f(_)] -> event [::Matched(1)] end
   }
 }
 channel ch : channel_t
 system worker(ch)
-requires [lemma Check : reachable ::Matched(x)]
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Check : reachable ::Matched(x)]

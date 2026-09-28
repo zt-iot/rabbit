@@ -1,4 +1,5 @@
 tag global [Matched:1]
+fact global [False:0]
 
 function f:1
 type proc_t : process
@@ -9,10 +10,14 @@ allow proc_t storage_t [ . ]
 process worker(ch : channel_t) : proc_t {
   file "/data" : storage_t = f(1)
   main {
-    var p = (f(1), 2) in
-    assume [p = (f(x), 2)] in event [::Matched(x)]
+    var p = f(1) in
+    repeat [p = f(x)] -> event [::Matched(x)] until [::False()] -> skip end
   }
 }
 channel ch : channel_t
 system worker(ch)
-requires [lemma Check : reachable ::Matched(x)]
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Check : reachable ::Matched(x)]
