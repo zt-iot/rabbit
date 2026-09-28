@@ -9,6 +9,9 @@ table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+table persistent_fact_table(bitstring).
+fun persistent_local_fact(bitstring, bitstring): bitstring[data].
+fun persistent_channel_fact(channel, bitstring): bitstring[data].
 (* Pattern which matches with any system call *)
 const none__syscall: syscall_t.
 (* Booleans *)
@@ -25,23 +28,23 @@ const not_a_ciphertext__str: bitstring.
 fun enc__0(bitstring, bitstring): bitstring.
 (* function dec:2 *)
 fun dec__0(bitstring, bitstring): bitstring.
-(* equation dec(enc(message__902, key__901), key__901) = message__902 *)
-equation forall key__901:bitstring, message__902:bitstring; dec__0(enc__0(message__902, key__901), key__901) = message__902.
+(* equation dec(enc(message__904, key__903), key__903) = message__904 *)
+equation forall key__903:bitstring, message__904:bitstring; dec__0(enc__0(message__904, key__903), key__903) = message__904.
 (* const fresh decryption_key *)
 const decryption_key__0: bitstring[private].
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process worker(..): proc_t *)
 let worker__0(ptype:proc_t) =
-  (* let result__903 = .. in .. at file "./210_dec_failure.rab", line 18, charaters 4-125 *)
-  (* event [ ::DecryptionResult(result__903) ] at file "./210_dec_failure.rab", line 19, charaters 4-38 *)
+  (* let result__905 = .. in .. at file "./210_dec_failure.rab", line 18, charaters 4-125 *)
+  (* event [ ::DecryptionResult(result__905) ] at file "./210_dec_failure.rab", line 19, charaters 4-38 *)
   event DecryptionResult__event_global(dec__0(not_a_ciphertext__str, decryption_key__0));
   (* event [ ::Continued() ] at file "./210_dec_failure.rab", line 20, charaters 4-25 *)
   event Continued__event_global.
 (* Requires *)
 (* lemma DecryptionResultIsReachable *)
-query result__904:bitstring;
-  event(DecryptionResult__event_global(result__904)).
+query result__906:bitstring;
+  event(DecryptionResult__event_global(result__906)).
 (* lemma UnreducedDecryptionContinues *)
 query event(Continued__event_global()).
 (* System *)

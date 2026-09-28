@@ -9,6 +9,9 @@ table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+table persistent_fact_table(bitstring).
+fun persistent_local_fact(bitstring, bitstring): bitstring[data].
+fun persistent_channel_fact(channel, bitstring): bitstring[data].
 (* Pattern which matches with any system call *)
 const none__syscall: syscall_t.
 (* Booleans *)
@@ -45,52 +48,52 @@ const int__pos_6: bitstring.
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)
 let proc__0(ptype:proc_t) =
-  (* new x__767 = S(..) in .. at file "./160_structure.rab", line 10, charaters 4-243 *)
-  new x__767:bitstring;
-  (* new y__768 = S(..) in .. at file "./160_structure.rab", line 11, charaters 4-219 *)
-  new y__768:bitstring;
-  (* let (x1__769, x2__770, x3__771) := _.S in .. at file "./160_structure.rab", line 12, charaters 4-195 *)
-  get deleted_address_table(=S__struct_addr(S__struct(x__767, int__pos_1, int__pos_2, int__pos_3)))
+  (* new x__769 = S(..) in .. at file "./160_structure.rab", line 10, charaters 4-243 *)
+  new x__769:bitstring;
+  (* new y__770 = S(..) in .. at file "./160_structure.rab", line 11, charaters 4-219 *)
+  new y__770:bitstring;
+  (* let (x1__771, x2__772, x3__773) := _.S in .. at file "./160_structure.rab", line 12, charaters 4-195 *)
+  get deleted_address_table(=S__struct_addr(S__struct(x__769, int__pos_1, int__pos_2, int__pos_3)))
   else
     (* case at file "./160_structure.rab", line 14, charaters 34-50 *)
-    new case_ch__772:channel;
-    ((out(case_ch__772, (false__bool, (), S__struct(x__767, int__pos_1, int__pos_2, int__pos_3), S__struct(y__768, int__pos_4, int__pos_5, int__pos_6), S__struct_par_1(S__struct(x__767, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_2(S__struct(x__767, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_3(S__struct(x__767, int__pos_1, int__pos_2, int__pos_3)))) |
-      (* case [ x1__769 = 1, x2__770 = 2, x3__771 = 3 ] at file "./160_structure.rab", line 14, charaters 34-50 *)
-      in(case_ch__772, (=false__bool, case_result__779:bitstring, case_state_0__780:bitstring, case_state_1__781:bitstring, case_state_2__782:bitstring, case_state_3__783:bitstring, case_state_4__784:bitstring))[precise];
-      if case_state_2__782 = int__pos_1
+    new case_ch__774:channel;
+    ((out(case_ch__774, (false__bool, (), S__struct(x__769, int__pos_1, int__pos_2, int__pos_3), S__struct(y__770, int__pos_4, int__pos_5, int__pos_6), S__struct_par_1(S__struct(x__769, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_2(S__struct(x__769, int__pos_1, int__pos_2, int__pos_3)), S__struct_par_3(S__struct(x__769, int__pos_1, int__pos_2, int__pos_3)))) |
+      (* case [ x1__771 = 1, x2__772 = 2, x3__773 = 3 ] at file "./160_structure.rab", line 14, charaters 34-50 *)
+      in(case_ch__774, (=false__bool, case_result__781:bitstring, case_state_0__782:bitstring, case_state_1__783:bitstring, case_state_2__784:bitstring, case_state_3__785:bitstring, case_state_4__786:bitstring))[precise];
+      if case_state_2__784 = int__pos_1
       then
-        if case_state_3__783 = int__pos_2
+        if case_state_3__785 = int__pos_2
         then
-          if case_state_4__784 = int__pos_3
+          if case_state_4__786 = int__pos_3
           then
             (* event [ ::Valid() ] at file "./160_structure.rab", line 14, charaters 34-50 *)
             event Valid__event_global;
-            out(case_ch__772, (true__bool, (), case_state_0__780, case_state_1__781, case_state_2__782, case_state_3__783, case_state_4__784))
+            out(case_ch__774, (true__bool, (), case_state_0__782, case_state_1__783, case_state_2__784, case_state_3__785, case_state_4__786))
           else
-            out(case_ch__772, (false__bool, case_result__779, case_state_0__780, case_state_1__781, case_state_2__782, case_state_3__783, case_state_4__784))
+            out(case_ch__774, (false__bool, case_result__781, case_state_0__782, case_state_1__783, case_state_2__784, case_state_3__785, case_state_4__786))
         else
-          out(case_ch__772, (false__bool, case_result__779, case_state_0__780, case_state_1__781, case_state_2__782, case_state_3__783, case_state_4__784))
+          out(case_ch__774, (false__bool, case_result__781, case_state_0__782, case_state_1__783, case_state_2__784, case_state_3__785, case_state_4__786))
       else
-        out(case_ch__772, (false__bool, case_result__779, case_state_0__780, case_state_1__781, case_state_2__782, case_state_3__783, case_state_4__784))) |
-     (* case [ x1__769 = 4, x2__770 = 5, x3__771 = 6 ] at file "./160_structure.rab", line 15, charaters 34-52 *)
-     in(case_ch__772, (=false__bool, case_result__785:bitstring, case_state_0__786:bitstring, case_state_1__787:bitstring, case_state_2__788:bitstring, case_state_3__789:bitstring, case_state_4__790:bitstring))[precise];
-     if case_state_2__788 = int__pos_4
+        out(case_ch__774, (false__bool, case_result__781, case_state_0__782, case_state_1__783, case_state_2__784, case_state_3__785, case_state_4__786))) |
+     (* case [ x1__771 = 4, x2__772 = 5, x3__773 = 6 ] at file "./160_structure.rab", line 15, charaters 34-52 *)
+     in(case_ch__774, (=false__bool, case_result__787:bitstring, case_state_0__788:bitstring, case_state_1__789:bitstring, case_state_2__790:bitstring, case_state_3__791:bitstring, case_state_4__792:bitstring))[precise];
+     if case_state_2__790 = int__pos_4
      then
-       if case_state_3__789 = int__pos_5
+       if case_state_3__791 = int__pos_5
        then
-         if case_state_4__790 = int__pos_6
+         if case_state_4__792 = int__pos_6
          then
            (* event [ ::Invalid() ] at file "./160_structure.rab", line 15, charaters 34-52 *)
            event Invalid__event_global;
-           out(case_ch__772, (true__bool, (), case_state_0__786, case_state_1__787, case_state_2__788, case_state_3__789, case_state_4__790))
+           out(case_ch__774, (true__bool, (), case_state_0__788, case_state_1__789, case_state_2__790, case_state_3__791, case_state_4__792))
          else
-           out(case_ch__772, (false__bool, case_result__785, case_state_0__786, case_state_1__787, case_state_2__788, case_state_3__789, case_state_4__790))
+           out(case_ch__774, (false__bool, case_result__787, case_state_0__788, case_state_1__789, case_state_2__790, case_state_3__791, case_state_4__792))
        else
-         out(case_ch__772, (false__bool, case_result__785, case_state_0__786, case_state_1__787, case_state_2__788, case_state_3__789, case_state_4__790))
+         out(case_ch__774, (false__bool, case_result__787, case_state_0__788, case_state_1__789, case_state_2__790, case_state_3__791, case_state_4__792))
      else
-       out(case_ch__772, (false__bool, case_result__785, case_state_0__786, case_state_1__787, case_state_2__788, case_state_3__789, case_state_4__790))) |
+       out(case_ch__774, (false__bool, case_result__787, case_state_0__788, case_state_1__789, case_state_2__790, case_state_3__791, case_state_4__792))) |
     (* end of case at file "./160_structure.rab", line 14, charaters 34-50 *)
-    in(case_ch__772, (=true__bool, case_done_result__773:bitstring, case_done_state_0__774:bitstring, case_done_state_1__775:bitstring, case_done_state_2__776:bitstring, case_done_state_3__777:bitstring, case_done_state_4__778:bitstring))[precise].
+    in(case_ch__774, (=true__bool, case_done_result__775:bitstring, case_done_state_0__776:bitstring, case_done_state_1__777:bitstring, case_done_state_2__778:bitstring, case_done_state_3__779:bitstring, case_done_state_4__780:bitstring))[precise].
 (* Requires *)
 (* lemma Reachable *)
 query event(Valid__event_global()).

@@ -9,6 +9,9 @@ table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+table persistent_fact_table(bitstring).
+fun persistent_local_fact(bitstring, bitstring): bitstring[data].
+fun persistent_channel_fact(channel, bitstring): bitstring[data].
 (* Pattern which matches with any system call *)
 const none__syscall: syscall_t.
 (* Booleans *)
@@ -43,24 +46,24 @@ const proc_t__0: proc_t.
 let p__0(ptype:proc_t) =
   (* event [ ::Allocating() ] at file "./143_structure_fetch_compression.rab", line 10, charaters 4-26 *)
   event Allocating__event_global;
-  (* new x__760 = S(..) in .. at file "./143_structure_fetch_compression.rab", line 11, charaters 4-159 *)
-  new x__760:bitstring;
-  (* let (x1__761, x2__762, x3__763) := _.S in .. at file "./143_structure_fetch_compression.rab", line 12, charaters 4-135 *)
-  get deleted_address_table(=S__struct_addr(S__struct(x__760, int__pos_1, int__pos_2, int__pos_3)))
+  (* new x__761 = S(..) in .. at file "./143_structure_fetch_compression.rab", line 11, charaters 4-159 *)
+  new x__761:bitstring;
+  (* let (x1__762, x2__763, x3__764) := _.S in .. at file "./143_structure_fetch_compression.rab", line 12, charaters 4-135 *)
+  get deleted_address_table(=S__struct_addr(S__struct(x__761, int__pos_1, int__pos_2, int__pos_3)))
   else
     (if
-       S__struct_par_1(S__struct(x__760, int__pos_1, int__pos_2, int__pos_3)) = int__pos_1
+       S__struct_par_1(S__struct(x__761, int__pos_1, int__pos_2, int__pos_3)) = int__pos_1
      then
        if
-         S__struct_par_2(S__struct(x__760, int__pos_1, int__pos_2, int__pos_3)) = int__pos_2
+         S__struct_par_2(S__struct(x__761, int__pos_1, int__pos_2, int__pos_3)) = int__pos_2
        then
          if
-           S__struct_par_3(S__struct(x__760, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
+           S__struct_par_3(S__struct(x__761, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
          then
            (* event [ ::Valid() ] at file "./143_structure_fetch_compression.rab", line 14, charaters 34-51 *)
            event Valid__event_global;
            (* delete _.S at file "./143_structure_fetch_compression.rab", line 16, charaters 4-14 *)
-           insert deleted_address_table(S__struct_addr(S__struct(x__760, int__pos_1, int__pos_2, int__pos_3)));
+           insert deleted_address_table(S__struct_addr(S__struct(x__761, int__pos_1, int__pos_2, int__pos_3)));
            (* event [ ::Deleted() ] at file "./143_structure_fetch_compression.rab", line 17, charaters 4-23 *)
            event Deleted__event_global).
 (* Requires *)

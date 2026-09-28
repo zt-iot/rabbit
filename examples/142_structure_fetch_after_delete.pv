@@ -9,6 +9,9 @@ table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+table persistent_fact_table(bitstring).
+fun persistent_local_fact(bitstring, bitstring): bitstring[data].
+fun persistent_channel_fact(channel, bitstring): bitstring[data].
 (* Pattern which matches with any system call *)
 const none__syscall: syscall_t.
 (* Booleans *)
@@ -41,23 +44,23 @@ const int__pos_3: bitstring.
 const proc_t__0: proc_t.
 (* process p(..): proc_t *)
 let p__0(ptype:proc_t) =
-  (* new x__756 = S(..) in .. at file "./142_structure_fetch_after_delete.rab", line 10, charaters 4-186 *)
-  new x__756:bitstring;
+  (* new x__757 = S(..) in .. at file "./142_structure_fetch_after_delete.rab", line 10, charaters 4-186 *)
+  new x__757:bitstring;
   (* event [ ::Allocated() ] at file "./142_structure_fetch_after_delete.rab", line 11, charaters 4-25 *)
   event Allocated__event_global;
   (* delete _.S at file "./142_structure_fetch_after_delete.rab", line 12, charaters 4-14 *)
-  insert deleted_address_table(S__struct_addr(S__struct(x__756, int__pos_1, int__pos_2, int__pos_3)));
-  (* let (x1__757, x2__758, x3__759) := _.S in .. at file "./142_structure_fetch_after_delete.rab", line 13, charaters 4-119 *)
-  get deleted_address_table(=S__struct_addr(S__struct(x__756, int__pos_1, int__pos_2, int__pos_3)))
+  insert deleted_address_table(S__struct_addr(S__struct(x__757, int__pos_1, int__pos_2, int__pos_3)));
+  (* let (x1__758, x2__759, x3__760) := _.S in .. at file "./142_structure_fetch_after_delete.rab", line 13, charaters 4-119 *)
+  get deleted_address_table(=S__struct_addr(S__struct(x__757, int__pos_1, int__pos_2, int__pos_3)))
   else
     (if
-       S__struct_par_1(S__struct(x__756, int__pos_1, int__pos_2, int__pos_3)) = int__pos_1
+       S__struct_par_1(S__struct(x__757, int__pos_1, int__pos_2, int__pos_3)) = int__pos_1
      then
        if
-         S__struct_par_2(S__struct(x__756, int__pos_1, int__pos_2, int__pos_3)) = int__pos_2
+         S__struct_par_2(S__struct(x__757, int__pos_1, int__pos_2, int__pos_3)) = int__pos_2
        then
          if
-           S__struct_par_3(S__struct(x__756, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
+           S__struct_par_3(S__struct(x__757, int__pos_1, int__pos_2, int__pos_3)) = int__pos_3
          then
            (* event [ ::Valid() ] at file "./142_structure_fetch_after_delete.rab", line 15, charaters 34-51 *)
            event Valid__event_global;

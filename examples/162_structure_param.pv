@@ -9,6 +9,9 @@ table access_control_table(proc_t, acc_data_t, syscall_t).
 table file_type_table(proc_t, acc_data_t, bitstring).
 table channel_table(acc_data_t, channel).
 table deleted_address_table(bitstring).
+table persistent_fact_table(bitstring).
+fun persistent_local_fact(bitstring, bitstring): bitstring[data].
+fun persistent_channel_fact(channel, bitstring): bitstring[data].
 (* Pattern which matches with any system call *)
 const none__syscall: syscall_t.
 (* Booleans *)
@@ -36,45 +39,45 @@ const int__pos_2: bitstring.
 (* type proc_t : process *)
 const proc_t__0: proc_t.
 (* process proc(..): proc_t *)
-let proc__0(ptype:proc_t, p__816:param_data) =
-  (* new x__817 = S(..) in .. at file "./162_structure_param.rab", line 10, charaters 4-195 *)
-  new x__817:bitstring;
-  (* new y__818 = S(..) in .. at file "./162_structure_param.rab", line 11, charaters 4-171 *)
-  new y__818:bitstring;
-  (* let (x1__819, x2__820, xp__821) := _.S in .. at file "./162_structure_param.rab", line 12, charaters 4-147 *)
-  get deleted_address_table(=S__struct_addr(S__struct(x__817, int__pos_1, int__pos_2, p__816)))
+let proc__0(ptype:proc_t, p__818:param_data) =
+  (* new x__819 = S(..) in .. at file "./162_structure_param.rab", line 10, charaters 4-195 *)
+  new x__819:bitstring;
+  (* new y__820 = S(..) in .. at file "./162_structure_param.rab", line 11, charaters 4-171 *)
+  new y__820:bitstring;
+  (* let (x1__821, x2__822, xp__823) := _.S in .. at file "./162_structure_param.rab", line 12, charaters 4-147 *)
+  get deleted_address_table(=S__struct_addr(S__struct(x__819, int__pos_1, int__pos_2, p__818)))
   else
-    ((* let (y1__822, y2__823, yp__824) := _.S in .. at file "./162_structure_param.rab", line 13, charaters 4-119 *)
-     get deleted_address_table(=S__struct_addr(S__struct(y__818, int__pos_1, int__pos_2, p__816)))
+    ((* let (y1__824, y2__825, yp__826) := _.S in .. at file "./162_structure_param.rab", line 13, charaters 4-119 *)
+     get deleted_address_table(=S__struct_addr(S__struct(y__820, int__pos_1, int__pos_2, p__818)))
      else
        (* case at file "./162_structure_param.rab", line 15, charaters 19-35 *)
-       new case_ch__826:channel;
-       ((out(case_ch__826, (false__bool, (), p__816, S__struct(x__817, int__pos_1, int__pos_2, p__816), S__struct(y__818, int__pos_1, int__pos_2, p__816), S__struct_par_1(S__struct(x__817, int__pos_1, int__pos_2, p__816)), S__struct_par_2(S__struct(x__817, int__pos_1, int__pos_2, p__816)), S__struct_par_3(S__struct(x__817, int__pos_1, int__pos_2, p__816)), S__struct_par_1(S__struct(y__818, int__pos_1, int__pos_2, p__816)), S__struct_par_2(S__struct(y__818, int__pos_1, int__pos_2, p__816)), S__struct_par_3(S__struct(y__818, int__pos_1, int__pos_2, p__816)))) |
-         (* case [ xp__821 = yp__824 ] at file "./162_structure_param.rab", line 15, charaters 19-35 *)
-         in(case_ch__826, (=false__bool, case_result__837:bitstring, case_state_0__838:param_data, case_state_1__839:bitstring, case_state_2__840:bitstring, case_state_3__841:bitstring, case_state_4__842:bitstring, case_state_5__843:param_data, case_state_6__844:bitstring, case_state_7__845:bitstring, case_state_8__846:param_data))[precise];
-         if case_state_5__843 = case_state_8__846
+       new case_ch__828:channel;
+       ((out(case_ch__828, (false__bool, (), p__818, S__struct(x__819, int__pos_1, int__pos_2, p__818), S__struct(y__820, int__pos_1, int__pos_2, p__818), S__struct_par_1(S__struct(x__819, int__pos_1, int__pos_2, p__818)), S__struct_par_2(S__struct(x__819, int__pos_1, int__pos_2, p__818)), S__struct_par_3(S__struct(x__819, int__pos_1, int__pos_2, p__818)), S__struct_par_1(S__struct(y__820, int__pos_1, int__pos_2, p__818)), S__struct_par_2(S__struct(y__820, int__pos_1, int__pos_2, p__818)), S__struct_par_3(S__struct(y__820, int__pos_1, int__pos_2, p__818)))) |
+         (* case [ xp__823 = yp__826 ] at file "./162_structure_param.rab", line 15, charaters 19-35 *)
+         in(case_ch__828, (=false__bool, case_result__839:bitstring, case_state_0__840:param_data, case_state_1__841:bitstring, case_state_2__842:bitstring, case_state_3__843:bitstring, case_state_4__844:bitstring, case_state_5__845:param_data, case_state_6__846:bitstring, case_state_7__847:bitstring, case_state_8__848:param_data))[precise];
+         if case_state_5__845 = case_state_8__848
          then
            (* event [ ::Valid() ] at file "./162_structure_param.rab", line 15, charaters 19-35 *)
            event Valid__event_global;
-           out(case_ch__826, (true__bool, (), case_state_0__838, case_state_1__839, case_state_2__840, case_state_3__841, case_state_4__842, case_state_5__843, case_state_6__844, case_state_7__845, case_state_8__846))
+           out(case_ch__828, (true__bool, (), case_state_0__840, case_state_1__841, case_state_2__842, case_state_3__843, case_state_4__844, case_state_5__845, case_state_6__846, case_state_7__847, case_state_8__848))
          else
-           out(case_ch__826, (false__bool, case_result__837, case_state_0__838, case_state_1__839, case_state_2__840, case_state_3__841, case_state_4__842, case_state_5__843, case_state_6__844, case_state_7__845, case_state_8__846))) |
-        (* case [ xp__821 != yp__824 ] at file "./162_structure_param.rab", line 16, charaters 20-38 *)
-        in(case_ch__826, (=false__bool, case_result__847:bitstring, case_state_0__848:param_data, case_state_1__849:bitstring, case_state_2__850:bitstring, case_state_3__851:bitstring, case_state_4__852:bitstring, case_state_5__853:param_data, case_state_6__854:bitstring, case_state_7__855:bitstring, case_state_8__856:param_data))[precise];
-        if case_state_5__853 = case_state_8__856
+           out(case_ch__828, (false__bool, case_result__839, case_state_0__840, case_state_1__841, case_state_2__842, case_state_3__843, case_state_4__844, case_state_5__845, case_state_6__846, case_state_7__847, case_state_8__848))) |
+        (* case [ xp__823 != yp__826 ] at file "./162_structure_param.rab", line 16, charaters 20-38 *)
+        in(case_ch__828, (=false__bool, case_result__849:bitstring, case_state_0__850:param_data, case_state_1__851:bitstring, case_state_2__852:bitstring, case_state_3__853:bitstring, case_state_4__854:bitstring, case_state_5__855:param_data, case_state_6__856:bitstring, case_state_7__857:bitstring, case_state_8__858:param_data))[precise];
+        if case_state_5__855 = case_state_8__858
         then
-          out(case_ch__826, (false__bool, case_result__847, case_state_0__848, case_state_1__849, case_state_2__850, case_state_3__851, case_state_4__852, case_state_5__853, case_state_6__854, case_state_7__855, case_state_8__856))
+          out(case_ch__828, (false__bool, case_result__849, case_state_0__850, case_state_1__851, case_state_2__852, case_state_3__853, case_state_4__854, case_state_5__855, case_state_6__856, case_state_7__857, case_state_8__858))
         else
           (* event [ ::Invalid() ] at file "./162_structure_param.rab", line 16, charaters 20-38 *)
           event Invalid__event_global;
-          out(case_ch__826, (true__bool, (), case_state_0__848, case_state_1__849, case_state_2__850, case_state_3__851, case_state_4__852, case_state_5__853, case_state_6__854, case_state_7__855, case_state_8__856))) |
+          out(case_ch__828, (true__bool, (), case_state_0__850, case_state_1__851, case_state_2__852, case_state_3__853, case_state_4__854, case_state_5__855, case_state_6__856, case_state_7__857, case_state_8__858))) |
        (* end of case at file "./162_structure_param.rab", line 15, charaters 19-35 *)
-       in(case_ch__826, (=true__bool, case_done_result__827:bitstring, case_done_state_0__828:param_data, case_done_state_1__829:bitstring, case_done_state_2__830:bitstring, case_done_state_3__831:bitstring, case_done_state_4__832:bitstring, case_done_state_5__833:param_data, case_done_state_6__834:bitstring, case_done_state_7__835:bitstring, case_done_state_8__836:param_data))[precise]).
+       in(case_ch__828, (=true__bool, case_done_result__829:bitstring, case_done_state_0__830:param_data, case_done_state_1__831:bitstring, case_done_state_2__832:bitstring, case_done_state_3__833:bitstring, case_done_state_4__834:bitstring, case_done_state_5__835:param_data, case_done_state_6__836:bitstring, case_done_state_7__837:bitstring, case_done_state_8__838:param_data))[precise]).
 (* Requires *)
 (* lemma Reachable *)
 query event(Valid__event_global()).
 (* lemma Uneachable *)
 query event(Invalid__event_global()).
 (* System *)
-process !(new p__825:param_data;
-          proc__0(proc_t__0, p__825))
+process !(new p__827:param_data;
+          proc__0(proc_t__0, p__827))
