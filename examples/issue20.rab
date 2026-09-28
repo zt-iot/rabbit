@@ -20,6 +20,6 @@ system
   alice()
 requires
 [
-  lemma Reachable:
+  lemma Reachable: (* verified *)
     reachable ::Ok(x)
 ]
