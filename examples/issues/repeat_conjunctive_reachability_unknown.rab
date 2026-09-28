@@ -17,7 +17,8 @@ process worker(ch : c) : p {
 system worker(ch)
 requires [
   (* PROVERIF EXPECTED
-  unknown
+  # One repeat emits A and Exit; consuming Exit then reaches B.
+  true
   *)
   lemma Reverse : (* verified *) reachable ::B(), ::A()
 ]

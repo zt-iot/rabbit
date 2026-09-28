@@ -25,7 +25,8 @@ process server(ch : c) : p {
 system client(ch) | server(ch)
 requires [
   (* PROVERIF EXPECTED
-  unknown
+  # The server echoes x, and the client emits P(x) before A(x).
+  true
   *)
   lemma C : (* verified *) corresponds ::A(x) ~> ::P(x)
 ]

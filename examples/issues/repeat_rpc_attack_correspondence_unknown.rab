@@ -57,7 +57,8 @@ process receiver(transport : transport_c) : p {
 system producer(transport, rpc) | signer(rpc) | receiver(transport)
 requires [
   (* PROVERIF EXPECTED
-  unknown
+  # The substitute attack can supply a value with no preceding P event.
+  false
   *)
   lemma C : (* falsified *) corresponds ::A(x) ~> ::P(x)
 ]
