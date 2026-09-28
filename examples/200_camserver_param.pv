@@ -1,0 +1,274 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+table persistent_fact_table(bitstring).
+fun persistent_local_fact(bitstring, bitstring): bitstring[data].
+fun persistent_channel_fact(channel, bitstring): bitstring[data].
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+fun channel_instance(channel, param_data): channel[private].
+reduc
+  forall family:channel, parameter:param_data; channel_family(channel_instance(family, parameter)) = family[private].
+reduc
+  forall family:channel, parameter:param_data; channel_parameter(channel_instance(family, parameter)) = parameter[private].
+(* Structure declaration chid(_) *)
+fun chid__struct(bitstring, channel): bitstring[data].
+reduc
+  forall x_0:bitstring, x_1:channel; chid__struct_addr(chid__struct(x_0, x_1)) = x_0.
+reduc
+  forall x_0:bitstring, x_1:channel; chid__struct_par_1(chid__struct(x_0, x_1)) = x_1.
+(* Channel fact declaration Returned(..) *)
+fun Returned__chan(bitstring): bitstring[data].
+(* Channel fact declaration invoke(..) *)
+fun invoke__chan(bitstring): bitstring[data].
+(* Channel fact declaration conn(..) *)
+fun conn__chan(): bitstring[data].
+(* Channel fact declaration ack(..) *)
+fun ack__chan(): bitstring[data].
+(* Channel fact declaration req(..) *)
+fun req__chan(): bitstring[data].
+(* syscall accept_rpc(..) *)
+const accept_rpc__0__syscall: syscall_t.
+(* syscall invoke_rpc(..) *)
+const invoke_rpc__0__syscall: syscall_t.
+(* syscall connect_rpc(..) *)
+const connect_rpc__0__syscall: syscall_t.
+(* Event declaration ::ClientClose(..) *)
+event ClientClose__event_global.
+(* Event declaration ::ClientTAClose(..) *)
+event ClientTAClose__event_global.
+(* Integer constant 1 *)
+const int__pos_1: bitstring.
+(* Integer constant 2 *)
+const int__pos_2: bitstring.
+(* Body *)
+(* function h:1 *)
+fun h__0(bitstring): bitstring.
+(* type readonly_t : filesys *)
+const readonly_t__0: acc_data_t.
+(* type client_t : process *)
+const client_t__0: proc_t.
+(* type client_ta_t : process *)
+const client_ta_t__0: proc_t.
+(* type rpc_t : channel *)
+const rpc_t__0: acc_data_t.
+(* channel rpc<> : rpc_t *)
+free rpc__0: channel[private].
+(* process client(..): client_t *)
+let client__0(ptype:proc_t, k__866:param_data, ch_rpc__867:channel) =
+  (* Channel ch_rpc__867 : rpc_t *)
+  insert channel_table(rpc_t__0, ch_rpc__867);
+  (* let conn__868 = .. in .. at file "./200_camserver_param.rab", line 57, charaters 4-104 *)
+  (* put [ c__859::req() ] at file "./200_camserver_param.rab", line 7, charaters 2-16 *)
+  get channel_table(ch_type__889:acc_data_t, =ch_rpc__867) in
+  get access_control_table(=ptype, =ch_type__889, =connect_rpc__0__syscall)
+  in
+  (let family__887:channel = channel_family(ch_rpc__867) in
+   (let parameter__888:param_data = channel_parameter(ch_rpc__867) in
+    out(family__887, (parameter__888, req__chan())))
+   else out(ch_rpc__867, req__chan())) |
+  (get channel_table(ch_type__886:acc_data_t, =ch_rpc__867) in
+   get access_control_table(=ptype, =ch_type__886, =connect_rpc__0__syscall)
+   in
+   let family__884:channel = channel_family(ch_rpc__867) in
+   (let parameter__885:param_data = channel_parameter(ch_rpc__867) in
+    in(family__884, (=parameter__885, ack__chan()));
+    (* new x__860 = chid(..) in .. at file "./200_camserver_param.rab", line 10, charaters 4-51 *)
+    new x__860:bitstring;
+    (* put [ c__859::conn() ] at file "./200_camserver_param.rab", line 11, charaters 4-19 *)
+    get channel_table(ch_type__883:acc_data_t, =ch_rpc__867) in
+    get access_control_table(=ptype, =ch_type__883, =connect_rpc__0__syscall)
+    in
+    (let family__881:channel = channel_family(ch_rpc__867) in
+     (let parameter__882:param_data = channel_parameter(ch_rpc__867) in
+      out(family__881, (parameter__882, conn__chan())))
+     else out(ch_rpc__867, conn__chan())) |
+    ((* let sig__869 = .. in .. at file "./200_camserver_param.rab", line 58, charaters 4-65 *)
+     (* let (c__863) := _.chid in .. at file "./200_camserver_param.rab", line 17, charaters 2-80 *)
+     get deleted_address_table(=chid__struct_addr(chid__struct(x__860, ch_rpc__867)))
+     else
+       ((* put [ c__863::invoke(arg1__862) ] at file "./200_camserver_param.rab", line 18, charaters 2-23 *)
+        get channel_table(ch_type__880:acc_data_t, =chid__struct_par_1(chid__struct(x__860, ch_rpc__867)))
+        in
+        get access_control_table(=ptype, =ch_type__880, =invoke_rpc__0__syscall)
+        in
+        (let family__878:channel =
+           channel_family(chid__struct_par_1(chid__struct(x__860, ch_rpc__867)))
+         in
+         (let parameter__879:param_data =
+            channel_parameter(chid__struct_par_1(chid__struct(x__860, ch_rpc__867)))
+          in out(family__878, (parameter__879, invoke__chan(int__pos_1))))
+         else
+           out(chid__struct_par_1(chid__struct(x__860, ch_rpc__867)), invoke__chan(int__pos_1))) |
+        (get channel_table(ch_type__877:acc_data_t, =chid__struct_par_1(chid__struct(x__860, ch_rpc__867)))
+         in
+         get access_control_table(=ptype, =ch_type__877, =invoke_rpc__0__syscall)
+         in
+         let family__875:channel =
+           channel_family(chid__struct_par_1(chid__struct(x__860, ch_rpc__867)))
+         in
+         (let parameter__876:param_data =
+            channel_parameter(chid__struct_par_1(chid__struct(x__860, ch_rpc__867)))
+          in
+          in(family__875, (=parameter__876, Returned__chan(guard_arg_0__874:bitstring)));
+          (* event [ ::ClientClose() ] at file "./200_camserver_param.rab", line 59, charaters 4-28 *)
+          event ClientClose__event_global)
+         else
+           in(chid__struct_par_1(chid__struct(x__860, ch_rpc__867)), Returned__chan(guard_arg_0__874:bitstring));
+           (* event [ ::ClientClose() ] at file "./200_camserver_param.rab", line 59, charaters 4-28 *)
+           event ClientClose__event_global))))
+   else
+     in(ch_rpc__867, ack__chan());
+     (* new x__860 = chid(..) in .. at file "./200_camserver_param.rab", line 10, charaters 4-51 *)
+     new x__860:bitstring;
+     ((* put [ c__859::conn() ] at file "./200_camserver_param.rab", line 11, charaters 4-19 *)
+      get channel_table(ch_type__883:acc_data_t, =ch_rpc__867) in
+      get access_control_table(=ptype, =ch_type__883, =connect_rpc__0__syscall)
+      in
+      (let family__881:channel = channel_family(ch_rpc__867) in
+       (let parameter__882:param_data = channel_parameter(ch_rpc__867) in
+        out(family__881, (parameter__882, conn__chan())))
+       else out(ch_rpc__867, conn__chan())) |
+      ((* let sig__869 = .. in .. at file "./200_camserver_param.rab", line 58, charaters 4-65 *)
+       (* let (c__863) := _.chid in .. at file "./200_camserver_param.rab", line 17, charaters 2-80 *)
+       get deleted_address_table(=chid__struct_addr(chid__struct(x__860, ch_rpc__867)))
+       else
+         ((* put [ c__863::invoke(arg1__862) ] at file "./200_camserver_param.rab", line 18, charaters 2-23 *)
+          get channel_table(ch_type__880:acc_data_t, =chid__struct_par_1(chid__struct(x__860, ch_rpc__867)))
+          in
+          get access_control_table(=ptype, =ch_type__880, =invoke_rpc__0__syscall)
+          in
+          (let family__878:channel =
+             channel_family(chid__struct_par_1(chid__struct(x__860, ch_rpc__867)))
+           in
+           (let parameter__879:param_data =
+              channel_parameter(chid__struct_par_1(chid__struct(x__860, ch_rpc__867)))
+            in out(family__878, (parameter__879, invoke__chan(int__pos_1))))
+           else
+             out(chid__struct_par_1(chid__struct(x__860, ch_rpc__867)), invoke__chan(int__pos_1))) |
+          (get channel_table(ch_type__877:acc_data_t, =chid__struct_par_1(chid__struct(x__860, ch_rpc__867)))
+           in
+           get access_control_table(=ptype, =ch_type__877, =invoke_rpc__0__syscall)
+           in
+           let family__875:channel =
+             channel_family(chid__struct_par_1(chid__struct(x__860, ch_rpc__867)))
+           in
+           (let parameter__876:param_data =
+              channel_parameter(chid__struct_par_1(chid__struct(x__860, ch_rpc__867)))
+            in
+            in(family__875, (=parameter__876, Returned__chan(guard_arg_0__874:bitstring)));
+            (* event [ ::ClientClose() ] at file "./200_camserver_param.rab", line 59, charaters 4-28 *)
+            event ClientClose__event_global)
+           else
+             in(chid__struct_par_1(chid__struct(x__860, ch_rpc__867)), Returned__chan(guard_arg_0__874:bitstring));
+             (* event [ ::ClientClose() ] at file "./200_camserver_param.rab", line 59, charaters 4-28 *)
+             event ClientClose__event_global))))).
+(* process client_ta(..): client_ta_t *)
+let client_ta__0(ptype:proc_t, k__870:param_data, ch_rpc__871:channel) =
+  (* Channel ch_rpc__871 : rpc_t *)
+  insert channel_table(rpc_t__0, ch_rpc__871);
+  (* _ := .. at file "./200_camserver_param.rab", line 67, charaters 4-27 *)
+  get channel_table(ch_type__902:acc_data_t, =ch_rpc__871) in
+  get access_control_table(=ptype, =ch_type__902, =accept_rpc__0__syscall) in
+  let family__900:channel = channel_family(ch_rpc__871) in
+  (let parameter__901:param_data = channel_parameter(ch_rpc__871) in
+   in(family__900, (=parameter__901, req__chan()));
+   (* put [ c__865::ack() ] at file "./200_camserver_param.rab", line 23, charaters 20-34 *)
+   get channel_table(ch_type__899:acc_data_t, =ch_rpc__871) in
+   get access_control_table(=ptype, =ch_type__899, =accept_rpc__0__syscall)
+   in
+   (let family__897:channel = channel_family(ch_rpc__871) in
+    (let parameter__898:param_data = channel_parameter(ch_rpc__871) in
+     out(family__897, (parameter__898, ack__chan())))
+    else out(ch_rpc__871, ack__chan())) |
+   (get channel_table(ch_type__896:acc_data_t, =ch_rpc__871) in
+    get access_control_table(=ptype, =ch_type__896, =none__syscall) in
+    let family__894:channel = channel_family(ch_rpc__871) in
+    (let parameter__895:param_data = channel_parameter(ch_rpc__871) in
+     in(family__894, (=parameter__895, invoke__chan(guard_arg_0__890:bitstring)));
+     (* put [ ch_rpc__871::Returned(2) ] at file "./200_camserver_param.rab", line 70, charaters 10-35 *)
+     get channel_table(ch_type__893:acc_data_t, =ch_rpc__871) in
+     get access_control_table(=ptype, =ch_type__893, =none__syscall) in
+     (let family__891:channel = channel_family(ch_rpc__871) in
+      (let parameter__892:param_data = channel_parameter(ch_rpc__871) in
+       out(family__891, (parameter__892, Returned__chan(int__pos_2))))
+      else out(ch_rpc__871, Returned__chan(int__pos_2))) |
+     (* event [ ::ClientTAClose() ] at file "./200_camserver_param.rab", line 72, charaters 4-30 *)
+     event ClientTAClose__event_global)
+    else
+      in(ch_rpc__871, invoke__chan(guard_arg_0__890:bitstring));
+      ((* put [ ch_rpc__871::Returned(2) ] at file "./200_camserver_param.rab", line 70, charaters 10-35 *)
+       get channel_table(ch_type__893:acc_data_t, =ch_rpc__871) in
+       get access_control_table(=ptype, =ch_type__893, =none__syscall) in
+       (let family__891:channel = channel_family(ch_rpc__871) in
+        (let parameter__892:param_data = channel_parameter(ch_rpc__871) in
+         out(family__891, (parameter__892, Returned__chan(int__pos_2))))
+        else out(ch_rpc__871, Returned__chan(int__pos_2))) |
+       (* event [ ::ClientTAClose() ] at file "./200_camserver_param.rab", line 72, charaters 4-30 *)
+       event ClientTAClose__event_global)))
+  else
+    in(ch_rpc__871, req__chan());
+    ((* put [ c__865::ack() ] at file "./200_camserver_param.rab", line 23, charaters 20-34 *)
+     get channel_table(ch_type__899:acc_data_t, =ch_rpc__871) in
+     get access_control_table(=ptype, =ch_type__899, =accept_rpc__0__syscall)
+     in
+     (let family__897:channel = channel_family(ch_rpc__871) in
+      (let parameter__898:param_data = channel_parameter(ch_rpc__871) in
+       out(family__897, (parameter__898, ack__chan())))
+      else out(ch_rpc__871, ack__chan())) |
+     (get channel_table(ch_type__896:acc_data_t, =ch_rpc__871) in
+      get access_control_table(=ptype, =ch_type__896, =none__syscall) in
+      let family__894:channel = channel_family(ch_rpc__871) in
+      (let parameter__895:param_data = channel_parameter(ch_rpc__871) in
+       in(family__894, (=parameter__895, invoke__chan(guard_arg_0__890:bitstring)));
+       (* put [ ch_rpc__871::Returned(2) ] at file "./200_camserver_param.rab", line 70, charaters 10-35 *)
+       get channel_table(ch_type__893:acc_data_t, =ch_rpc__871) in
+       get access_control_table(=ptype, =ch_type__893, =none__syscall) in
+       (let family__891:channel = channel_family(ch_rpc__871) in
+        (let parameter__892:param_data = channel_parameter(ch_rpc__871) in
+         out(family__891, (parameter__892, Returned__chan(int__pos_2))))
+        else out(ch_rpc__871, Returned__chan(int__pos_2))) |
+       (* event [ ::ClientTAClose() ] at file "./200_camserver_param.rab", line 72, charaters 4-30 *)
+       event ClientTAClose__event_global)
+      else
+        in(ch_rpc__871, invoke__chan(guard_arg_0__890:bitstring));
+        ((* put [ ch_rpc__871::Returned(2) ] at file "./200_camserver_param.rab", line 70, charaters 10-35 *)
+         get channel_table(ch_type__893:acc_data_t, =ch_rpc__871) in
+         get access_control_table(=ptype, =ch_type__893, =none__syscall) in
+         (let family__891:channel = channel_family(ch_rpc__871) in
+          (let parameter__892:param_data = channel_parameter(ch_rpc__871) in
+           out(family__891, (parameter__892, Returned__chan(int__pos_2))))
+          else out(ch_rpc__871, Returned__chan(int__pos_2))) |
+         (* event [ ::ClientTAClose() ] at file "./200_camserver_param.rab", line 72, charaters 4-30 *)
+         event ClientTAClose__event_global))).
+(* Requires *)
+(* lemma ClientClose *)
+query event(ClientClose__event_global()).
+(* lemma ClientTAClose *)
+query event(ClientTAClose__event_global()).
+(* System *)
+process
+  (* allow client_t rpc_t [connect_rpc] *)
+  insert access_control_table(client_t__0, rpc_t__0, connect_rpc__0__syscall);
+  (* allow client_t rpc_t [invoke_rpc] *)
+  insert access_control_table(client_t__0, rpc_t__0, invoke_rpc__0__syscall);
+  (* allow client_ta_t rpc_t [accept_rpc] *)
+  insert access_control_table(client_ta_t__0, rpc_t__0, accept_rpc__0__syscall);
+  (* allow client_ta_t rpc_t [.] *)
+  insert access_control_table(client_ta_t__0, rpc_t__0, none__syscall);
+  (* allow client_t rpc_t [.] *)
+  insert access_control_table(client_t__0, rpc_t__0, none__syscall);
+  !(new n__873:param_data;
+    client__0(client_t__0, n__873, channel_instance(rpc__0, n__873)) |
+    client_ta__0(client_ta_t__0, n__873, channel_instance(rpc__0, n__873)))

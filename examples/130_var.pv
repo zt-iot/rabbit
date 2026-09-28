@@ -1,0 +1,42 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+table persistent_fact_table(bitstring).
+fun persistent_local_fact(bitstring, bitstring): bitstring[data].
+fun persistent_channel_fact(channel, bitstring): bitstring[data].
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Integer constant 1 *)
+const int__pos_1: bitstring.
+(* Body *)
+(* type person_t : process *)
+const person_t__0: proc_t.
+fun x__global_fact(bitstring): bitstring[data].
+free global_fact_ch: channel[private].
+(* process alice(..): person_t *)
+let alice__0(ptype:proc_t) =
+  (* put [ ::x(v__750) ] at file "./130_var.rab", line 11, charaters 8-20 *)
+  out(global_fact_ch, x__global_fact(int__pos_1)) |
+  in(global_fact_ch, x__global_fact(arg_0__751:bitstring))[precise];
+  if arg_0__751 = int__pos_1
+  then
+    (* event [ ::Valid() ] at file "./130_var.rab", line 13, charaters 15-31 *)
+    event Valid__event_global.
+(* Requires *)
+(* lemma Valid *)
+query event(Valid__event_global()).
+(* System *)
+process alice__0(person_t__0)

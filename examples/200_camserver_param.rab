@@ -78,9 +78,9 @@ system
   !n . (client<n>(rpc<n>) | client_ta<n>(rpc<n>)) 
 requires  
 [
-  lemma ClientClose:
+  lemma ClientClose: (* verified *)
     reachable ::ClientClose() ;
 
-  lemma ClientTAClose:
+  lemma ClientTAClose: (* verified *)
     reachable ::ClientTAClose()
 ]

@@ -1,0 +1,62 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+table persistent_fact_table(bitstring).
+fun persistent_local_fact(bitstring, bitstring): bitstring[data].
+fun persistent_channel_fact(channel, bitstring): bitstring[data].
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+fun channel_instance(channel, param_data): channel[private].
+reduc
+  forall family:channel, parameter:param_data; channel_family(channel_instance(family, parameter)) = family[private].
+reduc
+  forall family:channel, parameter:param_data; channel_parameter(channel_instance(family, parameter)) = parameter[private].
+(* Channel fact declaration send(..) *)
+fun send__chan(bitstring): bitstring[data].
+(* syscall send_one(..) *)
+const send_one__0__syscall: syscall_t.
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Integer constant 1 *)
+const int__pos_1: bitstring.
+(* Body *)
+(* type person_t : process *)
+const person_t__0: proc_t.
+(* type chan_t : channel *)
+const chan_t__0: acc_data_t.
+(* process alice(..): person_t *)
+let alice__0(ptype:proc_t, p__664:param_data, ch__665:channel) =
+  (* Channel ch__665 : chan_t *)
+  insert channel_table(chan_t__0, ch__665);
+  (* _ := .. at file "./062_allow_param.rab", line 23, charaters 8-25 *)
+  (* put [ c__663::send(1) ] at file "./062_allow_param.rab", line 5, charaters 3-18 *)
+  get channel_table(ch_type__669:acc_data_t, =ch__665) in
+  get access_control_table(=ptype, =ch_type__669, =send_one__0__syscall) in
+  (let family__667:channel = channel_family(ch__665) in
+   (let parameter__668:param_data = channel_parameter(ch__665) in
+    out(family__667, (parameter__668, send__chan(int__pos_1))))
+   else out(ch__665, send__chan(int__pos_1))) |
+  (* event [ ::Valid() ] at file "./062_allow_param.rab", line 24, charaters 8-24 *)
+  event Valid__event_global.
+(* channel chan<> : chan_t *)
+free chan__0: channel[private].
+(* Requires *)
+(* lemma Reachable *)
+query event(Valid__event_global()).
+(* System *)
+process
+  (* allow person_t chan_t [send_one] *)
+  insert access_control_table(person_t__0, chan_t__0, send_one__0__syscall);
+  !(new p__666:param_data;
+    alice__0(person_t__0, p__666, channel_instance(chan__0, p__666)))
