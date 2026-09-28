@@ -65,3 +65,8 @@ asynchronous fact outputs, or process initialization. Conflicting rules and
 destructors in queries have expected diagnostic fixtures. AST and invalid-rule
 checks are in `test/reduc`.
 
+Loop continuation regressions are described in
+[Loop continuations](../../proverif_loop_continuations.md). `camserver_sid.rab`
+checks the previously unknown reachability and correspondence queries;
+`loop_tail_state.rab` and `test_loop_tail_shape` check state propagation,
+exclusive branch selection, access denial, and preserved non-tail ordering.

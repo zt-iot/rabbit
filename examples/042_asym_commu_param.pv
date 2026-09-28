@@ -79,28 +79,25 @@ let server__0(ptype:proc_t, ch__521:channel) =
       (* let res__526 = .. in .. at file "./042_asym_commu_param.rab", line 34, charaters 5-172 *)
       (* case at file "./042_asym_commu_param.rab", line 37, charaters 9-28 *)
       new case_ch__542:channel;
-      ((out(case_ch__542, (false__bool, (), received_parameter__540, guard_arg_0__541, fst__0(guard_arg_0__541), snd__0(guard_arg_0__541), verify__0(fst__0(guard_arg_0__541), snd__0(guard_arg_0__541), pk__0(privkey__0(received_parameter__540))))) |
-        (* case [ res__526 = true ] at file "./042_asym_commu_param.rab", line 37, charaters 9-28 *)
-        in(case_ch__542, (=false__bool, case_result__549:bitstring, case_state_0__550:param_data, case_state_1__551:bitstring, case_state_2__552:bitstring, case_state_3__553:bitstring, case_state_4__554:bitstring))[precise];
-        if case_state_4__554 = true__0
-        then
-          (* event [ ::Valid(msg__525) ] at file "./042_asym_commu_param.rab", line 37, charaters 9-28 *)
-          event Valid__event_global(case_state_3__553);
-          out(case_ch__542, (true__bool, (), case_state_0__550, case_state_1__551, case_state_2__552, case_state_3__553, case_state_4__554))
-        else
-          out(case_ch__542, (false__bool, case_result__549, case_state_0__550, case_state_1__551, case_state_2__552, case_state_3__553, case_state_4__554))) |
-       (* case [ res__526 = false ] at file "./042_asym_commu_param.rab", line 39, charaters 9-30 *)
-       in(case_ch__542, (=false__bool, case_result__555:bitstring, case_state_0__556:param_data, case_state_1__557:bitstring, case_state_2__558:bitstring, case_state_3__559:bitstring, case_state_4__560:bitstring))[precise];
-       if case_state_4__560 = false__0
+      (out(case_ch__542, (false__bool, (), received_parameter__540, guard_arg_0__541, fst__0(guard_arg_0__541), snd__0(guard_arg_0__541), verify__0(fst__0(guard_arg_0__541), snd__0(guard_arg_0__541), pk__0(privkey__0(received_parameter__540))))) |
+       (* case [ res__526 = true ] at file "./042_asym_commu_param.rab", line 37, charaters 9-28 *)
+       in(case_ch__542, (=false__bool, case_result__549:bitstring, case_state_0__550:param_data, case_state_1__551:bitstring, case_state_2__552:bitstring, case_state_3__553:bitstring, case_state_4__554:bitstring))[precise];
+       if case_state_4__554 = true__0
        then
-         (* event [ ::Invalid(msg__525) ] at file "./042_asym_commu_param.rab", line 39, charaters 9-30 *)
-         event Invalid__event_global(case_state_3__559);
-         out(case_ch__542, (true__bool, (), case_state_0__556, case_state_1__557, case_state_2__558, case_state_3__559, case_state_4__560))
+         (* event [ ::Valid(msg__525) ] at file "./042_asym_commu_param.rab", line 37, charaters 9-28 *)
+         event Valid__event_global(case_state_3__553);
+         out(loop_ch__536, (false__bool, ()))
        else
-         out(case_ch__542, (false__bool, case_result__555, case_state_0__556, case_state_1__557, case_state_2__558, case_state_3__559, case_state_4__560))) |
-      (* end of case at file "./042_asym_commu_param.rab", line 37, charaters 9-28 *)
-      in(case_ch__542, (=true__bool, case_done_result__543:bitstring, case_done_state_0__544:param_data, case_done_state_1__545:bitstring, case_done_state_2__546:bitstring, case_done_state_3__547:bitstring, case_done_state_4__548:bitstring))[precise];
-      out(loop_ch__536, (false__bool, case_done_result__543))
+         out(case_ch__542, (false__bool, case_result__549, case_state_0__550, case_state_1__551, case_state_2__552, case_state_3__553, case_state_4__554))) |
+      (* case [ res__526 = false ] at file "./042_asym_commu_param.rab", line 39, charaters 9-30 *)
+      in(case_ch__542, (=false__bool, case_result__555:bitstring, case_state_0__556:param_data, case_state_1__557:bitstring, case_state_2__558:bitstring, case_state_3__559:bitstring, case_state_4__560:bitstring))[precise];
+      if case_state_4__560 = false__0
+      then
+        (* event [ ::Invalid(msg__525) ] at file "./042_asym_commu_param.rab", line 39, charaters 9-30 *)
+        event Invalid__event_global(case_state_3__559);
+        out(loop_ch__536, (false__bool, ()))
+      else
+        out(case_ch__542, (false__bool, case_result__555, case_state_0__556, case_state_1__557, case_state_2__558, case_state_3__559, case_state_4__560))
       else out(loop_ch__536, (false__bool, loop_result__539))
       else out(loop_ch__536, (false__bool, loop_result__539))) |
      (* until case [ ::False() ] at file "./042_asym_commu_param.rab", line 42, charaters 25-29 *)

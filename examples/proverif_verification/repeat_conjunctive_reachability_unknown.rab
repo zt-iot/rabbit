@@ -1,12 +1,9 @@
 tag global [A:0, B:0]
 fact channel [Exit:0]
 
-(* Regression: conjunction is semantically commutative, but after repeat
-   lowering ProVerif reconstructs the A-then-B order and returns unknown for
-   the equivalent B-then-A query.
-
-   Reviewed.
-*)
+(* Regression: publishing the loop continuation before the final channel
+   output lets ProVerif reconstruct either order of this conjunction.
+   The reverse-order query returned unknown before loop-tail lowering. *)
 
 type proc_t : process
 type channel_t : channel
@@ -33,7 +30,7 @@ system worker(loopback)
 requires
 [
   (* PROVERIF EXPECTED
-  unknown
+  true
   *)
   lemma ReverseOrderIsReachable : (* verified *)
     reachable ::B(), ::A() ;

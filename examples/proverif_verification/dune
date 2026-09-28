@@ -98,3 +98,11 @@
  (libraries rabbit_core rabbit_proverif_pv)
  (deps persistent_matching.rab)
  (action (run %{test} %{dep:persistent_matching.rab})))
+
+(test
+ (name test_loop_tail_shape)
+ (modules test_loop_tail_shape)
+ (libraries rabbit_core rabbit_proverif_pv)
+ (deps loop_tail_state.rab)
+ (action (run %{test} %{dep:loop_tail_state.rab})))
+

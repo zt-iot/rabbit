@@ -4,11 +4,74 @@
 
 # ProVerif compiler test status
 
+## Current loop-continuation results — 2026-09-23
+
+Tested: `codex/proverif-loop-continuation`, based on `a0a58d3`, with the
+current uncommitted compiler and test changes.
+
+```sh
+opam exec -- dune runtest --force examples/proverif_verification
+```
+
+The suite recompiles Rabbit inputs and compares normalized ProVerif results
+with their `PROVERIF EXPECTED` blocks. Reachability results below use Rabbit
+polarity: a concrete reachable trace is `true`. No Tamarin run was performed
+for this update.
+
+| Suite | Inputs | Pass | Fail |
+|---|---:|---:|---:|
+| `examples/proverif_verification/*.rab` | 147 | 142 | 5 |
+
+Counts include expected-rejection inputs. AST shape checks also passed.
+A passing test may intentionally expect `unknown`; the suite as a whole is
+not free of unknown results.
+
+### Added or updated expectations
+
+All paths in this table are relative to `examples/proverif_verification/`.
+
+| Input | Lemma / checks | Previous result | Current expected and actual result | Status |
+|---|---|---|---|---|
+| `camserver_sid.rab` | `Reachable` | `unknown` with the previous compiler | `true` | Pass |
+| `camserver_sid.rab` | `Correspondence` | `unknown` with the previous compiler | `false` | Pass |
+| `repeat_conjunctive_reachability.rab` | `ReverseOrderIsReachable`, `ExecutionOrderIsReachable` | `unknown`, `true` | `true`, `true` | Pass |
+| `repeat_conjunctive_reachability_unknown.rab` | `ReverseOrderIsReachable`, `ExecutionOrderIsReachable` | `unknown`, `true` | `true`, `true` | Pass |
+| `loop_tail_state.rab` | 14 state, call, scope, and ordering checks | New regression | 12 `true`, 2 `false` | Pass |
+
+These four inputs have no unknown results. The SID camserver fixture omits
+the auxiliary persistent `Signed` fact, which the base branch does not yet
+compile. Its result does not describe the unchanged `examples/camserver.rab`.
+
+### Existing expectation mismatches
+
+These five failures have the same results as before loop-continuation lowering.
+Their expectations have not been changed to accept unknown results.
+
+| Input | Expected | Actual |
+|---|---|---|
+| `channel.rab` | `true`, `false` | `true`, `unknown` |
+| `delete.rab` | `true`, `false` | `true`, `unknown` |
+| `fetch_after_delete.rab` | `false` | `unknown` |
+| `file_write.rab` | `true`, `true`, `true` | `true`, `true`, `unknown` |
+| `file_write_without_ac.rab` | `true`, `true`, `true` | `true`, `true`, `unknown` |
+
+The six affected generated-PV snapshots under `examples/` were also updated:
+`021_pingpong_loop`, `031_nonce_handshake_loop`,
+`032_nonce_handshake_loop_dest`, `038_nonce_handshake_loop_alice`,
+`041_asym_commu`, and `042_asym_commu_param`. These are output-shape changes;
+the two conjunction inputs above are the existing verification regressions
+whose results changed.
+
+## Historical report — 2026-08-28
+
+The following tables are retained as historical data. Their counts,
+compilation status, and recorded Tamarin markers are not current results.
+
 Checked on: 2026-08-28
 
 Tested commit: `116d516` plus the current tracked working-tree changes
 
-## Evaluation method
+### Evaluation method
 
 `examples/proverif/` is omitted because all of its tests pass.
 
@@ -27,7 +90,7 @@ unexecuted verification is `Fail`.
 | `examples/*.rab` | 58 | 43 | 15 |
 | `examples/proverif_verification/*.rab` | 89 | 59 | 30 |
 
-## `examples/*.rab`
+### `examples/*.rab`
 
 | Input | Compilation | Tamarin verification | ProVerif verification | Status | Comments |
 |---|---|---|---|---|---|
@@ -90,7 +153,7 @@ unexecuted verification is `Fail`.
 | `secure_dns.rab` | Pass | `verified`, `verified`, `verified` | `true`, `true`, `true` | Pass | — |
 | `udp_rpc.rab` | Pass | None | None | Pass | Neither backend has a lemma to verify. |
 
-## `examples/proverif_verification/*.rab`
+### `examples/proverif_verification/*.rab`
 
 | Input | Compilation | Tamarin verification | ProVerif verification | Status | Comments |
 |---|---|---|---|---|---|
