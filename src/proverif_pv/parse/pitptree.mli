@@ -1,3 +1,16 @@
+(* SPDX-License-Identifier: GPL-2.0-or-later
+   Derived from ProVerif, copyright INRIA-CNRS,
+   by Bruno Blanchet, Vincent Cheval, and Marc Sylvestre.
+   Source: https://gitlab.inria.fr/bblanche/proverif
+   Upstream commit: a138c1ea33bdf8d621035a51c973a4ceef4095be
+   See LICENSE in this directory for the GNU General Public License.
+
+   Rabbit changes:
+   2026-08-02: added AST comment fields and declaration comments.
+   2026-08-03: changed AST comments to string lists.
+   2026-09-30: added this provenance and license notice.
+*)
+
 (* Typed front-end *)
 
 (* Terms *)

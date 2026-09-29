@@ -70,3 +70,21 @@ graph `xxx.spthy.2.svg` is generated for the new compilation `xxx.spthy.2`.)
 * Inaba, T., Ishikawa, Y., Igarashi, A., & Sekiyama, T. (2024). _Rabbit: A Language to Model and Verify Data Flow in Networked Systems_. In 2024 International Symposium on Networks, Computers and Communications (ISNCC) (pp. 1-8). IEEE. https://doi.org/10.1109/ISNCC62547.2024.10758938
 * Park, S., & Igarashi, A. (2025). _Making Rabbit Run for Security Verification of Networked Systems with Unbounded Loops_. In A. Irfan & D. Kaufmann (Eds.), Proceedings of the 25th Conference on Formal Methods in Computer-Aided Design – FMCAD 2025 (pp. 178–187). TU Wien Academic Press. https://doi.org/10.34727/2025/isbn.978-3-85448-084-6_24
 
+## License
+
+Rabbit is distributed as a whole under the GNU General Public License,
+version 2 or (at your option) any later version (`GPL-2.0-or-later`).
+See [LICENSE](LICENSE) for the license text.
+
+Rabbit is distributed without any warranty; without even the implied warranty
+of merchantability or fitness for a particular purpose.
+
+The original Rabbit code was released under the MIT license. Its copyright
+and permission notice is preserved in [LICENSE-MIT](LICENSE-MIT); that notice
+continues to apply to those portions and does not license the ProVerif-derived
+code under MIT. The combined distribution is covered by GPL-2.0-or-later.
+
+The ProVerif backend includes code from ProVerif, copyright INRIA-CNRS,
+by Bruno Blanchet, Vincent Cheval, and Marc Sylvestre. See
+[Code derived from ProVerif](README_proverif.md#code-derived-from-proverif)
+for provenance and modifications.

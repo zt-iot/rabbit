@@ -7,7 +7,7 @@ description:
   "Rabbit is a domain-specific language and toolchain for modeling networked systems and verifying their security properties using the Tamarin and ProVerif backends."
 maintainer: ["sewon@sewonpark.com"]
 authors: ["Sewon Park"]
-license: "MIT"
+license: "GPL-2.0-or-later"
 homepage: "https://github.com/zt-iot/rabbit"
 depends: [
   "dune" {>= "3.15"}
