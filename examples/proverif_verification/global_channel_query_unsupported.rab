@@ -1,0 +1,23 @@
+tag channel [Message:1]
+
+(* Negative test: directly referring to the global channel [transport] in a
+   query is rejected by the type checker. This does not test channel queries
+   in general. The expected result is the diagnostic in the sibling .error
+   file; this test does not assert reachability. *)
+
+type proc_t : process
+type transport_t : channel
+
+process worker(ch : transport_t) : proc_t
+{
+  main { skip }
+}
+
+allow proc_t transport_t [.]
+channel transport : transport_t
+
+system worker(transport)
+requires
+[
+  lemma MessageIsReachable : reachable transport::Message(value)
+]

@@ -22,6 +22,7 @@ type Error.error +=
   | InvalidAnonymousAssignment
   | GlobalChannelInExpr of Ident.t
   | WildcardNotAllowed
+  | ProcessFactsUnsupported
   | ComparisonFactOutsideGuard
   | TypeMismatch of Type.type_ * Type.type_
   | PersistencyMismatch of
@@ -90,6 +91,8 @@ let () = Error.add_printer @@ fun err ppf ->
       Format.pp_print_string ppf "Pure expression is used at _ := e, which has no effect"
   | GlobalChannelInExpr id ->
       Format.fprintf ppf "Global channel %t cannot be used in an expression" (Ident.print id)
+  | ProcessFactsUnsupported ->
+      Format.pp_print_string ppf "Process facts are not supported"
   | WildcardNotAllowed ->
       Format.pp_print_string ppf "Wildcard '_' is only allowed in case/while guards"
   | ComparisonFactOutsideGuard ->
@@ -168,8 +171,8 @@ let rec type_expr ?(allow_wildcard = false) env (e : Input.expr) : Typed.expr =
          | _ -> ()
         );
         Ident { id; desc; param = None }
+    | Tuple [] -> Unit
     | Tuple es ->
-        assert (List.length es > 0);
         Tuple (List.map (type_expr ~allow_wildcard env) es)
     | Apply (f, es) ->
         let es = List.map (type_expr ~allow_wildcard env) es in
@@ -264,7 +267,7 @@ let type_fact ?(allow_comparison = false) ?(allow_wildcard = false) ~is_tag env 
   let loc = fact.loc in
   let desc : Typed.fact' =
     match fact.data with
-    | ProcessFact _ -> assert false (* Unused *)
+    | ProcessFact _ -> Error.raise ~loc ProcessFactsUnsupported
     | Fact { name; args; persist } ->
         let args = List.map (type_expr ~allow_wildcard env) args in
         check_env_fact ~is_tag ~loc env Plain name args ~persist;
@@ -628,9 +631,9 @@ let type_lemma env (lemma : Input.lemma) : Env.t * (Ident.t * Typed.lemma) =
   env, (id, lemma)
 ;;
 
-let type_fact_desc (d : Input.fact_desc) : Env.named_fact_desc =
+let type_fact_desc ~loc (d : Input.fact_desc) : Env.named_fact_desc =
   match d with
-  | Process -> assert false (* Unused *)
+  | Process -> Error.raise ~loc ProcessFactsUnsupported
   | Channel -> Channel
   | Plain -> Plain
   | Global -> Global
@@ -681,14 +684,14 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       else if List.length descs > 1
       then Error.raise ~loc @@ FactDescConflict descs
       else
-        let desc = type_fact_desc (List.hd descs) in
+        let desc = type_fact_desc ~loc (List.hd descs) in
         List.iter (fun (id, arity) -> Env.add_fact ~loc env id (desc, Some (List.init arity (fun _ -> Type.fresh_type ())), is_persist)) facts;
         (env, [])
   | DeclTags (desc, tags) ->
       if desc = Input.Persistent
       then Error.raise ~loc @@ (Misc "Tag declaration must specify some kind")
       else
-        let desc = type_fact_desc desc in
+        let desc = type_fact_desc ~loc desc in
         List.iter (fun (id, arity) -> Env.add_tag ~loc env id (desc, Some (List.init arity (fun _ -> Type.fresh_type ())))) tags;
         (env, [])
   | DeclExtSyscall (name, args, c, attack) ->

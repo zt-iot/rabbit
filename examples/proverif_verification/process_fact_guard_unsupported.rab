@@ -1,0 +1,8 @@
+(* Negative test: process fact use also receives an explicit diagnostic. *)
+tag global [Ready:0]
+type proc_t : process
+process worker() : proc_t {
+  main { case [worker % State(value)] -> event [::Ready()] end }
+}
+system worker()
+requires [lemma Ready : reachable ::Ready()]

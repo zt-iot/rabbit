@@ -1,0 +1,21 @@
+tag global [Valid:0]
+
+(* An assumption gates its continuation using the current assume ... in syntax. *)
+
+type proc_t : process
+
+process worker() : proc_t
+{
+  main {
+    assume [1 = 1] in
+    event [::Valid()]
+  }
+}
+
+system
+  worker()
+requires
+[
+  lemma ReachableValid : (* verified *)
+    reachable ::Valid()
+]

@@ -1,7 +1,8 @@
 fact process [State:1]
 tag global [Ready:0]
 
-(* Known gap: process facts are parsed but unused by the Typed AST. *)
+(* Negative test: process fact declarations receive an explicit unsupported
+   diagnostic rather than an assertion failure. *)
 
 type proc_t : process
 
@@ -17,5 +18,5 @@ process worker() : proc_t
 system worker()
 requires
 [
-  lemma ReadyIsReachable : (* verified *) reachable ::Ready()
+  lemma ReadyIsReachable : reachable ::Ready()
 ]
