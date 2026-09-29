@@ -1,0 +1,6 @@
+tag global [Hit:0]
+function f:1
+type p_t : process
+process worker() : p_t { main { assume [f(x) = f(y)] in skip } }
+system worker()
+requires [lemma Check : reachable ::Hit()]

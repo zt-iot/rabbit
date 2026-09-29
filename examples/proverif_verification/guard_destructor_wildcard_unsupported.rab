@@ -1,0 +1,8 @@
+tag global [Hit:0]
+function f:1
+function d:1
+reduc d(f(x)) = x
+type p_t : process
+process worker() : p_t { main { assume [1 = d(_)] in skip } }
+system worker()
+requires [lemma Check : reachable ::Hit()]

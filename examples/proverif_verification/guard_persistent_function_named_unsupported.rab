@@ -1,0 +1,10 @@
+tag global [Hit:0]
+fact global persist [Saved:1]
+function f:1
+type p_t : process
+process worker() : p_t { main {
+ put [!::Saved(f(1))];
+ case [!::Saved(f(x))] -> skip end
+} }
+system worker()
+requires [lemma Check : reachable ::Hit()]

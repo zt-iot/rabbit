@@ -1,0 +1,28 @@
+tag global [Bound:2, Bad:0, Wildcard:0, Conflict:0]
+function f:2
+function g:1
+type proc_t : process
+process worker() : proc_t { main {
+  assume [f(g(x),2) = f(g(1),y)] in
+  event [::Bound(x,y)];
+  assume [f(_,2) = f(1,_)] in event [::Wildcard()]
+} }
+process bad() : proc_t { main {
+  assume [f(x,x) = f(1,2)] in event [::Bad()]
+} }
+process conflict() : proc_t { main {
+  assume [f(_,2) = f(_,3)] in event [::Conflict()]
+} }
+system worker() | bad() | conflict()
+requires [
+ (* PROVERIF EXPECTED
+ true
+ false
+ true
+ false
+ *)
+ lemma Bound : reachable ::Bound(1,2);
+ lemma Bad : reachable ::Bad();
+ lemma Wildcard : reachable ::Wildcard();
+ lemma Conflict : reachable ::Conflict()
+]

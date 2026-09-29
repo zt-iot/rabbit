@@ -10,9 +10,13 @@ process worker(ch : channel_t) : proc_t {
   file "/data" : storage_t = f(1)
   main {
     var p = f(1) in
-    case ["/data".f(x)] -> event [::Matched(x)] end
+    case [p = f(x)] -> event [::Matched(x)] end
   }
 }
 channel ch : channel_t
 system worker(ch)
-requires [lemma Check : reachable ::Matched(x)]
+requires [
+  (* PROVERIF EXPECTED
+  true
+  *)
+  lemma Check : reachable ::Matched(x)]

@@ -46,6 +46,7 @@ module GEnv = struct
 
   type t =
     { tyenv                 : Env.t (** typing environment *)
+    ; mutable equation_functions : Ident.Set.t
     ; mutable destructors   : Ident.Set.t
     ; mutable strings       : (string * ident) list (** string constants and their identifiers *)
     ; mutable integers      : (int * ident) list (** integer constants and their identifiers *)
@@ -70,6 +71,7 @@ module GEnv = struct
 
   let create tyenv : t =
     { tyenv              = tyenv
+    ; equation_functions = Ident.Set.empty
     ; destructors        = Ident.Set.empty
     ; strings            = []
     ; integers           = []
@@ -98,6 +100,24 @@ module GEnv = struct
 
   let is_destructor genv id = Ident.Set.mem id genv.destructors
   let has_destructors genv = not (Ident.Set.is_empty genv.destructors)
+
+  let rec add_equation_expr genv (expr : T.expr) =
+    match expr.desc with
+    | Apply (id, args) ->
+        genv.equation_functions <- Ident.Set.add id genv.equation_functions;
+        List.iter (add_equation_expr genv) args
+    | Tuple args -> List.iter (add_equation_expr genv) args
+    | Ident { param; _ } -> Option.iter (add_equation_expr genv) param
+    | Unit | String _ | Boolean _ | Integer _ | Float _ -> ()
+
+  (* Conservative freedom criterion: a constructor absent from all equations.
+     Constructors inside reduc arguments remain free; only the head is partial. *)
+  let is_free_constructor genv id =
+    (match Env.find_opt_by_id genv.tyenv id with
+     | Some (ExtFun _) -> true
+     | _ -> false)
+    && not (is_destructor genv id)
+    && not (Ident.Set.mem id genv.equation_functions)
 
   let add_ident genv ~base : ident =
     let rec find_available index =

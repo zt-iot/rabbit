@@ -1191,6 +1191,12 @@ let compile_program (env : Env.t) (decls : T.decl list) : Pv_parser.program =
   List.iter (GEnv.add_decl_strings genv) decls;
   List.iter (collect_decl genv) decls;
   let flat_decls = flatten_decls decls in
+  List.iter (fun (decl : T.decl) ->
+      match decl.desc with
+      | Equation (lhs, rhs) ->
+          GEnv.add_equation_expr genv lhs;
+          GEnv.add_equation_expr genv rhs
+      | _ -> ()) flat_decls;
   let reductions = collect_reductions genv flat_decls in
   let function_decls =
     if reductions = [] then []
