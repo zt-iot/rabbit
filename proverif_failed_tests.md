@@ -34,7 +34,7 @@ They are valid Rabbit code but are not supported in the current ProVerif compila
 | `proverif_verification/parameterized_channel_expression_unsupported.rab` | Translation of compound parameters is limited. |
 | `proverif_verification/parameterized_process_expression_unsupported.rab` | Translation of compound parameters is limited. |
 | `digital_signature.rab` | ProVerif wont support raw Tamarin trace formula in lemmas. |
-| `proverif_verification/plain_lemma_unsupported.rab` | `Plain lemma` | Raw Tamarin-specific lemma string. Consider using a structured query. |
+| `proverif_verification/plain_lemma_unsupported.rab` | Raw Tamarin-specific lemma strings are unsupported. Consider using a structured query. |
 | `proverif_verification/channel_family_expression_unsupported.rab` | Translation of compound parameters is limited. |
 | `proverif_verification/guard_destructor_wildcard_unsupported.rab` | Destructor patterns containing wildcards are not supported |
 | `proverif_verification/guard_equational_function_unsupported.rab` | Guard variables cannot be bound by supported equality or input patterns |
@@ -62,10 +62,10 @@ They are valid Rabbit code but are not supported in the current ProVerif compila
 | `proverif_verification/file_fact_event_unsupported.rab` | File facts are not allowed in events or queries |
 | `proverif_verification/file_lemma_unsupported.rab` | File facts are not allowed in events or queries |
 | `proverif_verification/global_channel_query_unsupported.rab` | Tests the restriction on directly referencing a global channel in a query, not channel queries in general. |
-| `proverif_verification/guard_constructor_unbound_unsupported.rab` | Variables or input channels cannot have binding source. |
-| `proverif_verification/guard_tuple_inequality_unsupported.rab` | Variables or input channels cannot have binding source. |
-| `proverif_verification/guard_tuple_no_value_unsupported.rab` | Variables or input channels cannot have binding source. |
-| `proverif_verification/guard_unbound_channel_unsupported.rab` | Variables or input channels cannot have binding source. |
+| `proverif_verification/guard_constructor_unbound_unsupported.rab` | Variables or input channels have no supported binding source. |
+| `proverif_verification/guard_tuple_inequality_unsupported.rab` | Variables or input channels have no supported binding source. |
+| `proverif_verification/guard_tuple_no_value_unsupported.rab` | Variables or input channels have no supported binding source. |
+| `proverif_verification/guard_unbound_channel_unsupported.rab` | Variables or input channels have no supported binding source. |
 | `proverif_verification/inequality_conclusion_unsupported.rab` | Comparison facts are allowed only in guards; file facts cannot be used in events or queries. |
 | `proverif_verification/inequality_event_unsupported.rab` | Comparison facts are allowed only in guards; file facts cannot be used in events or queries. |
 | `proverif_verification/inequality_premise_unsupported.rab` | Comparison facts are allowed only in guards; file facts cannot be used in events or queries. |
