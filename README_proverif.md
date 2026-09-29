@@ -210,7 +210,20 @@ The following files were copied from ProVerif's repository, commit
 - `src/proverif_pv/parse/pitptree.mli`
 - `src/proverif_pv/parse/ptree.mli`
 
-Some of these files are slightly modified for Rabbit to carry annotations and new types.
+These files are covered by GPL-2.0-or-later. ProVerif is copyright INRIA-CNRS,
+by Bruno Blanchet, Vincent Cheval, and Marc Sylvestre. Rabbit as a whole is
+distributed under GPL-2.0-or-later; see the [license notice](README.md#license).
+
+Rabbit modifications to the copied files:
+
+- 2026-08-02 (`00f802c`): in `pitparser.mly` and `pitptree.mli`, added AST
+  comment fields and declaration comments,
+  and adapted parser actions to the extended AST.
+- 2026-08-03 (`c3b4a21`): changed AST comments to string lists and updated
+  parser actions accordingly.
+- 2026-09-30: added provenance and license notices to the six copied files.
+
+The other four copied files retain their upstream implementation.
 
 A copy of the upstream GPL text is retained in [src/proverif_pv/parse/LICENSE](src/proverif_pv/parse/LICENSE).
 
