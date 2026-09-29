@@ -1,9 +1,11 @@
 tag global [Value:1]
 
-(* Known gap: operator tokens cannot currently be declared as external functions.
+(* Negative test: declaring an operator with [function +:2] is rejected by
+   the parser, which requires an ordinary name in a function declaration.
+   The expected result is the diagnostic in the sibling .error file, not the
+   reachability marker below. *)
 
-   This is a bug of Rabbit.  It cannot declare operators like `function +:2`.
-*)
+function +:2
 
 type proc_t : process
 

@@ -1,0 +1,37 @@
+(* Predefined types *)
+type param_data.
+type proc_t.
+type acc_data_t.
+type syscall_t.
+free attacker_ch: channel.
+(* Tables *)
+table access_control_table(proc_t, acc_data_t, syscall_t).
+table file_type_table(proc_t, acc_data_t, bitstring).
+table channel_table(acc_data_t, channel).
+table deleted_address_table(bitstring).
+table persistent_fact_table(bitstring).
+fun persistent_local_fact(bitstring, bitstring): bitstring[data].
+fun persistent_channel_fact(channel, bitstring): bitstring[data].
+(* Pattern which matches with any system call *)
+const none__syscall: syscall_t.
+(* Booleans *)
+const true__bool: bitstring.
+const false__bool: bitstring.
+(* Event declaration ::Valid(..) *)
+event Valid__event_global.
+(* Integer constant 1 *)
+const int__pos_1: bitstring.
+(* Body *)
+(* type proc_t : process *)
+const proc_t__0: proc_t.
+(* process worker(..): proc_t *)
+let worker__0(ptype:proc_t) =
+  if int__pos_1 = int__pos_1
+  then
+    (* event [ ::Valid() ] at file "./3_11_assumptions.rab", line 11, charaters 4-21 *)
+    event Valid__event_global.
+(* Requires *)
+(* lemma ReachableValid *)
+query event(Valid__event_global()).
+(* System *)
+process worker__0(proc_t__0)

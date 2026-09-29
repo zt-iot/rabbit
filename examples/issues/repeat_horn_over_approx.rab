@@ -1,3 +1,6 @@
+fact channel [Req:1, Rep:1]
+tag global [P:1, A:1]
+
 type p : process
 type c : channel
 allow p c [.]
