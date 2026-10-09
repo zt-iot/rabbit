@@ -1,0 +1,773 @@
+theory rabbit
+begin
+builtins: natural-numbers
+
+//// Signature
+
+functions: fst2/1, snd2/1, fst3/1, snd3/1, trd3/1, pk/1, aenc/2, adec/2, hash/1, sign/2, verify/3, true/0
+equations: fst2(<x__2, y__3>)=x__2, snd2(<x__4, y__5>)=y__5, fst3(<x__6, y__7, z__8>)=x__6, snd3(<x__9, y__10, z__11>)=y__10, trd3(<x__12, y__13, z__14>)=z__14, adec(aenc(msg__15, pk(privk__16)), privk__16)=msg__15, verify(sign(msg__17, privk__18), msg__17, pk(privk__18))=true()
+
+//// Constants
+
+// const fresh ca_id
+rule Const_ca_id
+  : [ Fr(ca_id) ]
+    --[ !Const('ca_id', ca_id),
+        Init(<'Const', 'ca_id'>) ]->
+    [ !Const('ca_id', ca_id) ]
+
+// const fresh device_id
+rule Const_device_id
+  : [ Fr(device_id) ]
+    --[ !Const('device_id', device_id),
+        Init(<'Const', 'device_id'>) ]->
+    [ !Const('device_id', device_id) ]
+
+// const fresh ctlr_id
+rule Const_ctlr_id
+  : [ Fr(ctlr_id) ]
+    --[ !Const('ctlr_id', ctlr_id),
+        Init(<'Const', 'ctlr_id'>) ]->
+    [ !Const('ctlr_id', ctlr_id) ]
+
+// const t_pubk_reg = "0"
+rule Const_t_pubk_reg
+  : [  ]
+    --[ !Const('t_pubk_reg', 'str:0'),
+        Init(<'Const', 't_pubk_reg'>) ]->
+    [ !Const('t_pubk_reg', 'str:0') ]
+
+// const t_http_chal_req = "1"
+rule Const_t_http_chal_req
+  : [  ]
+    --[ !Const('t_http_chal_req', 'str:1'),
+        Init(<'Const', 't_http_chal_req'>) ]->
+    [ !Const('t_http_chal_req', 'str:1') ]
+
+// const t_http_chal_ready = "2"
+rule Const_t_http_chal_ready
+  : [  ]
+    --[ !Const('t_http_chal_ready', 'str:2'),
+        Init(<'Const', 't_http_chal_ready'>) ]->
+    [ !Const('t_http_chal_ready', 'str:2') ]
+
+// const t_dns_chal_req = "3"
+rule Const_t_dns_chal_req
+  : [  ]
+    --[ !Const('t_dns_chal_req', 'str:3'),
+        Init(<'Const', 't_dns_chal_req'>) ]->
+    [ !Const('t_dns_chal_req', 'str:3') ]
+
+// const t_dns_chal_ready = "4"
+rule Const_t_dns_chal_ready
+  : [  ]
+    --[ !Const('t_dns_chal_ready', 'str:4'),
+        Init(<'Const', 't_dns_chal_ready'>) ]->
+    [ !Const('t_dns_chal_ready', 'str:4') ]
+
+// const t_revocation_req = "5"
+rule Const_t_revocation_req
+  : [  ]
+    --[ !Const('t_revocation_req', 'str:5'),
+        Init(<'Const', 't_revocation_req'>) ]->
+    [ !Const('t_revocation_req', 'str:5') ]
+
+// const t_get_req = "6"
+rule Const_t_get_req
+  : [  ]
+    --[ !Const('t_get_req', 'str:6'),
+        Init(<'Const', 't_get_req'>) ]->
+    [ !Const('t_get_req', 'str:6') ]
+
+// const t_http_token_res = "A"
+rule Const_t_http_token_res
+  : [  ]
+    --[ !Const('t_http_token_res', 'str:A'),
+        Init(<'Const', 't_http_token_res'>) ]->
+    [ !Const('t_http_token_res', 'str:A') ]
+
+// const t_dns_token_res = "B"
+rule Const_t_dns_token_res
+  : [  ]
+    --[ !Const('t_dns_token_res', 'str:B'),
+        Init(<'Const', 't_dns_token_res'>) ]->
+    [ !Const('t_dns_token_res', 'str:B') ]
+
+// const t_cert_res = "C"
+rule Const_t_cert_res
+  : [  ]
+    --[ !Const('t_cert_res', 'str:C'),
+        Init(<'Const', 't_cert_res'>) ]->
+    [ !Const('t_cert_res', 'str:C') ]
+
+// const t_cert_reg = "a"
+rule Const_t_cert_reg
+  : [  ]
+    --[ !Const('t_cert_reg', 'str:a'),
+        Init(<'Const', 't_cert_reg'>) ]->
+    [ !Const('t_cert_reg', 'str:a') ]
+
+// const http_chal_path = "/.well-known/acme-challenge"
+rule Const_http_chal_path
+  : [  ]
+    --[ !Const('http_chal_path', 'str:/.well-known/acme-challenge'),
+        Init(<'Const', 'http_chal_path'>) ]->
+    [ !Const('http_chal_path', 'str:/.well-known/acme-challenge') ]
+
+// const dns_chal_subdom = "_acme-challenge"
+rule Const_dns_chal_subdom
+  : [  ]
+    --[ !Const('dns_chal_subdom', 'str:_acme-challenge'),
+        Init(<'Const', 'dns_chal_subdom'>) ]->
+    [ !Const('dns_chal_subdom', 'str:_acme-challenge') ]
+
+
+//// Proc group initialization
+
+// Proc group initialization PG_device__273
+rule Init_PG_device__273[role="PG_device__273"]
+  : [  ]
+    --[ Init(<'Proc_group', 'PG_device__273'>) ]->
+    [ !Inited_proc_group('PG_device__273'),
+      State_device__272_0_0(%1, '()') ]
+
+// Proc group initialization PG_secctlr__275
+rule Init_PG_secctlr__275[role="PG_secctlr__275"]
+  : [  ]
+    --[ Init(<'Proc_group', 'PG_secctlr__275'>) ]->
+    [ !Inited_proc_group('PG_secctlr__275'),
+      State_secctlr__274_0_0(%1, '()') ]
+
+// Proc group initialization PG_ca__277
+rule Init_PG_ca__277[role="PG_ca__277"]
+  : [  ]
+    --[ Init(<'Proc_group', 'PG_ca__277'>) ]->
+    [ !Inited_proc_group('PG_ca__277'),
+      State_ca__276_0_0(%1, '()') ]
+
+
+//// Access control
+
+// Access control for proc device__272 of group PG_device__273
+rule Access_device__272[role="device__272"]
+  : [ !Inited_proc_group('PG_device__273') ]
+    --[ Init(<'Proc_access', 'device__272'>) ]->
+    [ !ACP('device__272', 'chan:ch_dev2ca', 'recv_0'),
+      !ACP('device__272', 'chan:ch_dev2ca', 'recv_1'),
+      !ACP('device__272', 'chan:ch_dev2ca', 'recv_2'),
+      !ACP('device__272', 'chan:ch_dev2ca', 'send_0'),
+      !ACP('device__272', 'chan:ch_dev2ca', 'send_1'),
+      !ACP('device__272', 'chan:ch_dev2ca', 'send_2'),
+      !ACP('device__272', 'chan:ch_dev2ctlr', 'recv_0'),
+      !ACP('device__272', 'chan:ch_dev2ctlr', 'recv_1'),
+      !ACP('device__272', 'chan:ch_dev2ctlr', 'recv_2'),
+      !ACP('device__272', 'chan:ch_dev2ctlr', 'send_0'),
+      !ACP('device__272', 'chan:ch_dev2ctlr', 'send_1'),
+      !ACP('device__272', 'chan:ch_dev2ctlr', 'send_2'),
+      !ACP('device__272', 'chan:ch_unsec', 'recv_unsec'),
+      !ACP('device__272', 'chan:ch_unsec', 'send_unsec') ]
+
+// Access control for proc secctlr__274 of group PG_secctlr__275
+rule Access_secctlr__274[role="secctlr__274"]
+  : [ !Inited_proc_group('PG_secctlr__275') ]
+    --[ Init(<'Proc_access', 'secctlr__274'>) ]->
+    [ !ACP('secctlr__274', 'chan:ch_ctlr2ca', 'recv_0'),
+      !ACP('secctlr__274', 'chan:ch_ctlr2ca', 'recv_1'),
+      !ACP('secctlr__274', 'chan:ch_ctlr2ca', 'recv_2'),
+      !ACP('secctlr__274', 'chan:ch_ctlr2ca', 'send_0'),
+      !ACP('secctlr__274', 'chan:ch_ctlr2ca', 'send_1'),
+      !ACP('secctlr__274', 'chan:ch_ctlr2ca', 'send_2'),
+      !ACP('secctlr__274', 'chan:ch_dev2ctlr', 'recv_0'),
+      !ACP('secctlr__274', 'chan:ch_dev2ctlr', 'recv_1'),
+      !ACP('secctlr__274', 'chan:ch_dev2ctlr', 'recv_2'),
+      !ACP('secctlr__274', 'chan:ch_dev2ctlr', 'send_0'),
+      !ACP('secctlr__274', 'chan:ch_dev2ctlr', 'send_1'),
+      !ACP('secctlr__274', 'chan:ch_dev2ctlr', 'send_2') ]
+
+// Access control for proc ca__276 of group PG_ca__277
+rule Access_ca__276[role="ca__276"]
+  : [ !Inited_proc_group('PG_ca__277') ]
+    --[ Init(<'Proc_access', 'ca__276'>) ]->
+    [ !ACP('ca__276', 'chan:ch_ctlr2ca', 'recv_0'),
+      !ACP('ca__276', 'chan:ch_ctlr2ca', 'recv_1'),
+      !ACP('ca__276', 'chan:ch_ctlr2ca', 'recv_2'),
+      !ACP('ca__276', 'chan:ch_ctlr2ca', 'send_0'),
+      !ACP('ca__276', 'chan:ch_ctlr2ca', 'send_1'),
+      !ACP('ca__276', 'chan:ch_ctlr2ca', 'send_2'),
+      !ACP('ca__276', 'chan:ch_dev2ca', 'recv_0'),
+      !ACP('ca__276', 'chan:ch_dev2ca', 'recv_1'),
+      !ACP('ca__276', 'chan:ch_dev2ca', 'recv_2'),
+      !ACP('ca__276', 'chan:ch_dev2ca', 'send_0'),
+      !ACP('ca__276', 'chan:ch_dev2ca', 'send_1'),
+      !ACP('ca__276', 'chan:ch_dev2ca', 'send_2'),
+      !ACP('ca__276', 'chan:ch_unsec', 'recv_unsec'),
+      !ACP('ca__276', 'chan:ch_unsec', 'send_unsec') ]
+
+//// Proc models
+
+// Model of proc device__272
+
+// Edge device__272/new_intro_extfun__1688 : rho__278 <- (); new c__22 = ch_dev2ca; new h__23 = device_id; new order_msg__86 = (t_http_chal_req, device_id, device_id); new reg_msg__85 = (t_pubk_reg, (device_id, pk(device_privk__83)), device_id); new device_pubk__84 = pk(device_privk__83); new device_privk__83
+rule new_intro_extfun__1688[role="device__272"]
+  : [ !ACP('device__272', 'chan:ch_dev2ca', 'send_0'),
+      !Const('ca_id', ca_id),
+      !Const('device_id', device_id),
+      !Const('t_http_chal_req', t_http_chal_req),
+      !Const('t_pubk_reg', t_pubk_reg),
+      State_device__272_0_0(%v, rho__278),
+      Fr(device_privk__83) ]
+    --[ Transition('device__272', 'index:0.0', %v) ]->
+    [ State_device__272_0_9_0_0(%v, '()', 'chan:ch_dev2ca', device_id, <t_http_chal_req, device_id, device_id>, <t_pubk_reg, <device_id, pk(device_privk__83)>, device_id>, pk(device_privk__83), device_privk__83),
+      Store_0('chan:ch_dev2ca', ca_id, <<t_pubk_reg, <device_id, pk(device_privk__83)>, device_id>, sign(<t_pubk_reg, <device_id, pk(device_privk__83)>, device_id>, device_privk__83)>),
+      Store_0('chan:ch_dev2ca', ca_id, <<t_http_chal_req, device_id, device_id>, sign(<t_http_chal_req, device_id, device_id>, device_privk__83)>) ]
+
+// Edge device__272/case_in_return_c__1715 : rho__326 <- (); new c__40 = ch_unsec; new h__41 = device_id; new csr__91 = (t_http_chal_ready, device_id, device_id); new token__90; new token_res__89 = adec(v__24, device_privk__83); new token_enc__87 = v__24; drop c__22; drop h__23
+rule case_in_return_c__1715[role="device__272"]
+  : [ !ACP('device__272', 'chan:ch_dev2ca', 'send_0'),
+      !ACP('device__272', c__22, 'recv_0'),
+      !Const('ca_id', ca_id),
+      !Const('device_id', device_id),
+      !Const('http_chal_path', http_chal_path),
+      !Const('t_http_chal_ready', t_http_chal_ready),
+      !Const('t_http_token_res', t_http_token_res),
+      State_device__272_0_9_0_0(%v, rho__326, c__22, h__23, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83),
+      Store_0(c__22, h__23, aenc(any__88, device_pubk__84)) ]
+    --[ Transition('device__272', 'index:0.9_0.0', %v),
+        Eq(adec(aenc(any__88, device_pubk__84), device_privk__83), <t_http_token_res, token__90>) ]->
+    [ State_device__272_0_11_0_2_0_5_0_0(%v, '()', 'chan:ch_unsec', device_id, <t_http_chal_ready, device_id, device_id>, token__90, adec(aenc(any__88, device_pubk__84), device_privk__83), aenc(any__88, device_pubk__84), order_msg__86, reg_msg__85, device_pubk__84, device_privk__83),
+      CreateFile('device__272', <device_id, http_chal_path, token__90>, <token__90, hash(device_pubk__84)>),
+      Store_0('chan:ch_dev2ca', ca_id, <<t_http_chal_ready, device_id, device_id>, sign(<t_http_chal_ready, device_id, device_id>, device_privk__83)>) ]
+
+// Edge device__272/case_in_return_c__1744 : rho__382 <- (); new c__22 = ch_dev2ca; new h__23 = device_id; new challenge_req__92 = v__42; drop c__40; drop h__41
+rule case_in_return_c__1744[role="device__272"]
+  : [ !ACP('device__272', 'chan:ch_unsec', 'send_unsec'),
+      !ACP('device__272', c__40, 'recv_unsec'),
+      !Const('device_id', device_id),
+      !Const('t_get_req', fst3(<any__72, any__73, any__74>)),
+      State_device__272_0_11_0_2_0_5_0_0(%v, rho__382, c__40, h__41, csr__91, token__90, token_res__89, token_enc__87, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83),
+      Store_3(c__40, h__41, <any__72, any__73, any__74>),
+      CreateFile('device__272', snd3(<any__72, any__73, any__74>), dat__81) ]
+    --[ Transition('device__272', 'index:0.11_0.2_0.5_0.0', %v),
+        Eq(snd3(<any__72, any__73, any__74>), <any__78, any__79, any__80>) ]->
+    [ State_device__272_0_11_0_2_0_9_0_0(%v, '()', 'chan:ch_dev2ca', device_id, <any__72, any__73, any__74>, csr__91, token__90, token_res__89, token_enc__87, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83),
+      Store_3('chan:ch_unsec', trd3(<any__72, any__73, any__74>), dat__81) ]
+
+// Edge device__272/case_in_return_c__1755 : rho__442 <- (); new c__25 = ch_dev2ctlr; new h__26 = ctlr_id; new v__27 = (t_cert_reg, cert__96, device_id); new cert_reg_msg__97 = (t_cert_reg, cert__96, device_id); new cert__96; new cert_res__95 = adec(v__24, device_privk__83); new cert_enc__93 = v__24; drop c__22; drop h__23
+rule case_in_return_c__1755[role="device__272"]
+  : [ !ACP('device__272', c__22, 'recv_0'),
+      !Const('ctlr_id', ctlr_id),
+      !Const('device_id', device_id),
+      !Const('t_cert_reg', t_cert_reg),
+      !Const('t_cert_res', t_cert_res),
+      State_device__272_0_11_0_2_0_9_0_0(%v, rho__442, c__22, h__23, challenge_req__92, csr__91, token__90, token_res__89, token_enc__87, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83),
+      Store_0(c__22, h__23, aenc(any__94, device_pubk__84)) ]
+    --[ Transition('device__272', 'index:0.11_0.2_0.9_0.0', %v),
+        ReceiveCert(device_id, cert__96),
+        Eq(adec(aenc(any__94, device_pubk__84), device_privk__83), <t_cert_res, cert__96>) ]->
+    [ State_device__272_0_11_0_2_0_11_0_2_0_2_0_0(%v, '()', 'chan:ch_dev2ctlr', ctlr_id, <t_cert_reg, cert__96, device_id>, <t_cert_reg, cert__96, device_id>, cert__96, adec(aenc(any__94, device_pubk__84), device_privk__83), aenc(any__94, device_pubk__84), challenge_req__92, csr__91, token__90, token_res__89, token_enc__87, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83) ]
+
+// Edge device__272/put_send_1_app_o__1758 : rho__466 <- (); new c__28 = ch_dev2ctlr; new h__29 = device_id; drop c__25; drop h__26; drop v__27
+rule put_send_1_app_o__1758[role="device__272"]
+  : [ !ACP('device__272', c__25, 'send_1'),
+      !Const('device_id', device_id),
+      State_device__272_0_11_0_2_0_11_0_2_0_2_0_0(%v, rho__466, c__25, h__26, v__27, cert_reg_msg__97, cert__96, cert_res__95, cert_enc__93, challenge_req__92, csr__91, token__90, token_res__89, token_enc__87, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83) ]
+    --[ Transition('device__272', 'index:0.11_0.2_0.11_0.2_0.2_0.0', %v) ]->
+    [ State_device__272_0_11_0_2_0_11_0_2_0_4_0_0(%v, '()', 'chan:ch_dev2ctlr', device_id, cert_reg_msg__97, cert__96, cert_res__95, cert_enc__93, challenge_req__92, csr__91, token__90, token_res__89, token_enc__87, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83),
+      Store_1(c__25, h__26, v__27) ]
+
+// Attack edge device__272/case_in_return_c__1788 : rho__474 <- (); new ill_req_revoke__55 = (t_revocation_req, (device_id, cert__96), device_id); new id__51 = device_id; new privk__52 = device_privk__83; new cert__53 = cert__96; new ch__54 = ch_dev2ca; new res__98 = v__30; drop c__28; drop h__29
+rule case_in_return_c__1788[role="device__272"]
+  : [ !ACP('device__272', c__28, 'recv_1'),
+      !Const('device_id', device_id),
+      !Const('t_revocation_req', t_revocation_req),
+      State_device__272_0_11_0_2_0_11_0_2_0_4_0_0(%v, rho__474, c__28, h__29, cert_reg_msg__97, cert__96, cert_res__95, cert_enc__93, challenge_req__92, csr__91, token__90, token_res__89, token_enc__87, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83),
+      Store_1(c__28, h__29, true()) ]
+    --[ Transition('device__272', 'index:0.11_0.2_0.11_0.2_0.4_0.0', %v),
+        BrokenDevice(device_id) ]->
+    [ !BrokenDevice(device_id),
+      State_device__272_0_11_0_2_0_11_0_2_0_6_0_0_1_0_0_3(%v, '()', <t_revocation_req, <device_id, cert__96>, device_id>, device_id, device_privk__83, cert__96, 'chan:ch_dev2ca', true(), cert_reg_msg__97, cert__96, cert_res__95, cert_enc__93, challenge_req__92, csr__91, token__90, token_res__89, token_enc__87, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83) ]
+
+// Edge device__272/event_let_def_ms__1790 : rho__502 <- (); new c__19 = ch__54; new h__20 = ca_id; new v__21 = (ill_req_revoke__55, sign(ill_req_revoke__55, privk__52)); new msg__56 = (ill_req_revoke__55, sign(ill_req_revoke__55, privk__52))
+rule event_let_def_ms__1790[role="device__272"]
+  : [ !Const('ca_id', ca_id),
+      State_device__272_0_11_0_2_0_11_0_2_0_6_0_0_1_0_0_3(%v, rho__502, ill_req_revoke__55, id__51, privk__52, cert__53, ch__54, res__98, cert_reg_msg__97, cert__96, cert_res__95, cert_enc__93, challenge_req__92, csr__91, token__90, token_res__89, token_enc__87, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83) ]
+    --[ Transition('device__272', 'index:0.11_0.2_0.11_0.2_0.6_0.0_1.0_0.3', %v),
+        ReqRevocation(id__51, id__51, cert__53) ]->
+    [ State_device__272_0_11_0_2_0_11_0_2_0_6_0_0_1_0_0_5_0_0(%v, '()', ch__54, ca_id, <ill_req_revoke__55, sign(ill_req_revoke__55, privk__52)>, <ill_req_revoke__55, sign(ill_req_revoke__55, privk__52)>, ill_req_revoke__55, id__51, privk__52, cert__53, ch__54, res__98, cert_reg_msg__97, cert__96, cert_res__95, cert_enc__93, challenge_req__92, csr__91, token__90, token_res__89, token_enc__87, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83) ]
+
+// Edge device__272/put_send_0_app_o__1814 : rho__508 <- (); drop device_privk__83; drop device_pubk__84; drop reg_msg__85; drop order_msg__86; drop token_enc__87; drop token_res__89; drop token__90; drop csr__91; drop challenge_req__92; drop cert_enc__93; drop cert_res__95; drop cert__96; drop cert_reg_msg__97; drop res__98; drop id__51; drop privk__52; drop cert__53; drop ch__54; drop ill_req_revoke__55; drop msg__56; drop c__19; drop h__20; drop v__21
+rule put_send_0_app_o__1814[role="device__272"]
+  : [ !ACP('device__272', c__19, 'send_0'),
+      State_device__272_0_11_0_2_0_11_0_2_0_6_0_0_1_0_0_5_0_0(%v, rho__508, c__19, h__20, v__21, msg__56, ill_req_revoke__55, id__51, privk__52, cert__53, ch__54, res__98, cert_reg_msg__97, cert__96, cert_res__95, cert_enc__93, challenge_req__92, csr__91, token__90, token_res__89, token_enc__87, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83) ]
+    --[ Transition('device__272', 'index:0.11_0.2_0.11_0.2_0.6_0.0_1.0_0.5_0.0', %v) ]->
+    [ State_device__272_0_17(%v, '()'),
+      Store_0(c__19, h__20, v__21) ]
+
+// Edge device__272/case_in_return_c__1783 : rho__474 <- (); drop device_privk__83; drop device_pubk__84; drop reg_msg__85; drop order_msg__86; drop token_enc__87; drop token_res__89; drop token__90; drop csr__91; drop challenge_req__92; drop cert_enc__93; drop cert_res__95; drop cert__96; drop cert_reg_msg__97; drop c__28; drop h__29
+rule case_in_return_c__1783[role="device__272"]
+  : [ !ACP('device__272', c__28, 'recv_1'),
+      State_device__272_0_11_0_2_0_11_0_2_0_4_0_0(%v, rho__474, c__28, h__29, cert_reg_msg__97, cert__96, cert_res__95, cert_enc__93, challenge_req__92, csr__91, token__90, token_res__89, token_enc__87, order_msg__86, reg_msg__85, device_pubk__84, device_privk__83),
+      Store_1(c__28, h__29, true()) ]
+    --[ Transition('device__272', 'index:0.11_0.2_0.11_0.2_0.4_0.0', %v) ]->
+    [ State_device__272_0_17(%v, '()') ]
+
+// Model of proc secctlr__274
+
+// Edge secctlr__274/new_intro_extfun__1827 : rho__558 <- (); new c__28 = ch_dev2ctlr; new h__29 = ctlr_id; new reg_msg__112 = (t_pubk_reg, (ctlr_id, pk(ctlr_privk__110)), ctlr_id); new ctlr_pubk__111 = pk(ctlr_privk__110); new ctlr_privk__110
+rule new_intro_extfun__1827[role="secctlr__274"]
+  : [ !ACP('secctlr__274', 'chan:ch_ctlr2ca', 'send_2'),
+      !Const('ca_id', ca_id),
+      !Const('ctlr_id', ctlr_id),
+      !Const('t_pubk_reg', t_pubk_reg),
+      State_secctlr__274_0_0(%v, rho__558),
+      Fr(ctlr_privk__110) ]
+    --[ Transition('secctlr__274', 'index:0.0', %v) ]->
+    [ State_secctlr__274_0_6_0_0(%v, '()', 'chan:ch_dev2ctlr', ctlr_id, <t_pubk_reg, <ctlr_id, pk(ctlr_privk__110)>, ctlr_id>, pk(ctlr_privk__110), ctlr_privk__110),
+      Store_2('chan:ch_ctlr2ca', ca_id, <<t_pubk_reg, <ctlr_id, pk(ctlr_privk__110)>, ctlr_id>, sign(<t_pubk_reg, <ctlr_id, pk(ctlr_privk__110)>, ctlr_id>, ctlr_privk__110)>) ]
+
+// Edge secctlr__274/case_in_return_c__1849 : rho__586 <- (); new c__34 = ch_ctlr2ca; new h__35 = ctlr_id; new order_msg__117 = (t_dns_chal_req, trd3(v__30), ctlr_id); new device_id__116 = trd3(v__30); new dev_cert__115 = snd3(v__30); new typ__114 = fst3(v__30); new cert_reg_msg__113 = v__30; drop c__28; drop h__29
+rule case_in_return_c__1849[role="secctlr__274"]
+  : [ !ACP('secctlr__274', 'chan:ch_ctlr2ca', 'send_2'),
+      !ACP('secctlr__274', c__28, 'recv_1'),
+      !Const('ca_id', ca_id),
+      !Const('ctlr_id', ctlr_id),
+      !Const('t_cert_reg', fst3(v__30)),
+      !Const('t_dns_chal_req', t_dns_chal_req),
+      State_secctlr__274_0_6_0_0(%v, rho__586, c__28, h__29, reg_msg__112, ctlr_pubk__111, ctlr_privk__110),
+      Store_1(c__28, h__29, v__30) ]
+    --[ Transition('secctlr__274', 'index:0.6_0.0', %v) ]->
+    [ State_secctlr__274_0_14_0_3_0_0(%v, '()', 'chan:ch_ctlr2ca', ctlr_id, <t_dns_chal_req, trd3(v__30), ctlr_id>, trd3(v__30), snd3(v__30), fst3(v__30), v__30, reg_msg__112, ctlr_pubk__111, ctlr_privk__110),
+      Store_2('chan:ch_ctlr2ca', ca_id, <<t_dns_chal_req, trd3(v__30), ctlr_id>, sign(<t_dns_chal_req, trd3(v__30), ctlr_id>, ctlr_privk__110)>) ]
+
+// Edge secctlr__274/case_in_return_c__1872 : rho__632 <- (); new csr__122 = (t_dns_chal_ready, device_id__116, ctlr_id); new token__121; new token_res__120 = adec(v__36, ctlr_privk__110); new token_enc__118 = v__36; c__34 <- ch_ctlr2ca; h__35 <- ctlr_id
+rule case_in_return_c__1872[role="secctlr__274"]
+  : [ !ACP('secctlr__274', 'chan:ch_ctlr2ca', 'send_2'),
+      !ACP('secctlr__274', c__34, 'recv_2'),
+      !Const('ca_id', ca_id),
+      !Const('ctlr_id', ctlr_id),
+      !Const('dns_chal_subdom', dns_chal_subdom),
+      !Const('t_dns_chal_ready', t_dns_chal_ready),
+      !Const('t_dns_token_res', t_dns_token_res),
+      State_secctlr__274_0_14_0_3_0_0(%v, rho__632, c__34, h__35, order_msg__117, device_id__116, dev_cert__115, typ__114, cert_reg_msg__113, reg_msg__112, ctlr_pubk__111, ctlr_privk__110),
+      Store_2(c__34, h__35, aenc(any__119, ctlr_pubk__111)) ]
+    --[ Transition('secctlr__274', 'index:0.14_0.3_0.0', %v),
+        Eq(adec(aenc(any__119, ctlr_pubk__111), ctlr_privk__110), <t_dns_token_res, token__121>) ]->
+    [ State_secctlr__274_0_14_0_5_0_2_0_5_0_0(%v, '()', 'chan:ch_ctlr2ca', ctlr_id, <t_dns_chal_ready, device_id__116, ctlr_id>, token__121, adec(aenc(any__119, ctlr_pubk__111), ctlr_privk__110), aenc(any__119, ctlr_pubk__111), order_msg__117, device_id__116, dev_cert__115, typ__114, cert_reg_msg__113, reg_msg__112, ctlr_pubk__111, ctlr_privk__110),
+      DnsRecord(<device_id__116, dns_chal_subdom>, token__121),
+      Store_2('chan:ch_ctlr2ca', ca_id, <<t_dns_chal_ready, device_id__116, ctlr_id>, sign(<t_dns_chal_ready, device_id__116, ctlr_id>, ctlr_privk__110)>) ]
+
+// Edge secctlr__274/case_in_return_c__1883 : rho__680 <- (); new c__25 = ch_dev2ctlr; new h__26 = device_id__116; new v__27 = true; new cert__126; new cert_res__125 = adec(v__36, ctlr_privk__110); new cert_enc__123 = v__36; drop c__34; drop h__35
+rule case_in_return_c__1883[role="secctlr__274"]
+  : [ !ACP('secctlr__274', c__34, 'recv_2'),
+      !Const('ctlr_id', ctlr_id),
+      !Const('t_cert_res', t_cert_res),
+      State_secctlr__274_0_14_0_5_0_2_0_5_0_0(%v, rho__680, c__34, h__35, csr__122, token__121, token_res__120, token_enc__118, order_msg__117, device_id__116, dev_cert__115, typ__114, cert_reg_msg__113, reg_msg__112, ctlr_pubk__111, ctlr_privk__110),
+      Store_2(c__34, h__35, aenc(any__124, ctlr_pubk__111)) ]
+    --[ Transition('secctlr__274', 'index:0.14_0.5_0.2_0.5_0.0', %v),
+        SecCtlrAuth(ctlr_id, device_id__116, cert__126),
+        Eq(adec(aenc(any__124, ctlr_pubk__111), ctlr_privk__110), <t_cert_res, cert__126>) ]->
+    [ State_secctlr__274_0_14_0_5_0_2_0_7_0_2_0_2_0_0(%v, '()', 'chan:ch_dev2ctlr', device_id__116, true(), cert__126, adec(aenc(any__124, ctlr_pubk__111), ctlr_privk__110), aenc(any__124, ctlr_pubk__111), csr__122, token__121, token_res__120, token_enc__118, order_msg__117, device_id__116, dev_cert__115, typ__114, cert_reg_msg__113, reg_msg__112, ctlr_pubk__111, ctlr_privk__110),
+      CtlrCertManagement('secctlr__274', device_id__116, dev_cert__115) ]
+
+// Edge secctlr__274/put_send_1_app_o__1896 : rho__704 <- (); drop order_msg__117; drop token_enc__118; drop token_res__120; drop token__121; drop csr__122; drop cert_enc__123; drop cert_res__125; drop cert__126; drop c__25; drop h__26; drop v__27
+rule put_send_1_app_o__1896[role="secctlr__274"]
+  : [ !ACP('secctlr__274', c__25, 'send_1'),
+      State_secctlr__274_0_14_0_5_0_2_0_7_0_2_0_2_0_0(%v, rho__704, c__25, h__26, v__27, cert__126, cert_res__125, cert_enc__123, csr__122, token__121, token_res__120, token_enc__118, order_msg__117, device_id__116, dev_cert__115, typ__114, cert_reg_msg__113, reg_msg__112, ctlr_pubk__111, ctlr_privk__110) ]
+    --[ Transition('secctlr__274', 'index:0.14_0.5_0.2_0.7_0.2_0.2_0.0', %v) ]->
+    [ State_secctlr__274_0_15(%v, '()', device_id__116, dev_cert__115, typ__114, cert_reg_msg__113, reg_msg__112, ctlr_pubk__111, ctlr_privk__110),
+      Store_1(c__25, h__26, v__27) ]
+
+// Edge secctlr__274/case_in_case_in___1902 : rho__732 <- (); new c__31 = ch_ctlr2ca; new h__32 = ca_id; new v__33 = ((t_revocation_req, (id__127, cert__128), ctlr_id), sign((t_revocation_req, (id__127, cert__128), ctlr_id), ctlr_privk__110)); new msg__105 = ((t_revocation_req, (id__127, cert__128), ctlr_id), sign((t_revocation_req, (id__127, cert__128), ctlr_id), ctlr_privk__110)); new c__101 = ch_ctlr2ca; new h__102 = ca_id; new v__103 = (t_revocation_req, (id__127, cert__128), ctlr_id); new k__104 = ctlr_privk__110; new req_revoke__129 = (t_revocation_req, (id__127, cert__128), ctlr_id); new cert__128; new id__127
+rule case_in_case_in___1902[role="secctlr__274"]
+  : [ !BrokenDevice(id__127),
+      !Const('ca_id', ca_id),
+      !Const('ctlr_id', ctlr_id),
+      !Const('t_revocation_req', t_revocation_req),
+      State_secctlr__274_0_15(%v, rho__732, device_id__116, dev_cert__115, typ__114, cert_reg_msg__113, reg_msg__112, ctlr_pubk__111, ctlr_privk__110),
+      CtlrCertManagement('secctlr__274', id__127, cert__128) ]
+    --[ Transition('secctlr__274', 'index:0.15', %v),
+        ReqRevocation(ctlr_id, id__127, cert__128) ]->
+    [ State_secctlr__274_0_15_0_0_0_2_0_1_0_0(%v, '()', 'chan:ch_ctlr2ca', ca_id, <<t_revocation_req, <id__127, cert__128>, ctlr_id>, sign(<t_revocation_req, <id__127, cert__128>, ctlr_id>, ctlr_privk__110)>, <<t_revocation_req, <id__127, cert__128>, ctlr_id>, sign(<t_revocation_req, <id__127, cert__128>, ctlr_id>, ctlr_privk__110)>, 'chan:ch_ctlr2ca', ca_id, <t_revocation_req, <id__127, cert__128>, ctlr_id>, ctlr_privk__110, <t_revocation_req, <id__127, cert__128>, ctlr_id>, cert__128, id__127, device_id__116, dev_cert__115, typ__114, cert_reg_msg__113, reg_msg__112, ctlr_pubk__111, ctlr_privk__110) ]
+
+// Edge secctlr__274/put_send_2_app_o__1917 : rho__746 <- (); drop ctlr_privk__110; drop ctlr_pubk__111; drop reg_msg__112; drop cert_reg_msg__113; drop typ__114; drop dev_cert__115; drop device_id__116; drop id__127; drop cert__128; drop req_revoke__129; drop c__101; drop h__102; drop v__103; drop k__104; drop msg__105; drop c__31; drop h__32; drop v__33
+rule put_send_2_app_o__1917[role="secctlr__274"]
+  : [ !ACP('secctlr__274', c__31, 'send_2'),
+      State_secctlr__274_0_15_0_0_0_2_0_1_0_0(%v, rho__746, c__31, h__32, v__33, msg__105, c__101, h__102, v__103, k__104, req_revoke__129, cert__128, id__127, device_id__116, dev_cert__115, typ__114, cert_reg_msg__113, reg_msg__112, ctlr_pubk__111, ctlr_privk__110) ]
+    --[ Transition('secctlr__274', 'index:0.15_0.0_0.2_0.1_0.0', %v) ]->
+    [ State_secctlr__274_0_23(%v, '()'),
+      Store_2(c__31, h__32, v__33) ]
+
+// Model of proc ca__276
+
+// Edge ca__276/repeat_in__779 : rho__778 <- ()
+rule repeat_in__779[role="ca__276"]
+  : [ State_ca__276_0_0(%v, rho__778) ]
+    --[ Transition('ca__276', 'index:0.0', %v),
+        Loop_In('ca__276', 'index:0.0') ]->
+    [ State_ca__276_0_1(%v, '()') ]
+
+// Edge ca__276/case_in_recv_0_a__1918 : rho__786 <- (); new c__22 = ch_dev2ca; new h__23 = ca_id
+rule case_in_recv_0_a__1918[role="ca__276"]
+  : [ !Const('ca_id', ca_id),
+      State_ca__276_0_1(%v, rho__786) ]
+    --[ Transition('ca__276', 'index:0.1', %v) ]->
+    [ State_ca__276_0_1_0_0_0_0(%v, '()', 'chan:ch_dev2ca', ca_id) ]
+
+// Edge ca__276/case_in_return_c__1962 : rho__790 <- (); drop c__22; drop h__23
+rule case_in_return_c__1962[role="ca__276"]
+  : [ !ACP('ca__276', c__22, 'recv_0'),
+      !Const('t_pubk_reg', fst3(fst2(<any__245, any__246>))),
+      State_ca__276_0_1_0_0_0_0(%v, rho__790, c__22, h__23),
+      Store_0(c__22, h__23, <any__245, any__246>) ]
+    --[ Transition('ca__276', 'index:0.1_0.0_0.0', %v),
+        Loop_Back('ca__276', 'index:0.0'),
+        Eq(fst2(<any__245, any__246>), <any__152, any__153, any__154>),
+        Eq(snd3(fst2(<any__245, any__246>)), <any__158, any__159>),
+        Eq(verify(snd2(<any__245, any__246>), fst2(<any__245, any__246>), snd2(snd3(fst2(<any__245, any__246>)))), true()) ]->
+    [ !PublicKey('ca__276', fst2(snd3(fst2(<any__245, any__246>))), snd2(snd3(fst2(<any__245, any__246>)))),
+      State_ca__276_0_1(%v %+ %1, '()') ]
+
+// Edge ca__276/case_in_recv_2_a__2181 : rho__1226 <- (); new c__34 = ch_ctlr2ca; new h__35 = ca_id
+rule case_in_recv_2_a__2181[role="ca__276"]
+  : [ !Const('ca_id', ca_id),
+      State_ca__276_0_1(%v, rho__1226) ]
+    --[ Transition('ca__276', 'index:0.1', %v) ]->
+    [ State_ca__276_0_1_1_0_0_0(%v, '()', 'chan:ch_ctlr2ca', ca_id) ]
+
+// Edge ca__276/case_in_return_c__2225 : rho__1230 <- (); drop c__34; drop h__35
+rule case_in_return_c__2225[role="ca__276"]
+  : [ !ACP('ca__276', c__34, 'recv_2'),
+      !Const('t_pubk_reg', fst3(fst2(<any__248, any__249>))),
+      State_ca__276_0_1_1_0_0_0(%v, rho__1230, c__34, h__35),
+      Store_2(c__34, h__35, <any__248, any__249>) ]
+    --[ Transition('ca__276', 'index:0.1_1.0_0.0', %v),
+        Loop_Back('ca__276', 'index:0.0'),
+        Eq(fst2(<any__248, any__249>), <any__200, any__201, any__202>),
+        Eq(snd3(fst2(<any__248, any__249>)), <any__206, any__207>),
+        Eq(verify(snd2(<any__248, any__249>), fst2(<any__248, any__249>), snd2(snd3(fst2(<any__248, any__249>)))), true()) ]->
+    [ !PublicKey('ca__276', fst2(snd3(fst2(<any__248, any__249>))), snd2(snd3(fst2(<any__248, any__249>)))),
+      State_ca__276_0_1(%v %+ %1, '()') ]
+
+// Edge ca__276/until_in_skip_un__2445 : rho__780 <- ()
+rule until_in_skip_un__2445[role="ca__276"]
+  : [ State_ca__276_0_1(%v, rho__780),
+      False() ]
+    --[ Transition('ca__276', 'index:0.1', %v),
+        Loop_Out('ca__276', 'index:0.0') ]->
+    [ State_ca__276_0_2(%v, '()') ]
+
+// Edge ca__276/case_in_return_c__2283 : rho__1230 <- (); new c__40 = ch_unsec; new h__41 = ca_id; new challenge_req__220 = (t_get_req, (snd3(fst2(v__36)), http_chal_path, token__218), ca_id); new token_path__219 = (snd3(fst2(v__36)), http_chal_path, token__218); new token__218; new res__217 = verify(snd2(v__36), fst2(v__36), pubk__134); new pubk__216 = pubk__134; new id__215 = snd3(fst2(v__36)); new sender__205 = trd3(fst2(v__36)); new v__204 = snd3(fst2(v__36)); new typ__203 = fst3(fst2(v__36)); new sig__199 = snd2(v__36); new msg__198 = fst2(v__36); new ch__196 = ch_ctlr2ca; new d__197 = v__36; new d__247 = v__36; drop c__34; drop h__35
+rule case_in_return_c__2283[role="ca__276"]
+  : [ !ACP('ca__276', 'chan:ch_unsec', 'send_unsec'),
+      !ACP('ca__276', c__34, 'recv_2'),
+      !Const('ca_id', ca_id),
+      !Const('http_chal_path', http_chal_path),
+      !Const('t_get_req', t_get_req),
+      !Const('t_http_chal_ready', fst3(fst2(<any__248, any__249>))),
+      !PublicKey('ca__276', trd3(fst2(<any__248, any__249>)), pubk__134),
+      State_ca__276_0_1_1_0_0_0(%v, rho__1230, c__34, h__35),
+      Store_2(c__34, h__35, <any__248, any__249>),
+      IssueHTTPToken('ca__276', snd3(fst2(<any__248, any__249>)), token__218) ]
+    --[ Transition('ca__276', 'index:0.1_1.0_0.0', %v),
+        Eq(fst2(<any__248, any__249>), <any__200, any__201, any__202>),
+        Eq(verify(snd2(<any__248, any__249>), fst2(<any__248, any__249>), pubk__134), true()) ]->
+    [ State_ca__276_0_1_1_2_0_0_0_4_0_6_2_5_0_0_0_4_0_0(%v, '()', 'chan:ch_unsec', ca_id, <t_get_req, <snd3(fst2(<any__248, any__249>)), http_chal_path, token__218>, ca_id>, <snd3(fst2(<any__248, any__249>)), http_chal_path, token__218>, token__218, verify(snd2(<any__248, any__249>), fst2(<any__248, any__249>), pubk__134), pubk__134, snd3(fst2(<any__248, any__249>)), trd3(fst2(<any__248, any__249>)), snd3(fst2(<any__248, any__249>)), fst3(fst2(<any__248, any__249>)), snd2(<any__248, any__249>), fst2(<any__248, any__249>), 'chan:ch_ctlr2ca', <any__248, any__249>, <any__248, any__249>),
+      Store_3('chan:ch_unsec', trd3(fst2(<any__248, any__249>)), <t_get_req, <snd3(fst2(<any__248, any__249>)), http_chal_path, token__218>, ca_id>) ]
+
+// Edge ca__276/case_in_return_c__2365 : rho__1394 <- (); new c__31 = ch__196; new h__32 = sender__205; new v__33 = aenc((t_cert_res, cert__226), pubk__216); new msg__146 = aenc((t_cert_res, cert__226), pubk__216); new c__142 = ch__196; new h__143 = sender__205; new v__144 = (t_cert_res, cert__226); new pk__145 = pubk__216; new cert__226; new h_pubk__225 = snd2(v__42); new token_recv__224 = fst2(v__42); new dat__221 = v__42; drop c__40; drop h__41
+rule case_in_return_c__2365[role="ca__276"]
+  : [ !ACP('ca__276', c__40, 'recv_unsec'),
+      !Const('t_cert_res', t_cert_res),
+      State_ca__276_0_1_1_2_0_0_0_4_0_6_2_5_0_0_0_4_0_0(%v, rho__1394, c__40, h__41, challenge_req__220, token_path__219, fst2(<any__222, any__223>), res__217, pubk__216, id__215, sender__205, v__204, typ__203, sig__199, msg__198, ch__196, d__197, d__247),
+      Store_3(c__40, h__41, <any__222, any__223>),
+      Fr(cert__226) ]
+    --[ Transition('ca__276', 'index:0.1_1.2_0.0_0.4_0.6_2.5_0.0_0.4_0.0', %v),
+        IssueCert(id__215, cert__226),
+        Eq(hash(pubk__216), snd2(<any__222, any__223>)) ]->
+    [ State_ca__276_0_1_1_2_0_0_0_4_0_6_2_5_0_0_0_6_0_4_0_3_0_2_0_0(%v, '()', ch__196, sender__205, aenc(<t_cert_res, cert__226>, pubk__216), aenc(<t_cert_res, cert__226>, pubk__216), ch__196, sender__205, <t_cert_res, cert__226>, pubk__216, cert__226, snd2(<any__222, any__223>), fst2(<any__222, any__223>), <any__222, any__223>, challenge_req__220, token_path__219, fst2(<any__222, any__223>), res__217, pubk__216, id__215, sender__205, v__204, typ__203, sig__199, msg__198, ch__196, d__197, d__247),
+      Certificate(sender__205, id__215, cert__226) ]
+
+// Edge ca__276/put_send_2_app_o__2394 : rho__1430 <- (); drop d__247; drop ch__196; drop d__197; drop msg__198; drop sig__199; drop typ__203; drop v__204; drop sender__205; drop id__215; drop pubk__216; drop res__217; drop token__218; drop token_path__219; drop challenge_req__220; drop dat__221; drop token_recv__224; drop h_pubk__225; drop cert__226; drop c__142; drop h__143; drop v__144; drop pk__145; drop msg__146; drop c__31; drop h__32; drop v__33
+rule put_send_2_app_o__2394[role="ca__276"]
+  : [ !ACP('ca__276', c__31, 'send_2'),
+      State_ca__276_0_1_1_2_0_0_0_4_0_6_2_5_0_0_0_6_0_4_0_3_0_2_0_0(%v, rho__1430, c__31, h__32, v__33, msg__146, c__142, h__143, v__144, pk__145, cert__226, h_pubk__225, token_recv__224, dat__221, challenge_req__220, token_path__219, token__218, res__217, pubk__216, id__215, sender__205, v__204, typ__203, sig__199, msg__198, ch__196, d__197, d__247) ]
+    --[ Transition('ca__276', 'index:0.1_1.2_0.0_0.4_0.6_2.5_0.0_0.6_0.4_0.3_0.2_0.0', %v) ]->
+    [ State_ca__276_0_1_1_4(%v, '()'),
+      Store_2(c__31, h__32, v__33) ]
+
+// Edge ca__276/case_out__1665 : rho__1664 <- ()
+rule case_out__1665[role="ca__276"]
+  : [ State_ca__276_0_1_1_4(%v, rho__1664) ]
+    --[ Transition('ca__276', 'index:0.1_1.4', %v),
+        Loop_Back('ca__276', 'index:0.0') ]->
+    [ State_ca__276_0_1(%v %+ %1, '()') ]
+
+// Edge ca__276/case_in_return_c__2333 : rho__1230 <- (); new res__233 = verify(snd2(v__36), fst2(v__36), pubk__134); new pubk__232 = pubk__134; new id__231 = snd3(fst2(v__36)); new sender__205 = trd3(fst2(v__36)); new v__204 = snd3(fst2(v__36)); new typ__203 = fst3(fst2(v__36)); new sig__199 = snd2(v__36); new msg__198 = fst2(v__36); new ch__196 = ch_ctlr2ca; new d__197 = v__36; new d__247 = v__36; drop c__34; drop h__35
+rule case_in_return_c__2333[role="ca__276"]
+  : [ !ACP('ca__276', c__34, 'recv_2'),
+      !Const('t_dns_chal_ready', fst3(fst2(<any__248, any__249>))),
+      !PublicKey('ca__276', trd3(fst2(<any__248, any__249>)), pubk__134),
+      State_ca__276_0_1_1_0_0_0(%v, rho__1230, c__34, h__35),
+      Store_2(c__34, h__35, <any__248, any__249>) ]
+    --[ Transition('ca__276', 'index:0.1_1.0_0.0', %v),
+        Eq(fst2(<any__248, any__249>), <any__200, any__201, any__202>),
+        Eq(verify(snd2(<any__248, any__249>), fst2(<any__248, any__249>), pubk__134), true()) ]->
+    [ State_ca__276_0_1_1_2_0_0_0_4_0_6_4_5_0_0(%v, '()', verify(snd2(<any__248, any__249>), fst2(<any__248, any__249>), pubk__134), pubk__134, snd3(fst2(<any__248, any__249>)), trd3(fst2(<any__248, any__249>)), snd3(fst2(<any__248, any__249>)), fst3(fst2(<any__248, any__249>)), snd2(<any__248, any__249>), fst2(<any__248, any__249>), 'chan:ch_ctlr2ca', <any__248, any__249>, <any__248, any__249>) ]
+
+// Edge ca__276/case_in_new_intr__2401 : rho__1550 <- (); new c__31 = ch__196; new h__32 = sender__205; new v__33 = aenc((t_cert_res, cert__235), pubk__232); new msg__146 = aenc((t_cert_res, cert__235), pubk__232); new c__142 = ch__196; new h__143 = sender__205; new v__144 = (t_cert_res, cert__235); new pk__145 = pubk__232; new cert__235; new token__234
+rule case_in_new_intr__2401[role="ca__276"]
+  : [ !Const('dns_chal_subdom', dns_chal_subdom),
+      !Const('t_cert_res', t_cert_res),
+      State_ca__276_0_1_1_2_0_0_0_4_0_6_4_5_0_0(%v, rho__1550, res__233, pubk__232, id__231, sender__205, v__204, typ__203, sig__199, msg__198, ch__196, d__197, d__247),
+      DnsRecord(<id__231, dns_chal_subdom>, token__234),
+      IssueDNSToken('ca__276', id__231, token__234),
+      Fr(cert__235) ]
+    --[ Transition('ca__276', 'index:0.1_1.2_0.0_0.4_0.6_4.5_0.0', %v),
+        IssueCert(sender__205, cert__235) ]->
+    [ State_ca__276_0_1_1_2_0_0_0_4_0_6_4_5_0_0_0_3_0_2_0_0(%v, '()', ch__196, sender__205, aenc(<t_cert_res, cert__235>, pubk__232), aenc(<t_cert_res, cert__235>, pubk__232), ch__196, sender__205, <t_cert_res, cert__235>, pubk__232, cert__235, token__234, res__233, pubk__232, id__231, sender__205, v__204, typ__203, sig__199, msg__198, ch__196, d__197, d__247),
+      Certificate(sender__205, id__231, cert__235) ]
+
+// Edge ca__276/put_send_2_app_o__2423 : rho__1566 <- (); drop d__247; drop ch__196; drop d__197; drop msg__198; drop sig__199; drop typ__203; drop v__204; drop sender__205; drop id__231; drop pubk__232; drop res__233; drop token__234; drop cert__235; drop c__142; drop h__143; drop v__144; drop pk__145; drop msg__146; drop c__31; drop h__32; drop v__33
+rule put_send_2_app_o__2423[role="ca__276"]
+  : [ !ACP('ca__276', c__31, 'send_2'),
+      State_ca__276_0_1_1_2_0_0_0_4_0_6_4_5_0_0_0_3_0_2_0_0(%v, rho__1566, c__31, h__32, v__33, msg__146, c__142, h__143, v__144, pk__145, cert__235, token__234, res__233, pubk__232, id__231, sender__205, v__204, typ__203, sig__199, msg__198, ch__196, d__197, d__247) ]
+    --[ Transition('ca__276', 'index:0.1_1.2_0.0_0.4_0.6_4.5_0.0_0.3_0.2_0.0', %v) ]->
+    [ State_ca__276_0_1_1_4(%v, '()'),
+      Store_2(c__31, h__32, v__33) ]
+
+// Edge ca__276/case_in_return_c__2348 : rho__1230 <- (); new res__241 = verify(snd2(v__36), fst2(v__36), pubk__134); new pubk__240 = pubk__134; new cert__239 = snd2(snd3(fst2(v__36))); new id__238 = fst2(snd3(fst2(v__36))); new sender__205 = trd3(fst2(v__36)); new v__204 = snd3(fst2(v__36)); new typ__203 = fst3(fst2(v__36)); new sig__199 = snd2(v__36); new msg__198 = fst2(v__36); new ch__196 = ch_ctlr2ca; new d__197 = v__36; new d__247 = v__36; drop c__34; drop h__35
+rule case_in_return_c__2348[role="ca__276"]
+  : [ !ACP('ca__276', c__34, 'recv_2'),
+      !Const('t_revocation_req', fst3(fst2(<any__248, any__249>))),
+      !PublicKey('ca__276', trd3(fst2(<any__248, any__249>)), pubk__134),
+      State_ca__276_0_1_1_0_0_0(%v, rho__1230, c__34, h__35),
+      Store_2(c__34, h__35, <any__248, any__249>) ]
+    --[ Transition('ca__276', 'index:0.1_1.0_0.0', %v),
+        Eq(fst2(<any__248, any__249>), <any__200, any__201, any__202>),
+        Eq(snd3(fst2(<any__248, any__249>)), <any__236, any__237>),
+        Eq(verify(snd2(<any__248, any__249>), fst2(<any__248, any__249>), pubk__134), true()) ]->
+    [ State_ca__276_0_1_1_2_0_0_0_4_0_6_5_0_0_8_0_0(%v, '()', verify(snd2(<any__248, any__249>), fst2(<any__248, any__249>), pubk__134), pubk__134, snd2(snd3(fst2(<any__248, any__249>))), fst2(snd3(fst2(<any__248, any__249>))), trd3(fst2(<any__248, any__249>)), snd3(fst2(<any__248, any__249>)), fst3(fst2(<any__248, any__249>)), snd2(<any__248, any__249>), fst2(<any__248, any__249>), 'chan:ch_ctlr2ca', <any__248, any__249>, <any__248, any__249>) ]
+
+// Edge ca__276/case_in_event_pu__2443 : rho__1622 <- (); drop d__247; drop ch__196; drop d__197; drop msg__198; drop sig__199; drop typ__203; drop v__204; drop sender__205; drop id__238; drop cert__239; drop pubk__240; drop res__241
+rule case_in_event_pu__2443[role="ca__276"]
+  : [ State_ca__276_0_1_1_2_0_0_0_4_0_6_5_0_0_8_0_0(%v, rho__1622, res__241, pubk__240, cert__239, id__238, sender__205, v__204, typ__203, sig__199, msg__198, ch__196, d__197, d__247),
+      Certificate(sender__205, id__238, c1__242),
+      Certificate(id__238, id__238, cert__239) ]
+    --[ Transition('ca__276', 'index:0.1_1.2_0.0_0.4_0.6_5.0_0.8_0.0', %v),
+        RevokeCert(sender__205, id__238, cert__239) ]->
+    [ State_ca__276_0_1_1_4(%v, '()'),
+      Certificate(sender__205, id__238, c1__242) ]
+
+// Edge ca__276/case_in_return_c__2322 : rho__1230 <- (); drop c__34; drop h__35
+rule case_in_return_c__2322[role="ca__276"]
+  : [ !ACP('ca__276', 'chan:ch_ctlr2ca', 'send_2'),
+      !ACP('ca__276', c__34, 'recv_2'),
+      !Const('t_dns_chal_req', fst3(fst2(<any__248, any__249>))),
+      !Const('t_dns_token_res', t_dns_token_res),
+      !PublicKey('ca__276', trd3(fst2(<any__248, any__249>)), pubk__134),
+      State_ca__276_0_1_1_0_0_0(%v, rho__1230, c__34, h__35),
+      Store_2(c__34, h__35, <any__248, any__249>),
+      Fr(token__230) ]
+    --[ Transition('ca__276', 'index:0.1_1.0_0.0', %v),
+        Eq(fst2(<any__248, any__249>), <any__200, any__201, any__202>),
+        Eq(verify(snd2(<any__248, any__249>), fst2(<any__248, any__249>), pubk__134), true()) ]->
+    [ State_ca__276_0_1_1_4(%v, '()'),
+      IssueDNSToken('ca__276', snd3(fst2(<any__248, any__249>)), token__230),
+      Store_2('chan:ch_ctlr2ca', trd3(fst2(<any__248, any__249>)), aenc(<t_dns_token_res, token__230>, pubk__134)) ]
+
+// Edge ca__276/case_in_return_c__2264 : rho__1230 <- (); drop c__34; drop h__35
+rule case_in_return_c__2264[role="ca__276"]
+  : [ !ACP('ca__276', 'chan:ch_ctlr2ca', 'send_2'),
+      !ACP('ca__276', c__34, 'recv_2'),
+      !Const('t_http_chal_req', fst3(fst2(<any__248, any__249>))),
+      !Const('t_http_token_res', t_http_token_res),
+      !PublicKey('ca__276', trd3(fst2(<any__248, any__249>)), pubk__134),
+      State_ca__276_0_1_1_0_0_0(%v, rho__1230, c__34, h__35),
+      Store_2(c__34, h__35, <any__248, any__249>),
+      Fr(token__214) ]
+    --[ Transition('ca__276', 'index:0.1_1.0_0.0', %v),
+        Eq(fst2(<any__248, any__249>), <any__200, any__201, any__202>),
+        Eq(verify(snd2(<any__248, any__249>), fst2(<any__248, any__249>), pubk__134), true()) ]->
+    [ State_ca__276_0_1_1_4(%v, '()'),
+      IssueHTTPToken('ca__276', snd3(fst2(<any__248, any__249>)), token__214),
+      Store_2('chan:ch_ctlr2ca', trd3(fst2(<any__248, any__249>)), aenc(<t_http_token_res, token__214>, pubk__134)) ]
+
+// Edge ca__276/case_in_return_c__2020 : rho__790 <- (); new c__40 = ch_unsec; new h__41 = ca_id; new challenge_req__172 = (t_get_req, (snd3(fst2(v__24)), http_chal_path, token__170), ca_id); new token_path__171 = (snd3(fst2(v__24)), http_chal_path, token__170); new token__170; new res__169 = verify(snd2(v__24), fst2(v__24), pubk__134); new pubk__168 = pubk__134; new id__167 = snd3(fst2(v__24)); new sender__157 = trd3(fst2(v__24)); new v__156 = snd3(fst2(v__24)); new typ__155 = fst3(fst2(v__24)); new sig__151 = snd2(v__24); new msg__150 = fst2(v__24); new ch__148 = ch_dev2ca; new d__149 = v__24; new d__244 = v__24; drop c__22; drop h__23
+rule case_in_return_c__2020[role="ca__276"]
+  : [ !ACP('ca__276', 'chan:ch_unsec', 'send_unsec'),
+      !ACP('ca__276', c__22, 'recv_0'),
+      !Const('ca_id', ca_id),
+      !Const('http_chal_path', http_chal_path),
+      !Const('t_get_req', t_get_req),
+      !Const('t_http_chal_ready', fst3(fst2(<any__245, any__246>))),
+      !PublicKey('ca__276', trd3(fst2(<any__245, any__246>)), pubk__134),
+      State_ca__276_0_1_0_0_0_0(%v, rho__790, c__22, h__23),
+      Store_0(c__22, h__23, <any__245, any__246>),
+      IssueHTTPToken('ca__276', snd3(fst2(<any__245, any__246>)), token__170) ]
+    --[ Transition('ca__276', 'index:0.1_0.0_0.0', %v),
+        Eq(fst2(<any__245, any__246>), <any__152, any__153, any__154>),
+        Eq(verify(snd2(<any__245, any__246>), fst2(<any__245, any__246>), pubk__134), true()) ]->
+    [ State_ca__276_0_1_0_2_0_0_0_4_0_6_2_5_0_0_0_4_0_0(%v, '()', 'chan:ch_unsec', ca_id, <t_get_req, <snd3(fst2(<any__245, any__246>)), http_chal_path, token__170>, ca_id>, <snd3(fst2(<any__245, any__246>)), http_chal_path, token__170>, token__170, verify(snd2(<any__245, any__246>), fst2(<any__245, any__246>), pubk__134), pubk__134, snd3(fst2(<any__245, any__246>)), trd3(fst2(<any__245, any__246>)), snd3(fst2(<any__245, any__246>)), fst3(fst2(<any__245, any__246>)), snd2(<any__245, any__246>), fst2(<any__245, any__246>), 'chan:ch_dev2ca', <any__245, any__246>, <any__245, any__246>),
+      Store_3('chan:ch_unsec', trd3(fst2(<any__245, any__246>)), <t_get_req, <snd3(fst2(<any__245, any__246>)), http_chal_path, token__170>, ca_id>) ]
+
+// Edge ca__276/case_in_return_c__2102 : rho__954 <- (); new c__19 = ch__148; new h__20 = sender__157; new v__21 = aenc((t_cert_res, cert__178), pubk__168); new msg__140 = aenc((t_cert_res, cert__178), pubk__168); new c__136 = ch__148; new h__137 = sender__157; new v__138 = (t_cert_res, cert__178); new pk__139 = pubk__168; new cert__178; new h_pubk__177 = snd2(v__42); new token_recv__176 = fst2(v__42); new dat__173 = v__42; drop c__40; drop h__41
+rule case_in_return_c__2102[role="ca__276"]
+  : [ !ACP('ca__276', c__40, 'recv_unsec'),
+      !Const('t_cert_res', t_cert_res),
+      State_ca__276_0_1_0_2_0_0_0_4_0_6_2_5_0_0_0_4_0_0(%v, rho__954, c__40, h__41, challenge_req__172, token_path__171, fst2(<any__174, any__175>), res__169, pubk__168, id__167, sender__157, v__156, typ__155, sig__151, msg__150, ch__148, d__149, d__244),
+      Store_3(c__40, h__41, <any__174, any__175>),
+      Fr(cert__178) ]
+    --[ Transition('ca__276', 'index:0.1_0.2_0.0_0.4_0.6_2.5_0.0_0.4_0.0', %v),
+        IssueCert(id__167, cert__178),
+        Eq(hash(pubk__168), snd2(<any__174, any__175>)) ]->
+    [ State_ca__276_0_1_0_2_0_0_0_4_0_6_2_5_0_0_0_6_0_4_0_3_0_2_0_0(%v, '()', ch__148, sender__157, aenc(<t_cert_res, cert__178>, pubk__168), aenc(<t_cert_res, cert__178>, pubk__168), ch__148, sender__157, <t_cert_res, cert__178>, pubk__168, cert__178, snd2(<any__174, any__175>), fst2(<any__174, any__175>), <any__174, any__175>, challenge_req__172, token_path__171, fst2(<any__174, any__175>), res__169, pubk__168, id__167, sender__157, v__156, typ__155, sig__151, msg__150, ch__148, d__149, d__244),
+      Certificate(sender__157, id__167, cert__178) ]
+
+// Edge ca__276/put_send_0_app_o__2131 : rho__990 <- (); drop d__244; drop ch__148; drop d__149; drop msg__150; drop sig__151; drop typ__155; drop v__156; drop sender__157; drop id__167; drop pubk__168; drop res__169; drop token__170; drop token_path__171; drop challenge_req__172; drop dat__173; drop token_recv__176; drop h_pubk__177; drop cert__178; drop c__136; drop h__137; drop v__138; drop pk__139; drop msg__140; drop c__19; drop h__20; drop v__21
+rule put_send_0_app_o__2131[role="ca__276"]
+  : [ !ACP('ca__276', c__19, 'send_0'),
+      State_ca__276_0_1_0_2_0_0_0_4_0_6_2_5_0_0_0_6_0_4_0_3_0_2_0_0(%v, rho__990, c__19, h__20, v__21, msg__140, c__136, h__137, v__138, pk__139, cert__178, h_pubk__177, token_recv__176, dat__173, challenge_req__172, token_path__171, token__170, res__169, pubk__168, id__167, sender__157, v__156, typ__155, sig__151, msg__150, ch__148, d__149, d__244) ]
+    --[ Transition('ca__276', 'index:0.1_0.2_0.0_0.4_0.6_2.5_0.0_0.6_0.4_0.3_0.2_0.0', %v) ]->
+    [ State_ca__276_0_1_0_4(%v, '()'),
+      Store_0(c__19, h__20, v__21) ]
+
+// Edge ca__276/case_out__1225 : rho__1224 <- ()
+rule case_out__1225[role="ca__276"]
+  : [ State_ca__276_0_1_0_4(%v, rho__1224) ]
+    --[ Transition('ca__276', 'index:0.1_0.4', %v),
+        Loop_Back('ca__276', 'index:0.0') ]->
+    [ State_ca__276_0_1(%v %+ %1, '()') ]
+
+// Edge ca__276/case_in_return_c__2070 : rho__790 <- (); new res__185 = verify(snd2(v__24), fst2(v__24), pubk__134); new pubk__184 = pubk__134; new id__183 = snd3(fst2(v__24)); new sender__157 = trd3(fst2(v__24)); new v__156 = snd3(fst2(v__24)); new typ__155 = fst3(fst2(v__24)); new sig__151 = snd2(v__24); new msg__150 = fst2(v__24); new ch__148 = ch_dev2ca; new d__149 = v__24; new d__244 = v__24; drop c__22; drop h__23
+rule case_in_return_c__2070[role="ca__276"]
+  : [ !ACP('ca__276', c__22, 'recv_0'),
+      !Const('t_dns_chal_ready', fst3(fst2(<any__245, any__246>))),
+      !PublicKey('ca__276', trd3(fst2(<any__245, any__246>)), pubk__134),
+      State_ca__276_0_1_0_0_0_0(%v, rho__790, c__22, h__23),
+      Store_0(c__22, h__23, <any__245, any__246>) ]
+    --[ Transition('ca__276', 'index:0.1_0.0_0.0', %v),
+        Eq(fst2(<any__245, any__246>), <any__152, any__153, any__154>),
+        Eq(verify(snd2(<any__245, any__246>), fst2(<any__245, any__246>), pubk__134), true()) ]->
+    [ State_ca__276_0_1_0_2_0_0_0_4_0_6_4_5_0_0(%v, '()', verify(snd2(<any__245, any__246>), fst2(<any__245, any__246>), pubk__134), pubk__134, snd3(fst2(<any__245, any__246>)), trd3(fst2(<any__245, any__246>)), snd3(fst2(<any__245, any__246>)), fst3(fst2(<any__245, any__246>)), snd2(<any__245, any__246>), fst2(<any__245, any__246>), 'chan:ch_dev2ca', <any__245, any__246>, <any__245, any__246>) ]
+
+// Edge ca__276/case_in_new_intr__2138 : rho__1110 <- (); new c__19 = ch__148; new h__20 = sender__157; new v__21 = aenc((t_cert_res, cert__187), pubk__184); new msg__140 = aenc((t_cert_res, cert__187), pubk__184); new c__136 = ch__148; new h__137 = sender__157; new v__138 = (t_cert_res, cert__187); new pk__139 = pubk__184; new cert__187; new token__186
+rule case_in_new_intr__2138[role="ca__276"]
+  : [ !Const('dns_chal_subdom', dns_chal_subdom),
+      !Const('t_cert_res', t_cert_res),
+      State_ca__276_0_1_0_2_0_0_0_4_0_6_4_5_0_0(%v, rho__1110, res__185, pubk__184, id__183, sender__157, v__156, typ__155, sig__151, msg__150, ch__148, d__149, d__244),
+      DnsRecord(<id__183, dns_chal_subdom>, token__186),
+      IssueDNSToken('ca__276', id__183, token__186),
+      Fr(cert__187) ]
+    --[ Transition('ca__276', 'index:0.1_0.2_0.0_0.4_0.6_4.5_0.0', %v),
+        IssueCert(sender__157, cert__187) ]->
+    [ State_ca__276_0_1_0_2_0_0_0_4_0_6_4_5_0_0_0_3_0_2_0_0(%v, '()', ch__148, sender__157, aenc(<t_cert_res, cert__187>, pubk__184), aenc(<t_cert_res, cert__187>, pubk__184), ch__148, sender__157, <t_cert_res, cert__187>, pubk__184, cert__187, token__186, res__185, pubk__184, id__183, sender__157, v__156, typ__155, sig__151, msg__150, ch__148, d__149, d__244),
+      Certificate(sender__157, id__183, cert__187) ]
+
+// Edge ca__276/put_send_0_app_o__2160 : rho__1126 <- (); drop d__244; drop ch__148; drop d__149; drop msg__150; drop sig__151; drop typ__155; drop v__156; drop sender__157; drop id__183; drop pubk__184; drop res__185; drop token__186; drop cert__187; drop c__136; drop h__137; drop v__138; drop pk__139; drop msg__140; drop c__19; drop h__20; drop v__21
+rule put_send_0_app_o__2160[role="ca__276"]
+  : [ !ACP('ca__276', c__19, 'send_0'),
+      State_ca__276_0_1_0_2_0_0_0_4_0_6_4_5_0_0_0_3_0_2_0_0(%v, rho__1126, c__19, h__20, v__21, msg__140, c__136, h__137, v__138, pk__139, cert__187, token__186, res__185, pubk__184, id__183, sender__157, v__156, typ__155, sig__151, msg__150, ch__148, d__149, d__244) ]
+    --[ Transition('ca__276', 'index:0.1_0.2_0.0_0.4_0.6_4.5_0.0_0.3_0.2_0.0', %v) ]->
+    [ State_ca__276_0_1_0_4(%v, '()'),
+      Store_0(c__19, h__20, v__21) ]
+
+// Edge ca__276/case_in_return_c__2085 : rho__790 <- (); new res__193 = verify(snd2(v__24), fst2(v__24), pubk__134); new pubk__192 = pubk__134; new cert__191 = snd2(snd3(fst2(v__24))); new id__190 = fst2(snd3(fst2(v__24))); new sender__157 = trd3(fst2(v__24)); new v__156 = snd3(fst2(v__24)); new typ__155 = fst3(fst2(v__24)); new sig__151 = snd2(v__24); new msg__150 = fst2(v__24); new ch__148 = ch_dev2ca; new d__149 = v__24; new d__244 = v__24; drop c__22; drop h__23
+rule case_in_return_c__2085[role="ca__276"]
+  : [ !ACP('ca__276', c__22, 'recv_0'),
+      !Const('t_revocation_req', fst3(fst2(<any__245, any__246>))),
+      !PublicKey('ca__276', trd3(fst2(<any__245, any__246>)), pubk__134),
+      State_ca__276_0_1_0_0_0_0(%v, rho__790, c__22, h__23),
+      Store_0(c__22, h__23, <any__245, any__246>) ]
+    --[ Transition('ca__276', 'index:0.1_0.0_0.0', %v),
+        Eq(fst2(<any__245, any__246>), <any__152, any__153, any__154>),
+        Eq(snd3(fst2(<any__245, any__246>)), <any__188, any__189>),
+        Eq(verify(snd2(<any__245, any__246>), fst2(<any__245, any__246>), pubk__134), true()) ]->
+    [ State_ca__276_0_1_0_2_0_0_0_4_0_6_5_0_0_8_0_0(%v, '()', verify(snd2(<any__245, any__246>), fst2(<any__245, any__246>), pubk__134), pubk__134, snd2(snd3(fst2(<any__245, any__246>))), fst2(snd3(fst2(<any__245, any__246>))), trd3(fst2(<any__245, any__246>)), snd3(fst2(<any__245, any__246>)), fst3(fst2(<any__245, any__246>)), snd2(<any__245, any__246>), fst2(<any__245, any__246>), 'chan:ch_dev2ca', <any__245, any__246>, <any__245, any__246>) ]
+
+// Edge ca__276/case_in_event_pu__2180 : rho__1182 <- (); drop d__244; drop ch__148; drop d__149; drop msg__150; drop sig__151; drop typ__155; drop v__156; drop sender__157; drop id__190; drop cert__191; drop pubk__192; drop res__193
+rule case_in_event_pu__2180[role="ca__276"]
+  : [ State_ca__276_0_1_0_2_0_0_0_4_0_6_5_0_0_8_0_0(%v, rho__1182, res__193, pubk__192, cert__191, id__190, sender__157, v__156, typ__155, sig__151, msg__150, ch__148, d__149, d__244),
+      Certificate(sender__157, id__190, c1__194),
+      Certificate(id__190, id__190, cert__191) ]
+    --[ Transition('ca__276', 'index:0.1_0.2_0.0_0.4_0.6_5.0_0.8_0.0', %v),
+        RevokeCert(sender__157, id__190, cert__191) ]->
+    [ State_ca__276_0_1_0_4(%v, '()'),
+      Certificate(sender__157, id__190, c1__194) ]
+
+// Edge ca__276/case_in_return_c__2059 : rho__790 <- (); drop c__22; drop h__23
+rule case_in_return_c__2059[role="ca__276"]
+  : [ !ACP('ca__276', 'chan:ch_dev2ca', 'send_0'),
+      !ACP('ca__276', c__22, 'recv_0'),
+      !Const('t_dns_chal_req', fst3(fst2(<any__245, any__246>))),
+      !Const('t_dns_token_res', t_dns_token_res),
+      !PublicKey('ca__276', trd3(fst2(<any__245, any__246>)), pubk__134),
+      State_ca__276_0_1_0_0_0_0(%v, rho__790, c__22, h__23),
+      Store_0(c__22, h__23, <any__245, any__246>),
+      Fr(token__182) ]
+    --[ Transition('ca__276', 'index:0.1_0.0_0.0', %v),
+        Eq(fst2(<any__245, any__246>), <any__152, any__153, any__154>),
+        Eq(verify(snd2(<any__245, any__246>), fst2(<any__245, any__246>), pubk__134), true()) ]->
+    [ State_ca__276_0_1_0_4(%v, '()'),
+      IssueDNSToken('ca__276', snd3(fst2(<any__245, any__246>)), token__182),
+      Store_0('chan:ch_dev2ca', trd3(fst2(<any__245, any__246>)), aenc(<t_dns_token_res, token__182>, pubk__134)) ]
+
+// Edge ca__276/case_in_return_c__2001 : rho__790 <- (); drop c__22; drop h__23
+rule case_in_return_c__2001[role="ca__276"]
+  : [ !ACP('ca__276', 'chan:ch_dev2ca', 'send_0'),
+      !ACP('ca__276', c__22, 'recv_0'),
+      !Const('t_http_chal_req', fst3(fst2(<any__245, any__246>))),
+      !Const('t_http_token_res', t_http_token_res),
+      !PublicKey('ca__276', trd3(fst2(<any__245, any__246>)), pubk__134),
+      State_ca__276_0_1_0_0_0_0(%v, rho__790, c__22, h__23),
+      Store_0(c__22, h__23, <any__245, any__246>),
+      Fr(token__166) ]
+    --[ Transition('ca__276', 'index:0.1_0.0_0.0', %v),
+        Eq(fst2(<any__245, any__246>), <any__152, any__153, any__154>),
+        Eq(verify(snd2(<any__245, any__246>), fst2(<any__245, any__246>), pubk__134), true()) ]->
+    [ State_ca__276_0_1_0_4(%v, '()'),
+      IssueHTTPToken('ca__276', snd3(fst2(<any__245, any__246>)), token__166),
+      Store_0('chan:ch_dev2ca', trd3(fst2(<any__245, any__246>)), aenc(<t_http_token_res, token__166>, pubk__134)) ]
+
+//// Midamble
+
+restriction Init : " All x #i #j . Init(x) @ #i & Init(x) @ #j ==> #i = #j "
+restriction Equality_rule: "All x y #i. Eq(x,y) @ #i ==> x = y"
+restriction NEquality_rule: "All x #i. NEq(x,x) @ #i ==> F"
+lemma AlwaysStarts[reuse,use_induction]:
+      "All x p #i. Loop_Back(x, p) @i ==> Ex #j. Loop_In(x, p) @j & j < i"
+
+lemma AlwaysStartsWhenEnds[reuse,use_induction]:
+      "All x p #i. Loop_Out(x, p) @i ==> Ex #j. Loop_In(x, p) @j & j < i"
+
+lemma TransitionOnce[reuse,use_induction]:
+      "All x p %i #j #k . Transition(x, p, %i) @#j & Transition(x, p, %i) @#k ==> #j = #k"
+
+//// Lemmas
+
+lemma Reachability_1 :
+  exists-trace
+    "Ex certification__250 ctlrId__251 deviceId__252 #time_0 . SecCtlrAuth(ctlrId__251, deviceId__252, certification__250)@#time_0 "
+
+lemma Reachability_1a :
+  exists-trace
+    "Ex certificationCtlr__253 certificationDev__254 ctlrId__255 deviceId__256 #time_0  #time_1 . ReceiveCert(deviceId__256, certificationDev__254)@#time_0 & SecCtlrAuth(ctlrId__255, deviceId__256, certificationCtlr__253)@#time_1 "
+
+lemma Reachability_2 :
+  exists-trace
+    "Ex certification__257 ctlrId__258 deviceId__259 #time_0 . RevokeCert(ctlrId__258, deviceId__259, certification__257)@#time_0 "
+
+lemma Authenticity_1 :
+  all-traces
+    "All certification__260 deviceId__261 #time_1 . ReceiveCert(deviceId__261, certification__260)@#time_1 ==> Ex  #time_2 . IssueCert(deviceId__261, certification__260)@#time_2 & #time_2 < #time_1 "
+lemma Authenticity_2 :
+  all-traces
+    "All certification__262 ctlrId__263 deviceId__264 #time_1 . SecCtlrAuth(ctlrId__263, deviceId__264, certification__262)@#time_1 ==> Ex  #time_2 . IssueCert(ctlrId__263, certification__262)@#time_2 & #time_2 < #time_1 "
+lemma Accountability_1 :
+  all-traces
+    "All certification__265 ctlrId__266 deviceId__267 #time_1 . RevokeCert(ctlrId__266, deviceId__267, certification__265)@#time_1 ==> Ex  #time_2 . ReqRevocation(ctlrId__266, deviceId__267, certification__265)@#time_2 & #time_2 < #time_1 "
+lemma Accountability_2 :
+  all-traces
+    "All certificationDev__269 ctlrId__270 deviceId__271 #time_1 . ReqRevocation(ctlrId__270, deviceId__271, certificationDev__269)@#time_1 ==> Ex certificationCtlr__268 #time_2 . SecCtlrAuth(ctlrId__270, deviceId__271, certificationCtlr__268)@#time_2 & #time_2 < #time_1 "
+
+end
+

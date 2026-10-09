@@ -1,0 +1,557 @@
+(*
++ Fact name separation with respect to channel
++ simplify
+*)
+
+(*
+WIP
+ref. https://doi.org/10.22323/1.488.0013
+*)
+
+function fst2:1
+function snd2:1
+equation fst2((x, y)) = x
+equation snd2((x, y)) = y
+function fst3:1
+function snd3:1
+function trd3:1
+equation fst3((x, y, z)) = x
+equation snd3((x, y, z)) = y
+equation trd3((x, y, z)) = z
+function pk:1
+function aenc:2
+function adec:2
+equation adec(aenc(msg, pk(privk)), privk) = msg
+function hash:1
+function sign:2
+function verify:3
+function true:0
+equation verify(sign(msg, privk), msg, pk(privk)) = true
+
+fact global [DnsRecord:2, False:0, Certificate:3]
+fact global persist [BrokenDevice:1]
+fact channel [Store_0:2, Store_1:2, Store_2:2, Store_3:2]
+  (*
+    Store_0: ch_dev2ca
+    Store_1: ch_dev2ctlr
+    Store_2: ch_ctlr2ca
+    Store_3: ch_unsec
+  *)
+fact local [IssueHTTPToken:2, IssueDNSToken:2] (* CA *)
+fact local persist [PublicKey:2] (* CA *)
+fact local [CreateFile:2] (* device *)
+fact local [CtlrCertManagement:2] (* SecCtlr *)
+tag [ReceiveCert:2, SecCtlrAuth:3, ReqRevocation:3, IssueCert:2, RevokeCert:3]
+tag [BrokenDevice:1]
+
+(***********)
+(* global constants *)
+const fresh ca_id
+const fresh device_id
+const fresh ctlr_id
+
+(* type of requests to CA *)
+const t_pubk_reg = "0"
+const t_http_chal_req = "1"
+const t_http_chal_ready = "2"
+const t_dns_chal_req = "3"
+const t_dns_chal_ready = "4"
+const t_revocation_req = "5"
+const t_get_req = "6"
+
+(* type of responses from CA *)
+const t_http_token_res = "A"
+const t_dns_token_res = "B"
+const t_cert_res = "C"
+
+(* type of requests to security controller *)
+const t_cert_reg = "a"
+
+const http_chal_path = "/.well-known/acme-challenge"
+const dns_chal_subdom = "_acme-challenge"
+
+(***********)
+(* syscalls on communication *)
+(* NOTE: ACME requires HTTPS communication *)
+syscall send_0(c, h, v) {
+  put [c::Store_0(h, v)]
+}
+
+syscall recv_0(c, h) {
+  case
+  | [c::Store_0(h, v)] ->
+    v
+  end
+}
+
+syscall send_1(c, h, v) {
+  put [c::Store_1(h, v)]
+}
+
+syscall recv_1(c, h) {
+  case
+  | [c::Store_1(h, v)] ->
+    v
+  end
+}
+
+syscall send_2(c, h, v) {
+  put [c::Store_2(h, v)]
+}
+
+syscall recv_2(c, h) {
+  case
+  | [c::Store_2(h, v)] ->
+    v
+  end
+}
+
+(* syscalls on unsecure communication *)
+(* NOTE: only when HTTP-01 challenge *)
+syscall send_unsec(c, h, v) {
+  put [c::Store_3(h, v)]
+}
+
+syscall recv_unsec(c, h) {
+  case
+  | [c::Store_3(h, v)] ->
+    v
+  end
+}
+
+(* syscalls on file system *)
+syscall fopen(p) {
+  case [p.x] ->
+    new y = Fd(x) in
+    put [p.x]; y
+  end
+}
+
+syscall fread(y) {
+  let x = y.Fd in
+  x
+}
+
+syscall fwrite(y, d) {
+  (* TODO *)
+  skip
+
+  (* if file path is "p" *)
+  (*
+  syscall overwrite (p, d) {
+    case [p.x] -> put [p.d] end
+  }
+  *)
+}
+
+syscall fclose(y) {
+  delete y.Fd
+}
+
+(***********)
+(* attacks *)
+passive attack hijack(id, privk, cert, ch) {
+  event [::BrokenDevice(id)];
+  put [!::BrokenDevice(id)];
+
+  (* illegal revocation of currect certification *)
+  var ill_req_revoke = (t_revocation_req, (id, cert), id) in
+  event [::ReqRevocation(id, id, cert)];
+  var msg = (ill_req_revoke, sign(ill_req_revoke, privk)) in
+  _ := send_0(ch, ca_id, msg)
+
+  (* can request new certification *)
+}
+
+(***********)
+(* types declaration *)
+type device_t : process
+type secctlr_t : process
+type ca_t : process
+
+type ch_net_t : channel
+type ch_unsec_t : channel
+
+type device_file_t : filesys
+
+(***********)
+(* access controls *)
+allow device_t ch_net_t [send_0,recv_0,send_1,recv_1,send_2,recv_2]
+allow device_t ch_unsec_t [send_unsec,recv_unsec]
+allow device_t device_file_t [fopen,fread,fwrite,fclose]
+allow device_t [hijack]
+allow secctlr_t ch_net_t [send_0,recv_0,send_1,recv_1,send_2,recv_2]
+allow ca_t ch_net_t [send_0,recv_0,send_1,recv_1,send_2,recv_2]
+allow ca_t ch_unsec_t [send_unsec,recv_unsec]
+
+(***********)
+channel ch_dev2ca: ch_net_t
+channel ch_dev2ctlr: ch_net_t
+channel ch_ctlr2ca: ch_net_t
+channel ch_unsec: ch_unsec_t
+
+process device(ch: ch_net_t, ch_ctlr: ch_net_t, ch_unsec: ch_unsec_t): device_t {
+
+  function send_with_sign(c, h, v, k) {
+    var msg = (v, sign(v, k)) in
+    _ := send_0(c, h, msg)
+  }
+
+  function put_token(token, pubk) {
+    var token_path = (device_id, http_chal_path, token) in
+    var dat = (token, hash(pubk)) in
+    (*
+    var token_fd = fopen(token_path) in
+    _ := fwrite(token_fd, dat)
+    *)
+    (* put [token_path.dat] *)
+    put [CreateFile(token_path, dat)]
+  }
+
+  function respond_to_get(req) {
+    assume [req = (_, _, _)] in
+    var typ = fst3(req) in
+    case [typ = t_get_req] ->
+      var get_path = snd3(req) in
+      var sender = trd3(req) in
+      (* var fd = fopen(get_path) in
+      var dat = fread(fd) in
+      _ := fclose(fd); *)
+      assume [get_path = (_, _, _)] in
+      case [CreateFile(get_path, dat)] ->
+        _ := send_unsec(ch_unsec, sender, dat)
+      end
+    end
+  }
+
+  main {
+    (* initial behavior: certificate by CA *)
+    (* 0. register public key *)
+    new device_privk in
+    var device_pubk = pk(device_privk) in
+    var reg_msg = (t_pubk_reg, (device_id, device_pubk), device_id) in
+    _ := send_with_sign(ch, ca_id, reg_msg, device_privk);
+    (* 1. send order *)
+    var order_msg = (t_http_chal_req, device_id, device_id) in
+    _ := send_with_sign(ch, ca_id, order_msg, device_privk);
+    (* 2. put token / send csr *)
+    var token_enc = recv_0(ch, device_id) in
+    assume [token_enc = aenc(_, device_pubk)] in
+    var token_res = adec(token_enc, device_privk) in
+    case [token_res = (t_http_token_res, token)] ->
+      _ := put_token(token, device_pubk);
+      var csr = (t_http_chal_ready, device_id, device_id) in
+      _ := send_with_sign(ch, ca_id, csr, device_privk);
+      (* 2.5. respond to challenge *)
+      var challenge_req = recv_unsec(ch_unsec, device_id) in
+      _ := respond_to_get(challenge_req);
+      (* 3. download certificate *)
+      var cert_enc = recv_0(ch, device_id) in
+      assume [cert_enc = aenc(_, device_pubk)] in
+      var cert_res = adec(cert_enc, device_privk) in
+      case [cert_res = (t_cert_res, cert)] ->
+        event [::ReceiveCert(device_id, cert)];
+        (* 4. register certificate for security controller *)
+        var cert_reg_msg = (t_cert_reg, cert, device_id) in
+        _ := send_1(ch_ctlr, ctlr_id, cert_reg_msg);
+        var res = recv_1(ch_ctlr, device_id) in
+        case [res = true] ->
+
+        (* normal behavior: be broken (or attacked) eventually *)
+        case
+        | [ (* not attacked *) ] -> skip
+        | [ (* attacked *) ] ->
+          _ := hijack(device_id, device_privk, cert, ch)
+        end
+        end
+      end
+    end
+  }
+}
+
+process secctlr(ch: ch_net_t, ch_dev: ch_net_t): secctlr_t {
+  
+  function send_with_sign(c, h, v, k) {
+    var msg = (v, sign(v, k)) in
+    _ := send_2(c, h, msg)
+  }
+
+  function write_dns(id, token) {
+    put [::DnsRecord((id, dns_chal_subdom), token)]
+  }
+
+  main {
+    (* 0. register public key *)
+    new ctlr_privk in
+    var ctlr_pubk = pk(ctlr_privk) in
+    var reg_msg = (t_pubk_reg, (ctlr_id, ctlr_pubk), ctlr_id) in
+    _ := send_with_sign(ch, ca_id, reg_msg, ctlr_privk);
+
+    (* repeat
+    | [] -> *)
+      (* initial behavior: certificate by CA *)
+      var cert_reg_msg = recv_1(ch_dev, ctlr_id) in
+      var typ = fst3(cert_reg_msg) in
+      var dev_cert = snd3(cert_reg_msg) in
+      var device_id = trd3(cert_reg_msg) in
+      case [typ = t_cert_reg] ->
+        (* 1. send order *)
+        var order_msg = (t_dns_chal_req, device_id, ctlr_id) in
+        _ := send_with_sign(ch, ca_id, order_msg, ctlr_privk);
+        (* 2. put token / send csr *)
+        var token_enc = recv_2(ch, ctlr_id) in
+        assume [token_enc = aenc(_, ctlr_pubk)] in
+        var token_res = adec(token_enc, ctlr_privk) in
+        case [token_res = (t_dns_token_res, token)] ->
+          _ := write_dns(device_id, token);
+          var csr = (t_dns_chal_ready, device_id, ctlr_id) in
+          _ := send_with_sign(ch, ca_id, csr, ctlr_privk);
+          (* 3. download certificate *)
+          var cert_enc = recv_2(ch, ctlr_id) in
+          assume [cert_enc = aenc(_, ctlr_pubk)] in
+          var cert_res = adec(cert_enc, ctlr_privk) in
+          case [cert_res = (t_cert_res, cert)] ->
+            put [CtlrCertManagement(device_id, dev_cert)];
+            event [::SecCtlrAuth(ctlr_id, device_id, cert)];
+            _ := send_1(ch_dev, device_id, true)
+          end
+        end
+      end
+
+    (* | [!::BrokenDevice(id)] -> *)
+    ;case [!::BrokenDevice(id)] ->
+      (* normal behavior: detect broken device and revoke its certificate *)
+      case [CtlrCertManagement(id, cert)] ->
+        var req_revoke = (t_revocation_req, (id, cert), ctlr_id) in
+        event [::ReqRevocation(ctlr_id, id, cert)];
+        _ := send_with_sign(ch, ca_id, req_revoke, ctlr_privk)
+      end
+    (* until [::False()] ->
+      skip *)
+    end
+  }
+}
+
+process ca(ch_dev: ch_net_t, ch_ctlr: ch_net_t, ch_unsec: ch_unsec_t): ca_t {
+
+  function get_pubkey(id) {
+    case [!PublicKey(id, pubk)] ->
+      pubk
+    end
+  }
+
+  function send_with_aenc_0(c, h, v, pk) {
+    var msg = aenc(v, pk) in
+    _ := send_0(c, h, msg)
+  }
+
+  function send_with_aenc_2(c, h, v, pk) {
+    var msg = aenc(v, pk) in
+    _ := send_2(c, h, msg)
+  }
+
+  function handle_request_0(ch, d) {
+    var msg = fst2(d) in    (* msg: (typ, v, sender) *)
+    var sig = snd2(d) in
+    assume [msg = (_, _, _)] in
+    var typ = fst3(msg) in
+    var v = snd3(msg) in
+    var sender = trd3(msg) in
+    case
+    | [typ = t_pubk_reg] ->
+        assume [v = (_, _)] in
+        var id = fst2(v) in
+        var pubk = snd2(v) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          put [!PublicKey(id, pubk)]
+        end
+    | [typ = t_http_chal_req] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          new token in
+          put [IssueHTTPToken(id, token)];
+          _ := send_with_aenc_0(ch, sender, (t_http_token_res, token), pubk)
+        end
+    | [typ = t_http_chal_ready] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          case [IssueHTTPToken(id, token)] ->
+            var token_path = (id, http_chal_path, token) in
+            var challenge_req = (t_get_req, token_path, ca_id) in
+            _ := send_unsec(ch_unsec, sender, challenge_req);
+            var dat = recv_unsec(ch_unsec, ca_id) in
+            assume [dat = (_, _)] in
+            var token_recv = fst2(dat) in
+            var h_pubk = snd2(dat) in
+            case [token = token_recv, hash(pubk) = h_pubk] ->
+              new cert in
+              event [::IssueCert(id, cert)];
+              put [::Certificate(sender, id, cert)];
+              _ := send_with_aenc_0(ch, sender, (t_cert_res, cert), pubk)
+            end
+          end
+        end
+    | [typ = t_dns_chal_req] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          new token in
+          put [IssueDNSToken(id, token)];
+          _ := send_with_aenc_0(ch, sender, (t_dns_token_res, token), pubk)
+        end
+    | [typ = t_dns_chal_ready] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          case [::DnsRecord((id, dns_chal_subdom), token), IssueDNSToken(id, token)] ->
+            new cert in
+            event [::IssueCert(sender, cert)];
+            put [::Certificate(sender, id, cert)];
+            _ := send_with_aenc_0(ch, sender, (t_cert_res, cert), pubk)
+          end
+        end
+    | [typ = t_revocation_req] ->
+        assume [v = (_, _)] in
+        var id = fst2(v) in
+        var cert = snd2(v) in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          case [::Certificate(sender, id, c1), ::Certificate(id, id, cert)] ->
+            event [::RevokeCert(sender, id, cert)];
+            put [::Certificate(sender, id, c1)]
+          end
+        end
+    end
+  }
+
+  function handle_request_2(ch, d) {
+    var msg = fst2(d) in    (* msg: (typ, v, sender) *)
+    var sig = snd2(d) in
+    assume [msg = (_, _, _)] in
+    var typ = fst3(msg) in
+    var v = snd3(msg) in
+    var sender = trd3(msg) in
+    case
+    | [typ = t_pubk_reg] ->
+        assume [v = (_, _)] in
+        var id = fst2(v) in
+        var pubk = snd2(v) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          put [!PublicKey(id, pubk)]
+        end
+    | [typ = t_http_chal_req] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          new token in
+          put [IssueHTTPToken(id, token)];
+          _ := send_with_aenc_2(ch, sender, (t_http_token_res, token), pubk)
+        end
+    | [typ = t_http_chal_ready] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          case [IssueHTTPToken(id, token)] ->
+            var token_path = (id, http_chal_path, token) in
+            var challenge_req = (t_get_req, token_path, ca_id) in
+            _ := send_unsec(ch_unsec, sender, challenge_req);
+            var dat = recv_unsec(ch_unsec, ca_id) in
+            assume [dat = (_, _)] in
+            var token_recv = fst2(dat) in
+            var h_pubk = snd2(dat) in
+            case [token = token_recv, hash(pubk) = h_pubk] ->
+              new cert in
+              event [::IssueCert(id, cert)];
+              put [::Certificate(sender, id, cert)];
+              _ := send_with_aenc_2(ch, sender, (t_cert_res, cert), pubk)
+            end
+          end
+        end
+    | [typ = t_dns_chal_req] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          new token in
+          put [IssueDNSToken(id, token)];
+          _ := send_with_aenc_2(ch, sender, (t_dns_token_res, token), pubk)
+        end
+    | [typ = t_dns_chal_ready] ->
+        var id = v in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          case [::DnsRecord((id, dns_chal_subdom), token), IssueDNSToken(id, token)] ->
+            new cert in
+            event [::IssueCert(sender, cert)];
+            put [::Certificate(sender, id, cert)];
+            _ := send_with_aenc_2(ch, sender, (t_cert_res, cert), pubk)
+          end
+        end
+    | [typ = t_revocation_req] ->
+        assume [v = (_, _)] in
+        var id = fst2(v) in
+        var cert = snd2(v) in
+        var pubk = get_pubkey(sender) in
+        var res = verify(sig, msg, pubk) in
+        case [res = true] ->
+          case [::Certificate(sender, id, c1), ::Certificate(id, id, cert)] ->
+            event [::RevokeCert(sender, id, cert)];
+            put [::Certificate(sender, id, c1)]
+          end
+        end
+    end
+  }
+
+  main {
+    repeat
+    | [] ->
+      var d = recv_0(ch_dev, ca_id) in    (* d: (msg, sign(msg, privk)) *)
+      assume [d = (_, _)] in
+      _ := handle_request_0(ch_dev, d)
+    | [] ->
+      var d = recv_2(ch_ctlr, ca_id) in    (* d: (msg, sign(msg, privk)) *)
+      assume [d = (_, _)] in
+      _ := handle_request_2(ch_ctlr, d)
+    until [::False()] ->
+      skip
+    end
+  }
+}
+
+system
+  device(ch_dev2ca, ch_dev2ctlr, ch_unsec) | secctlr(ch_ctlr2ca, ch_dev2ctlr) | ca(ch_dev2ca, ch_ctlr2ca, ch_unsec)
+requires
+[
+  lemma Reachability_1:
+    reachable ::SecCtlrAuth(ctlrId, deviceId, certification);
+
+  lemma Reachability_1a:
+    reachable ::ReceiveCert(deviceId, certificationDev), ::SecCtlrAuth(ctlrId, deviceId, certificationCtlr);
+
+  lemma Reachability_2:
+    reachable ::RevokeCert(ctlrId, deviceId, certification);
+
+  lemma Authenticity_1:
+    corresponds ::ReceiveCert(deviceId, certification) ~> ::IssueCert(deviceId, certification);
+
+  lemma Authenticity_2:
+    corresponds ::SecCtlrAuth(ctlrId, deviceId, certification) ~> ::IssueCert(ctlrId, certification);
+
+  lemma Accountability_1:
+    corresponds ::RevokeCert(ctlrId, deviceId, certification) ~> ::ReqRevocation(ctlrId, deviceId, certification);
+
+  lemma Accountability_2:
+    corresponds ::ReqRevocation(ctlrId, deviceId, certificationDev) ~> ::SecCtlrAuth(ctlrId, deviceId, certificationCtlr)
+]
