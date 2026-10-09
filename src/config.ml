@@ -11,3 +11,5 @@ let debug = ref false
 let optimize = ref true
 
 let tag_transition = ref true
+
+let eq_subst = ref true

@@ -525,6 +525,145 @@ let facts_of_edge (e : Sem.edge) =
   e.tag @ pre_eq_neq,
   e.post
 
+(************)
+(*
+  If a rule contains equality facts like Eq(v, e) for v = e,
+  replace all of v with e in the rule.
+  (in order to reduce a verification time)
+  
+  * Substitution occurs only if either of Eq arguments is Ident (variable name).
+*)
+let subst_eq_expr ((id1, e2): Ident.t * expr) (expr: expr) : expr =
+  let rec aux e =
+    match e with
+    | Ident id' when id' = id1 -> e2
+    | Apply (id, args) -> Apply (id, List.map aux args)
+    | Tuple es -> Tuple (List.map aux es)
+    | _ -> e
+  in
+  aux expr
+
+let subst_eq_fact (facts: fact list) (eq: Ident.t * expr) : fact list =
+  (* eq = (id1, e2), then substitute e2 in facts for id1 *)
+  List.map
+    (fun fact ->
+      (match fact with
+      | Channel { channel; name; args; persist } ->
+          Channel {
+            channel = subst_eq_expr eq channel;
+            name;
+            args = List.map (subst_eq_expr eq) args;
+            persist }
+      | Plain { pid; name; args; persist } ->
+          Plain {
+            pid; name;
+            args = List.map (subst_eq_expr eq) args;
+            persist }
+      | Eq (el, er) ->
+          Eq (subst_eq_expr eq el, subst_eq_expr eq er)
+      | Neq (el, er) ->
+          Neq (subst_eq_expr eq el, subst_eq_expr eq er)
+      | File { pid; path; contents } ->
+          File { pid; path = subst_eq_expr eq path; contents = subst_eq_expr eq contents }
+      | Global { name; args; persist } ->
+          Global {
+            name;
+            args = List.map (subst_eq_expr eq) args;
+            persist }
+      | Structure { pid; name; address; args } ->
+          Structure {
+            pid; name;
+            address = subst_eq_expr eq address;
+            args = List.map (subst_eq_expr eq) args }
+      | Access { pid; channel; syscall} ->
+          Access { pid; channel = subst_eq_expr eq channel; syscall }
+      | Const { id; param; value } ->
+          Const {
+            id;
+            param = (match param with Some p -> Some (subst_eq_expr eq p) | _ -> param);
+            value = subst_eq_expr eq value }
+      | State { pid; index; mapping; transition } ->
+          State {
+            pid; index; transition;
+            mapping = List.map (fun (id, e) -> (id, subst_eq_expr eq e)) mapping }
+      | _ -> fact ))
+    facts
+
+exception Eqs_Mutual_Dependence of ((Ident.t * expr) * (Ident.t * expr))
+(* comparison function for sorting eqs with respect to dependency *)
+let comp_eqs (id1, e1) (id2, e2) =
+  let rec check_exp_has_id id exp =
+    match exp with
+    | Ident id' when id' = id -> true
+    | Apply (_, args) -> List.exists (check_exp_has_id id) args
+    | Tuple es -> List.exists (check_exp_has_id id) es
+    | _ -> false
+  in
+  let lt = check_exp_has_id id1 e2 in
+  let gt = check_exp_has_id id2 e1 in
+  match lt, gt with
+  | true, true -> raise (Eqs_Mutual_Dependence ((id1, e1), (id2, e2)))
+  | true, false -> -1 (* eq1 < eq2 *)
+  | false, true -> 1  (* eq1 > eq2 *)
+  | false, false -> 0 (* eq1 = eq2 *)
+
+let rec sort_eqs eqs label =
+  try
+    (List.stable_sort comp_eqs eqs, label)
+  with Eqs_Mutual_Dependence (_, (id2, e2)) ->
+    let eqs = List.filter (fun eq -> eq <> (id2, e2)) eqs in
+    let label = Eq (Ident id2, e2) :: label in
+    sort_eqs eqs label
+
+let subst_eq_rule rule_id (pre, label, post) =
+  let eqs, label_rest =
+    List.partition_map
+    (fun fact ->
+      match fact with
+      | Eq (e1, e2) ->
+          (match e1, e2 with
+          | Ident id1, _ -> Left (id1, e2)
+          | _, Ident id2 -> Left (id2, e1)
+          | _ -> Right fact)
+      | _ -> Right fact)
+    label
+  in
+  (* sort eqs with respect to dependency *)
+  let eqs, label_rest = sort_eqs eqs label_rest in
+  (* substitute e2 for id1 in each exp of eqs *)
+  let eqs =
+    let rec aux eqs_cur eqs_target =
+      match eqs_cur with
+      | [] -> eqs_target
+      | eq :: rest ->
+          let eqs_target = List.map (fun (id1', e2') -> (id1', subst_eq_expr eq e2')) eqs_target in
+          let rest = List.map (fun (id1', e2') -> (id1', subst_eq_expr eq e2')) rest in
+          aux rest eqs_target
+    in
+    aux eqs eqs
+  in
+  (* print for debug *)
+  if !Config.debug && not (List.is_empty eqs) then
+    Format.eprintf
+      "@[<v2>Substitute (%s)@ %a@]@.@."
+      (Ident.to_string rule_id)
+      (Format.pp_print_list
+         ~pp_sep:(fun ppf () -> Format.fprintf ppf "@ ")
+         (fun ppf (id, e) ->
+            Format.fprintf ppf "%s => %s" (Ident.to_string id) (string_of_expr e)))
+      eqs;
+  let new_pre = List.fold_left subst_eq_fact pre eqs in
+  let new_label = List.fold_left subst_eq_fact label_rest eqs in  (* eqs are excluded from new_label *)
+  let new_post = List.fold_left subst_eq_fact post eqs in
+  (new_pre, new_label, new_post)
+
+(*
+  NOTE: If there is a cycle of dependency (>2),
+  it won't be detected and just substituted n times (= a number of Eqs)
+    ex. v1 = v2, v2 = v3, v3 = v1
+*)
+(************)
+
 let rule_of_edge (pid : Subst.pid) (edge : Sem.edge) =
   let role = Some (fst pid :> Ident.t) in
   let state_pre : fact =
@@ -562,17 +701,21 @@ let rule_of_edge (pid : Subst.pid) (edge : Sem.edge) =
   let { deps= label_deps; result= label } = compile_facts label in
   let { deps= post_deps; result= post } = compile_facts post in
   let label =
-    facts'
-    @@
     if !Config.tag_transition then
       Transition { pid; source=edge.source; transition= Some Var } :: label
     else label
   in
   let pre =
-    facts' @@ state_pre :: pre @ pre_deps @ post_deps @ post_consts @ label_deps
+    state_pre :: pre @ pre_deps @ post_deps @ post_consts @ label_deps
   in
-  let post =
-    facts' @@ state_post :: post in
+  let post = state_post :: post in
+  (* replace equality facts with direct substitution *)
+  let pre, label, post =
+    if !Config.eq_subst then subst_eq_rule (edge.id :> Ident.t) (pre, label, post) else (pre, label, post)
+  in
+  let pre = facts' pre in
+  let label = facts' label in
+  let post = facts' post in
   let comment =
     Some (Printf.sprintf
             "%s %s/%s : %s"

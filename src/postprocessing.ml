@@ -299,8 +299,8 @@ let rec optimize_at (m : model) (st : state) =
             match reduce_conditions tr1.transition_post pre2 with
             | Some (post1, pre2) ->
 
-              let m = (if out_num ==1 then model_remove_transition_by_id m tr1.transition_id else m) in
-              let m = (if in_num == 1 then model_remove_transition_by_id m tr2.transition_id else m) in
+              let m = (if out_num = 1 then model_remove_transition_by_id m tr1.transition_id else m) in
+              let m = (if in_num = 1 then model_remove_transition_by_id m tr2.transition_id else m) in
               let tr = {
                 transition_id = m.model_transition_id_max;
                 transition_namespace = m.model_name;
