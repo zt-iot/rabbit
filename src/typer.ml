@@ -718,7 +718,9 @@ let rec type_decl base_fn env (d : Input.decl) : Env.t * Typed.decl list =
       let _env, rev_lemmas =
         List.fold_left
           (fun (env, rev_lemmas) lemma ->
-             let env, lemma = type_lemma env lemma in
+             let env, ((id, l) as lemma) = type_lemma env lemma in
+             if List.mem_assoc id rev_lemmas then
+               error ~loc:l.loc @@ IdentifierAlreadyBound (fst id);
              env, lemma :: rev_lemmas)
           (env, [])
           lemmas

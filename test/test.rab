@@ -295,3 +295,19 @@ requires [
   lemma UpdatedContentsAreReadable :
     reachable ::ReadBack("updated")
 ]
+
+(*** TyperFail "Identifier L is already bound" *)
+(* lemma names must be unique: Tamarin rejects duplicate lemmas *)
+type proc_t : process
+
+process p() : proc_t {
+  main {
+    event [::E(1)]
+  }
+}
+
+system p()
+requires [
+  lemma L : reachable ::E(x);
+  lemma L : reachable ::E(x)
+]
