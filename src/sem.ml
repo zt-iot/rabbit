@@ -6,6 +6,7 @@ type error =
   | NoSystem
   | MultipleSystems
   | LocalFactNotAllowed
+  | LemmaFactNotAllowed
 
 (** Print error description. *)
 let print_error err ppf =
@@ -13,6 +14,7 @@ let print_error err ppf =
   | NoSystem -> Format.fprintf ppf "No system to compile"
   | MultipleSystems -> Format.fprintf ppf "Only 1 system can exist"
   | LocalFactNotAllowed -> Format.fprintf ppf "Local fact is not allowed in this context"
+  | LemmaFactNotAllowed -> Format.fprintf ppf "Only global facts are allowed in lemmas"
 
 exception Error of error Location.located
 
@@ -274,12 +276,16 @@ let fact_of_typed pido (f : Typed.fact) : fact =
     | Some pid -> pid
     | None -> error ~loc:f.loc LocalFactNotAllowed
   in
+  (* lemmas ([pido = None]) can only be compiled with global facts *)
+  let not_in_lemma () =
+    if pido = None then error ~loc:f.loc LemmaFactNotAllowed
+  in
   let desc : fact' =
     match f.desc with
-    | Channel { channel; name; args} -> Channel { channel; name; args }
+    | Channel { channel; name; args} -> not_in_lemma (); Channel { channel; name; args }
     | Plain (name, es) -> Plain { pid= get_pid (); name; args= es }
-    | Eq (e1, e2) -> Eq (e1, e2)
-    | Neq (e1, e2) -> Neq (e1, e2)
+    | Eq (e1, e2) -> not_in_lemma (); Eq (e1, e2)
+    | Neq (e1, e2) -> not_in_lemma (); Neq (e1, e2)
     | File { path; contents } -> File { pid= get_pid (); path; contents }
     | Global (name, es) -> Global (name, es)
   in
