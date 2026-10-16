@@ -82,7 +82,7 @@ let new_load_file fn =
     (* The new compiler loads each file with the empty env *)
     Ok (snd @@ Typer.load (Env.empty ()) fn)
   with
-  | (Typer.Error _ as exn) -> Error exn
+  | (Typer.Error _ | Ulexbuf.Error _ | Sys_error _ as exn) -> Error exn
   | exn ->
       Format.eprintf "Typer unexpected exception: %s@." (Printexc.to_string exn);
       Error exn
@@ -137,11 +137,13 @@ let new_translate_system ext decls =
    | None, _ | _, false -> ());
   let spthy = Spthy.compile_sem sem in
   (match !ofile with
-   | None -> ()
+   | None ->
+       Print.message "Warning" "%s" "output file not specified (use -o)"
    | Some ofile ->
+       (* render first: an exception while printing must not leave a truncated file *)
+       let s = Format.asprintf "%a@." Spthy.print spthy in
        Out_channel.with_open_text (ofile ^ ext) @@ fun oc ->
-       let ppf = Format.formatter_of_out_channel oc in
-       Format.fprintf ppf "%a@." Spthy.print spthy)
+       Out_channel.output_string oc s)
 
 let wrap_exn f = try Ok (f ()) with exn -> Error exn
 
@@ -210,6 +212,7 @@ let () =
     usage ;
   (* Files were accumulated in the wrong order, so we reverse them *)
   files := List.rev !files ;
+  if !files = [] then (Arg.usage options usage; exit 1) ;
 
   (* Set the maximum depth of pretty-printing, after which it prints ellipsis. *)
   Format.set_max_boxes !Config.max_boxes ;
@@ -241,4 +244,7 @@ let () =
       exit 1
   | Sem.Error err ->
       Print.message ~loc:err.loc "Compilation error" "%t" (Sem.print_error err.data);
+      exit 1
+  | Sys_error msg ->
+      Print.message "I/O error" "%s" msg;
       exit 1
