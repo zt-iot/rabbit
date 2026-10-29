@@ -87,7 +87,7 @@ type fact =
   | State of
       { pid : Subst.proc_id * Subst.param_id option
       ; index : Sem.Index.t
-      ; mapping : (Ident.t * expr) list (** The values of the mutable variables *)
+      ; mapping : (Ident.t * expr) list (** Live register and mutable-variable values; may be empty after reduction. *)
       ; transition : transition option
       } (** Process status *)
   | Transition of
@@ -117,14 +117,22 @@ type lemma =
 type fact'
 
 (** Tamarin rule *)
-type rule =
+type 'a rule_data =
   { id : Ident.t
   ; role : Ident.t option
-  ; pre : fact' list
-  ; label : fact' list
-  ; post : fact' list
+  ; pre : 'a list
+  ; label : 'a list
+  ; post : 'a list
   ; comment : string option
   }
+
+type rule = fact' rule_data
+
+val reduce_state_arguments : fact rule_data list -> fact rule_data list
+(** Project dead State slots using backward liveness over all supplied rules.
+    Supply initialization and model rules together. Non-State facts are preserved.
+    Input State mappings must contain rho followed by consistently ordered variables;
+    State premises must have distinct variable values. *)
 
 (** Rabbit system compiled to Tamarin *)
 type t =

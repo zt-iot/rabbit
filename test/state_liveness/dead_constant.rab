@@ -1,0 +1,17 @@
+tag global [Valid:0]
+
+const fresh c
+
+type proc_t : process
+process alice() : proc_t
+{
+  main {
+    var unused = c in
+    event [::Valid()]
+  }
+}
+
+system alice()
+requires [
+  lemma Reachable: reachable ::Valid()
+]

@@ -1,0 +1,14 @@
+(test
+ (name test_state_liveness)
+ (libraries rabbit_core str)
+ (deps
+  ../../examples/000_simplest.rab
+  ../../examples/080_state.rab
+  ../../examples/081_state_param.rab
+  ../../examples/082_state_param_return.rab
+  ../../examples/090_const.rab
+  ../../examples/110_case.rab
+  ../../examples/130_var.rab
+  ../../examples/150_loop.rab
+  ../../examples/161_structure_param.rab)
+ (flags (:standard -w +a-4-40-42-70 -warn-error +a-4-40-42-70)))

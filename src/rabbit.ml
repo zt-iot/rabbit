@@ -58,6 +58,10 @@ let options = Arg.align [
      Arg.Bool (fun b -> Config.optimize := b),
      "<bool> Enable of disable compressing produced Tamarin model (default: true)");
 
+    ("--state-liveness",
+     Arg.Bool (fun b -> Config.state_liveness := b),
+     "<bool> Enable or disable State argument reduction (default: false)");
+
     ("--tag-transition",
      Arg.Bool (fun b -> Config.tag_transition := b),
      "<bool> Enable or disable tagging transitions in produced Tamarin model (default: true)");

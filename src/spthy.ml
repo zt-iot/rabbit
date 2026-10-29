@@ -262,10 +262,7 @@ let fact' f : fact' =
       { name = "State_" ^ Ident.to_string (fst pid :> Ident.t) ^ "_" ^ Sem.Index.to_string' index
       ; args = param pid
                @ Option.to_list (Option.map (fun x -> (Transition x : expr)) transition)
-               @ (match mapping with
-                   | [] -> assert false
-                   | [_id, e] -> [e]
-                   | _ -> List.map snd mapping)
+               @ List.map snd mapping
       ; config = config_linear
       }
   | Transition { pid; source; transition } ->
@@ -490,14 +487,110 @@ let compile_lemma (lem : Typed.lemma) : lemma =
       let conclusion = compile_fact @@ Sem.fact_of_typed None conclusion in
       Correspondence { premise; conclusion }
 
-type rule =
+type 'a rule_data =
   { id : Ident.t
   ; role : Ident.t option (* proc_id or proc_id or both? *)
-  ; pre : fact' list
-  ; label : fact' list
-  ; post : fact' list
+  ; pre : 'a list
+  ; label : 'a list
+  ; post : 'a list
   ; comment : string option
   }
+
+type rule = fact' rule_data
+
+let lower_rule (r : fact rule_data) : rule =
+  { r with pre = facts' r.pre; label = facts' r.label; post = facts' r.post }
+
+(* Slots are positional: slot zero is rho, whose local identifier may differ
+   between edges. Ordinary slots must have the same identifiers at every use
+   of a State symbol. Parameters and transition counters are never projected. *)
+module State_key = Map.Make (struct
+  type t = Subst.proc_id * Sem.Index.t
+  let compare = compare
+end)
+
+module Slots = Set.Make (Int)
+
+let state_argument_projection (rules : fact rule_data list) =
+  let schemas = ref State_key.empty in
+  let live = ref State_key.empty in
+  let key pid index = fst pid, index in
+  let register = function
+    | State { pid; index; mapping; transition } ->
+        let k = key pid index in
+        let schema =
+          (List.map fst (match mapping with [] -> invalid_arg "Empty input State mapping"
+                         | _rho :: vars -> vars),
+           Option.is_some (snd pid), Option.is_some transition)
+        in
+        (match State_key.find_opt k !schemas with
+         | None ->
+             schemas := State_key.add k schema !schemas;
+             live := State_key.add k Slots.empty !live
+         | Some previous when previous = schema -> ()
+         | Some _ -> invalid_arg "Inconsistent State schema")
+    | _ -> ()
+  in
+  List.iter (fun r ->
+      if List.exists (function State _ -> true | _ -> false) r.label then
+        invalid_arg "State cannot be an action";
+      if List.length (List.filter (function State _ -> true | _ -> false) r.pre) > 1 then
+        invalid_arg "Expected at most one State premise";
+      List.iter register (r.pre @ r.post)) rules;
+  let union_exprs es =
+    List.fold_left (fun acc e -> Ident.Set.union acc (vars_of_expr e))
+      Ident.Set.empty es
+  in
+  let needed_fact = function
+    | State { pid; index; mapping; _ } ->
+        let slots = State_key.find (key pid index) !live in
+        let values = List.filter_map (fun (i, (_, e)) ->
+            if Slots.mem i slots then Some e else None)
+            (List.mapi (fun i entry -> i, entry) mapping) in
+        union_exprs (values @ Option.to_list
+          (Option.map (fun (p : Subst.param_id) -> Ident (p :> Ident.t)) (snd pid)))
+    | f -> union_exprs (fact' f).args
+  in
+  (* All non-State premises are retained, including dependencies of dead
+     assignments. They can constrain enabledness even when their values die. *)
+  let changed = ref true in
+  while !changed do
+    changed := false;
+    List.iter (fun r ->
+        let needed = List.fold_left (fun acc f ->
+            Ident.Set.union acc (needed_fact f)) Ident.Set.empty
+            (r.pre @ r.label @ r.post) in
+        List.iter (function
+            | State { pid; index; mapping; _ } ->
+                let k = key pid index in
+                let previous = State_key.find k !live in
+                let seen = ref Ident.Set.empty in
+                let slots = List.fold_left (fun slots (i, (_, e)) ->
+                    match e with
+                    | Ident id when not (Ident.Set.mem id !seen) ->
+                        seen := Ident.Set.add id !seen;
+                        if Ident.Set.mem id needed then Slots.add i slots else slots
+                    | _ -> invalid_arg "State premise must contain distinct variable slots")
+                    previous (List.mapi (fun i entry -> i, entry) mapping) in
+                if not (Slots.equal previous slots) then (
+                  live := State_key.add k slots !live;
+                  changed := true)
+            | _ -> ()) r.pre) rules
+  done;
+  let project = function
+    | State ({ pid; index; mapping; _ } as state) ->
+        let slots = State_key.find (key pid index) !live in
+        let mapping = List.filter_map (fun (i, entry) ->
+            if Slots.mem i slots then Some entry else None)
+            (List.mapi (fun i entry -> i, entry) mapping) in
+        State { state with mapping }
+    | f -> f
+  in
+  fun (r : fact rule_data) ->
+    { r with pre = List.map project r.pre; post = List.map project r.post }
+
+let reduce_state_arguments rules =
+  List.map (state_argument_projection rules) rules
 
 let print_rule ppf rule =
   let open Format in
@@ -562,17 +655,15 @@ let rule_of_edge (pid : Subst.pid) (edge : Sem.edge) =
   let { deps= label_deps; result= label } = compile_facts label in
   let { deps= post_deps; result= post } = compile_facts post in
   let label =
-    facts'
-    @@
     if !Config.tag_transition then
       Transition { pid; source=edge.source; transition= Some Var } :: label
     else label
   in
   let pre =
-    facts' @@ state_pre :: pre @ pre_deps @ post_deps @ post_consts @ label_deps
+    state_pre :: pre @ pre_deps @ post_deps @ post_consts @ label_deps
   in
   let post =
-    facts' @@ state_post :: post in
+    state_post :: post in
   let comment =
     Some (Printf.sprintf
             "%s %s/%s : %s"
@@ -602,9 +693,9 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_
       let post = [ Inited_proc_group (proc_group_id, None); state ] in
       { id = Ident.prefix "Init_" (proc_group_id :> Ident.t)
       ; role = Some (proc_group_id :> Ident.t)
-      ; pre = facts' pre
-      ; label = facts' label
-      ; post = facts' post
+      ; pre
+      ; label
+      ; post
       ; comment
       }
   | Bounded (param, procs) ->
@@ -625,9 +716,9 @@ let proc_group_init ((proc_group_id : Subst.proc_group_id), (p : Sem.proc_group_
       let post = Inited_proc_group (proc_group_id, Some param) :: states in
       { id = Ident.prefix "Init_" (proc_group_id :> Ident.t)
       ; role = Some (proc_group_id :> Ident.t)
-      ; pre = facts' pre
-      ; label = facts' label
-      ; post = facts' post
+      ; pre
+      ; label
+      ; post
       ; comment
       }
 
@@ -792,6 +883,17 @@ let compile_sem ({ signature; proc_groups; constants; lemmas; access_controls } 
         | _procid, Bounded (_, ms) -> ms) proc_groups
   in
   let proc_group_inits = List.map proc_group_init proc_groups in
+  let proc_group_inits, models =
+    if !Config.state_liveness then (
+      let reduce = state_argument_projection
+          (proc_group_inits @ List.concat_map snd models) in
+      let proc_group_inits = List.map reduce proc_group_inits in
+      let models = List.map (fun (pid, rules) -> pid, List.map reduce rules) models in
+      proc_group_inits, models
+    ) else proc_group_inits, models
+  in
+  let proc_group_inits = List.map lower_rule proc_group_inits in
+  let models = List.map (fun (pid, rules) -> pid, List.map lower_rule rules) models in
   let lemmas = List.map (fun (id, l) -> id, compile_lemma l) lemmas in
   let access_controls = List.concat @@ List.filter_map (fun (proc_group_id, ac) ->
       compile_access_controls (proc_group_id, List.assoc proc_group_id proc_groups) ac)

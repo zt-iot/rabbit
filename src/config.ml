@@ -11,3 +11,5 @@ let debug = ref false
 let optimize = ref true
 
 let tag_transition = ref true
+
+let state_liveness = ref false

@@ -17,3 +17,6 @@ val optimize : bool ref
 
 (** Flag to enable transition tagging in output *)
 val tag_transition : bool ref
+
+(** Enable State argument reduction (disabled by default). *)
+val state_liveness : bool ref
