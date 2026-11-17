@@ -16,8 +16,8 @@ TRIM_INTERVAL_SECONDS=60  # how often to trim
 TRIM_SIZE_MB=10           # keep last 10 MB
 
 # List of all .rab files to evaluate when using "all"
-EXAMPLE_DIR="."
-OUTPUT_DIR="output"
+EXAMPLE_DIR="rabbit"
+OUTPUT_DIR="spthy"
 LOG_DIR="log"
 ALL_RABS=("default.rab" "dyncheck.rab" "parameterized.rab" "parameterized.dyncheck.rab")
 ALL_RABS=("parameterized.rab" "parameterized.dyncheck.rab")
@@ -185,8 +185,8 @@ function run_measure() {
     source "$CONFIG_FILE"
 
 
-    mkdir -p "log"
-    mkdir -p "output"
+    mkdir -p "$LOG_DIR"
+    mkdir -p "$OUTPUT_DIR"
 
     # echo ""
     echo "=== Measuring $file with compress:$compress sub-lemmas:$sublemmas timeout:${timeout_minutes}m ==="
@@ -207,15 +207,20 @@ function run_measure() {
 
     local suffix=""
     local option=""
+    # Name both settings explicitly: <model>.(un)compressed.(no)sublemmas.spthy
     if [[ "$compress" == "false" ]]; then
         rabbit_cmd+=("--compress" "false")
         option="${option} --compress false"
+        suffix="${suffix}.uncompressed"
+    else
         suffix="${suffix}.compressed"
     fi
 
     if [[ "$sublemmas" == "false" ]]; then
         rabbit_cmd+=("--tag-transition" "false")
         option="${option} --tag-transition false"
+        suffix="${suffix}.nosublemmas"
+    else
         suffix="${suffix}.sublemmas"
     fi
     local spthy_file="${OUTPUT_DIR}/${base}${suffix}.spthy"

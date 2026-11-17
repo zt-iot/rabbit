@@ -14,3 +14,7 @@ examples/*.log
 examples/*.viz
 examples/*.svg
 examples/*.svg2
+
+# experiment runs (experiments/evaluate.sh)
+experiments/log/
+experiments/evaluate.sh.config.env
