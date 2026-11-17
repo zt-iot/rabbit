@@ -246,7 +246,12 @@ let rec optimize_at (m : model) (st : state) =
       (* judge if we will merge these edges st -[tr1]-> st_m -> [tr2] -> st_f  *)
       let is_labelled =
         begin match tr1.transition_label, tr2.transition_label with
-        | [], [] -> Some (Inl [])
+        | [], [] ->
+          (* Merge only if tr1 has a local postcondition or tr2 has no precondition. *)
+          if List.exists is_nonlocal_fact tr1.transition_post
+             && tr2.transition_pre <> []
+          then None
+          else Some (Inl [])
         | l, [] ->
           begin
           (* when only tr1 has a label, merge when tr2 is local *)

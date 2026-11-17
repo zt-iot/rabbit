@@ -1,0 +1,34 @@
+(* P puts M() and then blocks on a false assumption.
+   Compression must not merge the put with the guard: otherwise the put becomes
+   unreachable and Received is wrongly refuted. *)
+type proc_t : process
+type chan_t : channel
+
+channel ch : chan_t
+
+process p(ch : chan_t) : proc_t
+{
+  main {
+    put [ch::M()];
+    assume ["0" = "1"] in skip
+  }
+}
+
+process q(ch : chan_t) : proc_t
+{
+  main {
+    case
+    | [ch::M()] -> event [::Received()]
+    end
+  }
+}
+
+allow proc_t chan_t [.]
+
+system
+  p(ch) | q(ch)
+requires
+[
+  lemma Received : (* verified *)
+    reachable ::Received()
+]
