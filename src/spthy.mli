@@ -129,7 +129,7 @@ type 'a rule_data =
 type rule = fact' rule_data
 
 val reduce_state_arguments : fact rule_data list -> fact rule_data list
-(** Project dead State slots using backward liveness over all supplied rules.
+(** Return rules with unused State values removed.
     Supply initialization and model rules together. Non-State facts are preserved.
     Input State mappings must contain rho followed by consistently ordered variables;
     State premises must have distinct variable values. *)

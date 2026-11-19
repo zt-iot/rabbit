@@ -498,6 +498,7 @@ type 'a rule_data =
 
 type rule = fact' rule_data
 
+(* Convert a structured rule to the fact representation accepted by the printer. *)
 let lower_rule (r : fact rule_data) : rule =
   { r with pre = facts' r.pre; label = facts' r.label; post = facts' r.post }
 
@@ -506,15 +507,22 @@ let lower_rule (r : fact rule_data) : rule =
    of a State symbol. Parameters and transition counters are never projected. *)
 module State_key = Map.Make (struct
   type t = Subst.proc_id * Sem.Index.t
+  (* Order State identities for use as map keys. *)
   let compare = compare
 end)
 
 module Slots = Set.Make (Int)
 
+(* Return a rule transformer that removes unused State values.
+   Supply all initialization and model rules together; apply it only to those rules.
+   Parameters, counters and non-State facts are preserved. *)
 let state_argument_projection (rules : fact rule_data list) =
   let schemas = ref State_key.empty in
   let live = ref State_key.empty in
+  (* Identify the State symbol for a process and control location. *)
   let key pid index = fst pid, index in
+  (* Register a State's argument schema, rejecting inconsistent uses of its symbol.
+     Non-State facts are accepted without effect. *)
   let register = function
     | State { pid; index; mapping; transition } ->
         let k = key pid index in
@@ -537,10 +545,12 @@ let state_argument_projection (rules : fact rule_data list) =
       if List.length (List.filter (function State _ -> true | _ -> false) r.pre) > 1 then
         invalid_arg "Expected at most one State premise";
       List.iter register (r.pre @ r.post)) rules;
+  (* Return all variable identifiers referenced by the supplied expressions. *)
   let union_exprs es =
     List.fold_left (fun acc e -> Ident.Set.union acc (vars_of_expr e))
       Ident.Set.empty es
   in
+  (* Return variables needed by a fact under the current State retention requirements. *)
   let needed_fact = function
     | State { pid; index; mapping; _ } ->
         let slots = State_key.find (key pid index) !live in
@@ -577,6 +587,7 @@ let state_argument_projection (rules : fact rule_data list) =
                   changed := true)
             | _ -> ()) r.pre) rules
   done;
+  (* Remove unused values from a registered State, preserving other fact contents. *)
   let project = function
     | State ({ pid; index; mapping; _ } as state) ->
         let slots = State_key.find (key pid index) !live in
@@ -589,6 +600,7 @@ let state_argument_projection (rules : fact rule_data list) =
   fun (r : fact rule_data) ->
     { r with pre = List.map project r.pre; post = List.map project r.post }
 
+(* Reduce unused State arguments across a complete set of initialization and model rules. *)
 let reduce_state_arguments rules =
   List.map (state_argument_projection rules) rules
 
